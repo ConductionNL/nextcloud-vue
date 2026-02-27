@@ -1,0 +1,46 @@
+/* ========================================
+   @conduction/nextcloud-vue — Utilities
+   ======================================== */
+
+/* Text Utilities */
+.cn-text-ellipsis {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-text-description {
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-text-success { color: var(--color-success); }
+.cn-text-error { color: var(--color-error); }
+.cn-text-warning { color: var(--color-warning); }
+.cn-text-muted { color: var(--color-text-maxcontrast); }
+
+/* Vue Transition Animations */
+.cn-slide-fade-enter-active {
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cn-slide-fade-leave-active {
+	transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.cn-slide-fade-enter,
+.cn-slide-fade-enter-from {
+	transform: translateY(-10px);
+	opacity: 0;
+}
+
+.cn-slide-fade-leave-to {
+	transform: translateY(-5px);
+	opacity: 0;
+}
+
+/* Backwards compatibility aliases */
+.textEllipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.textDescription { font-size: 0.9em; color: var(--color-text-maxcontrast); }
+.successMessage { color: var(--color-success); }
+.errorMessage { color: var(--color-error); }

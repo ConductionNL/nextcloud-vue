@@ -1,0 +1,143 @@
+/* ========================================
+   @conduction/nextcloud-vue — Table Styles
+   ======================================== */
+
+/* Table Container */
+.cn-table-container {
+	background: var(--nldesign-component-table-background-color, var(--color-main-background));
+	border-radius: var(--nldesign-border-radius, var(--border-radius));
+	overflow: hidden;
+	box-shadow: 0 2px 4px var(--color-box-shadow);
+	border: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	margin-bottom: 20px;
+}
+
+.cn-table-container.cn-table-container--scrollable {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+/* Base Table */
+.cn-data-table {
+	width: 100%;
+	border-collapse: collapse;
+	background-color: var(--nldesign-component-table-background-color, var(--color-main-background));
+}
+
+.cn-data-table th,
+.cn-data-table td {
+	padding: var(--nldesign-component-table-cell-padding-block, 12px)
+		var(--nldesign-component-table-cell-padding-inline, 12px);
+	text-align: left;
+	border-bottom: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	vertical-align: middle;
+}
+
+.cn-data-table th {
+	background: var(--nldesign-component-table-header-background-color, var(--color-background-dark));
+	font-weight: var(--nldesign-component-table-header-font-weight, 500);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-data-table th.cn-table-header--sortable {
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.2s ease;
+}
+
+.cn-data-table th.cn-table-header--sortable:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-table-sort-indicator {
+	margin-left: 4px;
+	opacity: 0.6;
+}
+
+/* Row States */
+.cn-table-row {
+	border-bottom: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.cn-table-row:hover {
+	background: var(--nldesign-component-table-row-hover-background-color, var(--color-background-hover));
+}
+
+.cn-table-row--selected {
+	background-color: var(--color-primary-light);
+	border-left: 3px solid var(--color-primary);
+}
+
+.cn-table-row--selected:hover {
+	background-color: var(--color-primary-light);
+}
+
+/* Column Types */
+.cn-table-col--checkbox {
+	width: 50px;
+	text-align: center;
+}
+
+.cn-table-col--actions {
+	width: 120px;
+	text-align: center;
+	min-width: 120px;
+}
+
+.cn-table-col--constrained {
+	width: 150px;
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-table-col--expanded {
+	width: auto;
+	min-width: 200px;
+}
+
+.cn-table-col--title {
+	min-width: 120px;
+	max-width: 200px;
+	word-wrap: break-word;
+	overflow: hidden;
+}
+
+/* Loading State */
+.cn-table-loading {
+	text-align: center;
+	padding: 50px;
+}
+
+.cn-table-loading p {
+	margin-top: 20px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Empty State (inside table) */
+.cn-table-empty td {
+	text-align: center;
+	padding: 48px 24px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* ========================================
+   Backwards compatibility aliases
+   (legacy OpenRegister CSS class names)
+   ======================================== */
+.viewTableContainer { background: var(--nldesign-component-table-background-color, var(--color-main-background)); border-radius: var(--nldesign-border-radius, var(--border-radius)); overflow: hidden; box-shadow: 0 2px 4px var(--color-box-shadow); border: 1px solid var(--nldesign-component-table-border-color, var(--color-border)); margin-bottom: 20px; }
+.viewTableContainer.scrollable { max-height: 400px; overflow-y: auto; }
+.viewTable { width: 100%; border-collapse: collapse; background-color: var(--nldesign-component-table-background-color, var(--color-main-background)); }
+.viewTable th, .viewTable td { padding: 12px; text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.viewTable th { background: var(--color-background-hover); font-weight: 500; color: var(--color-text-maxcontrast); background-color: var(--color-background-dark); }
+.viewTableRow { border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background-color 0.2s ease; }
+.viewTableRow:hover { background: var(--color-background-hover); }
+.viewTableRow.active, .viewTableRowSelected { background: var(--color-primary-light); }
+.tableColumnCheckbox { width: 50px; text-align: center; }
+.tableColumnActions { width: 120px; text-align: center; min-width: 120px; }
+.tableColumnConstrained { width: 150px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tableColumnExpanded { width: auto; min-width: 200px; }
+.tableColumnTitle { min-width: 120px; max-width: 200px; word-wrap: break-word; overflow: hidden; }

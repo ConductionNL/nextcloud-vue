@@ -1,0 +1,128 @@
+/* ========================================
+   @conduction/nextcloud-vue — Card Styles
+   ======================================== */
+
+/* Card Grid */
+.cn-card-grid {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Base Card */
+.cn-card {
+	background: var(--color-main-background);
+	border-radius: 8px;
+	padding: 20px;
+	box-shadow: 0 2px 8px var(--color-box-shadow);
+	min-height: 200px;
+	transition: transform 0.2s ease-in-out;
+	border: 1px solid var(--color-border);
+}
+
+.cn-card:hover {
+	transform: scale(1.01);
+	box-shadow: 0 4px 12px var(--color-box-shadow);
+}
+
+/* Card Header */
+.cn-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-card-header h2,
+.cn-card-header h3 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: var(--color-main-text);
+}
+
+.cn-card-header h2 { font-size: 1.2em; }
+.cn-card-header h3 { font-size: 1.1em; }
+
+/* Settings Card */
+.cn-settings-card {
+	background: var(--color-background-hover);
+	border-radius: var(--border-radius-large);
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.cn-settings-card h4 {
+	margin: 0 0 16px 0;
+	color: var(--color-main-text);
+	font-size: 16px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-settings-card--collapsible h4 {
+	cursor: pointer;
+	user-select: none;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	transition: color 0.2s ease;
+	margin-bottom: 0;
+}
+
+.cn-settings-card--collapsible h4:hover {
+	color: var(--color-primary-element);
+}
+
+.cn-settings-card__chevron {
+	transition: transform 0.3s ease;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-settings-card--collapsible h4:hover .cn-settings-card__chevron {
+	color: var(--color-primary-element);
+}
+
+.cn-settings-card__content {
+	padding-top: 16px;
+}
+
+/* Stat Grid */
+.cn-stat-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.cn-stat-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-stat-label {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-stat-value {
+	font-size: 1.1em;
+	font-weight: 600;
+}
+
+/* Backwards compatibility aliases */
+.cardGrid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card { background: var(--color-main-background); border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px var(--color-box-shadow); min-height: 200px; transition: transform 0.2s ease-in-out; border: 1px solid var(--color-border); }
+.card:hover { transform: scale(1.01); box-shadow: 0 4px 12px var(--color-box-shadow); }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+.statGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.statItem { display: flex; flex-direction: column; gap: 4px; }
+.statLabel { color: var(--color-text-maxcontrast); font-size: 0.9em; }
+.statValue { font-size: 1.1em; font-weight: 600; }

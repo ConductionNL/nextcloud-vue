@@ -1,0 +1,68 @@
+/* ========================================
+   @conduction/nextcloud-vue — Detail Styles
+   ======================================== */
+
+/* Detail Grid (metadata display) */
+.cn-detail-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.cn-detail-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px 12px;
+	border-left: 3px solid var(--color-primary-element);
+	background: var(--color-background-hover);
+	border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+.cn-detail-item__label {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+	font-weight: 500;
+}
+
+.cn-detail-item__value {
+	font-size: 1em;
+	color: var(--color-main-text);
+	word-break: break-word;
+}
+
+/* Detail Layout */
+.cn-detail-layout {
+	max-width: 1000px;
+	padding: 20px;
+}
+
+.cn-detail-layout__header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.cn-detail-layout__title {
+	flex: 1;
+	margin: 0;
+	font-size: 1.5em;
+	color: var(--color-main-text);
+}
+
+.cn-detail-layout__actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.cn-detail-layout__content {
+	margin-top: 16px;
+}
+
+/* Backwards compatibility aliases */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.detail-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-left: 3px solid var(--color-primary-element); background: var(--color-background-hover); border-radius: 0 var(--border-radius) var(--border-radius) 0; }
+.detailContainer { margin-block-start: 20px; margin-inline-start: 20px; margin-inline-end: 20px; }

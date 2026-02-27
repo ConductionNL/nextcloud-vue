@@ -1,0 +1,300 @@
+import { createPinia, setActivePinia } from 'pinia'
+import { createObjectStore } from '../../src/store/useObjectStore.js'
+import { filesPlugin } from '../../src/store/plugins/files.js'
+import { auditTrailsPlugin } from '../../src/store/plugins/auditTrails.js'
+import { relationsPlugin } from '../../src/store/plugins/relations.js'
+import { lifecyclePlugin } from '../../src/store/plugins/lifecycle.js'
+
+describe('useObjectStore', () => {
+	let store
+
+	beforeEach(() => {
+		setActivePinia(createPinia())
+		const useStore = createObjectStore('test-store')
+		store = useStore()
+	})
+
+	describe('registerObjectType', () => {
+		it('registers a new object type', () => {
+			store.registerObjectType('client', '28', '5')
+
+			expect(store.objectTypeRegistry.client).toEqual({
+				schema: '28',
+				register: '5',
+			})
+			expect(store.collections.client).toEqual([])
+			expect(store.objects.client).toEqual({})
+			expect(store.loading.client).toBe(false)
+			expect(store.errors.client).toBe(null)
+		})
+
+		it('exposes the type in objectTypes getter', () => {
+			store.registerObjectType('client', '28', '5')
+			store.registerObjectType('lead', '30', '5')
+
+			expect(store.objectTypes).toEqual(['client', 'lead'])
+		})
+	})
+
+	describe('unregisterObjectType', () => {
+		it('removes all state for a type', () => {
+			store.registerObjectType('client', '28', '5')
+			store.unregisterObjectType('client')
+
+			expect(store.objectTypeRegistry.client).toBeUndefined()
+			expect(store.collections.client).toBeUndefined()
+		})
+	})
+
+	describe('_buildUrl', () => {
+		it('builds URL from type config', () => {
+			store.registerObjectType('client', '28', '5')
+			expect(store._buildUrl('client')).toBe('/apps/openregister/api/objects/5/28')
+		})
+
+		it('appends object ID when provided', () => {
+			store.registerObjectType('client', '28', '5')
+			expect(store._buildUrl('client', 'abc-123')).toBe('/apps/openregister/api/objects/5/28/abc-123')
+		})
+
+		it('throws for unregistered types', () => {
+			expect(() => store._buildUrl('unknown')).toThrow('Object type "unknown" is not registered')
+		})
+	})
+
+	describe('configure', () => {
+		it('overrides base URL', () => {
+			store.configure({ baseUrl: '/custom/api' })
+			store.registerObjectType('item', '1', '2')
+			expect(store._buildUrl('item')).toBe('/custom/api/2/1')
+		})
+	})
+
+	describe('search terms', () => {
+		it('sets and clears search terms', () => {
+			store.registerObjectType('client', '28', '5')
+			store.setSearchTerm('client', 'test query')
+			expect(store.getSearchTerm('client')).toBe('test query')
+
+			store.clearSearchTerm('client')
+			expect(store.getSearchTerm('client')).toBe('')
+		})
+	})
+
+	describe('getters with defaults', () => {
+		it('returns empty array for unknown collection', () => {
+			expect(store.getCollection('nonexistent')).toEqual([])
+		})
+
+		it('returns null for unknown object', () => {
+			expect(store.getObject('nonexistent', '123')).toBeNull()
+		})
+
+		it('returns false for unknown loading state', () => {
+			expect(store.isLoading('nonexistent')).toBe(false)
+		})
+
+		it('returns default pagination for unknown type', () => {
+			expect(store.getPagination('nonexistent')).toEqual({
+				total: 0, page: 1, pages: 1, limit: 20,
+			})
+		})
+	})
+
+	describe('fetchCollection', () => {
+		it('fetches and stores collection data', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({
+					results: [{ id: '1', name: 'Client A' }, { id: '2', name: 'Client B' }],
+					total: 2,
+					page: 1,
+					pages: 1,
+				}),
+			})
+
+			const result = await store.fetchCollection('client')
+
+			expect(result).toHaveLength(2)
+			expect(store.collections.client).toHaveLength(2)
+			expect(store.pagination.client.total).toBe(2)
+			expect(store.loading.client).toBe(false)
+		})
+
+		it('handles API errors', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: false,
+				status: 404,
+				statusText: 'Not Found',
+				json: () => Promise.resolve({ message: 'Not found' }),
+			})
+
+			const result = await store.fetchCollection('client')
+
+			expect(result).toEqual([])
+			expect(store.errors.client).toBeTruthy()
+			expect(store.errors.client.status).toBe(404)
+		})
+
+		it('handles network errors', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+			const result = await store.fetchCollection('client')
+
+			expect(result).toEqual([])
+			expect(store.errors.client).toBeTruthy()
+			expect(store.errors.client.status).toBe(0)
+		})
+	})
+
+	describe('fetchObject', () => {
+		it('fetches and caches a single object', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			const result = await store.fetchObject('client', 'abc')
+
+			expect(result).toEqual({ id: 'abc', name: 'Test Client' })
+			expect(store.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
+		})
+	})
+
+	describe('saveObject', () => {
+		it('creates new objects with POST', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'new-1', name: 'New Client' }),
+			})
+
+			await store.saveObject('client', { name: 'New Client' })
+
+			expect(global.fetch).toHaveBeenCalledWith(
+				'/apps/openregister/api/objects/5/28',
+				expect.objectContaining({ method: 'POST' }),
+			)
+		})
+
+		it('updates existing objects with PUT', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Updated' }),
+			})
+
+			await store.saveObject('client', { id: 'abc', name: 'Updated' })
+
+			expect(global.fetch).toHaveBeenCalledWith(
+				'/apps/openregister/api/objects/5/28/abc',
+				expect.objectContaining({ method: 'PUT' }),
+			)
+		})
+	})
+
+	describe('deleteObject', () => {
+		it('removes from cache and collection', async () => {
+			store.registerObjectType('client', '28', '5')
+			store.collections.client = [{ id: 'abc' }, { id: 'def' }]
+			store.objects.client = { abc: { id: 'abc' }, def: { id: 'def' } }
+
+			global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+			const result = await store.deleteObject('client', 'abc')
+
+			expect(result).toBe(true)
+			expect(store.objects.client.abc).toBeUndefined()
+			expect(store.collections.client).toHaveLength(1)
+			expect(store.collections.client[0].id).toBe('def')
+		})
+	})
+})
+
+describe('createObjectStore with plugins', () => {
+	let store
+
+	beforeEach(() => {
+		setActivePinia(createPinia())
+	})
+
+	it('merges plugin state into the store', () => {
+		const useStore = createObjectStore('test-plugins', {
+			plugins: [filesPlugin(), auditTrailsPlugin()],
+		})
+		store = useStore()
+
+		expect(store.files).toBeDefined()
+		expect(store.files.results).toEqual([])
+		expect(store.filesLoading).toBe(false)
+		expect(store.filesError).toBeNull()
+		expect(store.auditTrails).toBeDefined()
+		expect(store.auditTrailsLoading).toBe(false)
+	})
+
+	it('merges plugin actions', () => {
+		const useStore = createObjectStore('test-actions', {
+			plugins: [filesPlugin(), lifecyclePlugin()],
+		})
+		store = useStore()
+
+		expect(typeof store.fetchFiles).toBe('function')
+		expect(typeof store.uploadFiles).toBe('function')
+		expect(typeof store.publishFile).toBe('function')
+		expect(typeof store.deleteFile).toBe('function')
+		expect(typeof store.lockObject).toBe('function')
+		expect(typeof store.unlockObject).toBe('function')
+		expect(typeof store.publishObject).toBe('function')
+		expect(typeof store.revertObject).toBe('function')
+	})
+
+	it('merges relations plugin (3 sub-resources)', () => {
+		const useStore = createObjectStore('test-relations', {
+			plugins: [relationsPlugin()],
+		})
+		store = useStore()
+
+		expect(store.contracts).toBeDefined()
+		expect(store.uses).toBeDefined()
+		expect(store.used).toBeDefined()
+		expect(typeof store.fetchContracts).toBe('function')
+		expect(typeof store.fetchUses).toBe('function')
+		expect(typeof store.fetchUsed).toBe('function')
+	})
+
+	it('clearAllSubResources calls all plugin clear methods', () => {
+		const useStore = createObjectStore('test-clear', {
+			plugins: [filesPlugin(), auditTrailsPlugin()],
+		})
+		store = useStore()
+
+		store.files = { results: [{ id: 1 }], total: 1, page: 1, pages: 1, limit: 20, offset: 0 }
+		store.auditTrails = { results: [{ id: 2 }], total: 1, page: 1, pages: 1, limit: 20, offset: 0 }
+
+		store.clearAllSubResources()
+
+		expect(store.files.results).toEqual([])
+		expect(store.auditTrails.results).toEqual([])
+	})
+
+	it('works without plugins (backwards compatible)', () => {
+		const useStore = createObjectStore('test-no-plugins')
+		store = useStore()
+
+		expect(typeof store.fetchCollection).toBe('function')
+		expect(typeof store.fetchObject).toBe('function')
+		expect(typeof store.saveObject).toBe('function')
+		expect(typeof store.deleteObject).toBe('function')
+		expect(store.files).toBeUndefined()
+	})
+})

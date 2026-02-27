@@ -1,0 +1,72 @@
+/* ========================================
+   @conduction/nextcloud-vue — Pagination
+   ======================================== */
+
+.cn-pagination {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 15px;
+	margin-top: 30px;
+	padding: 20px;
+	flex-wrap: nowrap;
+}
+
+.cn-pagination__info {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.cn-pagination__page-info {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9rem;
+}
+
+.cn-pagination__nav {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-grow: 1;
+	justify-content: center;
+}
+
+.cn-pagination__numbers {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.cn-pagination__ellipsis {
+	padding: 0 5px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9rem;
+}
+
+.cn-pagination__page-size {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
+	min-width: 0;
+}
+
+.cn-pagination__page-size label {
+	font-size: 0.9rem;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+}
+
+.cn-pagination__page-size-select {
+	min-width: 100px !important;
+	max-width: 120px !important;
+}
+
+/* Backwards compatibility aliases */
+.viewPagination { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 30px; padding: 20px; flex-wrap: nowrap; }
+.viewPaginationInfo { display: flex; align-items: center; flex-shrink: 0; }
+.viewPageInfo { color: var(--color-text-maxcontrast); font-size: 0.9rem; }
+.viewPaginationNav { display: flex; align-items: center; gap: 10px; flex-grow: 1; justify-content: center; }
+.viewPaginationNumbers { display: flex; align-items: center; gap: 5px; }
+.viewPaginationEllipsis { padding: 0 5px; color: var(--color-text-maxcontrast); font-size: 0.9rem; }
+.viewPaginationPageSize { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; }

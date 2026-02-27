@@ -1,0 +1,90 @@
+/* ========================================
+   @conduction/nextcloud-vue — Layout Styles
+   ======================================== */
+
+/* List View Layout */
+.cn-list-layout {
+	padding: 20px;
+}
+
+.cn-list-layout__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+
+.cn-list-layout__title {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.cn-list-layout__title h2 {
+	margin: 0;
+	font-size: 1.4em;
+	color: var(--color-main-text);
+}
+
+.cn-list-layout__title .cn-list-layout__count {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-list-layout__actions {
+	display: flex;
+	gap: 8px;
+}
+
+/* Filter Bar */
+.cn-filter-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+
+.cn-filter-bar__search {
+	flex: 1;
+	min-width: 200px;
+	max-width: 400px;
+}
+
+.cn-filter-bar__filters {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.cn-filter-bar__filter {
+	min-width: 150px;
+	max-width: 200px;
+}
+
+.cn-filter-bar__clear {
+	margin-left: auto;
+}
+
+/* Dashboard Content */
+.cn-dashboard-content {
+	margin-inline: auto;
+	max-width: 1200px;
+	padding-block: 20px;
+	padding-inline: 20px;
+}
+
+/* Loading Container */
+.cn-loading-container {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: var(--color-text-maxcontrast);
+	justify-content: center;
+	padding-block: 40px;
+}
+
+/* Backwards compatibility aliases */
+.dashboardContent { margin-inline: auto; max-width: 1200px; padding-block: 20px; padding-inline: 20px; }
+.loadingContainer { display: flex; align-items: center; gap: 10px; color: var(--color-text-maxcontrast); justify-content: center; padding-block: 40px; }
