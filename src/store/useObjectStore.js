@@ -101,6 +101,8 @@ function baseState() {
 		pagination: {},
 		/** @type {Object<string, string>} */
 		searchTerms: {},
+		/** @type {Object<string, object|null>} */
+		schemas: {},
 		/** @type {{baseUrl: string}} */
 		_options: {
 			baseUrl: DEFAULT_BASE_URL,
@@ -159,6 +161,12 @@ const baseGetters = {
 	 * @return {Function} (type: string) => string
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
+
+	/**
+	 * Get a cached schema for a type.
+	 * @return {Function} (type: string) => object|null
+	 */
+	getSchema: (state) => (type) => state.schemas[type] || null,
 }
 
 // ── Base actions ────────────────────────────────────────────────────────
@@ -190,6 +198,7 @@ const baseActions = {
 		this.errors[slug] = null
 		this.pagination[slug] = { total: 0, page: 1, pages: 1, limit: 20 }
 		this.searchTerms[slug] = ''
+		this.schemas[slug] = null
 	},
 
 	/**
@@ -205,6 +214,7 @@ const baseActions = {
 		delete this.errors[slug]
 		delete this.pagination[slug]
 		delete this.searchTerms[slug]
+		delete this.schemas[slug]
 	},
 
 	/**
@@ -264,6 +274,36 @@ const baseActions = {
 	 */
 	clearSearchTerm(type) {
 		this.searchTerms[type] = ''
+	},
+
+	/**
+	 * Fetch the schema definition for a registered type.
+	 * Uses cache — only fetches once per type per session.
+	 *
+	 * @param {string} type The registered type slug
+	 * @return {Promise<object|null>} The schema object or null on error
+	 */
+	async fetchSchema(type) {
+		const config = this._getTypeConfig(type)
+
+		if (this.schemas[type]) {
+			return this.schemas[type]
+		}
+
+		try {
+			const response = await fetch(
+				`/apps/openregister/api/schemas/${config.schema}`,
+				{ method: 'GET', headers: buildHeaders() },
+			)
+
+			if (!response.ok) return null
+
+			const schema = await response.json()
+			this.schemas[type] = schema
+			return schema
+		} catch {
+			return null
+		}
 	},
 
 	/**
