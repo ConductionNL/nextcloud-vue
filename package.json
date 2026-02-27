@@ -21,6 +21,7 @@
 		"test": "jest",
 		"lint": "eslint src/",
 		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
+		"prepare": "npm run build",
 		"prepublishOnly": "npm run build"
 	},
 	"peerDependencies": {
