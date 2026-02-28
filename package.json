@@ -12,9 +12,7 @@
 		"dist/",
 		"src/"
 	],
-	"sideEffects": [
-		"*.css"
-	],
+	"sideEffects": true,
 	"scripts": {
 		"build": "rollup -c",
 		"dev": "rollup -c -w",
