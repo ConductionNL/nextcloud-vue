@@ -1,4 +1,4 @@
-import { columnsFromSchema, formatValue, filtersFromSchema } from '@/utils/schema.js'
+import { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from '@/utils/schema.js'
 
 // ---------- Test schema fixtures ----------
 
@@ -363,5 +363,345 @@ describe('filtersFromSchema', () => {
 		for (const filter of filters) {
 			expect(filter.value).toBeNull()
 		}
+	})
+})
+
+// ---------- fieldsFromSchema ----------
+
+const formSchema = {
+	title: 'Client',
+	required: ['name', 'email'],
+	properties: {
+		name: {
+			type: 'string',
+			title: 'Name',
+			minLength: 2,
+			maxLength: 100,
+			order: 1,
+		},
+		email: {
+			type: 'string',
+			format: 'email',
+			title: 'Email Address',
+			order: 2,
+		},
+		description: {
+			type: 'string',
+			title: 'Description',
+			maxLength: 500,
+			format: 'textarea',
+			order: 3,
+		},
+		longText: {
+			type: 'string',
+			title: 'Long Text',
+			maxLength: 1000,
+			order: 4,
+		},
+		age: {
+			type: 'integer',
+			title: 'Age',
+			minimum: 0,
+			maximum: 150,
+			order: 5,
+		},
+		rating: {
+			type: 'number',
+			title: 'Rating',
+			order: 6,
+		},
+		active: {
+			type: 'boolean',
+			title: 'Active',
+			default: true,
+			order: 7,
+		},
+		status: {
+			type: 'string',
+			title: 'Status',
+			enum: ['active', 'inactive', 'pending'],
+			order: 8,
+		},
+		tags: {
+			type: 'array',
+			title: 'Tags',
+			items: { type: 'string' },
+			order: 9,
+		},
+		categories: {
+			type: 'array',
+			title: 'Categories',
+			items: { type: 'string', enum: ['A', 'B', 'C'] },
+			order: 10,
+		},
+		website: {
+			type: 'string',
+			format: 'uri',
+			title: 'Website',
+			order: 11,
+		},
+		createdAt: {
+			type: 'string',
+			format: 'date-time',
+			title: 'Created',
+			readOnly: true,
+			order: 12,
+		},
+		birthDate: {
+			type: 'string',
+			format: 'date',
+			title: 'Birth Date',
+			order: 13,
+		},
+		uuid: {
+			type: 'string',
+			format: 'uuid',
+			title: 'ID',
+			readOnly: true,
+			order: 14,
+		},
+		notes: {
+			type: 'string',
+			format: 'markdown',
+			title: 'Notes',
+			order: 15,
+		},
+		metadata: {
+			type: 'object',
+			title: 'Metadata',
+		},
+		hidden: {
+			type: 'string',
+			title: 'Hidden',
+			visible: false,
+		},
+		customWidget: {
+			type: 'string',
+			title: 'Custom',
+			widget: 'color-picker',
+			order: 16,
+		},
+	},
+}
+
+describe('fieldsFromSchema', () => {
+
+	it('generates fields from schema properties', () => {
+		const fields = fieldsFromSchema(formSchema)
+		expect(fields.length).toBeGreaterThan(0)
+		expect(fields[0]).toHaveProperty('key')
+		expect(fields[0]).toHaveProperty('label')
+		expect(fields[0]).toHaveProperty('widget')
+		expect(fields[0]).toHaveProperty('required')
+		expect(fields[0]).toHaveProperty('validation')
+	})
+
+	it('sorts fields by order hint', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const keys = fields.map((f) => f.key)
+		expect(keys.indexOf('name')).toBeLessThan(keys.indexOf('email'))
+		expect(keys.indexOf('email')).toBeLessThan(keys.indexOf('description'))
+		expect(keys.indexOf('age')).toBeLessThan(keys.indexOf('active'))
+	})
+
+	it('marks required fields from schema.required', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const nameField = fields.find((f) => f.key === 'name')
+		const emailField = fields.find((f) => f.key === 'email')
+		const ageField = fields.find((f) => f.key === 'age')
+		expect(nameField.required).toBe(true)
+		expect(emailField.required).toBe(true)
+		expect(ageField.required).toBe(false)
+	})
+
+	it('excludes readOnly properties by default', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const keys = fields.map((f) => f.key)
+		expect(keys).not.toContain('createdAt')
+		expect(keys).not.toContain('uuid')
+	})
+
+	it('includes readOnly when option set', () => {
+		const fields = fieldsFromSchema(formSchema, { includeReadOnly: true })
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('createdAt')
+		expect(keys).toContain('uuid')
+		const createdField = fields.find((f) => f.key === 'createdAt')
+		expect(createdField.readOnly).toBe(true)
+	})
+
+	it('excludes visible: false properties', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const keys = fields.map((f) => f.key)
+		expect(keys).not.toContain('hidden')
+	})
+
+	it('excludes object-type properties', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const keys = fields.map((f) => f.key)
+		expect(keys).not.toContain('metadata')
+	})
+
+	it('applies exclude option', () => {
+		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
+		const keys = fields.map((f) => f.key)
+		expect(keys).not.toContain('description')
+		expect(keys).not.toContain('tags')
+		expect(keys).toContain('name')
+	})
+
+	it('applies include option (whitelist)', () => {
+		const fields = fieldsFromSchema(formSchema, { include: ['name', 'email'] })
+		expect(fields).toHaveLength(2)
+		expect(fields.map((f) => f.key)).toEqual(['name', 'email'])
+	})
+
+	it('applies per-field overrides', () => {
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { name: { widget: 'textarea', label: 'Full Name' } },
+		})
+		const nameField = fields.find((f) => f.key === 'name')
+		expect(nameField.widget).toBe('textarea')
+		expect(nameField.label).toBe('Full Name')
+	})
+
+	// --- Widget resolution ---
+
+	it('resolves string to text widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const nameField = fields.find((f) => f.key === 'name')
+		expect(nameField.widget).toBe('text')
+	})
+
+	it('resolves email format to email widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const emailField = fields.find((f) => f.key === 'email')
+		expect(emailField.widget).toBe('email')
+	})
+
+	it('resolves textarea format to textarea widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const descField = fields.find((f) => f.key === 'description')
+		expect(descField.widget).toBe('textarea')
+	})
+
+	it('resolves long maxLength to textarea widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const longField = fields.find((f) => f.key === 'longText')
+		expect(longField.widget).toBe('textarea')
+	})
+
+	it('resolves integer to number widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const ageField = fields.find((f) => f.key === 'age')
+		expect(ageField.widget).toBe('number')
+	})
+
+	it('resolves number to number widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const ratingField = fields.find((f) => f.key === 'rating')
+		expect(ratingField.widget).toBe('number')
+	})
+
+	it('resolves boolean to checkbox widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const activeField = fields.find((f) => f.key === 'active')
+		expect(activeField.widget).toBe('checkbox')
+	})
+
+	it('resolves enum to select widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const statusField = fields.find((f) => f.key === 'status')
+		expect(statusField.widget).toBe('select')
+		expect(statusField.enum).toEqual(['active', 'inactive', 'pending'])
+	})
+
+	it('resolves array to tags widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const tagsField = fields.find((f) => f.key === 'tags')
+		expect(tagsField.widget).toBe('tags')
+	})
+
+	it('resolves array with enum items to multiselect widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const catField = fields.find((f) => f.key === 'categories')
+		expect(catField.widget).toBe('multiselect')
+	})
+
+	it('resolves uri format to url widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const webField = fields.find((f) => f.key === 'website')
+		expect(webField.widget).toBe('url')
+	})
+
+	it('resolves date format to date widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const dateField = fields.find((f) => f.key === 'birthDate')
+		expect(dateField.widget).toBe('date')
+	})
+
+	it('resolves date-time format to datetime widget', () => {
+		const fields = fieldsFromSchema(formSchema, { includeReadOnly: true })
+		const dtField = fields.find((f) => f.key === 'createdAt')
+		expect(dtField.widget).toBe('datetime')
+	})
+
+	it('resolves markdown format to textarea widget', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const notesField = fields.find((f) => f.key === 'notes')
+		expect(notesField.widget).toBe('textarea')
+	})
+
+	it('uses explicit widget hint over auto-resolution', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const customField = fields.find((f) => f.key === 'customWidget')
+		expect(customField.widget).toBe('color-picker')
+	})
+
+	// --- Validation constraints ---
+
+	it('carries validation constraints', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const nameField = fields.find((f) => f.key === 'name')
+		expect(nameField.validation.minLength).toBe(2)
+		expect(nameField.validation.maxLength).toBe(100)
+
+		const ageField = fields.find((f) => f.key === 'age')
+		expect(ageField.validation.minimum).toBe(0)
+		expect(ageField.validation.maximum).toBe(150)
+	})
+
+	it('carries default values', () => {
+		const fields = fieldsFromSchema(formSchema)
+		const activeField = fields.find((f) => f.key === 'active')
+		expect(activeField.default).toBe(true)
+	})
+
+	// --- Edge cases ---
+
+	it('returns empty array for null/missing schema', () => {
+		expect(fieldsFromSchema(null)).toEqual([])
+		expect(fieldsFromSchema({})).toEqual([])
+		expect(fieldsFromSchema({ properties: null })).toEqual([])
+	})
+
+	it('falls back to key name when title is missing', () => {
+		const schema = {
+			properties: {
+				someField: { type: 'string' },
+			},
+		}
+		const fields = fieldsFromSchema(schema)
+		expect(fields[0].label).toBe('someField')
+	})
+
+	it('handles schema without required array', () => {
+		const schema = {
+			properties: {
+				name: { type: 'string', title: 'Name' },
+			},
+		}
+		const fields = fieldsFromSchema(schema)
+		expect(fields[0].required).toBe(false)
 	})
 })

@@ -20,11 +20,16 @@ export {
 	CnRowActions,
 	CnIndexPage,
 	CnMassActionBar,
+	CnDeleteDialog,
+	CnCopyDialog,
+	CnFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
 	CnMassExportDialog,
 	CnMassImportDialog,
+	CnIndexSidebar,
+	CnRegisterMapping,
 } from './components/index.js'
 
 // Store
@@ -37,6 +42,7 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	registerMappingPlugin,
 } from './store/plugins/index.js'
 
 // Composables
@@ -44,7 +50,7 @@ export { useListView, useDetailView, useSubResource } from './composables/index.
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
-export { columnsFromSchema, formatValue, filtersFromSchema } from './utils/index.js'
+export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from './utils/index.js'
 
-// CSS (consumers should import separately)
-// import '@conduction/nextcloud-vue/src/css/index.css'
+// CSS — auto-imported so consumers get styles with components
+import './css/index.css'

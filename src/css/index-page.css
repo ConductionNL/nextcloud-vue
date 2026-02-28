@@ -1,0 +1,32 @@
+/* CnIndexPage — Index page layout styles */
+/* Header styles: see page-header.css (CnPageHeader) */
+/* Actions bar styles: see actions-bar.css (CnActionsBar) */
+
+.cn-index-page {
+	padding: 20px;
+}
+
+/* Body layout */
+.cn-index-page__body {
+	display: flex;
+}
+
+.cn-index-page__main {
+	flex: 1;
+	min-width: 0;
+}
+
+.cn-index-page__loading {
+	display: flex;
+	justify-content: center;
+	padding: 60px;
+}
+
+.cn-index-page__empty {
+	padding: 40px 20px;
+	text-align: center;
+}
+
+.cn-index-page__pagination {
+	margin-top: 16px;
+}

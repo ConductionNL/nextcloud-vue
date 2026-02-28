@@ -103,6 +103,8 @@ function baseState() {
 		searchTerms: {},
 		/** @type {Object<string, object|null>} */
 		schemas: {},
+		/** @type {Object<string, object>} Facet data per type for CnIndexSidebar: { fieldName: { values: [{value, count}] } } */
+		facets: {},
 		/** @type {{baseUrl: string}} */
 		_options: {
 			baseUrl: DEFAULT_BASE_URL,
@@ -167,6 +169,12 @@ const baseGetters = {
 	 * @return {Function} (type: string) => object|null
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
+
+	/**
+	 * Get facet data for a type (CnIndexSidebar-compatible format).
+	 * @return {Function} (type: string) => object
+	 */
+	getFacets: (state) => (type) => state.facets[type] || {},
 }
 
 // ── Base actions ────────────────────────────────────────────────────────
@@ -191,14 +199,17 @@ const baseActions = {
 	 * @param {string} registerId OpenRegister register ID
 	 */
 	registerObjectType(slug, schemaId, registerId) {
-		this.objectTypeRegistry[slug] = { schema: schemaId, register: registerId }
-		this.collections[slug] = []
-		this.objects[slug] = {}
-		this.loading[slug] = false
-		this.errors[slug] = null
-		this.pagination[slug] = { total: 0, page: 1, pages: 1, limit: 20 }
-		this.searchTerms[slug] = ''
-		this.schemas[slug] = null
+		// Replace entire objects so Vue 2 reactivity detects the change
+		// (Vue 2 cannot track new properties added to existing reactive objects)
+		this.objectTypeRegistry = { ...this.objectTypeRegistry, [slug]: { schema: schemaId, register: registerId } }
+		this.collections = { ...this.collections, [slug]: [] }
+		this.objects = { ...this.objects, [slug]: {} }
+		this.loading = { ...this.loading, [slug]: false }
+		this.errors = { ...this.errors, [slug]: null }
+		this.pagination = { ...this.pagination, [slug]: { total: 0, page: 1, pages: 1, limit: 20 } }
+		this.searchTerms = { ...this.searchTerms, [slug]: '' }
+		this.schemas = { ...this.schemas, [slug]: null }
+		this.facets = { ...this.facets, [slug]: {} }
 	},
 
 	/**
@@ -215,6 +226,7 @@ const baseActions = {
 		delete this.pagination[slug]
 		delete this.searchTerms[slug]
 		delete this.schemas[slug]
+		delete this.facets[slug]
 	},
 
 	/**
@@ -254,7 +266,7 @@ const baseActions = {
 	 * @param {string} type The type slug
 	 */
 	clearError(type) {
-		this.errors[type] = null
+		this.errors = { ...this.errors, [type]: null }
 	},
 
 	/**
@@ -264,7 +276,7 @@ const baseActions = {
 	 * @param {string} term The search term
 	 */
 	setSearchTerm(type, term) {
-		this.searchTerms[type] = term
+		this.searchTerms = { ...this.searchTerms, [type]: term }
 	},
 
 	/**
@@ -273,7 +285,7 @@ const baseActions = {
 	 * @param {string} type The type slug
 	 */
 	clearSearchTerm(type) {
-		this.searchTerms[type] = ''
+		this.searchTerms = { ...this.searchTerms, [type]: '' }
 	},
 
 	/**
@@ -299,7 +311,7 @@ const baseActions = {
 			if (!response.ok) return null
 
 			const schema = await response.json()
-			this.schemas[type] = schema
+			this.schemas = { ...this.schemas, [type]: schema }
 			return schema
 		} catch {
 			return null
@@ -314,11 +326,23 @@ const baseActions = {
 	 * @return {Promise<Array>} The fetched collection (also stored in state)
 	 */
 	async fetchCollection(type, params = {}) {
-		this.loading[type] = true
-		this.errors[type] = null
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type) + buildQueryString(params)
+			// Auto-include _facets=extend when schema has facetable properties
+			const fetchParams = { ...params }
+			if (!fetchParams._facets) {
+				const schema = this.schemas[type]
+				const hasFacetable = schema
+					&& schema.properties
+					&& Object.values(schema.properties).some((p) => p.facetable)
+				if (hasFacetable) {
+					fetchParams._facets = 'extend'
+				}
+			}
+
+			const url = this._buildUrl(type) + buildQueryString(fetchParams)
 
 			const response = await fetch(url, {
 				method: 'GET',
@@ -326,30 +350,54 @@ const baseActions = {
 			})
 
 			if (!response.ok) {
-				this.errors[type] = await parseResponseError(response, type)
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
 				console.error(`Error fetching ${type} collection:`, this.errors[type])
 				return []
 			}
 
 			const data = await response.json()
+			const results = data.results || data
 
-			this.collections[type] = data.results || data
-			this.pagination[type] = {
-				total: data.total || (data.results || data).length,
-				page: data.page || 1,
-				pages: data.pages || 1,
-				limit: params._limit || 20,
+			this.collections = { ...this.collections, [type]: results }
+			this.pagination = {
+				...this.pagination,
+				[type]: {
+					total: data.total || results.length,
+					page: data.page || 1,
+					pages: data.pages || 1,
+					limit: params._limit || 20,
+				},
 			}
 
-			return this.collections[type]
+			// Parse facet data from API response and transform to CnIndexSidebar format
+			if (data.facets) {
+				const transformed = {}
+				for (const [key, facet] of Object.entries(data.facets)) {
+					if (facet.buckets || facet.data?.buckets) {
+						const buckets = facet.buckets || facet.data.buckets
+						transformed[key] = {
+							values: buckets.map((b) => ({
+								value: b.key ?? b.value,
+								count: b.count || 0,
+							})),
+						}
+					}
+				}
+				this.facets = { ...this.facets, [type]: transformed }
+			}
+
+			return results
 		} catch (error) {
-			this.errors[type] = error.name === 'TypeError'
-				? networkError(error)
-				: genericError(error)
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
-			this.loading[type] = false
+			this.loading = { ...this.loading, [type]: false }
 		}
 	},
 
@@ -361,8 +409,8 @@ const baseActions = {
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
 	async fetchObject(type, id) {
-		this.loading[type] = true
-		this.errors[type] = null
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
 
 		try {
 			const url = this._buildUrl(type, id)
@@ -373,27 +421,30 @@ const baseActions = {
 			})
 
 			if (!response.ok) {
-				this.errors[type] = await parseResponseError(response, type)
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
 				console.error(`Error fetching ${type}/${id}:`, this.errors[type])
 				return null
 			}
 
 			const data = await response.json()
 
-			if (!this.objects[type]) {
-				this.objects[type] = {}
+			this.objects = {
+				...this.objects,
+				[type]: { ...(this.objects[type] || {}), [id]: data },
 			}
-			this.objects[type][id] = data
 
 			return data
 		} catch (error) {
-			this.errors[type] = error.name === 'TypeError'
-				? networkError(error)
-				: genericError(error)
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
 			console.error(`Error fetching ${type}/${id}:`, error)
 			return null
 		} finally {
-			this.loading[type] = false
+			this.loading = { ...this.loading, [type]: false }
 		}
 	},
 
@@ -405,8 +456,8 @@ const baseActions = {
 	 * @return {Promise<object|null>} The saved object or null on error
 	 */
 	async saveObject(type, objectData) {
-		this.loading[type] = true
-		this.errors[type] = null
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
 
 		try {
 			const isUpdate = !!objectData.id
@@ -422,28 +473,31 @@ const baseActions = {
 			})
 
 			if (!response.ok) {
-				this.errors[type] = await parseResponseError(response, type)
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
 				console.error(`Error saving ${type}:`, this.errors[type])
 				return null
 			}
 
 			const data = await response.json()
-
-			if (!this.objects[type]) {
-				this.objects[type] = {}
-			}
 			const savedId = data.id || objectData.id
-			this.objects[type][savedId] = data
+
+			this.objects = {
+				...this.objects,
+				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
 
 			return data
 		} catch (error) {
-			this.errors[type] = error.name === 'TypeError'
-				? networkError(error)
-				: genericError(error)
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
 			console.error(`Error saving ${type}:`, error)
 			return null
 		} finally {
-			this.loading[type] = false
+			this.loading = { ...this.loading, [type]: false }
 		}
 	},
 
@@ -455,8 +509,8 @@ const baseActions = {
 	 * @return {Promise<boolean>} True if deleted successfully
 	 */
 	async deleteObject(type, id) {
-		this.loading[type] = true
-		this.errors[type] = null
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
 
 		try {
 			const url = this._buildUrl(type, id)
@@ -467,29 +521,34 @@ const baseActions = {
 			})
 
 			if (!response.ok) {
-				this.errors[type] = await parseResponseError(response, type)
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
 				console.error(`Error deleting ${type}/${id}:`, this.errors[type])
 				return false
 			}
 
 			if (this.objects[type]) {
-				delete this.objects[type][id]
+				const { [id]: _, ...remaining } = this.objects[type]
+				this.objects = { ...this.objects, [type]: remaining }
 			}
 			if (this.collections[type]) {
-				this.collections[type] = this.collections[type].filter(
-					(obj) => obj.id !== id,
-				)
+				this.collections = {
+					...this.collections,
+					[type]: this.collections[type].filter((obj) => obj.id !== id),
+				}
 			}
 
 			return true
 		} catch (error) {
-			this.errors[type] = error.name === 'TypeError'
-				? networkError(error)
-				: genericError(error)
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
 			console.error(`Error deleting ${type}/${id}:`, error)
 			return false
 		} finally {
-			this.loading[type] = false
+			this.loading = { ...this.loading, [type]: false }
 		}
 	},
 
@@ -527,8 +586,10 @@ const baseActions = {
 					})
 					if (response.ok) {
 						const data = await response.json()
-						if (!this.objects[type]) this.objects[type] = {}
-						this.objects[type][id] = data
+						this.objects = {
+							...this.objects,
+							[type]: { ...(this.objects[type] || {}), [id]: data },
+						}
 						result[id] = data
 					}
 				} catch {

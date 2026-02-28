@@ -1,0 +1,48 @@
+/* CnActionsBar — Reusable actions toolbar styles */
+
+.cn-actions-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 20px;
+	padding: 10px;
+	background: var(--color-background-hover);
+	border-radius: var(--border-radius);
+}
+
+.cn-actions-bar__info {
+	font-weight: 500;
+	font-size: 14px;
+}
+
+.cn-actions-bar__count {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-actions-bar__actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* View mode toggle container */
+.cn-actions-bar__view-toggle {
+	display: flex;
+	align-items: center;
+}
+
+.cn-actions-bar__view-toggle span {
+	max-height: 34px;
+}
+
+/* Override Nextcloud's pointer-events:none on disabled action items
+   so native title tooltip is visible on hover.
+   The button's disabled attribute still prevents click events. */
+.action.action--disabled {
+	pointer-events: auto !important;
+	cursor: not-allowed;
+}
+
+.action.action--disabled button {
+	cursor: not-allowed;
+}

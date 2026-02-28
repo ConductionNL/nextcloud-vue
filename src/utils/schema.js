@@ -1,6 +1,7 @@
 /**
  * Schema utility functions for auto-generating table columns, cell formatting,
- * and faceted filter definitions from OpenRegister schema property definitions.
+ * form field definitions, and faceted filter definitions from OpenRegister
+ * schema property definitions.
  *
  * @module utils/schema
  */
@@ -237,6 +238,136 @@ function truncateString(str, maxLength) {
 }
 
 /**
+ * Resolve the form widget type for a JSON Schema property.
+ *
+ * Resolution priority (first match wins):
+ * 1. Explicit `prop.widget` — pass-through custom widget name
+ * 2. `prop.enum` → `'select'`
+ * 3. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
+ *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
+ * 4. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
+ *    `email` → `'email'`, `uri`/`url` → `'url'`,
+ *    `markdown`/`textarea` → `'textarea'`
+ * 5. Long text: `maxLength > 255` → `'textarea'`
+ * 6. Fallback → `'text'`
+ *
+ * @param {object} prop The schema property definition (type, format, enum, widget, items, maxLength)
+ * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
+ */
+function resolveWidget(prop) {
+	// Explicit widget hint takes priority
+	if (prop.widget) return prop.widget
+
+	// Enum → select
+	if (prop.enum) return 'select'
+
+	const type = prop.type || 'string'
+	const format = prop.format || ''
+
+	// Boolean → switch/checkbox
+	if (type === 'boolean') return 'checkbox'
+
+	// Number types
+	if (type === 'integer' || type === 'number') return 'number'
+
+	// Array types
+	if (type === 'array') {
+		if (prop.items && prop.items.enum) return 'multiselect'
+		return 'tags'
+	}
+
+	// Format-based widgets
+	if (format === 'date-time') return 'datetime'
+	if (format === 'date') return 'date'
+	if (format === 'email') return 'email'
+	if (format === 'uri' || format === 'url') return 'url'
+	if (format === 'markdown' || format === 'textarea') return 'textarea'
+
+	// Long text → textarea
+	if (prop.maxLength && prop.maxLength > 255) return 'textarea'
+
+	return 'text'
+}
+
+/**
+ * Generate form field definitions from a schema's properties.
+ *
+ * Reads `schema.properties` and creates field descriptor objects suitable
+ * for auto-generating form UIs. Follows the same pattern as
+ * `columnsFromSchema()` — filters, sorts, and supports overrides.
+ *
+ * @param {object} schema The schema object with a `properties` field
+ * @param {object} [options] Configuration options
+ * @param {string[]} [options.exclude] Property keys to exclude
+ * @param {string[]} [options.include] Property keys to include (whitelist mode)
+ * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`
+ * @param {boolean} [options.includeReadOnly=false] Whether to include readOnly properties
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, validation: object, order: number}>}
+ */
+export function fieldsFromSchema(schema, options = {}) {
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
+
+	if (!schema || !schema.properties) {
+		return []
+	}
+
+	const requiredKeys = Array.isArray(schema.required) ? schema.required : []
+
+	const entries = Object.entries(schema.properties)
+		.filter(([key, prop]) => {
+			// Skip properties marked as not visible
+			if (prop.visible === false) return false
+			// Skip readOnly properties by default
+			if (prop.readOnly === true && !includeReadOnly) return false
+			// Apply exclude list
+			if (exclude.includes(key)) return false
+			// Apply include whitelist
+			if (include && !include.includes(key)) return false
+			// Skip complex object types (not supported in auto-form)
+			if (prop.type === 'object') return false
+			return true
+		})
+		.sort(([keyA, propA], [keyB, propB]) => {
+			// Sort by order hint first, then alphabetically
+			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
+			const orderB = typeof propB.order === 'number' ? propB.order : Infinity
+			if (orderA !== orderB) return orderA - orderB
+			return keyA.localeCompare(keyB)
+		})
+
+	return entries.map(([key, prop]) => {
+		const field = {
+			key,
+			label: prop.title || key,
+			description: prop.description || '',
+			type: prop.type || 'string',
+			format: prop.format || null,
+			widget: resolveWidget(prop),
+			required: requiredKeys.includes(key),
+			readOnly: prop.readOnly || false,
+			default: prop.default !== undefined ? prop.default : null,
+			enum: prop.enum || null,
+			items: prop.items || null,
+			validation: {
+				minLength: prop.minLength,
+				maxLength: prop.maxLength,
+				minimum: prop.minimum,
+				maximum: prop.maximum,
+				pattern: prop.pattern,
+			},
+			order: typeof prop.order === 'number' ? prop.order : Infinity,
+		}
+
+		// Apply per-field overrides
+		if (overrides[key]) {
+			Object.assign(field, overrides[key])
+		}
+
+		return field
+	})
+}
+
+/**
  * Generate faceted filter definitions from a schema's facetable properties.
  *
  * Reads `schema.properties` and creates filter definitions for properties
@@ -263,6 +394,7 @@ export function filtersFromSchema(schema) {
 			const filter = {
 				key,
 				label: prop.title || key,
+				description: prop.description || '',
 				propertyType: prop.type || 'string',
 				options: [],
 				value: null,
