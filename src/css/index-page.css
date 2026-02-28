@@ -3,7 +3,7 @@
 /* Actions bar styles: see actions-bar.css (CnActionsBar) */
 
 .cn-index-page {
-	padding: 20px;
+	padding: calc(5 * var(--default-grid-baseline));
 }
 
 /* Body layout */
@@ -19,14 +19,14 @@
 .cn-index-page__loading {
 	display: flex;
 	justify-content: center;
-	padding: 60px;
+	padding: calc(15 * var(--default-grid-baseline));
 }
 
 .cn-index-page__empty {
-	padding: 40px 20px;
+	padding: calc(10 * var(--default-grid-baseline)) calc(5 * var(--default-grid-baseline));
 	text-align: center;
 }
 
 .cn-index-page__pagination {
-	margin-top: 16px;
+	margin-top: calc(4 * var(--default-grid-baseline));
 }

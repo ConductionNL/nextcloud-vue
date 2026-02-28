@@ -4,15 +4,15 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 20px;
-	padding: 10px;
+	margin-bottom: calc(5 * var(--default-grid-baseline));
+	padding: calc(2 * var(--default-grid-baseline));
 	background: var(--color-background-hover);
 	border-radius: var(--border-radius);
 }
 
 .cn-actions-bar__info {
 	font-weight: 500;
-	font-size: 14px;
+	font-size: var(--default-font-size);
 }
 
 .cn-actions-bar__count {
@@ -22,7 +22,7 @@
 .cn-actions-bar__actions {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 /* View mode toggle container */

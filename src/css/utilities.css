@@ -21,11 +21,11 @@
 
 /* Vue Transition Animations */
 .cn-slide-fade-enter-active {
-	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: all var(--animation-slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cn-slide-fade-leave-active {
-	transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
+	transition: all var(--animation-quick) cubic-bezier(0.4, 0, 1, 1);
 }
 
 .cn-slide-fade-enter,
