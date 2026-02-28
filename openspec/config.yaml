@@ -11,7 +11,7 @@ context: |
     Framework: Vue 2.7 (Options API)
     State: Pinia with plugin architecture
     Build: Rollup (ESM + CJS + extracted CSS)
-    CSS: Modular with cn- prefix, NL Design token fallbacks
+    CSS: Modular with cn- prefix, Nextcloud CSS variables only (nldesign overrides these automatically)
     Exports: Barrel pattern (component/index.js → components/index.js → src/index.js)
     Peer deps: vue, pinia, @nextcloud/vue, @nextcloud/l10n, vue-material-design-icons
 
@@ -28,7 +28,7 @@ rules:
   proposal:
     - Reference which consumer apps are affected (all 5 or specific ones)
     - Identify backward compatibility impact
-    - Consider NL Design token compatibility
+    - Consider theming impact (use Nextcloud CSS variables, NOT --nldesign-* directly)
   specs:
     - Use GIVEN/WHEN/THEN scenarios for component behaviors
     - Document all props, events, slots, and public methods
@@ -38,7 +38,7 @@ rules:
     - Components MUST follow Vue 2 Options API (no Composition API)
     - New props MUST have defaults (backward compatibility)
     - CSS classes MUST use cn- prefix
-    - Use NL Design double-fallback pattern for colors
+    - Use Nextcloud CSS variables only for colors (--color-*, --border-radius, etc.)
     - Consider Rollup tree-shaking implications (sideEffects: true)
   tasks:
     - Each task should be small enough for a single Ralph Wiggum iteration

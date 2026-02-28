@@ -1,7 +1,7 @@
 # Data Display — Components Spec
 
 ## Purpose
-Specifies the data display components: CnDataTable, CnCardGrid, CnObjectCard, CnCellRenderer, CnPagination, CnFilterBar, CnFacetSidebar, CnKpiGrid, CnViewModeToggle.
+Specifies the data display components: CnDataTable, CnCardGrid, CnObjectCard, CnCellRenderer, CnPagination, CnFilterBar, CnFacetSidebar, CnKpiGrid.
 
 ---
 
@@ -93,13 +93,6 @@ The table MUST support manual and schema-driven column definitions, sorting, row
 - THEN each facet group MUST be expandable
 - AND each value MUST show its count
 
-### REQ-DD-007: CnViewModeToggle (Deprecated — Inline in CnActionsBar)
+### REQ-DD-007: View Mode Toggle (via CnActionsBar)
 
-> **Note:** The view mode toggle is no longer a standalone component. It is rendered inline within CnActionsBar using NcCheckboxRadioSwitch radio buttons. See REQ-LC-002 for the current specification.
-
-#### Scenario: Toggle between views
-
-- GIVEN CnActionsBar renders with `showViewToggle=true`
-- WHEN the user clicks "Cards" or "Table" in the segmented radio toggle
-- THEN `@view-mode-change('cards')` or `@view-mode-change('table')` MUST emit
-- AND the active segment MUST reflect the current `viewMode` prop
+> **Note:** The view mode toggle is not a standalone component. It is rendered inline within CnActionsBar using NcCheckboxRadioSwitch radio buttons. See REQ-LC-002 for the full specification.

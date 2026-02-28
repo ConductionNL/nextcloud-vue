@@ -1,7 +1,7 @@
 # Layout Components — Spec
 
 ## Purpose
-Specifies the page layout components: CnPageHeader, CnActionsBar, CnListViewLayout, CnDetailViewLayout, CnIndexSidebar.
+Specifies the page layout components: CnPageHeader, CnActionsBar, CnIndexSidebar.
 
 ---
 
@@ -60,22 +60,7 @@ Specifies the page layout components: CnPageHeader, CnActionsBar, CnListViewLayo
 - GIVEN `pagination` prop with `total > 0`
 - THEN "Showing X of Y" MUST appear, where X is `objectCount` and Y is `pagination.total`
 
-### REQ-LC-003: CnListViewLayout — List Page Wrapper
-
-#### Scenario: Layout structure
-
-- GIVEN CnListViewLayout is used
-- THEN it MUST provide a flex layout with optional sidebar
-- AND main content area for table/cards/pagination
-
-### REQ-LC-004: CnDetailViewLayout — Detail Page Layout
-
-#### Scenario: Detail layout
-
-- GIVEN CnDetailViewLayout is used
-- THEN it MUST provide a back button, title area, action buttons, and content slot
-
-### REQ-LC-005: CnIndexSidebar — Index Page Sidebar
+### REQ-LC-003: CnIndexSidebar — Index Page Sidebar
 
 #### Scenario: Sidebar rendering
 

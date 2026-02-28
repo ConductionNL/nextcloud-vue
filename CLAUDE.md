@@ -4,7 +4,7 @@
 
 A shared Vue 2 component library for Conduction Nextcloud apps that:
 - **Complements** @nextcloud/vue with higher-level components (data tables, list layouts, filter bars)
-- **Integrates** NL Design System tokens via CSS variable fallbacks
+- **Supports** NL Design System theming (via the nldesign app which overrides Nextcloud CSS variables)
 - **Includes** a generic Pinia store for OpenRegister CRUD operations
 - **Provides** composables for common list/detail view patterns
 
@@ -22,8 +22,6 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 **Layout & Pages**
 - `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
-- `CnListViewLayout` — Full list page layout (header + filters + table + pagination)
-- `CnDetailViewLayout` — Detail page layout (back + title + actions + content)
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
 
@@ -49,9 +47,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 **UI Elements**
 - `CnStatusBadge` — Color-coded status/priority pill badge
-- `CnEmptyState` — Empty state with icon, title, description, action
 - `CnRowActions` — Row action buttons (inline + overflow dropdown)
-- `CnViewModeToggle` — Table/card view mode switcher
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
 - `CnKpiGrid` — KPI metric cards grid
@@ -115,7 +111,7 @@ Public ref methods for setting dialog results:
 4. **Always ask the user before upgrading a component** — propose changes via discussion first
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
-7. **NL Design tokens**: Use double-fallback pattern: `var(--nldesign-*, var(--color-*))`
+7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
 8. **Translation**: Components accept pre-translated strings via props with English defaults. Never import `t()` from a specific app.
 
 ## Adding New Components
@@ -127,7 +123,7 @@ Public ref methods for setting dialog results:
 5. Add to `src/components/index.js` barrel
 6. Add to `src/index.js` barrel
 7. Write test in `tests/components/`
-8. Use Nextcloud CSS variables with NL Design fallbacks
+8. Use Nextcloud CSS variables only (no `--nldesign-*` references)
 
 ## Project Structure
 

@@ -4,11 +4,11 @@
 
 /* Table Container */
 .cn-table-container {
-	background: var(--nldesign-component-table-background-color, var(--color-main-background));
-	border-radius: var(--nldesign-border-radius, var(--border-radius));
+	background: var(--color-main-background);
+	border-radius: var(--border-radius);
 	overflow: hidden;
 	box-shadow: 0 2px 4px var(--color-box-shadow);
-	border: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	border: 1px solid var(--color-border);
 	margin-bottom: 20px;
 }
 
@@ -21,21 +21,20 @@
 .cn-data-table {
 	width: 100%;
 	border-collapse: collapse;
-	background-color: var(--nldesign-component-table-background-color, var(--color-main-background));
+	background-color: var(--color-main-background);
 }
 
 .cn-data-table th,
 .cn-data-table td {
-	padding: var(--nldesign-component-table-cell-padding-block, 12px)
-		var(--nldesign-component-table-cell-padding-inline, 12px);
+	padding: 12px;
 	text-align: left;
-	border-bottom: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	border-bottom: 1px solid var(--color-border);
 	vertical-align: middle;
 }
 
 .cn-data-table th {
-	background: var(--nldesign-component-table-header-background-color, var(--color-background-dark));
-	font-weight: var(--nldesign-component-table-header-font-weight, 500);
+	background: var(--color-background-dark);
+	font-weight: 500;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -56,13 +55,13 @@
 
 /* Row States */
 .cn-table-row {
-	border-bottom: 1px solid var(--nldesign-component-table-border-color, var(--color-border));
+	border-bottom: 1px solid var(--color-border);
 	cursor: pointer;
 	transition: background-color 0.2s ease;
 }
 
 .cn-table-row:hover {
-	background: var(--nldesign-component-table-row-hover-background-color, var(--color-background-hover));
+	background: var(--color-background-hover);
 }
 
 .cn-table-row--selected {
@@ -128,9 +127,9 @@
    Backwards compatibility aliases
    (legacy OpenRegister CSS class names)
    ======================================== */
-.viewTableContainer { background: var(--nldesign-component-table-background-color, var(--color-main-background)); border-radius: var(--nldesign-border-radius, var(--border-radius)); overflow: hidden; box-shadow: 0 2px 4px var(--color-box-shadow); border: 1px solid var(--nldesign-component-table-border-color, var(--color-border)); margin-bottom: 20px; }
+.viewTableContainer { background: var(--color-main-background); border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 2px 4px var(--color-box-shadow); border: 1px solid var(--color-border); margin-bottom: 20px; }
 .viewTableContainer.scrollable { max-height: 400px; overflow-y: auto; }
-.viewTable { width: 100%; border-collapse: collapse; background-color: var(--nldesign-component-table-background-color, var(--color-main-background)); }
+.viewTable { width: 100%; border-collapse: collapse; background-color: var(--color-main-background); }
 .viewTable th, .viewTable td { padding: 12px; text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 .viewTable th { background: var(--color-background-hover); font-weight: 500; color: var(--color-text-maxcontrast); background-color: var(--color-background-dark); }
 .viewTableRow { border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background-color 0.2s ease; }

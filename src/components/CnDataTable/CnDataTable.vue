@@ -118,11 +118,6 @@ import { columnsFromSchema } from '../../utils/schema.js'
  * (dates, booleans, UUIDs, enums, etc.). Scoped slots still override individual
  * columns when needed.
  *
- * NL Design tokens used:
- * - --nldesign-component-table-header-background-color
- * - --nldesign-component-table-row-hover-background-color
- * - --nldesign-component-table-border-color
- *
  * @example Manual columns (backwards compatible)
  * <CnDataTable
  *   :columns="[

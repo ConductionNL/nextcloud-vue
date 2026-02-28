@@ -2,7 +2,7 @@
 
 ## Overview
 
-A shared Vue 2 component library for Conduction Nextcloud apps. It complements `@nextcloud/vue` with higher-level components (data tables, list layouts, dialogs, form generation), integrates NL Design System tokens, and includes a generic Pinia store for OpenRegister CRUD operations.
+A shared Vue 2 component library for Conduction Nextcloud apps. It complements `@nextcloud/vue` with higher-level components (data tables, list layouts, dialogs, form generation), supports NL Design System theming (via Nextcloud CSS variables), and includes a generic Pinia store for OpenRegister CRUD operations.
 
 **Consumers**: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash
 
@@ -24,18 +24,16 @@ A shared Vue 2 component library for Conduction Nextcloud apps. It complements `
 | Build | Rollup 3.29, rollup-plugin-vue, postcss |
 | Test | Jest, @vue/test-utils |
 | Lint | ESLint (@nextcloud/eslint-config), Stylelint |
-| CSS | Modular CSS with `cn-` prefix, NL Design token fallbacks |
+| CSS | Modular CSS with `cn-` prefix, Nextcloud CSS variables |
 | Release | semantic-release (automated npm publishing) |
 | CI | GitHub Actions (code-quality.yml, release.yml) |
 
-## Components (34)
+## Components (30)
 
-### Layout & Pages (5)
+### Layout & Pages (3)
 | Component | Purpose |
 |-----------|---------|
 | CnIndexPage | Zero-config schema-driven index page (table/cards, dialogs, mass actions) |
-| CnListViewLayout | List page wrapper with optional sidebar |
-| CnDetailViewLayout | Detail page layout (back, title, actions, content) |
 | CnPageHeader | Page header with icon, title, description |
 | CnActionsBar | Action bar with add button, mass actions, view toggle, search |
 
@@ -65,13 +63,11 @@ A shared Vue 2 component library for Conduction Nextcloud apps. It complements `
 | CnMassExportDialog | Bulk export with format selection |
 | CnMassImportDialog | Bulk import with file upload |
 
-### UI Elements (9)
+### UI Elements (7)
 | Component | Purpose |
 |-----------|---------|
 | CnStatusBadge | Color-coded status/priority badge |
-| CnEmptyState | Empty state with icon, title, action |
 | CnRowActions | Row action buttons (inline + overflow) |
-| CnViewModeToggle | Table/card view switcher |
 | CnMassActionBar | Floating mass action triggers |
 | CnIcon | MDI icon by name |
 | CnKpiGrid | KPI metric cards |
@@ -100,8 +96,8 @@ CnDataTable, CnFormDialog, CnIndexPage can auto-generate columns/fields from JSO
 2. Form content override via `#form-fields` slot
 3. Per-field override via `#field-{key}` slots
 
-### NL Design Token Fallbacks
-CSS uses `var(--nldesign-*, var(--color-*))` double-fallback pattern for government theming compliance.
+### Nextcloud-Native Theming
+CSS uses Nextcloud's own CSS variables (`--color-*`, `--border-radius`, etc.) exclusively. The nldesign app overrides these variables with NL Design System values, so theming works automatically without any `--nldesign-*` references in this package.
 
 ### Store Plugin Architecture
 `useObjectStore` supports plugins (`auditTrailsPlugin`, `relationsPlugin`, `filesPlugin`, `lifecyclePlugin`, `registerMappingPlugin`) that contribute state, getters, and actions for sub-resources.
@@ -112,7 +108,7 @@ CSS uses `var(--nldesign-*, var(--color-*))` double-fallback pattern for governm
 nextcloud-vue/
 ├── src/
 │   ├── index.js              # Main barrel export
-│   ├── components/           # 34 Vue SFC components (Cn-prefixed)
+│   ├── components/           # 30 Vue SFC components (Cn-prefixed)
 │   ├── store/                # Pinia stores + plugins
 │   ├── composables/          # Vue composables (useListView, etc.)
 │   ├── utils/                # Utility functions (schema, headers, errors)

@@ -58,10 +58,11 @@ All CSS classes MUST follow the library's naming and theming conventions.
 - GIVEN any component CSS
 - THEN all classes MUST use the `cn-` prefix (e.g., `cn-data-table__header`)
 
-#### Scenario: NL Design token fallbacks
+#### Scenario: Nextcloud-native theming
 
-- GIVEN a CSS property that uses color
-- THEN it SHOULD use the double-fallback pattern: `var(--nldesign-*, var(--color-*))`
+- GIVEN a CSS property that uses color or theming
+- THEN it MUST use Nextcloud CSS variables (e.g., `var(--color-primary-element)`, `var(--color-border)`)
+- AND MUST NOT reference `--nldesign-*` variables directly (the nldesign app overrides Nextcloud variables automatically)
 - AND MUST NOT hardcode color values
 
 ### REQ-CL-005: Translation Support

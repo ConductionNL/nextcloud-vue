@@ -26,8 +26,8 @@
 }
 
 .cn-status-badge--primary {
-	background-color: var(--nldesign-color-primary-light, var(--color-primary-element-light));
-	color: var(--nldesign-color-primary, var(--color-primary-element));
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element);
 }
 
 .cn-status-badge--success {
