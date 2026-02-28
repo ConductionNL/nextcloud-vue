@@ -19,16 +19,61 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 ```
 
 ### Available Components
-- `CnDataTable` — Sortable data table with selection, loading, empty states
-- `CnFilterBar` — Search + filter controls row
+
+**Layout & Pages**
+- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
 - `CnListViewLayout` — Full list page layout (header + filters + table + pagination)
 - `CnDetailViewLayout` — Detail page layout (back + title + actions + content)
+- `CnPageHeader` — Page header with icon, title, description
+- `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+
+**Data Display**
+- `CnDataTable` — Sortable data table with selection, loading, empty states
+- `CnCardGrid` — Grid of object cards
+- `CnObjectCard` — Single object card
+- `CnCellRenderer` — Cell value formatter for tables
+- `CnFilterBar` — Search + filter controls row
+- `CnFacetSidebar` — Faceted filter sidebar
+- `CnPagination` — Full pagination with page numbers and size selector
+
+**Single-Object Dialogs** (emit-based, two-phase confirm → result)
+- `CnDeleteDialog` — Single-item delete confirmation
+- `CnCopyDialog` — Single-item copy with naming pattern selector
+- `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports slot overrides)
+
+**Mass-Action Dialogs** (emit-based, two-phase confirm → result)
+- `CnMassDeleteDialog` — Bulk delete confirmation
+- `CnMassCopyDialog` — Bulk copy with naming patterns
+- `CnMassExportDialog` — Bulk export with format selection
+- `CnMassImportDialog` — Bulk import with file upload
+
+**UI Elements**
 - `CnStatusBadge` — Color-coded status/priority pill badge
 - `CnEmptyState` — Empty state with icon, title, description, action
-- `CnPagination` — Full pagination with page numbers and size selector
+- `CnRowActions` — Row action buttons (inline + overflow dropdown)
+- `CnViewModeToggle` — Table/card view mode switcher
+- `CnMassActionBar` — Floating bar for mass action triggers
+- `CnIcon` — MDI icon by name
+- `CnKpiGrid` — KPI metric cards grid
+- `CnIndexSidebar` — Index page sidebar
+
+**Settings**
 - `CnSettingsCard` — Collapsible settings card
+- `CnSettingsSection` — Settings section container
 - `CnStatsBlock` — Stats display with count and breakdown
 - `CnConfigurationCard` — Configuration card with status and actions
+- `CnVersionInfoCard` — Version info display card
+- `CnRegisterMapping` — Register mapping configuration
+
+### Available Utilities
+- `columnsFromSchema(schema, options)` — Generate table column definitions from JSON Schema
+- `filtersFromSchema(schema, options)` — Generate filter definitions from JSON Schema
+- `fieldsFromSchema(schema, options)` — Generate form field definitions from JSON Schema (used by CnFormDialog)
+- `formatValue(value, format)` — Format cell values for display
+- `buildHeaders()` — Build API request headers
+- `buildQueryString(params)` — Build URL query string from params object
+- `parseResponseError(response)` — Extract error message from API response
+- `networkError()` / `genericError()` — Standard error message helpers
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
@@ -38,6 +83,29 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `useListView(options)` — Search debounce, filter state, sort, pagination
 - `useDetailView(options)` — Load, edit, delete state management
 - `useFileSelection(options)` — File upload/drop handling
+
+### CnIndexPage Dialog Override System
+
+CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **overridable at three levels**:
+
+1. **Full dialog replacement** via named slots:
+   - `#delete-dialog="{ item, close }"` — Replace delete dialog
+   - `#copy-dialog="{ item, close }"` — Replace copy dialog
+   - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog
+2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
+3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
+
+Key events emitted by CnIndexPage:
+- `@create(formData)` — Form dialog create confirmed
+- `@edit(formData)` — Form dialog edit confirmed
+- `@delete(id)` — Single delete confirmed
+- `@copy({ id, newName })` — Single copy confirmed
+- `@mass-delete(ids)`, `@mass-copy(payload)`, `@mass-export(payload)`, `@mass-import(payload)`
+
+Public ref methods for setting dialog results:
+- `setFormResult(resultData)`, `setSingleDeleteResult(resultData)`, `setSingleCopyResult(resultData)`
+- `setMassDeleteResult(resultData)`, `setMassCopyResult(resultData)`, `setExportResult(resultData)`, `setImportResult(resultData)`
+- `openFormDialog(item)` — Programmatic open (null = create, object = edit)
 
 ## Rules for Modifying Components
 

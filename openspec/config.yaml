@@ -1,0 +1,47 @@
+schema: conduction
+
+context: |
+  Project: @conduction/nextcloud-vue
+  Repo: ConductionNL/nextcloud-vue
+  Type: Shared Vue 2 component library (npm package)
+  Description: Higher-level components, Pinia store, and utilities for Conduction Nextcloud apps
+  Consumers: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash
+
+  Architecture:
+    Framework: Vue 2.7 (Options API)
+    State: Pinia with plugin architecture
+    Build: Rollup (ESM + CJS + extracted CSS)
+    CSS: Modular with cn- prefix, NL Design token fallbacks
+    Exports: Barrel pattern (component/index.js → components/index.js → src/index.js)
+    Peer deps: vue, pinia, @nextcloud/vue, @nextcloud/l10n, vue-material-design-icons
+
+  Key patterns:
+    - Two-phase dialog pattern (confirm → result via setResult ref)
+    - Schema-driven auto-generation (columns, fields, filters from JSON Schema)
+    - Three-level slot override system in CnIndexPage
+    - Store plugin architecture for sub-resources
+
+  Shared specs: See ../openspec/specs/ for cross-project conventions
+  Project guidelines: See ../project.md for workspace-wide standards
+
+rules:
+  proposal:
+    - Reference which consumer apps are affected (all 5 or specific ones)
+    - Identify backward compatibility impact
+    - Consider NL Design token compatibility
+  specs:
+    - Use GIVEN/WHEN/THEN scenarios for component behaviors
+    - Document all props, events, slots, and public methods
+    - Reference existing shared specs (nextcloud-app, nl-design) where applicable
+    - Specify widget types and schema mapping for form-related features
+  design:
+    - Components MUST follow Vue 2 Options API (no Composition API)
+    - New props MUST have defaults (backward compatibility)
+    - CSS classes MUST use cn- prefix
+    - Use NL Design double-fallback pattern for colors
+    - Consider Rollup tree-shaking implications (sideEffects: true)
+  tasks:
+    - Each task should be small enough for a single Ralph Wiggum iteration
+    - Include spec_ref pointing to the relevant spec section
+    - Include files_likely_affected list
+    - Test with npm test and npm run build after changes
