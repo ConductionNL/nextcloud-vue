@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[9647],{7121(e,s,u){u.r(s),u.d(s,{default:()=>n});u(6540);var c=u(8215),r=u(7559),a=u(5500),l=u(2831),o=u(9139),d=u(4848);function n(e){return(0,d.jsx)(a.e3,{className:(0,c.A)(r.G.wrapper.docsPages),children:(0,d.jsx)(o.A,{children:(0,l.v)(e.route.routes)})})}}}]);
