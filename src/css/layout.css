@@ -1,23 +1,23 @@
 /* ========================================
-   @conduction/nextcloud-vue — Layout Styles
+   @conduction/nextcloud-vue — Layout & Filter Utility Styles
    ======================================== */
 
 /* List View Layout */
 .cn-list-layout {
-	padding: 20px;
+	padding: calc(5 * var(--default-grid-baseline));
 }
 
 .cn-list-layout__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 16px;
+	margin-bottom: calc(4 * var(--default-grid-baseline));
 }
 
 .cn-list-layout__title {
 	display: flex;
 	align-items: baseline;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 .cn-list-layout__title h2 {
@@ -33,15 +33,15 @@
 
 .cn-list-layout__actions {
 	display: flex;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 }
 
 /* Filter Bar */
 .cn-filter-bar {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-bottom: 16px;
+	gap: calc(3 * var(--default-grid-baseline));
+	margin-bottom: calc(4 * var(--default-grid-baseline));
 	flex-wrap: wrap;
 }
 
@@ -54,7 +54,7 @@
 .cn-filter-bar__filters {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 	flex-wrap: wrap;
 }
 
@@ -71,20 +71,20 @@
 .cn-dashboard-content {
 	margin-inline: auto;
 	max-width: 1200px;
-	padding-block: 20px;
-	padding-inline: 20px;
+	padding-block: calc(5 * var(--default-grid-baseline));
+	padding-inline: calc(5 * var(--default-grid-baseline));
 }
 
 /* Loading Container */
 .cn-loading-container {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: calc(2 * var(--default-grid-baseline));
 	color: var(--color-text-maxcontrast);
 	justify-content: center;
-	padding-block: 40px;
+	padding-block: calc(10 * var(--default-grid-baseline));
 }
 
 /* Backwards compatibility aliases */
-.dashboardContent { margin-inline: auto; max-width: 1200px; padding-block: 20px; padding-inline: 20px; }
-.loadingContainer { display: flex; align-items: center; gap: 10px; color: var(--color-text-maxcontrast); justify-content: center; padding-block: 40px; }
+.dashboardContent { margin-inline: auto; max-width: 1200px; padding-block: calc(5 * var(--default-grid-baseline)); padding-inline: calc(5 * var(--default-grid-baseline)); }
+.loadingContainer { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); color: var(--color-text-maxcontrast); justify-content: center; padding-block: calc(10 * var(--default-grid-baseline)); }

@@ -20,7 +20,7 @@
 
 					<!-- Data columns -->
 					<th
-						v-for="col in columns"
+						v-for="col in effectiveColumns"
 						:key="col.key"
 						:class="[
 							col.sortable ? 'cn-table-header--sortable' : '',
@@ -73,12 +73,20 @@
 
 					<!-- Data cells -->
 					<td
-						v-for="col in columns"
+						v-for="col in effectiveColumns"
 						:key="col.key"
 						:class="col.cellClass || ''"
 						:style="col.width ? { maxWidth: col.width } : {}">
 						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
-							{{ getCellValue(row, col.key) }}
+							<!-- Schema-driven: use CnCellRenderer -->
+							<CnCellRenderer
+								v-if="isSchemaColumn(col)"
+								:value="getCellValue(row, col.key)"
+								:property="getSchemaProperty(col.key)" />
+							<!-- Manual: plain text -->
+							<template v-else>
+								{{ getCellValue(row, col.key) }}
+							</template>
 						</slot>
 					</td>
 
@@ -94,6 +102,8 @@
 
 <script>
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { columnsFromSchema } from '../../utils/schema.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -103,30 +113,31 @@ import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
  * row selection, custom cell rendering via scoped slots, loading states,
  * and empty states.
  *
- * NL Design tokens used:
- * - --nldesign-component-table-header-background-color
- * - --nldesign-component-table-row-hover-background-color
- * - --nldesign-component-table-border-color
+ * When a `schema` prop is provided, columns are auto-generated from schema
+ * properties and cells render through CnCellRenderer for type-aware formatting
+ * (dates, booleans, UUIDs, enums, etc.). Scoped slots still override individual
+ * columns when needed.
  *
- * @example
+ * @example Manual columns (backwards compatible)
  * <CnDataTable
  *   :columns="[
  *     { key: 'name', label: 'Name', sortable: true },
  *     { key: 'email', label: 'Email' },
- *     { key: 'status', label: 'Status', sortable: true, width: '120px' },
  *   ]"
  *   :rows="clients"
- *   :loading="isLoading"
- *   :sort-key="sortField"
- *   :sort-order="sortDirection"
- *   empty-text="No clients found"
- *   @sort="handleSort"
- *   @row-click="openClient">
- *   <template #column-status="{ value }">
- *     <CnStatusBadge :label="value" :color-map="statusColors" />
- *   </template>
- *   <template #row-actions="{ row }">
- *     <NcActions><NcActionButton @click="edit(row)">Edit</NcActionButton></NcActions>
+ *   @row-click="openClient" />
+ *
+ * @example Schema-driven (auto columns)
+ * <CnDataTable :schema="schema" :rows="objects" />
+ *
+ * @example Schema with overrides and custom cell
+ * <CnDataTable
+ *   :schema="schema"
+ *   :exclude-columns="['description']"
+ *   :column-overrides="{ status: { width: '200px' } }"
+ *   :rows="objects">
+ *   <template #column-status="{ row, value }">
+ *     <QuickStatusDropdown :case-obj="row" />
  *   </template>
  * </CnDataTable>
  */
@@ -136,16 +147,41 @@ export default {
 	components: {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
+		CnCellRenderer,
 	},
 
 	props: {
 		/**
-		 * Column definitions.
+		 * Column definitions (manual mode).
+		 * Not required when `schema` is provided.
 		 * @type {Array<{key: string, label: string, sortable?: boolean, width?: string, class?: string, cellClass?: string}>}
 		 */
 		columns: {
 			type: Array,
-			required: true,
+			default: () => [],
+		},
+		/**
+		 * Schema object with `properties` field (schema-driven mode).
+		 * When provided, columns are auto-generated from schema properties.
+		 */
+		schema: {
+			type: Object,
+			default: null,
+		},
+		/** Per-column overrides when using schema mode: { key: { width, label, sortable, ... } } */
+		columnOverrides: {
+			type: Object,
+			default: () => ({}),
+		},
+		/** Column keys to exclude when using schema mode */
+		excludeColumns: {
+			type: Array,
+			default: () => [],
+		},
+		/** Column keys to include when using schema mode (whitelist) */
+		includeColumns: {
+			type: Array,
+			default: null,
 		},
 		/** Row data array. Each row should have a unique identifier (see rowKey). */
 		rows: {
@@ -206,8 +242,23 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective columns: schema-generated or manually provided.
+		 * Schema columns take precedence when schema is provided and no manual columns given.
+		 */
+		effectiveColumns() {
+			if (this.schema && this.columns.length === 0) {
+				return columnsFromSchema(this.schema, {
+					exclude: this.excludeColumns,
+					include: this.includeColumns,
+					overrides: this.columnOverrides,
+				})
+			}
+			return this.columns
+		},
+
 		totalColumns() {
-			let count = this.columns.length
+			let count = this.effectiveColumns.length
 			if (this.selectable) count++
 			if (this.$scopedSlots['row-actions']) count++
 			return count
@@ -235,6 +286,24 @@ export default {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
 			return row[key]
+		},
+
+		/**
+		 * Check if a column was generated from schema (has type info).
+		 * @param {object} col Column definition
+		 * @return {boolean}
+		 */
+		isSchemaColumn(col) {
+			return !!(this.schema && col.type)
+		},
+
+		/**
+		 * Get the schema property definition for a column key.
+		 * @param {string} key Column key
+		 * @return {object} Property definition
+		 */
+		getSchemaProperty(key) {
+			return this.schema?.properties?.[key] || {}
 		},
 
 		isSelected(row) {

@@ -1,20 +1,20 @@
 /* ========================================
-   @conduction/nextcloud-vue — Detail Styles
+   @conduction/nextcloud-vue — Detail Grid & Layout Utility Styles
    ======================================== */
 
 /* Detail Grid (metadata display) */
 .cn-detail-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-	gap: 16px;
-	margin-bottom: 20px;
+	gap: calc(4 * var(--default-grid-baseline));
+	margin-bottom: calc(5 * var(--default-grid-baseline));
 }
 
 .cn-detail-item {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	padding: 8px 12px;
+	gap: var(--default-grid-baseline);
+	padding: calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
 	border-left: 3px solid var(--color-primary-element);
 	background: var(--color-background-hover);
 	border-radius: 0 var(--border-radius) var(--border-radius) 0;
@@ -35,14 +35,14 @@
 /* Detail Layout */
 .cn-detail-layout {
 	max-width: 1000px;
-	padding: 20px;
+	padding: calc(5 * var(--default-grid-baseline));
 }
 
 .cn-detail-layout__header {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-bottom: 24px;
+	gap: calc(3 * var(--default-grid-baseline));
+	margin-bottom: calc(6 * var(--default-grid-baseline));
 }
 
 .cn-detail-layout__title {
@@ -54,15 +54,15 @@
 
 .cn-detail-layout__actions {
 	display: flex;
-	gap: 8px;
+	gap: calc(2 * var(--default-grid-baseline));
 	flex-shrink: 0;
 }
 
 .cn-detail-layout__content {
-	margin-top: 16px;
+	margin-top: calc(4 * var(--default-grid-baseline));
 }
 
 /* Backwards compatibility aliases */
-.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px; }
-.detail-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-left: 3px solid var(--color-primary-element); background: var(--color-background-hover); border-radius: 0 var(--border-radius) var(--border-radius) 0; }
-.detailContainer { margin-block-start: 20px; margin-inline-start: 20px; margin-inline-end: 20px; }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: calc(4 * var(--default-grid-baseline)); margin-bottom: calc(5 * var(--default-grid-baseline)); }
+.detail-item { display: flex; flex-direction: column; gap: var(--default-grid-baseline); padding: calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline)); border-left: 3px solid var(--color-primary-element); background: var(--color-background-hover); border-radius: 0 var(--border-radius) var(--border-radius) 0; }
+.detailContainer { margin-block-start: calc(5 * var(--default-grid-baseline)); margin-inline-start: calc(5 * var(--default-grid-baseline)); margin-inline-end: calc(5 * var(--default-grid-baseline)); }

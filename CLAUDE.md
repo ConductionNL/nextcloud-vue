@@ -4,7 +4,7 @@
 
 A shared Vue 2 component library for Conduction Nextcloud apps that:
 - **Complements** @nextcloud/vue with higher-level components (data tables, list layouts, filter bars)
-- **Integrates** NL Design System tokens via CSS variable fallbacks
+- **Supports** NL Design System theming (via the nldesign app which overrides Nextcloud CSS variables)
 - **Includes** a generic Pinia store for OpenRegister CRUD operations
 - **Provides** composables for common list/detail view patterns
 
@@ -19,16 +19,57 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 ```
 
 ### Available Components
+
+**Layout & Pages**
+- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
+- `CnPageHeader` — Page header with icon, title, description
+- `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+
+**Data Display**
 - `CnDataTable` — Sortable data table with selection, loading, empty states
+- `CnCardGrid` — Grid of object cards
+- `CnObjectCard` — Single object card
+- `CnCellRenderer` — Cell value formatter for tables
 - `CnFilterBar` — Search + filter controls row
-- `CnListViewLayout` — Full list page layout (header + filters + table + pagination)
-- `CnDetailViewLayout` — Detail page layout (back + title + actions + content)
-- `CnStatusBadge` — Color-coded status/priority pill badge
-- `CnEmptyState` — Empty state with icon, title, description, action
+- `CnFacetSidebar` — Faceted filter sidebar
 - `CnPagination` — Full pagination with page numbers and size selector
+
+**Single-Object Dialogs** (emit-based, two-phase confirm → result)
+- `CnDeleteDialog` — Single-item delete confirmation
+- `CnCopyDialog` — Single-item copy with naming pattern selector
+- `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports slot overrides)
+
+**Mass-Action Dialogs** (emit-based, two-phase confirm → result)
+- `CnMassDeleteDialog` — Bulk delete confirmation
+- `CnMassCopyDialog` — Bulk copy with naming patterns
+- `CnMassExportDialog` — Bulk export with format selection
+- `CnMassImportDialog` — Bulk import with file upload
+
+**UI Elements**
+- `CnStatusBadge` — Color-coded status/priority pill badge
+- `CnRowActions` — Row action buttons (inline + overflow dropdown)
+- `CnMassActionBar` — Floating bar for mass action triggers
+- `CnIcon` — MDI icon by name
+- `CnKpiGrid` — KPI metric cards grid
+- `CnIndexSidebar` — Index page sidebar
+
+**Settings**
 - `CnSettingsCard` — Collapsible settings card
+- `CnSettingsSection` — Settings section container
 - `CnStatsBlock` — Stats display with count and breakdown
 - `CnConfigurationCard` — Configuration card with status and actions
+- `CnVersionInfoCard` — Version info display card
+- `CnRegisterMapping` — Register mapping configuration
+
+### Available Utilities
+- `columnsFromSchema(schema, options)` — Generate table column definitions from JSON Schema
+- `filtersFromSchema(schema, options)` — Generate filter definitions from JSON Schema
+- `fieldsFromSchema(schema, options)` — Generate form field definitions from JSON Schema (used by CnFormDialog)
+- `formatValue(value, format)` — Format cell values for display
+- `buildHeaders()` — Build API request headers
+- `buildQueryString(params)` — Build URL query string from params object
+- `parseResponseError(response)` — Extract error message from API response
+- `networkError()` / `genericError()` — Standard error message helpers
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
@@ -39,6 +80,29 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `useDetailView(options)` — Load, edit, delete state management
 - `useFileSelection(options)` — File upload/drop handling
 
+### CnIndexPage Dialog Override System
+
+CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **overridable at three levels**:
+
+1. **Full dialog replacement** via named slots:
+   - `#delete-dialog="{ item, close }"` — Replace delete dialog
+   - `#copy-dialog="{ item, close }"` — Replace copy dialog
+   - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog
+2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
+3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
+
+Key events emitted by CnIndexPage:
+- `@create(formData)` — Form dialog create confirmed
+- `@edit(formData)` — Form dialog edit confirmed
+- `@delete(id)` — Single delete confirmed
+- `@copy({ id, newName })` — Single copy confirmed
+- `@mass-delete(ids)`, `@mass-copy(payload)`, `@mass-export(payload)`, `@mass-import(payload)`
+
+Public ref methods for setting dialog results:
+- `setFormResult(resultData)`, `setSingleDeleteResult(resultData)`, `setSingleCopyResult(resultData)`
+- `setMassDeleteResult(resultData)`, `setMassCopyResult(resultData)`, `setExportResult(resultData)`, `setImportResult(resultData)`
+- `openFormDialog(item)` — Programmatic open (null = create, object = edit)
+
 ## Rules for Modifying Components
 
 1. **NEVER break existing prop interfaces** — new props MUST have defaults
@@ -47,7 +111,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 4. **Always ask the user before upgrading a component** — propose changes via discussion first
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
-7. **NL Design tokens**: Use double-fallback pattern: `var(--nldesign-*, var(--color-*))`
+7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
 8. **Translation**: Components accept pre-translated strings via props with English defaults. Never import `t()` from a specific app.
 
 ## Adding New Components
@@ -59,7 +123,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 5. Add to `src/components/index.js` barrel
 6. Add to `src/index.js` barrel
 7. Write test in `tests/components/`
-8. Use Nextcloud CSS variables with NL Design fallbacks
+8. Use Nextcloud CSS variables only (no `--nldesign-*` references)
 
 ## Project Structure
 

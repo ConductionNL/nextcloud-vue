@@ -1,53 +1,87 @@
 <template>
-	<div class="cn-stats-block">
-		<div class="cn-stats-block__header">
-			<h4>{{ title || 'Objects' }}</h4>
+	<component
+		:is="clickable ? 'a' : 'div'"
+		class="cn-stats-block"
+		:class="rootClasses"
+		v-bind="clickable ? { href: '#', role: 'button', tabindex: '0' } : {}"
+		@click="onClick">
+		<!-- Icon -->
+		<div v-if="hasIcon" class="cn-stats-block__icon" :class="iconClasses">
+			<slot name="icon">
+				<component :is="icon" v-if="icon" :size="iconSize" />
+			</slot>
 		</div>
 
-		<div v-if="count > 0" class="cn-stats-block__count">
-			<span class="cn-stats-block__count-value">{{ count }}</span>
-			<span class="cn-stats-block__count-label">{{ countLabel }}</span>
-		</div>
-		<div v-else-if="loading" class="cn-stats-block__loading">
-			<NcLoadingIcon :size="16" />
-			{{ loadingLabel }}
-		</div>
-		<div v-else class="cn-stats-block__empty">
-			{{ emptyLabel }}
-		</div>
+		<!-- Content -->
+		<div class="cn-stats-block__content">
+			<div class="cn-stats-block__header">
+				<h4>{{ title || 'Objects' }}</h4>
+			</div>
 
-		<!-- Breakdown details -->
-		<div v-if="breakdown && count > 0" class="cn-stats-block__breakdown">
-			<div
-				v-for="(value, key) in breakdown"
-				:key="key"
-				class="cn-stats-block__breakdown-item">
-				<span class="cn-stats-block__breakdown-label">{{ formatBreakdownLabel(key) }}</span>
-				<span
-					class="cn-stats-block__breakdown-value"
-					:class="'cn-stats-block__breakdown-value--' + key">
-					{{ value }}
-				</span>
+			<div v-if="count > 0" class="cn-stats-block__count">
+				<span class="cn-stats-block__count-value">{{ formattedCount }}</span>
+				<span class="cn-stats-block__count-label">{{ countLabel }}</span>
+			</div>
+			<div v-else-if="loading" class="cn-stats-block__loading">
+				<NcLoadingIcon :size="16" />
+				{{ loadingLabel }}
+			</div>
+			<div v-else class="cn-stats-block__empty">
+				{{ emptyLabel }}
+			</div>
+
+			<!-- Breakdown details -->
+			<div v-if="breakdown && count > 0" class="cn-stats-block__breakdown">
+				<div
+					v-for="(value, key) in breakdown"
+					:key="key"
+					class="cn-stats-block__breakdown-item">
+					<span class="cn-stats-block__breakdown-label">{{ formatBreakdownLabel(key) }}</span>
+					<span
+						class="cn-stats-block__breakdown-value"
+						:class="'cn-stats-block__breakdown-value--' + key">
+						{{ value }}
+					</span>
+				</div>
 			</div>
 		</div>
-	</div>
+	</component>
 </template>
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 
 /**
- * CnStatsBlock — Statistics display card with a prominent count and optional breakdown.
+ * CnStatsBlock — Statistics display card with icon, count, and optional breakdown.
  *
- * Extracted from OpenRegister's SchemaStatsBlock. Shows a large number with
- * label and optional detailed breakdown (e.g., total, invalid, deleted, published).
+ * Supports vertical (default) and horizontal layouts, color variants, icons,
+ * and clickable state. Use in a CnKpiGrid for responsive dashboard layouts.
  *
- * @example
+ * @example Basic vertical (default)
+ * <CnStatsBlock title="Cases" :count="42" count-label="open cases" />
+ *
+ * @example Horizontal with icon and variant
+ * <CnStatsBlock
+ *   title="Open Cases"
+ *   :count="42"
+ *   :icon="BriefcaseOutline"
+ *   variant="primary"
+ *   horizontal
+ *   clickable
+ *   @click="goToCases" />
+ *
+ * @example With breakdown
  * <CnStatsBlock
  *   title="Cases"
  *   :count="42"
- *   count-label="open cases"
  *   :breakdown="{ total: 100, invalid: 3, deleted: 5, published: 92 }" />
+ *
+ * @example Custom icon slot
+ * <CnStatsBlock title="Files" :count="128">
+ *   <template #icon>
+ *     <FileDocumentOutline :size="24" />
+ *   </template>
+ * </CnStatsBlock>
  */
 export default {
 	name: 'CnStatsBlock',
@@ -92,17 +126,68 @@ export default {
 			type: String,
 			default: 'No items found',
 		},
+		/** Icon component (e.g., imported MDI icon) */
+		icon: {
+			type: [Object, Function],
+			default: null,
+		},
+		/** Icon size in pixels */
+		iconSize: {
+			type: Number,
+			default: 24,
+		},
+		/** Color variant: 'default', 'primary', 'success', 'warning', 'error' */
+		variant: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'primary', 'success', 'warning', 'error'].includes(v),
+		},
+		/** Use horizontal layout (icon left, content right) */
+		horizontal: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the card is clickable */
+		clickable: {
+			type: Boolean,
+			default: false,
+		},
+	},
+
+	computed: {
+		hasIcon() {
+			return this.icon !== null || this.$scopedSlots.icon || this.$slots.icon
+		},
+
+		formattedCount() {
+			return this.count.toLocaleString()
+		},
+
+		rootClasses() {
+			return {
+				'cn-stats-block--horizontal': this.horizontal,
+				'cn-stats-block--clickable': this.clickable,
+				[`cn-stats-block--${this.variant}`]: this.variant !== 'default',
+			}
+		},
+
+		iconClasses() {
+			return {
+				[`cn-stats-block__icon--${this.variant}`]: this.variant !== 'default',
+			}
+		},
 	},
 
 	methods: {
-		/**
-		 * Format a breakdown key into a readable label.
-		 * Capitalizes first letter and adds colon.
-		 * @param {string} key The breakdown key
-		 * @return {string} Formatted label
-		 */
 		formatBreakdownLabel(key) {
 			return key.charAt(0).toUpperCase() + key.slice(1) + ':'
+		},
+
+		onClick(event) {
+			if (this.clickable) {
+				event.preventDefault()
+				this.$emit('click', event)
+			}
 		},
 	},
 }
@@ -111,15 +196,96 @@ export default {
 <style scoped>
 .cn-stats-block {
 	background: var(--color-background-hover);
-	border-radius: var(--border-radius);
+	border-radius: var(--border-radius-large, 10px);
 	padding: 1rem;
-	margin-bottom: 1rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-decoration: none;
+	color: inherit;
+	border: 2px solid transparent;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cn-stats-block--horizontal {
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.cn-stats-block--horizontal .cn-stats-block__content {
+	text-align: left;
+}
+
+.cn-stats-block--horizontal .cn-stats-block__count {
+	justify-content: flex-start;
+}
+
+.cn-stats-block--clickable {
+	cursor: pointer;
+}
+
+.cn-stats-block--clickable:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cn-stats-block--clickable:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+/* Icon */
+.cn-stats-block__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: var(--color-primary-element-light, rgba(0, 130, 201, 0.1));
+	color: var(--color-primary-element);
+	flex-shrink: 0;
+	margin-bottom: 8px;
+}
+
+.cn-stats-block--horizontal .cn-stats-block__icon {
+	margin-bottom: 0;
+}
+
+.cn-stats-block__icon--primary {
+	background: var(--color-primary-element-light, rgba(0, 130, 201, 0.1));
+	color: var(--color-primary-element);
+}
+
+.cn-stats-block__icon--success {
+	background: rgba(70, 186, 97, 0.1);
+	color: var(--color-success);
+}
+
+.cn-stats-block__icon--warning {
+	background: rgba(232, 163, 24, 0.1);
+	color: var(--color-warning);
+}
+
+.cn-stats-block__icon--error {
+	background: rgba(224, 36, 36, 0.1);
+	color: var(--color-error);
+}
+
+/* Content */
+.cn-stats-block__content {
+	flex: 1;
+	min-width: 0;
+	text-align: center;
 }
 
 .cn-stats-block__header h4 {
 	margin-top: 0;
-	margin-bottom: 1rem;
+	margin-bottom: 0.5rem;
 	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-stats-block__count {
@@ -128,7 +294,7 @@ export default {
 	justify-content: center;
 	gap: 0.5rem;
 	font-size: 1.2rem;
-	margin-bottom: 1rem;
+	margin-bottom: 0.5rem;
 }
 
 .cn-stats-block__count-value {
@@ -136,6 +302,11 @@ export default {
 	font-weight: bold;
 	color: var(--color-primary-element);
 }
+
+.cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
+.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-success); }
+.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-warning); }
+.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-error); }
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
@@ -147,22 +318,23 @@ export default {
 	justify-content: center;
 	gap: 0.5rem;
 	color: var(--color-text-maxcontrast);
-	margin-bottom: 1rem;
+	margin-bottom: 0.5rem;
 }
 
 .cn-stats-block__empty {
 	text-align: center;
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
-	margin-bottom: 1rem;
+	margin-bottom: 0.5rem;
 }
 
 .cn-stats-block__breakdown {
-	margin-top: 1rem;
-	padding: 1rem;
+	margin-top: 0.5rem;
+	padding: 0.75rem;
 	background: var(--color-background-hover);
 	border-radius: var(--border-radius);
 	border: 1px solid var(--color-border);
+	width: 100%;
 }
 
 .cn-stats-block__breakdown-item {
