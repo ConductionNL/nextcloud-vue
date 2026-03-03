@@ -4,13 +4,29 @@ sidebar_position: 1
 
 # Getting Started
 
-Build a Nextcloud app with schema-driven components, CRUD store, and OpenRegister integration in minutes.
+`@conduction/nextcloud-vue` gives you a full schema-driven CRUD interface for your Nextcloud app in minutes — sortable tables, faceted filters, pagination, dialogs, settings pages, and a unified object store, all wired together from a single JSON schema.
+
+![Full list page showing left navigation, data table with sortable columns, and right sidebar with search and filters](/img/screenshots/cn-index-page.png)
+
+## Current Status & Scope
+
+:::info OpenRegister-first development
+This library is currently developed and tested primarily against **[OpenRegister](https://github.com/ConductionNL/openregister)** — an open-source Nextcloud app that provides a schema-driven object store with registers, schemas, and JSON-based objects.
+
+**The goal is broader applicability.** The components are designed around standard JSON Schema and generic REST conventions, not OpenRegister internals. Future work will make the store layer configurable so apps can target any backend that follows the same schema/object model.
+
+What this means today:
+- The object store (`createObjectStore`) calls OpenRegister's API paths (`/apps/openregister/api/...`)
+- Schema objects follow the OpenRegister schema format (title, description, properties, icon, required)
+- Apps that use OpenRegister get the full feature set out of the box
+- Apps targeting a different backend can still use all UI components directly — they just wire up their own data fetching
+:::
 
 ## Prerequisites
 
 - Nextcloud development environment (Docker recommended)
 - Node.js 18+
-- [OpenRegister](https://github.com/ConductionNL/openregister) app installed and enabled
+- [OpenRegister](https://github.com/ConductionNL/openregister) app installed and enabled (for the full store integration)
 - A Nextcloud app scaffold (see [Nextcloud App Development](https://docs.nextcloud.com/server/stable/developer_manual/app_development/index.html))
 
 ## Install the Library
@@ -232,10 +248,11 @@ export default {
 </script>
 ```
 
-That's it — you have a working list page with sorting, pagination, filtering, and CRUD dialogs, all driven by your OpenRegister schema.
+That's it — you have a working list page with sorting, pagination, faceted filtering, and CRUD dialogs, all driven by your OpenRegister schema.
 
 ## Next Steps
 
-- [Architecture Overview](./architecture/overview.md) — understand the three-layer design
+- [Layouts](./layouts/) — how the List, Detail, and Settings page layouts work
 - [Component Reference](./components/) — browse all Cn* components
 - [OpenRegister Integration](./integrations/openregister.md) — deep dive into the backend connection
+- [Architecture Overview](./architecture/overview.md) — understand the three-layer design
