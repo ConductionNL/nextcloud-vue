@@ -4,12 +4,15 @@ sidebar_position: 4
 
 # Customising Default Pages
 
-`CnIndexPage` and its sub-components are designed to be extended without forking. This guide covers the most common customisation scenarios with working code examples.
+`CnIndexPage` and its sub-components are designed to be extended without forking. This guide covers every customisation scenario with working code examples.
 
 ## Overview of extension points
 
 ```
 CnIndexPage
+│
+├── Page header (inline title / icon / description)
+│   prop: show-title, icon, description
 │
 ├── CnActionsBar (top toolbar)
 │   ├── slot: #action-items         ← add buttons to the Actions dropdown
@@ -20,6 +23,11 @@ CnIndexPage
 │   ├── slot: #column-{key}         ← custom cell renderer for a column
 │   ├── slot: #row-actions          ← replace the entire ⋯ action menu
 │   └── slot: #empty                ← custom empty state
+│
+├── CnCardGrid (card view — when viewMode="cards")
+│   ├── slot: #card                 ← replace the entire card template
+│   ├── slot: #card-actions         ← add action buttons on each card
+│   └── slot: #card-badges          ← add badge/status chips to each card
 │
 ├── CnIndexSidebar (right panel)
 │   ├── slot: #search-extra         ← append to Search tab
@@ -32,8 +40,98 @@ CnIndexPage
     ├── slot: #form-fields          ← replace all form fields at once
     ├── slot: #before-fields        ← prepend content to auto-generated fields
     ├── slot: #after-fields         ← append content to auto-generated fields
-    └── slot: #field-{key}          ← replace one specific field
+    ├── slot: #field-{key}          ← replace one specific field
+    └── slot: #import-fields        ← add extra fields to the import dialog
 ```
+
+---
+
+## Props reference
+
+`CnIndexPage` accepts a large number of props that control built-in behaviour before you reach for slots.
+
+### Page header
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | String | *(required)* | Page title — shown in the sidebar header or inline |
+| `description` | String | `''` | Subtitle shown below the title when `show-title` is true |
+| `show-title` | Boolean | `false` | Render the title, icon, and description inline above the table rather than in the sidebar |
+| `icon` | String | `''` | MDI icon name for the page. Falls back to `schema.icon` when not set |
+
+### Layout and view
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `view-mode` | String | `'table'` | Starting view: `'table'` or `'cards'` |
+| `show-view-toggle` | Boolean | `true` | Show or hide the Cards / Table toggle in the toolbar |
+| `selectable` | Boolean | `true` | Whether rows / cards can be checked for mass actions |
+| `row-key` | String | `'id'` | Property used as the unique row identifier when `id` is not the primary key |
+| `row-class` | Function | `null` | `(row) => string \| object` — apply CSS classes to individual rows dynamically |
+| `inline-action-count` | Number | `2` | How many row-action buttons appear inline before the rest collapse into the `⋯` dropdown |
+
+### Add button
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `add-label` | String | `''` | Override the Add button label. Defaults to `'Add {schema.title}'` |
+
+### Built-in row actions
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `show-edit-action` | Boolean | `true` | Include the built-in Edit action in the row menu |
+| `show-copy-action` | Boolean | `true` | Include the built-in Copy action in the row menu |
+| `show-delete-action` | Boolean | `true` | Include the built-in Delete action in the row menu |
+| `actions` | Array | `[]` | App-defined action definitions appended after built-in actions |
+
+### Mass actions
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `show-mass-import` | Boolean | `true` | Show the built-in Import button in the Actions dropdown |
+| `show-mass-export` | Boolean | `true` | Show the built-in Export button in the Actions dropdown |
+| `show-mass-copy` | Boolean | `true` | Show the built-in Copy (mass) button |
+| `show-mass-delete` | Boolean | `true` | Show the built-in Delete (mass) button |
+| `mass-action-name-field` | String | `'title'` | Property used to display item names inside mass-action dialogs |
+| `export-formats` | Array | `[{ id:'excel', label:'Excel (.xlsx)' }, ...]` | Available formats in the export dialog |
+| `import-options` | Array | `[]` | Option checkboxes shown in the import dialog |
+
+### Columns and form fields
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `include-columns` | Array | `null` | Whitelist of column keys to show (all others hidden) |
+| `exclude-columns` | Array | `[]` | Column keys to hide |
+| `column-overrides` | Object | `{}` | Per-column property overrides (label, width, sortable, …) |
+| `include-fields` | Array | `null` | Whitelist of form-field keys |
+| `exclude-fields` | Array | `[]` | Form-field keys to hide |
+| `field-overrides` | Object | `{}` | Per-field property overrides (label, widget, placeholder, options, …) |
+| `show-form-dialog` | Boolean | `true` | Whether the built-in create / edit dialog is enabled at all |
+
+---
+
+## Events reference
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `add` | — | Add button clicked (fires before dialog opens) |
+| `create` | `object` | Form confirmed in create mode |
+| `edit` | `object` | Form confirmed in edit mode |
+| `delete` | `string` | Single delete confirmed (item ID) |
+| `copy` | `{ id, newName }` | Single copy confirmed |
+| `mass-delete` | `string[]` | Mass delete confirmed (array of IDs) |
+| `mass-copy` | `{ ids, getName }` | Mass copy confirmed |
+| `mass-export` | `{ ids, format }` | Mass export confirmed |
+| `mass-import` | `{ file, options }` | Mass import confirmed |
+| `refresh` | — | Refresh button clicked |
+| `row-click` | `object` | Row or card clicked |
+| `sort` | `{ key, order }` | Column header clicked to sort |
+| `page-changed` | `number` | Pagination page changed |
+| `page-size-changed` | `number` | Page size changed |
+| `select` | `string[]` | Row selection changed |
+| `action` | `{ action, row }` | Custom row action triggered |
+| `view-mode-change` | `'table' \| 'cards'` | View mode toggled |
 
 ---
 
@@ -115,6 +213,18 @@ methods: {
 </script>
 ```
 
+### Controlling how many actions show inline
+
+By default two action buttons appear directly in the row before the rest collapse into `⋯`. Use `inline-action-count` to change this:
+
+```vue
+<!-- Show all three custom actions inline, no dropdown -->
+<CnIndexPage :actions="rowActions" :inline-action-count="3" />
+
+<!-- Collapse everything into the dropdown immediately -->
+<CnIndexPage :actions="rowActions" :inline-action-count="0" />
+```
+
 ---
 
 ## Adding items to the Actions dropdown (top bar)
@@ -142,6 +252,18 @@ The top bar's `···  Actions` dropdown is the bulk-actions menu. Add custom it
 ```
 
 These items appear below the built-in Refresh / Import / Export in the dropdown.
+
+### Hiding built-in mass actions
+
+Remove individual built-in actions from the dropdown without touching the slot:
+
+```vue
+<CnIndexPage
+  :show-mass-import="false"
+  :show-mass-export="false"
+  :show-mass-copy="true"
+  :show-mass-delete="true" />
+```
 
 ### Adding mass-action items (appear when rows are selected)
 
@@ -196,6 +318,36 @@ To add icon buttons in the far-right of the toolbar (next to the sidebar toggle)
 
 ---
 
+## Dynamic row styling
+
+Use the `row-class` prop to apply CSS classes to individual rows based on their data. The function receives the full row object and must return a string, an array of strings, or a Vue class-binding object:
+
+```vue
+<CnIndexPage
+  :schema="schema"
+  :objects="objects"
+  :row-class="rowClass" />
+
+<script>
+methods: {
+  rowClass(row) {
+    if (row.status === 'overdue')  return 'row--danger'
+    if (row.status === 'pending')  return 'row--warning'
+    if (row.archived)              return 'row--muted'
+    return ''
+  },
+}
+</script>
+
+<style>
+.row--danger  { background: var(--color-error-background); }
+.row--warning { background: var(--color-warning-background); }
+.row--muted   { opacity: 0.55; }
+</style>
+```
+
+---
+
 ## Custom cell renderers
 
 Override how a specific column is displayed without touching the rest of the table. Use `#column-{key}` where `{key}` matches the schema property name:
@@ -225,6 +377,68 @@ Override how a specific column is displayed without touching the rest of the tab
 The slot scope provides:
 - `row` — the full row data object
 - `value` — the extracted cell value for this column
+
+---
+
+## Card view customisation
+
+When `view-mode="cards"` is active, `CnIndexPage` renders a `CnCardGrid` instead of the table. Three slots let you customise individual cards:
+
+### Replace the entire card
+
+```vue
+<CnIndexPage
+  title="Clients"
+  :schema="schema"
+  :objects="objects"
+  view-mode="cards">
+  <template #card="{ object, selected }">
+    <div :class="['my-card', { 'my-card--selected': selected }]">
+      <img :src="object.avatarUrl" alt="" />
+      <h3>{{ object.name }}</h3>
+      <p>{{ object.email }}</p>
+    </div>
+  </template>
+</CnIndexPage>
+```
+
+### Add badge / status chips to cards
+
+```vue
+<CnIndexPage view-mode="cards" :schema="schema" :objects="objects">
+  <template #card-badges="{ object }">
+    <span v-if="object.verified" class="badge badge--success">Verified</span>
+    <span v-if="object.overdue"  class="badge badge--error">Overdue</span>
+  </template>
+</CnIndexPage>
+```
+
+### Add action buttons to cards
+
+```vue
+<CnIndexPage view-mode="cards" :schema="schema" :objects="objects">
+  <template #card-actions="{ object }">
+    <NcButton @click="sendInvoice(object)">Send Invoice</NcButton>
+    <NcButton type="error" @click="deleteClient(object)">Delete</NcButton>
+  </template>
+</CnIndexPage>
+```
+
+### Controlling the view mode toggle
+
+Persist the user's choice or set the starting mode via the `view-mode` prop. Listen for `view-mode-change` to store it:
+
+```vue
+<CnIndexPage
+  :view-mode="userPrefs.viewMode"
+  @view-mode-change="userPrefs.viewMode = $event" />
+```
+
+Hide the toggle entirely when only one mode makes sense:
+
+```vue
+<CnIndexPage :show-view-toggle="false" view-mode="cards" />
+```
 
 ---
 
@@ -259,12 +473,24 @@ Replace a single auto-generated form field while keeping the rest:
 </CnIndexPage>
 ```
 
-### Append extra fields
+The slot scope for `#field-{key}` provides:
+- `field` — the full field definition (`key`, `label`, `type`, `widget`, `required`, …)
+- `value` — the current form value for this field
+- `error` — current validation error string (empty when valid)
+- `updateField(key, value)` — call this to update the form data
 
-Add fields to the form that aren't in the schema (e.g. a confirmation checkbox):
+### Prepend or append extra fields
+
+Add content before or after the auto-generated fields without replacing any of them:
 
 ```vue
 <CnIndexPage title="Clients" :schema="schema" :objects="objects" @create="onCreate">
+  <template #before-fields>
+    <NcNoteCard type="warning">
+      Fields marked * are shared across all organisations.
+    </NcNoteCard>
+  </template>
+
   <template #after-fields="{ formData, updateField }">
     <NcCheckboxRadioSwitch
       :checked="formData.acceptTerms"
@@ -274,6 +500,10 @@ Add fields to the form that aren't in the schema (e.g. a confirmation checkbox):
   </template>
 </CnIndexPage>
 ```
+
+The `#after-fields` slot scope provides:
+- `formData` — the complete current form data object
+- `updateField(key, value)` — update any field (including extra ones not in the schema)
 
 ### Replace the entire form
 
@@ -289,6 +519,112 @@ For complex forms, replace the dialog content completely:
       @cancel="close" />
   </template>
 </CnIndexPage>
+```
+
+---
+
+## Two-phase dialog pattern (async save / delete)
+
+Dialogs in `CnIndexPage` follow a two-phase pattern: they emit an event when the user confirms, then wait for the parent to call a result method. This keeps the dialogs stateless and lets you perform async API calls between the two phases.
+
+```
+User clicks Save
+      │
+      ▼
+Dialog emits @create / @edit / @delete / …
+      │
+      ▼
+Parent performs async operation (API call)
+      │
+      ├─ success → $refs.page.setFormResult({ success: true })
+      └─ failure → $refs.page.setFormResult({ error: 'Name already taken' })
+```
+
+### Example: async create with server validation
+
+```vue
+<template>
+  <CnIndexPage
+    ref="page"
+    :schema="schema"
+    :objects="objects"
+    @create="onCreate" />
+</template>
+
+<script>
+export default {
+  methods: {
+    async onCreate(formData) {
+      try {
+        await this.clientStore.createClient(formData)
+        this.$refs.page.setFormResult({ success: true })
+      } catch (e) {
+        if (e.response?.status === 422) {
+          // Show per-field server validation errors inline
+          this.$refs.page.setValidationErrors(e.response.data.errors)
+        } else {
+          this.$refs.page.setFormResult({ error: e.message })
+        }
+      }
+    },
+  },
+}
+</script>
+```
+
+### Result methods on CnIndexPage
+
+| Method | Description |
+|--------|-------------|
+| `setFormResult({ success?, error? })` | Resolve the create / edit dialog |
+| `setSingleDeleteResult({ success?, error? })` | Resolve the single-item delete dialog |
+| `setSingleCopyResult({ success?, error? })` | Resolve the single-item copy dialog |
+| `setMassDeleteResult({ success?, error? })` | Resolve the mass-delete dialog |
+| `setMassCopyResult({ success?, error? })` | Resolve the mass-copy dialog |
+| `setExportResult({ success?, error? })` | Resolve the export dialog |
+| `setImportResult({ success?, error?, summary? })` | Resolve the import dialog |
+
+### Per-field server validation errors
+
+When the API returns field-level validation messages, show them inline in the form without closing the dialog:
+
+```js
+// API returns: { errors: { email: 'Already in use', name: 'Too long' } }
+this.$refs.page.setValidationErrors(e.response.data.errors)
+```
+
+---
+
+## Programmatic dialog control
+
+Open the create or edit dialog from code, without the user clicking the Add button:
+
+```js
+// Open the create dialog (blank form)
+this.$refs.page.openFormDialog(null)
+
+// Open the edit dialog pre-filled with a specific row
+this.$refs.page.openFormDialog(this.selectedRow)
+```
+
+This is useful for deep-link navigation or triggering the dialog from a button elsewhere on the page:
+
+```vue
+<template>
+  <div>
+    <NcButton @click="quickAdd">Quick Add Client</NcButton>
+
+    <CnIndexPage ref="page" :schema="schema" :objects="objects" @create="onCreate" />
+  </div>
+</template>
+
+<script>
+methods: {
+  quickAdd() {
+    this.$refs.page.openFormDialog(null)
+  },
+}
+</script>
 ```
 
 ---
@@ -329,7 +665,7 @@ Override the delete confirmation with your own dialog:
       <AccountGroupOutline :size="64" />
       <h3>{{ t('myapp', 'No clients yet') }}</h3>
       <p>{{ t('myapp', 'Add your first client to get started.') }}</p>
-      <NcButton type="primary" @click="openCreateDialog">
+      <NcButton type="primary" @click="$refs.page.openFormDialog(null)">
         {{ t('myapp', 'Add Client') }}
       </NcButton>
     </div>
@@ -355,8 +691,8 @@ Control which schema columns appear in the table:
 <!-- Override column display properties -->
 <CnIndexPage
   :column-overrides="{
-    name:        { label: 'Full Name', width: '200px' },
-    status:      { sortable: false },
+    name:          { label: 'Full Name', width: '200px' },
+    status:        { sortable: false },
     contractValue: { label: 'Value (€)' },
   }" />
 ```
@@ -365,7 +701,7 @@ Control which schema columns appear in the table:
 
 ## Excluding or reordering form fields
 
-The same pattern applies to the create/edit form:
+The same pattern applies to the create / edit form:
 
 ```vue
 <!-- Only show these fields in the form -->
@@ -393,6 +729,70 @@ The same pattern applies to the create/edit form:
 
 ---
 
+## Import dialog extra fields
+
+Inject custom controls into the import dialog (e.g. a register or schema selector) using the `#import-fields` slot:
+
+```vue
+<CnIndexPage
+  title="Clients"
+  :schema="schema"
+  :objects="objects"
+  @mass-import="onImport">
+  <template #import-fields="{ file }">
+    <div v-if="file" class="form-field">
+      <label>{{ t('myapp', 'Import into register') }}</label>
+      <NcSelect
+        v-model="importRegister"
+        :options="registerOptions" />
+    </div>
+  </template>
+</CnIndexPage>
+```
+
+The slot scope provides:
+- `file` — the `File` object once the user has selected one (or `null` before selection)
+
+---
+
+## Sidebar customisation
+
+Append content to the sidebar without replacing it.
+
+### Extra search tab content
+
+```vue
+<CnIndexPage :schema="schema" :objects="objects">
+  <template #search-extra>
+    <div class="sidebar-section">
+      <h3>Saved searches</h3>
+      <NcActionButton
+        v-for="s in savedSearches"
+        :key="s.id"
+        @click="applySearch(s)">
+        {{ s.label }}
+      </NcActionButton>
+    </div>
+  </template>
+</CnIndexPage>
+```
+
+### Extra columns tab content
+
+```vue
+<CnIndexPage :schema="schema" :objects="objects">
+  <template #columns-extra>
+    <div class="sidebar-section">
+      <NcCheckboxRadioSwitch v-model="showComputedFields">
+        Show computed fields
+      </NcCheckboxRadioSwitch>
+    </div>
+  </template>
+</CnIndexPage>
+```
+
+---
+
 ## Using CnDataTable and CnRowActions directly
 
 If `CnIndexPage` is too opinionated for your use case, you can compose the sub-components directly:
@@ -413,6 +813,8 @@ If `CnIndexPage` is too opinionated for your use case, you can compose the sub-c
       :sort-order="sortOrder"
       :selectable="true"
       :selected-ids="selectedIds"
+      :row-class="rowClass"
+      :scrollable="true"
       @sort="onSort"
       @select="selectedIds = $event"
       @row-click="onRowClick">
@@ -437,10 +839,43 @@ If `CnIndexPage` is too opinionated for your use case, you can compose the sub-c
       :total-pages="pagination.pages"
       :total-items="pagination.total"
       :current-page-size="pagination.limit"
+      :page-size-options="[10, 25, 50, 100]"
       @page-changed="fetchPage"
       @page-size-changed="setPageSize" />
   </div>
 </template>
 ```
+
+### CnDataTable props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `schema` | Object | `null` | Schema for auto-generating columns |
+| `columns` | Array | `[]` | Manual column definitions (bypasses schema) |
+| `rows` | Array | `[]` | Row data |
+| `loading` | Boolean | `false` | Show loading spinner |
+| `sort-key` | String | `null` | Currently sorted column key |
+| `sort-order` | String | `'asc'` | `'asc'` or `'desc'` |
+| `selectable` | Boolean | `false` | Show selection checkboxes |
+| `selected-ids` | Array | `[]` | Currently selected IDs |
+| `row-key` | String | `'id'` | Unique row identifier property |
+| `row-class` | Function | `null` | `(row) => string \| object` for per-row CSS |
+| `scrollable` | Boolean | `false` | Constrain table height; rows scroll internally |
+| `empty-text` | String | `'No items found'` | Empty state message |
+| `include-columns` | Array | `null` | Column key whitelist |
+| `exclude-columns` | Array | `[]` | Column keys to hide |
+| `column-overrides` | Object | `{}` | Per-column overrides |
+
+### CnPagination props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `current-page` | Number | `1` | Current page (1-based) |
+| `total-pages` | Number | `1` | Total pages |
+| `total-items` | Number | `0` | Total items across all pages |
+| `current-page-size` | Number | `20` | Items per page |
+| `page-size-options` | Array | `[10, 20, 50, 100, 250, 500, 1000]` | Page size dropdown options |
+| `min-items-to-show` | Number | `10` | Minimum items before pagination renders |
+| `page-info-format` | String | `'Page {current} of {total}'` | Format string with `{current}` and `{total}` placeholders |
 
 This gives you complete layout control while still benefiting from schema-driven column generation, type-aware cell rendering, and the pagination component.
