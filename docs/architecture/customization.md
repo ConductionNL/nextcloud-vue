@@ -30,6 +30,9 @@ CnIndexPage
 │   └── slot: #card-badges          ← add badge/status chips to each card
 │
 ├── CnIndexSidebar (right panel)
+│   ├── prop: default-tab           ← set the initially active tab
+│   ├── event: tab-change           ← notified when the user switches tabs
+│   ├── slot: #tabs                 ← inject additional NcAppSidebarTab components
 │   ├── slot: #search-extra         ← append to Search tab
 │   └── slot: #columns-extra        ← append to Columns tab
 │
@@ -757,12 +760,74 @@ The slot scope provides:
 
 ## Sidebar customisation
 
-Append content to the sidebar without replacing it.
+`CnIndexSidebar` is rendered in `App.vue` alongside the router view, not inside `CnIndexPage`. All sidebar customisation is applied directly to the `<CnIndexSidebar>` element.
 
-### Extra search tab content
+### Setting the default active tab
+
+Use the `default-tab` prop to control which tab is open when the sidebar first appears. The built-in tab IDs are `'search-tab'` and `'columns-tab'`:
 
 ```vue
-<CnIndexPage :schema="schema" :objects="objects">
+<!-- Open on the Columns tab instead of Search -->
+<CnIndexSidebar
+  :schema="sidebarState.schema"
+  default-tab="columns-tab"
+  @tab-change="onTabChange" />
+```
+
+Listen to `tab-change` to persist the user's choice:
+
+```vue
+<CnIndexSidebar
+  :schema="sidebarState.schema"
+  :default-tab="userPrefs.sidebarTab"
+  @tab-change="userPrefs.sidebarTab = $event" />
+```
+
+### Adding custom tabs
+
+Use the `#tabs` slot to inject one or more additional `NcAppSidebarTab` components. Assign an `order` higher than `2` to place them after the built-in Search (order 1) and Columns (order 2) tabs:
+
+```vue
+<CnIndexSidebar
+  :schema="sidebarState.schema"
+  default-tab="activity-tab">
+  <template #tabs>
+    <NcAppSidebarTab
+      id="activity-tab"
+      name="Activity"
+      :order="3">
+      <template #icon>
+        <ClockOutline :size="20" />
+      </template>
+
+      <!-- Your tab content here -->
+      <ActivityFeed :object-id="sidebarState.objectId" />
+    </NcAppSidebarTab>
+
+    <NcAppSidebarTab
+      id="relations-tab"
+      name="Relations"
+      :order="4">
+      <template #icon>
+        <LinkVariant :size="20" />
+      </template>
+
+      <RelationsPanel :object-id="sidebarState.objectId" />
+    </NcAppSidebarTab>
+  </template>
+</CnIndexSidebar>
+```
+
+:::tip Tab IDs must be unique
+The `id` you set on your `NcAppSidebarTab` is the value used with `default-tab` and emitted by `tab-change`. Make sure it doesn't clash with `'search-tab'` or `'columns-tab'`.
+:::
+
+### Appending content inside existing tabs
+
+To add content at the bottom of the Search or Columns tab without replacing it, use `#search-extra` and `#columns-extra`. These are passed through from `CnIndexPage` to the sidebar via the `sidebarState` pattern, or set directly on `CnIndexSidebar`:
+
+```vue
+<CnIndexSidebar :schema="sidebarState.schema">
   <template #search-extra>
     <div class="sidebar-section">
       <h3>Saved searches</h3>
@@ -774,21 +839,13 @@ Append content to the sidebar without replacing it.
       </NcActionButton>
     </div>
   </template>
-</CnIndexPage>
-```
 
-### Extra columns tab content
-
-```vue
-<CnIndexPage :schema="schema" :objects="objects">
   <template #columns-extra>
-    <div class="sidebar-section">
-      <NcCheckboxRadioSwitch v-model="showComputedFields">
-        Show computed fields
-      </NcCheckboxRadioSwitch>
-    </div>
+    <NcCheckboxRadioSwitch v-model="showComputedFields">
+      Show computed fields
+    </NcCheckboxRadioSwitch>
   </template>
-</CnIndexPage>
+</CnIndexSidebar>
 ```
 
 ---

@@ -4,8 +4,10 @@
 		:title="resolvedName"
 		:subname="resolvedSubname"
 		:open.sync="internalOpen"
+		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
-		@close="$emit('update:open', false)">
+		@close="$emit('update:open', false)"
+		@update:active="onTabChange">
 		<!-- Schema icon in sidebar header -->
 		<template v-if="resolvedIcon" #header>
 			<div class="cn-index-sidebar__header-icon">
@@ -143,6 +145,9 @@
 
 			<slot name="columns-extra" />
 		</NcAppSidebarTab>
+
+		<!-- Extra tabs injected by the consumer -->
+		<slot name="tabs" />
 	</NcAppSidebar>
 </template>
 
@@ -289,11 +294,21 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * ID of the tab that should be active when the sidebar opens.
+		 * Built-in IDs are 'search-tab' and 'columns-tab'.
+		 * Use the id you set on your custom NcAppSidebarTab for custom tabs.
+		 */
+		defaultTab: {
+			type: String,
+			default: 'search-tab',
+		},
 	},
 
 	data() {
 		return {
 			internalOpen: this.open,
+			internalActiveTab: this.defaultTab,
 			propertiesExpanded: true,
 			expandedGroups: {},
 		}
@@ -364,6 +379,9 @@ export default {
 		internalOpen(val) {
 			this.$emit('update:open', val)
 		},
+		defaultTab(val) {
+			this.internalActiveTab = val
+		},
 		allGroups: {
 			immediate: true,
 			handler(groups) {
@@ -377,6 +395,12 @@ export default {
 	},
 
 	methods: {
+		/** Handle tab change from NcAppSidebar */
+		onTabChange(tabId) {
+			this.internalActiveTab = tabId
+			this.$emit('tab-change', tabId)
+		},
+
 		/** Check if a column is currently visible */
 		isColumnVisible(key) {
 			if (this.visibleColumns === null) return true
