@@ -78,15 +78,11 @@ Query parameters: `_page`, `_limit`, `_sort`, `_order`, `_search`, `_fields`, pl
 `createObjectStore` wraps these API calls into a Pinia store:
 
 ```js
-store.registerObjectType('contact', {
-  source: 'source-uuid',
-  register: 'register-uuid',
-  schema: 'schema-uuid',
-})
+store.registerObjectType('contact', 'schema-id', 'register-id')
 
 // These calls hit the OpenRegister API:
-await store.fetchObjects('contact', { page: 1, limit: 20 })
-await store.createObject('contact', { name: 'Alice', email: 'alice@example.com' })
+await store.fetchCollection('contact', { _page: 1, _limit: 20 })
+await store.saveObject('contact', { name: 'Alice', email: 'alice@example.com' })
 ```
 
 ### 4. Components
@@ -96,9 +92,9 @@ Cn* components read data from the store and display it based on the schema:
 ```vue
 <CnIndexPage
   :schema="store.getSchema('contact')"
-  :objects="store.objectList"
-  :pagination="store.pagination"
-  @create="data => store.createObject('contact', data)" />
+  :objects="store.getCollection('contact')"
+  :pagination="store.getPagination('contact')"
+  @create="data => store.saveObject('contact', data)" />
 ```
 
 ## Faceting

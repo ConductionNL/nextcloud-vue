@@ -112,7 +112,7 @@ Parses API error responses into user-friendly messages.
 import { parseApiError } from '@conduction/nextcloud-vue'
 
 try {
-  await store.createObject('contact', data)
+  await store.saveObject('contact', data)
 } catch (e) {
   const message = parseApiError(e)
   // "Validation failed: email is required"

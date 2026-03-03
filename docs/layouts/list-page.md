@@ -75,16 +75,16 @@ Two tabs:
       <CnIndexPage
         :title="schema.title"
         :schema="schema"
-        :objects="store.objectList"
-        :pagination="store.pagination"
-        :loading="store.loading"
+        :objects="store.getCollection('client')"
+        :pagination="store.getPagination('client')"
+        :loading="store.isLoading('client')"
         @row-click="onRowClick"
         @create="onCreate"
         @edit="onEdit"
         @delete="onDelete"
-        @refresh="store.fetchObjects('client')"
-        @page-changed="p => store.fetchObjects('client', { page: p })"
-        @sort="s => store.fetchObjects('client', s)" />
+        @refresh="store.fetchCollection('client')"
+        @page-changed="p => store.fetchCollection('client', { _page: p })"
+        @sort="s => store.fetchCollection('client', s)" />
     </NcAppContent>
   </NcContent>
 </template>
