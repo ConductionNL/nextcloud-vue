@@ -33,4 +33,6 @@ The App Sidebar is optional and can be toggled by the user.
 
 ## Navigation
 
+![App navigation sidebar showing entity links and settings button](/img/screenshots/layout-navigation.png)
+
 App navigation is app-specific and not wrapped by the library. Apps implement their own `MainMenu.vue` using Nextcloud's `NcAppNavigation`. See [Nextcloud Layout Components](https://docs.nextcloud.com/server/stable/developer_manual/design/layoutcomponents.html) for the full API.
