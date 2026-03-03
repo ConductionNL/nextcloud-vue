@@ -85,7 +85,7 @@ function mergePluginActions(plugins) {
 
 // ── Base state ──────────────────────────────────────────────────────────
 
-function baseState() {
+function baseState(baseUrl = DEFAULT_BASE_URL) {
 	return {
 		/** @type {Object<string, {schema: string, register: string}>} */
 		objectTypeRegistry: {},
@@ -107,7 +107,7 @@ function baseState() {
 		facets: {},
 		/** @type {{baseUrl: string}} */
 		_options: {
-			baseUrl: DEFAULT_BASE_URL,
+			baseUrl,
 		},
 	}
 }
@@ -614,16 +614,17 @@ const baseActions = {
  *
  * @param {string} storeId Pinia store identifier
  * @param {Array} [plugins=[]] Array of plugin definitions
+ * @param {string} [baseUrl] Base API URL override
  * @return {Function} Pinia store composable
  */
-function defineObjectStore(storeId, plugins = []) {
+function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
 	const pluginState = mergePluginState(plugins)
 	const pluginGetters = mergePluginGetters(plugins)
 	const pluginActions = mergePluginActions(plugins)
 
 	return defineStore(storeId, {
 		state: () => ({
-			...baseState(),
+			...baseState(baseUrl),
 			...pluginState,
 		}),
 
@@ -668,6 +669,7 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
  * @param {string} storeId Custom Pinia store identifier
  * @param {object} [options={}] Configuration options
  * @param {Array} [options.plugins=[]] Array of sub-resource plugins
+ * @param {string} [options.baseUrl] Base API URL override
  * @return {Function} Pinia store composable
  *
  * @example
@@ -680,7 +682,13 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
  * const useMyStore = createObjectStore('object', {
  *   plugins: [filesPlugin(), auditTrailsPlugin()],
  * })
+ *
+ * @example
+ * // With custom baseUrl
+ * const useMyStore = createObjectStore('object', {
+ *   baseUrl: '/apps/myapp/api/objects',
+ * })
  */
 export function createObjectStore(storeId, options = {}) {
-	return defineObjectStore(storeId, options.plugins || [])
+	return defineObjectStore(storeId, options.plugins || [], options.baseUrl)
 }
