@@ -42,7 +42,10 @@
 				:key="groupIdx"
 				class="cn-register-mapping__group">
 				<!-- Group header -->
-				<slot name="group-header" :group="group" :configured-count="configuredCount(groupIdx)" :total-count="group.types.length">
+				<slot name="group-header"
+					:group="group"
+					:configured-count="configuredCount(groupIdx)"
+					:total-count="group.types.length">
 					<div class="cn-register-mapping__group-header">
 						<h4 class="cn-register-mapping__group-title">
 							{{ group.name }}

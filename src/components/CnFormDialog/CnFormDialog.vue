@@ -506,7 +506,7 @@ export default {
 					} else if (v.pattern !== undefined) {
 						try {
 							if (!new RegExp(v.pattern).test(value)) {
-								newErrors[field.key] = `Invalid format.`
+								newErrors[field.key] = 'Invalid format.'
 							}
 						} catch {
 							// Ignore invalid regex patterns

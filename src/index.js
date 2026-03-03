@@ -1,3 +1,6 @@
+// CSS — auto-imported so consumers get styles with components
+import './css/index.css'
+
 // Components
 export {
 	CnDataTable,
@@ -48,6 +51,3 @@ export { useListView, useDetailView, useSubResource } from './composables/index.
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from './utils/index.js'
-
-// CSS — auto-imported so consumers get styles with components
-import './css/index.css'
