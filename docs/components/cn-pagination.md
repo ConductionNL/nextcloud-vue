@@ -4,37 +4,30 @@ sidebar_position: 13
 
 # CnPagination
 
-Full pagination with page numbers, first/prev/next/last navigation, and page size selector. Shows up to 7 page numbers with ellipsis for large datasets.
+Full pagination bar with page navigation, ellipsis for large page counts, and a page-size selector. Automatically hidden when all items fit on one page.
 
 **Wraps**: NcButton, NcSelect
 
-![CnPagination showing item count and page navigation controls](/img/screenshots/cn-pagination.png)
+![CnPagination showing "Page 1 of 2" with First/Previous/page numbers/Next/Last buttons and Items per page selector](/img/screenshots/cn-pagination.png)
 
-![CnPagination showing item count "Showing 5 of 5" and page navigation controls](/img/screenshots/cn-pagination.png)
+## Anatomy
 
-## Props
+```
++-----------------------------------------------------------------------+
+|  Page 1 of 8  |  [First] [Previous]  [1] [2] [3] … [8]  [Next] [Last]  |  Items per page: [20 ▾]
++-----------------------------------------------------------------------+
+        ↑               ↑        ↑            ↑                ↑                   ↑
+   page info       jump to    prev/next   page number      jump to              items per
+                   first/last  buttons    buttons          first/last            page selector
+```
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `currentPage` | Number | `1` | 1-based page number |
-| `totalPages` | Number | `1` | |
-| `totalItems` | Number | `0` | |
-| `currentPageSize` | Number | `20` | |
-| `pageSizeOptions` | Array | `[10, 20, 50, 100, 250, 500, 1000]` | |
-| `minItemsToShow` | Number | `10` | Min items before showing pagination |
-| `firstLabel` | String | `'First'` | |
-| `previousLabel` | String | `'Previous'` | |
-| `nextLabel` | String | `'Next'` | |
-| `lastLabel` | String | `'Last'` | |
-| `itemsPerPageLabel` | String | `'Items per page:'` | |
-| `pageInfoFormat` | String | `'Page \{current\} of \{total\}'` | |
-
-## Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `page-changed` | `pageNum` | Page number changed |
-| `page-size-changed` | `size` | Page size changed |
+| Region | Description |
+|--------|-------------|
+| **Page info** | "Page N of N" — current page and total pages |
+| **First / Last** | Jump directly to the first or last page; disabled when already there |
+| **Previous / Next** | Move one page back or forward; disabled at the boundaries |
+| **Page numbers** | Clickable page buttons; active page is highlighted. Shows up to 7 buttons with `…` ellipsis for large datasets |
+| **Items per page** | Dropdown to change the page size; emits `page-size-changed` |
 
 ## Usage
 
@@ -47,3 +40,27 @@ Full pagination with page numbers, first/prev/next/last navigation, and page siz
   @page-changed="onPageChanged"
   @page-size-changed="onPageSizeChanged" />
 ```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `currentPage` | Number | `1` | The currently active page (1-based) |
+| `totalPages` | Number | `1` | Total number of pages |
+| `totalItems` | Number | `0` | Total number of items across all pages — used for the page info label |
+| `currentPageSize` | Number | `20` | Currently selected number of items per page |
+| `pageSizeOptions` | Array | `[10, 20, 50, 100, 250, 500, 1000]` | Options shown in the "Items per page" dropdown |
+| `minItemsToShow` | Number | `10` | Minimum item count before the pagination bar is rendered; hides it when all items fit on one page |
+| `firstLabel` | String | `'First'` | Accessible label for the First button |
+| `previousLabel` | String | `'Previous'` | Accessible label for the Previous button |
+| `nextLabel` | String | `'Next'` | Accessible label for the Next button |
+| `lastLabel` | String | `'Last'` | Accessible label for the Last button |
+| `itemsPerPageLabel` | String | `'Items per page:'` | Label preceding the page-size dropdown |
+| `pageInfoFormat` | String | `'Page {current} of {total}'` | Format string for the page info text; `{current}` and `{total}` are replaced at runtime |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `page-changed` | `pageNum` | Emitted when the user navigates to a different page; payload is the new 1-based page number |
+| `page-size-changed` | `size` | Emitted when the user selects a different page size |
