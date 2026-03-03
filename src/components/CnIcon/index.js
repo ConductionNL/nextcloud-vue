@@ -1,1 +1,1 @@
-export { default as CnIcon, ICON_MAP } from './CnIcon.vue'
+export { default as CnIcon, ICON_MAP, registerIcons } from './CnIcon.vue'

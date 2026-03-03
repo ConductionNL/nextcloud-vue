@@ -9,8 +9,7 @@
 		<!-- Schema icon in sidebar header -->
 		<template v-if="resolvedIcon" #header>
 			<div class="cn-index-sidebar__header-icon">
-				<CnIcon v-if="isMdiIcon" :name="resolvedIcon" :size="32" />
-				<span v-else class="cn-index-sidebar__header-emoji">{{ resolvedIcon }}</span>
+				<CnIcon :name="resolvedIcon" :size="32" />
 			</div>
 		</template>
 
@@ -154,7 +153,7 @@ import FormatColumns from 'vue-material-design-icons/FormatColumns.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema, filtersFromSchema } from '../../utils/schema.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 
@@ -304,11 +303,6 @@ export default {
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			return this.icon || this.schema?.icon || ''
-		},
-
-		/** Whether the resolved icon is an MDI icon name (in ICON_MAP) */
-		isMdiIcon() {
-			return !!ICON_MAP[this.resolvedIcon]
 		},
 
 		/** Sidebar name — schema title, shown as the h2 header */

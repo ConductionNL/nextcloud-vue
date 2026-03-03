@@ -1,0 +1,188 @@
+---
+sidebar_position: 3
+---
+
+# Store Architecture
+
+The library provides a Pinia-based store system for managing OpenRegister objects.
+
+## createObjectStore
+
+The core factory function creates a Pinia store with CRUD operations and plugin support:
+
+```js
+import { createObjectStore } from '@conduction/nextcloud-vue'
+import {
+  filesPlugin,
+  auditTrailsPlugin,
+  relationsPlugin,
+  registerMappingPlugin,
+} from '@conduction/nextcloud-vue'
+
+export const useObjectStore = createObjectStore('myapp-objects', {
+  plugins: [filesPlugin, auditTrailsPlugin, relationsPlugin, registerMappingPlugin],
+})
+```
+
+The store supports multiple object types through `registerObjectType()`:
+
+```js
+const store = useObjectStore()
+store.registerObjectType('contact', {
+  source: 'source-uuid',
+  register: 'register-uuid',
+  schema: 'schema-uuid',
+})
+store.registerObjectType('company', { ... })
+```
+
+Once registered, you can perform CRUD operations per type:
+
+```js
+await store.fetchObjects('contact', { page: 1, limit: 20 })
+await store.fetchObject('contact', id)
+await store.createObject('contact', data)
+await store.updateObject('contact', id, data)
+await store.deleteObject('contact', id)
+```
+
+## Plugin System
+
+Plugins extend the store with additional functionality:
+
+### filesPlugin
+
+Adds file attachment management:
+- Upload files to objects
+- List attached files
+- Delete file attachments
+- Download files
+
+### auditTrailsPlugin
+
+Adds audit trail (change history) support:
+- Fetch audit trail for an object
+- Display change history with timestamps and users
+
+### relationsPlugin
+
+Adds relation management for schema properties with `$ref`:
+- Fetch related objects
+- Add/remove relations
+- Navigate relation chains
+
+### registerMappingPlugin
+
+Adds OpenRegister configuration management:
+- Fetch registers and schemas
+- Auto-match schemas to object types
+- Save configuration mappings
+
+### createSubResourcePlugin
+
+Creates a plugin for managing child resources:
+
+```js
+import { createSubResourcePlugin } from '@conduction/nextcloud-vue'
+
+const notesPlugin = createSubResourcePlugin('notes', {
+  endpoint: '/api/objects/{register}/{schema}/{id}/notes',
+})
+```
+
+## Store Initialization Pattern
+
+Apps typically initialize stores at boot time:
+
+```js
+// store/store.js
+export async function initializeStores() {
+  const settingsStore = useSettingsStore()
+  const objectStore = useObjectStore()
+
+  // 1. Fetch app settings (which contain register/schema UUIDs)
+  await settingsStore.fetchSettings()
+
+  // 2. Register each object type with its OpenRegister config
+  const types = settingsStore.settings.objectTypes
+  for (const [slug, config] of Object.entries(types)) {
+    objectStore.registerObjectType(slug, {
+      source: config.source,
+      register: config.register,
+      schema: config.schema,
+    })
+  }
+}
+```
+
+Then in `App.vue`:
+
+```vue
+<template>
+  <NcContent app-name="myapp">
+    <template v-if="ready">
+      <MainMenu />
+      <router-view />
+    </template>
+    <NcLoadingIcon v-else />
+  </NcContent>
+</template>
+
+<script>
+import { initializeStores } from './store/store.js'
+
+export default {
+  data: () => ({ ready: false }),
+  async mounted() {
+    await initializeStores()
+    this.ready = true
+  },
+}
+</script>
+```
+
+## Composables
+
+Three composables provide common view patterns:
+
+### useListView
+
+Manages list page state — search, filters, sorting, pagination:
+
+```js
+import { useListView } from '@conduction/nextcloud-vue'
+
+const { objects, pagination, loading, search, sort, fetchPage } = useListView({
+  objectStore,
+  objectType: 'contact',
+})
+```
+
+### useDetailView
+
+Manages detail page state — load, edit, delete:
+
+```js
+import { useDetailView } from '@conduction/nextcloud-vue'
+
+const { object, loading, save, remove } = useDetailView({
+  objectStore,
+  objectType: 'contact',
+  id: props.contactId,
+})
+```
+
+### useSubResource
+
+Manages sub-resources (e.g., notes on a contact):
+
+```js
+import { useSubResource } from '@conduction/nextcloud-vue'
+
+const { items, loading, add, remove } = useSubResource({
+  objectStore,
+  parentType: 'contact',
+  parentId: props.contactId,
+  subResourceType: 'notes',
+})
+```

@@ -26,6 +26,7 @@ export {
 	CnMassImportDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	registerIcons,
 } from './components/index.js'
 
 // Store
