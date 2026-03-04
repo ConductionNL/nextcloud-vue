@@ -303,6 +303,14 @@ export default {
 			type: String,
 			default: 'search-tab',
 		},
+		/**
+		 * Whether the current user is an admin.
+		 * When false, schema properties with `adminOnly: true` are hidden from filters.
+		 */
+		userIsAdmin: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	data() {
@@ -343,10 +351,10 @@ export default {
 			return columnsFromSchema(this.schema, {})
 		},
 
-		/** Filter definitions from schema (facetable properties) */
+		/** Filter definitions from schema (facetable properties, respecting RBAC) */
 		schemaFilters() {
 			if (!this.schema) return []
-			return filtersFromSchema(this.schema)
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
 		},
 
 		/** Combined column groups: built-in Metadata + external groups */

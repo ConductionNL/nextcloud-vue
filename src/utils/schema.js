@@ -374,16 +374,30 @@ export function fieldsFromSchema(schema, options = {}) {
  * marked with `facetable: true`. Maps property types to appropriate filter
  * widget types (select, checkbox, text).
  *
+ * Supports RBAC via `adminOnly` schema property annotation:
+ * - Properties with `adminOnly: true` are excluded when `options.isAdmin` is false
+ * - A custom `options.filterFn(key, prop)` can be used for advanced filtering
+ *
  * @param {object} schema The schema object with a `properties` field
+ * @param {object} [options={}] Filter options
+ * @param {boolean} [options.isAdmin=true] Whether the current user is admin. When false, properties with `adminOnly: true` are excluded.
+ * @param {Function} [options.filterFn=null] Custom filter function `(key, prop) => boolean`. Applied after adminOnly check.
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
  */
-export function filtersFromSchema(schema) {
+export function filtersFromSchema(schema, options = {}) {
 	if (!schema || !schema.properties) {
 		return []
 	}
 
+	const { isAdmin = true, filterFn = null } = options
+
 	return Object.entries(schema.properties)
-		.filter(([, prop]) => prop.facetable === true)
+		.filter(([key, prop]) => {
+			if (prop.facetable !== true) return false
+			if (prop.adminOnly === true && !isAdmin) return false
+			if (filterFn && !filterFn(key, prop)) return false
+			return true
+		})
 		.sort(([keyA, propA], [keyB, propB]) => {
 			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
 			const orderB = typeof propB.order === 'number' ? propB.order : Infinity

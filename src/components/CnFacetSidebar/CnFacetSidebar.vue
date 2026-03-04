@@ -117,11 +117,19 @@ export default {
 			type: String,
 			default: 'Clear all',
 		},
+		/**
+		 * Whether the current user is an admin.
+		 * When false, schema properties with `adminOnly: true` are hidden from filters.
+		 */
+		userIsAdmin: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	computed: {
 		effectiveFilters() {
-			return filtersFromSchema(this.schema)
+			return filtersFromSchema(this.schema, { isAdmin: this.userIsAdmin })
 		},
 
 		hasActiveFilters() {
