@@ -39,7 +39,10 @@ await store.fetchCollection('contact', { _page: 1, _limit: 20 })
 await store.fetchObject('contact', id)
 await store.saveObject('contact', data)  // create when no id, update when id present
 await store.deleteObject('contact', id)
+await store.deleteObjects('contact', [id1, id2, id3])  // mass delete; returns { successfulIds, failedIds }
 ```
+
+For bulk delete (e.g. after confirmation in `CnMassDeleteDialog`), use `store.deleteObjects(type, ids)`. The action runs each delete in parallel and returns `{ successfulIds, failedIds }` so the UI can show partial success or failure. Optionally refresh the list with `fetchCollection(type, params)` after a successful batch.
 
 ## Plugin System
 
@@ -47,11 +50,12 @@ Plugins extend the store with additional functionality:
 
 ### filesPlugin
 
-Adds file attachment management:
+Adds file attachment management and a shared tags list:
 - Upload files to objects
 - List attached files
 - Delete file attachments
 - Download files
+- Fetch tags list (`fetchTags()`) for file labels; API returns a plain array of strings
 
 ### auditTrailsPlugin
 

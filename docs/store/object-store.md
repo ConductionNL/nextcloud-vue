@@ -43,6 +43,7 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 | `fetchObject` | `(type, id)` | Fetch single object by type and ID; cached in state |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |
 | `deleteObject` | `(type, id)` | Delete object by type and ID |
+| `deleteObjects` | `(type, ids)` | Delete multiple objects in parallel; returns `{ successfulIds, failedIds }` for partial success/failure |
 
 Search is done by passing `_search` (and optionally filters) in `params` to `fetchCollection`. Use `setSearchTerm(type, term)` and `getSearchTerm(type)` for UI state.
 

@@ -553,6 +553,72 @@ const baseActions = {
 	},
 
 	/**
+	 * Delete multiple objects by type and IDs in parallel.
+	 * Each delete is run via Promise.all; partial success is reported so the UI can show which succeeded or failed.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string[]} ids Array of object IDs to delete
+	 * @return {Promise<{ successfulIds: string[], failedIds: string[] }>} Result with successful and failed IDs
+	 */
+	async deleteObjects(type, ids) {
+		const result = { successfulIds: [], failedIds: [] }
+		if (!ids?.length) return result
+
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
+
+		try {
+			const runOne = async (id) => {
+				try {
+					const url = this._buildUrl(type, id)
+					const response = await fetch(url, {
+						method: 'DELETE',
+						headers: buildHeaders(),
+					})
+					return { id, success: response.ok }
+				} catch (error) {
+					console.error(`Error deleting ${type}/${id}:`, error)
+					return { id, success: false }
+				}
+			}
+
+			const outcomes = await Promise.all(ids.map(runOne))
+			for (const { id, success } of outcomes) {
+				if (success) result.successfulIds.push(id)
+				else result.failedIds.push(id)
+			}
+
+			if (result.successfulIds.length > 0) {
+				const successSet = new Set(result.successfulIds)
+				if (this.objects[type]) {
+					const remaining = {}
+					for (const [k, v] of Object.entries(this.objects[type])) {
+						if (!successSet.has(k)) remaining[k] = v
+					}
+					this.objects = { ...this.objects, [type]: remaining }
+				}
+				if (this.collections[type]) {
+					this.collections = {
+						...this.collections,
+						[type]: this.collections[type].filter((obj) => !successSet.has(obj.id)),
+					}
+				}
+			}
+
+			if (result.failedIds.length > 0) {
+				this.errors = {
+					...this.errors,
+					[type]: genericError(new Error(`Failed to delete ${result.failedIds.length} item(s)`)),
+				}
+			}
+
+			return result
+		} finally {
+			this.loading = { ...this.loading, [type]: false }
+		}
+	},
+
+	/**
 	 * Batch-resolve references by fetching multiple objects by their IDs.
 	 * Uses the cache first, only fetches uncached objects.
 	 *

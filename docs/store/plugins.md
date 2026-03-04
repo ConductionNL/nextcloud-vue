@@ -14,7 +14,7 @@ const useObjectStore = createObjectStore('myapp', {
 
 ## filesPlugin
 
-Adds file attachment management to objects.
+Adds file attachment management to objects and a shared tags list for file labels.
 
 ### Methods Added
 
@@ -24,6 +24,7 @@ Adds file attachment management to objects.
 | `fetchFiles` | `(type, objectId)` | List attached files |
 | `deleteFile` | `(type, objectId, fileId)` | Remove file attachment |
 | `downloadFile` | `(type, objectId, fileId)` | Download file |
+| `fetchTags` | `()` | Fetch tags list (e.g. for file labels). API: `GET /apps/openregister/api/tags` returns a plain array of strings. |
 
 ### State Added
 
@@ -31,6 +32,11 @@ Adds file attachment management to objects.
 |----------|------|-------------|
 | `files` | Array | Current object's file list |
 | `uploadProgress` | Number | Upload progress (0-100) |
+| `tags` | Array | List of tag strings (from `fetchTags`) |
+| `tagsLoading` | Boolean | Whether tags are being fetched |
+| `tagsError` | ApiError | null | Last error from fetching tags |
+
+Use the getters `getTags`, `isTagsLoading`, and `getTagsError` to read tags state.
 
 ## auditTrailsPlugin
 

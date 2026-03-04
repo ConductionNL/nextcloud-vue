@@ -8,9 +8,9 @@ import { parseResponseError, networkError } from '../../utils/errors.js'
  * Extends the generic sub-resource with file-specific actions:
  * upload (multipart), publish, unpublish, and delete.
  *
- * State: files, filesLoading, filesError
- * Actions: fetchFiles, uploadFiles, publishFile, unpublishFile, deleteFile, clearFiles
- * Getters: getFiles, isFilesLoading, getFilesError
+ * State: files, filesLoading, filesError, tags, tagsLoading, tagsError
+ * Actions: fetchFiles, uploadFiles, publishFile, unpublishFile, deleteFile, clearFiles, fetchTags
+ * Getters: getFiles, isFilesLoading, getFilesError, getTags, isTagsLoading, getTagsError
  *
  * @param {object} [options={}] Plugin options
  * @param {number} [options.limit=20] Default page size
@@ -25,14 +25,78 @@ import { parseResponseError, networkError } from '../../utils/errors.js'
  * await store.uploadFiles('case', caseId, formData)
  * await store.publishFile('case', caseId, fileId)
  */
+const TAGS_PATH = '/tags'
+
+/**
+ * Build the tags API URL from the store base URL (e.g. /apps/openregister/api/objects -> /apps/openregister/api/tags).
+ *
+ * @param {string} baseUrl Store base URL
+ * @return {string} Tags endpoint URL
+ */
+function buildTagsUrl(baseUrl) {
+	return baseUrl.replace(/\/objects\/?$/, '') + TAGS_PATH
+}
+
 export function filesPlugin(options = {}) {
 	const base = createSubResourcePlugin('files', 'files', options)()
 
 	return {
 		...base,
 
+		state: () => ({
+			...base.state(),
+			tags: [],
+			tagsLoading: false,
+			tagsError: null,
+		}),
+
+		getters: {
+			...base.getters,
+			getTags: (state) => state.tags || [],
+			isTagsLoading: (state) => state.tagsLoading || false,
+			getTagsError: (state) => state.tagsError || null,
+		},
+
 		actions: {
 			...base.actions,
+
+			/**
+			 * Fetch the list of tags (e.g. for file labels). API returns a plain array of strings.
+			 * Result is stored in state.tags; use getTags getter to read.
+			 *
+			 * @return {Promise<string[]>} Array of tag strings, or [] on error
+			 */
+			async fetchTags() {
+				this.tagsLoading = true
+				this.tagsError = null
+
+				try {
+					const url = buildTagsUrl(this._options.baseUrl)
+					const response = await fetch(url, {
+						method: 'GET',
+						headers: buildHeaders(),
+					})
+
+					if (!response.ok) {
+						this.tagsError = await parseResponseError(response, 'tags')
+						console.error('Error fetching tags:', this.tagsError)
+						return []
+					}
+
+					const data = await response.json()
+					const tags = Array.isArray(data) ? data : []
+					this.tags = tags
+					return tags
+				} catch (error) {
+					this.tagsError = error.name === 'TypeError'
+						? networkError(error)
+						: { status: null, message: error.message, details: null, isValidation: false, fields: null, toString() { return this.message } }
+					console.error('Error fetching tags:', error)
+					return []
+				} finally {
+					this.tagsLoading = false
+				}
+			},
 
 			/**
 			 * Upload files to an object via multipart form data.
