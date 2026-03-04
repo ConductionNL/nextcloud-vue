@@ -101,9 +101,10 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 
 | Slot | Description |
 |------|-------------|
-| `#tabs` | Inject one or more additional `NcAppSidebarTab` components after the built-in Search and Columns tabs |
-| `#search-extra` | Additional content rendered at the bottom of the Search tab |
+| `#search-above` | Content rendered above the search field in the Search tab (e.g. hints, quick actions). Only the section is rendered when the slot has content. |
+| `#search-extra` | Content rendered at the bottom of the Search tab, below the search field and filters |
 | `#columns-extra` | Additional content rendered at the bottom of the Columns tab |
+| `#tabs` | Inject one or more additional `NcAppSidebarTab` components after the built-in Search and Columns tabs |
 
 ## Icon Resolution
 
