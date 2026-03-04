@@ -38,6 +38,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnDeleteDialog` — Single-item delete confirmation
 - `CnCopyDialog` — Single-item copy with naming pattern selector
 - `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports slot overrides)
+- `CnAdvancedFormDialog` — Richer create/edit dialog with properties table (click-to-edit), Data (JSON) tab with CodeMirror, optional Metadata tab; optional useObjectStore integration; fixed large size
 
 **Mass-Action Dialogs** (emit-based, two-phase confirm → result)
 - `CnMassDeleteDialog` — Bulk delete confirmation
@@ -87,7 +88,7 @@ CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **o
 1. **Full dialog replacement** via named slots:
    - `#delete-dialog="{ item, close }"` — Replace delete dialog
    - `#copy-dialog="{ item, close }"` — Replace copy dialog
-   - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog
+   - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog (use CnFormDialog or CnAdvancedFormDialog)
 2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
 3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
 

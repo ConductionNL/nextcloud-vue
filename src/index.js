@@ -22,6 +22,7 @@ export {
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnAdvancedFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
