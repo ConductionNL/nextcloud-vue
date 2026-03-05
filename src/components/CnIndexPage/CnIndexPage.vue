@@ -113,7 +113,7 @@
 			:schema="schema"
 			:close="closeFormDialog">
 			<CnFormDialog
-				v-if="showFormDialogVisible"
+				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
 				:schema="schema"
 				:item="editItem"
@@ -127,6 +127,17 @@
 					<slot name="form-fields" v-bind="scope" />
 				</template>
 			</CnFormDialog>
+			<CnAdvancedFormDialog
+				v-if="showFormDialogVisible && useAdvancedFormDialog"
+				ref="formDialog"
+				:schema="schema"
+				:item="editItem"
+				:exclude-fields="excludeFields"
+				:include-fields="includeFields"
+				:field-overrides="fieldOverrides"
+				:name-field="massActionNameField"
+				@confirm="onFormConfirm"
+				@close="closeFormDialog" />
 		</slot>
 
 		<!-- Body -->
@@ -246,6 +257,7 @@ import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -258,7 +270,9 @@ import { CnFormDialog } from '../CnFormDialog/index.js'
  * - `#form-dialog` — Replace the create/edit dialog entirely
  * - `#delete-dialog` — Replace the single-item delete dialog
  * - `#copy-dialog` — Replace the single-item copy dialog
- * - `#form-fields` — Replace only the form content inside the built-in form dialog
+ * - `#form-fields` — Replace only the form content inside the built-in form dialog (CnFormDialog only)
+ *
+ * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
  *
  * @example Minimal usage (auto-generated dialogs from schema)
  * <CnIndexPage
@@ -332,6 +346,7 @@ export default {
 		CnDeleteDialog,
 		CnCopyDialog,
 		CnFormDialog,
+		CnAdvancedFormDialog,
 	},
 
 	props: {
@@ -496,6 +511,11 @@ export default {
 		showFormDialog: {
 			type: Boolean,
 			default: true,
+		},
+		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
+		useAdvancedFormDialog: {
+			type: Boolean,
+			default: false,
 		},
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
