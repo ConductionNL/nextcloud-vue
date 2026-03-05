@@ -42,6 +42,7 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 | [CnDeleteDialog](./cn-delete-dialog.md) | Two-phase single-item delete confirmation |
 | [CnCopyDialog](./cn-copy-dialog.md) | Two-phase single-item copy with naming pattern |
 | [CnFormDialog](./cn-form-dialog.md) | Schema-driven create/edit form dialog |
+| [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) | Create/edit with properties table, JSON tab, and optional metadata/store |
 | [CnMassDeleteDialog](./cn-mass-delete-dialog.md) | Two-phase mass delete with item review |
 | [CnMassCopyDialog](./cn-mass-copy-dialog.md) | Two-phase mass copy with pattern selector |
 | [CnMassExportDialog](./cn-mass-export-dialog.md) | Export format selection dialog |
