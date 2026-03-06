@@ -45,6 +45,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
+| `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
 | `showEditAction` | Boolean | `true` | Show edit row action |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
 | `showDeleteAction` | Boolean | `true` | Show delete row action |
@@ -83,8 +84,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#header-actions` | — | Extra header buttons |
 | `#delete-dialog` | `\{ item, close \}` | Replace single-item delete dialog |
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
-| `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog |
-| `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override |
+| `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog (any variant) |
+| `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
 | `#import-fields` | `\{ file \}` | Extra import dialog fields |
 | `#empty` | — | Custom empty state |
 | `#card` | `\{ object, selected \}` | Custom card template (cards view) |
@@ -127,6 +128,24 @@ The main list page component. Combines a data table (or card grid), filter bar, 
     </template>
   </CnIndexPage>
 </template>
+```
+
+### Using the advanced form dialog
+
+Set `use-advanced-form-dialog` to use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for Add/Edit (properties table, JSON tab, optional metadata). The same `@create` and `@edit` events and `setFormResult()` apply.
+
+```vue
+<CnIndexPage
+  title="Items"
+  :schema="schema"
+  :objects="items"
+  :pagination="pagination"
+  :loading="loading"
+  use-advanced-form-dialog
+  @create="onCreate"
+  @edit="onEdit"
+  @refresh="fetchItems"
+/>
 ```
 
 ## Two-Phase Pattern
