@@ -3,17 +3,25 @@
 /* Actions bar styles: see actions-bar.css (CnActionsBar) */
 
 .cn-index-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
 	padding: calc(5 * var(--default-grid-baseline));
 }
 
 /* Body layout */
 .cn-index-page__body {
 	display: flex;
+	flex: 1;
+	min-height: 0;
 }
 
 .cn-index-page__main {
 	flex: 1;
 	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .cn-index-page__loading {

@@ -1,5 +1,12 @@
 /* CnIndexSidebar — NcAppSidebar wrapper styles */
 
+/* Tab content: limit height to container so overflow shows a scrollbar */
+.cn-index-sidebar__tab-content {
+	max-height: 100%;
+	min-height: 0;
+	overflow-y: auto;
+}
+
 /* Sidebar header icon (compact mode figure area) */
 .cn-index-sidebar__header-icon {
 	display: flex;
@@ -99,7 +106,6 @@
 
 .cn-sidebar-columns {
 	padding: calc(4 * var(--default-grid-baseline));
-	min-height: calc(100vh - 200px);
 }
 
 .cn-sidebar-columns h3 {

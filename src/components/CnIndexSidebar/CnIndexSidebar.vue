@@ -24,50 +24,56 @@
 				<Magnify :size="20" />
 			</template>
 
-			<div class="cn-index-sidebar__section">
-				<h3>{{ searchLabel }}</h3>
-				<NcTextField
-					:value="searchValue"
-					:placeholder="searchPlaceholder"
-					:label="searchLabel"
-					@update:value="$emit('search', $event)" />
-			</div>
-
-			<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
-				<h3>{{ filtersLabel }}</h3>
-				<div
-					v-for="filter in schemaFilters"
-					:key="filter.key"
-					class="cn-index-sidebar__filter-group">
-					<div class="cn-index-sidebar__filter-header">
-						<span class="cn-index-sidebar__filter-label">{{ filter.label }}</span>
-						<NcPopover v-if="filter.description" popup-role="dialog">
-							<template #trigger>
-								<NcButton
-									type="tertiary-no-background"
-									:aria-label="filter.label + ' info'"
-									class="cn-index-sidebar__info-btn">
-									<template #icon>
-										<InformationOutline :size="16" />
-									</template>
-								</NcButton>
-							</template>
-							<p class="cn-index-sidebar__filter-description">{{ filter.description }}</p>
-						</NcPopover>
-					</div>
-					<NcSelect
-						class="cn-index-sidebar__select"
-						:value="getSelectedFilterOptions(filter)"
-						:options="getFilterOptions(filter)"
-						placeholder="Select..."
-						:input-label="filter.label"
-						:multiple="true"
-						:clearable="true"
-						@input="onFilterChange(filter.key, $event)" />
+			<div class="cn-index-sidebar__tab-content">
+				<div v-if="$slots['search-above']" class="cn-index-sidebar__section">
+					<slot name="search-above" />
 				</div>
-			</div>
 
-			<slot name="search-extra" />
+				<div class="cn-index-sidebar__section">
+					<h3>{{ searchLabel }}</h3>
+					<NcTextField
+						:value="searchValue"
+						:placeholder="searchPlaceholder"
+						:label="searchLabel"
+						@update:value="$emit('search', $event)" />
+				</div>
+
+				<div v-if="schemaFilters.length > 0" class="cn-index-sidebar__section">
+					<h3>{{ filtersLabel }}</h3>
+					<div
+						v-for="filter in schemaFilters"
+						:key="filter.key"
+						class="cn-index-sidebar__filter-group">
+						<div class="cn-index-sidebar__filter-header">
+							<span class="cn-index-sidebar__filter-label">{{ filter.label }}</span>
+							<NcPopover v-if="filter.description" popup-role="dialog">
+								<template #trigger>
+									<NcButton
+										type="tertiary-no-background"
+										:aria-label="filter.label + ' info'"
+										class="cn-index-sidebar__info-btn">
+										<template #icon>
+											<InformationOutline :size="16" />
+										</template>
+									</NcButton>
+								</template>
+								<p class="cn-index-sidebar__filter-description">{{ filter.description }}</p>
+							</NcPopover>
+						</div>
+						<NcSelect
+							class="cn-index-sidebar__select"
+							:value="getSelectedFilterOptions(filter)"
+							:options="getFilterOptions(filter)"
+							placeholder="Select..."
+							:input-label="filter.label"
+							:multiple="true"
+							:clearable="true"
+							@input="onFilterChange(filter.key, $event)" />
+					</div>
+				</div>
+
+				<slot name="search-extra" />
+			</div>
 		</NcAppSidebarTab>
 
 		<!-- Columns Tab -->
@@ -79,71 +85,73 @@
 				<FormatColumns :size="20" />
 			</template>
 
-			<div class="cn-sidebar-columns">
-				<h3>{{ columnsHeading }}</h3>
-				<p class="cn-sidebar-columns__description">{{ columnsDescription }}</p>
+			<div class="cn-index-sidebar__tab-content">
+				<div class="cn-sidebar-columns">
+					<h3>{{ columnsHeading }}</h3>
+					<p class="cn-sidebar-columns__description">{{ columnsDescription }}</p>
 
-				<template v-if="allColumns.length > 0 || allGroups.length > 0">
-					<!-- Schema properties group (collapsible) -->
-					<div v-if="allColumns.length > 0" class="cn-sidebar-columns__group cn-sidebar-columns__group--collapsible">
-						<div class="cn-sidebar-columns__group-header" @click="propertiesExpanded = !propertiesExpanded">
-							<ChevronDown v-if="propertiesExpanded" :size="20" />
-							<ChevronRight v-else :size="20" />
-							<h4>{{ resolvedPropertiesLabel }}</h4>
-							<NcCheckboxRadioSwitch
-								:checked="isGroupAllVisible(allColumns)"
-								class="cn-sidebar-columns__select-all"
-								@click.native.stop
-								@update:checked="toggleGroupAll(allColumns)">
-								All
-							</NcCheckboxRadioSwitch>
+					<template v-if="allColumns.length > 0 || allGroups.length > 0">
+						<!-- Schema properties group (collapsible) -->
+						<div v-if="allColumns.length > 0" class="cn-sidebar-columns__group cn-sidebar-columns__group--collapsible">
+							<div class="cn-sidebar-columns__group-header" @click="propertiesExpanded = !propertiesExpanded">
+								<ChevronDown v-if="propertiesExpanded" :size="20" />
+								<ChevronRight v-else :size="20" />
+								<h4>{{ resolvedPropertiesLabel }}</h4>
+								<NcCheckboxRadioSwitch
+									:checked="isGroupAllVisible(allColumns)"
+									class="cn-sidebar-columns__select-all"
+									@click.native.stop
+									@update:checked="toggleGroupAll(allColumns)">
+									All
+								</NcCheckboxRadioSwitch>
+							</div>
+							<div v-if="propertiesExpanded" class="cn-sidebar-columns__group-content">
+								<NcCheckboxRadioSwitch
+									v-for="col in allColumns"
+									:key="col.key"
+									:checked="isColumnVisible(col.key)"
+									@update:checked="toggleColumn(col.key)">
+									{{ col.label }}
+								</NcCheckboxRadioSwitch>
+							</div>
 						</div>
-						<div v-if="propertiesExpanded" class="cn-sidebar-columns__group-content">
-							<NcCheckboxRadioSwitch
-								v-for="col in allColumns"
-								:key="col.key"
-								:checked="isColumnVisible(col.key)"
-								@update:checked="toggleColumn(col.key)">
-								{{ col.label }}
-							</NcCheckboxRadioSwitch>
-						</div>
-					</div>
 
-					<!-- Extra column groups (built-in Metadata + external) -->
-					<div
-						v-for="group in allGroups"
-						:key="group.id"
-						class="cn-sidebar-columns__group cn-sidebar-columns__group--collapsible">
-						<div class="cn-sidebar-columns__group-header" @click="toggleGroup(group.id)">
-							<ChevronDown v-if="expandedGroups[group.id]" :size="20" />
-							<ChevronRight v-else :size="20" />
-							<h4>{{ group.label }}</h4>
-							<NcCheckboxRadioSwitch
-								:checked="isGroupAllVisible(group.columns)"
-								class="cn-sidebar-columns__select-all"
-								@click.native.stop
-								@update:checked="toggleGroupAll(group.columns)">
-								All
-							</NcCheckboxRadioSwitch>
+						<!-- Extra column groups (built-in Metadata + external) -->
+						<div
+							v-for="group in allGroups"
+							:key="group.id"
+							class="cn-sidebar-columns__group cn-sidebar-columns__group--collapsible">
+							<div class="cn-sidebar-columns__group-header" @click="toggleGroup(group.id)">
+								<ChevronDown v-if="expandedGroups[group.id]" :size="20" />
+								<ChevronRight v-else :size="20" />
+								<h4>{{ group.label }}</h4>
+								<NcCheckboxRadioSwitch
+									:checked="isGroupAllVisible(group.columns)"
+									class="cn-sidebar-columns__select-all"
+									@click.native.stop
+									@update:checked="toggleGroupAll(group.columns)">
+									All
+								</NcCheckboxRadioSwitch>
+							</div>
+							<div v-if="expandedGroups[group.id]" class="cn-sidebar-columns__group-content">
+								<NcCheckboxRadioSwitch
+									v-for="col in group.columns"
+									:key="col.key"
+									:checked="isColumnVisible(col.key)"
+									@update:checked="toggleColumn(col.key)">
+									{{ col.label }}
+								</NcCheckboxRadioSwitch>
+							</div>
 						</div>
-						<div v-if="expandedGroups[group.id]" class="cn-sidebar-columns__group-content">
-							<NcCheckboxRadioSwitch
-								v-for="col in group.columns"
-								:key="col.key"
-								:checked="isColumnVisible(col.key)"
-								@update:checked="toggleColumn(col.key)">
-								{{ col.label }}
-							</NcCheckboxRadioSwitch>
-						</div>
-					</div>
-				</template>
+					</template>
 
-				<p v-else class="cn-sidebar-columns__empty">
-					No columns available. Provide a schema to auto-generate columns.
-				</p>
+					<p v-else class="cn-sidebar-columns__empty">
+						No columns available. Provide a schema to auto-generate columns.
+					</p>
+				</div>
+
+				<slot name="columns-extra" />
 			</div>
-
-			<slot name="columns-extra" />
 		</NcAppSidebarTab>
 
 		<!-- Extra tabs injected by the consumer -->
@@ -180,6 +188,9 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
  *   :search-value="search"
  *   @search="onSearch"
  *   @columns-change="onColumnsChange" />
+ *
+ * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
+ * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).
  */
 export default {
 	name: 'CnIndexSidebar',
