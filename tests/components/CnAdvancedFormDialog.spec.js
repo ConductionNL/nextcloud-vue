@@ -25,6 +25,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		expect(wrapper.vm.isCreateMode).toBe(true)
@@ -45,6 +48,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		expect(wrapper.vm.isCreateMode).toBe(false)
@@ -69,6 +75,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		wrapper.vm.formData = { title: 'New Item', count: 0, active: false }
@@ -91,6 +100,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		wrapper.vm.loading = true
@@ -112,6 +124,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		wrapper.vm.setResult({ error: 'Save failed' })
@@ -132,6 +147,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		const props = wrapper.vm.objectProperties
@@ -153,6 +171,9 @@ describe('CnAdvancedFormDialog', () => {
 				NcLoadingIcon: true,
 				NcTextField: true,
 				NcCheckboxRadioSwitch: true,
+				NcDateTimePickerNative: true,
+				BTabs: true,
+				BTab: true,
 			},
 		})
 		const props = wrapper.vm.objectProperties

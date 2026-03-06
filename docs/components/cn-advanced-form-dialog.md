@@ -114,9 +114,21 @@ Typical usage: `store` is the result of `useObjectStore()` (or `createObjectStor
 ## Properties table behavior
 
 - **Editable types**: By default only `string`, `number`, `integer`, `boolean` are editable in the table; others are read-only and displayed as formatted values or JSON. Use `editablePropertyTypes` to restrict or extend.
-- **Row selection**: Clicking a row selects it and shows an inline input for editable properties; clicking outside or on another row commits the value.
+- **Row selection**: Clicking a row selects it and shows an inline input for editable properties; clicking outside or on another row commits the value. 
+  - **Exception: boolean properties** always render as a visible toggle switch — no row click is needed to activate editing.
 - **Validation**: Rows can get CSS classes for valid/invalid/new/warning when `validationDisplay === 'indicator'`. Properties with `const` or `immutable` (with existing value) are not editable and show a lock icon.
 - **Excluded keys**: `id` and `@self` are always excluded from the properties list. Use `excludeFields` / `includeFields` to further filter.
+
+---
+
+## Tooltip directive
+
+This component uses the `v-tooltip` directive from `@nextcloud/vue`.
+
+The Tooltip directive is imported and registered **locally** inside `CnAdvancedFormDialog`:
+
+This means the directive is self-contained — it works even if the consuming app has not registered `v-tooltip` globally.
+
 
 ---
 
