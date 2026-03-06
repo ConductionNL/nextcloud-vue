@@ -23,6 +23,9 @@ export const useObjectStore = createObjectStore(storeId, options)
 | `storeId` | String | Unique Pinia store identifier (e.g., `'myapp-objects'`) | - |
 | `options.plugins` | Array | Array of plugin functions to extend the store | `[]` |
 | `options.baseUrl` | String | Base API URL override | `'/apps/openregister/api/objects'` |
+| `options.state` | Function | Extra state factory — merged after plugin state | `undefined` |
+| `options.getters` | Object | Extra getters — merged after plugin getters | `undefined` |
+| `options.actions` | Object | Extra actions — merged after plugin actions | `undefined` |
 
 ### Return Value
 

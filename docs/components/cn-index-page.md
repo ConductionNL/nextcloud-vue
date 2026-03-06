@@ -53,14 +53,16 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
+| `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
+| `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `add` | — | Add button clicked (backward compat) |
-| `create` | `formData` | Form dialog create confirmed |
-| `edit` | `formData` | Form dialog edit confirmed |
+| `create` | `formData` | Form dialog create confirmed. When store integration is active, payload is the saved object returned by the store. |
+| `edit` | `formData` | Form dialog edit confirmed. When store integration is active, payload is the saved object returned by the store. |
 | `delete` | `id` | Single delete confirmed |
 | `copy` | `\{ id, newName \}` | Single copy confirmed |
 | `mass-delete` | `ids[]` | Mass delete confirmed |
@@ -147,6 +149,25 @@ Set `use-advanced-form-dialog` to use [CnAdvancedFormDialog](./cn-advanced-form-
   @refresh="fetchItems"
 />
 ```
+
+### Store integration
+
+Set `store` and `objectType` to have the form dialog save directly to the store. The object type must be registered in the store (via `registerObjectType()`) before passing the store here. On save, `store.saveObject(objectType, formData)` is called; the result phase is shown automatically and `@create` / `@edit` are still emitted with the saved object on success.
+
+```vue
+<CnIndexPage
+  title="Clients"
+  :schema="schema"
+  :objects="clients"
+  :pagination="pagination"
+  :loading="loading"
+  :store="objectStore"
+  object-type="register-schema"
+  @refresh="fetchClients"
+/>
+```
+
+No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
 
 ## Two-Phase Pattern
 

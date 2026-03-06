@@ -178,10 +178,6 @@ export default {
 		showMetadataTab: { type: Boolean, default: null },
 		editablePropertyTypes: { type: Array, default: null },
 		validationDisplay: { type: String, default: 'indicator', validator: (v) => ['indicator', 'none'].includes(v) },
-		store: { type: Object, default: null },
-		objectType: { type: String, default: '' },
-		beforeSave: { type: Function, default: null },
-		afterSave: { type: Function, default: null },
 		jsonEditorDark: { type: Boolean, default: false },
 	},
 
@@ -466,35 +462,10 @@ export default {
 			return Object.keys(newErrors).length === 0
 		},
 
-		async executeConfirm() {
+		executeConfirm() {
 			if (!this.validate()) return
 			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) return
-
-			let payload = { ...this.formData }
-			if (this.beforeSave) {
-				payload = await Promise.resolve(this.beforeSave(payload))
-			}
-
-			if (this.store && this.objectType) {
-				this.loading = true
-				try {
-					const saved = await this.store.saveObject(this.objectType, payload)
-					if (saved) {
-						this.formData = saved
-						if (this.afterSave) this.afterSave(saved)
-						this.setResult({ success: true })
-					} else {
-						const err = this.store.getError?.(this.objectType)
-						this.setResult({ error: (err && err.message) || 'Save failed' })
-					}
-				} catch (e) {
-					this.setResult({ error: e?.message || 'Save failed' })
-				} finally {
-					this.loading = false
-				}
-			} else {
-				this.$emit('confirm', payload)
-			}
+			this.$emit('confirm', { ...this.formData })
 		},
 
 		setResult(resultData) {

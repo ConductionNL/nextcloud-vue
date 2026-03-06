@@ -12,7 +12,6 @@ Use **CnAdvancedFormDialog** when you need:
 - Inline editing of object properties in a table (click row → edit value)
 - Raw JSON view and editing with validation
 - Metadata display (id, created, updated) in edit mode
-- Optional integration with the generic object store (`useObjectStore`) for save/load
 
 Use **CnFormDialog** when you need a simpler form with auto-generated fields and standard widgets (text, select, checkbox, etc.) without the table/JSON tabs.
 
@@ -26,7 +25,7 @@ CnAdvancedFormDialog provides:
 2. **Metadata tab** — Read-only display of ID, Created, Updated (from `@self` or `id` / item). Shown by default only in edit mode; controllable via `showMetadataTab`.
 3. **Data tab** — Full JSON editor (CodeMirror) synced with the form data. Invalid JSON blocks confirm. "Format JSON" button prettifies the content.
 
-The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the user confirms, you either handle `@confirm` (emit payload) or use **store integration** so the dialog itself calls `store.saveObject()` and then shows success/error via `setResult()`. In both cases you can call `setResult({ success: true })` or `setResult({ error: 'Message' })` to show the result phase and optional auto-close.
+The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the user confirms, `@confirm` is emitted with the payload. The parent performs the API call and calls `setResult({ success: true })` or `setResult({ error: 'Message' })` to show the result phase and optional auto-close.
 
 ---
 
@@ -50,10 +49,6 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 | `showMetadataTab` | Boolean | `null` | Force show/hide Metadata tab; `null` = show only when `item` is set (edit mode) |
 | `editablePropertyTypes` | Array | `null` | Schema types that are editable in the table; default `['string','number','integer','boolean']` |
 | `validationDisplay` | String | `'indicator'` | `'indicator'` = show validation state on rows (valid/invalid/new/warning); `'none'` = no indicator |
-| `store` | Object | `null` | Pinia store with `saveObject(objectType, payload)` (and optional `getError(objectType)`). When set with `objectType`, confirm uses store instead of emitting `confirm` |
-| `objectType` | String | `''` | Object type key passed to `store.saveObject(objectType, payload)` when store integration is used |
-| `beforeSave` | Function | `null` | `(payload) => payload` or async; called before save; return value is used as the payload sent to store or `@confirm` |
-| `afterSave` | Function | `null` | `(saved) => void`; called after a successful store save, with the saved object |
 | `jsonEditorDark` | Boolean | `false` | Use dark theme for the CodeMirror JSON editor |
 
 ---
@@ -62,7 +57,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `confirm` | `formData` | Emitted when the user confirms and **store is not set**. Payload is the current form data (and may include `id` in edit mode). When store is set, the dialog handles save and uses `setResult()` instead. |
+| `confirm` | `formData` | Emitted when the user confirms. Payload is the current form data (may include `id` in edit mode). Parent is responsible for performing the save and calling `setResult()`. |
 | `close` | — | Emitted when the dialog is closed (user clicks close/cancel or after result auto-close). |
 
 ---
@@ -92,22 +87,9 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 ## Two-phase flow (confirm → result)
 
 1. User fills the form and clicks the primary button (Create/Save).
-2. **Without store**: component emits `confirm` with the form payload; parent saves (e.g. via API) and then calls `this.$refs.advancedForm.setResult({ success: true })` or `setResult({ error: '...' })`.
-3. **With store**: component calls `store.saveObject(objectType, payload)`; on success it calls `setResult({ success: true })`, on failure `setResult({ error: ... })` (using `store.getError(objectType)` if available).
+2. Component emits `confirm` with the form payload.
+3. Parent performs the save (e.g. via API or store) and calls `this.$refs.advancedForm.setResult({ success: true })` or `setResult({ error: '...' })`.
 4. Result phase shows success or error message; user can close or the dialog auto-closes after success.
-
----
-
-## Store integration
-
-Set `store` and `objectType` so that the dialog performs the save itself:
-
-- On confirm, `beforeSave(payload)` is called if provided; its return value is used as the payload.
-- Dialog calls `store.saveObject(objectType, payload)`.
-- On success: `afterSave(saved)` is called (if provided), then `setResult({ success: true })`.
-- On failure: `setResult({ error: message })` (message from `store.getError(objectType)` or a generic string).
-
-Typical usage: `store` is the result of `useObjectStore()` (or `createObjectStore()`); `objectType` is the register/object type key used by that store.
 
 ---
 
@@ -188,21 +170,6 @@ async onConfirm(payload) {
 />
 ```
 
-### With store integration
-
-```vue
-<CnAdvancedFormDialog
-  ref="advancedForm"
-  :schema="schema"
-  :item="editItem"
-  :store="objectStore"
-  object-type="myObjectType"
-  :before-save="normalizePayload"
-  :after-save="onSaved"
-  @close="editItem = null"
-/>
-```
-
 ### Custom Properties tab
 
 ```vue
@@ -238,7 +205,6 @@ async onConfirm(payload) {
 | Editing | Widgets (text, select, checkbox, etc.) | Click-to-edit in table + raw JSON |
 | Size | Configurable (`size` prop) | Fixed `large` |
 | Metadata | — | Optional tab (id, created, updated) |
-| Store integration | — | Optional `store` + `objectType` |
 | Best for | Simple create/edit forms | Complex objects, power users, JSON editing |
 
 Both support the same two-phase confirm/result pattern and `setResult()`.
