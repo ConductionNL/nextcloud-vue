@@ -22,7 +22,7 @@
 				name="form"
 				:form-data="formData"
 				:update-field="updateField"
-				:object-properties="objectProperties"
+				:object-properties="objectPropertiesForSlot"
 				:json-data="jsonData"
 				:update-json="updateJsonFromExternal"
 				:is-valid-json="isValidJson(jsonData)" />
@@ -44,166 +44,32 @@
 								name="tab-properties"
 								:form-data="formData"
 								:update-field="updateField"
-								:object-properties="objectProperties"
+								:object-properties="objectPropertiesForSlot"
 								:selected-property="selectedProperty"
-								:handle-row-click="handleRowClick"
+								:handle-row-click="onRowClick"
 								:get-property-display-name="getPropertyDisplayName"
 								:get-property-validation-class="getPropertyValidationClass"
 								:is-property-editable="isPropertyEditable"
 								:validation-display="validationDisplay">
-								<div class="cn-advanced-form-dialog__table-container">
-									<table class="cn-advanced-form-dialog__table">
-										<thead>
-											<tr class="cn-advanced-form-dialog__table-row">
-												<th class="cn-advanced-form-dialog__table-col-constrained">
-													Property
-												</th>
-												<th class="cn-advanced-form-dialog__table-col-expanded">
-													Value
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr
-												v-for="([key, value]) in objectProperties"
-												:key="key"
-												class="cn-advanced-form-dialog__table-row"
-												:class="{
-													'cn-advanced-form-dialog__table-row--selected': selectedProperty === key,
-													'cn-advanced-form-dialog__table-row--edited': formData[key] !== undefined,
-													'cn-advanced-form-dialog__table-row--non-editable': !isPropertyEditable(key, formData[key] !== undefined ? formData[key] : value),
-													[getPropertyValidationClass(key, value)]: validationDisplay === 'indicator',
-												}"
-												@click="handleRowClick(key, $event)">
-												<td class="cn-advanced-form-dialog__table-col-constrained cn-advanced-form-dialog__prop-cell">
-													<div class="cn-advanced-form-dialog__prop-cell-content">
-														<AlertCircle
-															v-if="validationDisplay === 'indicator' && getPropertyValidationState(key, formData[key] !== undefined ? formData[key] : value) === 'invalid'"
-															class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--error"
-															:size="16"
-															:title="getPropertyErrorMessage(key, formData[key] !== undefined ? formData[key] : value)" />
-														<Alert
-															v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, formData[key] !== undefined ? formData[key] : value) === 'warning'"
-															class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--warning"
-															:size="16"
-															:title="getPropertyWarningMessage(key, formData[key] !== undefined ? formData[key] : value)" />
-														<Plus
-															v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, formData[key] !== undefined ? formData[key] : value) === 'new'"
-															class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--new"
-															:size="16"
-															:title="getPropertyNewMessage(key)" />
-														<LockOutline
-															v-else-if="!isPropertyEditable(key, formData[key] !== undefined ? formData[key] : value)"
-															class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--lock"
-															:size="16"
-															:title="getEditabilityWarning(key, formData[key] !== undefined ? formData[key] : value) || ''" />
-														<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
-													</div>
-												</td>
-												<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
-													<div
-														v-if="isPropertyEditable(key, formData[key] !== undefined ? formData[key] : value) && (getPropertyInputComponent(key) === 'NcCheckboxRadioSwitch' || selectedProperty === key)"
-														class="cn-advanced-form-dialog__value-input-container"
-														@click.stop>
-														<div
-															v-if="getPropertyInputComponent(key) === 'NcCheckboxRadioSwitch'"
-															class="cn-advanced-form-dialog__boolean-input-row">
-															<NcCheckboxRadioSwitch
-																:checked="formData[key] !== undefined ? formData[key] : value"
-																type="switch"
-																class="cn-advanced-form-dialog__boolean-input-row__input"
-																@update:checked="updatePropertyValue(key, $event)">
-																{{ getPropertyDisplayName(key) }}
-															</NcCheckboxRadioSwitch>
-															<InformationOutline
-																v-if="schema && schema.properties && schema.properties[key] && schema.properties[key].description"
-																v-tooltip="schema.properties[key].description"
-																class="cn-advanced-form-dialog__info-icon"
-																:size="16" />
-														</div>
-														<NcDateTimePickerNative
-															v-else-if="getPropertyInputComponent(key) === 'NcDateTimePickerNative'"
-															:value="formData[key] !== undefined ? formData[key] : value"
-															:type="getPropertyInputType(key)"
-															:label="getPropertyDisplayName(key)"
-															@update:value="updatePropertyValue(key, $event)" />
-														<NcTextField
-															v-else
-															:ref="'propertyValueInput-' + key"
-															:value="getStringValue(formData[key] !== undefined ? formData[key] : value)"
-															:type="getPropertyInputType(key)"
-															:placeholder="getPropertyDisplayName(key)"
-															:min="getPropertyMinimum(key)"
-															:max="getPropertyMaximum(key)"
-															:step="getPropertyStep(key)"
-															@update:value="updatePropertyValue(key, $event)" />
-													</div>
-													<div
-														v-else
-														:title="getPropertyEditabilityWarning(key, formData[key] !== undefined ? formData[key] : value)">
-														<pre
-															v-if="typeof (formData[key] !== undefined ? formData[key] : value) === 'object' && (formData[key] !== undefined ? formData[key] : value) !== null"
-															class="cn-advanced-form-dialog__json-value">{{ formatValue(formData[key] !== undefined ? formData[key] : value) }}</pre>
-														<span
-															v-else-if="getPropertyInputComponent(key) === 'NcDateTimePickerNative' && isValidDate(formData[key] !== undefined ? formData[key] : value)">{{
-															new Date(formData[key] !== undefined ? formData[key] : value).toLocaleString()
-														}}</span>
-														<span v-else>{{ getDisplayValue(key, formData[key] !== undefined ? formData[key] : value) }}</span>
-													</div>
-												</td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
+								<CnPropertiesTab
+									ref="propertiesTab"
+									:schema="schema"
+									:item="item"
+									:form-data="formData"
+									:selected-property="selectedProperty"
+									:editable-types="editableTypes"
+									:validation-display="validationDisplay"
+									:exclude-fields="excludeFields"
+									:include-fields="includeFields"
+									@update:property-value="onPropertyValueUpdate"
+									@update:selected-property="selectedProperty = $event" />
 							</slot>
 						</BTab>
 
 						<!-- Metadata tab -->
 						<BTab v-if="resolvedShowMetadataTab" title="Metadata">
-							<slot
-								name="tab-metadata"
-								:item="item"
-								:form-data="formData">
-								<div class="cn-advanced-form-dialog__table-container">
-									<table class="cn-advanced-form-dialog__table">
-										<thead>
-											<tr class="cn-advanced-form-dialog__table-row">
-												<th class="cn-advanced-form-dialog__table-col-constrained">
-													Metadata
-												</th>
-												<th class="cn-advanced-form-dialog__table-col-expanded">
-													Value
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr class="cn-advanced-form-dialog__table-row">
-												<td class="cn-advanced-form-dialog__table-col-constrained">
-													ID
-												</td>
-												<td class="cn-advanced-form-dialog__table-col-expanded">
-													{{ metadataId }}
-												</td>
-											</tr>
-											<tr class="cn-advanced-form-dialog__table-row">
-												<td class="cn-advanced-form-dialog__table-col-constrained">
-													Created
-												</td>
-												<td class="cn-advanced-form-dialog__table-col-expanded">
-													{{ metadataCreated }}
-												</td>
-											</tr>
-											<tr class="cn-advanced-form-dialog__table-row">
-												<td class="cn-advanced-form-dialog__table-col-constrained">
-													Updated
-												</td>
-												<td class="cn-advanced-form-dialog__table-col-expanded">
-													{{ metadataUpdated }}
-												</td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
+							<slot name="tab-metadata" :item="item" :form-data="formData">
+								<CnMetadataTab :item="item" :form-data="formData" />
 							</slot>
 						</BTab>
 
@@ -215,30 +81,11 @@
 								:update-json="updateJsonFromExternal"
 								:is-valid="isValidJson(jsonData)"
 								:format-json="formatJSON">
-								<div class="cn-advanced-form-dialog__json-editor">
-									<div :class="['cn-advanced-form-dialog__codemirror-container', jsonEditorDark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
-										<CodeMirror
-											v-model="jsonData"
-											:basic="true"
-											placeholder="{ &quot;key&quot;: &quot;value&quot; }"
-											:dark="jsonEditorDark"
-											:linter="jsonLinterExtension"
-											:lang="jsonLangExtension"
-											:extensions="[jsonLangExtension]"
-											:tab-size="2"
-											style="height: 400px" />
-										<NcButton
-											class="cn-advanced-form-dialog__format-btn"
-											type="secondary"
-											size="small"
-											@click="formatJSON">
-											Format JSON
-										</NcButton>
-									</div>
-									<span v-if="!isValidJson(jsonData)" class="cn-advanced-form-dialog__json-error">
-										Invalid JSON format
-									</span>
-								</div>
+								<CnDataTab
+									:value="jsonData"
+									:dark="jsonEditorDark"
+									@update:value="jsonData = $event"
+									@format="onFormatResult" />
 							</slot>
 						</BTab>
 					</BTabs>
@@ -274,21 +121,14 @@ import {
 	NcButton,
 	NcNoteCard,
 	NcLoadingIcon,
-	NcTextField,
-	NcCheckboxRadioSwitch,
-	NcDateTimePickerNative,
 } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import LockOutline from 'vue-material-design-icons/LockOutline.vue'
-import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
-import Alert from 'vue-material-design-icons/Alert.vue'
-import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import CodeMirror from 'vue-codemirror6'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
-import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip.js'
 import { BTabs, BTab } from 'bootstrap-vue'
-import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
+import CnPropertiesTab from './CnPropertiesTab.vue'
+import CnMetadataTab from './CnMetadataTab.vue'
+import CnDataTab from './CnDataTab.vue'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
 const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
@@ -307,25 +147,18 @@ const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
 export default {
 	name: 'CnAdvancedFormDialog',
 
-	directives: { tooltip: Tooltip },
-
 	components: {
 		NcDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
-		NcTextField,
-		NcCheckboxRadioSwitch,
-		NcDateTimePickerNative,
 		Plus,
 		ContentSaveOutline,
-		LockOutline,
-		AlertCircle,
-		Alert,
-		InformationOutline,
 		BTabs,
 		BTab,
-		CodeMirror,
+		CnPropertiesTab,
+		CnMetadataTab,
+		CnDataTab,
 	},
 
 	props: {
@@ -363,8 +196,6 @@ export default {
 			result: null,
 			closeTimeout: null,
 			isInternalUpdate: false,
-			jsonLangExtension: jsonLang(),
-			jsonLinterExtension: jsonLinter(),
 		}
 	},
 
@@ -412,7 +243,8 @@ export default {
 			})
 		},
 
-		objectProperties() {
+		/** objectProperties exposed to the #form and #tab-properties slot consumers */
+		objectPropertiesForSlot() {
 			const schemaProps = this.schema?.properties || {}
 			const obj = this.item || {}
 			const exclude = this.excludeFields || []
@@ -453,23 +285,6 @@ export default {
 
 		isDataTabActive() {
 			return this.showJsonTab && this.activeTab === this.dataTabIndex
-		},
-
-		metadataId() {
-			const o = this.formData['@self'] || this.item?.['@self']
-			return o?.id ?? this.formData.id ?? this.item?.id ?? '—'
-		},
-
-		metadataCreated() {
-			const o = this.formData['@self'] || this.item?.['@self']
-			const v = o?.created
-			return v ? new Date(v).toLocaleString() : '—'
-		},
-
-		metadataUpdated() {
-			const o = this.formData['@self'] || this.item?.['@self']
-			const v = o?.updated
-			return v ? new Date(v).toLocaleString() : '—'
 		},
 
 		editableTypes() {
@@ -535,271 +350,45 @@ export default {
 			if (this.errors[key]) this.$delete(this.errors, key)
 		},
 
-		updatePropertyValue(key, newVal) {
-			const prop = this.schema?.properties?.[key]
-			let converted = newVal
-			if (prop) {
-				switch (prop.type) {
-				case 'number':
-					converted = newVal === '' ? null : parseFloat(newVal)
-					if (Number.isNaN(converted)) converted = null
-					break
-				case 'integer':
-					converted = newVal === '' ? null : parseInt(newVal, 10)
-					if (Number.isNaN(converted)) converted = null
-					break
-				case 'boolean':
-					converted = Boolean(newVal)
-					break
-				default:
-					converted = newVal
-				}
-			}
-			this.$set(this.formData, key, converted)
+		onPropertyValueUpdate({ key, value }) {
+			this.$set(this.formData, key, value)
+			if (this.errors[key]) this.$delete(this.errors, key)
 		},
 
-		isPropertyEditable(key, value) {
-			const prop = this.schema?.properties?.[key]
-			if (!prop) return true
-			if (prop.const !== undefined) return false
-			if (prop.immutable && value != null && value !== '') return false
-			const type = prop.type || 'string'
-			return this.editableTypes.includes(type)
-		},
-
-		getPropertyValidationClass(key, value) {
-			const state = this.getPropertyValidationState(key, value)
-			switch (state) {
-			case 'invalid':
-				return 'cn-advanced-form-dialog__table-row--invalid'
-			case 'warning':
-				return 'cn-advanced-form-dialog__table-row--warning'
-			case 'new':
-				return 'cn-advanced-form-dialog__table-row--new'
-			case 'valid':
-				return 'cn-advanced-form-dialog__table-row--valid'
-			default:
-				return ''
-			}
+		onRowClick(key, event) {
+			// Forwarded for #tab-properties slot consumers — the sub-component handles it internally
 		},
 
 		/**
-		 * Get the validation state of a property.
-		 * @param {string} key - The key of the property.
-		 * @param {*} value - The value of the property.
-		 * @return {'invalid' | 'warning' | 'new' | 'valid'} The validation state of the property.
-		 * @description The validation state is one of:
-		 * - 'invalid' - The property value is invalid.
-		 * - 'warning' - The property value is valid but has a warning.
-		 * - 'new' - The property value is new.
-		 * - 'valid' - The property value is valid.
+		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
+		 * @param {string} key - Property key
+		 * @param {*} value - Current property value
 		 */
-		getPropertyValidationState(key, value) {
-			const prop = this.schema?.properties?.[key]
-			const existsInObject = this.item ? Object.prototype.hasOwnProperty.call(this.item, key) : false
-			if (!prop) return 'warning'
-			if (!existsInObject) return 'new'
-			if (this.isValidPropertyValue(key, value, prop)) return 'valid'
-			return 'invalid'
+		isPropertyEditable(key, value) {
+			const tab = this.$refs.propertiesTab
+			if (tab) return tab.isPropertyEditable(key, value)
+			return true
 		},
 
-		isValidPropertyValue(key, value, schemaProperty) {
-			if (value === null || value === undefined || value === '') {
-				const required = (this.schema?.required || []).includes(key) || schemaProperty?.required
-				return !required
-			}
-			const type = schemaProperty?.type || 'string'
-			switch (type) {
-			case 'string':
-				if (typeof value !== 'string') return false
-				if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) return false
-				if (schemaProperty?.const && value !== schemaProperty.const) return false
-				return true
-			case 'number':
-				return typeof value === 'number' && !Number.isNaN(value)
-			case 'boolean':
-				return typeof value === 'boolean'
-			case 'array':
-				return Array.isArray(value)
-			case 'object':
-				return typeof value === 'object' && value !== null && !Array.isArray(value)
-			default:
-				return true
-			}
-		},
-
+		/**
+		 * Proxy for slot consumers.
+		 * @param {string} key - Property key
+		 */
 		getPropertyDisplayName(key) {
-			return (this.schema && this.schema.properties && this.schema.properties[key] && this.schema.properties[key].title) || key
+			const tab = this.$refs.propertiesTab
+			if (tab) return tab.getPropertyDisplayName(key)
+			return key
 		},
 
-		getSchemaProperty(key) {
-			return (this.schema && this.schema.properties && this.schema.properties[key]) || {}
-		},
-
-		getPropertyTooltip(key) {
-			const schemaProperty = this.schema?.properties?.[key]
-
-			if (schemaProperty?.description) {
-				if (schemaProperty.title && schemaProperty.title !== key) {
-					return `${schemaProperty.title}: ${schemaProperty.description}`
-				}
-				return schemaProperty.description
-			}
-
-			return `Property: ${key}`
-		},
-
-		getPropertyInputComponent(key) {
-			const prop = this.schema?.properties?.[key]
-			if (!prop) return 'NcTextField'
-			if (prop.type === 'boolean') return 'NcCheckboxRadioSwitch'
-			if (prop.type === 'string' && ['date', 'time', 'date-time'].includes(prop.format)) {
-				return 'NcDateTimePickerNative'
-			}
-			return 'NcTextField'
-		},
-
-		getPropertyInputType(key) {
-			const prop = this.schema?.properties?.[key]
-			if (!prop) return 'text'
-			const fmt = prop.format || ''
-			if (prop.type === 'string') {
-				if (fmt === 'date') return 'date'
-				if (fmt === 'time') return 'time'
-				if (fmt === 'date-time') return 'datetime-local'
-				if (fmt === 'email') return 'email'
-				if (fmt === 'url' || fmt === 'uri') return 'url'
-			}
-			if (prop.type === 'number' || prop.type === 'integer') return 'number'
-			return 'text'
-		},
-
-		getPropertyMinimum(key) {
-			return this.schema?.properties?.[key]?.minimum
-		},
-
-		getPropertyMaximum(key) {
-			return this.schema?.properties?.[key]?.maximum
-		},
-
-		getPropertyStep(key) {
-			const prop = this.schema?.properties?.[key]
-			if (prop?.type === 'integer') return '1'
-			if (prop?.type === 'number') return 'any'
-			return undefined
-		},
-
-		getStringValue(v) {
-			if (v == null) return ''
-			if (typeof v === 'string') return v
-			if (typeof v === 'object') return JSON.stringify(v)
-			return String(v)
-		},
-
-		getDisplayValue(key, value) {
-			const schemaProperty = this.schema?.properties?.[key]
-
-			if (schemaProperty?.const !== undefined) {
-				return schemaProperty.const
-			}
-
-			if (value === null || value === undefined || value === '') {
-				return '—'
-			}
-
-			return formatValue(value, schemaProperty || {})
-		},
-
-		getPropertyErrorMessage(key, value) {
-			const schemaProperty = this.schema?.properties?.[key]
-
-			if (!schemaProperty) {
-				return `Property '${key}' is not defined in the current schema. This property exists in the object but is not part of the schema definition.`
-			}
-
-			const isRequired = (this.schema?.required || []).includes(key) || schemaProperty.required
-			if ((value === null || value === undefined || value === '') && isRequired) {
-				return `Required property '${key}' is missing or empty.`
-			}
-
-			const expectedType = schemaProperty.type
-			const actualType = Array.isArray(value) ? 'array' : typeof value
-
-			if (expectedType && expectedType !== actualType) {
-				return `Property '${key}' should be ${expectedType} but is ${actualType}.`
-			}
-
-			if (schemaProperty.format === 'date-time' && !this.isValidDate(value)) {
-				return `Property '${key}' should be a valid date-time value.`
-			}
-
-			if (schemaProperty.const && value !== schemaProperty.const) {
-				return `Property '${key}' should be '${schemaProperty.const}' but is '${value}'.`
-			}
-
-			return `Property '${key}' has an invalid value.`
-		},
-
-		getPropertyWarningMessage(key, value) {
-			return `Property '${key}' exists in the object but is not defined in the current schema. This might happen when property names are changed in the schema. Current value: '${value}'.`
-		},
-
-		getPropertyNewMessage(key) {
-			return `Property '${key}' is defined in the schema but doesn't have a value yet. Click to add a value.`
-		},
-
-		getPropertyEditabilityWarning(key, value) {
-			if (!this.isPropertyEditable(key, value)) {
-				return 'This property cannot be edited in the Properties tab. Use the Data tab to modify it.'
-			}
-			return null
-		},
-
-		getEditabilityWarning(key, value) {
-			const schemaProperty = this.schema?.properties?.[key]
-
-			if (schemaProperty?.const !== undefined) {
-				return `This property is constant and must always be '${schemaProperty.const}'. Const properties cannot be modified to maintain data integrity.`
-			}
-
-			if (schemaProperty?.immutable && (value !== null && value !== undefined && value !== '')) {
-				return `This property is immutable and cannot be changed once it has a value. Current value: '${value}'. Immutable properties preserve data consistency.`
-			}
-
-			if (!this.isPropertyEditable(key, value)) {
-				return this.getPropertyEditabilityWarning(key, value)
-			}
-			return null
-		},
-
-		handleRowClick(key, event) {
-			if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.closest('.cn-advanced-form-dialog__value-input-container')) return
-			const value = this.formData[key] !== undefined ? this.formData[key] : this.objectProperties.find(([k]) => k === key)?.[1]
-			if (!this.isPropertyEditable(key, value)) return
-			const prop = this.schema?.properties?.[key]
-			if (prop && !this.editableTypes.includes(prop.type || 'string')) return
-			this.selectedProperty = key
-			this.$nextTick(() => {
-				const ref = this.$refs['propertyValueInput-' + key]
-				const input = ref && (Array.isArray(ref) ? ref[0] : ref)
-				if (input && input.$el) {
-					const el = input.$el.querySelector('input')
-					if (el) {
-						el.focus()
-						el.select()
-					}
-				}
-			})
-		},
-
-		formatValue(val, property) {
-			return formatValue(val, property || {})
-		},
-
-		isValidDate(v) {
-			if (!v) return false
-			const d = new Date(v)
-			return d instanceof Date && !Number.isNaN(d.getTime())
+		/**
+		 * Proxy for slot consumers.
+		 * @param {string} key - Property key
+		 * @param {*} value - Current property value
+		 */
+		getPropertyValidationClass(key, value) {
+			const tab = this.$refs.propertiesTab
+			if (tab) return tab.getPropertyValidationClass(key, value)
+			return ''
 		},
 
 		updateFormFromJson() {
@@ -854,6 +443,14 @@ export default {
 				}
 			} catch {
 				// Keep invalid JSON as-is
+			}
+		},
+
+		onFormatResult(parsed) {
+			if (!this.isInternalUpdate) {
+				this.isInternalUpdate = true
+				this.formData = parsed
+				this.$nextTick(() => { this.isInternalUpdate = false })
 			}
 		},
 
@@ -924,10 +521,6 @@ export default {
 	gap: 12px;
 }
 
-.cn-advanced-form-dialog__tab-panel {
-	min-height: 200px;
-}
-
 /* Bootstrap-Vue tab styling to match ViewObject */
 .tabContainer {
 	margin-top: 20px;
@@ -966,302 +559,5 @@ export default {
 :deep(.tab-content) {
 	padding: 16px;
 	background-color: var(--color-main-background);
-}
-
-.cn-advanced-form-dialog__table-container {
-	background: var(--color-main-background);
-	border-radius: var(--border-radius);
-	overflow: hidden;
-	box-shadow: 0 2px 4px var(--color-box-shadow);
-	border: 1px solid var(--color-border);
-	margin-bottom: calc(5 * var(--default-grid-baseline));
-}
-
-.cn-advanced-form-dialog__table {
-	width: 100%;
-	border-collapse: collapse;
-	background-color: var(--color-main-background);
-}
-
-.cn-advanced-form-dialog__table th,
-.cn-advanced-form-dialog__table td {
-	padding: calc(3 * var(--default-grid-baseline));
-	text-align: left;
-	border-bottom: 1px solid var(--color-border);
-	vertical-align: middle;
-}
-
-.cn-advanced-form-dialog__table th {
-	background: var(--color-background-dark);
-	font-weight: 500;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-advanced-form-dialog__table-row {
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	background-color: var(--color-main-background);
-}
-
-.cn-advanced-form-dialog__table-row:hover {
-	background-color: var(--color-background-hover);
-}
-
-/* Active/selected row: light blue; ensure it wins over validation state classes */
-.cn-advanced-form-dialog__table-row.cn-advanced-form-dialog__table-row--selected,
-.cn-advanced-form-dialog__table-row--selected:hover {
-	background-color: var(--color-primary-light);
-	box-shadow: inset 3px 0 0 0 var(--color-primary);
-}
-
-.cn-advanced-form-dialog__table-row--edited {
-	background-color: var(--color-success-light);
-	box-shadow: inset 3px 0 0 0 var(--color-success);
-}
-
-.cn-advanced-form-dialog__table-row--non-editable {
-	background-color: var(--color-background-dark);
-	cursor: not-allowed;
-	opacity: 0.7;
-}
-
-.cn-advanced-form-dialog__table-row--non-editable * {
-	cursor: not-allowed !important;
-}
-
-.cn-advanced-form-dialog__table-row--valid {
-	box-shadow: inset 3px 0 0 0 var(--color-success);
-}
-
-.cn-advanced-form-dialog__table-row--invalid {
-	background-color: var(--color-error-light);
-	box-shadow: inset 3px 0 0 0 var(--color-error);
-}
-
-.cn-advanced-form-dialog__table-row--warning {
-	background-color: var(--color-warning-light);
-	box-shadow: inset 3px 0 0 0 var(--color-warning);
-}
-
-.cn-advanced-form-dialog__table-row--new {
-	box-shadow: inset 3px 0 0 0 var(--color-primary-element);
-}
-
-.cn-advanced-form-dialog__table-col-constrained {
-	width: 150px;
-	max-width: 150px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.cn-advanced-form-dialog__table-col-expanded {
-	width: auto;
-	min-width: 200px;
-}
-
-.cn-advanced-form-dialog__prop-cell {
-	width: 30%;
-	font-weight: 600;
-	box-shadow: inset 3px 0 0 0 var(--color-primary);
-}
-
-.cn-advanced-form-dialog__value-cell {
-	width: 70%;
-	word-break: break-word;
-	border-radius: 4px;
-}
-
-.cn-advanced-form-dialog__prop-cell-content {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.cn-advanced-form-dialog__validation-icon {
-	flex-shrink: 0;
-}
-
-.cn-advanced-form-dialog__validation-icon--error {
-	color: var(--color-error);
-}
-
-.cn-advanced-form-dialog__validation-icon--warning {
-	color: var(--color-warning);
-}
-
-.cn-advanced-form-dialog__validation-icon--lock {
-	color: var(--color-text-lighter);
-}
-
-.cn-advanced-form-dialog__validation-icon--new {
-	color: var(--color-primary-element);
-}
-
-.cn-advanced-form-dialog__value-input-container :deep(.text-field) {
-	margin: 0;
-	padding: 0;
-}
-
-.cn-advanced-form-dialog__boolean-input-row {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-/* patch extreme size in field */
-.cn-advanced-form-dialog__boolean-input-row__input > span {
-	padding-left: 0;
-	padding-block: 0;
-}
-.cn-advanced-form-dialog__boolean-input-row__input > input {
-	margin: 0;
-}
-
-.cn-advanced-form-dialog__info-icon {
-	flex-shrink: 0;
-	color: var(--color-text-maxcontrast);
-	cursor: help;
-}
-
-.cn-advanced-form-dialog__json-value {
-	max-height: 200px;
-	overflow-y: auto;
-	white-space: pre-wrap;
-	font-family: monospace;
-	font-size: 12px;
-	background: var(--color-background-dark);
-	padding: 8px;
-	border-radius: 4px;
-	margin: 0;
-}
-
-.cn-advanced-form-dialog__json-editor {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.cn-advanced-form-dialog__codemirror-container {
-	margin-top: 6px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	position: relative;
-}
-
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-editor) {
-	height: 100%;
-}
-
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-scroller) {
-	overflow: auto;
-}
-
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-content) {
-	border-radius: 0 !important;
-	border: none !important;
-}
-
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-editor) {
-	outline: none !important;
-}
-
-.cn-advanced-form-dialog__codemirror-container--light > .vue-codemirror {
-	border: 1px dotted silver;
-}
-
-.cn-advanced-form-dialog__codemirror-container--dark > .vue-codemirror {
-	border: 1px dotted grey;
-}
-
-/* value text color */
-/* string */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.ͼe) {
-	color: #448c27;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼe) {
-	color: #88c379;
-}
-
-/* boolean */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.ͼc) {
-	color: #221199;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼc) {
-	color: #8d64f7;
-}
-
-/* null */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.ͼb) {
-	color: #770088;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼb) {
-	color: #be55cd;
-}
-
-/* number */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.ͼd) {
-	color: #d19a66;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.ͼd) {
-	color: #9d6c3a;
-}
-
-/* text cursor */
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-content) * {
-	cursor: text !important;
-}
-
-/* selection color */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line)::selection,
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line) ::selection {
-	background-color: #d7eaff !important;
-	color: black;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line)::selection,
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line) ::selection {
-	background-color: #8fb3e6 !important;
-	color: black;
-}
-
-/* string selection */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼe)::selection {
-	color: #2d770f;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼe)::selection {
-	color: #104e0c;
-}
-
-/* boolean selection */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼc)::selection {
-	color: #221199;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼc)::selection {
-	color: #4026af;
-}
-
-/* null selection */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼb)::selection {
-	color: #770088;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼb)::selection {
-	color: #770088;
-}
-
-/* number selection */
-.cn-advanced-form-dialog__codemirror-container--light :deep(.cm-line .ͼd)::selection {
-	color: #8c5c2c;
-}
-.cn-advanced-form-dialog__codemirror-container--dark :deep(.cm-line .ͼd)::selection {
-	color: #623907;
-}
-
-.cn-advanced-form-dialog__format-btn {
-	margin-top: 8px;
-}
-
-.cn-advanced-form-dialog__json-error {
-	color: var(--color-error);
-	font-size: 14px;
 }
 </style>
