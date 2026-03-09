@@ -27,6 +27,17 @@ const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 
 /**
+ * Get the base URL for API requests, automatically prepending /index.php if the current URL uses it.
+ * @return {string} - The base URL with optional /index.php prefix
+ */
+function getBaseObjectUrl() {
+	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
+		return `/index.php${DEFAULT_BASE_URL}`
+	}
+	return DEFAULT_BASE_URL
+}
+
+/**
  * Capitalize the first letter of a string.
  *
  * @param {string} str Input string
@@ -123,42 +134,49 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
+	 * @param state
 	 * @return {string[]}
 	 */
 	objectTypes: (state) => Object.keys(state.objectTypeRegistry),
 
 	/**
 	 * Get the collection array for a type.
+	 * @param state
 	 * @return {Function} (type: string) => Array
 	 */
 	getCollection: (state) => (type) => state.collections[type] || [],
 
 	/**
 	 * Get a single cached object by type and ID.
+	 * @param state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Alias for getObject — check cache without fetching.
+	 * @param state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getCachedObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Check if a type is currently loading.
+	 * @param state
 	 * @return {Function} (type: string) => boolean
 	 */
 	isLoading: (state) => (type) => state.loading[type] || false,
 
 	/**
 	 * Get the current error for a type.
+	 * @param state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
 
 	/**
 	 * Get pagination state for a type.
+	 * @param state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
 	getPagination: (state) => (type) =>
@@ -166,24 +184,28 @@ const baseGetters = {
 
 	/**
 	 * Get the current search term for a type.
+	 * @param state
 	 * @return {Function} (type: string) => string
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
 
 	/**
 	 * Get a cached schema for a type.
+	 * @param state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
 
 	/**
 	 * Get a cached register for a type.
+	 * @param state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getRegister: (state) => (type) => state.registers[type] || null,
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
+	 * @param state
 	 * @return {Function} (type: string) => object
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
@@ -276,7 +298,7 @@ const baseActions = {
 	 * Build the API URL for a type and optional object ID.
 	 *
 	 * @param {string} type The type slug
-	 * @param {string|null} [id=null] Optional object ID
+	 * @param {string|null} [id] Optional object ID
 	 * @return {string} Full API URL path
 	 */
 	_buildUrl(type, id = null) {
@@ -380,7 +402,7 @@ const baseActions = {
 	 * Fetch a collection of objects for a registered type.
 	 *
 	 * @param {string} type The registered type slug
-	 * @param {object} [params={}] Query parameters (_limit, _page, _search, _order, filters)
+	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
 	 * @return {Promise<Array>} The fetched collection (also stored in state)
 	 */
 	async fetchCollection(type, params = {}) {
@@ -737,7 +759,7 @@ const baseActions = {
  * audit trails, relations).
  *
  * @param {string} storeId Pinia store identifier
- * @param {Array} [plugins=[]] Array of plugin definitions
+ * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
  * @return {Function} Pinia store composable
  */
@@ -791,8 +813,8 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
  * and optional plugins for sub-resources.
  *
  * @param {string} storeId Custom Pinia store identifier
- * @param {object} [options={}] Configuration options
- * @param {Array} [options.plugins=[]] Array of sub-resource plugins
+ * @param {object} [options] Configuration options
+ * @param {Array} [options.plugins] Array of sub-resource plugins
  * @param {string} [options.baseUrl] Base API URL override
  * @return {Function} Pinia store composable
  *
@@ -814,5 +836,5 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
  * })
  */
 export function createObjectStore(storeId, options = {}) {
-	return defineObjectStore(storeId, options.plugins || [], options.baseUrl)
+	return defineObjectStore(storeId, options.plugins || [], options.baseUrl || getBaseObjectUrl())
 }

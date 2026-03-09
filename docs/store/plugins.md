@@ -244,6 +244,7 @@ store.clearSearchCollection()
 | Action | Signature | Description |
 |--------|-----------|-------------|
 | `setSearchParams` | `(params: object) => void` | Replace search params. Clears the cached schema/register if `schema`/`register` changed |
+| `updateSearchParams` | `(params: object) => void` | Merge partial params into existing search params. Only provided keys are overwritten; clears cached schema/register if those keys changed |
 | `setSearchVisibleColumns` | `(columns: string[]) => void` | Replace the visible column list |
 | `clearSearchCollection` | `() => void` | Reset collection, pagination, and facets. Does not touch `searchParams` |
 | `refetchSearchCollection` | `() => Promise<Array>` | Fetch using current `searchParams`. Returns the result array (empty on error) |

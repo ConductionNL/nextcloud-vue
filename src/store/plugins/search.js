@@ -184,6 +184,24 @@ export function searchPlugin() {
 			},
 
 			/**
+			 * Merge the given properties into the current search parameters.
+			 * Only the provided keys are overwritten; all other keys remain unchanged.
+			 * If `register` or `schema` changes, the cached register/schema objects are
+			 * cleared so the next `refetchSearchCollection` re-fetches them.
+			 *
+			 * @param {object} params Partial search params to merge
+			 */
+			updateSearchParams(params) {
+				if ('register' in params && params.register !== this.searchParams.register) {
+					this._searchRegister = null
+				}
+				if ('schema' in params && params.schema !== this.searchParams.schema) {
+					this._searchSchema = null
+				}
+				this.searchParams = { ...this.searchParams, ...params }
+			},
+
+			/**
 			 * Replace the list of visible column keys for the search results table.
 			 *
 			 * @param {string[]} columns Column key array
