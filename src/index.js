@@ -44,6 +44,7 @@ export {
 	filesPlugin,
 	lifecyclePlugin,
 	registerMappingPlugin,
+	selectionPlugin,
 } from './store/plugins/index.js'
 
 // Composables

@@ -108,6 +108,60 @@ Adds lifecycle hook support — before/after create, update, delete.
 | `onBeforeDelete` | `(type, callback)` | Register before-delete hook |
 | `onAfterDelete` | `(type, callback)` | Register after-delete hook |
 
+## selectionPlugin
+
+Adds object selection management — select items by ID, check all-selected state, and toggle selection for an entire type's collection.
+
+### Usage
+
+```js
+import { createObjectStore, selectionPlugin } from '@conduction/nextcloud-vue'
+
+const useMyStore = createObjectStore('myapp', {
+  plugins: [selectionPlugin()],
+})
+
+const store = useMyStore()
+
+// Select specific objects
+store.setSelectedObjects(['abc', 'def'])
+
+// Toggle all in a collection
+store.toggleSelectAllObjects('invoice')
+
+// Check state
+console.log(store.selectedObjects)       // ['abc', 'def', ...]
+console.log(store.isAllSelected('invoice')) // true | false
+
+// Clear selection
+store.clearSelectedObjects()
+```
+
+### State Added
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `selectedObjects` | `string[]` | IDs of currently selected objects |
+
+### Getters Added
+
+| Getter | Signature | Description |
+|--------|-----------|-------------|
+| `isAllSelected` | `(type: string) => boolean` | `true` when every object in the collection is selected; `false` when collection is empty |
+
+### Actions Added
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `setSelectedObjects` | `(ids: string[]) => void` | Replace the selection with the given IDs |
+| `clearSelectedObjects` | `() => void` | Deselect everything |
+| `toggleSelectAllObjects` | `(type: string) => void` | Select all if not all selected, deselect all otherwise |
+
+### Notes
+
+- Object IDs are resolved as `object.id ?? object['@self']?.id` to support both plain and `@self`-wrapped OpenRegister objects.
+- The plugin state is shared across types — `selectedObjects` holds IDs from any type. If you need per-type isolation, create separate store instances.
+
 ## createSubResourcePlugin
 
 Factory function for child resource management:
