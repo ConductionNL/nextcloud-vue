@@ -45,6 +45,10 @@ export {
 	lifecyclePlugin,
 	registerMappingPlugin,
 	selectionPlugin,
+	searchPlugin,
+	SEARCH_TYPE,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 } from './store/plugins/index.js'
 
 // Composables
