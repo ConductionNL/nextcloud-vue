@@ -8,51 +8,8 @@ Plugins extend `createObjectStore` with additional functionality. Pass them in t
 
 ```js
 const useObjectStore = createObjectStore('myapp', {
-  plugins: [paginationPlugin(), filesPlugin(), auditTrailsPlugin(), relationsPlugin(), registerMappingPlugin()],
+  plugins: [filesPlugin, auditTrailsPlugin, relationsPlugin, registerMappingPlugin],
 })
-```
-
-## paginationPlugin
-
-Adds per-type pagination tracking. Without this plugin, `fetchCollection` does not store pagination metadata and `getPagination` is not available.
-
-### Methods Added
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `clearPagination` | `()` | Reset all pagination state |
-
-### State Added
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `pagination` | Object | Map of `type → { total, page, pages, limit }` |
-
-### Getters Added
-
-| Getter | Signature | Description |
-|--------|-----------|-------------|
-| `getPagination` | `(type)` | `{ total, page, pages, limit }` for that type |
-
-### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `limit` | Number | `20` | Default page size used when `_limit` is not in params |
-
-### Example
-
-```js
-import { createObjectStore, paginationPlugin } from '@conduction/nextcloud-vue'
-
-const useObjectStore = createObjectStore('myapp', {
-  plugins: [paginationPlugin({ limit: 25 })],
-})
-
-const store = useObjectStore()
-store.registerObjectType('contact', schemaId, registerId)
-await store.fetchCollection('contact', { _page: 2, _limit: 25 })
-const { total, page, pages } = store.getPagination('contact')
 ```
 
 ## filesPlugin
