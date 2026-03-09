@@ -43,6 +43,7 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	paginationPlugin,
 	registerMappingPlugin,
 } from './store/plugins/index.js'
 

@@ -58,7 +58,6 @@ State is stored **per type**. Use getters to read it; do not rely on raw state s
 |--------|-----------|-------------|
 | `getCollection` | `(type)` | Current list of objects for that type (array) |
 | `getObject` | `(type, id)` | Cached single object, or null |
-| `getPagination` | `(type)` | `{ total, page, pages, limit }` for that type |
 | `isLoading` | `(type)` | Whether that type is currently loading |
 | `getError` | `(type)` | Last error for that type (ApiError or null) |
 | `getSearchTerm` | `(type)` | Current search term for that type |
@@ -66,7 +65,9 @@ State is stored **per type**. Use getters to read it; do not rely on raw state s
 | `getFacets` | `(type)` | Facet data for that type (from collection fetch) |
 | `objectTypes` | — | Array of registered type slugs |
 
-Internal state (for reference): `objectTypeRegistry`, `collections`, `objects`, `loading`, `errors`, `pagination`, `searchTerms`, `schemas`, `facets`.
+> **Pagination is not included by default.** Add `paginationPlugin()` to get `getPagination(type)`. See [Store Plugins](./plugins.md#paginationPlugin).
+
+Internal state (for reference): `objectTypeRegistry`, `collections`, `objects`, `loading`, `errors`, `searchTerms`, `schemas`, `facets`.
 
 ### Usage
 
@@ -83,8 +84,10 @@ const store = useObjectStore()
 store.registerObjectType('contact', 'schema-id', 'register-id')
 await store.fetchCollection('contact', { _page: 1, _limit: 20 })
 
-// Read list and pagination via getters
+// Read list via getter
 const list = store.getCollection('contact')
+
+// Pagination requires paginationPlugin — see plugins.md
 const pagination = store.getPagination('contact')
 ```
 

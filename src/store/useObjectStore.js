@@ -98,8 +98,6 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		loading: {},
 		/** @type {{string: import('../utils/errors.js').ApiError|null}} */
 		errors: {},
-		/** @type {{string: {total: number, page: number, pages: number, limit: number}}} */
-		pagination: {},
 		/** @type {{string: string}} */
 		searchTerms: {},
 		/** @type {{string: object|null}} */
@@ -156,13 +154,6 @@ const baseGetters = {
 	 * @return {Function} (type: string) => ApiError|null
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
-
-	/**
-	 * Get pagination state for a type.
-	 * @return {Function} (type: string) => {total, page, pages, limit}
-	 */
-	getPagination: (state) => (type) =>
-		state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
 
 	/**
 	 * Get the current search term for a type.
@@ -232,7 +223,7 @@ const baseActions = {
 		this.objects = { ...this.objects, [slug]: {} }
 		this.loading = { ...this.loading, [slug]: false }
 		this.errors = { ...this.errors, [slug]: null }
-		this.pagination = { ...this.pagination, [slug]: { total: 0, page: 1, pages: 1, limit: 20 } }
+		this._initPaginationForType?.(slug)
 		this.searchTerms = { ...this.searchTerms, [slug]: '' }
 		this.schemas = { ...this.schemas, [slug]: null }
 		this.registers = { ...this.registers, [slug]: null }
@@ -250,7 +241,7 @@ const baseActions = {
 		delete this.objects[slug]
 		delete this.loading[slug]
 		delete this.errors[slug]
-		delete this.pagination[slug]
+		this._clearPaginationForType?.(slug)
 		delete this.searchTerms[slug]
 		delete this.schemas[slug]
 		delete this.registers[slug]
@@ -417,15 +408,7 @@ const baseActions = {
 			const results = data.results || data
 
 			this.collections = { ...this.collections, [type]: results }
-			this.pagination = {
-				...this.pagination,
-				[type]: {
-					total: data.total || results.length,
-					page: data.page || 1,
-					pages: data.pages || 1,
-					limit: params._limit || 20,
-				},
-			}
+			this._setPaginationFromResponse?.(type, data, params)
 
 			// Parse facet data from API response and transform to CnIndexSidebar format
 			if (data.facets) {
