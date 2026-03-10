@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { buildHeaders, buildQueryString } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, prefixUrl } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
 
@@ -25,17 +25,6 @@ import { extractId } from '../utils/id.js'
 
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
-
-/**
- * Get the base URL for API requests, automatically prepending /index.php if the current URL uses it.
- * @return {string} - The base URL with optional /index.php prefix
- */
-function getBaseObjectUrl() {
-	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
-		return `/index.php${DEFAULT_BASE_URL}`
-	}
-	return DEFAULT_BASE_URL
-}
 
 /**
  * Capitalize the first letter of a string.
@@ -836,5 +825,5 @@ export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
  * })
  */
 export function createObjectStore(storeId, options = {}) {
-	return defineObjectStore(storeId, options.plugins || [], options.baseUrl || getBaseObjectUrl())
+	return defineObjectStore(storeId, options.plugins || [], options.baseUrl || prefixUrl(DEFAULT_BASE_URL))
 }

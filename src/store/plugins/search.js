@@ -1,4 +1,4 @@
-import { buildHeaders, buildQueryString } from '../../utils/headers.js'
+import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
 
 /**
  * The type slug used internally by the search plugin.
@@ -15,7 +15,7 @@ export const SEARCH_TYPE = 'search'
  * @return {string} Full API URL path
  */
 export function getRegisterApiUrl(registerId) {
-	return `/apps/openregister/api/registers/${registerId}`
+	return prefixUrl(`/apps/openregister/api/registers/${registerId}`)
 }
 
 /**
@@ -25,7 +25,7 @@ export function getRegisterApiUrl(registerId) {
  * @return {string} Full API URL path
  */
 export function getSchemaApiUrl(schemaId) {
-	return `/apps/openregister/api/schemas/${schemaId}`
+	return prefixUrl(`/apps/openregister/api/schemas/${schemaId}`)
 }
 
 /**
@@ -241,6 +241,12 @@ export function searchPlugin() {
 				}
 
 				this._searchLoading = true
+
+				// Auto-register the type so saveObject/deleteObject work
+				const type = this.createObjectTypeSlug(register, schema)
+				if (type && !this.objectTypes.includes(type)) {
+					this.registerObjectType(type, schema, register)
+				}
 
 				// Kick off schema/register fetches in parallel (non-blocking)
 				if (!this._searchSchema) {
