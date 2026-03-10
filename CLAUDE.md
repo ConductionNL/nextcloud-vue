@@ -54,6 +54,13 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnKpiGrid` — KPI metric cards grid
 - `CnIndexSidebar` — Index page sidebar
 
+**Dashboard**
+- `CnDashboardPage` — Top-level dashboard page with GridStack widget grid (the dashboard equivalent of CnIndexPage)
+- `CnDashboardGrid` — Low-level GridStack grid layout engine (drag/drop, resize)
+- `CnWidgetWrapper` — Widget container shell with header, content area, footer
+- `CnWidgetRenderer` — Renders Nextcloud Dashboard API widgets (v1/v2) with auto-refresh
+- `CnTileWidget` — Quick-access tile with icon and link (SVG, class, URL, emoji icons)
+
 **Settings**
 - `CnSettingsCard` — Collapsible settings card
 - `CnSettingsSection` — Settings section container
@@ -80,6 +87,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `useListView(options)` — Search debounce, filter state, sort, pagination
 - `useDetailView(options)` — Load, edit, delete state management
 - `useFileSelection(options)` — File upload/drop handling
+- `useDashboardView(options)` — Dashboard state: widget defs, layout, NC widget loading, add/remove/persist
 
 ### CnIndexPage Dialog Override System
 
@@ -103,6 +111,53 @@ Public ref methods for setting dialog results:
 - `setFormResult(resultData)`, `setSingleDeleteResult(resultData)`, `setSingleCopyResult(resultData)`
 - `setMassDeleteResult(resultData)`, `setMassCopyResult(resultData)`, `setExportResult(resultData)`, `setImportResult(resultData)`
 - `openFormDialog(item)` — Programmatic open (null = create, object = edit)
+
+### CnDashboardPage Widget System
+
+CnDashboardPage renders a configurable grid of widgets. Three widget types:
+
+1. **Custom** — App provides rendering via `#widget-{widgetId}` scoped slot
+2. **NC Dashboard API** — Widgets with `itemApiVersions` auto-rendered via CnWidgetRenderer
+3. **Tile** — Widgets with `type: 'tile'` render as quick-access link tiles
+
+**Props:**
+- `widgets` — Array of widget definitions: `{ id, title, type, iconUrl?, iconClass?, itemApiVersions?, ... }`
+- `layout` — Array of grid placements: `{ id, widgetId, gridX, gridY, gridWidth, gridHeight, showTitle? }`
+- `title`, `description`, `loading`, `allowEdit`, `columns` (default 12), `cellHeight` (default 80)
+- `editLabel`, `doneLabel`, `emptyLabel`, `unavailableLabel` — Pre-translated UI strings
+
+**Events:** `@layout-change(layout)`, `@edit-toggle(isEditing)`
+
+**Slots:**
+- `#header-actions` — Extra buttons in the header (right side)
+- `#widget-{widgetId}="{ item, widget }"` — Custom widget content
+- `#empty` — Custom empty state
+
+**Composable: `useDashboardView(options)`:**
+- `options.widgets` — Static widget defs
+- `options.defaultLayout` — Default layout
+- `options.loadLayout` / `options.saveLayout` — Async persist functions
+- `options.includeNcWidgets` — Also load NC Dashboard API widgets
+- Returns: `{ widgets, layout, loading, saving, onLayoutChange, addWidget, removeWidget }`
+
+**Implementation pattern for apps (layout stored in app config):**
+```js
+// Define widgets
+const WIDGETS = [
+  { id: 'kpis', title: 'Key Metrics', type: 'custom' },
+  { id: 'chart', title: 'Chart', type: 'custom' },
+]
+// Define default layout
+const DEFAULT_LAYOUT = [
+  { id: 1, widgetId: 'kpis', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 2, showTitle: false },
+  { id: 2, widgetId: 'chart', gridX: 0, gridY: 2, gridWidth: 6, gridHeight: 4 },
+]
+// In template
+<CnDashboardPage :widgets="WIDGETS" :layout="layout" @layout-change="saveLayout">
+  <template #widget-kpis="{ item }"><MyKpis /></template>
+  <template #widget-chart="{ item }"><MyChart /></template>
+</CnDashboardPage>
+```
 
 ## Rules for Modifying Components
 
