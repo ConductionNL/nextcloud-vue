@@ -36,6 +36,7 @@ export {
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnItemCard,
 	registerIcons,
 } from './components/index.js'
 

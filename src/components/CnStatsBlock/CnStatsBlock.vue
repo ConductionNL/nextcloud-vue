@@ -365,7 +365,7 @@ export default {
 	background: var(--color-background-hover);
 }
 
-.cn-stats-block__breakdown-value--invalid { color: var(--color-warning); }
-.cn-stats-block__breakdown-value--deleted { color: var(--color-error); }
-.cn-stats-block__breakdown-value--published { color: var(--color-success); }
+.cn-stats-block__breakdown-value--invalid { color: var(--color-element-warning); }
+.cn-stats-block__breakdown-value--deleted { color: var(--color-element-error); }
+.cn-stats-block__breakdown-value--published { color: var(--color-element-success); }
 </style>
