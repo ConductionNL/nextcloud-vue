@@ -30,6 +30,7 @@ export {
 	CnMassImportDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnDetailPage,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
