@@ -8,6 +8,10 @@ Full-featured JSON Schema editor dialog for creating and editing JSON Schemas. P
 
 ---
 
+:::warning Custom NcNoteCard
+This component uses `CnNoteCard` (from `@conduction/nextcloud-vue`) instead of Nextcloud's built-in `NcNoteCard`. `CnNoteCard` is a local patch of `NcNoteCard` required to work around limitations in the installed version of `@nextcloud/vue`. Do not replace it with `NcNoteCard` without verifying compatibility first.
+:::
+
 ## Overview
 
 CnSchemaFormDialog is a **props-driven, emit-based** component that does not perform any API calls itself. It collects and validates JSON Schema data, then emits it for the parent to handle.

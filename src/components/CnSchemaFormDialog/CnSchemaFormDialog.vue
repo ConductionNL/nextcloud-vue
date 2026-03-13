@@ -11,11 +11,11 @@
 		</NcNoteCard>
 		<div v-if="result === null">
 			<!-- Metadata Display -->
-			<div class="detail-grid">
-				<div v-if="schemaItem.id" class="detail-item id-card">
-					<div class="id-card-header">
-						<span class="detail-label">ID / UUID:</span>
-						<NcButton class="copy-button" @click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
+			<div class="cn-schema-form__detail-grid">
+				<div v-if="schemaItem.id" class="cn-schema-form__detail-item cn-schema-form__id-card">
+					<div class="cn-schema-form__id-card-header">
+						<span class="cn-schema-form__detail-label">ID / UUID:</span>
+						<NcButton class="cn-schema-form__copy-button" @click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
 							<template #icon>
 								<Check v-if="isCopied" :size="20" />
 								<ContentCopy v-else :size="20" />
@@ -23,46 +23,46 @@
 							{{ isCopied ? 'Copied' : 'Copy' }}
 						</NcButton>
 					</div>
-					<span class="detail-value">{{ schemaItem.id }}</span>
-					<span v-if="schemaItem.uuid && schemaItem.uuid !== schemaItem.id" class="detail-value uuid-value">{{ schemaItem.uuid }}</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.id }}</span>
+					<span v-if="schemaItem.uuid && schemaItem.uuid !== schemaItem.id" class="cn-schema-form__detail-value cn-schema-form__uuid-value">{{ schemaItem.uuid }}</span>
 				</div>
-				<div class="detail-item title-with-badge">
+				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
 					<NcTextField :disabled="loading"
 						label="Title *"
 						:value.sync="schemaItem.title" />
-					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0" class="statusPill statusPill--success">
+					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
 						allOf
 					</span>
-					<span v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0" class="statusPill statusPill--info">
+					<span v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
 						oneOf
 					</span>
-					<span v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0" class="statusPill statusPill--info">
+					<span v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
 						anyOf
 					</span>
 				</div>
-				<div v-if="schemaItem.created" class="detail-item">
-					<span class="detail-label">Created:</span>
-					<span class="detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
+				<div v-if="schemaItem.created" class="cn-schema-form__detail-item">
+					<span class="cn-schema-form__detail-label">Created:</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
 				</div>
-				<div v-if="schemaItem.updated" class="detail-item">
-					<span class="detail-label">Updated:</span>
-					<span class="detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
+				<div v-if="schemaItem.updated" class="cn-schema-form__detail-item">
+					<span class="cn-schema-form__detail-label">Updated:</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
 				</div>
-				<div class="detail-item">
-					<span class="detail-label">Version:</span>
-					<span class="detail-value">{{ schemaItem.version || 'Not set' }}</span>
+				<div class="cn-schema-form__detail-item">
+					<span class="cn-schema-form__detail-label">Version:</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.version || 'Not set' }}</span>
 				</div>
-				<div class="detail-item">
-					<span class="detail-label">Owner:</span>
-					<span class="detail-value">{{ schemaItem.owner || 'Not set' }}</span>
+				<div class="cn-schema-form__detail-item">
+					<span class="cn-schema-form__detail-label">Owner:</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || 'Not set' }}</span>
 				</div>
 			</div>
 
-			<div class="tabContainer">
+			<div class="cn-schema-form__tabContainer">
 				<BTabs v-model="activeTab" content-class="mt-3" justified>
 					<BTab title="Properties" active>
-						<div class="viewTableContainer scrollable">
-							<table class="viewTable">
+						<div class="cn-schema-form__viewTableContainer cn-schema-form__scrollable">
+							<table class="cn-schema-form__viewTable">
 								<thead>
 									<tr>
 										<th>Name</th>
@@ -83,13 +83,13 @@
 								<tbody>
 									<tr v-for="(property, key) in sortedProperties(schemaItem)"
 										:key="`property-${getStablePropertyId(key)}`"
-										:class="{ 'selected-row': selectedProperty === key, 'modified-row': isPropertyModified(key) }"
+										:class="{ 'cn-schema-form__selected-row': selectedProperty === key, 'cn-schema-form__modified-row': isPropertyModified(key) }"
 										@click="handleRowClick(key, $event)">
 										<td>
-											<div v-if="selectedProperty === key" class="name-input-container" @click.stop>
+											<div v-if="selectedProperty === key" class="cn-schema-form__name-input-container" @click.stop>
 												<AlertOutline v-if="isPropertyModified(key)"
 													:size="16"
-													class="warning-icon"
+													class="cn-schema-form__warning-icon"
 													:title="'Property has been modified. Changes will only take effect after the schema is saved.'" />
 												<NcTextField
 													ref="propertyNameInput"
@@ -98,34 +98,34 @@
 													@update:value="updatePropertyKey(key, $event)"
 													@click.stop />
 											</div>
-											<div v-else class="name-display-container">
+											<div v-else class="cn-schema-form__name-display-container">
 												<AlertOutline v-if="isPropertyModified(key)"
 													:size="16"
-													class="warning-icon"
+													class="cn-schema-form__warning-icon"
 													:title="'Property has been modified. Changes will only take effect after the schema is saved.'" />
-												<div class="name-with-chips">
-													<span class="property-name">{{ key }}</span>
-													<div class="inline-chips">
+												<div class="cn-schema-form__name-with-chips">
+													<span class="cn-schema-form__property-name">{{ key }}</span>
+													<div class="cn-schema-form__inline-chips">
 														<span v-if="isPropertyRequired(schemaItem, key)"
-															class="property-chip chip-primary">Required</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-primary">Required</span>
 														<span v-if="property.immutable"
-															class="property-chip chip-secondary">Immutable</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Immutable</span>
 														<span v-if="property.deprecated"
-															class="property-chip chip-warning">Deprecated</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-warning">Deprecated</span>
 														<span v-if="property.visible === false"
-															class="property-chip chip-secondary">Hidden in view</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in view</span>
 														<span v-if="property.hideOnCollection"
-															class="property-chip chip-secondary">Hidden in Collection</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in Collection</span>
 														<span v-if="property.hideOnForm"
-															class="property-chip chip-secondary">Hidden in Form</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in Form</span>
 														<span v-if="property.const !== undefined"
-															class="property-chip chip-success">Constant</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-success">Constant</span>
 														<span v-if="property.enum && property.enum.length > 0"
-															class="property-chip chip-success">Enumeration ({{ property.enum.length }})</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-success">Enumeration ({{ property.enum.length }})</span>
 														<span v-if="property.facetable === true || (typeof property.facetable === 'object' && property.facetable !== null)"
-															class="property-chip chip-info">Facetable</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-info">Facetable</span>
 														<span v-if="hasCustomTableSettings(key)"
-															class="property-chip chip-table">Table</span>
+															class="cn-schema-form__property-chip cn-schema-form__chip-table">Table</span>
 													</div>
 												</div>
 											</div>
@@ -139,7 +139,7 @@
 												@click.stop />
 											<span v-else>{{ property.type }}</span>
 										</td>
-										<td class="tableColumnActions">
+										<td class="cn-schema-form__tableColumnActions">
 											<NcActions>
 												<NcActionCaption name="Actions" />
 												<NcActionButton :aria-label="'Copy ' + key" @click="copyProperty(key)">
@@ -255,7 +255,7 @@
 														v-for="(enumValue, index) in property.enum"
 														:key="`enum-chip-${index}-${enumValue}`"
 														:aria-label="'Remove ' + enumValue"
-														class="enum-action-chip"
+														class="cn-schema-form__enum-action-chip"
 														@click="removeEnumValue(key, index)">
 														<template #icon>
 															<Close :size="16" />
@@ -592,14 +592,14 @@
 													<!-- Current Property Permissions List -->
 													<div v-for="permission in getPropertyPermissionsList(key)" :key="`${key}-perm-text-${permission.group}`">
 														<NcActionText
-															class="property-permission-text">
+															class="cn-schema-form__property-permission-text">
 															{{ permission.group }} ({{ permission.rights }})
 														</NcActionText>
 														<NcActionButton
 															v-if="permission.groupId !== 'admin'"
 															:key="`${key}-perm-remove-${permission.group}`"
 															:aria-label="`Remove ${permission.group} permissions`"
-															class="property-permission-remove-btn"
+															class="cn-schema-form__property-permission-remove-btn"
 															@click="removePropertyGroupPermissions(key, permission.group)">
 															<template #icon>
 																<Close :size="16" />
@@ -671,12 +671,12 @@
 								</tbody>
 							</table>
 						</div>
-						<NcNoteCard v-if="propertiesModified && !loading" type="warning" class="properties-warning">
+						<CnNoteCard v-if="propertiesModified && !loading" type="warning" class="cn-schema-form__properties-warning">
 							<p>Properties have been modified. Changes will only take effect after the schema is saved.</p>
-						</NcNoteCard>
+						</CnNoteCard>
 					</BTab>
 					<BTab title="Configuration">
-						<div class="form-editor">
+						<div class="cn-schema-form__form-editor">
 							<NcTextArea :disabled="loading"
 								label="Description"
 								:value.sync="schemaItem.description" />
@@ -688,7 +688,7 @@
 								:value.sync="schemaItem.slug" />
 
 							<!-- Schema Composition Section -->
-							<div class="schema-composition-section">
+							<div>
 								<h3>Schema Composition (JSON Schema)</h3>
 
 								<!-- allOf - Multiple Inheritance (Recommended) -->
@@ -704,17 +704,17 @@
 									input-label="allOf - Inherits from ALL schemas (Recommended)"
 									placeholder="Select schemas to inherit from (supports multiple parents)">
 									<template #option="{ title, description }">
-										<div class="schema-option">
-											<span class="schema-title">{{ title }}</span>
-											<span v-if="description" class="schema-description">{{ description }}</span>
+										<div class="cn-schema-form__schema-option">
+											<span>{{ title }}</span>
+											<span v-if="description">{{ description }}</span>
 										</div>
 									</template>
 								</NcSelect>
-								<NcNoteCard v-if="schemaItem.allOf && schemaItem.allOf.length > 0" type="info" class="composition-info">
+								<NcNoteCard v-if="schemaItem.allOf && schemaItem.allOf.length > 0" type="info">
 									<p><strong>allOf - Multiple Inheritance</strong></p>
 									<p>Instance must validate against ALL selected schemas. Properties from all parent schemas are merged. This is the recommended pattern for schema extension and multiple inheritance.</p>
 									<p><strong>Important:</strong> Child schemas can only ADD constraints, never relax them (Liskov Substitution Principle). Metadata (title, description, order) can be overridden.</p>
-									<div v-if="allOfSchemaNames.length > 0" class="parent-schemas-list">
+									<div v-if="allOfSchemaNames.length > 0">
 										<strong>Parent Schemas:</strong>
 										<ul>
 											<li v-for="name in allOfSchemaNames" :key="name">
@@ -737,13 +737,13 @@
 									input-label="oneOf - Exactly ONE schema must match"
 									placeholder="Select schemas (instance must match exactly one)">
 									<template #option="{ title, description }">
-										<div class="schema-option">
-											<span class="schema-title">{{ title }}</span>
-											<span v-if="description" class="schema-description">{{ description }}</span>
+										<div class="cn-schema-form__schema-option">
+											<span>{{ title }}</span>
+											<span v-if="description">{{ description }}</span>
 										</div>
 									</template>
 								</NcSelect>
-								<NcNoteCard v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0" type="info" class="composition-info">
+								<NcNoteCard v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0" type="info">
 									<p><strong>oneOf - Mutually Exclusive</strong></p>
 									<p>Instance must validate against EXACTLY ONE of the selected schemas. Properties are NOT merged. Use for discriminated unions or type variants.</p>
 								</NcNoteCard>
@@ -761,13 +761,13 @@
 									input-label="anyOf - At least ONE schema must match"
 									placeholder="Select schemas (instance must match at least one)">
 									<template #option="{ title, description }">
-										<div class="schema-option">
-											<span class="schema-title">{{ title }}</span>
-											<span v-if="description" class="schema-description">{{ description }}</span>
+										<div class="cn-schema-form__schema-option">
+											<span>{{ title }}</span>
+											<span v-if="description">{{ description }}</span>
 										</div>
 									</template>
 								</NcSelect>
-								<NcNoteCard v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0" type="info" class="composition-info">
+								<NcNoteCard v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0" type="info">
 									<p><strong>anyOf - Flexible Composition</strong></p>
 									<p>Instance must validate against AT LEAST ONE of the selected schemas. Properties are NOT merged. More permissive than oneOf.</p>
 								</NcNoteCard>
@@ -834,7 +834,7 @@
 						</div>
 					</BTab>
 					<BTab title="Security">
-						<div class="security-section">
+						<div class="cn-schema-form__security-section">
 							<NcNoteCard type="info">
 								<p><strong>Role-Based Access Control (RBAC)</strong></p>
 								<p>Configure which Nextcloud user groups can perform CRUD operations on objects of this schema.</p>
@@ -846,14 +846,14 @@
 								</ul>
 							</NcNoteCard>
 
-							<div v-if="loadingGroups" class="loading-groups">
+							<div v-if="loadingGroups" class="cn-schema-form__loading-groups">
 								<NcLoadingIcon :size="20" />
 								<span>Loading user groups...</span>
 							</div>
 
-							<div v-else class="rbac-table-container">
+							<div v-else class="cn-schema-form__rbac-table-container">
 								<h3>Group Permissions</h3>
-								<table class="rbac-table">
+								<table class="cn-schema-form__rbac-table">
 									<thead>
 										<tr>
 											<th>Group</th>
@@ -865,9 +865,9 @@
 									</thead>
 									<tbody>
 										<!-- Public group at top -->
-										<tr class="public-row">
-											<td class="group-name">
-												<span class="group-badge public">public</span>
+										<tr class="cn-schema-form__public-row">
+											<td class="cn-schema-form__group-name">
+												<span class="cn-schema-form__group-badge cn-schema-form__public">public</span>
 												<small>Unauthenticated users</small>
 											</td>
 											<td>
@@ -893,9 +893,9 @@
 										</tr>
 
 										<!-- User group (authenticated users) -->
-										<tr class="user-row">
-											<td class="group-name">
-												<span class="group-badge user">user</span>
+										<tr class="cn-schema-form__user-row">
+											<td class="cn-schema-form__group-name">
+												<span class="cn-schema-form__group-badge cn-schema-form__user">user</span>
 												<small>Authenticated users</small>
 											</td>
 											<td>
@@ -921,9 +921,9 @@
 										</tr>
 
 										<!-- Regular user groups -->
-										<tr v-for="group in sortedUserGroups" :key="group.id" class="group-row">
-											<td class="group-name">
-												<span class="group-badge">{{ group.displayname || group.id }}</span>
+										<tr v-for="group in sortedUserGroups" :key="group.id">
+											<td class="cn-schema-form__group-name">
+												<span class="cn-schema-form__group-badge">{{ group.displayname || group.id }}</span>
 												<small v-if="group.displayname && group.displayname !== group.id">{{ group.id }}</small>
 											</td>
 											<td>
@@ -949,9 +949,9 @@
 										</tr>
 
 										<!-- Admin group at bottom (disabled) -->
-										<tr class="admin-row">
-											<td class="group-name">
-												<span class="group-badge admin">admin</span>
+										<tr class="cn-schema-form__admin-row">
+											<td class="cn-schema-form__group-name">
+												<span class="cn-schema-form__group-badge cn-schema-form__admin">admin</span>
 												<small>Always has full access</small>
 											</td>
 											<td>
@@ -978,7 +978,7 @@
 									</tbody>
 								</table>
 
-								<div class="rbac-summary">
+								<div class="cn-schema-form__rbac-summary">
 									<NcNoteCard v-if="!hasAnyPermissions" type="success">
 										<p><strong>Open Access:</strong> No specific permissions set - all users can perform all operations.</p>
 									</NcNoteCard>
@@ -1098,6 +1098,8 @@ import {
 } from '@nextcloud/vue'
 import { BTabs, BTab } from 'bootstrap-vue'
 
+import { CnNoteCard } from '../CnNoteCard/index.js'
+
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -1150,6 +1152,7 @@ export default {
 		NcActionText,
 		BTabs,
 		BTab,
+		CnNoteCard,
 		// Icons
 		ContentSaveOutline,
 		Cancel,
@@ -3145,426 +3148,3 @@ export default {
 	},
 }
 </script>
-
-<style scoped>
-/* Detail grid (metadata header) */
-.detail-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-	gap: 20px;
-	margin-bottom: 20px;
-	padding: 0 20px;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.detail-item {
-	display: flex;
-	flex-direction: column;
-	padding: 15px;
-	background-color: var(--color-background-soft);
-	border-radius: var(--border-radius);
-	border-left: 3px solid var(--color-primary);
-	box-shadow: 0 1px 3px var(--color-box-shadow);
-	transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.detail-item:hover {
-	transform: translateY(-1px);
-	box-shadow: 0 2px 6px var(--color-box-shadow);
-}
-
-.detail-label {
-	font-weight: bold;
-	color: var(--color-text-maxcontrast);
-	margin-bottom: 5px;
-	font-size: 0.9em;
-}
-
-.detail-value {
-	word-break: break-word;
-	color: var(--color-text-default);
-	line-height: 1.4;
-}
-
-.id-card {
-	background-color: var(--color-background-hover);
-	border-left-color: var(--color-primary-element);
-}
-
-.id-card-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	margin-bottom: 5px;
-}
-
-.uuid-value {
-	font-size: 0.9em;
-	color: var(--color-text-maxcontrast);
-	font-family: monospace;
-	margin-top: 4px;
-	display: block;
-	background-color: var(--color-background-dark);
-	padding: 4px 6px;
-	border-radius: 3px;
-}
-
-.copy-button {
-	height: 30px;
-	flex-shrink: 0;
-	margin-top: 5px;
-}
-
-/* Tab container */
-.tabContainer {
-	margin-top: 20px;
-}
-
-/* Table styles */
-.viewTableContainer {
-	background: var(--color-main-background);
-	border-radius: var(--border-radius);
-	overflow: hidden;
-	box-shadow: 0 2px 4px var(--color-box-shadow);
-	border: 1px solid var(--color-border);
-	margin-bottom: 20px;
-}
-
-.viewTableContainer.scrollable {
-	max-height: 400px;
-	overflow-y: auto;
-}
-
-.viewTable {
-	width: 100%;
-	border-collapse: collapse;
-	background-color: var(--color-main-background);
-}
-
-.viewTable th,
-.viewTable td {
-	padding: 12px;
-	text-align: left;
-	border-bottom: 1px solid var(--color-border);
-	vertical-align: middle;
-}
-
-.viewTable th {
-	background: var(--color-background-hover);
-	font-weight: 500;
-	color: var(--color-text-maxcontrast);
-	background-color: var(--color-background-dark);
-}
-
-.viewTable tbody tr.selected-row {
-	background-color: var(--color-primary-light);
-	border-left: 3px solid var(--color-primary);
-}
-
-.viewTable tbody tr.selected-row:hover {
-	background-color: var(--color-primary-light);
-}
-
-.viewTable tbody tr.modified-row {
-	background-color: var(--color-warning-light);
-	border-left: 3px solid var(--color-warning);
-}
-
-.viewTable tbody tr.modified-row:hover {
-	background-color: var(--color-warning-light);
-}
-
-.viewTable tbody tr.modified-row.selected-row {
-	background-color: var(--color-primary-light);
-	border-left: 3px solid var(--color-primary);
-}
-
-/* Form editor */
-.form-editor {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-	padding: 16px;
-}
-
-/* Property row inline editing */
-.name-input-container {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.warning-icon {
-	color: var(--color-warning);
-	flex-shrink: 0;
-}
-
-/* Table column widths */
-.tableColumnActions {
-	width: 150px;
-	text-align: right;
-}
-
-/* Table actions button */
-.table-actions {
-	margin-bottom: 15px;
-	display: flex;
-	justify-content: flex-end;
-}
-
-/* Enum preview styling */
-.enum-preview {
-	margin-top: 4px;
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	flex-wrap: wrap;
-}
-
-.enum-label {
-	color: var(--color-text-lighter);
-	font-size: 11px;
-	font-weight: 500;
-	margin-right: 4px;
-}
-
-.enum-value-chip {
-	background: var(--color-primary-light);
-	color: var(--color-primary-text);
-	padding: 2px 6px;
-	border-radius: 12px;
-	font-size: 10px;
-	font-weight: 500;
-	border: 1px solid var(--color-primary-element-light);
-}
-
-.property-chip.chip-info {
-	background: var(--color-info);
-	color: var(--color-primary-text);
-}
-
-.property-chip.chip-table {
-	background: var(--color-primary);
-	color: var(--color-primary-text);
-}
-
-/* Enum chip styling for action menu using NcActionButton */
-.enum-action-chip {
-	background: var(--color-primary-element-light) !important;
-	border-radius: 16px !important;
-	margin: 2px 4px !important;
-	padding: 4px 12px !important;
-}
-
-.enum-action-chip:hover {
-	background: var(--color-primary-element) !important;
-}
-
-.enum-action-chip .action-button__text {
-	color: var(--color-primary-text) !important;
-	font-size: 12px !important;
-	font-weight: 500 !important;
-}
-
-.enum-action-chip .action-button__icon {
-	color: var(--color-primary-text) !important;
-}
-
-/* RBAC Security Tab Styling */
-.security-section {
-	padding: 20px 0;
-}
-
-.loading-groups {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 20px;
-	justify-content: center;
-}
-
-.rbac-table-container {
-	margin-top: 20px;
-}
-
-.rbac-table-container h3 {
-	margin-bottom: 15px;
-	color: var(--color-text-dark);
-	font-size: 16px;
-	font-weight: 600;
-}
-
-.rbac-table {
-	width: 100%;
-	border-collapse: collapse;
-	border: 1px solid var(--color-border-dark);
-	border-radius: 8px;
-	overflow: hidden;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.rbac-table th {
-	background: var(--color-background-dark);
-	color: var(--color-text-dark);
-	font-weight: 600;
-	padding: 12px 16px;
-	text-align: left;
-	border-bottom: 2px solid var(--color-border-dark);
-}
-
-.rbac-table th:first-child {
-	width: 40%;
-}
-
-.rbac-table th:not(:first-child) {
-	width: 15%;
-	text-align: center;
-}
-
-.rbac-table td {
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--color-border);
-	vertical-align: middle;
-}
-
-.rbac-table td:not(.group-name) {
-	text-align: center;
-}
-
-.rbac-table tr:hover {
-	background: var(--color-background-hover);
-}
-
-.public-row {
-	background: var(--color-primary-light) !important;
-}
-
-.user-row {
-	background: var(--color-warning-light) !important;
-}
-
-.admin-row {
-	background: var(--color-success-light) !important;
-}
-
-.admin-row:hover {
-	background: var(--color-success-light) !important;
-}
-
-.group-name {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.group-badge {
-	display: inline-block;
-	padding: 4px 8px;
-	border-radius: 12px;
-	font-size: 12px;
-	font-weight: 600;
-	background: var(--color-primary-element-light);
-	color: var(--color-primary-text);
-}
-
-.group-badge.public {
-	background: var(--color-info);
-	color: white;
-}
-
-.group-badge.user {
-	background: var(--color-warning);
-	color: white;
-}
-
-.group-badge.admin {
-	background: var(--color-success);
-	color: white;
-}
-
-.group-name small {
-	color: var(--color-text-lighter);
-	font-size: 11px;
-	font-style: italic;
-}
-
-.rbac-summary {
-	margin-top: 20px;
-}
-
-/* Property-level RBAC Styling - Action Menu Based */
-.property-permission-text {
-	font-family: monospace;
-	font-size: 12px;
-	font-weight: 600;
-}
-
-.property-permission-remove-btn {
-	font-size: 11px;
-	color: var(--color-error);
-}
-
-/* Schema Extension Status Pill */
-.statusPill {
-	display: inline-block;
-	padding: 4px 12px;
-	border-radius: 12px;
-	font-size: 0.75em;
-	font-weight: 600;
-	text-transform: uppercase;
-	margin-left: 8px;
-	white-space: nowrap;
-	vertical-align: middle;
-}
-
-.statusPill--alert {
-	background-color: var(--color-warning);
-	color: var(--color-main-background);
-}
-
-/* Title with badge layout */
-.title-with-badge {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex-wrap: wrap;
-}
-
-.title-with-badge > :first-child {
-	flex: 1;
-	min-width: 0;
-}
-
-/* Parent schema link styling */
-.parent-schema-link {
-	margin-top: 12px;
-	padding: 8px 12px;
-	background-color: var(--color-background-dark);
-	border-radius: var(--border-radius);
-	font-size: 0.9em;
-}
-
-.parent-schema-link strong {
-	color: var(--color-text-dark);
-}
-
-/* Extend info card styling */
-.extend-info {
-	margin-top: 12px;
-	margin-bottom: 12px;
-}
-
-.extend-info p {
-	margin: 8px 0;
-}
-
-.extend-info p:first-of-type {
-	margin-top: 0;
-}
-
-.extend-info p:last-of-type {
-	margin-bottom: 0;
-}
-</style>
