@@ -34,7 +34,8 @@
 		"bootstrap-vue": "^2.23.1",
 		"pinia": "^2.0.0",
 		"vue": "^2.7.0",
-		"vue-material-design-icons": "^5.0.0"
+		"vue-material-design-icons": "^5.0.0",
+		"vue-frag": "^1.4.3"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",
