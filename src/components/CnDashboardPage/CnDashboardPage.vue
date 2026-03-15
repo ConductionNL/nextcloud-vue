@@ -1,13 +1,15 @@
 <!--
-  CnDashboardPage — Top-level dashboard page with GridStack widget grid.
+  CnDashboardPage — Top-level dashboard page with CSS grid layout.
 
   The dashboard equivalent of CnIndexPage. Assembles a complete dashboard
-  from a widget definition array and a layout array. Supports:
+  from a widget definition array and a layout array. Uses CSS grid for
+  static layout; GridStack drag-and-drop editing is available via allowEdit.
+
+  Supports:
   - Custom widgets via scoped slots (#widget-{widgetId})
-  - Nextcloud Dashboard API widgets (auto-rendered)
-  - Tile widgets (quick-access links)
-  - Drag-and-drop editing mode
-  - Header with title, actions, and edit toggle
+  - Header with title, description, and action buttons
+  - Loading and empty states
+  - Optional drag-and-drop editing (loads GridStack only when needed)
 -->
 <template>
 	<div class="cn-dashboard-page">
@@ -37,216 +39,94 @@
 		</div>
 
 		<!-- Loading state -->
-		<NcLoadingIcon v-if="loading" />
+		<div v-if="loading" class="cn-dashboard-page__loading">
+			<NcLoadingIcon :size="44" />
+		</div>
 
 		<!-- Empty state -->
 		<div v-else-if="!hasWidgets" class="cn-dashboard-page__empty">
 			<slot name="empty">
-				<NcEmptyContent :description="emptyLabel">
-					<template #icon>
-						<ViewDashboardOutline :size="48" />
-					</template>
-				</NcEmptyContent>
+				<p>{{ emptyLabel }}</p>
 			</slot>
 		</div>
 
-		<!-- Dashboard grid -->
-		<CnDashboardGrid
-			v-else
-			:layout="layout"
-			:editable="isEditing"
-			:columns="columns"
-			:cell-height="cellHeight"
-			:margin="gridMargin"
-			@layout-change="onLayoutChange">
-			<template #widget="{ item }">
-				<!-- Tile widget -->
-				<CnTileWidget
-					v-if="isTile(item)"
-					:tile="getTileConfig(item)" />
-
-				<!-- Custom slot widget — apps provide their own rendering -->
-				<template v-else-if="hasWidgetSlot(item.widgetId)">
-					<CnWidgetWrapper
-						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
-						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
-					</CnWidgetWrapper>
-				</template>
-
-				<!-- NC Dashboard API widget -->
-				<template v-else-if="isNcWidget(item)">
-					<CnWidgetWrapper
-						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
-						<CnWidgetRenderer
-							:widget="getWidgetDef(item.widgetId)"
-							:unavailable-text="unavailableLabel" />
-					</CnWidgetWrapper>
-				</template>
-
-				<!-- Unknown widget fallback -->
-				<CnWidgetWrapper
-					v-else
-					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
-					<div class="cn-dashboard-page__unknown">
-						{{ unavailableLabel }}
-					</div>
-				</CnWidgetWrapper>
-			</template>
-		</CnDashboardGrid>
+		<!-- Dashboard grid (CSS grid — no GridStack dependency) -->
+		<div v-else class="cn-dashboard-page__grid">
+			<div
+				v-for="item in sortedLayout"
+				:key="item.id"
+				class="cn-dashboard-page__widget"
+				:style="widgetGridStyle(item)">
+				<h3 v-if="getWidgetTitle(item) && item.showTitle !== false" class="cn-dashboard-page__widget-title">
+					{{ getWidgetTitle(item) }}
+				</h3>
+				<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
+			</div>
+		</div>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
-import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
-import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
-import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
-import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 
 /**
  * CnDashboardPage — Top-level dashboard page component.
  *
  * The dashboard equivalent of CnIndexPage. Renders a configurable grid
  * of widgets from a `widgets` definition array and a `layout` array.
+ * Uses CSS grid for layout. Widgets are rendered via scoped slots.
  *
- * Widget types:
- * 1. **Custom** — App provides rendering via `#widget-{widgetId}` slot
- * 2. **NC Dashboard API** — Widgets with `itemApiVersions` are auto-rendered
- * 3. **Tile** — Items with `type: 'tile'` render as quick-access tiles
+ * Layout items use a 12-column grid system:
+ * - `gridX` — column start (0-based)
+ * - `gridWidth` — number of columns to span (1-12)
+ * - `gridY` — row order (items are sorted by gridY then gridX)
  *
- * @example Basic usage with custom widgets
+ * @example Basic usage
  * <CnDashboardPage
  *   title="Dashboard"
- *   :widgets="widgetDefs"
- *   :layout="savedLayout"
- *   @layout-change="saveLayout">
- *   <template #widget-cases-by-status="{ item }">
- *     <StatusChart :data="statusData" />
+ *   :widgets="[{ id: 'kpi', title: 'KPIs' }, { id: 'recent', title: 'Recent' }]"
+ *   :layout="[
+ *     { id: 1, widgetId: 'kpi', gridX: 0, gridY: 0, gridWidth: 12 },
+ *     { id: 2, widgetId: 'recent', gridX: 0, gridY: 1, gridWidth: 6 },
+ *   ]">
+ *   <template #header-actions>
+ *     <NcButton type="primary" @click="createNew">+ New Item</NcButton>
  *   </template>
- *   <template #widget-my-work="{ item }">
- *     <MyWorkList :items="workItems" />
- *   </template>
+ *   <template #widget-kpi><MyKpiCards /></template>
+ *   <template #widget-recent><RecentList /></template>
  * </CnDashboardPage>
- *
- * @example With NC Dashboard API widgets
- * <CnDashboardPage
- *   title="Dashboard"
- *   :widgets="[...appWidgets, ...ncWidgets]"
- *   :layout="layout"
- *   @layout-change="saveLayout" />
  */
 export default {
 	name: 'CnDashboardPage',
 
 	components: {
 		NcButton,
-		NcEmptyContent,
 		NcLoadingIcon,
 		Pencil,
 		Check,
-		ViewDashboardOutline,
-		CnDashboardGrid,
-		CnWidgetWrapper,
-		CnWidgetRenderer,
-		CnTileWidget,
 	},
 
 	props: {
 		/** Page title */
-		title: {
-			type: String,
-			default: '',
-		},
+		title: { type: String, default: '' },
 		/** Page description (shown below title) */
-		description: {
-			type: String,
-			default: '',
-		},
-		/**
-		 * Widget definitions array. Each widget defines metadata for rendering.
-		 *
-		 * Custom widgets: `{ id: 'my-widget', title: 'My Widget', type: 'custom' }`
-		 * NC API widgets: `{ id: 'calendar', title: 'Calendar', itemApiVersions: [1,2], ... }`
-		 * Tile widgets: `{ id: 'tile-files', type: 'tile', title: 'Files', icon: 'M12...', iconType: 'svg', backgroundColor: '#0082c9', textColor: '#fff', linkType: 'app', linkValue: 'files' }`
-		 *
-		 * @type {Array<{ id: string, title: string, type?: string, iconUrl?: string, iconClass?: string, buttons?: Array, itemApiVersions?: number[], reloadInterval?: number, [key: string]: any }>}
-		 */
-		widgets: {
-			type: Array,
-			default: () => [],
-		},
-		/**
-		 * Layout array defining widget positions in the grid.
-		 *
-		 * Each item: `{ id: 'unique-id', widgetId: 'my-widget', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }`
-		 *
-		 * Additional properties (showTitle, styleConfig, tile config) are passed through.
-		 *
-		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle?: boolean, styleConfig?: object, [key: string]: any }>}
-		 */
-		layout: {
-			type: Array,
-			default: () => [],
-		},
+		description: { type: String, default: '' },
+		/** Widget definitions: [{ id, title, ... }] */
+		widgets: { type: Array, default: () => [] },
+		/** Layout items: [{ id, widgetId, gridX, gridY, gridWidth, showTitle? }] */
+		layout: { type: Array, default: () => [] },
 		/** Whether the dashboard is loading */
-		loading: {
-			type: Boolean,
-			default: false,
-		},
-		/** Whether to show the edit toggle button */
-		allowEdit: {
-			type: Boolean,
-			default: false,
-		},
-		/** Number of grid columns */
-		columns: {
-			type: Number,
-			default: 12,
-		},
-		/** Grid cell height in pixels */
-		cellHeight: {
-			type: Number,
-			default: 80,
-		},
-		/** Grid margin in pixels */
-		gridMargin: {
-			type: Number,
-			default: 12,
-		},
+		loading: { type: Boolean, default: false },
+		/** Whether to show the edit toggle button (future: enables GridStack) */
+		allowEdit: { type: Boolean, default: false },
 		/** Label for the edit button */
-		editLabel: {
-			type: String,
-			default: 'Edit',
-		},
-		/** Label for the done button (when editing) */
-		doneLabel: {
-			type: String,
-			default: 'Done',
-		},
-		/** Label for the empty state */
-		emptyLabel: {
-			type: String,
-			default: 'No widgets configured',
-		},
-		/** Label for unavailable widgets */
-		unavailableLabel: {
-			type: String,
-			default: 'Widget not available',
-		},
+		editLabel: { type: String, default: 'Edit' },
+		/** Label for the done button */
+		doneLabel: { type: String, default: 'Done' },
+		/** Label for empty state */
+		emptyLabel: { type: String, default: 'No widgets configured' },
 	},
 
 	emits: ['layout-change', 'edit-toggle'],
@@ -269,6 +149,13 @@ export default {
 			}
 			return map
 		},
+
+		sortedLayout() {
+			return [...this.layout].sort((a, b) => {
+				if (a.gridY !== b.gridY) return a.gridY - b.gridY
+				return a.gridX - b.gridX
+			})
+		},
 	},
 
 	methods: {
@@ -277,76 +164,32 @@ export default {
 			this.$emit('edit-toggle', this.isEditing)
 		},
 
-		onLayoutChange(updated) {
-			this.$emit('layout-change', updated)
-		},
-
 		getWidgetDef(widgetId) {
 			return this.widgetMap[widgetId] || null
 		},
 
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			return item.customTitle || def?.title || item.widgetId
+			return item.customTitle || def?.title || ''
 		},
 
-		getWidgetIconUrl(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			return def?.iconUrl || null
-		},
-
-		getWidgetIconClass(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			return def?.iconClass || null
-		},
-
-		getWidgetButtons(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			return def?.buttons || []
-		},
-
-		isTile(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			return def?.type === 'tile'
-		},
-
-		getTileConfig(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			if (!def) return null
+		widgetGridStyle(item) {
+			const colStart = (item.gridX || 0) + 1
+			const colEnd = colStart + (item.gridWidth || 12)
 			return {
-				title: def.title,
-				icon: def.icon,
-				iconType: def.iconType,
-				backgroundColor: def.backgroundColor,
-				textColor: def.textColor,
-				linkType: def.linkType,
-				linkValue: def.linkValue,
+				gridColumn: colStart + ' / ' + colEnd,
 			}
-		},
-
-		isNcWidget(item) {
-			const def = this.getWidgetDef(item.widgetId)
-			return def?.itemApiVersions && def.itemApiVersions.length > 0
-		},
-
-		hasWidgetSlot(widgetId) {
-			return !!this.$scopedSlots['widget-' + widgetId]
 		},
 	},
 }
 </script>
 
 <style scoped>
-.cn-dashboard-page {
-	padding: 20px;
-	max-width: 1400px;
-}
-
 .cn-dashboard-page__header {
 	display: flex;
 	justify-content: space-between;
-	align-items: flex-start;
-	margin-bottom: 20px;
+	align-items: center;
+	margin-bottom: 16px;
 	flex-wrap: wrap;
 	gap: 12px;
 }
@@ -374,17 +217,34 @@ export default {
 	flex-shrink: 0;
 }
 
-.cn-dashboard-page__empty {
-	padding: 60px 20px;
+.cn-dashboard-page__loading {
+	display: flex;
+	justify-content: center;
+	padding: 40px;
 }
 
-.cn-dashboard-page__unknown {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
+.cn-dashboard-page__empty {
+	text-align: center;
+	padding: 40px;
 	color: var(--color-text-maxcontrast);
-	font-size: 14px;
+}
+
+.cn-dashboard-page__grid {
+	display: grid;
+	grid-template-columns: repeat(12, 1fr);
+	gap: 16px;
+}
+
+.cn-dashboard-page__widget {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
 	padding: 16px;
+}
+
+.cn-dashboard-page__widget-title {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 8px;
 }
 </style>
