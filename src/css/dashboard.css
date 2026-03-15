@@ -2,8 +2,7 @@
 
 /* Dashboard page layout */
 .cn-dashboard-page {
-	padding: 20px;
-	max-width: 1400px;
+	padding: 0;
 }
 
 /* Widget grid item borders for non-tile widgets */
