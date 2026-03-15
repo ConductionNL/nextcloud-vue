@@ -140,36 +140,6 @@ export default {
 }
 ```
 
-### Routing Pattern
-
-Apps **MUST** use history mode routing with clean URLs — **never** hash mode (`/#/`).
-
-```js
-// src/router/index.js
-import { generateUrl } from '@nextcloud/router'
-
-export default new Router({
-  mode: 'history',
-  base: generateUrl('/apps/myapp'),
-  routes: [
-    { path: '/', name: 'Dashboard', component: Dashboard },
-    { path: '/items', name: 'Items', component: ItemList },
-    { path: '/items/:id', name: 'ItemDetail', component: ItemDetail, props: route => ({ itemId: route.params.id }) },
-    { path: '*', redirect: '/' },
-  ],
-})
-```
-
-**Required PHP catch-all** in `appinfo/routes.php` (at the END, after all API routes):
-```php
-['name' => 'dashboard#page', 'url' => '/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+'], 'defaults' => ['path' => '']],
-```
-
-**Dashboard nav item** must use `:exact="true"` to prevent it staying active on all routes:
-```vue
-<NcAppNavigationItem :name="t('myapp', 'Dashboard')" :to="{ name: 'Dashboard' }" :exact="true">
-```
-
 ### CnIndexPage Dialog Override System
 
 CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **overridable at three levels**:
