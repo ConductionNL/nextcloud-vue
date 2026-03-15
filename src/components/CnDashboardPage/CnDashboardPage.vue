@@ -186,7 +186,7 @@ export default {
 
 <style scoped>
 .cn-dashboard-page {
-	padding: calc(2 * var(--default-grid-baseline, 4px));
+	padding: 20px;
 }
 
 .cn-dashboard-page__header {
