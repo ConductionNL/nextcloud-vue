@@ -185,6 +185,10 @@ export default {
 </script>
 
 <style scoped>
+.cn-dashboard-page {
+	padding: calc(2 * var(--default-grid-baseline, 4px));
+}
+
 .cn-dashboard-page__header {
 	display: flex;
 	justify-content: space-between;
