@@ -22,6 +22,7 @@ export {
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnAdvancedFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
@@ -29,6 +30,11 @@ export {
 	CnMassImportDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnDashboardPage,
+	CnDashboardGrid,
+	CnWidgetWrapper,
+	CnWidgetRenderer,
+	CnTileWidget,
 	registerIcons,
 } from './components/index.js'
 
@@ -43,10 +49,15 @@ export {
 	filesPlugin,
 	lifecyclePlugin,
 	registerMappingPlugin,
+	selectionPlugin,
+	searchPlugin,
+	SEARCH_TYPE,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView } from './composables/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'

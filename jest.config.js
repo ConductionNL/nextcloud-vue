@@ -6,11 +6,14 @@ module.exports = {
 		'^.+\\.vue$': '@vue/vue2-jest',
 	},
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|vue-material-design-icons|pinia)/)',
+		'/node_modules/(?!(@nextcloud|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
 		'\\.(css)$': 'jest-transform-stub',
+		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
+		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
+		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
 	},
 	testMatch: [
 		'<rootDir>/tests/**/*.spec.js',
