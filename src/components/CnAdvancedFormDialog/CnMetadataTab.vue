@@ -52,18 +52,18 @@ export default {
 
 	computed: {
 		metadataId() {
-			const o = this.formData['@self'] || this.item?.['@self']
-			return o?.id ?? this.formData.id ?? this.item?.id ?? '—'
+			const o = this.item?.['@self']
+			return o?.id ?? this.item?.id ?? '—'
 		},
 
 		metadataCreated() {
-			const o = this.formData['@self'] || this.item?.['@self']
+			const o = this.item?.['@self']
 			const v = o?.created
 			return v ? new Date(v).toLocaleString() : '—'
 		},
 
 		metadataUpdated() {
-			const o = this.formData['@self'] || this.item?.['@self']
+			const o = this.item?.['@self']
 			const v = o?.updated
 			return v ? new Date(v).toLocaleString() : '—'
 		},
