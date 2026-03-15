@@ -343,7 +343,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/schemas/${config.schema}`,
+				prefixUrl(`/apps/openregister/api/schemas/${config.schema}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -373,7 +373,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/registers/${config.register}`,
+				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -789,41 +789,54 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
 }
 
 /**
- * Default object store instance with ID 'conduction-objects'.
+ * Internal reference to the active object store composable.
+ * Updated by createObjectStore() so that useObjectStore() and all
+ * composables (useListView, useDetailView) always use the app's store.
+ * @private
+ */
+let _activeStore = defineObjectStore(DEFAULT_STORE_ID)
+
+/**
+ * Returns the active object store instance.
+ *
+ * By default this is a bare store with ID 'conduction-objects'.
+ * When an app calls createObjectStore() (with or without plugins),
+ * useObjectStore is automatically updated to return that store instead.
+ * This means composables like useListView and useDetailView always use
+ * the app's configured store — no custom wiring needed.
  *
  * @example
  * import { useObjectStore } from '@conduction/nextcloud-vue'
  * const store = useObjectStore()
+ *
+ * @return {object} Pinia store instance
  */
-export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
+export function useObjectStore(pinia) {
+	return _activeStore(pinia)
+}
 
 /**
- * Factory function to create an object store with a custom Pinia store ID
- * and optional plugins for sub-resources.
+ * Factory function to create an object store with plugins for sub-resources.
  *
- * @param {string} storeId Custom Pinia store identifier
+ * The created store automatically becomes the active store used by
+ * useObjectStore() and all composables (useListView, useDetailView).
+ * Apps should call this once at startup — typically in their store module.
+ *
+ * @param {string} storeId Pinia store identifier (use any unique ID per app)
  * @param {object} [options] Configuration options
  * @param {Array} [options.plugins] Array of sub-resource plugins
  * @param {string} [options.baseUrl] Base API URL override
  * @return {Function} Pinia store composable
  *
  * @example
- * // Basic (backwards compatible)
- * const useMyStore = createObjectStore('object')
- *
- * @example
- * // With plugins
- * import { filesPlugin, auditTrailsPlugin } from '@conduction/nextcloud-vue'
- * const useMyStore = createObjectStore('object', {
+ * // In src/store/modules/object.js
+ * import { createObjectStore, filesPlugin, auditTrailsPlugin } from '@conduction/nextcloud-vue'
+ * export const useObjectStore = createObjectStore('object', {
  *   plugins: [filesPlugin(), auditTrailsPlugin()],
- * })
- *
- * @example
- * // With custom baseUrl
- * const useMyStore = createObjectStore('object', {
- *   baseUrl: '/apps/myapp/api/objects',
  * })
  */
 export function createObjectStore(storeId, options = {}) {
-	return defineObjectStore(storeId, options.plugins || [], options.baseUrl || prefixUrl(DEFAULT_BASE_URL))
+	const store = defineObjectStore(storeId, options.plugins || [], options.baseUrl || prefixUrl(DEFAULT_BASE_URL))
+	_activeStore = store
+	return store
 }

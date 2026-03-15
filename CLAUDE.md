@@ -80,14 +80,65 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `networkError()` / `genericError()` — Standard error message helpers
 
 ### Available Store
-- `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
-- `createObjectStore(id)` — Factory to create store with custom ID
+- `createObjectStore(id, options)` — Factory to create an app's object store with plugins. **Always use this** — do NOT use `useObjectStore` directly from the library (webpack module duplication causes store mismatches).
+- `useObjectStore` — Internal default store. Only use the instance returned by YOUR app's `createObjectStore()`.
+
+**Store setup pattern** (every app should follow this):
+```js
+// src/store/modules/object.js
+import { createObjectStore, filesPlugin, auditTrailsPlugin, relationsPlugin } from '@conduction/nextcloud-vue'
+export const useObjectStore = createObjectStore('object', {
+  plugins: [filesPlugin(), auditTrailsPlugin(), relationsPlugin()],
+})
+```
+
+**IMPORTANT — Vue 2 store access rules:**
+- Access the store via `computed` properties (Options API), NOT in `setup()` — Vue 2 Pinia injection doesn't work reliably in Composition API `setup()`
+- The `useListView` and `useDetailView` composables have a webpack module duplication issue: they import their own `useObjectStore` internally, which creates a separate store instance from your app's store. **Do NOT rely on them for schema loading or store operations.** Use Options API with direct store access instead.
 
 ### Available Composables
-- `useListView(options)` — Search debounce, filter state, sort, pagination
+- `useListView(options)` — Search debounce, filter state, sort, pagination. **Note:** Due to webpack alias module duplication, pass `store` option explicitly or use Options API pattern instead (see list view pattern below).
 - `useDetailView(options)` — Load, edit, delete state management
 - `useFileSelection(options)` — File upload/drop handling
 - `useDashboardView(options)` — Dashboard state: widget defs, layout, NC widget loading, add/remove/persist
+
+### List View Pattern (recommended)
+
+Use Options API with direct store access for reliable schema loading and collection management:
+
+```js
+import { CnIndexPage, CnAdvancedFormDialog } from '@conduction/nextcloud-vue'
+import { useObjectStore } from '../../store/modules/object.js'
+
+export default {
+  components: { CnIndexPage, CnAdvancedFormDialog },
+  data() {
+    return { showCreateDialog: false, sortKey: null, sortOrder: 'asc', mySchema: null }
+  },
+  computed: {
+    objectStore() { return useObjectStore() },
+    objects() { return this.objectStore.collections?.mytype || [] },
+    loading() { return this.objectStore.loading?.mytype || false },
+    pagination() { return this.objectStore.pagination?.mytype || { total: 0, page: 1, pages: 1, limit: 20 } },
+  },
+  async mounted() {
+    this.mySchema = await this.objectStore.fetchSchema('mytype')
+    await this.fetchCollection()
+  },
+  methods: {
+    async fetchCollection(page = 1) {
+      await this.objectStore.fetchCollection('mytype', { _page: page, _limit: 20,
+        _order: this.sortKey ? { [this.sortKey]: this.sortOrder } : undefined })
+    },
+    onSort({ key, order }) { this.sortKey = key; this.sortOrder = order; this.fetchCollection() },
+    onPageChange(page) { this.fetchCollection(page) },
+    async onCreateConfirm(formData) {
+      const result = await this.objectStore.saveObject('mytype', formData)
+      if (result) { this.showCreateDialog = false; this.fetchCollection() }
+    },
+  },
+}
+```
 
 ### CnIndexPage Dialog Override System
 

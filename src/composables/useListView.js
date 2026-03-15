@@ -49,7 +49,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
-	const objectStore = useObjectStore()
+	const objectStore = opts.store || useObjectStore()
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
