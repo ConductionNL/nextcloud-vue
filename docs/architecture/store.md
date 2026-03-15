@@ -24,27 +24,25 @@ export const useObjectStore = createObjectStore('myapp-objects', {
 })
 ```
 
-The store supports multiple object types through `registerObjectType()`:
+The store supports multiple object types through `registerObjectType(slug, schemaId, registerId)`:
 
 ```js
 const store = useObjectStore()
-store.registerObjectType('contact', {
-  source: 'source-uuid',
-  register: 'register-uuid',
-  schema: 'schema-uuid',
-})
-store.registerObjectType('company', { ... })
+store.registerObjectType('contact', 'schema-id', 'register-id')
+store.registerObjectType('company', 'company-schema-id', 'register-id')
 ```
 
-Once registered, you can perform CRUD operations per type:
+Once registered, you can perform CRUD operations per type. Use getters to read state (e.g. `getCollection(type)`, `getPagination(type)`):
 
 ```js
-await store.fetchObjects('contact', { page: 1, limit: 20 })
+await store.fetchCollection('contact', { _page: 1, _limit: 20 })
 await store.fetchObject('contact', id)
-await store.createObject('contact', data)
-await store.updateObject('contact', id, data)
+await store.saveObject('contact', data)  // create when no id, update when id present
 await store.deleteObject('contact', id)
+await store.deleteObjects('contact', [id1, id2, id3])  // mass delete; returns { successfulIds, failedIds }
 ```
+
+For bulk delete (e.g. after confirmation in `CnMassDeleteDialog`), use `store.deleteObjects(type, ids)`. The action runs each delete in parallel and returns `{ successfulIds, failedIds }` so the UI can show partial success or failure. Optionally refresh the list with `fetchCollection(type, params)` after a successful batch.
 
 ## Plugin System
 
@@ -52,11 +50,12 @@ Plugins extend the store with additional functionality:
 
 ### filesPlugin
 
-Adds file attachment management:
+Adds file attachment management and a shared tags list:
 - Upload files to objects
 - List attached files
 - Delete file attachments
 - Download files
+- Fetch tags list (`fetchTags()`) for file labels; API returns a plain array of strings
 
 ### auditTrailsPlugin
 
@@ -103,14 +102,10 @@ export async function initializeStores() {
   // 1. Fetch app settings (which contain register/schema UUIDs)
   await settingsStore.fetchSettings()
 
-  // 2. Register each object type with its OpenRegister config
+  // 2. Register each object type (schemaId, registerId)
   const types = settingsStore.settings.objectTypes
   for (const [slug, config] of Object.entries(types)) {
-    objectStore.registerObjectType(slug, {
-      source: config.source,
-      register: config.register,
-      schema: config.schema,
-    })
+    objectStore.registerObjectType(slug, config.schema, config.register)
   }
 }
 ```

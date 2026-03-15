@@ -383,7 +383,10 @@ export function filtersFromSchema(schema) {
 	}
 
 	return Object.entries(schema.properties)
-		.filter(([, prop]) => prop.facetable === true)
+		.filter(([key, prop]) => {
+			if (prop.facetable !== true) return false
+			return true
+		})
 		.sort(([keyA, propA], [keyB, propB]) => {
 			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
 			const orderB = typeof propB.order === 'number' ? propB.order : Infinity

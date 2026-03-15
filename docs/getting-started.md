@@ -160,9 +160,9 @@ export async function initializeStores() {
 
   await settingsStore.fetchSettings()
 
-  // Register each entity type from settings
+  // Register each entity type from settings (schemaId, registerId)
   for (const [type, config] of Object.entries(settingsStore.settings.objectTypes)) {
-    objectStore.registerObjectType(type, config)
+    objectStore.registerObjectType(type, config.schema, config.register)
   }
 }
 ```
@@ -194,9 +194,9 @@ export default new VueRouter({
   <CnIndexPage
     :title="schema?.title || 'Contacts'"
     :schema="schema"
-    :objects="objectStore.objectList"
-    :pagination="objectStore.pagination"
-    :loading="objectStore.loading"
+    :objects="objectStore.getCollection('contact')"
+    :pagination="objectStore.getPagination('contact')"
+    :loading="objectStore.isLoading('contact')"
     @row-click="onRowClick"
     @create="onCreate"
     @delete="onDelete"
@@ -222,26 +222,26 @@ export default {
     },
   },
   mounted() {
-    this.objectStore.fetchObjects('contact')
+    this.objectStore.fetchCollection('contact')
   },
   methods: {
     onRowClick(row) {
       this.$router.push({ name: 'ContactDetail', params: { contactId: row.id } })
     },
     onCreate(formData) {
-      this.objectStore.createObject('contact', formData)
+      this.objectStore.saveObject('contact', formData)
     },
     onDelete(id) {
       this.objectStore.deleteObject('contact', id)
     },
     onRefresh() {
-      this.objectStore.fetchObjects('contact')
+      this.objectStore.fetchCollection('contact')
     },
     onPageChanged(page) {
-      this.objectStore.fetchObjects('contact', { page })
+      this.objectStore.fetchCollection('contact', { _page: page })
     },
     onSort({ key, order }) {
-      this.objectStore.fetchObjects('contact', { sort: key, order })
+      this.objectStore.fetchCollection('contact', { _sort: key, _order: order })
     },
   },
 }

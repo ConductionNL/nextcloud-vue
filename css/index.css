@@ -1,0 +1,5 @@
+/* Entry point for @conduction/nextcloud-vue/css/index.css
+ * When installed via npm, this re-exports the library CSS.
+ * When resolved via webpack alias (../nextcloud-vue/src), the alias
+ * resolves directly to src/css/index.css instead. */
+@import '../src/css/index.css';
