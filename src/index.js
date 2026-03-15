@@ -22,6 +22,7 @@ export {
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnAdvancedFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
@@ -48,6 +49,11 @@ export {
 	filesPlugin,
 	lifecyclePlugin,
 	registerMappingPlugin,
+	selectionPlugin,
+	searchPlugin,
+	SEARCH_TYPE,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 } from './store/plugins/index.js'
 
 // Composables
