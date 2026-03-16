@@ -87,7 +87,7 @@ export default {
 		/** Schema definition (passed through to CnObjectCard) */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/** Whether data is loading */
 		loading: {

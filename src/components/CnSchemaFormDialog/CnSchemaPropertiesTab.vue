@@ -1,10 +1,10 @@
 <template>
 	<Fragment>
-		<div class="cn-schema-form__viewTableContainer cn-schema-form__scrollable">
+		<div class="cn-schema-form__scrollable">
 			<CnDataTable
 				:columns="tableColumns"
 				:rows="propertyRows"
-				row-key="_key"
+				row-key="_id"
 				:selectable="false"
 				:row-class="getRowClass"
 				:empty-text="'No properties found. Click &quot;Add property&quot; to create one.'"
@@ -164,6 +164,7 @@ export default {
 		return {
 			propertyStableIds: {},
 			nextPropertyId: 1,
+			isRenaming: false,
 			tableColumns: [
 				{ key: '_key', label: 'Name', sortable: false },
 				{ key: 'type', label: 'Type', sortable: false },
@@ -193,6 +194,7 @@ export default {
 		},
 		propertyRows() {
 			return this.sortedProperties.map(([key, prop]) => ({
+				_id: this.getStablePropertyId(key),
 				_key: key,
 				...prop,
 			}))
@@ -201,6 +203,12 @@ export default {
 	watch: {
 		selectedProperty(newKey) {
 			if (newKey) {
+				// Skip focus+select when the change comes from a rename —
+				// onPropertyKeyUpdate handles its own cursor positioning.
+				if (this.isRenaming) {
+					this.isRenaming = false
+					return
+				}
 				this.$nextTick(() => {
 					if (this.$refs.propertyNameInput) {
 						const inputs = Array.isArray(this.$refs.propertyNameInput)
@@ -265,6 +273,8 @@ export default {
 		onPropertyKeyUpdate(oldKey, newKey) {
 			if (!newKey || newKey === oldKey) return
 			if (this.schema.properties[newKey] && newKey !== oldKey) return
+
+			this.isRenaming = true
 
 			// Transfer stable ID
 			if (this.propertyStableIds[oldKey]) {

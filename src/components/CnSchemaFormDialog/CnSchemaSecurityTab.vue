@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-schema-form__security-section">
-		<NcNoteCard type="info">
+		<CnNoteCard type="info">
 			<p><strong>Role-Based Access Control (RBAC)</strong></p>
 			<p>Configure which Nextcloud user groups can perform CRUD operations on objects of this schema.</p>
 			<ul>
@@ -9,7 +9,7 @@
 				<li>The object owner always has full access</li>
 				<li>'public' represents unauthenticated access</li>
 			</ul>
-		</NcNoteCard>
+		</CnNoteCard>
 
 		<div v-if="loadingGroups" class="cn-schema-form__loading-groups">
 			<NcLoadingIcon :size="20" />
@@ -144,12 +144,12 @@
 			</table>
 
 			<div class="cn-schema-form__rbac-summary">
-				<NcNoteCard v-if="!hasAnyPermissions" type="success">
+				<CnNoteCard v-if="!hasAnyPermissions" type="success">
 					<p><strong>Open Access:</strong> No specific permissions set - all users can perform all operations.</p>
-				</NcNoteCard>
-				<NcNoteCard v-else-if="isRestrictiveSchema" type="warning">
+				</CnNoteCard>
+				<CnNoteCard v-else-if="isRestrictiveSchema" type="warning">
 					<p><strong>Restrictive Schema:</strong> Access is limited to specified groups only.</p>
-				</NcNoteCard>
+				</CnNoteCard>
 			</div>
 		</div>
 	</div>
@@ -157,10 +157,11 @@
 
 <script>
 import {
-	NcNoteCard,
+	// NcNoteCard,
 	NcCheckboxRadioSwitch,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 /**
  * CnSchemaSecurityTab — RBAC permissions table tab for CnSchemaFormDialog.
@@ -171,7 +172,7 @@ import {
 export default {
 	name: 'CnSchemaSecurityTab',
 	components: {
-		NcNoteCard,
+		CnNoteCard,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 	},

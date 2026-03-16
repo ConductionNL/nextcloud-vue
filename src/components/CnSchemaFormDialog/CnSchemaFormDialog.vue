@@ -3,12 +3,12 @@
 		:size="size"
 		:can-close="!loading"
 		@update:open="handleDialogClose">
-		<NcNoteCard v-if="result && result.success" type="success">
+		<CnNoteCard v-if="result && result.success" type="success">
 			<p>{{ resolvedSuccessText }}</p>
-		</NcNoteCard>
-		<NcNoteCard v-if="result && result.error" type="error">
+		</CnNoteCard>
+		<CnNoteCard v-if="result && result.error" type="error">
 			<p>{{ result.error }}</p>
-		</NcNoteCard>
+		</CnNoteCard>
 		<div v-if="result === null">
 			<!-- Metadata Display -->
 			<div class="cn-schema-form__detail-grid">
@@ -192,7 +192,7 @@ import {
 	NcDialog,
 	NcTextField,
 	NcLoadingIcon,
-	NcNoteCard,
+	// NcNoteCard,
 } from '@nextcloud/vue'
 import { BTabs, BTab } from 'bootstrap-vue'
 
@@ -211,6 +211,7 @@ import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import DeleteSweep from 'vue-material-design-icons/DeleteSweep.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
@@ -237,7 +238,7 @@ export default {
 		NcTextField,
 		NcButton,
 		NcLoadingIcon,
-		NcNoteCard,
+		CnNoteCard,
 		BTabs,
 		BTab,
 		CnSchemaPropertiesTab,

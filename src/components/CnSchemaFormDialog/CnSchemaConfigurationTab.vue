@@ -28,8 +28,8 @@
 				placeholder="Select schemas to inherit from (supports multiple parents)">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
-						<span>{{ title }}</span>
-						<span v-if="description">{{ description }}</span>
+						<span class="cn-schema-form__option-title">{{ title }}</span>
+						<span v-if="description" class="cn-schema-form__option-description">{{ description }}</span>
 					</div>
 				</template>
 			</NcSelect>
@@ -61,8 +61,8 @@
 				placeholder="Select schemas (instance must match exactly one)">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
-						<span>{{ title }}</span>
-						<span v-if="description">{{ description }}</span>
+						<span class="cn-schema-form__option-title">{{ title }}</span>
+						<span v-if="description" class="cn-schema-form__option-description">{{ description }}</span>
 					</div>
 				</template>
 			</NcSelect>
@@ -85,8 +85,8 @@
 				placeholder="Select schemas (instance must match at least one)">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
-						<span>{{ title }}</span>
-						<span v-if="description">{{ description }}</span>
+						<span class="cn-schema-form__option-title">{{ title }}</span>
+						<span v-if="description" class="cn-schema-form__option-description">{{ description }}</span>
 					</div>
 				</template>
 			</NcSelect>
