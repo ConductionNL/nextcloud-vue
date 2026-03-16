@@ -34,6 +34,7 @@ export {
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnTimelineStages,
 	registerIcons,
 } from './components/index.js'
 
