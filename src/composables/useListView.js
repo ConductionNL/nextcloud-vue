@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, getCurrentInstance } from 'vue'
 import { useObjectStore } from '../store/index.js'
 
 /**
@@ -49,7 +49,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
-	const objectStore = useObjectStore()
+	const objectStore = opts.objectStore || useObjectStore()
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
@@ -59,6 +59,95 @@ export function useListView(objectTypeOrOptions, options) {
 	const activeFilters = ref({})
 	const visibleColumns = ref(null)
 	const pageSize = ref(opts.defaultPageSize || 20)
+
+	// ── URL sync (deeplink / SPOT pattern) ──────────────────────────────
+	// When enabled, filter/search/sort/page state is synced bi-directionally
+	// with URL query parameters, enabling shareable filtered views.
+	const enableUrlSync = opts.urlSync !== false // enabled by default
+	let router = null
+	let route = null
+	let suppressUrlWrite = false // prevents write-back loops during URL reads
+
+	if (enableUrlSync) {
+		const instance = getCurrentInstance()
+		router = instance?.proxy?.$router || null
+		route = instance?.proxy?.$route || null
+	}
+
+	/**
+	 * Read URL query params and apply to local state.
+	 * Called on mount and on route change.
+	 */
+	function readUrlState() {
+		if (!route) return
+		const q = route.query
+		if (!q || Object.keys(q).length === 0) return
+
+		suppressUrlWrite = true
+
+		if (q._search) searchTerm.value = q._search
+		if (q._sort) sortKey.value = q._sort
+		if (q._order) sortOrder.value = q._order
+		if (q._page) {
+			// page is used in refresh(), not stored in a ref directly
+		}
+		if (q._limit) pageSize.value = parseInt(q._limit, 10) || pageSize.value
+
+		// All other params are filters
+		const controlKeys = new Set(['_search', '_sort', '_order', '_page', '_limit'])
+		const filters = {}
+		for (const [key, value] of Object.entries(q)) {
+			if (controlKeys.has(key)) continue
+			// Query params are always strings; wrap in array for consistency
+			filters[key] = Array.isArray(value) ? value : [value]
+		}
+		if (Object.keys(filters).length > 0) {
+			activeFilters.value = filters
+		}
+
+		suppressUrlWrite = false
+	}
+
+	/**
+	 * Write current state to URL query params using router.replace().
+	 * Uses shallow equality check to avoid redundant navigation.
+	 */
+	function writeUrlState(page) {
+		if (!router || !route || suppressUrlWrite) return
+
+		const query = {}
+
+		if (searchTerm.value) query._search = searchTerm.value
+		if (sortKey.value && sortKey.value !== (opts.defaultSort?.key || null)) {
+			query._sort = sortKey.value
+		}
+		if (sortOrder.value && sortOrder.value !== (opts.defaultSort?.order || 'asc')) {
+			query._order = sortOrder.value
+		}
+		if (page && page > 1) query._page = String(page)
+		if (pageSize.value !== (opts.defaultPageSize || 20)) {
+			query._limit = String(pageSize.value)
+		}
+
+		// Add active filters
+		for (const [key, values] of Object.entries(activeFilters.value)) {
+			if (values && values.length > 0) {
+				query[key] = values.length === 1 ? values[0] : values
+			}
+		}
+
+		// Shallow equality check — only navigate if query actually changed
+		const current = route.query || {}
+		const currentKeys = Object.keys(current).sort()
+		const nextKeys = Object.keys(query).sort()
+		if (currentKeys.length === nextKeys.length
+			&& currentKeys.every((k, i) => k === nextKeys[i] && String(current[k]) === String(query[k]))
+		) {
+			return
+		}
+
+		router.replace({ path: route.path, query }).catch(() => {})
+	}
 
 	// ── Computed refs from the store ─────────────────────────────────────
 	const objects = computed(() => objectStore.collections[objectType] || [])
@@ -107,6 +196,7 @@ export function useListView(objectTypeOrOptions, options) {
 	 * @return {Promise<void>}
 	 */
 	async function refresh(page = 1) {
+		writeUrlState(page)
 		await objectStore.fetchCollection(objectType, buildParams(page))
 	}
 
@@ -177,7 +267,7 @@ export function useListView(objectTypeOrOptions, options) {
 		sidebarState.active = true
 		sidebarState.schema = schema.value
 		sidebarState.searchValue = searchTerm.value
-		sidebarState.activeFilters = {}
+		sidebarState.activeFilters = activeFilters.value
 		sidebarState.onSearch = onSearch
 		sidebarState.onColumnsChange = (cols) => {
 			visibleColumns.value = cols
@@ -209,11 +299,38 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	onMounted(async () => {
-		schema.value = await objectStore.fetchSchema(objectType)
+		// Read URL state before fetching — restores filters/sort/page from deeplink
+		readUrlState()
+
+		// Wait for the object type to be registered. When the parent's async
+		// store initialization (settings fetch → registerObjectType) hasn't
+		// completed yet, fetchSchema/fetchCollection will throw. Retry with
+		// exponential backoff up to ~4 seconds total.
+		for (let attempt = 0; attempt < 15; attempt++) {
+			try {
+				schema.value = await objectStore.fetchSchema(objectType)
+				break
+			} catch {
+				if (attempt < 14) {
+					await new Promise(r => setTimeout(r, Math.min(100 * (attempt + 1), 500)))
+				}
+			}
+		}
+
 		if (sidebarState) {
 			setupSidebar()
 		}
-		await refresh(1)
+
+		// Use page from URL if present, otherwise start at 1
+		const initialPage = (route?.query?._page && parseInt(route.query._page, 10)) || 1
+		try {
+			await refresh(initialPage)
+		} catch {
+			// fetchCollection may also fail if type registration was slow;
+			// silently retry once after a brief delay.
+			await new Promise(r => setTimeout(r, 500))
+			try { await refresh(initialPage) } catch { /* give up */ }
+		}
 	})
 
 	onBeforeUnmount(() => {
