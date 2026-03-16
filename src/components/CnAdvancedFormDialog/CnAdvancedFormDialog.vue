@@ -313,6 +313,13 @@ export default {
 		},
 	},
 
+	beforeDestroy() {
+		if (this.closeTimeout) {
+			clearTimeout(this.closeTimeout)
+			this.closeTimeout = null
+		}
+	},
+
 	methods: {
 		proceedFromRegisterSchemaStep() {
 			// Placeholder for slot consumers
@@ -465,7 +472,7 @@ export default {
 		executeConfirm() {
 			if (!this.validate()) return
 			if (this.isDataTabActive && !this.isValidJson(this.jsonData)) return
-			this.$emit('confirm', { ...this.formData })
+			this.$emit('confirm', JSON.parse(JSON.stringify(this.formData)))
 		},
 
 		setResult(resultData) {

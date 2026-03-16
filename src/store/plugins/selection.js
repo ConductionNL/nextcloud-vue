@@ -89,9 +89,14 @@ export function selectionPlugin() {
 				const collection = this.getCollection(type)
 				const ids = collection.map((r) => r.id ?? r['@self']?.id).filter(Boolean)
 				if (this.isAllSelected(type)) {
-					this.selectedObjects = []
+					// Remove only this type's IDs, keep other types' selections
+					const idsSet = new Set(ids)
+					this.selectedObjects = this.selectedObjects.filter((id) => !idsSet.has(id))
 				} else {
-					this.selectedObjects = [...ids]
+					// Add this type's IDs to existing selection (deduplicated)
+					const existing = new Set(this.selectedObjects)
+					for (const id of ids) existing.add(id)
+					this.selectedObjects = [...existing]
 				}
 			},
 		},

@@ -116,6 +116,9 @@ export function searchPlugin() {
 
 			/** @private @type {object} */
 			_searchFacets: {},
+
+			/** @private @type {number} Request sequence counter to prevent race conditions */
+			_searchRequestId: 0,
 		}),
 
 		getters: {
@@ -240,6 +243,9 @@ export function searchPlugin() {
 					return []
 				}
 
+				// Increment request counter to detect stale responses
+				const requestId = ++this._searchRequestId
+
 				this._searchLoading = true
 
 				// Auto-register the type so saveObject/deleteObject work
@@ -265,12 +271,23 @@ export function searchPlugin() {
 						headers: buildHeaders(),
 					})
 
+					// A newer request was fired while this one was in-flight — discard
+					if (requestId !== this._searchRequestId) {
+						return []
+					}
+
 					if (!response.ok) {
 						console.error('[searchPlugin] Failed to fetch search collection:', response.status)
 						return []
 					}
 
 					const data = await response.json()
+
+					// Re-check after JSON parsing (also async)
+					if (requestId !== this._searchRequestId) {
+						return []
+					}
+
 					const results = data.results || data
 
 					this._searchCollection = results
@@ -302,7 +319,10 @@ export function searchPlugin() {
 					console.error('[searchPlugin] Error fetching search collection:', error)
 					return []
 				} finally {
-					this._searchLoading = false
+					// Only clear loading if this is still the latest request
+					if (requestId === this._searchRequestId) {
+						this._searchLoading = false
+					}
 				}
 			},
 
