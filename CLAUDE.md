@@ -40,6 +40,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnCopyDialog` — Single-item copy with naming pattern selector
 - `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports slot overrides)
 - `CnAdvancedFormDialog` — Richer create/edit dialog with properties table (click-to-edit), Data (JSON) tab with CodeMirror, optional Metadata tab; optional useObjectStore integration; fixed large size
+- `CnSchemaFormDialog` — Full-featured JSON Schema editor dialog with Properties (sortable table, inline editing), Configuration (composition, field mappings), and Security (RBAC) tabs. Accepts external data as props (availableSchemas, availableRegisters, userGroups, availableTags). Optional action buttons (extend, analyze, validate, delete objects, publish, delete) controlled via boolean props that emit events.
 
 **Mass-Action Dialogs** (emit-based, two-phase confirm → result)
 - `CnMassDeleteDialog` — Bulk delete confirmation

@@ -26,8 +26,7 @@
 	"dependencies": {
 		"@codemirror/lang-json": "^6.0.1",
 		"vue-codemirror6": "^1.1.5",
-		"gridstack": "^10.3.1",
-        "bootstrap-vue": "^2.23.1"
+		"gridstack": "^10.3.1"
 	},
 	"peerDependencies": {
 		"@nextcloud/l10n": "^2.0.0 || ^3.0.0",
@@ -35,7 +34,8 @@
 		"bootstrap-vue": "^2.23.1",
 		"pinia": "^2.0.0",
 		"vue": "^2.7.0",
-		"vue-material-design-icons": "^5.0.0"
+		"vue-material-design-icons": "^5.0.0",
+		"vue-frag": "^1.4.3"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",

@@ -56,7 +56,7 @@
 				<slot name="action-items" />
 
 				<!-- Separator between primary and mass actions -->
-				<NcActionSeparator v-if="selectable" />
+				<NcActionSeparator v-if="hasMassActions" />
 
 				<!-- Mass actions (overflow) -->
 				<NcActionButton
@@ -224,6 +224,9 @@ export default {
 		countText() {
 			if (!this.pagination) return ''
 			return `Showing ${this.objectCount} of ${this.pagination.total}`
+		},
+		hasMassActions() {
+			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
 	},
 }

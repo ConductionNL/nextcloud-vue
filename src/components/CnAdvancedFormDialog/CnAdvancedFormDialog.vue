@@ -497,6 +497,44 @@ export default {
 	margin-top: 20px;
 }
 
+.tabContainer > * ul > li {
+  display: flex;
+  flex: 1;
+}
+
+.tabContainer > * ul > li:hover {
+  background-color: var(--color-background-hover);
+}
+
+.tabContainer > * ul > li > a {
+  flex: 1;
+  text-align: center;
+}
+
+.tabContainer > * ul > li > .active {
+  background: transparent !important;
+  color: var(--color-main-text) !important;
+  border-bottom: var(--default-grid-baseline) solid var(--color-primary-element) !important;
+}
+
+.tabContainer > * ul[role="tablist"] {
+  display: flex;
+  margin: 10px 8px 0 8px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabContainer > * ul[role="tablist"] > * a[role="tab"] {
+  padding-inline-start: 10px;
+  padding-inline-end: 10px;
+  padding-block-start: 10px;
+  padding-block-end: 10px;
+}
+
+.tabContainer > * div[role="tabpanel"] {
+  margin-block-start: var(--OR-margin-10);
+}
+
 :deep(.nav-tabs) {
 	border-bottom: 1px solid var(--color-border);
 	margin-bottom: 15px;

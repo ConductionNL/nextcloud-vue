@@ -38,7 +38,7 @@
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
-						<!-- Actions header intentionally empty -->
+						<slot name="actions-header" />
 					</th>
 				</tr>
 			</thead>
