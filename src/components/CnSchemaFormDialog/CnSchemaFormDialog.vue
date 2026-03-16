@@ -140,7 +140,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showDeleteObjects"
-					v-tooltip="objectCount > 0 ? deleteObjectsTooltip : noObjectsTooltip"
+					v-tooltip="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
 					:disabled="loading || objectCount === 0"
 					@click="$emit('delete-objects')">
 					<template #icon>
@@ -150,7 +150,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showPublishObjects"
-					v-tooltip="objectCount > 0 ? publishObjectsTooltip : noObjectsTooltip"
+					v-tooltip="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
 					:disabled="loading || objectCount === 0"
 					@click="$emit('publish-objects')">
 					<template #icon>
@@ -304,7 +304,10 @@ export default {
 		deleteLabel: { type: String, default: 'Delete' },
 		deleteObjectsTooltip: { type: String, default: 'Delete all objects in this schema' },
 		publishObjectsTooltip: { type: String, default: 'Publish all objects in this schema' },
-		noObjectsTooltip: { type: String, default: 'No objects' },
+		/** Tooltip for the Delete Objects button when no objects exist */
+		noDeleteObjectsTooltip: { type: String, default: 'No objects to delete' },
+		/** Tooltip for the Publish Objects button when no objects exist */
+		noPublishObjectsTooltip: { type: String, default: 'No objects to publish' },
 		cannotDeleteTooltip: { type: String, default: 'Cannot delete: objects are still attached' },
 	},
 	data() {

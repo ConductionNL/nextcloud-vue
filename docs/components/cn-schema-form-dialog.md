@@ -69,8 +69,8 @@ These boolean props control whether optional action buttons appear in the dialog
 | `showExtendSchema` | `Boolean` | `false` | Show the "Extend Schema" button. When clicked, emits `extend-schema`. Use case: creating a child schema that inherits from the current schema. |
 | `showAnalyzeProperties` | `Boolean` | `false` | Show the "Analyze Properties" button. When clicked, emits `analyze-properties`. Use case: opening an analysis dialog that inspects property usage across objects. |
 | `showValidateObjects` | `Boolean` | `false` | Show the "Validate Objects" button. When clicked, emits `validate-objects`. Use case: triggering validation of all objects against this schema. |
-| `showDeleteObjects` | `Boolean` | `false` | Show the "Delete Objects" button. When clicked, emits `delete-objects`. **Disabled** when `objectCount === 0`. Shows `deleteObjectsTooltip` on hover when enabled, `noObjectsTooltip` when disabled. |
-| `showPublishObjects` | `Boolean` | `false` | Show the "Publish Objects" button. When clicked, emits `publish-objects`. **Disabled** when `objectCount === 0`. Shows `publishObjectsTooltip` on hover when enabled, `noObjectsTooltip` when disabled. |
+| `showDeleteObjects` | `Boolean` | `false` | Show the "Delete Objects" button. When clicked, emits `delete-objects`. **Disabled** when `objectCount === 0`. Shows `deleteObjectsTooltip` on hover when enabled, `noDeleteObjectsTooltip` when disabled. |
+| `showPublishObjects` | `Boolean` | `false` | Show the "Publish Objects" button. When clicked, emits `publish-objects`. **Disabled** when `objectCount === 0`. Shows `publishObjectsTooltip` on hover when enabled, `noPublishObjectsTooltip` when disabled. |
 | `showDelete` | `Boolean` | `false` | Show the "Delete" (schema) button (red/error style). When clicked, emits `delete-schema`. **Disabled** when `objectCount > 0` (shows `cannotDeleteTooltip` on hover). |
 
 #### Interaction between `objectCount` and action buttons
@@ -101,7 +101,8 @@ All labels accept pre-translated strings with English defaults. Use these to loc
 | `deleteLabel` | `String` | `'Delete'` | Label for the Delete (schema) action button. |
 | `deleteObjectsTooltip` | `String` | `'Delete all objects in this schema'` | Tooltip shown on the Delete Objects button when it is enabled. |
 | `publishObjectsTooltip` | `String` | `'Publish all objects in this schema'` | Tooltip shown on the Publish Objects button when it is enabled. |
-| `noObjectsTooltip` | `String` | `'No objects'` | Tooltip shown on the Delete Objects and Publish Objects buttons when disabled (objectCount is 0). |
+| `noDeleteObjectsTooltip` | `String` | `'No objects to delete'` | Tooltip shown on the Delete Objects button when disabled (objectCount is 0). |
+| `noPublishObjectsTooltip` | `String` | `'No objects to publish'` | Tooltip shown on the Publish Objects button when disabled (objectCount is 0). |
 | `cannotDeleteTooltip` | `String` | `'Cannot delete: objects are still attached'` | Tooltip shown on the Delete (schema) button when disabled (objectCount > 0). |
 
 ---
