@@ -35,6 +35,10 @@ export {
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnTimelineStages,
+	CnUserActionMenu,
+	CnNotesCard,
+	CnTasksCard,
 	registerIcons,
 } from './components/index.js'
 

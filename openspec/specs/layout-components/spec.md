@@ -86,3 +86,34 @@ Specifies the page layout components: CnPageHeader, CnActionsBar, CnIndexSidebar
 - THEN column visibility toggles MUST appear grouped by schema properties and metadata (from METADATA_COLUMNS constant)
 - AND groups MUST be expandable/collapsible with "select all" toggles
 - AND `@columns-change(visibleColumns)` MUST emit when toggled
+
+---
+
+### Current Implementation Status
+
+**Already implemented (all three components exist and match the spec closely):**
+
+- **CnPageHeader** (`src/components/CnPageHeader/CnPageHeader.vue`): Renders CnIcon with `icon` prop, `h1` title, optional description, and `#extra` slot. Also supports `iconSize` prop (not in spec) and `#icon` slot for custom icon rendering.
+- **CnActionsBar** (`src/components/CnActionsBar/CnActionsBar.vue`): Standalone primary NcButton for Add action with configurable `addIcon`/`addLabel`, Plus fallback icon. Unified NcActions dropdown with Refresh first, `#action-items` slot, separator when `selectable=true`. Mass actions (Import, Export, Copy selected, Delete selected) with `:disabled` and `:title` tooltip. View mode toggle with NcCheckboxRadioSwitch. Count display ("Showing X of Y"). Also has `#header-actions` slot and `#mass-actions` scoped slot (not in spec).
+- **CnIndexSidebar** (`src/components/CnIndexSidebar/CnIndexSidebar.vue`): Title/description from schema, schema icon in header colored via CSS. Search tab with text field, schema-driven faceted filters using NcSelect with `placeholder="Select..."` and `input-label` for accessibility. Info popover for filter descriptions. Columns tab with collapsible groups (schema properties + Metadata from METADATA_COLUMNS constant) and "select all" toggles. Emits `@search`, `@filter-change`, `@columns-change`. Also supports `activeFilters`, `facetData`, `columnGroups`, `showMetadata`, `userIsAdmin` (RBAC), `#search-above`, `#search-extra`, `#columns-extra`, `#tabs` slots.
+
+**Not yet implemented:**
+- The spec mentions CSS overriding `pointer-events: none` on `.action--disabled` for tooltip visibility — needs verification whether the current CSS includes this override.
+
+### Standards & References
+
+- WCAG AA: NcSelect `input-label` provides screen-reader accessible labels; icon-only buttons use `aria-label`
+- WAI-ARIA: NcAppSidebar provides tab panel semantics via NcAppSidebarTab
+- Vue 2 Options API pattern used throughout
+- Nextcloud design guidelines: Uses Nc* components (NcActions, NcButton, NcCheckboxRadioSwitch, NcAppSidebar, NcSelect, NcTextField, NcPopover)
+- NL Design System: All colors use Nextcloud CSS variables (`var(--color-primary-element)`, `var(--color-border)`)
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Yes — all three components are already fully implemented matching the spec.
+- **Missing/ambiguous:**
+  - REQ-LC-002 does not mention the `#header-actions` slot or `#mass-actions` scoped slot that exist in the implementation.
+  - REQ-LC-003 does not mention `activeFilters`, `facetData` props, `userIsAdmin` RBAC filtering, or additional slots (`#search-above`, `#search-extra`, `#columns-extra`, `#tabs`).
+  - No mention of the `defaultTab` prop or tab-change event.
+- **Open questions:**
+  - Should the spec be updated to document the additional slots and props that already exist?
