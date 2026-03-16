@@ -22,6 +22,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 **Layout & Pages**
 - `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
+- `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots (simpler alternative to CnIndexPage)
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
 

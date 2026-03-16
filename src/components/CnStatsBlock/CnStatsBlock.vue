@@ -18,7 +18,7 @@
 				<h4>{{ title || 'Objects' }}</h4>
 			</div>
 
-			<div v-if="count > 0" class="cn-stats-block__count">
+			<div v-if="count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
 				<span class="cn-stats-block__count-value">{{ formattedCount }}</span>
 				<span class="cn-stats-block__count-label">{{ countLabel }}</span>
 			</div>
@@ -31,7 +31,7 @@
 			</div>
 
 			<!-- Breakdown details -->
-			<div v-if="breakdown && count > 0" class="cn-stats-block__breakdown">
+			<div v-if="breakdown && (count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
 				<div
 					v-for="(value, key) in breakdown"
 					:key="key"
@@ -149,6 +149,11 @@ export default {
 		},
 		/** Whether the card is clickable */
 		clickable: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether to display 0 as a count value instead of the empty label */
+		showZeroCount: {
 			type: Boolean,
 			default: false,
 		},
@@ -360,7 +365,7 @@ export default {
 	background: var(--color-background-hover);
 }
 
-.cn-stats-block__breakdown-value--invalid { color: var(--color-warning); }
-.cn-stats-block__breakdown-value--deleted { color: var(--color-error); }
-.cn-stats-block__breakdown-value--published { color: var(--color-success); }
+.cn-stats-block__breakdown-value--invalid { color: var(--color-element-warning); }
+.cn-stats-block__breakdown-value--deleted { color: var(--color-element-error); }
+.cn-stats-block__breakdown-value--published { color: var(--color-element-success); }
 </style>

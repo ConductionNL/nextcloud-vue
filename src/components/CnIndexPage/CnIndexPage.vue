@@ -22,6 +22,7 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:refreshing="refreshing"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -551,6 +552,11 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Store instance for automatic save integration. When provided alongside
