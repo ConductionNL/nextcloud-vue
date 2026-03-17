@@ -40,8 +40,8 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
 |------|-------------|-------------|
 | `above-tabs` | `{ loading }` | Optional content above the tab bar (e.g. metadata grid, detail cards) |
 | `tab-{id}` | `{ loading }` | Content for each tab. The `id` comes from the `tabs` prop |
-| `actions-left` | `{ loading, isCreateMode }` | Extra content before Cancel button |
-| `actions-right` | `{ loading, isCreateMode }` | Extra content after primary button |
+| `actions-left` | `{ loading, isCreateMode, result }` | Extra content before Cancel button |
+| `actions-right` | `{ loading, isCreateMode, result }` | Extra content after primary button |
 
 ## Public Methods
 

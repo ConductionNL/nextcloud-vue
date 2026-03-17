@@ -61,7 +61,10 @@
 			</NcCheckboxRadioSwitch>
 
 			<!-- Extra actions before Cancel -->
-			<slot name="actions-left" :loading="loading" :is-create-mode="isCreateMode" />
+			<slot name="actions-left"
+				:loading="loading"
+				:is-create-mode="isCreateMode"
+				:result="result" />
 
 			<!-- Cancel / Close button -->
 			<NcButton @click="handleClose">
@@ -72,7 +75,10 @@
 			</NcButton>
 
 			<!-- Extra actions after primary -->
-			<slot name="actions-right" :loading="loading" :is-create-mode="isCreateMode" />
+			<slot name="actions-right"
+				:loading="loading"
+				:is-create-mode="isCreateMode"
+				:result="result" />
 
 			<!-- Primary action button (Save / Create) -->
 			<NcButton
@@ -441,10 +447,6 @@ export default {
 }
 
 /* Bootstrap-Vue tab container styling */
-.tabContainer {
-	margin-top: 20px;
-}
-
 .tabContainer > * ul > li {
 	display: flex;
 	flex: 1;

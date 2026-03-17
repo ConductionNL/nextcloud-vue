@@ -1,21 +1,27 @@
 <template>
-	<NcDialog :name="resolvedTitle"
+	<CnTabbedFormDialog
+		ref="dialog"
+		:tabs="dialogTabs"
+		:item="item"
+		:dialog-title="dialogTitle"
+		entity-name="Schema"
 		:size="size"
-		:can-close="!loading"
-		@update:open="handleDialogClose">
-		<CnNoteCard v-if="result && result.success" type="success">
-			<p>{{ resolvedSuccessText }}</p>
-		</CnNoteCard>
-		<CnNoteCard v-if="result && result.error" type="error">
-			<p>{{ result.error }}</p>
-		</CnNoteCard>
-		<div v-if="result === null">
-			<!-- Metadata Display -->
+		:disable-save="!schemaItem.title"
+		:success-text="resolvedSuccessText"
+		:cancel-label="cancelLabel"
+		:close-label="closeLabel"
+		:confirm-label="confirmLabel"
+		@confirm="handleConfirm"
+		@close="$emit('close')">
+		<!-- Metadata Display -->
+		<template #above-tabs="{ loading: dialogLoading }">
 			<div class="cn-schema-form__detail-grid">
-				<div v-if="schemaItem.id" class="cn-schema-form__detail-item cn-schema-form__id-card">
+				<div v-if="schemaItem.id"
+					class="cn-schema-form__detail-item cn-schema-form__id-card">
 					<div class="cn-schema-form__id-card-header">
 						<span class="cn-schema-form__detail-label">ID / UUID:</span>
-						<NcButton class="cn-schema-form__copy-button" @click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
+						<NcButton class="cn-schema-form__copy-button"
+							@click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
 							<template #icon>
 								<Check v-if="isCopied" :size="20" />
 								<ContentCopy v-else :size="20" />
@@ -24,19 +30,23 @@
 						</NcButton>
 					</div>
 					<span class="cn-schema-form__detail-value">{{ schemaItem.id }}</span>
-					<span v-if="schemaItem.uuid && schemaItem.uuid !== schemaItem.id" class="cn-schema-form__detail-value cn-schema-form__uuid-value">{{ schemaItem.uuid }}</span>
+					<span v-if="schemaItem.uuid && schemaItem.uuid !== schemaItem.id"
+						class="cn-schema-form__detail-value cn-schema-form__uuid-value">{{ schemaItem.uuid }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
-					<NcTextField :disabled="loading"
+					<NcTextField :disabled="dialogLoading"
 						label="Title *"
 						:value.sync="schemaItem.title" />
-					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
+					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0"
+						class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
 						allOf
 					</span>
-					<span v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
+					<span v-if="schemaItem.oneOf && schemaItem.oneOf.length > 0"
+						class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
 						oneOf
 					</span>
-					<span v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0" class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
+					<span v-if="schemaItem.anyOf && schemaItem.anyOf.length > 0"
+						class="cn-schema-form__statusPill cn-schema-form__statusPill--info">
 						anyOf
 					</span>
 				</div>
@@ -57,63 +67,57 @@
 					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || 'Not set' }}</span>
 				</div>
 			</div>
+		</template>
 
-			<div class="cn-schema-form__tabContainer">
-				<BTabs v-model="activeTab" content-class="mt-3" justified>
-					<BTab title="Properties" active>
-						<CnSchemaPropertiesTab
-							:schema-item="schemaItem"
-							:loading="loading"
-							:selected-property="selectedProperty"
-							:properties-modified="propertiesModified"
-							:original-properties="originalProperties"
-							:type-options-for-select="typeOptionsForSelect"
-							:available-schemas="availableSchemas"
-							:available-registers="availableRegisters"
-							:available-tags-options="availableTagsOptions"
-							:user-groups="userGroups"
-							:sorted-user-groups="sortedUserGroups"
-							:loading-groups="loadingGroups"
-							@add-property="addProperty"
-							@update:selected-property="selectedProperty = $event"
-							@update:property-key="updatePropertyKey($event.oldKey, $event.newKey)"
-							@copy-property="copyProperty"
-							@delete-property="deleteProperty" />
-					</BTab>
-					<BTab title="Configuration">
-						<CnSchemaConfigurationTab
-							:schema-item="schemaItem"
-							:loading="loading"
-							:available-schemas="availableSchemas"
-							:property-options="propertyOptions"
-							:all-of-schema-names="allOfSchemaNames" />
-					</BTab>
-					<BTab title="Security">
-						<CnSchemaSecurityTab
-							:schema-item="schemaItem"
-							:user-groups="userGroups"
-							:sorted-user-groups="sortedUserGroups"
-							:loading-groups="loadingGroups"
-							:has-any-permissions="hasAnyPermissions"
-							:is-restrictive-schema="isRestrictiveSchema" />
-					</BTab>
-				</BTabs>
-			</div>
-		</div>
+		<!-- Properties Tab -->
+		<template #tab-properties="{ loading: dialogLoading }">
+			<CnSchemaPropertiesTab
+				:schema-item="schemaItem"
+				:loading="dialogLoading"
+				:selected-property="selectedProperty"
+				:properties-modified="propertiesModified"
+				:original-properties="originalProperties"
+				:type-options-for-select="typeOptionsForSelect"
+				:available-schemas="availableSchemas"
+				:available-registers="availableRegisters"
+				:available-tags-options="availableTagsOptions"
+				:user-groups="userGroups"
+				:sorted-user-groups="sortedUserGroups"
+				:loading-groups="loadingGroups"
+				@add-property="addProperty"
+				@update:selected-property="selectedProperty = $event"
+				@update:property-key="updatePropertyKey($event.oldKey, $event.newKey)"
+				@copy-property="copyProperty"
+				@delete-property="deleteProperty" />
+		</template>
 
-		<template #actions>
-			<NcButton @click="$emit('close')">
-				<template #icon>
-					<Cancel :size="20" />
-				</template>
-				{{ result !== null ? closeLabel : cancelLabel }}
-			</NcButton>
+		<!-- Configuration Tab -->
+		<template #tab-configuration="{ loading: dialogLoading }">
+			<CnSchemaConfigurationTab
+				:schema-item="schemaItem"
+				:loading="dialogLoading"
+				:available-schemas="availableSchemas"
+				:property-options="propertyOptions"
+				:all-of-schema-names="allOfSchemaNames" />
+		</template>
 
-			<!-- Optional Action Buttons -->
-			<template v-if="isEditMode && result === null">
+		<!-- Security Tab -->
+		<template #tab-security>
+			<CnSchemaSecurityTab
+				:schema-item="schemaItem"
+				:user-groups="userGroups"
+				:sorted-user-groups="sortedUserGroups"
+				:loading-groups="loadingGroups"
+				:has-any-permissions="hasAnyPermissions"
+				:is-restrictive-schema="isRestrictiveSchema" />
+		</template>
+
+		<!-- Optional Action Buttons (edit mode only) -->
+		<template #actions-right="{ loading: dialogLoading, isCreateMode, result: dialogResult }">
+			<template v-if="!isCreateMode && dialogResult === null">
 				<NcButton
 					v-if="showExtendSchema"
-					:disabled="loading"
+					:disabled="dialogLoading"
 					@click="$emit('extend-schema')">
 					<template #icon>
 						<CallSplit :size="20" />
@@ -122,7 +126,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showAnalyzeProperties"
-					:disabled="loading"
+					:disabled="dialogLoading"
 					@click="$emit('analyze-properties')">
 					<template #icon>
 						<DatabaseSearch :size="20" />
@@ -131,7 +135,7 @@
 				</NcButton>
 				<NcButton
 					v-if="showValidateObjects"
-					:disabled="loading"
+					:disabled="dialogLoading"
 					@click="$emit('validate-objects')">
 					<template #icon>
 						<CheckCircle :size="20" />
@@ -141,7 +145,7 @@
 				<NcButton
 					v-if="showDeleteObjects"
 					v-tooltip="objectCount > 0 ? deleteObjectsTooltip : noDeleteObjectsTooltip"
-					:disabled="loading || objectCount === 0"
+					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('delete-objects')">
 					<template #icon>
 						<DeleteSweep :size="20" />
@@ -151,7 +155,7 @@
 				<NcButton
 					v-if="showPublishObjects"
 					v-tooltip="objectCount > 0 ? publishObjectsTooltip : noPublishObjectsTooltip"
-					:disabled="loading || objectCount === 0"
+					:disabled="dialogLoading || objectCount === 0"
 					@click="$emit('publish-objects')">
 					<template #icon>
 						<Upload :size="20" />
@@ -161,7 +165,7 @@
 				<NcButton
 					v-if="showDelete"
 					v-tooltip="objectCount > 0 ? cannotDeleteTooltip : ''"
-					:disabled="loading || objectCount > 0"
+					:disabled="dialogLoading || objectCount > 0"
 					type="error"
 					@click="$emit('delete-schema')">
 					<template #icon>
@@ -170,39 +174,21 @@
 					{{ deleteLabel }}
 				</NcButton>
 			</template>
-
-			<NcButton v-if="result === null"
-				:disabled="loading || !schemaItem.title"
-				type="primary"
-				@click="executeConfirm">
-				<template #icon>
-					<NcLoadingIcon v-if="loading" :size="20" />
-					<ContentSaveOutline v-if="!loading && isEditMode" :size="20" />
-					<Plus v-if="!loading && !isEditMode" :size="20" />
-				</template>
-				{{ resolvedConfirmLabel }}
-			</NcButton>
 		</template>
-	</NcDialog>
+	</CnTabbedFormDialog>
 </template>
 
 <script>
 import {
 	NcButton,
-	NcDialog,
 	NcTextField,
-	NcLoadingIcon,
-	// NcNoteCard,
 } from '@nextcloud/vue'
-import { BTabs, BTab } from 'bootstrap-vue'
 
+import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
 import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
 import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
 
-import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import Cancel from 'vue-material-design-icons/Cancel.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
@@ -211,13 +197,12 @@ import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import DeleteSweep from 'vue-material-design-icons/DeleteSweep.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
-import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
  *
  * Provides a full-featured form for creating and editing JSON Schemas with
- * properties table, configuration, and security (RBAC) tabs. Uses bootstrap-vue BTabs.
+ * properties table, configuration, and security (RBAC) tabs. Uses CnTabbedFormDialog.
  *
  * The dialog does NOT perform saves — it emits a `confirm` event with the schema data.
  * The parent performs the actual API call and calls `setResult()` via a ref.
@@ -234,20 +219,13 @@ import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 export default {
 	name: 'CnSchemaFormDialog',
 	components: {
-		NcDialog,
 		NcTextField,
 		NcButton,
-		NcLoadingIcon,
-		CnNoteCard,
-		BTabs,
-		BTab,
+		CnTabbedFormDialog,
 		CnSchemaPropertiesTab,
 		CnSchemaConfigurationTab,
 		CnSchemaSecurityTab,
 		// Icons
-		ContentSaveOutline,
-		Cancel,
-		Plus,
 		ContentCopy,
 		Check,
 		TrashCanOutline,
@@ -312,7 +290,6 @@ export default {
 	},
 	data() {
 		return {
-			activeTab: 0,
 			isCopied: false,
 			selectedProperty: null,
 			propertiesModified: false,
@@ -339,12 +316,21 @@ export default {
 				searchable: true,
 				maxDepth: 0,
 			},
-			result: null,
-			loading: false,
-			closeTimeout: null,
 		}
 	},
 	computed: {
+		/**
+		 * Tab definitions for CnTabbedFormDialog.
+		 *
+		 * @return {Array} Tab configuration
+		 */
+		dialogTabs() {
+			return [
+				{ id: 'properties', title: 'Properties' },
+				{ id: 'configuration', title: 'Configuration' },
+				{ id: 'security', title: 'Security' },
+			]
+		},
 		sortedUserGroups() {
 			return this.userGroups
 				.filter(group => group.id !== 'admin' && group.id !== 'public')
@@ -391,17 +377,11 @@ export default {
 				label: tag,
 			}))
 		},
-		isEditMode() {
-			return !!(this.item && this.item.id)
-		},
-		resolvedTitle() {
-			if (this.dialogTitle) return this.dialogTitle
-			return this.isEditMode ? 'Edit Schema' : 'Create Schema'
-		},
-		resolvedConfirmLabel() {
-			if (this.confirmLabel) return this.confirmLabel
-			return this.isEditMode ? 'Save' : 'Create'
-		},
+		/**
+		 * Resolved success text for backwards compatibility (includes trailing period).
+		 *
+		 * @return {string}
+		 */
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
 			return 'Schema saved successfully.'
@@ -503,9 +483,6 @@ export default {
 			deep: true,
 		},
 	},
-	mounted() {
-		this.initializeSchemaItem()
-	},
 	methods: {
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) return undefined
@@ -537,8 +514,10 @@ export default {
 		},
 
 		initializeSchemaItem() {
-			this.result = null
-			this.loading = false
+			// Reset CnTabbedFormDialog state if available (not yet mounted on first call)
+			if (this.$refs.dialog) {
+				this.$refs.dialog.resetDialog()
+			}
 
 			if (this.item && this.item.id) {
 				this.schemaItem = {
@@ -709,9 +688,11 @@ export default {
 			}
 		},
 
-		executeConfirm() {
-			this.loading = true
-
+		/**
+		 * Handle confirm from CnTabbedFormDialog.
+		 * Cleans schema data and emits confirm with the cleaned payload.
+		 */
+		handleConfirm() {
 			const cleanedSchemaItem = JSON.parse(JSON.stringify(this.schemaItem))
 			Object.keys(cleanedSchemaItem.properties || {}).forEach(key => {
 				this.ensureRefIsString(cleanedSchemaItem.properties, key)
@@ -741,19 +722,11 @@ export default {
 		 * @public
 		 */
 		setResult(resultData) {
-			this.loading = false
-			this.result = resultData
+			this.$refs.dialog.setResult(resultData)
 			if (resultData.success) {
 				this.originalProperties = JSON.parse(JSON.stringify(this.schemaItem.properties || {}))
 				this.propertiesModified = false
-				this.closeTimeout = setTimeout(() => {
-					this.$emit('close')
-				}, 2000)
 			}
-		},
-
-		handleDialogClose() {
-			this.$emit('close')
 		},
 
 		migratePropertyToNewStructure(key) {
