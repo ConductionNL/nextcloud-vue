@@ -7,6 +7,11 @@
 			:description="description"
 			:icon="resolvedIcon" />
 
+		<!-- Optional content below header, above actions bar -->
+		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+			<slot name="below-header" />
+		</div>
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="pagination"
