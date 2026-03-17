@@ -39,6 +39,8 @@
 				{{ addLabel }}
 			</NcButton>
 
+			<slot name="header-actions" />
+
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
@@ -99,8 +101,6 @@
 				<!-- Custom mass actions (overflow) -->
 				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
 			</NcActions>
-
-			<slot name="header-actions" />
 		</div>
 	</div>
 </template>

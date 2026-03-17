@@ -81,6 +81,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `#below-header` | — | Content rendered between the page header and the actions bar (e.g. status banners, alerts) |
 | `#mass-actions` | `\{ count, selectedIds \}` | Extra mass action buttons |
 | `#action-items` | — | Extra action bar buttons |
 | `#header-actions` | — | Extra header buttons |

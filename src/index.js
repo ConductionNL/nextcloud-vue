@@ -38,6 +38,7 @@ export {
 	CnTileWidget,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnTabbedFormDialog,
 	registerIcons,
 } from './components/index.js'
 
