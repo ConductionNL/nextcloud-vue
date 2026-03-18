@@ -86,3 +86,46 @@ All component interfaces MUST be documented with JSDoc.
 - AND every emitted event MUST have an `@event` tag
 - AND every public method MUST have `@public` and `@param` tags
 - AND the component MUST have a module-level JSDoc with `@example`
+
+---
+
+### Current Implementation Status
+
+**Already implemented:**
+
+- **REQ-CL-001 (Naming/Structure):** All 38 components follow the `CnMyComponent/CnMyComponent.vue` + `index.js` barrel pattern. Each component is exported via `src/components/index.js` and `src/index.js`. Components: CnActionsBar, CnCardGrid, CnCellRenderer, CnChartWidget, CnConfigurationCard, CnCopyDialog, CnDashboardGrid, CnDashboardPage, CnDataTable, CnDeleteDialog, CnDetailCard, CnDetailPage, CnFacetSidebar, CnFilterBar, CnFormDialog, CnIcon, CnIndexPage, CnIndexSidebar, CnKpiGrid, CnMassActionBar, CnMassCopyDialog, CnMassDeleteDialog, CnMassExportDialog, CnMassImportDialog, CnObjectCard, CnObjectSidebar, CnPageHeader, CnPagination, CnRegisterMapping, CnRowActions, CnSettingsCard, CnSettingsSection, CnStatsBlock, CnStatusBadge, CnTileWidget, CnTimelineStages, CnVersionInfoCard, CnWidgetRenderer, CnWidgetWrapper.
+- **REQ-CL-002 (Vue 2 Options API):** All components use `export default { name: '...', props, data, computed, methods }`. No `<script setup>` or Composition API used in components. `name` matches file name in all reviewed components.
+- **REQ-CL-003 (Backward Compatibility):** All props have defaults. The composables (`useListView`, `useDetailView`) maintain backward compatibility with legacy API alongside new API — both are supported simultaneously via runtime detection.
+- **REQ-CL-004 (CSS Conventions):** All CSS classes use `cn-` prefix (e.g., `cn-dashboard-grid`, `cn-dashboard-page__header`, `cn-data-table__header`). Theming uses Nextcloud CSS variables (`var(--color-primary-element)`, `var(--color-main-background)`, `var(--color-border)`, `var(--color-text-maxcontrast)`). No `--nldesign-*` references. No hardcoded colors.
+- **REQ-CL-005 (Translation Support):** Components accept pre-translated strings via props with English defaults (e.g., CnDashboardPage: `editLabel: 'Edit'`, `doneLabel: 'Done'`, `emptyLabel: 'No widgets configured'`). No `t()` imports from specific apps.
+- **REQ-CL-006 (JSDoc Documentation):** Key components and composables have JSDoc with `@example`, `@param`, and prop-level comments. Coverage varies — some components have full JSDoc, others have partial coverage.
+
+**Key file paths:**
+- `src/components/index.js` — Component barrel export
+- `src/index.js` — Main library barrel (components + store + composables + utils)
+- `src/css/index.css` — Global CSS module
+
+**Not yet implemented:**
+- JSDoc `@event` tags on all emitted events are not consistently present across all components
+- JSDoc `@public` tags on public methods are not consistently present
+- Module-level `@example` JSDoc is present on composables and some components but not all 38 components
+
+### Standards & References
+
+- **Vue 2 Options API** — Mandatory; no Composition API or `<script setup>` in component files
+- **Nextcloud Vue (@nextcloud/vue)** — Base UI primitives (NcButton, NcDialog, NcAppContent, NcAppSidebar, NcEmptyContent, NcLoadingIcon, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcNoteCard)
+- **CSS BEM-like naming** — `cn-{component}__{element}--{modifier}` pattern
+- **NL Design System** — Theming via CSS variable override chain (nldesign app sets Nextcloud variables)
+- **WCAG AA** — Inherited from Nextcloud Vue base components
+
+### Specificity Assessment
+
+- **Specific enough?** Yes, the conventions are clear and implementable as-is.
+- **Missing/ambiguous:**
+  - No mention of the `registerIcons` utility function and its naming pattern — this is a key convention used across all consuming apps.
+  - No requirement for component-level unit tests, though `tests/` directory exists with store and utils tests.
+  - The spec does not mention the `CnIcon` component's extensible icon registry pattern, which is a core convention.
+  - No specification for TypeScript type declarations (`src/types/`) or the constants module (`src/constants/`).
+- **Open questions:**
+  - Should the library migrate to Vue 3 Composition API in the future? The spec locks to Vue 2 Options API.
+  - Are scoped styles (`<style scoped>`) or `:deep()` selectors an accepted convention? Both are used in existing components.

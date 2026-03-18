@@ -39,6 +39,10 @@ export {
 	CnItemCard,
 	CnSchemaFormDialog,
 	CnTabbedFormDialog,
+	CnTimelineStages,
+	CnUserActionMenu,
+	CnNotesCard,
+	CnTasksCard,
 	registerIcons,
 } from './components/index.js'
 

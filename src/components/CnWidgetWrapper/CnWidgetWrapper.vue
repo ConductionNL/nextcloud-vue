@@ -181,6 +181,7 @@ export default {
 	flex: 1;
 	overflow: auto;
 	min-height: 0;
+	padding: 16px;
 }
 
 .cn-widget-wrapper__actions {
