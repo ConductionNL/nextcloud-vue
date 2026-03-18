@@ -2,7 +2,10 @@
 	<span
 		class="cn-status-badge"
 		:class="badgeClasses">
-		<slot>{{ label }}</slot>
+		<slot>
+			<slot name="icon" />
+			{{ label }}
+		</slot>
 	</span>
 </template>
 
