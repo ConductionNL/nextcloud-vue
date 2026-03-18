@@ -867,6 +867,16 @@ export default {
 			this.editItem = item
 			this.showFormDialogVisible = true
 		},
+
+		/**
+		 * Programmatically open the single-item delete dialog.
+		 * @param {object} item The item to delete
+		 * @public
+		 */
+		openDeleteDialog(item) {
+			this.actionTargetItem = item
+			this.showSingleDeleteDialog = true
+		},
 	},
 }
 </script>
