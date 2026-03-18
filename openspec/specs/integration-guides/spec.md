@@ -73,3 +73,40 @@ _(none — all new)_
 ## REMOVED Requirements
 
 _(none — all new)_
+
+---
+
+### Current Implementation Status
+
+**Already implemented:**
+- OpenRegister integration guide exists at `docs/integrations/openregister.md`
+- NL Design System integration guide exists at `docs/integrations/nldesign.md`
+- App ecosystem overview exists at `docs/integrations/ecosystem.md`
+- i18n integration guide exists at `docs/integrations/i18n.md` (not in spec but already present)
+- Docs site infrastructure with category config at `docs/integrations/_category_.json`
+
+**Not yet implemented:**
+- The existing docs may not yet cover all scenarios described in this spec (faceting flow, register JSON auto-import pattern, CSS variable chain details). Content completeness needs verification.
+
+**Components/composables referenced:**
+- `createObjectStore` (`src/store/useObjectStore.js`) — exists
+- `CnFacetSidebar` (`src/components/CnFacetSidebar/`) — exists
+- `CnIndexPage` (`src/components/CnIndexPage/`) — exists
+
+### Standards & References
+
+- Nextcloud developer documentation conventions
+- NL Design System (https://nldesignsystem.nl/) — Dutch government design token standard
+- OpenRegister REST API patterns (`/apps/openregister/api/objects/{register}/{schema}`)
+- WCAG AA — theming documentation should reference accessibility requirements for color contrast
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Mostly yes — the three required pages are clearly defined with scenarios.
+- **Missing/ambiguous:**
+  - No detail on documentation format (Docusaurus MDX, plain Markdown, etc.)
+  - The ecosystem overview mentions specific apps but does not specify which Cn* components each app uses — this would need to be researched per app.
+  - No acceptance criteria for documentation completeness (e.g., minimum number of code examples, screenshots).
+- **Open questions:**
+  - Should the integration guides include runnable code examples or just conceptual explanations?
+  - Should the ecosystem page auto-generate from app package.json dependencies or be manually maintained?

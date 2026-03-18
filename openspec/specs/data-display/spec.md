@@ -96,3 +96,61 @@ The table MUST support manual and schema-driven column definitions, sorting, row
 ### REQ-DD-007: View Mode Toggle (via CnActionsBar)
 
 > **Note:** The view mode toggle is not a standalone component. It is rendered inline within CnActionsBar using NcCheckboxRadioSwitch radio buttons. See REQ-LC-002 for the full specification.
+
+---
+
+### Current Implementation Status
+
+**All specified components exist and are implemented:**
+
+- **CnDataTable** — `src/components/CnDataTable/CnDataTable.vue` (349 lines). Implements sortable columns, row selection with select-all checkbox, custom cell rendering via `#column-{key}` scoped slots, loading/empty states, schema-driven columns via `columnsFromSchema()`. Props include `columns`, `rows`, `schema`, `loading`, `sortKey`, `sortOrder`, `selectable`, `selectedIds`, `excludeColumns`, `includeColumns`, `columnOverrides`, and more. Emits `@sort`, `@select`, `@row-click`.
+
+- **CnCardGrid** — `src/components/CnCardGrid/CnCardGrid.vue`. Renders objects as CnObjectCard instances in a CSS Grid layout. Supports `#card` scoped slot for custom card rendering and `selectable` mode.
+
+- **CnCellRenderer** — `src/components/CnCellRenderer/CnCellRenderer.vue`. Type-aware formatting: dates as locale strings, booleans as checkmarks/crosses, UUIDs truncated, enum values show labels. Uses `formatValue()` from `src/utils/schema.js`.
+
+- **CnPagination** — `src/components/CnPagination/CnPagination.vue`. Full pagination with page numbers, first/last/prev/next buttons, page size selector. Emits `@page-changed(page)` and `@page-size-changed(size)`.
+
+- **CnFilterBar** — `src/components/CnFilterBar/CnFilterBar.vue`. Search input with filter controls row. Emits search value to parent.
+
+- **CnFacetSidebar** — `src/components/CnFacetSidebar/CnFacetSidebar.vue`. Faceted filter sidebar with expandable facet groups and count display. Integrates with `useListView`'s `activeFilters` and store's `facets` data.
+
+- **CnKpiGrid** — `src/components/CnKpiGrid/CnKpiGrid.vue`. KPI metric cards in a grid layout.
+
+**Supporting utilities:**
+- `src/utils/schema.js` — `columnsFromSchema(schema, options)`, `filtersFromSchema(schema, options)`, `fieldsFromSchema(schema, options)`, `formatValue(value, format)`
+
+**Documentation pages exist for all data display components** in `docs/components/`:
+- cn-data-table.md, cn-card-grid.md, cn-cell-renderer.md, cn-pagination.md, cn-filter-bar.md, cn-facet-sidebar.md, cn-kpi-grid.md
+
+**Additional related components not in spec:**
+- CnRowActions (`src/components/CnRowActions/`) — Row action buttons used by CnDataTable
+- CnMassActionBar (`src/components/CnMassActionBar/`) — Floating bar for mass actions on selected rows
+- CnStatusBadge (`src/components/CnStatusBadge/`) — Color-coded status pill (mentioned in component-reference spec but not this spec)
+- CnStatsBlock (`src/components/CnStatsBlock/`) — Stats display with count and breakdown
+
+**Not yet implemented / deviations:**
+- REQ-DD-007 (View Mode Toggle) correctly notes it is in CnActionsBar, not standalone — no deviation
+
+### Standards & References
+
+- **Vue 2 Options API** — All components follow Options API pattern
+- **Nextcloud Vue** — CnDataTable wraps around Nextcloud table concepts; CnPagination and CnFilterBar compose with NcButton, NcTextField
+- **Schema-driven rendering** — `columnsFromSchema()` extracts columns from OpenRegister JSON Schema `properties` definitions
+- **CSS** — `cn-` prefix on all classes, Nextcloud CSS variables for theming
+- **WCAG AA** — Tables include proper `<th>` headers; checkboxes for selection; pagination has clear navigation controls
+
+### Specificity Assessment
+
+- **Specific enough?** Yes, scenarios are concrete and testable for core behaviors.
+- **Missing/ambiguous:**
+  - CnDataTable's `excludeColumns`, `includeColumns`, `columnOverrides` props are mentioned but not fully specified with scenarios
+  - CnCardGrid's CSS Grid configuration (column count, gap, responsive behavior) is not specified
+  - CnKpiGrid's expected props and data format are not specified beyond naming
+  - CnFacetSidebar's interaction with `useListView`'s `onFilterChange` is not specified
+  - No specification for loading/empty states in CnDataTable (they exist in the implementation)
+  - CnObjectCard's props and behavior are referenced but not specified here
+- **Open questions:**
+  - Should CnDataTable support inline editing in the future?
+  - Should CnCardGrid support different layout modes (masonry, grid, list)?
+  - Should CnKpiGrid support clickable KPI cards that navigate to filtered views?
