@@ -59,6 +59,12 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 | [CnVersionInfoCard](./cn-version-info-card.md) | App version information card for admin settings |
 | [CnRegisterMapping](./cn-register-mapping.md) | OpenRegister register/schema configuration panel |
 
+## Cards
+
+| Component | Description |
+|-----------|-------------|
+| [CnCard](../cards/cn-card.md) | Generic prop-driven card with title, icon, description, labels, stats, and active state |
+
 ## Utilities
 
 | Export | Description |
