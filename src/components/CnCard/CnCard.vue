@@ -5,25 +5,25 @@
 		:style="activeStyles"
 		@click="onClick">
 		<div class="cn-card__header">
-			<h2 v-tooltip.bottom="titleTooltip || description" class="cn-card__title">
+			<h2 class="cn-card__title">
 				<slot name="icon">
 					<component :is="icon" v-if="icon" :size="iconSize" />
 				</slot>
-				<span class="cn-card__title-text">{{ title }}</span>
-				<slot name="labels">
-					<span v-if="labels.length > 0" class="cn-card__labels">
-						<CnStatusBadge
-							v-for="(label, i) in labels"
-							:key="i"
-							:label="label.text"
-							:variant="label.variant || 'default'"
-							:solid="true" />
-					</span>
-				</slot>
+				<span ref="titleText" v-tooltip.bottom="computedTooltip" class="cn-card__title-text">{{ title }}</span>
 			</h2>
 			<div v-if="$slots.actions || $scopedSlots.actions" class="cn-card__actions">
 				<slot name="actions" />
 			</div>
+			<slot name="labels">
+				<span v-if="labels.length > 0" class="cn-card__labels">
+					<CnStatusBadge
+						v-for="(label, i) in labels"
+						:key="i"
+						:label="label.text"
+						:variant="label.variant || 'default'"
+						:solid="true" />
+				</span>
+			</slot>
 		</div>
 
 		<div class="cn-card__body">
@@ -48,6 +48,28 @@
 				</div>
 			</slot>
 		</div>
+
+		<!-- Footer -->
+		<slot name="footer">
+			<div v-if="hasFooterContent" class="cn-card__footer">
+				<a
+					v-for="(link, i) in footerLinks"
+					:key="'link-' + i"
+					:href="link.url"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="cn-card__footer-link">
+					<slot :name="'footer-link-icon-' + i" />
+					{{ link.label || link.url }}
+				</a>
+				<CnStatusBadge
+					v-for="(tag, i) in normalizedTags"
+					:key="'tag-' + i"
+					:label="tag.text"
+					:variant="tag.variant || 'default'"
+					size="small" />
+			</div>
+		</slot>
 	</div>
 </template>
 
@@ -125,6 +147,8 @@ export default {
 		 * Array of badge/label objects displayed inline with the title.
 		 * Each entry: { text: string, variant?: string }
 		 * Variant maps to CnStatusBadge variants: 'default'|'primary'|'success'|'warning'|'error'|'info'
+		 * For labels with icons, use the #labels slot override and render CnStatusBadge
+		 * manually with its #icon slot.
 		 */
 		labels: {
 			type: Array,
@@ -162,9 +186,38 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Array of footer link objects. Each entry: { url: string, label?: string }
+		 * Links are rendered as clickable anchors. Use the #footer-link-icon-{index} slot
+		 * to add an icon before a specific link.
+		 */
+		footerLinks: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Array of tag items for the footer. Accepts either strings or objects.
+		 * String entries are converted to { text: string, variant: 'default' }.
+		 * Object entries: { text: string, variant?: string }
+		 */
+		tags: {
+			type: Array,
+			default: () => [],
+		},
+	},
+
+	data() {
+		return {
+			isTitleEllipsized: false,
+		}
 	},
 
 	computed: {
+		computedTooltip() {
+			if (this.titleTooltip) return this.titleTooltip
+			return this.isTitleEllipsized ? this.title : ''
+		},
+
 		rootClasses() {
 			return {
 				'cn-card--active': this.active,
@@ -179,21 +232,41 @@ export default {
 			}
 		},
 
+		normalizedTags() {
+			return this.tags.map(tag =>
+				typeof tag === 'string' ? { text: tag, variant: 'default' } : tag,
+			)
+		},
+
+		hasFooterContent() {
+			return this.footerLinks.length > 0 || this.tags.length > 0
+		},
+
 		activeStyles() {
 			if (!this.active) return {}
 			const variantMap = {
-				success: { border: 'var(--color-success)', bg: 'var(--color-success-light)' },
-				primary: { border: 'var(--color-primary-element)', bg: 'var(--color-primary-element-light)' },
-				warning: { border: 'var(--color-warning)', bg: 'var(--color-background-dark)' },
-				error: { border: 'var(--color-error)', bg: 'var(--color-background-dark)' },
-				info: { border: 'var(--color-info)', bg: 'var(--color-background-dark)' },
+				success: 'var(--color-success)',
+				primary: 'var(--color-primary-element)',
+				warning: 'var(--color-warning)',
+				error: 'var(--color-error)',
+				info: 'var(--color-info)',
 			}
-			const colors = variantMap[this.activeVariant] || variantMap.success
 			return {
-				'--cn-card-active-border': colors.border,
-				'--cn-card-active-bg': colors.bg,
+				'--cn-card-active-border': variantMap[this.activeVariant] || variantMap.success,
 			}
 		},
+	},
+
+	mounted() {
+		this.checkTitleEllipsis()
+		this._resizeObserver = new ResizeObserver(() => this.checkTitleEllipsis())
+		this._resizeObserver.observe(this.$el)
+	},
+
+	beforeDestroy() {
+		if (this._resizeObserver) {
+			this._resizeObserver.disconnect()
+		}
 	},
 
 	methods: {
@@ -201,6 +274,11 @@ export default {
 			if (this.clickable) {
 				this.$emit('click', event)
 			}
+		},
+
+		checkTitleEllipsis() {
+			const el = this.$refs.titleText
+			this.isTitleEllipsized = el ? el.scrollWidth > el.clientWidth : false
 		},
 	},
 }
@@ -219,7 +297,6 @@ export default {
 
 .cn-card--active {
 	border: 2px solid var(--cn-card-active-border);
-	background: var(--cn-card-active-bg);
 }
 
 .cn-card--clickable {
@@ -233,9 +310,13 @@ export default {
 }
 
 .cn-card__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	grid-template-rows: auto auto;
+	align-items: center;
+	border-bottom: 1px solid var(--color-border);
+	padding-block-end: 1rem;
+	margin-block-end: 0.5rem;
 }
 
 .cn-card__title {
@@ -244,22 +325,26 @@ export default {
 	gap: 6px;
 	font-size: 16px;
 	margin: 0;
-	flex-wrap: wrap;
+	min-width: 0;
 }
 
 .cn-card__title-text {
 	overflow: hidden;
 	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-card__labels {
-	display: inline-flex;
+	grid-column: 1 / -1;
+	display: flex;
 	gap: 4px;
 	flex-wrap: wrap;
+	margin-top: 6px;
 }
 
 .cn-card__actions {
 	flex-shrink: 0;
+	margin-inline-start: 0.25rem;
 }
 
 .cn-card__body {
@@ -272,7 +357,6 @@ export default {
 .cn-card__description {
 	color: var(--color-text-lighter);
 	margin-bottom: 12px;
-	font-style: italic;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	display: -webkit-box;
@@ -303,5 +387,29 @@ export default {
 .cn-card__stat-value {
 	font-weight: 600;
 	font-size: 12px;
+}
+
+.cn-card__footer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	padding-top: 8px;
+	margin-top: 8px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-card__footer-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.85em;
+	color: var(--color-primary-element);
+	text-decoration: none;
+	transition: color 0.2s;
+
+	&:hover {
+		text-decoration: underline;
+	}
 }
 </style>
