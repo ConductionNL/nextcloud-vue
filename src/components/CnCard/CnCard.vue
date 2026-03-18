@@ -236,6 +236,9 @@ export default {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
+	border-bottom: 1px solid var(--color-border);
+    padding-block-end: 1rem;
+    margin-block-end: 0.5rem;
 }
 
 .cn-card__title {
@@ -272,7 +275,6 @@ export default {
 .cn-card__description {
 	color: var(--color-text-lighter);
 	margin-bottom: 12px;
-	font-style: italic;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	display: -webkit-box;
