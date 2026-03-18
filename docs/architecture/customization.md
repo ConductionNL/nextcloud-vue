@@ -824,7 +824,9 @@ The `id` you set on your `NcAppSidebarTab` is the value used with `default-tab` 
 
 ### Appending content inside existing tabs
 
-To add content at the bottom of the Search or Columns tab without replacing it, use `#search-extra` and `#columns-extra`. These are passed through from `CnIndexPage` to the sidebar via the `sidebarState` pattern, or set directly on `CnIndexSidebar`:
+To add content at the bottom of the Search or Columns tab without replacing it, use `#search-extra` and `#columns-extra`. These slots are available on both `CnIndexSidebar` (direct usage) and `CnIndexPage` (pass-through to sidebar via the `sidebarState` pattern).
+
+#### Via CnIndexSidebar directly
 
 ```vue
 <CnIndexSidebar :schema="sidebarState.schema">
@@ -846,6 +848,36 @@ To add content at the bottom of the Search or Columns tab without replacing it, 
     </NcCheckboxRadioSwitch>
   </template>
 </CnIndexSidebar>
+```
+
+#### Via CnIndexPage (pass-through)
+
+```vue
+<CnIndexPage :schema="schema" :objects="objects">
+  <template #search-extra>
+    <div class="sidebar-section">
+      <h3>Saved searches</h3>
+      <NcActionButton
+        v-for="s in savedSearches"
+        :key="s.id"
+        @click="applySearch(s)">
+        {{ s.label }}
+      </NcActionButton>
+    </div>
+  </template>
+</CnIndexPage>
+```
+
+```vue
+<CnIndexPage :schema="schema" :objects="objects">
+  <template #columns-extra>
+    <div class="sidebar-section">
+      <NcCheckboxRadioSwitch v-model="showComputedFields">
+        Show computed fields
+      </NcCheckboxRadioSwitch>
+    </div>
+  </template>
+</CnIndexPage>
 ```
 
 ---
