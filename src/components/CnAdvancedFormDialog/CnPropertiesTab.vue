@@ -232,7 +232,8 @@ export default {
 		},
 
 		getPropertyWarningMessage(key, value) {
-			return `Property '${key}' exists in the object but is not defined in the current schema. This might happen when property names are changed in the schema. Current value: '${value}'.`
+			const displayValue = String(value).length > 100 ? String(value).slice(0, 100) + '…' : String(value)
+			return `Property '${key}' exists in the object but is not defined in the current schema. This might happen when property names are changed in the schema. Current value: '${displayValue}'.`
 		},
 
 		getPropertyNewMessage(key) {
@@ -252,7 +253,8 @@ export default {
 				return `This property is constant and must always be '${prop.const}'. Const properties cannot be modified to maintain data integrity.`
 			}
 			if (prop?.immutable && (value !== null && value !== undefined && value !== '')) {
-				return `This property is immutable and cannot be changed once it has a value. Current value: '${value}'. Immutable properties preserve data consistency.`
+				const displayValue = String(value).length > 100 ? String(value).slice(0, 100) + '…' : String(value)
+				return `This property is immutable and cannot be changed once it has a value. Current value: '${displayValue}'. Immutable properties preserve data consistency.`
 			}
 			if (!this.isPropertyEditable(key, value)) {
 				return this.getPropertyEditabilityWarning(key, value)

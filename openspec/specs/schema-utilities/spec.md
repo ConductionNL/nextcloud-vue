@@ -97,3 +97,35 @@ Specifies the utility functions that auto-generate table columns, form fields, a
 - GIVEN `schema` is null or has no `properties`
 - WHEN any schema utility is called
 - THEN it MUST return an empty array (not throw)
+
+---
+
+### Current Implementation Status
+
+**Already implemented — all requirements are fulfilled:**
+
+- **File**: `src/utils/schema.js`
+- **`columnsFromSchema(schema, options)`**: Fully implemented. Filters `visible: false` and `type: 'object'`. Supports `exclude`, `include`, `overrides`. Sorts by `prop.order` then alphabetically. Returns `{ key, label, sortable, type, format, width, enum, items }`. Default widths defined in `DEFAULT_WIDTHS` map.
+- **`fieldsFromSchema(schema, options)`**: Fully implemented. Supports `exclude`, `include`, `overrides`, `includeReadOnly`. Sorts by `prop.order`. Returns `{ key, label, description, type, format, widget, required, readOnly, default, enum, items, validation, order }`. Widget resolution via internal `resolveWidget()` follows the exact priority chain in the spec.
+- **`filtersFromSchema(schema)`**: Fully implemented. Filters properties with `facetable: true`. Maps boolean to `'checkbox'`, enum to `'select'` with options, others to `'select'` with dynamic options. Sorts by order.
+- **`formatValue(value, property, options)`**: Fully implemented. Handles null/undefined (returns `'—'`), booleans (checkmark/dash), numbers (locale string), arrays (join or "+N"), dates (locale formatted), UUIDs (truncated), URIs, markdown (stripped), emails, and plain strings with truncation.
+- **Edge cases**: All functions return empty array for null/missing schema.
+
+**Not yet implemented:**
+- All spec requirements are implemented. No gaps identified.
+
+### Standards & References
+
+- JSON Schema vocabulary (type, format, enum, required, readOnly, minLength, maxLength, minimum, maximum, pattern)
+- OpenRegister custom extensions: `visible`, `facetable`, `order`, `widget`, `adminOnly`
+- Intl API for locale-aware date/number formatting
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Yes — the spec is highly specific with exact widget resolution priority and edge case handling. Already fully implemented.
+- **Missing/ambiguous:**
+  - REQ-SU-003 (`filtersFromSchema`) is underspecified compared to the actual implementation — it does not mention `facetable: true` filtering, property type to filter widget mapping, or the sort order.
+  - REQ-SU-004 (`formatValue`) does not mention UUID truncation, URI hostname extraction, markdown stripping, array truncation ("+N"), or the `truncate` option.
+  - The spec does not mention `DEFAULT_WIDTHS` for auto-width assignment in `columnsFromSchema`.
+- **Open questions:**
+  - Should `filtersFromSchema` accept an `options` parameter for `isAdmin` RBAC filtering? The CnIndexSidebar passes `{ isAdmin }` but the current function signature does not use it.

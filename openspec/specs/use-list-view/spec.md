@@ -155,3 +155,44 @@ The existing `useListView()` call signature (no arguments) SHALL continue to wor
 - GIVEN existing code calls `useListView()` with no arguments
 - WHEN the enhanced composable is imported
 - THEN the call does not throw and returns the same state refs as before (`searchTerm`, `filters`, `sortKey`, `sortOrder`, etc.)
+
+---
+
+### Current Implementation Status
+
+**Already implemented — all requirements are fulfilled:**
+
+- **File**: `src/composables/useListView.js`
+- **objectStore integration**: Connects to `useObjectStore()` internally. `objects` computed from `objectStore.collections[objectType]`. `loading` from `objectStore.loading[objectType]`. `pagination` from `objectStore.pagination[objectType]`.
+- **Schema loading on mount**: `onMounted` calls `objectStore.fetchSchema(objectType)` with retry loop (up to 10 attempts, 200ms apart) to handle race conditions with async store initialization.
+- **Fetch with params**: `buildParams(page)` constructs `{ _limit, _page, _search, _order, filters }`. Single-value arrays unwrapped to scalar. Empty filter values excluded. `refresh(page)` calls `objectStore.fetchCollection(objectType, params)`.
+- **Event handlers**: `onSearch(value)` debounced by `opts.debounceMs || 300`. `onSort({ key, order })` updates state and calls `refresh(1)`. `onFilterChange(key, values)` adds/removes filter keys. `onPageChange(page)` delegates to `refresh(page)`. `onPageSizeChange(size)` updates size and resets to page 1.
+- **Sidebar wiring**: `setupSidebar()` sets `sidebarState.active`, `schema`, `searchValue`, `activeFilters`, `onSearch`, `onColumnsChange`, `onFilterChange`. `teardownSidebar()` resets all to null/false. Facet data watched and pushed to `sidebarState.facetData`.
+- **Backward compatibility**: First-arg type check delegates to `useLegacyListView()` for object/absent arguments. Legacy API returns `searchTerm`, `filters`, `sortKey`, `sortOrder`, `currentPage`, `pageSize`, `onSearchInput`, `toggleSort`, `setFilter`, `clearAllFilters`, `goToPage`, `fetch`, `buildFetchParams`.
+
+**Additional features not in spec:**
+- **URL sync (deeplink/SPOT pattern)**: `readUrlState()` reads query params on mount and applies to state. `writeUrlState(page)` syncs state to URL via `router.replace()`. Enabled by default (`urlSync !== false`). Supports `_search`, `_sort`, `_order`, `_page`, `_limit` control params; all others treated as filters.
+- Schema fetch retry with backoff (10 attempts)
+- `defaultSort` option for initial sort state
+- `visibleColumns` ref for column visibility
+
+**Return values:** `schema`, `objects`, `loading`, `pagination`, `searchTerm`, `sortKey`, `sortOrder`, `activeFilters`, `visibleColumns`, `pageSize`, `onSearch`, `onSort`, `onFilterChange`, `onPageChange`, `onPageSizeChange`, `refresh`
+
+### Standards & References
+
+- Vue 3 Composition API (`ref`, `computed`, `watch`, `onMounted`, `onBeforeUnmount`, `getCurrentInstance`)
+- Vue Router integration for URL state synchronization
+- OpenRegister API query parameters: `_search`, `_order`, `_limit`, `_page`, `_facets`
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Yes — fully implemented with all scenarios covered.
+- **Missing/ambiguous:**
+  - Spec does not mention URL sync / deeplink support (major feature in implementation).
+  - Spec does not mention schema fetch retry logic.
+  - Spec says `sidebarState.onSearch` but implementation also sets `sidebarState.searchValue` and `sidebarState.activeFilters`.
+  - Spec says sidebar facetData is pushed "after fetch" but implementation uses a `watch` on `objectStore.facets[objectType]`.
+  - `defaultSort` option not mentioned in spec.
+- **Open questions:**
+  - Should URL sync be opt-out (current default: enabled) or opt-in?
+  - Should the schema fetch retry strategy be configurable (currently hardcoded 10 attempts, 200ms)?

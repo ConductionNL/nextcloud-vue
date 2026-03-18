@@ -154,3 +154,65 @@ All dialogs MUST follow the two-phase confirm-then-result pattern.
 - GIVEN the import dialog
 - THEN the user MUST be able to upload a file
 - AND optional import fields MUST be configurable via `#import-fields` slot
+
+---
+
+### Current Implementation Status
+
+**All 7 dialog components exist and are implemented:**
+
+- **CnDeleteDialog** — `src/components/CnDeleteDialog/CnDeleteDialog.vue` (170 lines). Two-phase pattern with confirmation and result display. Uses NcDialog, NcNoteCard, NcButton. Supports `nameField` prop for name resolution with fallback chain. Confirm button uses `type="error"` with TrashCanOutline icon.
+
+- **CnCopyDialog** — `src/components/CnCopyDialog/CnCopyDialog.vue` (250 lines). Two-phase pattern with naming pattern selector (3 options: "Copy of {name}", "{name} - Copy", "{name} (Copy)"). Shows preview of resulting name. Emits `@confirm({ id, newName })`.
+
+- **CnFormDialog** — `src/components/CnFormDialog/CnFormDialog.vue` (629 lines). Schema-driven create/edit form dialog. Auto-generates fields via `fieldsFromSchema()`. Supports:
+  - Create mode (item=null) and Edit mode (item with data)
+  - Widget rendering: select (NcSelect), checkbox (NcCheckboxRadioSwitch), textarea, number, date, datetime-local, text/email/url (NcTextField)
+  - Client-side validation: required, minLength, maxLength, pattern, minimum, maximum
+  - Server-side validation via `setValidationErrors()`
+  - Three-level slot overrides: `#form` (full form replacement), `#field-{key}` (per-field), `#before-fields`/`#after-fields` (injection points)
+
+- **CnMassDeleteDialog** — `src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue`. Two-phase bulk delete with item list and count in title.
+
+- **CnMassCopyDialog** — `src/components/CnMassCopyDialog/CnMassCopyDialog.vue`. Bulk copy with naming pattern applied to all selected items with preview.
+
+- **CnMassExportDialog** — `src/components/CnMassExportDialog/CnMassExportDialog.vue`. Format selection (Excel, CSV, etc.) before confirming. Emits `@confirm({ ids, format })`.
+
+- **CnMassImportDialog** — `src/components/CnMassImportDialog/CnMassImportDialog.vue`. File upload with optional `#import-fields` slot for configurable import settings.
+
+**Two-phase pattern (REQ-DG-001) — implemented across all dialogs:**
+- Confirm phase: form/confirmation prompt with confirm and cancel buttons
+- Confirm triggers `loading = true`, shows spinner, emits `@confirm`, does NOT auto-close
+- Success result: NcNoteCard success, auto-close after timeout
+- Error result: NcNoteCard error, no auto-close
+
+**Documentation pages exist** for all dialogs in `docs/components/`:
+- cn-delete-dialog.md, cn-copy-dialog.md, cn-form-dialog.md, cn-mass-delete-dialog.md, cn-mass-copy-dialog.md, cn-mass-export-dialog.md, cn-mass-import-dialog.md
+
+**CnIndexPage integration:** All single-object dialogs (Delete, Copy, Form) are built into CnIndexPage with slot overrides at three levels. Mass dialogs are triggered from CnMassActionBar within CnIndexPage.
+
+**Not yet implemented / deviations:**
+- The auto-close timeout for success may differ from the specified "2 seconds" — needs verification in each dialog
+- The `setResult()` API naming may vary per dialog (CnIndexPage exposes `setFormResult`, `setSingleDeleteResult`, etc.)
+
+### Standards & References
+
+- **Nextcloud Vue** — Uses NcDialog for the dialog shell, NcNoteCard for result messages, NcButton for actions, NcSelect/NcTextField/NcCheckboxRadioSwitch for form widgets
+- **Vue 2 Options API** — All dialog components use Options API
+- **Two-phase pattern** — Custom pattern specific to this library; not a Nextcloud standard but a consistent UX convention across all Cn dialogs
+- **WCAG AA** — Dialog focus management inherited from NcDialog; form validation shows inline error messages
+- **Schema-driven forms** — CnFormDialog generates fields from JSON Schema via `fieldsFromSchema()` utility
+
+### Specificity Assessment
+
+- **Specific enough?** Yes, the two-phase pattern is well-defined and scenarios cover all key behaviors.
+- **Missing/ambiguous:**
+  - The auto-close timeout value (spec says 2 seconds) should be verified against implementation
+  - No specification for how `setResult` is called — is it via ref methods, props, or events?
+  - CnFormDialog's `excludeFields`, `includeFields`, `fieldOverrides` props are not specified here (they are in the index-page spec)
+  - No specification for CnFormDialog's handling of nested object properties or array fields
+  - The `{name}` placeholder substitution in CnDeleteDialog warning text is specified but the exact placeholder syntax is not
+- **Open questions:**
+  - Should the auto-close timeout be configurable per dialog?
+  - Should CnFormDialog support multi-step forms or wizard-style dialogs?
+  - Should the result phase support custom result content via slots?
