@@ -156,3 +156,86 @@ The component MUST expose ref methods for setting dialog results.
 - GIVEN `excludeFields`, `includeFields`, `fieldOverrides` props
 - THEN these MUST be passed through to CnFormDialog
 - AND CnDataTable MUST receive `excludeColumns`, `includeColumns`, `columnOverrides`
+
+---
+
+### Current Implementation Status
+
+**Fully implemented** in `src/components/CnIndexPage/CnIndexPage.vue` (816 lines).
+
+**REQ-IP-001 (Zero-Config Rendering) — implemented:**
+- Renders CnPageHeader with title and optional schema icon via ICON_MAP
+- CnActionsBar with primary Add button (NcButton with schema icon) and Actions overflow menu with Refresh
+- CnDataTable (default view) or CnCardGrid (card view)
+- CnPagination controls
+- Built-in CnRowActions with View, Edit, Copy, Delete actions
+
+**REQ-IP-002 (Dual View Mode) — implemented:**
+- `viewMode` prop controls table vs card rendering
+- CnDataTable renders with schema-driven columns and row selection
+- CnCardGrid renders with card selection
+
+**REQ-IP-003 (Built-In Row Actions) — implemented:**
+- `showEditAction`, `showCopyAction`, `showDeleteAction` props control visibility
+- View action appears when `@row-click` listener is attached (uses schema icon or Eye fallback)
+- App-provided `actions` appear before built-in actions
+- Delete action uses `destructive` styling
+
+**REQ-IP-004 (Single-Object Dialogs) — implemented:**
+- Edit: opens CnFormDialog in edit mode, emits `@edit(formData)`
+- Delete: opens CnDeleteDialog, emits `@delete(id)`
+- Copy: opens CnCopyDialog, emits `@copy({ id, newName })`
+- Add: opens CnFormDialog in create mode (emits `@create`), or emits `@add` if listener attached (backward compat)
+
+**REQ-IP-005 (Dialog Slot Overrides) — implemented:**
+- `#form-dialog="{ item, schema, close }"` replaces CnFormDialog
+- `#delete-dialog="{ item, close }"` replaces CnDeleteDialog
+- `#copy-dialog="{ item, close }"` replaces CnCopyDialog
+- `#form-fields` replaces form content inside CnFormDialog
+- `#field-{key}` replaces individual fields
+
+**REQ-IP-006 (Mass Actions) — implemented:**
+- CnMassActionBar with Mass Delete, Mass Copy, Mass Export, Mass Import buttons
+- Corresponding mass dialog components open on click
+- `showMassDelete`, `showMassCopy`, `showMassExport`, `showMassImport` props control visibility
+- Events: `@mass-delete(ids)`, `@mass-copy(payload)`, `@mass-export(payload)`, `@mass-import(payload)`
+
+**REQ-IP-007 (Public Ref Methods) — implemented:**
+- `setFormResult()`, `setSingleDeleteResult()`, `setSingleCopyResult()`
+- `setMassDeleteResult()`, `setMassCopyResult()`, `setExportResult()`, `setImportResult()`
+- `openFormDialog(item)` — programmatic open (null = create, object = edit)
+
+**REQ-IP-008 (Schema Pass-Through) — implemented:**
+- `excludeFields`, `includeFields`, `fieldOverrides` passed to CnFormDialog
+- `excludeColumns`, `includeColumns`, `columnOverrides` passed to CnDataTable
+
+**Sub-components used:** CnPageHeader, CnActionsBar, CnDataTable, CnCardGrid, CnPagination, CnRowActions, CnMassActionBar, CnDeleteDialog, CnCopyDialog, CnFormDialog, CnMassDeleteDialog, CnMassCopyDialog, CnMassExportDialog, CnMassImportDialog
+
+**Documentation:** `docs/components/cn-index-page.md` exists.
+
+**Not yet implemented / deviations:** All spec requirements appear to be implemented.
+
+### Standards & References
+
+- **Vue 2 Options API** — Component uses standard Options API pattern
+- **Nextcloud Vue** — Leverages NcButton, NcActions, NcActionButton from `@nextcloud/vue`
+- **Schema-driven** — Uses `columnsFromSchema()`, `fieldsFromSchema()` from `src/utils/schema.js`
+- **CSS** — `cn-index-page` prefix, Nextcloud CSS variables, scoped styles
+- **Translation** — All user-visible text configurable via props with English defaults
+- **WCAG AA** — Table headers, keyboard-accessible row actions, dialog focus management (inherited from Nextcloud Vue)
+
+### Specificity Assessment
+
+- **Specific enough?** Yes, this is one of the most detailed specs in the library. Scenarios cover all major user interactions.
+- **Missing/ambiguous:**
+  - No specification for the `@refresh` event (it exists in the getting-started example but is not listed in this spec)
+  - No specification for the `@sort` event pass-through to CnDataTable
+  - No specification for `@page-changed` and `@page-size-changed` event pass-through to CnPagination
+  - No specification for the `@search` event from CnFilterBar
+  - The ICON_MAP referenced for schema icon resolution is not documented (how icons are mapped from schema `icon` field to Vue components)
+  - No specification for loading and error states within the page
+  - No specification for the `facets` or sidebar integration
+- **Open questions:**
+  - Should CnIndexPage support a `composable` mode where it works with `useListView` directly instead of requiring manual event wiring?
+  - Should there be a specification for responsive behavior on mobile devices?
+  - Should the Add button support a dropdown for multiple creation options?

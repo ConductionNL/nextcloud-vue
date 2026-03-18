@@ -152,7 +152,7 @@ describe('CnAdvancedFormDialog', () => {
 				BTab: true,
 			},
 		})
-		const props = wrapper.vm.objectProperties
+		const props = wrapper.vm.objectPropertiesForSlot
 		const keys = props.map(([k]) => k)
 		expect(keys).not.toContain('count')
 	})
@@ -176,7 +176,7 @@ describe('CnAdvancedFormDialog', () => {
 				BTab: true,
 			},
 		})
-		const props = wrapper.vm.objectProperties
+		const props = wrapper.vm.objectPropertiesForSlot
 		const keys = props.map(([k]) => k)
 		expect(keys).toContain('title')
 		expect(keys).not.toContain('count')
