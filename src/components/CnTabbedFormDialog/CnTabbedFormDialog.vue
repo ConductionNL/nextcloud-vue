@@ -48,6 +48,9 @@
 					</BTab>
 				</BTabs>
 			</div>
+
+			<!-- Optional content below tabs (e.g. shared settings across all tabs) -->
+			<slot name="below-tabs" :loading="loading" />
 		</div>
 
 		<template #actions>
