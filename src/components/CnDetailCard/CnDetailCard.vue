@@ -14,7 +14,11 @@
 			@click="collapsible && toggleCollapse()">
 			<div class="cn-detail-card__header-left">
 				<slot name="icon">
-					<component :is="icon" v-if="icon" :size="20" class="cn-detail-card__icon" />
+					<component
+					:is="icon"
+					v-if="icon"
+					:size="20"
+					class="cn-detail-card__icon" />
 				</slot>
 				<h3 class="cn-detail-card__title">
 					{{ title }}
