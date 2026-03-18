@@ -28,6 +28,7 @@
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
 			:refreshing="refreshing"
+			:show-add="showAdd"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -562,6 +563,11 @@ export default {
 		refreshing: {
 			type: Boolean,
 			default: false,
+		},
+		/** Whether to show the Add button in the actions bar */
+		showAdd: {
+			type: Boolean,
+			default: true,
 		},
 		/**
 		 * Store instance for automatic save integration. When provided alongside
