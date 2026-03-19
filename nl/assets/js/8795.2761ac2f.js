@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[8795],{8795(e,c,s){s.d(c,{createPieServices:()=>u.f});var u=s(888);s(808)}}]);
