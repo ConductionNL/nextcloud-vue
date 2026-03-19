@@ -14,7 +14,11 @@
 		<div class="cn-detail-page__header">
 			<div class="cn-detail-page__header-left">
 				<slot name="icon">
-					<CnIcon v-if="icon" :name="icon" :size="iconSize" class="cn-detail-page__icon" />
+					<CnIcon
+						v-if="icon"
+						:name="icon"
+						:size="iconSize"
+						class="cn-detail-page__icon" />
 				</slot>
 				<div class="cn-detail-page__header-text">
 					<h2 v-if="title" class="cn-detail-page__title">
@@ -257,7 +261,7 @@ export default {
 		 * Row data for the statistics table. Each row is an object keyed by
 		 * column keys. Set `indent: true` on a row for sub-row styling.
 		 *
-		 * @type {Array<Object>}
+		 * @type {Array<object>}
 		 */
 		statsRows: {
 			type: Array,
