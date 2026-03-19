@@ -56,7 +56,7 @@ export function buildQueryString(params = {}) {
 					queryParams.append(key, String(item))
 				}
 			}
-		} else if (key === '_order' && typeof value === 'object') {
+		} else if (typeof value === 'object') {
 			queryParams.set(key, JSON.stringify(value))
 		} else {
 			queryParams.set(key, String(value))
