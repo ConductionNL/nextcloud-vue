@@ -63,6 +63,7 @@
 						<!-- Grid layout -->
 						<CnKpiGrid
 							v-else-if="section.layout === 'grid'"
+							grid-class="remove-margin"
 							:columns="section.columns || 2">
 							<CnStatsBlock
 								v-for="(item, index) in section.items"
@@ -250,6 +251,10 @@ export default {
 .cn-stats-panel__section {
 	padding: 12px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+.remove-margin {
+	margin: 0;
 }
 
 .cn-stats-panel__section:last-child {
