@@ -44,6 +44,7 @@ export {
 	CnNotesCard,
 	CnTasksCard,
 	CnCard,
+	CnStatsPanel,
 	registerIcons,
 } from './components/index.js'
 

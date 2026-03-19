@@ -54,6 +54,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
 - `CnKpiGrid` — KPI metric cards grid
+- `CnStatsPanel` — Data-driven statistics panel (sections of stat blocks and list items)
 - `CnIndexSidebar` — Index page sidebar
 
 **Dashboard**
