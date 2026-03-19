@@ -5,6 +5,7 @@
 			:key="action.label"
 			:disabled="isDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
+			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
 				<component :is="action.icon" :size="20" />
