@@ -314,17 +314,17 @@ export default {
 
 .cn-stats-block__icon--success {
 	background: rgba(70, 186, 97, 0.1);
-	color: var(--color-success);
+	color: var(--color-element-success, var(--color-success));
 }
 
 .cn-stats-block__icon--warning {
 	background: rgba(232, 163, 24, 0.1);
-	color: var(--color-warning);
+	color: var(--color-element-warning, var(--color-warning));
 }
 
 .cn-stats-block__icon--error {
 	background: rgba(224, 36, 36, 0.1);
-	color: var(--color-error);
+	color: var(--color-element-error, var(--color-error));
 }
 
 /* Content */
@@ -358,9 +358,9 @@ export default {
 }
 
 .cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
-.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-success); }
-.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-warning); }
-.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-error); }
+.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-element-success, var(--color-success)); }
+.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-element-warning, var(--color-warning)); }
+.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-element-error, var(--color-error)); }
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
