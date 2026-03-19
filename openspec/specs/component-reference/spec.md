@@ -85,3 +85,52 @@ _(none — all new)_
 ## REMOVED Requirements
 
 _(none — all new)_
+
+---
+
+### Current Implementation Status
+
+**Already implemented:**
+
+- **Component Reference Index:** `docs/components/index.md` exists with components listed. 27 individual component pages exist in `docs/components/`:
+  - cn-card-grid.md, cn-cell-renderer.md, cn-configuration-card.md, cn-copy-dialog.md, cn-data-table.md, cn-delete-dialog.md, cn-facet-sidebar.md, cn-filter-bar.md, cn-form-dialog.md, cn-icon.md, cn-index-page.md, cn-index-sidebar.md, cn-kpi-grid.md, cn-mass-action-bar.md, cn-mass-copy-dialog.md, cn-mass-delete-dialog.md, cn-mass-export-dialog.md, cn-mass-import-dialog.md, cn-object-card.md, cn-pagination.md, cn-register-mapping.md, cn-row-actions.md, cn-settings-card.md, cn-settings-section.md, cn-stats-block.md, cn-status-badge.md, cn-version-info-card.md
+
+- **Store and Composable Reference:**
+  - `docs/store/object-store.md` — Documents `createObjectStore`, `useObjectStore`
+  - `docs/store/plugins.md` — Documents `auditTrailsPlugin`, `relationsPlugin`, `filesPlugin`, `lifecyclePlugin`, `registerMappingPlugin`, `createSubResourcePlugin`
+  - `docs/utilities/composables/` — Directory exists for composable documentation
+  - `docs/utilities/index.md` — Utility functions reference
+
+**Source files for props verification:**
+- All 38 components live in `src/components/Cn*/Cn*.vue`
+- Store: `src/store/useObjectStore.js`, `src/store/createSubResourcePlugin.js`
+- Store plugins: `src/store/plugins/auditTrails.js`, `relations.js`, `files.js`, `lifecycle.js`, `registerMapping.js`
+- Composables: `src/composables/useListView.js`, `useDetailView.js`, `useSubResource.js`, `useDashboardView.js`
+- Utilities: `src/utils/schema.js`, `src/utils/headers.js`, `src/utils/errors.js`
+
+**Not yet implemented:**
+- Dashboard components (CnDashboardPage, CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget) do NOT have individual doc pages in `docs/components/`
+- CnTimelineStages does not have a doc page
+- CnActionsBar, CnPageHeader, CnDetailCard, CnDetailPage, CnObjectSidebar, CnChartWidget do not have individual doc pages
+- The spec requires component category grouping (Page Layout, Data Display, Data Actions, Dialogs, Settings, Utilities) — needs verification against the actual `docs/components/index.md` content
+- `emptyPaginated` utility is exported from the store but may not be documented
+
+### Standards & References
+
+- **Props tables** must be derived from actual source code `props` definitions — the spec explicitly forbids fabricated props
+- **Nextcloud Vue Components** reference: https://nextcloud-vue-components.netlify.app/
+- **Nextcloud Layout Components** reference: https://docs.nextcloud.com/server/stable/developer_manual/design/layoutcomponents.html
+- **JSDoc** — Source components have JSDoc on props which can be used to auto-generate docs
+- **WCAG AA** — Component docs should note accessibility features inherited from Nextcloud Vue
+
+### Specificity Assessment
+
+- **Specific enough?** Yes, the six-section format per component page (Description, Props, Events, Slots, Usage, NC relationship) is clear and actionable.
+- **Missing/ambiguous:**
+  - The component categories in the spec's index don't include Dashboard components (CnDashboardPage, CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget) or the newer CnTimelineStages, CnChartWidget, CnDetailPage, CnDetailCard, CnObjectSidebar components.
+  - The `registerMappingPlugin` is exported from `src/store/plugins/` but not listed in the spec's store plugins section.
+  - No mention of `useDashboardView` composable in the composable reference requirement.
+  - The spec lists `formatValue` in utilities but the actual export path is `src/utils/schema.js` (alongside `columnsFromSchema`, `filtersFromSchema`, `fieldsFromSchema`).
+- **Open questions:**
+  - Should the component reference use auto-generated docs from JSDoc, or manually maintained markdown?
+  - How should internal-only components (used by CnIndexPage but not meant for direct use) be documented?

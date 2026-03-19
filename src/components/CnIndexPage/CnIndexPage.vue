@@ -113,7 +113,7 @@
 			:schema="schema"
 			:close="closeFormDialog">
 			<CnFormDialog
-				v-if="showFormDialogVisible"
+				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
 				:schema="schema"
 				:item="editItem"
@@ -127,6 +127,17 @@
 					<slot name="form-fields" v-bind="scope" />
 				</template>
 			</CnFormDialog>
+			<CnAdvancedFormDialog
+				v-if="showFormDialogVisible && useAdvancedFormDialog"
+				ref="formDialog"
+				:schema="schema"
+				:item="editItem"
+				:exclude-fields="excludeFields"
+				:include-fields="includeFields"
+				:field-overrides="fieldOverrides"
+				:name-field="massActionNameField"
+				@confirm="onFormConfirm"
+				@close="closeFormDialog" />
 		</slot>
 
 		<!-- Body -->
@@ -246,6 +257,7 @@ import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -258,7 +270,9 @@ import { CnFormDialog } from '../CnFormDialog/index.js'
  * - `#form-dialog` — Replace the create/edit dialog entirely
  * - `#delete-dialog` — Replace the single-item delete dialog
  * - `#copy-dialog` — Replace the single-item copy dialog
- * - `#form-fields` — Replace only the form content inside the built-in form dialog
+ * - `#form-fields` — Replace only the form content inside the built-in form dialog (CnFormDialog only)
+ *
+ * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
  *
  * @example Minimal usage (auto-generated dialogs from schema)
  * <CnIndexPage
@@ -332,6 +346,7 @@ export default {
 		CnDeleteDialog,
 		CnCopyDialog,
 		CnFormDialog,
+		CnAdvancedFormDialog,
 	},
 
 	props: {
@@ -497,6 +512,11 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
+		useAdvancedFormDialog: {
+			type: Boolean,
+			default: false,
+		},
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
 			type: Boolean,
@@ -532,6 +552,18 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Store instance for automatic save integration. When provided alongside
+		 * objectType, the form dialog saves directly to the store instead of
+		 * emitting create/edit events. The object type must already be registered
+		 * in the store via registerObjectType() before passing the store here.
+		 */
+		store: { type: Object, default: null },
+		/**
+		 * Object type slug for store integration (e.g. `${registerId}-${schemaId}`).
+		 * Required when store is set — a console warning is emitted if missing.
+		 */
+		objectType: { type: String, default: '' },
 	},
 
 	data() {
@@ -756,7 +788,22 @@ export default {
 			this.$emit('copy', payload)
 		},
 
-		onFormConfirm(formData) {
+		async onFormConfirm(formData) {
+			if (this.store) {
+				if (!this.objectType) {
+					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
+					return
+				}
+				const saved = await this.store.saveObject(this.objectType, formData)
+				if (saved) {
+					this.setFormResult({ success: true })
+					this.$emit(this.editItem ? 'edit' : 'create', saved)
+				} else {
+					const err = this.store.getError?.(this.objectType)
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
 			if (this.editItem) {
 				this.$emit('edit', formData)
 			} else {

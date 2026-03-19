@@ -22,6 +22,7 @@ export {
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnAdvancedFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
@@ -35,6 +36,9 @@ export {
 	CnWidgetRenderer,
 	CnTileWidget,
 	CnTimelineStages,
+	CnUserActionMenu,
+	CnNotesCard,
+	CnTasksCard,
 	registerIcons,
 } from './components/index.js'
 
@@ -49,6 +53,11 @@ export {
 	filesPlugin,
 	lifecyclePlugin,
 	registerMappingPlugin,
+	selectionPlugin,
+	searchPlugin,
+	SEARCH_TYPE,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 } from './store/plugins/index.js'
 
 // Composables

@@ -116,3 +116,55 @@ The store MUST support plugins that contribute state, getters, and actions.
 - WHEN the store processes the error
 - THEN `errors[type]` MUST contain a parsed error object via `parseResponseError()`
 - AND `loading[type]` MUST be set to false
+
+---
+
+### Current Implementation Status
+
+**Already implemented — all requirements are fulfilled:**
+
+- **Files**: `src/store/useObjectStore.js`, `src/store/createSubResourcePlugin.js`, `src/store/plugins/`
+- **REQ-ST-001 (Generic Object Store)**: `registerObjectType(slug, schemaId, registerId)` initializes all state buckets with Vue 2-compatible object spreading. `fetchCollection(type, params)` with pagination, facet data parsing, and auto `_facets=extend`. `fetchObject(type, id)` with caching. `saveObject(type, data)` with POST/PUT branching. `deleteObject(type, id)` with collection/cache cleanup. Also provides `deleteObjects(type, ids)` for batch deletes and `resolveReferences(type, ids)` for batch cache-first fetching (not in spec).
+- **REQ-ST-002 (Search and Caching)**: `setSearchTerm`/`clearSearchTerm` manage search terms per type. Schema caching in `fetchSchema()` — returns cached on second call. Facet data cached per type in `facets` state.
+- **REQ-ST-003 (Store Factory)**: `createObjectStore(storeId, options)` creates independent Pinia store instances via `defineObjectStore()`. Supports `options.plugins` and `options.baseUrl`.
+- **REQ-ST-004 (Plugin Architecture)**: `mergePluginState`, `mergePluginGetters`, `mergePluginActions` merge plugin contributions at definition time. `clearAllSubResources()` calls each plugin's clear method.
+- **REQ-ST-005 (Built-In Plugins)**: All five plugins exist in `src/store/plugins/`:
+  - `auditTrailsPlugin` (`auditTrails.js`)
+  - `relationsPlugin` (`relations.js`)
+  - `filesPlugin` (`files.js`)
+  - `lifecyclePlugin` (`lifecycle.js`)
+  - `registerMappingPlugin` (`registerMapping.js`)
+  - Also: `createSubResourcePlugin` factory (`src/store/createSubResourcePlugin.js`) for building custom plugins.
+- **REQ-ST-006 (Error Handling)**: `parseResponseError()` for HTTP errors, `networkError()` for TypeError/network failures, `genericError()` for other exceptions. Loading always set to false in `finally` blocks.
+
+**Additional features not in spec:**
+- `unregisterObjectType(slug)` for cleanup
+- `configure(options)` for custom base URL
+- `deleteObjects(type, ids)` for batch deletes with partial success reporting
+- `resolveReferences(type, ids)` for batch reference resolution
+- `clearError(type)` for manual error clearing
+- Getters: `objectTypes`, `getCollection`, `getObject`, `getCachedObject`, `isLoading`, `getError`, `getPagination`, `getSearchTerm`, `getSchema`, `getFacets`
+- Auto `_facets=extend` when schema has facetable properties
+
+**Exports**: `useObjectStore` (default instance), `createObjectStore` (factory), `createSubResourcePlugin`, `emptyPaginated`, and all five built-in plugins from `src/store/index.js`.
+
+### Standards & References
+
+- Pinia store pattern (Options API style via `defineStore`)
+- Vue 2 reactivity: Uses object spreading (`{ ...state, [key]: value }`) instead of direct property assignment for reactive state updates
+- OpenRegister REST API: `GET/POST/PUT/DELETE /apps/openregister/api/objects/{register}/{schema}[/{id}]`
+- OpenRegister Schema API: `GET /apps/openregister/api/schemas/{schemaId}`
+- Nextcloud request headers via `buildHeaders()` utility
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Yes — the spec covers all major CRUD operations and plugin architecture. Already fully implemented.
+- **Missing/ambiguous:**
+  - REQ-ST-001 shows `registerObjectType` with an object argument `{ schema, register }` but the implementation takes two separate arguments `(slug, schemaId, registerId)`.
+  - REQ-ST-002 does not mention the `_facets=extend` auto-include behavior or facet data parsing.
+  - REQ-ST-005 does not describe the `createSubResourcePlugin` factory or what state/actions each plugin provides.
+  - No mention of `deleteObjects` batch operation, `resolveReferences`, or `unregisterObjectType`.
+  - No mention of `configure()` for custom base URL.
+- **Open questions:**
+  - Should the spec document the `registerObjectType` signature as `(slug, schemaId, registerId)` to match implementation?
+  - Should batch operations (`deleteObjects`, `resolveReferences`) be added to the spec?

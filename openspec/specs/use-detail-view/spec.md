@@ -113,3 +113,39 @@ The existing `useDetailView()` call signature SHALL continue to work. The new `i
 - GIVEN existing code calls `useDetailView()` with no arguments
 - WHEN the enhanced composable is imported
 - THEN the call does not throw and returns the same state refs as before (`editing`, `loading`, `saving`, `showDeleteDialog`, `error`)
+
+---
+
+### Current Implementation Status
+
+**Already implemented — all requirements are fulfilled:**
+
+- **File**: `src/composables/useDetailView.js`
+- **objectStore integration**: Connects to `useObjectStore()` internally. `object` computed ref reads from `objectStore.getObject(objectType, idRef.value)`. Returns `{}` when `isNew`. `loading` computed from `objectStore.loading[objectType]`.
+- **Fetch on mount**: `onMounted(() => fetchIfNeeded(idRef.value))` fetches when id is not `'new'`. `watch(idRef, ...)` re-fetches on id changes. Accepts both ref and plain string for `id` parameter (normalized via `isRef` check).
+- **Save operation**: `onSave(formData)` handles create (no id) and update (with id). On create with `detailRouteName`, navigates via `router.push`. On update, sets `editing = false` and re-fetches. On 422, populates `validationErrors`. `saving` ref managed via try/finally.
+- **Delete operation**: `confirmDelete()` calls `objectStore.deleteObject()`. On success, hides dialog and navigates to `listRouteName`. On failure, sets `error`.
+- **Backward compatibility**: First-arg type check delegates to `useLegacyDetailView()` for object/absent arguments. Legacy API preserved with `objectData`, `load`, `save`, `confirmDelete`, `executeDelete`.
+
+**Return values (new API):** `object`, `loading`, `isNew`, `editing`, `saving`, `showDeleteDialog`, `error`, `validationErrors`, `onSave`, `confirmDelete`
+
+**Additional features not in spec:**
+- Legacy API returns `executeDelete` (separate from `confirmDelete` which just shows dialog)
+- Id parameter accepts Vue refs (auto-watched)
+
+### Standards & References
+
+- Vue 3 Composition API (`ref`, `computed`, `isRef`, `watch`, `onMounted`)
+- Vue Router integration for navigation (`router.push`)
+- HTTP 422 validation error pattern
+
+### Specificity Assessment
+
+- **Specific enough to implement?** Yes — fully implemented with clear scenarios for all operations.
+- **Missing/ambiguous:**
+  - Spec does not mention that `id` can be a Vue ref (implementation handles both).
+  - Spec says `options.router` but does not mention that it is optional and navigation is skipped when absent.
+  - The legacy API return shape differs from new API (`objectData` vs `object`, `load` vs auto-fetch, `executeDelete` vs `confirmDelete`).
+  - No mention of what happens when `objectStore.saveObject` returns `null` (store error path).
+- **Open questions:**
+  - Should `confirmDelete` in the new API also handle the dialog visibility, or should it only perform the delete (current behavior)?
