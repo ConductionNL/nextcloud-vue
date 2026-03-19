@@ -3,7 +3,7 @@
 		<NcActionButton
 			v-for="action in actions"
 			:key="action.label"
-			:disabled="action.disabled"
+			:disabled="isDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
@@ -42,7 +42,7 @@ export default {
 	props: {
 		/**
 		 * Action definitions.
-		 * @type {Array<{label: string, icon?: Component, handler: Function, disabled?: boolean, destructive?: boolean}>}
+		 * @type {Array<{label: string, icon?: Component, handler: Function, disabled?: boolean | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -66,6 +66,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve disabled state for an action — supports both boolean and function.
+		 * @param {object} action - The action definition
+		 * @return {boolean} Whether the action is disabled
+		 */
+		isDisabled(action) {
+			if (typeof action.disabled === 'function') {
+				return action.disabled(this.row)
+			}
+			return !!action.disabled
+		},
 		onAction(action) {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
