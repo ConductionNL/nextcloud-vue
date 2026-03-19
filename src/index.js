@@ -39,6 +39,8 @@ export {
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
+	CnDetailPage,
+	CnDetailCard,
 	registerIcons,
 } from './components/index.js'
 
