@@ -1,5 +1,5 @@
 <template>
-	<NcActions :force-menu="actions.length > 3">
+	<NcActions :force-menu="actions.length > 3" :primary="primary" :menu-name="menuName">
 		<NcActionButton
 			v-for="action in actions"
 			:key="action.label"
@@ -52,6 +52,16 @@ export default {
 		row: {
 			type: Object,
 			default: null,
+		},
+		/** Whether to use primary styling for the action menu trigger */
+		primary: {
+			type: Boolean,
+			default: false,
+		},
+		/** Label shown on the action menu trigger button */
+		menuName: {
+			type: String,
+			default: undefined,
 		},
 	},
 
