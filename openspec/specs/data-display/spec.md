@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Data Display — Components Spec
 
 ## Purpose

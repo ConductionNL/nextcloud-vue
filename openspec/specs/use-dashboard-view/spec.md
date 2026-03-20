@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # useDashboardView Specification
 
 ## Purpose

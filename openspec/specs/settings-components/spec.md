@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Settings Components — Spec
 
 ## Purpose

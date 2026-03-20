@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # CnDashboardPage Specification
 
 ## Purpose
