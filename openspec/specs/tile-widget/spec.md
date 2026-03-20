@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # CnTileWidget Specification
 
 ## Purpose

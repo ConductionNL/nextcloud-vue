@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # integration-guides Specification
 
 ## Purpose

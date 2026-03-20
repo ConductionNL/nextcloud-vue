@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Schema Utilities — Spec
 
 ## Purpose
@@ -429,7 +433,7 @@ The `networkError` and `genericError` factory functions MUST create standardized
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: REQ-SU-A01 — Performance with Large Schemas
 

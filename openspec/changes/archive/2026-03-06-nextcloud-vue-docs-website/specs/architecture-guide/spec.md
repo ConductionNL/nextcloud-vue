@@ -4,7 +4,7 @@
 
 Explains the design philosophy and layered architecture of `@conduction/nextcloud-vue` — how it builds on Nextcloud's own component system to provide higher-level, schema-driven page patterns. This documentation bridges the gap between Nextcloud's developer docs and the actual app development experience.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Architecture Overview Page
 

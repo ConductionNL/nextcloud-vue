@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Data Display — Components Spec
 
 ## Purpose
@@ -654,7 +658,7 @@ All data display components MUST be themeable through Nextcloud CSS variables (w
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: CnDataTable — Scrollable Container Mode
 

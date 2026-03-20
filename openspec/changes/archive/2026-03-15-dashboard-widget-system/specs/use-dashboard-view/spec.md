@@ -6,7 +6,7 @@
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: widget management
 

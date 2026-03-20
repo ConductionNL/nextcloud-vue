@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # useDetailView Specification
 
 ## Purpose

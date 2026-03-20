@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # CnWidgetRenderer Specification
 
 ## Purpose

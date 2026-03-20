@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Composables — Spec
 
 ## Purpose

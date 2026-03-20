@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Dialog System — Components Spec
 
 ## Purpose
