@@ -6,7 +6,7 @@
 -->
 <template>
 	<div class="cn-json-viewer">
-		<div :class="['cn-json-viewer__codemirror', dark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
+		<div :class="['cn-json-viewer__codemirror', isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -15,7 +15,7 @@
 				:readonly="readOnly"
 				:linter="readOnly ? null : jsonLinterExtension"
 				:lang="jsonLangExtension"
-				:extensions="[jsonLangExtension, oneDark]"
+				:extensions="[jsonLangExtension, theme]"
 				:tab-size="2"
 				:style="{ height }" />
 			<NcButton
@@ -36,7 +36,7 @@
 <script>
 import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
-import { oneDark } from '@codemirror/theme-one-dark'
+import { githubLight, githubDark } from '@uiw/codemirror-theme-github'
 import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { getTheme } from '../../utils/getTheme.js'
 
@@ -73,7 +73,8 @@ export default {
 		return {
 			jsonLangExtension: jsonLang(),
 			jsonLinterExtension: jsonLinter(),
-			oneDark,
+			githubLight,
+			githubDark,
 		}
 	},
 
@@ -84,6 +85,9 @@ export default {
 		},
 		isDark: {
 			get() { return getTheme() === 'dark' },
+		},
+		theme: {
+			get() { return this.isDark ? githubDark : githubLight },
 		},
 	},
 
@@ -160,6 +164,32 @@ export default {
 /* Text cursor */
 .cn-json-viewer__codemirror :deep(.cm-content) * {
 	cursor: text !important;
+}
+
+/* PATCH SELECTION COLOR - default selection system does not work */
+/* Selection background — CodeMirror uses .cm-selectionBackground instead of ::selection */
+.cn-json-viewer__codemirror--light :deep(.cm-selectionBackground) {
+	background: #3390ff !important;
+}
+
+.cn-json-viewer__codemirror--light :deep(.cm-selectionBackground) + .cm-selectionBackground,
+.cn-json-viewer__codemirror--light :deep(.cm-line ::selection) {
+	color: white !important;
+}
+
+.cn-json-viewer__codemirror--dark :deep(.cm-selectionBackground) {
+	background: #3390ff !important;
+}
+
+/* Selected text color */
+.cn-json-viewer__codemirror--light :deep(.cm-content ::selection) {
+	background: #3390ff !important;
+	color: white !important;
+}
+
+.cn-json-viewer__codemirror--dark :deep(.cm-content ::selection) {
+	background: #3390ff !important;
+	color: white !important;
 }
 
 .cn-json-viewer__format-btn {
