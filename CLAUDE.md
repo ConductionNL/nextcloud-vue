@@ -38,7 +38,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 **Single-Object Dialogs** (emit-based, two-phase confirm → result)
 - `CnDeleteDialog` — Single-item delete confirmation
 - `CnCopyDialog` — Single-item copy with naming pattern selector
-- `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports slot overrides)
+- `CnFormDialog` — Schema-driven create/edit form dialog (auto-generates fields, supports async select via `enum` function, per-field option slot overrides)
 - `CnAdvancedFormDialog` — Richer create/edit dialog with properties table (click-to-edit), Data (JSON) tab with CodeMirror, optional Metadata tab; optional useObjectStore integration; fixed large size
 - `CnSchemaFormDialog` — Full-featured JSON Schema editor dialog with Properties (sortable table, inline editing), Configuration (composition, field mappings), and Security (RBAC) tabs. Accepts external data as props (availableSchemas, availableRegisters, userGroups, availableTags). Optional action buttons (extend, analyze, validate, delete objects, publish, delete) controlled via boolean props that emit events.
 
@@ -101,6 +101,7 @@ CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **o
    - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog (use CnFormDialog or CnAdvancedFormDialog)
 2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
 3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
+4. **Per-field option rendering** — `#field-{key}-option` and `#field-{key}-selected-option` customize dropdown option display for select/multiselect/tags fields
 
 Key events emitted by CnIndexPage:
 - `@create(formData)` — Form dialog create confirmed
