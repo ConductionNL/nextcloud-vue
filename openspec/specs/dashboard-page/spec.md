@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # CnDashboardPage Specification
 
 ## Purpose

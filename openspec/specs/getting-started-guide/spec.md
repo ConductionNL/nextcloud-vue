@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # getting-started-guide Specification
 
 ## Purpose

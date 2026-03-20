@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Layout Components — Spec
 
 ## Purpose
@@ -95,7 +99,7 @@ CnIndexSidebar MUST provide a sidebar with search, faceted filters, and column v
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### REQ-LC-004: CnPageHeader — Icon Slot Override and Sizing
 

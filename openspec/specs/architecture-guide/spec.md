@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # architecture-guide Specification
 
 ## Purpose

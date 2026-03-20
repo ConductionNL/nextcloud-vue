@@ -4,7 +4,7 @@
 
 Provides a set of reusable, self-contained widget components for displaying data in grid-based layouts (dashboards and detail pages). Replaces copy-pasted KPI cards, info grids, relation tables, and status charts across all Conduction apps.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: CnKpiWidget renders a KPI card
 

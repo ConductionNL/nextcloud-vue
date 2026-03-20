@@ -4,7 +4,7 @@
 
 Provides a quick-start guide for building a new Nextcloud app using `@conduction/nextcloud-vue`. Walks developers through the minimum steps to go from zero to a working app with a list page, detail view, and sidebar navigation.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Getting Started Page
 

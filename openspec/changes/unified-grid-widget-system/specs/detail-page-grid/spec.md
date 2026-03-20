@@ -4,7 +4,7 @@
 
 Extends `CnDetailPage` with optional grid layout mode, allowing detail pages to arrange content widgets in a 12-column CSS grid instead of vertical stacking. Uses the same grid engine as `CnDashboardPage` for visual and API consistency.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: CnDetailPage supports optional grid layout
 
