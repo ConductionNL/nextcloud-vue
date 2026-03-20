@@ -42,6 +42,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
@@ -170,6 +171,23 @@ Set `store` and `objectType` to have the form dialog save directly to the store.
 ```
 
 No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
+
+### Custom item names in dialogs
+
+When items don't have a simple name field (like audit trails that only have an ID), use `nameFormatter` to control how items are displayed in delete and copy dialogs:
+
+```vue
+<CnIndexPage
+  title="Audit Trails"
+  :objects="auditTrails"
+  :columns="columns"
+  :pagination="pagination"
+  :name-formatter="(item) => t('openregister', 'Audit Trail #{id}', { id: item.id })"
+  @delete="onDelete"
+  @refresh="onRefresh" />
+```
+
+This formatter is passed through to `CnDeleteDialog`, `CnMassDeleteDialog`, `CnCopyDialog`, and `CnMassCopyDialog`. It takes precedence over `massActionNameField`.
 
 ### Read-only listing
 
