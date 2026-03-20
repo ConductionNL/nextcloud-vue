@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # getting-started-guide Specification
 
 ## Purpose

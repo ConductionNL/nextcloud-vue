@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # docs-site-infrastructure Specification
 
 ## Purpose

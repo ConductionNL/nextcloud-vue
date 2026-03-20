@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # CnWidgetWrapper Specification
 
 ## Purpose

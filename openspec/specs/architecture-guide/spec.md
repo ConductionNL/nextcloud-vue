@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # architecture-guide Specification
 
 ## Purpose

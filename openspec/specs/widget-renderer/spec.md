@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # CnWidgetRenderer Specification
 
 ## Purpose

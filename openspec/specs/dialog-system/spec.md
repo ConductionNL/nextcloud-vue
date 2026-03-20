@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Dialog System — Components Spec
 
 ## Purpose

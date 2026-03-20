@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Store — Spec
 
 ## Purpose

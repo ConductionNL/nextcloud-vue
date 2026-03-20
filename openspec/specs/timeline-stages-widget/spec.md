@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Timeline Stages Widget Specification
 
 ## Purpose

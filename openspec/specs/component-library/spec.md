@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Component Library — Core Conventions
 
 ## Purpose

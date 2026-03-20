@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # component-reference Specification
 
 ## Purpose

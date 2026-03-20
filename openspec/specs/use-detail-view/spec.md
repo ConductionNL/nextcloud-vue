@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # useDetailView Specification
 
 ## Purpose

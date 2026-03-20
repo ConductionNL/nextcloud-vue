@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # integration-guides Specification
 
 ## Purpose
