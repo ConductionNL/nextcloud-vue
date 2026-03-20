@@ -81,6 +81,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `#below-header` | — | Content rendered between the page header and the actions bar (e.g. status banners, alerts) |
 | `#mass-actions` | `\{ count, selectedIds \}` | Extra mass action buttons |
 | `#action-items` | — | Extra action bar buttons |
 | `#header-actions` | — | Extra header buttons |
@@ -88,6 +89,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
 | `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog (any variant) |
 | `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
+| `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select field (forwarded to NcSelect `#option`) |
+| `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select field (forwarded to NcSelect `#selected-option`) |
 | `#import-fields` | `\{ file \}` | Extra import dialog fields |
 | `#empty` | — | Custom empty state |
 | `#card` | `\{ object, selected \}` | Custom card template (cards view) |

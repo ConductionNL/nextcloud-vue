@@ -39,23 +39,26 @@
 				{{ addLabel }}
 			</NcButton>
 
+			<slot name="header-actions" />
+
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
 				:inline="0"
 				menu-name="Actions">
-				<NcActionButton @click="$emit('refresh')">
+				<NcActionButton :disabled="refreshing" @click="$emit('refresh')">
 					<template #icon>
-						<Refresh :size="20" />
+						<NcLoadingIcon v-if="refreshing" :size="20" />
+						<Refresh v-else :size="20" />
 					</template>
-					Refresh
+					{{ refreshing ? 'Refreshing...' : 'Refresh' }}
 				</NcActionButton>
 
 				<!-- Custom primary action items (overflow) -->
 				<slot name="action-items" />
 
 				<!-- Separator between primary and mass actions -->
-				<NcActionSeparator v-if="selectable" />
+				<NcActionSeparator v-if="hasMassActions" />
 
 				<!-- Mass actions (overflow) -->
 				<NcActionButton
@@ -98,14 +101,12 @@
 				<!-- Custom mass actions (overflow) -->
 				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
 			</NcActions>
-
-			<slot name="header-actions" />
 		</div>
 	</div>
 </template>
 
 <script>
-import { NcActions, NcActionButton, NcActionSeparator, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcActions, NcActionButton, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -135,6 +136,7 @@ export default {
 		NcActionSeparator,
 		NcButton,
 		NcCheckboxRadioSwitch,
+		NcLoadingIcon,
 		CnIcon,
 		Plus,
 		Refresh,
@@ -211,12 +213,20 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	computed: {
 		countText() {
 			if (!this.pagination) return ''
 			return `Showing ${this.objectCount} of ${this.pagination.total}`
+		},
+		hasMassActions() {
+			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
 	},
 }

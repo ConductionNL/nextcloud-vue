@@ -10,6 +10,10 @@
 	padding: calc(5 * var(--default-grid-baseline));
 }
 
+.cn-index-page__below-header {
+    margin-bottom: calc(4 * var(--default-grid-baseline));
+}
+
 /* Body layout */
 .cn-index-page__body {
 	display: flex;

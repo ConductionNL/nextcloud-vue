@@ -1,6 +1,6 @@
 {
 	"name": "@conduction/nextcloud-vue",
-	"version": "0.1.0-beta.3",
+	"version": "0.1.0-beta.4",
 	"description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
 	"license": "EUPL-1.2",
 	"author": "Conduction B.V. <info@conduction.nl>",
@@ -39,7 +39,8 @@
 		"bootstrap-vue": "^2.23.1",
 		"pinia": "^2.0.0",
 		"vue": "^2.7.0",
-		"vue-material-design-icons": "^5.0.0"
+		"vue-material-design-icons": "^5.0.0",
+		"vue-frag": "^1.4.3"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",
