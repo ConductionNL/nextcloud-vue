@@ -27,6 +27,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
 
 **Data Display**
+- `CnDetailGrid` — Data-driven label-value grid with grid and horizontal layout modes
 - `CnDataTable` — Sortable data table with selection, loading, empty states
 - `CnCardGrid` — Grid of object cards
 - `CnObjectCard` — Single object card
@@ -48,12 +49,16 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnMassExportDialog` — Bulk export with format selection
 - `CnMassImportDialog` — Bulk import with file upload
 
+**Data Viewers**
+- `CnJsonViewer` — Syntax-highlighted JSON viewer/editor with CodeMirror (supports readOnly mode)
+
 **UI Elements**
 - `CnStatusBadge` — Color-coded status/priority pill badge
 - `CnRowActions` — Row action buttons (inline + overflow dropdown)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
 - `CnKpiGrid` — KPI metric cards grid
+- `CnStatsPanel` — Data-driven statistics panel (sections of stat blocks and list items)
 - `CnIndexSidebar` — Index page sidebar
 
 **Dashboard**

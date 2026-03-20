@@ -40,19 +40,140 @@ Use the getters `getTags`, `isTagsLoading`, and `getTagsError` to read tags stat
 
 ## auditTrailsPlugin
 
-Adds change history (audit trail) support.
+Adds audit trail support at two scopes: **object-scoped** (audit trails for a single object)
+and **global** (all audit trails across the system, with statistics, filtering, and delete).
 
-### Methods Added
+### Usage
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `fetchAuditTrails` | `(type, objectId)` | Fetch audit trail entries |
+```js
+import { createObjectStore, auditTrailsPlugin } from '@conduction/nextcloud-vue'
+
+const useMyStore = createObjectStore('myapp', {
+  plugins: [auditTrailsPlugin()],
+})
+
+const store = useMyStore()
+
+// ── Object-scoped: audit trails for a specific object ──
+await store.fetchAuditTrails('case', caseId)
+console.log(store.auditTrails.results)
+
+// ── Global: all audit trails ──
+await store.fetchGlobalAuditTrails({ _limit: 50, _page: 1 })
+console.log(store.globalAuditTrails.results)
+console.log(store.globalAuditTrails.total)
+
+// Statistics
+const stats = await store.fetchAuditTrailStatistics()
+console.log(stats) // { total: 120, create: 40, update: 50, delete: 20, read: 10 }
+
+// Filters (audit trail-specific, does not conflict with other plugin state)
+store.setAuditTrailFilters({ action: 'create', register: '1' })
+console.log(store.auditTrailFilters)
+
+// Detail item (for modals)
+store.setAuditTrailItem(someAuditTrail)
+console.log(store.auditTrailItem)
+
+// Delete
+await store.deleteGlobalAuditTrail(id)
+await store.deleteMultipleGlobalAuditTrails([id1, id2])
+
+// Refresh with current pagination
+await store.refreshGlobalAuditTrails()
+
+// Clear everything
+store.clearAuditTrails()
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `limit` | `number` | `20` | Default page size for object-scoped queries |
+| `globalLimit` | `number` | `50` | Default page size for global queries |
 
 ### State Added
 
+**Object-scoped** (from `createSubResourcePlugin`):
+
 | Property | Type | Description |
 |----------|------|-------------|
-| `auditTrails` | Array | Audit trail entries `[\{ timestamp, user, action, changes \}]` |
+| `auditTrails` | `{ results, total, page, pages, limit, offset }` | Paginated audit trails for a specific object |
+| `auditTrailsLoading` | `boolean` | Loading state for object-scoped fetch |
+| `auditTrailsError` | `ApiError \| null` | Error from object-scoped fetch |
+
+**Global**:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `globalAuditTrails` | `{ results, total, page, pages, limit, offset }` | Paginated audit trails from the global endpoint |
+| `globalAuditTrailsLoading` | `boolean` | Loading state for global operations |
+| `globalAuditTrailsError` | `ApiError \| null` | Error from global operations |
+| `auditTrailStatistics` | `{ total, create, update, delete, read }` | Action count statistics |
+| `auditTrailStatisticsLoading` | `boolean` | Loading state for statistics |
+| `auditTrailStatisticsError` | `ApiError \| null` | Error from statistics fetch |
+| `auditTrailItem` | `object \| null` | Currently selected audit trail (for detail/modal views) |
+| `auditTrailFilters` | `object` | Active filter key-value pairs |
+| `auditTrailSearch` | `string` | Active search term |
+
+### Getters Added
+
+| Getter | Returns | Description |
+|--------|---------|-------------|
+| `getAuditTrails` | `{ results, total, ... }` | Object-scoped paginated state |
+| `isAuditTrailsLoading` | `boolean` | Object-scoped loading state |
+| `getAuditTrailsError` | `ApiError \| null` | Object-scoped error |
+| `getGlobalAuditTrails` | `{ results, total, ... }` | Global paginated state |
+| `isGlobalAuditTrailsLoading` | `boolean` | Global loading state |
+| `getGlobalAuditTrailsError` | `ApiError \| null` | Global error |
+| `getAuditTrailStatistics` | `{ total, create, ... }` | Statistics |
+| `isAuditTrailStatisticsLoading` | `boolean` | Statistics loading state |
+| `getAuditTrailStatisticsError` | `ApiError \| null` | Statistics error |
+| `getAuditTrailItem` | `object \| null` | Selected audit trail item |
+| `getAuditTrailFilters` | `object` | Active filters |
+| `getAuditTrailSearch` | `string` | Active search term |
+
+### Actions Added
+
+**Object-scoped**:
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `fetchAuditTrails` | `(type, objectId, params?) => Promise<Array>` | Fetch audit trails for a specific object |
+| `clearAuditTrails` | `() => void` | Clear all audit trail state (both object-scoped and global) |
+
+**Global fetch & refresh**:
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `fetchGlobalAuditTrails` | `(params?) => Promise<Array>` | Fetch from the global `/audit-trails` endpoint. Params: `_limit`, `_page`, `_search`, `_order`, plus any filter keys |
+| `refreshGlobalAuditTrails` | `() => Promise<Array>` | Re-fetch with current `globalAuditTrails.limit` and `globalAuditTrails.page` |
+| `fetchAuditTrailStatistics` | `() => Promise<object>` | Fetch from `/audit-trails/statistics` |
+
+**Global delete**:
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `deleteGlobalAuditTrail` | `(id) => Promise<boolean>` | Delete a single audit trail. Removes it from `globalAuditTrails.results` on success |
+| `deleteMultipleGlobalAuditTrails` | `(ids) => Promise<boolean>` | Bulk delete. Removes matching items from `globalAuditTrails.results` on success |
+
+**Item & filters**:
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `setAuditTrailItem` | `(item) => void` | Set the active audit trail item (for detail views). Pass `null` to clear |
+| `setAuditTrailFilters` | `(filters) => void` | Merge filter key-value pairs into `auditTrailFilters` |
+| `setAuditTrailSearch` | `(search) => void` | Set the audit trail search term |
+| `clearAuditTrailFilters` | `() => void` | Reset `auditTrailFilters` to `{}` and `auditTrailSearch` to `''` |
+| `clearGlobalAuditTrails` | `() => void` | Reset all global state (results, statistics, item, filters) to defaults |
+
+### Notes
+
+- The global endpoint URL is derived from the store's `baseUrl` by replacing `/objects` with `/audit-trails` (e.g. `/apps/openregister/api/objects` becomes `/apps/openregister/api/audit-trails`).
+- `auditTrailFilters` and `auditTrailSearch` are audit trail-specific state — they do not conflict with other plugin or store filter state.
+- `clearAuditTrails()` clears both object-scoped and global state, ensuring `clearAllSubResources()` works correctly.
+- Client-side analytics (action distribution, top objects) are not included — compute these in the consuming component from `globalAuditTrails.results`.
 
 ## relationsPlugin
 
