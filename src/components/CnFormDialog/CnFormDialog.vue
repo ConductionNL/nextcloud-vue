@@ -524,16 +524,18 @@ export default {
 
 		getEnumOptions(field) {
 			if (!field.enum) return []
+			const labels = field.enumLabels || {}
 			return field.enum.map((val) => ({
 				id: val,
-				label: String(val),
+				label: labels[val] || String(val),
 			}))
 		},
 
 		getSelectedEnumOption(field) {
 			const val = this.formData[field.key]
 			if (val === null || val === undefined) return null
-			return { id: val, label: String(val) }
+			const labels = field.enumLabels || {}
+			return { id: val, label: labels[val] || String(val) }
 		},
 
 		onSelectChange(key, option) {
