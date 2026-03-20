@@ -31,7 +31,7 @@
 			</div>
 
 			<!-- Add button (primary) -->
-			<NcButton type="primary" @click="$emit('add')">
+			<NcButton v-if="showAdd" type="primary" @click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
 					<Plus v-else :size="20" />
@@ -217,6 +217,11 @@ export default {
 		refreshing: {
 			type: Boolean,
 			default: false,
+		},
+		/** Whether to show the Add button */
+		showAdd: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
