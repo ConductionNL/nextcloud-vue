@@ -56,6 +56,7 @@ export const gridLayout = {
 		 * @returns {Array} Sorted copy of the layout array.
 		 */
 		sortedLayout() {
+			if (!this.layout) return []
 			return [...this.layout].sort((a, b) => {
 				if (a.gridY !== b.gridY) {
 					return a.gridY - b.gridY
@@ -70,7 +71,7 @@ export const gridLayout = {
 		 * @returns {boolean}
 		 */
 		hasGridLayout() {
-			return this.layout && this.layout.length > 0
+			return Array.isArray(this.layout) && this.layout.length > 0
 		},
 	},
 
