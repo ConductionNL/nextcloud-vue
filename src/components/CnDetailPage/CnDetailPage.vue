@@ -8,6 +8,7 @@
   Features:
   - Header with back button, title, subtitle, and action buttons
   - Card-based content area (via default slot with CnDetailCard components)
+  - Optional 12-column CSS grid layout mode (via layout + widgets props)
   - Optional right sidebar (CnObjectSidebar) for files, notes, tags, tasks, audit trail
   - Loading and error states
   - Edit mode toggle
@@ -58,8 +59,29 @@
 
 		<!-- Content + Sidebar layout -->
 		<div v-else class="cn-detail-page__body">
-			<!-- Main content area with cards -->
-			<div class="cn-detail-page__content">
+			<!-- Grid layout mode -->
+			<div v-if="hasGridLayout" class="cn-detail-page__content cn-detail-page__content--grid">
+				<section
+					v-for="item in sortedLayout"
+					:key="item.id"
+					:style="widgetGridStyle(item)"
+					class="cn-detail-page__grid-item"
+					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+					<h3
+						v-if="item.showTitle !== false && findWidget(item)"
+						:id="`widget-title-${item.id}`"
+						class="cn-detail-page__widget-title">
+						{{ findWidget(item).title }}
+					</h3>
+					<slot
+						:name="`widget-${item.widgetId}`"
+						:item="item"
+						:widget="findWidget(item)" />
+				</section>
+			</div>
+
+			<!-- Default vertical stacking mode -->
+			<div v-else class="cn-detail-page__content">
 				<slot />
 			</div>
 
@@ -97,11 +119,17 @@ import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
 import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import { gridLayout } from '../../mixins/gridLayout.js'
 
 /**
  * CnDetailPage — Top-level detail page with card-based layout and optional sidebar.
  *
- * @example Basic usage
+ * Supports two layout modes:
+ * 1. **Default (vertical stacking):** Content provided via default slot, cards stack vertically.
+ * 2. **Grid layout:** When `layout` and `widgets` props are provided, content renders in a
+ *    12-column CSS grid with `#widget-{widgetId}` scoped slots. Same API as CnDashboardPage.
+ *
+ * @example Basic usage (vertical stacking)
  * <CnDetailPage
  *   title="Digital Citizen Portal"
  *   subtitle="Lead"
@@ -124,11 +152,23 @@ import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
  *   </CnDetailCard>
  * </CnDetailPage>
  *
- * @example Without sidebar
- * <CnDetailPage title="Settings" :sidebar="false">
- *   <CnDetailCard title="General">
- *     <SettingsForm />
- *   </CnDetailCard>
+ * @example Grid layout mode
+ * <CnDetailPage
+ *   title="Character Detail"
+ *   :layout="[
+ *     { id: 1, widgetId: 'info', gridX: 0, gridY: 0, gridWidth: 8 },
+ *     { id: 2, widgetId: 'stats', gridX: 8, gridY: 0, gridWidth: 4 },
+ *   ]"
+ *   :widgets="[
+ *     { id: 'info', title: 'Character Info' },
+ *     { id: 'stats', title: 'Statistics' },
+ *   ]">
+ *   <template #widget-info="{ item, widget }">
+ *     <CharacterInfoCard :character="character" />
+ *   </template>
+ *   <template #widget-stats="{ item, widget }">
+ *     <StatsCard :stats="character.stats" />
+ *   </template>
  * </CnDetailPage>
  */
 export default {
@@ -143,6 +183,8 @@ export default {
 		InformationOutline,
 		CnObjectSidebar,
 	},
+
+	mixins: [gridLayout],
 
 	props: {
 		/** Page title (entity name or identifier) */
@@ -281,6 +323,24 @@ export default {
 	gap: 16px;
 }
 
+/* Grid layout mode */
+.cn-detail-page__content--grid {
+	display: grid;
+	grid-template-columns: repeat(12, 1fr);
+	gap: 16px;
+}
+
+.cn-detail-page__grid-item {
+	min-width: 0;
+}
+
+.cn-detail-page__widget-title {
+	margin: 0 0 8px 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
 .cn-detail-page__sidebar {
 	width: 340px;
 	flex-shrink: 0;
@@ -304,6 +364,18 @@ export default {
 	.cn-detail-page__sidebar {
 		width: 100%;
 		position: static;
+	}
+}
+
+/* Responsive: single column grid below 600px */
+@media (max-width: 600px) {
+	.cn-detail-page__content--grid {
+		grid-template-columns: 1fr;
+	}
+
+	.cn-detail-page__content--grid .cn-detail-page__grid-item {
+		grid-column: 1 / -1 !important;
+		grid-row: auto !important;
 	}
 }
 </style>
