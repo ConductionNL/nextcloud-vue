@@ -72,6 +72,8 @@
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}">
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />

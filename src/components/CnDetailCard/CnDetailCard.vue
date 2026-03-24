@@ -38,7 +38,7 @@
 		</div>
 
 		<!-- Content -->
-		<div v-show="!isCollapsed" class="cn-detail-card__content">
+		<div v-show="!isCollapsed" class="cn-detail-card__content" :class="{ 'cn-detail-card__content--flush': flush }">
 			<slot />
 		</div>
 
@@ -98,6 +98,13 @@ export default {
 		},
 		/** Initial collapsed state (only relevant when collapsible is true) */
 		collapsed: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Remove content padding — allows tables and lists to go edge-to-edge.
+		 */
+		flush: {
 			type: Boolean,
 			default: false,
 		},
@@ -205,6 +212,10 @@ export default {
 
 .cn-detail-card__content {
 	padding: 16px;
+}
+
+.cn-detail-card__content--flush {
+	padding: 0;
 }
 
 .cn-detail-card__footer {

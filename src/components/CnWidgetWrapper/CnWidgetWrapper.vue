@@ -6,7 +6,13 @@
   backgrounds, and padding.
 -->
 <template>
-	<div class="cn-widget-wrapper" :style="wrapperStyles">
+	<div
+		class="cn-widget-wrapper"
+		:class="{
+			'cn-widget-wrapper--borderless': borderless,
+			'cn-widget-wrapper--flush': flush,
+		}"
+		:style="wrapperStyles">
 		<!-- Header -->
 		<div v-if="showTitle" class="cn-widget-wrapper__header">
 			<div class="cn-widget-wrapper__header-left">
@@ -80,6 +86,22 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Remove border and background — makes the wrapper transparent.
+		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Remove content padding — allows content to go edge-to-edge.
+		 * Useful for list-style widgets where items should span the full width.
+		 */
+		flush: {
+			type: Boolean,
+			default: false,
+		},
 		/** Icon URL (image) */
 		iconUrl: {
 			type: String,
@@ -144,6 +166,19 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	overflow: hidden;
+}
+
+.cn-widget-wrapper--borderless {
+	border: none;
+	background: transparent;
+}
+
+.cn-widget-wrapper--borderless .cn-widget-wrapper__content {
+	padding: 0;
+}
+
+.cn-widget-wrapper--flush .cn-widget-wrapper__content {
+	padding: 0;
 }
 
 .cn-widget-wrapper__header {
