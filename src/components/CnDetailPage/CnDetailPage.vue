@@ -63,8 +63,8 @@
 				<slot />
 			</div>
 
-			<!-- Right sidebar -->
-			<div v-if="sidebar && sidebarOpen" class="cn-detail-page__sidebar">
+			<!-- Right sidebar (inline fallback when no external sidebar) -->
+			<div v-if="sidebar && sidebarOpen && !hasExternalSidebar" class="cn-detail-page__sidebar">
 				<slot name="sidebar">
 					<CnObjectSidebar
 						v-if="objectType && objectId"
@@ -77,9 +77,9 @@
 			</div>
 		</div>
 
-		<!-- Sidebar toggle button (when sidebar is closed) -->
+		<!-- Sidebar toggle button (inline fallback only) -->
 		<NcButton
-			v-if="sidebar && !sidebarOpen && !loading && !error"
+			v-if="sidebar && !sidebarOpen && !hasExternalSidebar && !loading && !error"
 			class="cn-detail-page__sidebar-toggle"
 			type="tertiary"
 			:aria-label="'Open sidebar'"
@@ -142,6 +142,10 @@ export default {
 		AlertCircle,
 		InformationOutline,
 		CnObjectSidebar,
+	},
+
+	inject: {
+		objectSidebarState: { default: null },
 	},
 
 	props: {
@@ -208,6 +212,57 @@ export default {
 		return {
 			sidebarOpen: true,
 		}
+	},
+
+	computed: {
+		/**
+		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
+		 * rather than inline. When external, CnDetailPage only manages state —
+		 * the parent App renders the actual NcAppSidebar.
+		 */
+		hasExternalSidebar() {
+			return !!this.objectSidebarState
+		},
+	},
+
+	watch: {
+		sidebar: {
+			immediate: true,
+			handler() { this.syncSidebarState() },
+		},
+		title() { this.syncSidebarState() },
+		subtitle() { this.syncSidebarState() },
+		objectType() { this.syncSidebarState() },
+		objectId() { this.syncSidebarState() },
+		sidebarProps: {
+			deep: true,
+			handler() { this.syncSidebarState() },
+		},
+	},
+
+	beforeDestroy() {
+		if (this.hasExternalSidebar) {
+			this.objectSidebarState.active = false
+		}
+	},
+
+	methods: {
+		syncSidebarState() {
+			if (!this.hasExternalSidebar) return
+			if (this.sidebar && this.objectType && this.objectId) {
+				this.objectSidebarState.active = true
+				this.objectSidebarState.open = this.sidebarOpen
+				this.objectSidebarState.objectType = this.objectType
+				this.objectSidebarState.objectId = this.objectId
+				this.objectSidebarState.title = this.sidebarProps.title || this.title || ''
+				this.objectSidebarState.subtitle = this.sidebarProps.subtitle || this.subtitle || ''
+				this.objectSidebarState.register = this.sidebarProps.register || ''
+				this.objectSidebarState.schema = this.sidebarProps.schema || ''
+				this.objectSidebarState.hiddenTabs = this.sidebarProps.hiddenTabs || []
+			} else {
+				this.objectSidebarState.active = false
+			}
+		},
 	},
 }
 </script>
