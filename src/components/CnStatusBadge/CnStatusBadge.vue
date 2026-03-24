@@ -47,6 +47,14 @@ export default {
 			validator: (v) => ['small', 'medium'].includes(v),
 		},
 		/**
+		 * Use solid background with white text instead of light background with colored text.
+		 * Useful when the badge is placed on a colored background (e.g., an active card).
+		 */
+		solid: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Map of label values to variants. When provided, the variant is resolved
 		 * from this map using the label (case-insensitive). Falls back to the variant prop.
 		 * @example { open: 'success', closed: 'default', overdue: 'error' }
@@ -70,6 +78,7 @@ export default {
 			return {
 				['cn-status-badge--' + this.resolvedVariant]: true,
 				'cn-status-badge--small': this.size === 'small',
+				'cn-status-badge--solid': this.solid,
 			}
 		},
 	},
