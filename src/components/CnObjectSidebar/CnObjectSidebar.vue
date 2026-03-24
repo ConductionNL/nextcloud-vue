@@ -517,7 +517,7 @@ export default {
 			}
 
 			try {
-				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files`
+				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/filesMultipart`
 				await fetch(url, {
 					method: 'POST',
 					headers: {
