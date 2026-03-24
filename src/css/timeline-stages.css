@@ -1,0 +1,218 @@
+/* =============================================
+   CnTimelineStages — Timeline / progress stages
+   ============================================= */
+
+/* ---------- Root container ---------- */
+.cn-timeline-stages {
+	display: flex;
+	align-items: flex-start;
+	gap: calc(var(--default-grid-baseline, 4px) * 2);
+	width: 100%;
+}
+
+/* Horizontal: left-to-right, scrollable overflow */
+.cn-timeline-stages--horizontal {
+	flex-direction: row;
+	overflow-x: auto;
+	padding-bottom: calc(var(--default-grid-baseline, 4px) * 1);
+}
+
+/* Vertical: top-to-bottom */
+.cn-timeline-stages--vertical {
+	flex-direction: column;
+}
+
+/* ---------- Stage node ---------- */
+.cn-timeline-stages__stage {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	position: relative;
+	flex: 1 1 0;
+	min-width: calc(var(--default-grid-baseline, 4px) * 20); /* 80px */
+	text-align: center;
+	padding: calc(var(--default-grid-baseline, 4px) * 1);
+	border-radius: var(--border-radius-large, 10px);
+	transition: background-color 0.15s ease;
+}
+
+/* Vertical stages: row layout */
+.cn-timeline-stages--vertical .cn-timeline-stages__stage {
+	flex-direction: row;
+	align-items: flex-start;
+	text-align: left;
+	min-width: 0;
+	gap: calc(var(--default-grid-baseline, 4px) * 2);
+}
+
+/* ---------- Track line (horizontal) ---------- */
+.cn-timeline-stages--horizontal .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+	content: '';
+	position: absolute;
+	top: 16px; /* half of 32px indicator */
+	right: calc(50% + 16px + 4px);
+	left: calc(-50% + 16px + 4px);
+	height: 2px;
+	background-color: var(--color-border, #ededed);
+	z-index: 0;
+}
+
+/* Completed + current track segments: filled */
+.cn-timeline-stages--horizontal .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage::before,
+.cn-timeline-stages--horizontal .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage--current::before {
+	background-color: var(--color-success, #46ba61);
+}
+
+/* ---------- Track line (vertical) ---------- */
+.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+	content: '';
+	position: absolute;
+	left: 15px; /* center of 32px indicator (minus half of line width) */
+	top: calc(-1 * var(--default-grid-baseline, 4px) * 2);
+	bottom: calc(100% - var(--default-grid-baseline, 4px));
+	width: 2px;
+	background-color: var(--color-border, #ededed);
+	z-index: 0;
+}
+
+/* Completed + current track segments: filled (vertical) */
+.cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage::before,
+.cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage--current::before {
+	background-color: var(--color-success, #46ba61);
+}
+
+/* ---------- Indicator (circle) ---------- */
+.cn-timeline-stages__indicator {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	position: relative;
+	z-index: 1;
+	border: 2px solid var(--color-border, #ededed);
+	background-color: var(--color-main-background, #fff);
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Completed indicator: success green with white icon */
+.cn-timeline-stages__stage--completed .cn-timeline-stages__indicator {
+	background-color: var(--color-success, #46ba61);
+	border-color: var(--color-success, #46ba61);
+	color: var(--color-primary-element-text, #fff);
+}
+
+/* Current indicator: primary blue */
+.cn-timeline-stages__stage--current .cn-timeline-stages__indicator {
+	background-color: var(--color-primary-element, #0082c9);
+	border-color: var(--color-primary-element, #0082c9);
+	color: var(--color-primary-element-text, #fff);
+}
+
+/* ---------- Checkmark SVG ---------- */
+.cn-timeline-stages__checkmark {
+	width: 16px;
+	height: 16px;
+}
+
+/* ---------- Current dot ---------- */
+.cn-timeline-stages__dot {
+	display: block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background-color: currentColor;
+}
+
+/* ---------- Label ---------- */
+.cn-timeline-stages__label {
+	display: block;
+	margin-top: calc(var(--default-grid-baseline, 4px) * 1);
+	font-size: 0.9em;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast, #767676);
+	word-break: break-word;
+}
+
+/* Vertical: label has no top margin */
+.cn-timeline-stages--vertical .cn-timeline-stages__label {
+	margin-top: calc(var(--default-grid-baseline, 4px) * 1);
+}
+
+/* Completed stage label */
+.cn-timeline-stages__stage--completed .cn-timeline-stages__label {
+	color: var(--color-main-text, #222);
+}
+
+/* Current stage label: bold and prominent */
+.cn-timeline-stages__stage--current .cn-timeline-stages__label {
+	color: var(--color-main-text, #222);
+	font-weight: bold;
+}
+
+/* ---------- Subtitle ---------- */
+.cn-timeline-stages__subtitle {
+	display: block;
+	font-size: 0.8em;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast, #767676);
+	margin-top: 2px;
+}
+
+/* ---------- Small size variant ---------- */
+.cn-timeline-stages--small .cn-timeline-stages__indicator {
+	width: 20px;
+	height: 20px;
+}
+
+.cn-timeline-stages--small .cn-timeline-stages__checkmark {
+	width: 12px;
+	height: 12px;
+}
+
+.cn-timeline-stages--small .cn-timeline-stages__dot {
+	width: 6px;
+	height: 6px;
+}
+
+.cn-timeline-stages--small .cn-timeline-stages__label {
+	font-size: 0.85em;
+}
+
+.cn-timeline-stages--small .cn-timeline-stages__stage {
+	min-width: calc(var(--default-grid-baseline, 4px) * 14); /* 56px */
+}
+
+/* Small horizontal track line offset */
+.cn-timeline-stages--small.cn-timeline-stages--horizontal .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+	top: 10px; /* half of 20px */
+	right: calc(50% + 10px + 4px);
+	left: calc(-50% + 10px + 4px);
+}
+
+/* Small vertical track line offset */
+.cn-timeline-stages--small.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
+	left: 9px; /* center of 20px indicator */
+}
+
+/* ---------- Clickable mode ---------- */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage {
+	cursor: pointer;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage:hover {
+	background-color: var(--color-background-dark, #ededed);
+}
+
+/* Focus ring (keyboard only) */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage:focus-visible {
+	outline: 2px solid var(--color-primary-element, #0082c9);
+	outline-offset: 2px;
+}
+
+/* Remove default outline for mouse clicks */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage:focus:not(:focus-visible) {
+	outline: none;
+}

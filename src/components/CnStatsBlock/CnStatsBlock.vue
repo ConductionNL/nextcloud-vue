@@ -1,9 +1,9 @@
 <template>
 	<component
-		:is="clickable ? 'a' : 'div'"
+		:is="componentTag"
 		class="cn-stats-block"
 		:class="rootClasses"
-		v-bind="clickable ? { href: '#', role: 'button', tabindex: '0' } : {}"
+		v-bind="componentAttrs"
 		@click="onClick">
 		<!-- Icon -->
 		<div v-if="hasIcon" class="cn-stats-block__icon" :class="iconClasses">
@@ -69,6 +69,14 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   horizontal
  *   clickable
  *   @click="goToCases" />
+ *
+ * @example With route-based navigation (renders as <router-link>)
+ * <CnStatsBlock
+ *   title="Open Cases"
+ *   :count="42"
+ *   :icon="BriefcaseOutline"
+ *   variant="primary"
+ *   :route="{ name: 'Cases', query: { status: 'open' } }" />
  *
  * @example With breakdown
  * <CnStatsBlock
@@ -152,6 +160,16 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Vue Router location object for declarative navigation.
+		 * When set, the card renders as a <router-link> and clickable styles are implied.
+		 * @example { name: 'Cases', query: { status: 'open' } }
+		 * @example { path: '/catalogi' }
+		 */
+		route: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	computed: {
@@ -163,10 +181,39 @@ export default {
 			return this.count.toLocaleString()
 		},
 
+		/**
+		 * Whether the card is interactive (clickable or has a route).
+		 * Used for applying hover/focus styles.
+		 */
+		isInteractive() {
+			return !!this.route || this.clickable
+		},
+
+		/**
+		 * Determines which HTML element or component to render.
+		 * - route set → 'router-link' (SPA navigation)
+		 * - clickable → 'a' (app handles click via event)
+		 * - neither → 'div' (static display)
+		 */
+		componentTag() {
+			if (this.route) return 'router-link'
+			if (this.clickable) return 'a'
+			return 'div'
+		},
+
+		/**
+		 * Dynamic attributes for the root element based on rendering mode.
+		 */
+		componentAttrs() {
+			if (this.route) return { to: this.route, tabindex: '0' }
+			if (this.clickable) return { href: '#', role: 'button', tabindex: '0' }
+			return {}
+		},
+
 		rootClasses() {
 			return {
 				'cn-stats-block--horizontal': this.horizontal,
-				'cn-stats-block--clickable': this.clickable,
+				'cn-stats-block--clickable': this.isInteractive,
 				[`cn-stats-block--${this.variant}`]: this.variant !== 'default',
 			}
 		},
@@ -184,6 +231,8 @@ export default {
 		},
 
 		onClick(event) {
+			// When route is set, router-link handles navigation — do not emit click
+			if (this.route) return
 			if (this.clickable) {
 				event.preventDefault()
 				this.$emit('click', event)
@@ -205,16 +254,22 @@ export default {
 	color: inherit;
 	border: 2px solid transparent;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	height: 100%;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal {
 	flex-direction: row;
-	align-items: flex-start;
-	gap: 16px;
+	align-items: center;
+	gap: 12px;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__content {
 	text-align: left;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__count {
@@ -251,6 +306,8 @@ export default {
 
 .cn-stats-block--horizontal .cn-stats-block__icon {
 	margin-bottom: 0;
+	width: 36px;
+	height: 36px;
 }
 
 .cn-stats-block__icon--primary {
@@ -282,25 +339,31 @@ export default {
 
 .cn-stats-block__header h4 {
 	margin-top: 0;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 	color: var(--color-main-text);
 	font-size: 14px;
 	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__count {
 	display: flex;
 	align-items: baseline;
 	justify-content: center;
-	gap: 0.5rem;
+	gap: 0.25rem;
 	font-size: 1.2rem;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .cn-stats-block__count-value {
 	font-size: 2rem;
 	font-weight: bold;
 	color: var(--color-primary-element);
+	flex-shrink: 0;
 }
 
 .cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
@@ -310,6 +373,8 @@ export default {
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__loading {

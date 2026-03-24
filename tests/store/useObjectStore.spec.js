@@ -219,6 +219,57 @@ describe('useObjectStore', () => {
 			expect(store.collections.client[0].id).toBe('def')
 		})
 	})
+
+	describe('deleteObjects', () => {
+		it('returns empty result for empty ids', async () => {
+			store.registerObjectType('client', '28', '5')
+			const result = await store.deleteObjects('client', [])
+			expect(result).toEqual({ successfulIds: [], failedIds: [] })
+		})
+
+		it('deletes multiple objects in parallel and updates cache', async () => {
+			store.registerObjectType('client', '28', '5')
+			store.collections.client = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+			store.objects.client = { a: { id: 'a' }, b: { id: 'b' }, c: { id: 'c' } }
+
+			global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+			const result = await store.deleteObjects('client', ['a', 'b', 'c'])
+
+			expect(result).toEqual({ successfulIds: ['a', 'b', 'c'], failedIds: [] })
+			expect(store.objects.client).toEqual({})
+			expect(store.collections.client).toEqual([])
+			expect(global.fetch).toHaveBeenCalledTimes(3)
+		})
+
+		it('returns partial success when some deletes fail', async () => {
+			store.registerObjectType('client', '28', '5')
+			store.collections.client = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+			store.objects.client = { a: { id: 'a' }, b: { id: 'b' }, c: { id: 'c' } }
+
+			global.fetch = jest.fn()
+				.mockResolvedValueOnce({ ok: true })
+				.mockResolvedValueOnce({ ok: false })
+				.mockResolvedValueOnce({ ok: true })
+
+			const result = await store.deleteObjects('client', ['a', 'b', 'c'])
+
+			expect(result.successfulIds).toEqual(['a', 'c'])
+			expect(result.failedIds).toEqual(['b'])
+			expect(store.objects.client).toEqual({ b: { id: 'b' } })
+			expect(store.collections.client.map((o) => o.id)).toEqual(['b'])
+		})
+
+		it('sets error when any delete fails', async () => {
+			store.registerObjectType('client', '28', '5')
+			global.fetch = jest.fn().mockResolvedValue({ ok: false })
+
+			await store.deleteObjects('client', ['x'])
+
+			expect(store.errors.client).toBeTruthy()
+			expect(store.getError('client').message).toContain('Failed to delete')
+		})
+	})
 })
 
 describe('createObjectStore with plugins', () => {
@@ -252,10 +303,48 @@ describe('createObjectStore with plugins', () => {
 		expect(typeof store.uploadFiles).toBe('function')
 		expect(typeof store.publishFile).toBe('function')
 		expect(typeof store.deleteFile).toBe('function')
+		expect(typeof store.fetchTags).toBe('function')
 		expect(typeof store.lockObject).toBe('function')
 		expect(typeof store.unlockObject).toBe('function')
 		expect(typeof store.publishObject).toBe('function')
 		expect(typeof store.revertObject).toBe('function')
+	})
+
+	it('files plugin exposes tags state and getters', () => {
+		const useStore = createObjectStore('test-tags', {
+			plugins: [filesPlugin()],
+		})
+		store = useStore()
+
+		expect(store.tags).toEqual([])
+		expect(store.tagsLoading).toBe(false)
+		expect(store.tagsError).toBeNull()
+		expect(store.getTags).toEqual([])
+		expect(store.isTagsLoading).toBe(false)
+		expect(store.getTagsError).toBeNull()
+	})
+
+	it('fetchTags calls tags API and stores array of strings', async () => {
+		const useStore = createObjectStore('test-fetch-tags', {
+			plugins: [filesPlugin()],
+		})
+		store = useStore()
+
+		const tagsPayload = ['important', 'draft', 'reviewed']
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(tagsPayload),
+		})
+
+		const result = await store.fetchTags()
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			'/apps/openregister/api/tags',
+			expect.objectContaining({ method: 'GET' }),
+		)
+		expect(store.tags).toEqual(tagsPayload)
+		expect(store.getTags).toEqual(tagsPayload)
+		expect(result).toEqual(tagsPayload)
 	})
 
 	it('merges relations plugin (3 sub-resources)', () => {
@@ -295,6 +384,7 @@ describe('createObjectStore with plugins', () => {
 		expect(typeof store.fetchObject).toBe('function')
 		expect(typeof store.saveObject).toBe('function')
 		expect(typeof store.deleteObject).toBe('function')
+		expect(typeof store.deleteObjects).toBe('function')
 		expect(store.files).toBeUndefined()
 	})
 })
