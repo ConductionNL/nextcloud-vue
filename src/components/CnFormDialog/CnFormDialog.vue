@@ -799,7 +799,7 @@ export default {
 								newErrors[field.key] = 'Invalid format.'
 							}
 						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
-					} catch (e) {
+						} catch (e) {
 							// Ignore invalid regex patterns
 						}
 					}
