@@ -1,0 +1,33 @@
+/* CnPageHeader — Reusable page header styles */
+
+.cn-page-header {
+	display: flex;
+	align-items: flex-start;
+	gap: calc(3 * var(--default-grid-baseline));
+	margin-bottom: calc(4 * var(--default-grid-baseline));
+}
+
+.cn-page-header__icon {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	padding-top: var(--default-grid-baseline);
+	color: var(--color-primary);
+}
+
+.cn-page-header__text {
+	flex: 1;
+	min-width: 0;
+}
+
+.cn-page-header__title {
+	margin: 0 0 var(--default-grid-baseline) 0;
+	font-size: 2rem;
+	font-weight: 300;
+}
+
+.cn-page-header__description {
+	color: var(--color-text-maxcontrast);
+	margin: 0;
+	font-size: var(--default-font-size);
+}

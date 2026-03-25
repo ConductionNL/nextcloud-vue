@@ -1,10 +1,28 @@
 /**
+ * Prepend `/index.php` to a URL path when the current page is served via index.php.
+ * Unless the given path already contains `/index.php`.
+ *
+ * Nextcloud can be hosted with or without index.php in the URL. API calls must
+ * use the same prefix as the page, otherwise the request is rejected.
+ *
+ * @param {string} path URL path (e.g. '/apps/openregister/api/objects')
+ * @return {string} Path with optional /index.php prefix
+ */
+export function prefixUrl(path) {
+	if (path.startsWith('/index.php')) return path
+	if (typeof window !== 'undefined' && window.location.pathname.includes('/index.php')) {
+		return `/index.php${path}`
+	}
+	return path
+}
+
+/**
  * Build standard Nextcloud request headers for API calls.
  *
  * Includes the CSRF request token and OCS API request header
  * required by Nextcloud's API layer.
  *
- * @param {string} [contentType='application/json'] Content-Type header value
+ * @param {string} [contentType] Content-Type header value
  * @return {object} Headers object for use with fetch()
  */
 export function buildHeaders(contentType = 'application/json') {
@@ -32,7 +50,13 @@ export function buildQueryString(params = {}) {
 
 	for (const [key, value] of Object.entries(params)) {
 		if (value === undefined || value === null || value === '') continue
-		if (key === '_order' && typeof value === 'object') {
+		if (Array.isArray(value)) {
+			for (const item of value) {
+				if (item !== undefined && item !== null && item !== '') {
+					queryParams.append(key, String(item))
+				}
+			}
+		} else if (key === '_order' && typeof value === 'object') {
 			queryParams.set(key, JSON.stringify(value))
 		} else {
 			queryParams.set(key, String(value))

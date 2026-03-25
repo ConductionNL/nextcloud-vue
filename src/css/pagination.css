@@ -6,9 +6,9 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	gap: 15px;
-	margin-top: 30px;
-	padding: 20px;
+	gap: calc(4 * var(--default-grid-baseline));
+	margin-top: calc(8 * var(--default-grid-baseline));
+	padding: calc(5 * var(--default-grid-baseline));
 	flex-wrap: nowrap;
 }
 
@@ -26,7 +26,7 @@
 .cn-pagination__nav {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: calc(2 * var(--default-grid-baseline));
 	flex-grow: 1;
 	justify-content: center;
 }
@@ -34,11 +34,11 @@
 .cn-pagination__numbers {
 	display: flex;
 	align-items: center;
-	gap: 5px;
+	gap: var(--default-grid-baseline);
 }
 
 .cn-pagination__ellipsis {
-	padding: 0 5px;
+	padding: 0 var(--default-grid-baseline);
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9rem;
 }
@@ -46,7 +46,7 @@
 .cn-pagination__page-size {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: calc(2 * var(--default-grid-baseline));
 	flex-shrink: 0;
 	min-width: 0;
 }
@@ -63,10 +63,10 @@
 }
 
 /* Backwards compatibility aliases */
-.viewPagination { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 30px; padding: 20px; flex-wrap: nowrap; }
+.viewPagination { display: flex; justify-content: space-between; align-items: center; gap: calc(4 * var(--default-grid-baseline)); margin-top: calc(8 * var(--default-grid-baseline)); padding: calc(5 * var(--default-grid-baseline)); flex-wrap: nowrap; }
 .viewPaginationInfo { display: flex; align-items: center; flex-shrink: 0; }
 .viewPageInfo { color: var(--color-text-maxcontrast); font-size: 0.9rem; }
-.viewPaginationNav { display: flex; align-items: center; gap: 10px; flex-grow: 1; justify-content: center; }
-.viewPaginationNumbers { display: flex; align-items: center; gap: 5px; }
-.viewPaginationEllipsis { padding: 0 5px; color: var(--color-text-maxcontrast); font-size: 0.9rem; }
-.viewPaginationPageSize { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; }
+.viewPaginationNav { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); flex-grow: 1; justify-content: center; }
+.viewPaginationNumbers { display: flex; align-items: center; gap: var(--default-grid-baseline); }
+.viewPaginationEllipsis { padding: 0 var(--default-grid-baseline); color: var(--color-text-maxcontrast); font-size: 0.9rem; }
+.viewPaginationPageSize { display: flex; align-items: center; gap: calc(2 * var(--default-grid-baseline)); flex-shrink: 0; min-width: 0; }
