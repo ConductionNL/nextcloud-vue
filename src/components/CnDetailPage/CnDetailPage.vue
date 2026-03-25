@@ -1,39 +1,32 @@
 <!--
-  CnDetailPage — Top-level detail page with card-based layout and optional sidebar.
+  CnDetailPage — Generic detail/overview page.
 
-  The detail page equivalent of CnDashboardPage. Assembles a complete entity detail
-  view from card-based sections, matching the dashboard visual style (rounded cards
-  with headers). Uses a fixed declarative layout (no drag-and-drop).
-
-  Features:
-  - Header with back button, title, subtitle, and action buttons
-  - Card-based content area (via default slot with CnDetailCard components)
-  - Optional right sidebar (CnObjectSidebar) for files, notes, tags, tasks, audit trail
-  - Loading and error states
-  - Edit mode toggle
+  A simpler alternative to CnIndexPage for detail, stats, and overview pages.
+  No multi-object table, no CRUD dialogs — just a clean layout with:
+  - Header (title, description, icon, action buttons)
+  - Loading / error / empty states
+  - Statistics table section
+  - Content sections via slots
 -->
 <template>
-	<div class="cn-detail-page">
+	<div class="cn-detail-page" :style="{ maxWidth: maxWidth }">
 		<!-- Header -->
 		<div class="cn-detail-page__header">
 			<div class="cn-detail-page__header-left">
-				<NcButton
-					v-if="backRoute"
-					type="tertiary"
-					:aria-label="backLabel"
-					@click="$router.push(backRoute)">
-					<template #icon>
-						<ArrowLeft :size="20" />
-					</template>
-					{{ backLabel }}
-				</NcButton>
-				<div class="cn-detail-page__title-group">
-					<h2 class="cn-detail-page__title">
+				<slot name="icon">
+					<CnIcon
+						v-if="icon"
+						:name="icon"
+						:size="iconSize"
+						class="cn-detail-page__icon" />
+				</slot>
+				<div class="cn-detail-page__header-text">
+					<h2 v-if="title" class="cn-detail-page__title">
 						{{ title }}
 					</h2>
-					<span v-if="subtitle" class="cn-detail-page__subtitle">
-						{{ subtitle }}
-					</span>
+					<p v-if="description" class="cn-detail-page__description">
+						{{ description }}
+					</p>
 				</div>
 			</div>
 			<div class="cn-detail-page__header-actions">
@@ -42,93 +35,137 @@
 		</div>
 
 		<!-- Loading state -->
-		<NcLoadingIcon v-if="loading" class="cn-detail-page__loading" />
+		<div v-if="loading" class="cn-detail-page__loading">
+			<NcLoadingIcon :size="32" />
+			<span>{{ loadingLabel }}</span>
+		</div>
 
 		<!-- Error state -->
-		<NcEmptyContent v-else-if="error" :description="error">
-			<template #icon>
-				<AlertCircle :size="48" />
-			</template>
-			<template #action>
-				<NcButton @click="$emit('retry')">
-					{{ retryLabel }}
-				</NcButton>
-			</template>
-		</NcEmptyContent>
+		<div v-else-if="error" class="cn-detail-page__error">
+			<slot name="error">
+				<NcEmptyContent :name="errorMessage">
+					<template #icon>
+						<AlertCircleOutline :size="48" />
+					</template>
+					<template #action>
+						<NcButton v-if="onRetry" type="primary" @click="onRetry">
+							<template #icon>
+								<Refresh :size="20" />
+							</template>
+							{{ retryLabel }}
+						</NcButton>
+						<slot name="error-actions" />
+					</template>
+				</NcEmptyContent>
+			</slot>
+		</div>
 
-		<!-- Content + Sidebar layout -->
+		<!-- Empty state -->
+		<div v-else-if="empty" class="cn-detail-page__empty">
+			<slot name="empty">
+				<NcEmptyContent :name="emptyLabel">
+					<template #icon>
+						<InformationOutline :size="48" />
+					</template>
+					<template #action>
+						<slot name="empty-actions" />
+					</template>
+				</NcEmptyContent>
+			</slot>
+		</div>
+
+		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
-			<!-- Main content area with cards -->
+			<!-- Statistics table -->
+			<div v-if="hasStats" class="cn-detail-page__stats">
+				<slot name="stats-header">
+					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
+						{{ statsTitle }}
+					</h3>
+				</slot>
+				<table class="cn-detail-page__stats-table">
+					<thead v-if="statsColumns.length > 0">
+						<tr>
+							<th v-for="col in statsColumns" :key="col.key" :class="col.align ? 'cn-detail-page__stats-cell--' + col.align : ''">
+								{{ col.label }}
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<slot name="stats-rows">
+							<tr v-for="(row, index) in statsRows" :key="index" :class="{ 'cn-detail-page__stats-row--sub': row.indent }">
+								<td v-for="col in statsColumns" :key="col.key" :class="[row.indent ? 'cn-detail-page__stats-cell--indented' : '', col.align ? 'cn-detail-page__stats-cell--' + col.align : '']">
+									{{ row[col.key] !== undefined ? row[col.key] : '-' }}
+								</td>
+							</tr>
+						</slot>
+					</tbody>
+				</table>
+			</div>
+
+			<!-- Default content -->
 			<div class="cn-detail-page__content">
 				<slot />
 			</div>
 
-			<!-- Right sidebar -->
-			<div v-if="sidebar && sidebarOpen" class="cn-detail-page__sidebar">
-				<slot name="sidebar">
-					<CnObjectSidebar
-						v-if="objectType && objectId"
-						v-bind="sidebarProps"
-						:object-type="objectType"
-						:object-id="objectId"
-						:open="sidebarOpen"
-						@update:open="sidebarOpen = $event" />
-				</slot>
+			<!-- Sections slot — additional content below stats -->
+			<div v-if="$slots.sections" class="cn-detail-page__sections">
+				<slot name="sections" />
 			</div>
 		</div>
 
-		<!-- Sidebar toggle button (when sidebar is closed) -->
-		<NcButton
-			v-if="sidebar && !sidebarOpen && !loading && !error"
-			class="cn-detail-page__sidebar-toggle"
-			type="tertiary"
-			:aria-label="'Open sidebar'"
-			@click="sidebarOpen = true">
-			<template #icon>
-				<InformationOutline :size="20" />
-			</template>
-		</NcButton>
+		<!-- Footer -->
+		<div v-if="$slots.footer" class="cn-detail-page__footer">
+			<slot name="footer" />
+		</div>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
-import ArrowLeft from 'vue-material-design-icons/ArrowLeft.vue'
-import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
+import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 
 /**
- * CnDetailPage — Top-level detail page with card-based layout and optional sidebar.
+ * CnDetailPage — Generic detail/overview page.
  *
- * @example Basic usage
+ * A simpler alternative to CnIndexPage for pages that display detail info,
+ * statistics, charts, or card grids — without multi-object tables or CRUD
+ * dialogs. Provides a consistent layout with header, loading/error/empty
+ * states, a statistics table, and flexible content slots.
+ *
+ * @example Basic usage with stats table and content
  * <CnDetailPage
- *   title="Digital Citizen Portal"
- *   subtitle="Lead"
- *   :back-route="{ name: 'Leads' }"
- *   :sidebar="true"
- *   object-type="pipelinq_lead"
- *   :object-id="leadId"
- *   :sidebar-props="{ register: '...', schema: '...' }">
- *   <template #header-actions>
- *     <NcButton type="primary" @click="editing = true">Edit</NcButton>
- *     <NcButton type="error" @click="showDelete = true">Delete</NcButton>
- *   </template>
- *
- *   <CnDetailCard title="Core Info">
- *     <div class="info-grid">...</div>
- *   </CnDetailCard>
- *
- *   <CnDetailCard title="Pipeline Progress">
- *     <PipelineProgress :stages="stages" />
- *   </CnDetailCard>
+ *   title="Register Overview"
+ *   description="Statistics and schema details"
+ *   icon="DatabaseOutline"
+ *   :stats-title="'Register Statistics'"
+ *   :stats-columns="[
+ *     { key: 'type', label: 'Type' },
+ *     { key: 'total', label: 'Total' },
+ *     { key: 'size', label: 'Size' },
+ *   ]"
+ *   :stats-rows="[
+ *     { type: 'Objects', total: 150, size: '2.4 MB' },
+ *     { type: 'Files', total: 42, size: '1.1 MB' },
+ *   ]"
+ *   :loading="isLoading">
+ *   <ChartGrid :data="chartData" />
+ *   <SchemaCards :schemas="schemas" />
  * </CnDetailPage>
  *
- * @example Without sidebar
- * <CnDetailPage title="Settings" :sidebar="false">
- *   <CnDetailCard title="General">
- *     <SettingsForm />
- *   </CnDetailCard>
+ * @example With header actions and error handling
+ * <CnDetailPage
+ *   title="Schema Details"
+ *   :error="hasError"
+ *   error-message="Failed to load schema"
+ *   :on-retry="loadSchema">
+ *   <template #header-actions>
+ *     <NcButton @click="editSchema">Edit</NcButton>
+ *   </template>
+ *   <DetailContent :schema="schema" />
  * </CnDetailPage>
  */
 export default {
@@ -136,174 +173,113 @@ export default {
 
 	components: {
 		NcButton,
-		NcLoadingIcon,
 		NcEmptyContent,
-		ArrowLeft,
-		AlertCircle,
+		NcLoadingIcon,
+		CnIcon,
+		AlertCircleOutline,
 		InformationOutline,
-		CnObjectSidebar,
+		Refresh,
 	},
 
 	props: {
-		/** Page title (entity name or identifier) */
+		/** Page title */
 		title: {
 			type: String,
 			default: '',
 		},
-		/** Optional subtitle (entity type label, status, etc.) */
-		subtitle: {
+		/** Page description (shown below title) */
+		description: {
 			type: String,
 			default: '',
 		},
-		/** Vue Router route object for the back button. If null, no back button shown. */
-		backRoute: {
-			type: Object,
-			default: null,
-		},
-		/** Pre-translated back button label */
-		backLabel: {
+		/** Optional MDI icon name (rendered via CnIcon) */
+		icon: {
 			type: String,
-			default: 'Back to list',
+			default: '',
 		},
-		/** Show loading state */
+		/** Icon size in pixels */
+		iconSize: {
+			type: Number,
+			default: 28,
+		},
+		/** Whether the page is in a loading state */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
-		/** Error message to display. If set, shows error state. */
-		error: {
+		/** Message shown during loading */
+		loadingLabel: {
 			type: String,
-			default: '',
+			default: 'Loading...',
 		},
-		/** Pre-translated retry button label */
+		/** Whether the page is in an error state */
+		error: {
+			type: Boolean,
+			default: false,
+		},
+		/** Error message shown in error state */
+		errorMessage: {
+			type: String,
+			default: 'An error occurred',
+		},
+		/** Callback for retry button in error state. If null, no retry button is shown. */
+		onRetry: {
+			type: Function,
+			default: null,
+		},
+		/** Label for the retry button */
 		retryLabel: {
 			type: String,
 			default: 'Retry',
 		},
-		/** Show the CnObjectSidebar */
-		sidebar: {
+		/** Whether the page has no data to show */
+		empty: {
 			type: Boolean,
-			default: true,
+			default: false,
 		},
-		/** Props to pass through to CnObjectSidebar */
-		sidebarProps: {
-			type: Object,
-			default: () => ({}),
+		/** Message shown when page is empty */
+		emptyLabel: {
+			type: String,
+			default: 'No data available',
 		},
-		/** Object type for the sidebar (e.g., "pipelinq_lead") */
-		objectType: {
+		/** Title shown above the statistics table */
+		statsTitle: {
 			type: String,
 			default: '',
 		},
-		/** Object UUID for the sidebar */
-		objectId: {
+		/**
+		 * Column definitions for the statistics table.
+		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
+		 *
+		 * @type {Array<{ key: string, label: string, align?: string }>}
+		 */
+		statsColumns: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Row data for the statistics table. Each row is an object keyed by
+		 * column keys. Set `indent: true` on a row for sub-row styling.
+		 *
+		 * @type {Array<object>}
+		 */
+		statsRows: {
+			type: Array,
+			default: () => [],
+		},
+		/** Maximum width of the page content */
+		maxWidth: {
 			type: String,
-			default: '',
+			default: '1200px',
 		},
 	},
 
-	emits: ['retry'],
-
-	data() {
-		return {
-			sidebarOpen: true,
-		}
+	computed: {
+		hasStats() {
+			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
+		},
 	},
 }
 </script>
 
-<style scoped>
-.cn-detail-page {
-	padding: 20px;
-	max-width: 1400px;
-	position: relative;
-}
-
-.cn-detail-page__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 20px;
-	gap: 16px;
-}
-
-.cn-detail-page__header-left {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-width: 0;
-}
-
-.cn-detail-page__title-group {
-	display: flex;
-	align-items: baseline;
-	gap: 12px;
-	min-width: 0;
-}
-
-.cn-detail-page__title {
-	margin: 0;
-	font-size: 22px;
-	font-weight: 700;
-	line-height: 1.3;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.cn-detail-page__subtitle {
-	font-size: 14px;
-	color: var(--color-text-maxcontrast);
-	white-space: nowrap;
-}
-
-.cn-detail-page__header-actions {
-	display: flex;
-	gap: 8px;
-	flex-shrink: 0;
-}
-
-.cn-detail-page__loading {
-	padding: 60px 0;
-}
-
-.cn-detail-page__body {
-	display: flex;
-	gap: 20px;
-	align-items: flex-start;
-}
-
-.cn-detail-page__content {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.cn-detail-page__sidebar {
-	width: 340px;
-	flex-shrink: 0;
-	position: sticky;
-	top: 20px;
-}
-
-.cn-detail-page__sidebar-toggle {
-	position: fixed;
-	right: 20px;
-	top: 80px;
-	z-index: 10;
-}
-
-/* Responsive: collapse sidebar below 900px */
-@media (max-width: 900px) {
-	.cn-detail-page__body {
-		flex-direction: column;
-	}
-
-	.cn-detail-page__sidebar {
-		width: 100%;
-		position: static;
-	}
-}
-</style>
+<!-- Styles in css/detail-page.css -->

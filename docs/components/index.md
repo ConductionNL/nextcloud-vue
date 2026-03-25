@@ -25,6 +25,7 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 | [CnStatusBadge](./cn-status-badge.md) | Color-coded pill badge for status/priority |
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
+| [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 
 ## Data Actions
 
@@ -41,7 +42,7 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 |-----------|-------------|
 | [CnDeleteDialog](./cn-delete-dialog.md) | Two-phase single-item delete confirmation |
 | [CnCopyDialog](./cn-copy-dialog.md) | Two-phase single-item copy with naming pattern |
-| [CnFormDialog](./cn-form-dialog.md) | Schema-driven create/edit form dialog |
+| [CnFormDialog](./cn-form-dialog.md) | Schema-driven create/edit form dialog with async select and custom option slots |
 | [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) | Create/edit with properties table, JSON tab, and optional metadata/store |
 | [CnMassDeleteDialog](./cn-mass-delete-dialog.md) | Two-phase mass delete with item review |
 | [CnMassCopyDialog](./cn-mass-copy-dialog.md) | Two-phase mass copy with pattern selector |

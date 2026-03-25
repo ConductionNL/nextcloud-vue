@@ -7,6 +7,11 @@
 			:description="description"
 			:icon="resolvedIcon" />
 
+		<!-- Optional content below header, above actions bar -->
+		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+			<slot name="below-header" />
+		</div>
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="pagination"
@@ -22,6 +27,7 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:refreshing="refreshing"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -552,6 +558,11 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
 		/**
 		 * Store instance for automatic save integration. When provided alongside
 		 * objectType, the form dialog saves directly to the store instead of
@@ -855,6 +866,16 @@ export default {
 		openFormDialog(item = null) {
 			this.editItem = item
 			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Programmatically open the single-item delete dialog.
+		 * @param {object} item The item to delete
+		 * @public
+		 */
+		openDeleteDialog(item) {
+			this.actionTargetItem = item
+			this.showSingleDeleteDialog = true
 		},
 	},
 }

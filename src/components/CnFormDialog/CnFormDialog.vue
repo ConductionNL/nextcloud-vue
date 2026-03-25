@@ -89,18 +89,32 @@
 							</span>
 						</div>
 
-						<!-- Select (enum) -->
+						<!-- Select (enum, supports async function) -->
 						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
 							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 								{{ field.label }}{{ field.required ? ' *' : '' }}
 							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
-								:options="getEnumOptions(field)"
-								:value="getSelectedEnumOption(field)"
+								:options="getEffectiveOptions(field)"
+								:value="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
 								:disabled="field.readOnly"
-								@input="onSelectChange(field.key, $event)" />
+								:loading="isFieldLoading(field)"
+								:filterable="!isAsyncEnum(field)"
+								@input="onEffectiveSelectChange(field, $event)"
+								@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined">
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-option']"
+									#option="optionProps">
+									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+								</template>
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									#selected-option="optionProps">
+									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+								</template>
+							</NcSelect>
 							<span
 								v-if="errors[field.key] || field.description"
 								class="cn-form-dialog__helper"
@@ -109,19 +123,33 @@
 							</span>
 						</div>
 
-						<!-- Multiselect (array with enum items) -->
+						<!-- Multiselect (array with enum items, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect'" class="cn-form-dialog__select-wrapper">
 							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 								{{ field.label }}{{ field.required ? ' *' : '' }}
 							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
-								:options="getArrayEnumOptions(field)"
-								:value="getSelectedArrayOptions(field)"
+								:options="getEffectiveArrayOptions(field)"
+								:value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
 								:clearable="true"
 								:disabled="field.readOnly"
-								@input="onMultiSelectChange(field.key, $event)" />
+								:loading="isFieldLoading(field)"
+								:filterable="!isAsyncItemsEnum(field)"
+								@input="onEffectiveMultiSelectChange(field, $event)"
+								@search="isAsyncItemsEnum(field) ? onAsyncSearch(field, $event) : undefined">
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-option']"
+									#option="optionProps">
+									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+								</template>
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									#selected-option="optionProps">
+									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+								</template>
+							</NcSelect>
 							<span
 								v-if="errors[field.key] || field.description"
 								class="cn-form-dialog__helper"
@@ -130,19 +158,35 @@
 							</span>
 						</div>
 
-						<!-- Tags (array, freeform) -->
+						<!-- Tags (array, freeform, supports async suggestions) -->
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
 							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 								{{ field.label }}{{ field.required ? ' *' : '' }}
 							</label>
+							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:value="formData[field.key] || []"
+								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
 								:taggable="true"
 								:clearable="true"
 								:disabled="field.readOnly"
-								@input="updateField(field.key, $event)" />
+								:loading="isFieldLoading(field)"
+								:filterable="!isFieldAsync(field)"
+								@input="updateField(field.key, $event)"
+								@search="isFieldAsync(field) ? onAsyncSearch(field, $event) : undefined">
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-option']"
+									#option="optionProps">
+									<slot :name="'field-' + field.key + '-option'" v-bind="optionProps" />
+								</template>
+								<template
+									v-if="$scopedSlots['field-' + field.key + '-selected-option']"
+									#selected-option="optionProps">
+									<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+								</template>
+							</NcSelect>
 							<span
 								v-if="errors[field.key] || field.description"
 								class="cn-form-dialog__helper"
@@ -235,7 +279,23 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  *
  * - `#form` — Replace the entire form content
  * - `#field-{key}` — Replace a single auto-generated field
+ * - `#field-{key}-option` — Customize dropdown option rendering for a select/multiselect/tags field
+ * - `#field-{key}-selected-option` — Customize selected option display for a select/multiselect/tags field
  * - `#before-fields` / `#after-fields` — Inject content around fields
+ *
+ * ## Async select support
+ *
+ * Select, multiselect, and tags fields support async options by setting `field.enum`
+ * (or `field.items.enum` for multiselect) to an async function instead of a static array:
+ *
+ * ```js
+ * { key: 'org', widget: 'select', enum: async (query) => fetchOrgs(query) }
+ * ```
+ *
+ * The function receives the search query and must return an array of option objects
+ * (each must have a `label` property for default display). Options are loaded on mount
+ * (with empty query) and on each search input (debounced, default 300ms, configurable
+ * via `field.debounce`). Async selects store the full option object in formData.
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -266,6 +326,27 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  *     this.$refs.formDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @example <caption>Async select with custom option rendering</caption>
+ * <CnFormDialog :fields="[{
+ *   key: 'organisation',
+ *   widget: 'select',
+ *   label: 'Organisation',
+ *   required: true,
+ *   enum: async (query) => {
+ *     const results = await store.search(query)
+ *     return results.map(o => ({ label: o.name, id: o.uuid, ...o }))
+ *   },
+ *   debounce: 500,
+ * }]" @confirm="onConfirm">
+ *   <template #field-organisation-option="{ name, description }">
+ *     <strong>{{ name }}</strong>
+ *     <p>{{ description }}</p>
+ *   </template>
+ *   <template #field-organisation-selected-option="{ name }">
+ *     {{ name }}
+ *   </template>
+ * </CnFormDialog>
  */
 export default {
 	name: 'CnFormDialog',
@@ -349,6 +430,8 @@ export default {
 			loading: false,
 			result: null,
 			closeTimeout: null,
+			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
+			asyncState: {},
 		}
 	},
 
@@ -400,6 +483,13 @@ export default {
 		},
 	},
 
+	beforeDestroy() {
+		for (const state of Object.values(this.asyncState)) {
+			if (state.searchTimeout) clearTimeout(state.searchTimeout)
+		}
+		if (this.closeTimeout) clearTimeout(this.closeTimeout)
+	},
+
 	methods: {
 		initFormData(item) {
 			if (item) {
@@ -422,6 +512,7 @@ export default {
 				this.formData = data
 			}
 			this.errors = {}
+			this.initAsyncFields()
 		},
 
 		updateField(key, value) {
@@ -469,6 +560,205 @@ export default {
 		},
 
 		/**
+		 * Check if a field has an async enum (function instead of static array).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isAsyncEnum(field) {
+			return typeof field.enum === 'function'
+		},
+
+		/**
+		 * Check if an array field has an async items enum.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isAsyncItemsEnum(field) {
+			return !!(field.items && typeof field.items.enum === 'function')
+		},
+
+		/**
+		 * Initialize async state for all async fields and trigger initial load.
+		 */
+		initAsyncFields() {
+			// Clean up existing timeouts
+			for (const state of Object.values(this.asyncState)) {
+				if (state.searchTimeout) clearTimeout(state.searchTimeout)
+			}
+
+			const newState = {}
+			for (const field of this.resolvedFields) {
+				if (this.isAsyncEnum(field) || this.isAsyncItemsEnum(field)) {
+					newState[field.key] = { options: [], loading: false, searchTimeout: null }
+				}
+			}
+			this.asyncState = newState
+
+			// Trigger initial load for each async field
+			this.$nextTick(() => {
+				for (const field of this.resolvedFields) {
+					if (this.isAsyncEnum(field) || this.isAsyncItemsEnum(field)) {
+						this.loadAsyncOptions(field, '')
+					}
+				}
+			})
+		},
+
+		/**
+		 * Load async options for a field by calling its enum function.
+		 *
+		 * @param {object} field The field definition
+		 * @param {string} query Search query
+		 */
+		async loadAsyncOptions(field, query) {
+			const state = this.asyncState[field.key]
+			if (!state) return
+
+			this.$set(state, 'loading', true)
+
+			try {
+				const enumFn = this.isAsyncEnum(field) ? field.enum : field.items.enum
+				const results = await enumFn(query)
+				this.$set(state, 'options', Array.isArray(results) ? results : [])
+			} catch (err) {
+				console.error(`CnFormDialog: async enum error for field "${field.key}":`, err)
+				this.$set(state, 'options', [])
+			} finally {
+				this.$set(state, 'loading', false)
+			}
+		},
+
+		/**
+		 * Handle search input on an async select with debounce.
+		 *
+		 * @param {object} field The field definition
+		 * @param {string} query Search query
+		 */
+		onAsyncSearch(field, query) {
+			const state = this.asyncState[field.key]
+			if (!state) return
+
+			if (state.searchTimeout) {
+				clearTimeout(state.searchTimeout)
+			}
+
+			const debounceMs = field.debounce || 300
+
+			state.searchTimeout = setTimeout(() => {
+				this.loadAsyncOptions(field, query || '')
+			}, debounceMs)
+		},
+
+		/**
+		 * Get the effective options for a select field (async or static).
+		 *
+		 * @param {object} field The field definition
+		 * @return {Array}
+		 */
+		getEffectiveOptions(field) {
+			if (this.isAsyncEnum(field)) {
+				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
+				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
+			}
+			return this.getEnumOptions(field)
+		},
+
+		/**
+		 * Get the effective selected value for a select field (async or static).
+		 *
+		 * @param {object} field The field definition
+		 * @return {object|null}
+		 */
+		getEffectiveSelectedOption(field) {
+			if (this.isAsyncEnum(field)) {
+				// For async fields, formData stores the full option object
+				return this.formData[field.key] || null
+			}
+			return this.getSelectedEnumOption(field)
+		},
+
+		/**
+		 * Handle select change for both async and static fields.
+		 *
+		 * @param {object} field The field definition
+		 * @param {object|null} option The selected option
+		 */
+		onEffectiveSelectChange(field, option) {
+			if (this.isAsyncEnum(field)) {
+				// Store full option object for async selects
+				this.updateField(field.key, option || null)
+			} else {
+				this.onSelectChange(field.key, option)
+			}
+		},
+
+		/**
+		 * Get effective options for a multiselect field (async or static).
+		 *
+		 * @param {object} field The field definition
+		 * @return {Array}
+		 */
+		getEffectiveArrayOptions(field) {
+			if (this.isAsyncItemsEnum(field)) {
+				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
+				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
+			}
+			return this.getArrayEnumOptions(field)
+		},
+
+		/**
+		 * Get effective selected values for a multiselect field (async or static).
+		 *
+		 * @param {object} field The field definition
+		 * @return {Array}
+		 */
+		getEffectiveSelectedArrayOptions(field) {
+			if (this.isAsyncItemsEnum(field)) {
+				// For async fields, formData stores array of full option objects
+				return this.formData[field.key] || []
+			}
+			return this.getSelectedArrayOptions(field)
+		},
+
+		/**
+		 * Handle multiselect change for both async and static fields.
+		 *
+		 * @param {object} field The field definition
+		 * @param {Array} options The selected options
+		 */
+		onEffectiveMultiSelectChange(field, options) {
+			if (this.isAsyncItemsEnum(field)) {
+				// Store full option objects for async multiselect
+				this.updateField(field.key, options || [])
+			} else {
+				this.onMultiSelectChange(field.key, options)
+			}
+		},
+
+		/**
+		 * Whether a field's async options are currently loading.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isFieldLoading(field) {
+			// TODO: restore to `this.asyncState[field.key]?.loading || false` once on Vue 3 (buble doesn't support optional chaining)
+			return (this.asyncState[field.key] && this.asyncState[field.key].loading) || false
+		},
+
+		/**
+		 * Whether a field has any async behavior (enum or items.enum is a function).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isFieldAsync(field) {
+			return this.isAsyncEnum(field) || this.isAsyncItemsEnum(field)
+		},
+
+		/**
 		 * Run client-side validation on all form fields.
 		 * Checks required, minLength, maxLength, pattern, minimum, maximum.
 		 *
@@ -508,7 +798,8 @@ export default {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
 							}
-						} catch {
+						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
+						} catch (e) {
 							// Ignore invalid regex patterns
 						}
 					}
