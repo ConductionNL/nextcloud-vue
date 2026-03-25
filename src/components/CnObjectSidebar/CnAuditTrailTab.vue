@@ -8,13 +8,15 @@
 					v-model="filterAction"
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
-					:clearable="true"
+					:multiple="true"
+					:close-on-select="false"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
-					:clearable="true"
+					:multiple="true"
+					:close-on-select="false"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -142,8 +144,8 @@ export default {
 			loading: false,
 			loadingMore: false,
 			expandedId: null,
-			filterAction: null,
-			filterUser: null,
+			filterAction: [],
+			filterUser: [],
 			filterDateFrom: null,
 			filterDateTo: null,
 			page: 1,
@@ -183,8 +185,8 @@ export default {
 			params.set('limit', this.limit)
 			params.set('_page', this.page)
 			params.set('_sort[created]', 'DESC')
-			if (this.filterAction) params.set('action', this.filterAction)
-			if (this.filterUser) params.set('user_name', this.filterUser)
+			if (this.filterAction?.length) params.set('action', this.filterAction.join(','))
+			if (this.filterUser?.length) params.set('user_name', this.filterUser.join(','))
 			if (this.filterDateFrom) {
 				params.set('_dateFrom', new Date(this.filterDateFrom).toISOString().split('T')[0])
 			}
