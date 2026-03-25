@@ -1,5 +1,20 @@
 import type { TQuota, TUsage, TCrudAuthorization } from './shared'
 
+/** Organisation-level authorization with per-entity-type CRUD + special permissions. */
+export interface TOrganisationAuthorization {
+	register?: TCrudAuthorization
+	schema?: TCrudAuthorization
+	object?: TCrudAuthorization
+	view?: TCrudAuthorization
+	agent?: TCrudAuthorization
+	configuration?: TCrudAuthorization
+	application?: TCrudAuthorization
+	object_publish?: string[]
+	agent_use?: string[]
+	dashboard_view?: string[]
+	llm_use?: string[]
+}
+
 /**
  * OpenRegister Organisation entity type.
  *
@@ -23,19 +38,4 @@ export interface TOrganisation {
 	authorization?: TOrganisationAuthorization
 	created?: string
 	updated?: string
-}
-
-/** Organisation-level authorization with per-entity-type CRUD + special permissions. */
-export interface TOrganisationAuthorization {
-	register?: TCrudAuthorization
-	schema?: TCrudAuthorization
-	object?: TCrudAuthorization
-	view?: TCrudAuthorization
-	agent?: TCrudAuthorization
-	configuration?: TCrudAuthorization
-	application?: TCrudAuthorization
-	object_publish?: string[]
-	agent_use?: string[]
-	dashboard_view?: string[]
-	llm_use?: string[]
 }

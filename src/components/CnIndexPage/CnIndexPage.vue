@@ -1,57 +1,68 @@
 <template>
 	<div class="cn-index-page">
-		<!-- Header -->
-		<div class="cn-index-page__header">
-			<div class="cn-index-page__title-area">
-				<h2 class="cn-index-page__title">{{ title }}</h2>
-				<span v-if="pagination && pagination.total > 0" class="cn-index-page__count">
-					{{ countText }}
-				</span>
-			</div>
-			<div class="cn-index-page__header-actions">
-				<!-- Mass actions dropdown (shows when items selected) -->
-				<CnMassActionBar
-					v-if="selectable"
-					:selected-ids="selectedIds"
-					:count="selectedIds.length"
-					:show-import="showMassImport"
-					:show-export="showMassExport"
-					:show-copy="showMassCopy"
-					:show-delete="showMassDelete"
-					@mass-import="showImportDialog = true"
-					@mass-export="showExportDialog = true"
-					@mass-copy="showCopyDialog = true"
-					@mass-delete="showDeleteDialog = true">
-					<template #actions="{ count: selCount, selectedIds: selIds }">
-						<slot name="mass-actions" :count="selCount" :selected-ids="selIds" />
-					</template>
-				</CnMassActionBar>
+		<!-- Header (hidden by default — shown in sidebar instead) -->
+		<CnPageHeader
+			v-if="showTitle"
+			:title="title"
+			:description="description"
+			:icon="resolvedIcon" />
 
-				<CnViewModeToggle
-					v-if="showViewToggle"
-					:value="currentViewMode"
-					@input="onViewModeChange" />
-				<slot name="header-actions" />
-			</div>
+		<!-- Optional content below header, above actions bar -->
+		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+			<slot name="below-header" />
 		</div>
+
+		<!-- Actions bar -->
+		<CnActionsBar
+			:pagination="pagination"
+			:object-count="objects.length"
+			:selectable="selectable"
+			:selected-ids="internalSelectedIds"
+			:add-label="resolvedAddLabel"
+			:add-icon="resolvedIcon"
+			:inline-action-count="inlineActionCount"
+			:show-mass-import="showMassImport"
+			:show-mass-export="showMassExport"
+			:show-mass-copy="showMassCopy"
+			:show-mass-delete="showMassDelete"
+			:view-mode="currentViewMode"
+			:show-view-toggle="showViewToggle"
+			:refreshing="refreshing"
+			@add="onAddClick"
+			@refresh="$emit('refresh')"
+			@show-import="showImportDialog = true"
+			@show-export="showExportDialog = true"
+			@show-copy="showMassCopyDialog = true"
+			@show-delete="showMassDeleteDialog = true"
+			@view-mode-change="onViewModeChange">
+			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
+				<slot name="mass-actions" :count="count" :selected-ids="ids" />
+			</template>
+			<template v-if="$scopedSlots['action-items']" #action-items>
+				<slot name="action-items" />
+			</template>
+			<template v-if="$scopedSlots['header-actions']" #header-actions>
+				<slot name="header-actions" />
+			</template>
+		</CnActionsBar>
 
 		<!-- Mass delete dialog -->
 		<CnMassDeleteDialog
-			v-if="showDeleteDialog"
-			ref="deleteDialog"
+			v-if="showMassDeleteDialog"
+			ref="massDeleteDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
 			@confirm="onMassDeleteConfirm"
-			@close="showDeleteDialog = false" />
+			@close="showMassDeleteDialog = false" />
 
 		<!-- Mass copy dialog -->
 		<CnMassCopyDialog
-			v-if="showCopyDialog"
-			ref="copyDialog"
+			v-if="showMassCopyDialog"
+			ref="massCopyDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
 			@confirm="onMassCopyConfirm"
-			@close="showCopyDialog = false" />
+			@close="showMassCopyDialog = false" />
 
 		<!-- Mass export dialog -->
 		<CnMassExportDialog
@@ -73,35 +84,71 @@
 			</template>
 		</CnMassImportDialog>
 
-		<!-- Body: sidebar + main content -->
-		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-sidebar': showSidebar }">
-			<!-- Facet sidebar -->
-			<aside v-if="showSidebar" class="cn-index-page__sidebar">
-				<slot name="sidebar">
-					<CnFacetSidebar
-						v-if="schema"
-						:schema="schema"
-						:facet-data="facetData"
-						:active-filters="activeFilters"
-						:loading="facetLoading"
-						@filter-change="$emit('filter-change', $event)"
-						@clear-all="$emit('clear-filters')" />
-				</slot>
-			</aside>
+		<!-- Single delete dialog (overridable via slot) -->
+		<slot
+			name="delete-dialog"
+			:item="actionTargetItem"
+			:close="closeSingleDelete">
+			<CnDeleteDialog
+				v-if="showSingleDeleteDialog && actionTargetItem"
+				ref="singleDeleteDialog"
+				:item="actionTargetItem"
+				:name-field="massActionNameField"
+				@confirm="onSingleDeleteConfirm"
+				@close="closeSingleDelete" />
+		</slot>
 
-			<!-- Main content area -->
+		<!-- Single copy dialog (overridable via slot) -->
+		<slot
+			name="copy-dialog"
+			:item="actionTargetItem"
+			:close="closeSingleCopy">
+			<CnCopyDialog
+				v-if="showSingleCopyDialog && actionTargetItem"
+				ref="singleCopyDialog"
+				:item="actionTargetItem"
+				:name-field="massActionNameField"
+				@confirm="onSingleCopyConfirm"
+				@close="closeSingleCopy" />
+		</slot>
+
+		<!-- Form dialog for create/edit (overridable via slot) -->
+		<slot
+			name="form-dialog"
+			:item="editItem"
+			:schema="schema"
+			:close="closeFormDialog">
+			<CnFormDialog
+				v-if="showFormDialogVisible && !useAdvancedFormDialog"
+				ref="formDialog"
+				:schema="schema"
+				:item="editItem"
+				:exclude-fields="excludeFields"
+				:include-fields="includeFields"
+				:field-overrides="fieldOverrides"
+				:name-field="massActionNameField"
+				@confirm="onFormConfirm"
+				@close="closeFormDialog">
+				<template v-if="$scopedSlots['form-fields']" #form="scope">
+					<slot name="form-fields" v-bind="scope" />
+				</template>
+			</CnFormDialog>
+			<CnAdvancedFormDialog
+				v-if="showFormDialogVisible && useAdvancedFormDialog"
+				ref="formDialog"
+				:schema="schema"
+				:item="editItem"
+				:exclude-fields="excludeFields"
+				:include-fields="includeFields"
+				:field-overrides="fieldOverrides"
+				:name-field="massActionNameField"
+				@confirm="onFormConfirm"
+				@close="closeFormDialog" />
+		</slot>
+
+		<!-- Body -->
+		<div class="cn-index-page__body">
 			<div class="cn-index-page__main">
-				<!-- Search bar -->
-				<div v-if="showSearch" class="cn-index-page__search">
-					<CnFilterBar
-						:search-value="searchValue"
-						:search-placeholder="searchPlaceholder"
-						:filters="inlineFilters"
-						:show-clear-all="false"
-						@search="$emit('search', $event)"
-						@filter-change="$emit('filter-change', $event)" />
-				</div>
-
 				<!-- Loading state -->
 				<div v-if="loading" class="cn-index-page__loading">
 					<NcLoadingIcon :size="32" />
@@ -112,7 +159,8 @@
 					<slot name="empty">
 						<NcEmptyContent :name="emptyText">
 							<template #icon>
-								<DatabaseSearch :size="64" />
+								<CnIcon v-if="resolvedIcon" :name="resolvedIcon" :size="64" />
+								<DatabaseSearch v-else :size="64" />
 							</template>
 						</NcEmptyContent>
 					</slot>
@@ -127,7 +175,7 @@
 					:sort-key="sortKey"
 					:sort-order="sortOrder"
 					:selectable="selectable"
-					:selected-ids="selectedIds"
+					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
 					:exclude-columns="excludeColumns"
@@ -135,7 +183,7 @@
 					:column-overrides="columnOverrides"
 					:row-class="rowClass"
 					@sort="$emit('sort', $event)"
-					@select="$emit('select', $event)"
+					@select="onSelect"
 					@row-click="$emit('row-click', $event)">
 					<!-- Pass through column slots -->
 					<template
@@ -148,8 +196,7 @@
 					<template v-if="hasRowActions" #row-actions="{ row }">
 						<slot name="row-actions" :row="row">
 							<CnRowActions
-								v-if="actions.length > 0"
-								:actions="actions"
+								:actions="mergedActions"
 								:row="row"
 								@action="$emit('action', $event)" />
 						</slot>
@@ -162,19 +209,18 @@
 					:objects="objects"
 					:schema="schema"
 					:selectable="selectable"
-					:selected-ids="selectedIds"
+					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
 					@click="$emit('row-click', $event)"
-					@select="$emit('select', $event)">
+					@select="onSelect">
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
 					</template>
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
-								v-if="actions.length > 0"
-								:actions="actions"
+								:actions="mergedActions"
 								:row="object"
 								@action="$emit('action', $event)" />
 						</slot>
@@ -199,83 +245,91 @@
 <script>
 import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import Eye from 'vue-material-design-icons/Eye.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { CnPageHeader } from '../CnPageHeader/index.js'
+import { CnActionsBar } from '../CnActionsBar/index.js'
+import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnPagination } from '../CnPagination/index.js'
-import { CnFilterBar } from '../CnFilterBar/index.js'
-import { CnFacetSidebar } from '../CnFacetSidebar/index.js'
-import { CnViewModeToggle } from '../CnViewModeToggle/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
-import { CnMassActionBar } from '../CnMassActionBar/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
+import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnCopyDialog } from '../CnCopyDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
  *
- * Assembles all sub-components (table, cards, pagination, search, faceted
- * sidebar, view mode toggle) into a single zero-config page. Takes a schema
- * and objects array, then auto-generates everything.
+ * Assembles sub-components (CnPageHeader, CnActionsBar, table, cards,
+ * pagination, mass actions, single-object dialogs) into a single
+ * zero-config page.
  *
- * @example Minimal usage
+ * Dialogs are overridable via named slots:
+ * - `#form-dialog` — Replace the create/edit dialog entirely
+ * - `#delete-dialog` — Replace the single-item delete dialog
+ * - `#copy-dialog` — Replace the single-item copy dialog
+ * - `#form-fields` — Replace only the form content inside the built-in form dialog (CnFormDialog only)
+ *
+ * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
+ *
+ * @example Minimal usage (auto-generated dialogs from schema)
  * <CnIndexPage
- *   title="Publications"
+ *   title="Clients"
  *   :schema="schema"
- *   :objects="publications"
+ *   :objects="clients"
  *   :pagination="pagination"
  *   :loading="loading"
- *   :search-value="search"
- *   @search="onSearch"
- *   @row-click="openPublication"
+ *   @create="onCreate"
+ *   @edit="onEdit"
+ *   @delete="onDelete"
+ *   @refresh="fetchClients"
+ *   @row-click="openClient"
  *   @page-changed="onPage" />
  *
- * @example Full usage with sidebar, actions, mass actions
- * <CnIndexPage
- *   ref="indexPage"
- *   title="Cases"
- *   :schema="caseSchema"
- *   :objects="cases"
- *   :pagination="pagination"
- *   :loading="loading"
- *   :search-value="search"
- *   :selected-ids="selectedIds"
- *   :facet-data="facetData"
- *   :active-filters="filters"
- *   :actions="[{ label: 'Edit', handler: editCase }]"
- *   @search="onSearch"
- *   @select="selectedIds = $event"
- *   @row-click="openCase"
- *   @mass-delete="onMassDelete"
- *   @mass-copy="onMassCopy">
- *   <template #header-actions>
- *     <NcButton type="primary" @click="createCase">New case</NcButton>
- *   </template>
- *   <template #mass-actions="{ count, selectedIds }">
- *     <NcButton @click="exportSelected(selectedIds)">Export {{ count }}</NcButton>
+ * @example With custom form dialog
+ * <CnIndexPage ...>
+ *   <template #form-dialog="{ item, schema, close }">
+ *     <MyCustomFormDialog :item="item" @close="close" />
  *   </template>
  * </CnIndexPage>
  *
- * // In methods:
- * async onMassDelete(ids) {
- *   try {
- *     await store.massDelete(ids)
- *     this.$refs.indexPage.setDeleteResult({ success: true })
- *   } catch (e) {
- *     this.$refs.indexPage.setDeleteResult({ error: e.message })
- *   }
- * }
- * async onMassCopy({ ids, getName }) {
- *   try {
- *     for (const obj of this.selectedObjects) {
- *       await store.copyObject(obj.id, { title: getName(obj) })
- *     }
- *     this.$refs.indexPage.setCopyResult({ success: true })
- *   } catch (e) {
- *     this.$refs.indexPage.setCopyResult({ error: e.message })
- *   }
- * }
+ * @event {void} add — Add button clicked (backward compat, only if listener attached)
+ * @event {object} create — Form dialog create confirmed. Payload: formData object
+ * @event {object} edit — Form dialog edit confirmed. Payload: formData object (includes id)
+ * @event {string} delete — Single delete confirmed. Payload: item ID
+ * @event {{ id: string, newName: string }} copy — Single copy confirmed
+ * @event {string[]} mass-delete — Mass delete confirmed. Payload: array of IDs
+ * @event {object} mass-copy — Mass copy confirmed. Payload: { ids, pattern }
+ * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
+ * @event {object} mass-import — Mass import confirmed. Payload: import data
+ * @event {void} refresh — Refresh button clicked
+ * @event {object} row-click — Table row or card clicked. Payload: row object
+ * @event {{ key: string, order: string }} sort — Column sort changed
+ * @event {number} page-changed — Pagination page changed
+ * @event {number} page-size-changed — Pagination page size changed
+ * @event {string[]} select — Selection changed. Payload: array of selected IDs
+ * @event {object} action — Row action triggered. Payload: { action, row }
+ *
+ * @slot mass-actions — Extra mass action buttons (shown when items are selected)
+ * @slot action-items — Extra action bar buttons
+ * @slot header-actions — Extra buttons in the page header
+ * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ item, close }`
+ * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ item, close }`
+ * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ item, schema, close }`
+ * @slot form-fields — Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
+ * @slot import-fields — Extra fields in the import dialog
+ * @slot empty — Custom empty state content
+ * @slot card — Custom card template for card view. Scope: `{ row }`
+ * @slot row-actions — Custom row actions. Scope: `{ row }`
+ * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
 export default {
 	name: 'CnIndexPage',
@@ -284,18 +338,21 @@ export default {
 		NcLoadingIcon,
 		NcEmptyContent,
 		DatabaseSearch,
+		CnPageHeader,
+		CnActionsBar,
+		CnIcon,
 		CnDataTable,
 		CnCardGrid,
 		CnPagination,
-		CnFilterBar,
-		CnFacetSidebar,
-		CnViewModeToggle,
 		CnRowActions,
-		CnMassActionBar,
 		CnMassDeleteDialog,
 		CnMassCopyDialog,
 		CnMassExportDialog,
 		CnMassImportDialog,
+		CnDeleteDialog,
+		CnCopyDialog,
+		CnFormDialog,
+		CnAdvancedFormDialog,
 	},
 
 	props: {
@@ -303,6 +360,24 @@ export default {
 		title: {
 			type: String,
 			required: true,
+		},
+		/** Optional description shown below the title */
+		description: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Whether to show the page header (icon, title, description) inline.
+		 * When false (default), the title is shown in the sidebar header instead.
+		 */
+		showTitle: {
+			type: Boolean,
+			default: false,
+		},
+		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
+		icon: {
+			type: String,
+			default: '',
 		},
 		/** Schema definition */
 		schema: {
@@ -326,36 +401,6 @@ export default {
 		},
 		/** Whether data is loading */
 		loading: {
-			type: Boolean,
-			default: false,
-		},
-		/** Current search term */
-		searchValue: {
-			type: String,
-			default: '',
-		},
-		/** Search input placeholder */
-		searchPlaceholder: {
-			type: String,
-			default: 'Search...',
-		},
-		/** Inline filter definitions (shown in the search bar) */
-		inlineFilters: {
-			type: Array,
-			default: () => [],
-		},
-		/** Facet data from API: { fieldName: { values: [{value, count}] } } */
-		facetData: {
-			type: Object,
-			default: null,
-		},
-		/** Current active facet filters: { fieldName: [values] } */
-		activeFilters: {
-			type: Object,
-			default: () => ({}),
-		},
-		/** Whether facet data is loading */
-		facetLoading: {
 			type: Boolean,
 			default: false,
 		},
@@ -405,7 +450,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-		/** Row action definitions */
+		/** Row action definitions (app-provided, merged with built-in actions) */
 		actions: {
 			type: Array,
 			default: () => [],
@@ -415,20 +460,20 @@ export default {
 			type: String,
 			default: 'No items found',
 		},
-		/** Whether to show the view mode toggle */
-		showViewToggle: {
-			type: Boolean,
-			default: true,
-		},
-		/** Whether to show the search bar */
-		showSearch: {
-			type: Boolean,
-			default: true,
-		},
 		/** Function returning CSS class(es) for a row */
 		rowClass: {
 			type: Function,
 			default: null,
+		},
+		/** Override label for the Add button. Defaults to "Add {schema.title}" */
+		addLabel: {
+			type: String,
+			default: '',
+		},
+		/** How many action buttons to show inline (rest go in overflow dropdown) */
+		inlineActionCount: {
+			type: Number,
+			default: 2,
 		},
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
@@ -450,7 +495,7 @@ export default {
 			type: Boolean,
 			default: true,
 		},
-		/** Property name used to display item names in mass action dialogs */
+		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
 			default: 'title',
@@ -468,41 +513,168 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/** Whether to show the built-in form dialog for Add/Edit */
+		showFormDialog: {
+			type: Boolean,
+			default: true,
+		},
+		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
+		useAdvancedFormDialog: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether to add an Edit action to row actions */
+		showEditAction: {
+			type: Boolean,
+			default: true,
+		},
+		/** Whether to add a Copy action to row actions */
+		showCopyAction: {
+			type: Boolean,
+			default: true,
+		},
+		/** Whether to add a Delete action to row actions */
+		showDeleteAction: {
+			type: Boolean,
+			default: true,
+		},
+		/** Field keys to exclude from the form dialog */
+		excludeFields: {
+			type: Array,
+			default: () => [],
+		},
+		/** Field keys to include in the form dialog (whitelist mode) */
+		includeFields: {
+			type: Array,
+			default: null,
+		},
+		/** Per-field overrides passed to CnFormDialog */
+		fieldOverrides: {
+			type: Object,
+			default: () => ({}),
+		},
+		/** Whether to show the Cards/Table view toggle in the actions bar */
+		showViewToggle: {
+			type: Boolean,
+			default: true,
+		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Store instance for automatic save integration. When provided alongside
+		 * objectType, the form dialog saves directly to the store instead of
+		 * emitting create/edit events. The object type must already be registered
+		 * in the store via registerObjectType() before passing the store here.
+		 */
+		store: { type: Object, default: null },
+		/**
+		 * Object type slug for store integration (e.g. `${registerId}-${schemaId}`).
+		 * Required when store is set — a console warning is emitted if missing.
+		 */
+		objectType: { type: String, default: '' },
 	},
 
 	data() {
 		return {
 			currentViewMode: this.viewMode,
-			showDeleteDialog: false,
-			showCopyDialog: false,
+			internalSelectedIds: [...this.selectedIds],
+			// Mass action dialogs
+			showMassDeleteDialog: false,
+			showMassCopyDialog: false,
 			showExportDialog: false,
 			showImportDialog: false,
+			// Single-object dialogs
+			showSingleDeleteDialog: false,
+			showSingleCopyDialog: false,
+			showFormDialogVisible: false,
+			// Dialog targets
+			actionTargetItem: null,
+			editItem: null,
 		}
 	},
 
 	computed: {
-		countText() {
-			if (!this.pagination) return ''
-			return `Showing ${this.objects.length} of ${this.pagination.total}`
+		/** Resolved icon — explicit prop overrides schema.icon */
+		resolvedIcon() {
+			if (this.icon) return this.icon
+			return this.schema?.icon || ''
 		},
 
-		showSidebar() {
-			return this.$scopedSlots.sidebar || this.facetData !== null
+		/** Resolved schema icon component for View action */
+		schemaIconComponent() {
+			if (this.resolvedIcon && ICON_MAP[this.resolvedIcon]) {
+				return ICON_MAP[this.resolvedIcon]
+			}
+			return Eye
+		},
+
+		/** Built-in row actions based on show*Action props */
+		defaultActions() {
+			const builtIn = []
+			if (this.$listeners && this.$listeners['row-click']) {
+				builtIn.push({
+					label: 'View',
+					icon: this.schemaIconComponent,
+					handler: (row) => {
+						this.$emit('row-click', row)
+					},
+				})
+			}
+			if (this.showEditAction) {
+				builtIn.push({
+					label: 'Edit',
+					icon: Pencil,
+					handler: (row) => {
+						this.editItem = row
+						this.showFormDialogVisible = true
+					},
+				})
+			}
+			if (this.showCopyAction) {
+				builtIn.push({
+					label: 'Copy',
+					icon: ContentCopy,
+					handler: (row) => {
+						this.actionTargetItem = row
+						this.showSingleCopyDialog = true
+					},
+				})
+			}
+			if (this.showDeleteAction) {
+				builtIn.push({
+					label: 'Delete',
+					icon: TrashCanOutline,
+					destructive: true,
+					handler: (row) => {
+						this.actionTargetItem = row
+						this.showSingleDeleteDialog = true
+					},
+				})
+			}
+			return builtIn
+		},
+
+		/** Merged actions: app-provided first, then built-in defaults */
+		mergedActions() {
+			return [...this.actions, ...this.defaultActions]
 		},
 
 		hasRowActions() {
-			return this.$scopedSlots['row-actions'] || this.actions.length > 0
+			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
 		},
 
 		/** Whether all visible items are selected */
 		allSelected() {
-			if (this.objects.length === 0 || this.selectedIds.length === 0) return false
-			return this.objects.every((o) => this.selectedIds.includes(o[this.rowKey]))
+			if (this.objects.length === 0 || this.internalSelectedIds.length === 0) return false
+			return this.objects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Full objects for the selected IDs (used by mass action dialogs) */
 		selectedObjects() {
-			return this.objects.filter((o) => this.selectedIds.includes(o[this.rowKey]))
+			return this.objects.filter((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Column slot names that the parent has provided (for pass-through) */
@@ -511,172 +683,202 @@ export default {
 				.filter((name) => name.startsWith('column-'))
 				.map((name) => name.replace('column-', ''))
 		},
+
+		/** Add button label — derived from schema.title if not explicitly set */
+		resolvedAddLabel() {
+			if (this.addLabel) return this.addLabel
+			return 'Add ' + (this.schema?.title || 'Item')
+		},
 	},
 
 	watch: {
 		viewMode(val) {
 			this.currentViewMode = val
 		},
+		selectedIds(val) {
+			this.internalSelectedIds = [...val]
+		},
 	},
 
 	methods: {
+		/**
+		 * Handle the Add button click. If the consumer listens to @add,
+		 * emit the event (backward compatible). Otherwise open the form dialog.
+		 */
+		onAddClick() {
+			if (this.$listeners && this.$listeners.add) {
+				this.$emit('add')
+			} else if (this.showFormDialog) {
+				this.editItem = null
+				this.showFormDialogVisible = true
+			}
+		},
+
+		/**
+		 * Handle view mode toggle.
+		 * @param {string} mode 'table' or 'cards'
+		 */
 		onViewModeChange(mode) {
 			this.currentViewMode = mode
 			this.$emit('view-mode-change', mode)
 		},
 
 		/**
-		 * Handle mass delete confirm. Emits 'mass-delete' with the IDs.
-		 * Parent should call `this.$refs.indexPage.setDeleteResult(...)` when done.
-		 * @param {Array} ids Array of item IDs to delete
+		 * Handle selection changes from CnDataTable/CnCardGrid.
+		 * Updates internal state and re-emits for parent.
+		 * @param {Array} ids Array of selected row IDs
 		 */
+		onSelect(ids) {
+			this.internalSelectedIds = ids
+			this.$emit('select', ids)
+		},
+
+		// --- Mass action handlers ---
+
 		onMassDeleteConfirm(ids) {
 			this.$emit('mass-delete', ids)
 		},
 
-		/**
-		 * Handle mass copy confirm. Emits 'mass-copy' with the payload.
-		 * Parent should call `this.$refs.indexPage.setCopyResult(...)` when done.
-		 * @param {{ ids: Array, getName: Function }} payload
-		 */
 		onMassCopyConfirm(payload) {
 			this.$emit('mass-copy', payload)
 		},
 
-		/**
-		 * Set the result of a mass delete operation. Call from parent after API call.
-		 * @param {{ success?: boolean, error?: string }} resultData
-		 * @public
-		 */
-		setDeleteResult(resultData) {
-			if (this.$refs.deleteDialog) {
-				this.$refs.deleteDialog.setResult(resultData)
-			}
-		},
-
-		/**
-		 * Set the result of a mass copy operation. Call from parent after API call.
-		 * @param {{ success?: boolean, error?: string }} resultData
-		 * @public
-		 */
-		setCopyResult(resultData) {
-			if (this.$refs.copyDialog) {
-				this.$refs.copyDialog.setResult(resultData)
-			}
-		},
-
-		/**
-		 * Handle mass export confirm.
-		 * @param {{ format: string }} payload
-		 */
 		onMassExportConfirm(payload) {
 			this.$emit('mass-export', payload)
 		},
 
-		/**
-		 * Handle mass import confirm.
-		 * @param {{ file: File, options: object }} payload
-		 */
 		onMassImportConfirm(payload) {
 			this.$emit('mass-import', payload)
 		},
 
-		/**
-		 * Set the result of a mass export operation.
-		 * @param {{ success?: boolean, error?: string }} resultData
-		 * @public
-		 */
+		/** @public Forward result to mass delete dialog */
+		setMassDeleteResult(resultData) {
+			if (this.$refs.massDeleteDialog) {
+				this.$refs.massDeleteDialog.setResult(resultData)
+			}
+		},
+
+		/** @public Forward result to mass copy dialog */
+		setMassCopyResult(resultData) {
+			if (this.$refs.massCopyDialog) {
+				this.$refs.massCopyDialog.setResult(resultData)
+			}
+		},
+
+		/** @public Forward result to export dialog */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
 				this.$refs.exportDialog.setResult(resultData)
 			}
 		},
 
-		/**
-		 * Set the result of a mass import operation.
-		 * @param {{ success?: boolean, error?: string, summary?: object }} resultData
-		 * @public
-		 */
+		/** @public Forward result to import dialog */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
 				this.$refs.importDialog.setResult(resultData)
 			}
 		},
+
+		// --- Backward-compatible aliases ---
+		/** @public @deprecated Use setMassDeleteResult instead */
+		setDeleteResult(resultData) {
+			this.setMassDeleteResult(resultData)
+		},
+		/** @public @deprecated Use setMassCopyResult instead */
+		setCopyResult(resultData) {
+			this.setMassCopyResult(resultData)
+		},
+
+		// --- Single-object dialog handlers ---
+
+		onSingleDeleteConfirm(id) {
+			this.$emit('delete', id)
+		},
+
+		onSingleCopyConfirm(payload) {
+			this.$emit('copy', payload)
+		},
+
+		async onFormConfirm(formData) {
+			if (this.store) {
+				if (!this.objectType) {
+					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
+					return
+				}
+				const saved = await this.store.saveObject(this.objectType, formData)
+				if (saved) {
+					this.setFormResult({ success: true })
+					this.$emit(this.editItem ? 'edit' : 'create', saved)
+				} else {
+					const err = this.store.getError?.(this.objectType)
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
+			if (this.editItem) {
+				this.$emit('edit', formData)
+			} else {
+				this.$emit('create', formData)
+			}
+		},
+
+		closeSingleDelete() {
+			this.showSingleDeleteDialog = false
+			this.actionTargetItem = null
+		},
+
+		closeSingleCopy() {
+			this.showSingleCopyDialog = false
+			this.actionTargetItem = null
+		},
+
+		closeFormDialog() {
+			this.showFormDialogVisible = false
+			this.editItem = null
+		},
+
+		/** @public Forward result to single delete dialog */
+		setSingleDeleteResult(resultData) {
+			if (this.$refs.singleDeleteDialog) {
+				this.$refs.singleDeleteDialog.setResult(resultData)
+			}
+		},
+
+		/** @public Forward result to single copy dialog */
+		setSingleCopyResult(resultData) {
+			if (this.$refs.singleCopyDialog) {
+				this.$refs.singleCopyDialog.setResult(resultData)
+			}
+		},
+
+		/** @public Forward result to form dialog */
+		setFormResult(resultData) {
+			if (this.$refs.formDialog) {
+				this.$refs.formDialog.setResult(resultData)
+			}
+		},
+
+		/**
+		 * Programmatically open the form dialog.
+		 * @param {object|null} item Pass null for create mode, or an object for edit mode
+		 * @public
+		 */
+		openFormDialog(item = null) {
+			this.editItem = item
+			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Programmatically open the single-item delete dialog.
+		 * @param {object} item The item to delete
+		 * @public
+		 */
+		openDeleteDialog(item) {
+			this.actionTargetItem = item
+			this.showSingleDeleteDialog = true
+		},
 	},
 }
 </script>
 
-<style scoped>
-.cn-index-page {
-	padding: 20px;
-}
-
-.cn-index-page__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 16px;
-	flex-wrap: wrap;
-	gap: 12px;
-}
-
-.cn-index-page__title-area {
-	display: flex;
-	align-items: baseline;
-	gap: 8px;
-}
-
-.cn-index-page__title {
-	margin: 0;
-	font-size: 22px;
-	font-weight: 700;
-}
-
-.cn-index-page__count {
-	font-size: 14px;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-index-page__header-actions {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.cn-index-page__body {
-	display: flex;
-	gap: 0;
-}
-
-.cn-index-page__body--with-sidebar {
-	gap: 0;
-}
-
-.cn-index-page__sidebar {
-	flex-shrink: 0;
-}
-
-.cn-index-page__main {
-	flex: 1;
-	min-width: 0;
-}
-
-.cn-index-page__search {
-	margin-bottom: 16px;
-}
-
-.cn-index-page__loading {
-	display: flex;
-	justify-content: center;
-	padding: 60px;
-}
-
-.cn-index-page__empty {
-	padding: 40px 20px;
-	text-align: center;
-}
-
-.cn-index-page__pagination {
-	margin-top: 16px;
-}
-</style>
+<!-- Styles in css/index-page.css -->

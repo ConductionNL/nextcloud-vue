@@ -38,7 +38,7 @@
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
-						<!-- Actions header intentionally empty -->
+						<slot name="actions-header" />
 					</th>
 				</tr>
 			</thead>
@@ -117,11 +117,6 @@ import { columnsFromSchema } from '../../utils/schema.js'
  * properties and cells render through CnCellRenderer for type-aware formatting
  * (dates, booleans, UUIDs, enums, etc.). Scoped slots still override individual
  * columns when needed.
- *
- * NL Design tokens used:
- * - --nldesign-component-table-header-background-color
- * - --nldesign-component-table-row-hover-background-color
- * - --nldesign-component-table-border-color
  *
  * @example Manual columns (backwards compatible)
  * <CnDataTable

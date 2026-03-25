@@ -1,0 +1,6 @@
+schema: spec-driven
+name: single-object-dialogs
+status: archived
+created: 2026-02-28
+archived: 2026-02-28
+package: "@conduction/nextcloud-vue"
