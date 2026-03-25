@@ -1,9 +1,9 @@
 <template>
 	<component
-		:is="clickable ? 'a' : 'div'"
+		:is="componentTag"
 		class="cn-stats-block"
 		:class="rootClasses"
-		v-bind="clickable ? { href: '#', role: 'button', tabindex: '0' } : {}"
+		v-bind="componentAttrs"
 		@click="onClick">
 		<!-- Icon -->
 		<div v-if="hasIcon" class="cn-stats-block__icon" :class="iconClasses">
@@ -69,6 +69,14 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   horizontal
  *   clickable
  *   @click="goToCases" />
+ *
+ * @example With route-based navigation (renders as <router-link>)
+ * <CnStatsBlock
+ *   title="Open Cases"
+ *   :count="42"
+ *   :icon="BriefcaseOutline"
+ *   variant="primary"
+ *   :route="{ name: 'Cases', query: { status: 'open' } }" />
  *
  * @example With breakdown
  * <CnStatsBlock
@@ -152,6 +160,16 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Vue Router location object for declarative navigation.
+		 * When set, the card renders as a <router-link> and clickable styles are implied.
+		 * @example { name: 'Cases', query: { status: 'open' } }
+		 * @example { path: '/catalogi' }
+		 */
+		route: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	computed: {
@@ -163,10 +181,39 @@ export default {
 			return this.count.toLocaleString()
 		},
 
+		/**
+		 * Whether the card is interactive (clickable or has a route).
+		 * Used for applying hover/focus styles.
+		 */
+		isInteractive() {
+			return !!this.route || this.clickable
+		},
+
+		/**
+		 * Determines which HTML element or component to render.
+		 * - route set → 'router-link' (SPA navigation)
+		 * - clickable → 'a' (app handles click via event)
+		 * - neither → 'div' (static display)
+		 */
+		componentTag() {
+			if (this.route) return 'router-link'
+			if (this.clickable) return 'a'
+			return 'div'
+		},
+
+		/**
+		 * Dynamic attributes for the root element based on rendering mode.
+		 */
+		componentAttrs() {
+			if (this.route) return { to: this.route, tabindex: '0' }
+			if (this.clickable) return { href: '#', role: 'button', tabindex: '0' }
+			return {}
+		},
+
 		rootClasses() {
 			return {
 				'cn-stats-block--horizontal': this.horizontal,
-				'cn-stats-block--clickable': this.clickable,
+				'cn-stats-block--clickable': this.isInteractive,
 				[`cn-stats-block--${this.variant}`]: this.variant !== 'default',
 			}
 		},
@@ -184,6 +231,8 @@ export default {
 		},
 
 		onClick(event) {
+			// When route is set, router-link handles navigation — do not emit click
+			if (this.route) return
 			if (this.clickable) {
 				event.preventDefault()
 				this.$emit('click', event)

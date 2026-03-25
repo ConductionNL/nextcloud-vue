@@ -1,11 +1,11 @@
+// CSS — auto-imported so consumers get styles with components
+import './css/index.css'
+
 // Components
 export {
 	CnDataTable,
 	CnFilterBar,
-	CnListViewLayout,
-	CnDetailViewLayout,
 	CnStatusBadge,
-	CnEmptyState,
 	CnPagination,
 	CnSettingsCard,
 	CnSettingsSection,
@@ -16,15 +16,36 @@ export {
 	CnObjectCard,
 	CnCardGrid,
 	CnFacetSidebar,
-	CnViewModeToggle,
 	CnRowActions,
 	CnIndexPage,
 	CnMassActionBar,
+	CnDeleteDialog,
+	CnCopyDialog,
+	CnFormDialog,
+	CnAdvancedFormDialog,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
 	CnMassExportDialog,
 	CnMassImportDialog,
+	CnIndexSidebar,
+	CnRegisterMapping,
+	CnDashboardPage,
+	CnDashboardGrid,
+	CnWidgetWrapper,
+	CnWidgetRenderer,
+	CnTileWidget,
+	CnTimelineStages,
+	CnUserActionMenu,
+	CnNotesCard,
+	CnTasksCard,
+	CnDetailPage,
+	CnDetailCard,
+	CnChartWidget,
+	CnObjectSidebar,
+	CnInfoWidget,
+	CnTableWidget,
+	registerIcons,
 } from './components/index.js'
 
 // Store
@@ -37,14 +58,17 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	registerMappingPlugin,
+	selectionPlugin,
+	searchPlugin,
+	SEARCH_TYPE,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView } from './composables/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
-export { columnsFromSchema, formatValue, filtersFromSchema } from './utils/index.js'
-
-// CSS (consumers should import separately)
-// import '@conduction/nextcloud-vue/src/css/index.css'
+export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from './utils/index.js'

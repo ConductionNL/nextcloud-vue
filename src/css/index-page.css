@@ -1,0 +1,40 @@
+/* CnIndexPage — Index page layout styles */
+/* Header styles: see page-header.css (CnPageHeader) */
+/* Actions bar styles: see actions-bar.css (CnActionsBar) */
+
+.cn-index-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	padding: calc(5 * var(--default-grid-baseline));
+}
+
+/* Body layout */
+.cn-index-page__body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.cn-index-page__main {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.cn-index-page__loading {
+	display: flex;
+	justify-content: center;
+	padding: calc(15 * var(--default-grid-baseline));
+}
+
+.cn-index-page__empty {
+	padding: calc(10 * var(--default-grid-baseline)) calc(5 * var(--default-grid-baseline));
+	text-align: center;
+}
+
+.cn-index-page__pagination {
+	margin-top: calc(4 * var(--default-grid-baseline));
+}
