@@ -37,4 +37,3 @@ export interface TSchema {
 	extend?: string
 	stats?: TEntityStats
 }
-

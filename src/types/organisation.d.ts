@@ -1,6 +1,5 @@
 import type { TQuota, TUsage, TCrudAuthorization } from './shared'
 
-
 /** Organisation-level authorization with per-entity-type CRUD + special permissions. */
 export interface TOrganisationAuthorization {
 	register?: TCrudAuthorization
@@ -40,4 +39,3 @@ export interface TOrganisation {
 	created?: string
 	updated?: string
 }
-
