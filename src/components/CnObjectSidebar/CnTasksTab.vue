@@ -1,7 +1,7 @@
 <template>
 	<div class="cn-sidebar-tab">
 		<!-- Add / Edit task -->
-		<div class="cn-sidebar-tab__action">
+		<div class="cn-sidebar-tab__section">
 			<div class="cn-sidebar-tab__action--row">
 				<NcTextField
 					v-model="newTaskSummary"
@@ -25,40 +25,39 @@
 					</template>
 				</NcButton>
 			</div>
-			<div class="cn-sidebar-tab__task-grid">
-				<div>
-					<label class="cn-sidebar-tab__field-label" for="task-deadline">{{ deadlineLabel }}</label>
-					<NcDateTimePickerNative
-						id="task-deadline"
-						v-model="newTaskDue"
-						:label="deadlineLabel"
-						type="date" />
-				</div>
-				<div>
-					<label class="cn-sidebar-tab__field-label">{{ assigneeLabel }}</label>
-					<NcSelect
-						v-model="newTaskAssignee"
-						:options="userList"
-						:placeholder="assigneeLabel"
-						label="displayName"
-						track-by="userId"
-						:clearable="true" />
-				</div>
+			<div class="cn-sidebar-tab__grid">
+				<NcDateTimePickerNative
+					id="task-deadline"
+					v-model="newTaskDue"
+					:label="deadlineLabel"
+					type="date" />
+				<NcSelect
+					v-model="newTaskAssignee"
+					:options="userList"
+					:placeholder="assigneeLabel"
+					:input-label="assigneeLabel"
+					label="displayName"
+					track-by="userId"
+					:clearable="true" />
 			</div>
 		</div>
 
 		<!-- Filters -->
-		<div v-if="tasks.length > 0 || filterStatus || filterAssignee" class="cn-sidebar-tab__filters">
-			<NcSelect
-				v-model="filterStatus"
-				:options="statusOptions"
-				:placeholder="statusFilterLabel"
-				:clearable="true" />
-			<NcSelect
-				v-model="filterAssignee"
-				:options="assigneeOptions"
-				:placeholder="assigneeFilterLabel"
-				:clearable="true" />
+		<div v-if="tasks.length > 0 || filterStatus || filterAssignee" class="cn-sidebar-tab__section cn-sidebar-tab__section--filters">
+			<div class="cn-sidebar-tab__grid">
+				<NcSelect
+					v-model="filterStatus"
+					:options="statusOptions"
+					:placeholder="statusFilterLabel"
+					:input-label="statusFilterLabel"
+					:clearable="true" />
+				<NcSelect
+					v-model="filterAssignee"
+					:options="assigneeOptions"
+					:placeholder="assigneeFilterLabel"
+					:input-label="assigneeFilterLabel"
+					:clearable="true" />
+			</div>
 		</div>
 
 		<!-- Tasks list -->
@@ -409,30 +408,35 @@ export default {
 </script>
 
 <style scoped>
-.cn-sidebar-tab { padding: 12px; }
-.cn-sidebar-tab__action { margin-bottom: 12px; }
-.cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; }
-
-.cn-sidebar-tab__task-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-	margin-top: 8px;
+.cn-sidebar-tab {
+	padding: 12px;
+	overflow-x: hidden;
 }
 
-.cn-sidebar-tab__field-label {
-	display: block;
-	font-size: 12px;
-	color: var(--color-text-maxcontrast);
-	margin-bottom: 2px;
-	padding-left: 2px;
-}
-
-.cn-sidebar-tab__filters {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
+.cn-sidebar-tab__section {
 	margin-bottom: 12px;
+}
+
+.cn-sidebar-tab__section--filters {
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-sidebar-tab__action--row {
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+	margin-bottom: 8px;
+}
+
+.cn-sidebar-tab__grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.cn-sidebar-tab__grid > * {
+	min-width: 0;
 }
 
 .cn-sidebar-tab__empty {
@@ -442,7 +446,12 @@ export default {
 	font-size: 13px;
 }
 
-.cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+.cn-sidebar-tab__list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
 .cn-sidebar-tab__load-more { margin-top: 8px; }
 
 .cn-sidebar-tab__task-checkbox {
