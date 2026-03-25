@@ -1,45 +1,74 @@
 <template>
 	<div class="cn-sidebar-tab">
-		<!-- Add task -->
+		<!-- Add / Edit task -->
 		<div class="cn-sidebar-tab__action">
 			<div class="cn-sidebar-tab__action--row">
 				<NcTextField
 					v-model="newTaskSummary"
-					:label="addTaskPlaceholder"
-					@keyup.enter="addTask" />
+					:label="editingTaskId ? editLabel : addTaskPlaceholder"
+					@keyup.enter="editingTaskId ? saveEdit() : addTask()" />
+				<NcButton
+					v-if="editingTaskId"
+					type="tertiary"
+					@click="cancelEdit">
+					<template #icon>
+						<Close :size="20" />
+					</template>
+				</NcButton>
 				<NcButton
 					type="primary"
 					:disabled="!newTaskSummary.trim() || saving"
-					@click="addTask">
+					@click="editingTaskId ? saveEdit() : addTask()">
 					<template #icon>
-						<Plus :size="20" />
+						<Plus v-if="!editingTaskId" :size="20" />
+						<ContentSave v-else :size="20" />
 					</template>
 				</NcButton>
 			</div>
-			<div class="cn-sidebar-tab__task-fields">
-				<NcDateTimePickerNative
-					id="task-deadline"
-					v-model="newTaskDue"
-					:label="deadlineLabel"
-					type="date" />
-				<NcSelect
-					v-model="newTaskAssignee"
-					:options="userList"
-					:placeholder="assigneeLabel"
-					label="displayName"
-					track-by="userId"
-					:clearable="true" />
+			<div class="cn-sidebar-tab__task-grid">
+				<div>
+					<label class="cn-sidebar-tab__field-label" for="task-deadline">{{ deadlineLabel }}</label>
+					<NcDateTimePickerNative
+						id="task-deadline"
+						v-model="newTaskDue"
+						:label="deadlineLabel"
+						type="date" />
+				</div>
+				<div>
+					<label class="cn-sidebar-tab__field-label">{{ assigneeLabel }}</label>
+					<NcSelect
+						v-model="newTaskAssignee"
+						:options="userList"
+						:placeholder="assigneeLabel"
+						label="displayName"
+						track-by="userId"
+						:clearable="true" />
+				</div>
 			</div>
+		</div>
+
+		<!-- Filters -->
+		<div v-if="tasks.length > 0 || filterStatus || filterAssignee" class="cn-sidebar-tab__filters">
+			<NcSelect
+				v-model="filterStatus"
+				:options="statusOptions"
+				:placeholder="statusFilterLabel"
+				:clearable="true" />
+			<NcSelect
+				v-model="filterAssignee"
+				:options="assigneeOptions"
+				:placeholder="assigneeFilterLabel"
+				:clearable="true" />
 		</div>
 
 		<!-- Tasks list -->
 		<NcLoadingIcon v-if="loading" />
-		<div v-else-if="tasks.length === 0" class="cn-sidebar-tab__empty">
+		<div v-else-if="filteredTasks.length === 0" class="cn-sidebar-tab__empty">
 			{{ noTasksLabel }}
 		</div>
 		<div v-else class="cn-sidebar-tab__list">
 			<NcListItem
-				v-for="task in tasks"
+				v-for="task in filteredTasks"
 				:key="task.id"
 				:name="task.summary || task.title || task.name"
 				:bold="false"
@@ -60,6 +89,12 @@
 					</span>
 				</template>
 				<template #actions>
+					<NcActionButton @click="startEdit(task)">
+						<template #icon>
+							<Pencil :size="20" />
+						</template>
+						{{ editLabel }}
+					</NcActionButton>
 					<NcActionButton v-if="task.status !== 'completed'" @click="completeTask(task)">
 						<template #icon>
 							<CheckboxMarkedOutline :size="20" />
@@ -94,6 +129,9 @@
 import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -103,7 +141,7 @@ export default {
 
 	components: {
 		NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon,
-		NcDateTimePickerNative, NcSelect, Plus, Delete,
+		NcDateTimePickerNative, NcSelect, Plus, Delete, Pencil, Close, ContentSave,
 		CheckboxMarkedOutline, CheckboxBlankOutline,
 	},
 
@@ -114,11 +152,14 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		addTaskPlaceholder: { type: String, default: 'Add task...' },
 		deadlineLabel: { type: String, default: 'Deadline' },
-		assigneeLabel: { type: String, default: 'Assign to...' },
+		assigneeLabel: { type: String, default: 'Assignee' },
 		completeLabel: { type: String, default: 'Complete' },
+		editLabel: { type: String, default: 'Edit' },
 		deleteLabel: { type: String, default: 'Delete' },
 		noTasksLabel: { type: String, default: 'No linked tasks' },
 		loadMoreLabel: { type: String, default: 'Load more' },
+		statusFilterLabel: { type: String, default: 'Status' },
+		assigneeFilterLabel: { type: String, default: 'Assignee' },
 	},
 
 	data() {
@@ -130,11 +171,33 @@ export default {
 			newTaskDue: null,
 			newTaskAssignee: null,
 			saving: false,
+			editingTaskId: null,
 			userList: [],
 			page: 1,
 			total: 0,
 			limit: 20,
+			filterStatus: null,
+			filterAssignee: null,
 		}
+	},
+
+	computed: {
+		statusOptions() {
+			return [...new Set(this.tasks.map(t => t.status).filter(Boolean))]
+		},
+		assigneeOptions() {
+			return [...new Set(this.tasks.map(t => this.extractAssignee(t)).filter(Boolean))]
+		},
+		filteredTasks() {
+			let result = this.tasks
+			if (this.filterStatus) {
+				result = result.filter(t => t.status === this.filterStatus)
+			}
+			if (this.filterAssignee) {
+				result = result.filter(t => this.extractAssignee(t) === this.filterAssignee)
+			}
+			return result
+		},
 	},
 
 	watch: {
@@ -220,15 +283,65 @@ export default {
 						body: JSON.stringify(taskData),
 					},
 				)
-				this.newTaskSummary = ''
-				this.newTaskDue = null
-				this.newTaskAssignee = null
+				this.clearForm()
 				await this.fetchTasks()
 			} catch (err) {
 				console.error('CnTasksTab: Failed to add task', err)
 			} finally {
 				this.saving = false
 			}
+		},
+
+		startEdit(task) {
+			this.editingTaskId = task.id
+			this.newTaskSummary = task.summary || task.title || task.name || ''
+			this.newTaskDue = task.due ? new Date(task.due).toISOString().split('T')[0] : null
+			const assigneeName = this.extractAssignee(task)
+			this.newTaskAssignee = this.userList.find(u => u.displayName === assigneeName) || null
+		},
+
+		cancelEdit() {
+			this.editingTaskId = null
+			this.clearForm()
+		},
+
+		async saveEdit() {
+			if (!this.newTaskSummary.trim() || !this.editingTaskId) return
+			this.saving = true
+			try {
+				const taskData = { summary: this.newTaskSummary.trim() }
+				if (this.newTaskDue) {
+					taskData.due = new Date(this.newTaskDue).toISOString()
+				} else {
+					taskData.due = ''
+				}
+				if (this.newTaskAssignee) {
+					taskData.description = 'Assigned to: ' + this.newTaskAssignee.displayName
+				} else {
+					taskData.description = ''
+				}
+				await fetch(
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${this.editingTaskId}`,
+					{
+						method: 'PUT',
+						headers: buildHeaders(),
+						body: JSON.stringify(taskData),
+					},
+				)
+				this.editingTaskId = null
+				this.clearForm()
+				await this.fetchTasks()
+			} catch (err) {
+				console.error('CnTasksTab: Failed to update task', err)
+			} finally {
+				this.saving = false
+			}
+		},
+
+		clearForm() {
+			this.newTaskSummary = ''
+			this.newTaskDue = null
+			this.newTaskAssignee = null
 		},
 
 		async toggleTask(task) {
@@ -291,32 +404,36 @@ export default {
 				})
 			} catch { return dateStr }
 		},
-
-		formatDate(dateStr) {
-			if (!dateStr) return ''
-			try {
-				return new Date(dateStr).toLocaleString(undefined, {
-					year: 'numeric', month: 'short', day: 'numeric',
-					hour: '2-digit', minute: '2-digit',
-				})
-			} catch { return dateStr }
-		},
 	},
 }
 </script>
 
 <style scoped>
 .cn-sidebar-tab { padding: 12px; }
-.cn-sidebar-tab__action { margin-bottom: 16px; }
+.cn-sidebar-tab__action { margin-bottom: 12px; }
 .cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; }
 
-.cn-sidebar-tab__task-fields {
-	display: flex;
+.cn-sidebar-tab__task-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
 	gap: 8px;
 	margin-top: 8px;
 }
 
-.cn-sidebar-tab__task-fields > * { flex: 1; min-width: 0; }
+.cn-sidebar-tab__field-label {
+	display: block;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	margin-bottom: 2px;
+	padding-left: 2px;
+}
+
+.cn-sidebar-tab__filters {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-bottom: 12px;
+}
 
 .cn-sidebar-tab__empty {
 	text-align: center;
@@ -326,6 +443,8 @@ export default {
 }
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+.cn-sidebar-tab__load-more { margin-top: 8px; }
+
 .cn-sidebar-tab__task-checkbox {
 	display: flex;
 	align-items: center;
@@ -340,5 +459,4 @@ export default {
 .cn-sidebar-tab__task-done { color: var(--color-success); }
 .cn-sidebar-tab__task-overdue-icon { color: var(--color-error, #e53935); }
 .cn-sidebar-tab__task-overdue-date { color: var(--color-error, #e53935); font-weight: 500; }
-.cn-sidebar-tab__load-more { margin-top: 8px; }
 </style>
