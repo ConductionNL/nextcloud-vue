@@ -320,7 +320,7 @@ export default {
 					taskData.description = ''
 				}
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${this.editingTaskId}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(this.editingTaskId)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -347,7 +347,7 @@ export default {
 			const newStatus = task.status === 'completed' ? 'NEEDS-ACTION' : 'COMPLETED'
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${task.id}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -363,7 +363,7 @@ export default {
 		async completeTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${task.id}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -379,7 +379,7 @@ export default {
 		async deleteTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${task.id}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.tasks = this.tasks.filter(t => t.id !== task.id)
