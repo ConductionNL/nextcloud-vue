@@ -57,11 +57,23 @@
 				</template>
 			</NcListItem>
 		</div>
+		<NcButton
+			v-if="files.length < total"
+			type="tertiary"
+			:wide="true"
+			:disabled="loadingMore"
+			class="cn-sidebar-tab__load-more"
+			@click="loadMore">
+			<template v-if="loadingMore" #icon>
+				<NcLoadingIcon :size="20" />
+			</template>
+			{{ loadingMore ? '' : loadMoreLabel }}
+		</NcButton>
 	</div>
 </template>
 
 <script>
-import { NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
@@ -71,7 +83,7 @@ import { buildHeaders } from '../../utils/index.js'
 export default {
 	name: 'CnFilesTab',
 
-	components: { NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
 
 	props: {
 		objectId: { type: String, required: true },
@@ -82,14 +94,19 @@ export default {
 		noFilesLabel: { type: String, default: 'No files attached' },
 		openLabel: { type: String, default: 'Open' },
 		deleteLabel: { type: String, default: 'Delete' },
+		loadMoreLabel: { type: String, default: 'Load more' },
 	},
 
 	data() {
 		return {
 			files: [],
 			loading: false,
+			loadingMore: false,
 			isDragOver: false,
 			uploadError: '',
+			page: 1,
+			total: 0,
+			limit: 20,
 		}
 	},
 
@@ -101,23 +118,32 @@ export default {
 	},
 
 	methods: {
-		async fetchFiles() {
+		async fetchFiles(append = false) {
 			if (!this.register || !this.schema) return
-			this.loading = true
+			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
+				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
 					const data = await response.json()
-					this.files = data.results || data || []
+					const results = data.results || data || []
+					this.files = append ? [...this.files, ...results] : results
+					this.total = data.total || this.files.length
 				}
 			} catch (err) {
 				console.error('CnFilesTab: Failed to fetch files', err)
 			} finally {
 				this.loading = false
+				this.loadingMore = false
 			}
+		},
+
+		loadMore() {
+			this.page++
+			this.fetchFiles(true)
 		},
 
 		triggerFileInput() {
@@ -256,4 +282,5 @@ export default {
 }
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+.cn-sidebar-tab__load-more { margin-top: 8px; }
 </style>

@@ -1,11 +1,40 @@
 <template>
 	<div class="cn-sidebar-tab">
 		<NcLoadingIcon v-if="loading" />
-		<div v-else-if="entries.length === 0" class="cn-sidebar-tab__empty">
-			{{ noAuditTrailLabel }}
-		</div>
-		<div v-else class="cn-sidebar-tab__list">
-			<div v-for="entry in sortedEntries" :key="entry.id" class="cn-audit-entry">
+		<template v-else-if="entries.length > 0">
+			<!-- Filters -->
+			<div class="cn-audit-filters">
+				<NcSelect
+					v-model="filterAction"
+					:options="actionOptions"
+					:placeholder="actionFilterLabel"
+					:clearable="true"
+					class="cn-audit-filters__select" />
+				<NcSelect
+					v-model="filterUser"
+					:options="userOptions"
+					:placeholder="userFilterLabel"
+					:clearable="true"
+					class="cn-audit-filters__select" />
+				<NcDateTimePickerNative
+					id="audit-date-from"
+					v-model="filterDateFrom"
+					:label="fromLabel"
+					type="date"
+					class="cn-audit-filters__date" />
+				<NcDateTimePickerNative
+					id="audit-date-to"
+					v-model="filterDateTo"
+					:label="toLabel"
+					type="date"
+					class="cn-audit-filters__date" />
+			</div>
+
+			<div v-if="entries.length === 0 && !loading" class="cn-sidebar-tab__empty">
+				{{ noMatchLabel }}
+			</div>
+			<div v-else class="cn-sidebar-tab__list">
+				<div v-for="entry in entries" :key="entry.id" class="cn-audit-entry">
 				<NcListItem
 					:name="formatDate(entry.created)"
 					:bold="false"
@@ -62,19 +91,36 @@
 					</div>
 				</div>
 			</div>
+			<!-- Load more -->
+			<NcButton
+				v-if="hasMore"
+				type="tertiary"
+				:wide="true"
+				:disabled="loadingMore"
+				class="cn-sidebar-tab__load-more"
+				@click="loadMore">
+				<template v-if="loadingMore" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ loadingMore ? '' : loadMoreLabel }}
+			</NcButton>
+		</div>
+		</template>
+		<div v-else class="cn-sidebar-tab__empty">
+			{{ noAuditTrailLabel }}
 		</div>
 	</div>
 </template>
 
 <script>
-import { NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
 	name: 'CnAuditTrailTab',
 
-	components: { NcListItem, NcLoadingIcon, History },
+	components: { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
 	props: {
 		objectId: { type: String, required: true },
@@ -82,19 +128,35 @@ export default {
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		noAuditTrailLabel: { type: String, default: 'No audit trail entries' },
+		noMatchLabel: { type: String, default: 'No matching entries' },
+		actionFilterLabel: { type: String, default: 'Action' },
+		userFilterLabel: { type: String, default: 'User' },
+		fromLabel: { type: String, default: 'From' },
+		toLabel: { type: String, default: 'To' },
+		loadMoreLabel: { type: String, default: 'Load more' },
 	},
 
 	data() {
 		return {
 			entries: [],
 			loading: false,
+			loadingMore: false,
 			expandedId: null,
+			filterAction: null,
+			filterUser: null,
+			filterDateFrom: null,
+			filterDateTo: null,
+			page: 1,
+			total: 0,
+			limit: 20,
+			actionOptions: ['create', 'read', 'update', 'delete'],
+			userOptions: [],
 		}
 	},
 
 	computed: {
-		sortedEntries() {
-			return [...this.entries].sort((a, b) => new Date(b.created) - new Date(a.created))
+		hasMore() {
+			return this.entries.length < this.total
 		},
 	},
 
@@ -103,26 +165,69 @@ export default {
 			immediate: true,
 			handler(id) { if (id) this.fetchAuditTrails() },
 		},
+		filterAction() { this.resetAndFetch() },
+		filterUser() { this.resetAndFetch() },
+		filterDateFrom() { this.resetAndFetch() },
+		filterDateTo() { this.resetAndFetch() },
 	},
 
 	methods: {
+		resetAndFetch() {
+			this.page = 1
+			this.entries = []
+			this.fetchAuditTrails()
+		},
+
+		buildQueryParams() {
+			const params = new URLSearchParams()
+			params.set('limit', this.limit)
+			params.set('_page', this.page)
+			params.set('_sort[created]', 'DESC')
+			if (this.filterAction) params.set('action', this.filterAction)
+			if (this.filterUser) params.set('user_name', this.filterUser)
+			if (this.filterDateFrom) {
+				params.set('_dateFrom', new Date(this.filterDateFrom).toISOString().split('T')[0])
+			}
+			if (this.filterDateTo) {
+				params.set('_dateTo', new Date(this.filterDateTo).toISOString().split('T')[0])
+			}
+			return params.toString()
+		},
+
 		async fetchAuditTrails() {
 			if (!this.register || !this.schema) return
-			this.loading = true
+			this.loading = this.page === 1
+			this.loadingMore = this.page > 1
 			try {
+				const query = this.buildQueryParams()
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${query}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
 					const data = await response.json()
-					this.entries = data.results || data || []
+					const results = data.results || data || []
+					if (this.page === 1) {
+						this.entries = results
+					} else {
+						this.entries = [...this.entries, ...results]
+					}
+					this.total = data.total || this.entries.length
+					// Build user options from all seen entries
+					const users = new Set(this.entries.map(e => e.userName || e.user).filter(Boolean))
+					this.userOptions = [...users].sort()
 				}
 			} catch (err) {
 				console.error('CnAuditTrailTab: Failed to fetch audit trails', err)
 			} finally {
 				this.loading = false
+				this.loadingMore = false
 			}
+		},
+
+		loadMore() {
+			this.page++
+			this.fetchAuditTrails()
 		},
 
 		toggleExpand(id) {
@@ -168,6 +273,18 @@ export default {
 }
 
 .cn-sidebar-tab__list { display: flex; flex-direction: column; gap: 2px; }
+
+.cn-audit-filters {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.cn-audit-filters__select { min-width: 0; }
+.cn-audit-filters__date { min-width: 0; }
+
+.cn-sidebar-tab__load-more { margin-top: 8px; }
 
 .cn-audit-entry { cursor: pointer; }
 
