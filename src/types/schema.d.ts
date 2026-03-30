@@ -1,5 +1,18 @@
 import type { TEntityStats } from './shared'
 
+/** Schema configuration options. */
+export interface TSchemaConfiguration {
+	objectNameField?: string
+	objectDescriptionField?: string
+	objectSummaryField?: string
+	objectImageField?: string
+	allowFiles?: boolean
+	allowedTags?: string[]
+	unique?: boolean
+	facetCacheTtl?: number
+	autoPublish?: boolean
+}
+
 /**
  * OpenRegister Schema entity type.
  *
@@ -23,17 +36,4 @@ export interface TSchema {
 	authorization?: Record<string, string[]>
 	extend?: string
 	stats?: TEntityStats
-}
-
-/** Schema configuration options. */
-export interface TSchemaConfiguration {
-	objectNameField?: string
-	objectDescriptionField?: string
-	objectSummaryField?: string
-	objectImageField?: string
-	allowFiles?: boolean
-	allowedTags?: string[]
-	unique?: boolean
-	facetCacheTtl?: number
-	autoPublish?: boolean
 }

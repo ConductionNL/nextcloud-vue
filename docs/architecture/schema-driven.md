@@ -79,7 +79,7 @@ const fields = fieldsFromSchema(schema)
 // Result: field definitions with widget types (text, email, select, date...)
 ```
 
-`CnFormDialog` renders these as a complete form with validation.
+`CnFormDialog` renders these as a complete form with validation. Select fields support both static enum arrays and async functions for remote search — see [CnFormDialog — Async Select](../components/cn-form-dialog.md#async-select).
 
 ### 5. All Together in CnIndexPage
 
