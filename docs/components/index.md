@@ -25,6 +25,7 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 | [CnStatusBadge](./cn-status-badge.md) | Color-coded pill badge for status/priority |
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
+| [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
 
 ## Data Actions

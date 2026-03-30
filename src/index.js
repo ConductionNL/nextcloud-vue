@@ -47,6 +47,7 @@ export {
 	CnStatsPanel,
 	CnJsonViewer,
 	CnDetailGrid,
+	CnProgressBar,
 	registerIcons,
 } from './components/index.js'
 
