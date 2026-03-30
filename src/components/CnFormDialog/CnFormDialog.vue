@@ -163,10 +163,11 @@
 							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 								{{ field.label }}{{ field.required ? ' *' : '' }}
 							</label>
+							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:value="formData[field.key] || []"
-								:options="isFieldAsync(field) ? (asyncState[field.key]?.options || []) : []"
+								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
 								:taggable="true"
 								:clearable="true"
@@ -660,7 +661,8 @@ export default {
 		 */
 		getEffectiveOptions(field) {
 			if (this.isAsyncEnum(field)) {
-				return this.asyncState[field.key]?.options || []
+				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
+				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
 			return this.getEnumOptions(field)
 		},
@@ -702,7 +704,8 @@ export default {
 		 */
 		getEffectiveArrayOptions(field) {
 			if (this.isAsyncItemsEnum(field)) {
-				return this.asyncState[field.key]?.options || []
+				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
+				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
 			return this.getArrayEnumOptions(field)
 		},
@@ -743,7 +746,8 @@ export default {
 		 * @return {boolean}
 		 */
 		isFieldLoading(field) {
-			return this.asyncState[field.key]?.loading || false
+			// TODO: restore to `this.asyncState[field.key]?.loading || false` once on Vue 3 (buble doesn't support optional chaining)
+			return (this.asyncState[field.key] && this.asyncState[field.key].loading) || false
 		},
 
 		/**
@@ -796,7 +800,8 @@ export default {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
 							}
-						} catch {
+						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
+						} catch (e) {
 							// Ignore invalid regex patterns
 						}
 					}

@@ -30,7 +30,6 @@ export {
 	CnMassImportDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
-	CnDetailPage,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
@@ -43,6 +42,7 @@ export {
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
+	CnDetailPage,
 	CnCard,
 	registerIcons,
 } from './components/index.js'
