@@ -251,7 +251,7 @@
 			<NcButton
 				v-if="result === null"
 				type="primary"
-				:disabled="loading"
+				:disabled="loading || !requiredFieldsFilled"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -459,6 +459,18 @@ export default {
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
 			return `${this.schemaTitle} saved successfully.`
+		},
+
+		/** Whether all required fields have a non-empty value */
+		requiredFieldsFilled() {
+			return this.resolvedFields
+				.filter((f) => f.required)
+				.every((f) => {
+					const val = this.formData[f.key]
+					if (val === null || val === undefined || val === '') return false
+					if (Array.isArray(val) && val.length === 0) return false
+					return true
+				})
 		},
 
 		resolvedFields() {
