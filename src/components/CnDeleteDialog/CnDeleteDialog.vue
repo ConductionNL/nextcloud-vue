@@ -91,6 +91,11 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
@@ -121,6 +126,7 @@ export default {
 
 	computed: {
 		itemName() {
+			if (this.nameFormatter) return this.nameFormatter(this.item)
 			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
 		},
 		resolvedWarningText() {
