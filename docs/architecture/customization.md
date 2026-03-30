@@ -44,6 +44,8 @@ CnIndexPage
     ├── slot: #before-fields        ← prepend content to auto-generated fields
     ├── slot: #after-fields         ← append content to auto-generated fields
     ├── slot: #field-{key}          ← replace one specific field
+    ├── slot: #field-{key}-option   ← custom dropdown option rendering for a select field
+    ├── slot: #field-{key}-selected-option ← custom selected display for a select field
     └── slot: #import-fields        ← add extra fields to the import dialog
 ```
 
@@ -482,6 +484,30 @@ The slot scope for `#field-{key}` provides:
 - `value` — the current form value for this field
 - `error` — current validation error string (empty when valid)
 - `updateField(key, value)` — call this to update the form data
+
+### Custom option rendering for select fields
+
+For select, multiselect, and tags fields, you can customize how dropdown options and selected values are displayed without replacing the entire field. Use `#field-{key}-option` and `#field-{key}-selected-option`:
+
+```vue
+<CnIndexPage title="Clients" :schema="schema" :objects="objects" @create="onCreate">
+  <!-- Custom rendering for the 'category' select dropdown options -->
+  <template #field-category-option="{ label, description, count }">
+    <div class="category-option">
+      <strong>{{ label }}</strong>
+      <span v-if="count" class="count">({{ count }})</span>
+      <p v-if="description">{{ description }}</p>
+    </div>
+  </template>
+
+  <!-- Simpler display when selected -->
+  <template #field-category-selected-option="{ label }">
+    {{ label }}
+  </template>
+</CnIndexPage>
+```
+
+The slot scope receives all properties of the option object. This is especially useful with async select fields where options have rich data beyond just a label. See [CnFormDialog — Async Select](../components/cn-form-dialog.md#async-select) for details.
 
 ### Prepend or append extra fields
 
