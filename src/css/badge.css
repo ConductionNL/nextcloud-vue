@@ -5,6 +5,7 @@
 .cn-status-badge {
 	display: inline-flex;
 	align-items: center;
+	gap: calc(0.5 * var(--default-grid-baseline));
 	padding: calc(0.5 * var(--default-grid-baseline)) calc(2.5 * var(--default-grid-baseline));
 	border-radius: var(--border-radius-pill);
 	font-size: 0.85em;
@@ -52,8 +53,8 @@
 
 /* Solid variants — solid background with white text for use on colored backgrounds */
 .cn-status-badge--solid.cn-status-badge--default {
-	background-color: var(--color-text-maxcontrast);
-	color: white;
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
 }
 
 .cn-status-badge--solid.cn-status-badge--primary {

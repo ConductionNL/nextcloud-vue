@@ -48,6 +48,9 @@
 					</BTab>
 				</BTabs>
 			</div>
+
+			<!-- Optional content below tabs (e.g. shared settings across all tabs) -->
+			<slot name="below-tabs" :loading="loading" />
 		</div>
 
 		<template #actions>
@@ -88,6 +91,7 @@
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
+					<slot v-else-if="$slots['confirm-icon']" name="confirm-icon" />
 					<Plus v-else-if="isCreateMode" :size="20" />
 					<ContentSaveOutline v-else :size="20" />
 				</template>
