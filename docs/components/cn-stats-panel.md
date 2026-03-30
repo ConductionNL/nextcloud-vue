@@ -4,9 +4,9 @@ sidebar_position: 12
 
 # CnStatsPanel
 
-Data-driven statistics panel that renders sections of stat blocks and list items from a single `sections` prop. Drop it into a sidebar tab, a dashboard widget, or any container that needs structured statistics.
+Data-driven statistics panel that renders sections of stat blocks, list items, and progress bars from a single `sections` prop. Drop it into a sidebar tab, a dashboard widget, or any container that needs structured statistics.
 
-**Wraps**: CnStatsBlock, CnKpiGrid, NcListItem, NcLoadingIcon, CnIcon
+**Wraps**: CnStatsBlock, CnKpiGrid, CnProgressBar, NcListItem, NcLoadingIcon, CnIcon
 
 ## When to use
 
@@ -21,7 +21,7 @@ Typical placements:
 
 ### Sections
 
-The `sections` prop is an array. Each section is either a **stats** section or a **list** section, rendered in order.
+The `sections` prop is an array. Each section is a **stats**, **list**, or **progress** section, rendered in order.
 
 ### Stats sections
 
@@ -34,11 +34,15 @@ Render CnStatsBlock cards. Choose a layout per section:
 
 Render NcListItem entries with icon and subname. Use these for ranked lists like "most active objects" or "action distribution".
 
+### Progress sections
+
+Render [CnProgressBar](./cn-progress-bar.md) — labeled horizontal bars showing proportional distribution. Use these for breakdowns like query complexity, status distribution, or resource utilization.
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `sections` | Array | `[]` | Section definitions (see data shape below) |
+| `sections` | Array | `[]` | Section definitions — stats, list, or progress (see data shapes below) |
 | `loading` | Boolean | `false` | Global loading state — hides all sections and shows a spinner |
 | `loadingLabel` | String | `'Loading...'` | Text shown next to the loading spinner |
 | `emptyLabel` | String | `'No data available'` | Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. |
@@ -104,6 +108,39 @@ Render NcListItem entries with icon and subname. Use these for ranked lists like
   iconSize: 32,                // icon pixel size (default: 32)
 }
 ```
+
+**Progress section:**
+
+```js
+{
+  type: 'progress',
+  id: 'complexity',              // unique id, used for slot naming
+  title: 'Query Complexity',     // section heading (optional)
+  variant: 'primary',            // default bar color (overridden by item.variant)
+  barHeight: 8,                  // bar height in pixels (default: 8)
+  rounded: true,                 // rounded corners (default: true)
+  showPercentage: false,         // show % instead of count (default: false)
+  loading: false,                // per-section loading state
+  emptyLabel: 'No data yet',     // empty text for this section
+  items: [/* ProgressItem[] */],
+}
+```
+
+**ProgressItem:**
+
+```js
+{
+  key: 'simple',                 // unique key (optional, falls back to index)
+  label: 'Simple',               // display label
+  count: 50,                     // numeric value (auto-calculates percentage from total)
+  total: 500,                    // per-item total (optional — defaults to sum of all counts)
+  percentage: 72,                // explicit percentage (0-100), overrides count and total
+  variant: 'success',            // string or function: ({ item, count, total, percentage }) => string
+  tooltip: 'Basic text searches', // hover tooltip on label
+}
+```
+
+See [CnProgressBar](./cn-progress-bar.md) for full standalone usage and slot documentation.
 
 ## Events
 
@@ -200,6 +237,21 @@ computed: {
     </div>
   </template>
 </CnStatsPanel>
+```
+
+### Progress bars for distribution
+
+```vue
+<CnStatsPanel :sections="[{
+  type: 'progress',
+  id: 'complexity',
+  title: 'Query Complexity Distribution',
+  items: [
+    { key: 'simple', label: 'Simple', count: 50, variant: 'success', tooltip: 'Basic text searches' },
+    { key: 'medium', label: 'Medium', count: 30, variant: 'warning', tooltip: 'Filtered searches' },
+    { key: 'complex', label: 'Complex', count: 20, variant: 'error', tooltip: 'Advanced queries' },
+  ],
+}]" />
 ```
 
 ### Mixed layouts (stack hero + grid breakdown)

@@ -89,6 +89,18 @@
 					</slot>
 				</template>
 
+				<!-- Progress section -->
+				<template v-else-if="section.type === 'progress'">
+					<slot :name="'section-' + section.id" :section="section">
+						<CnProgressBar
+							:items="section.items"
+							:variant="section.variant || 'primary'"
+							:bar-height="section.barHeight || 8"
+							:rounded="section.rounded !== undefined ? section.rounded : true"
+							:show-percentage="section.showPercentage || false" />
+					</slot>
+				</template>
+
 				<!-- List section -->
 				<template v-else-if="section.type === 'list'">
 					<slot :name="'section-' + section.id" :section="section">
@@ -135,6 +147,7 @@ import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
 import { CnStatsBlock } from '../CnStatsBlock/index.js'
 import { CnKpiGrid } from '../CnKpiGrid/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnProgressBar } from '../CnProgressBar/index.js'
 
 /**
  * CnStatsPanel — Configurable statistics panel with sections of stat blocks and list items.
@@ -195,18 +208,21 @@ export default {
 		CnStatsBlock,
 		CnKpiGrid,
 		CnIcon,
+		CnProgressBar,
 	},
 
 	props: {
 		/**
 		 * Array of section definitions to render.
-		 * Each section has a `type` of 'stats' or 'list'.
+		 * Each section has a `type` of 'stats', 'list', or 'progress'.
 		 *
 		 * Stats sections: `{ type: 'stats', id, title, layout: 'stack'|'grid', columns?, loading?, items: StatItem[] }`
 		 * List sections: `{ type: 'list', id, title, loading?, items: ListItem[] }`
+		 * Progress sections: `{ type: 'progress', id, title, variant?, barHeight?, rounded?, showPercentage?, loading?, items: ProgressItem[] }`
 		 *
 		 * StatItem: `{ title, count, countLabel, variant?, icon?, iconSize?, horizontal?, showZeroCount?, breakdown?, route?, clickable?, loading? }`
 		 * ListItem: `{ key, name, subname?, bold?, icon?, iconSize? }`
+		 * ProgressItem: `{ key?, label, count?, percentage?, variant?, tooltip? }`
 		 */
 		sections: {
 			type: Array,
@@ -232,7 +248,7 @@ export default {
 		},
 	},
 
-	emits: ['stat-click', 'list-click'],
+	emits: ['stat-click', 'list-click', 'progress-click'],
 
 	methods: {
 		/**
