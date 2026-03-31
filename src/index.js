@@ -44,7 +44,6 @@ export {
 	CnTasksCard,
 	CnDetailCard,
 	CnDetailPage,
-	CnDetailCard,
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,
