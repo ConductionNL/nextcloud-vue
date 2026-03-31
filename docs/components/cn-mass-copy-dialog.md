@@ -16,6 +16,7 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 |------|------|---------|-------------|
 | `items` | Array | `[]` | Items to copy (`[\{ id, name \}]`) |
 | `nameField` | String | `'title'` | Field to display as item name |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names. Overrides `nameField` when provided. |
 | `dialogTitle` | String | `'Copy items'` | |
 | `patternLabel` | String | `'Naming pattern'` | |
 | `patternPlaceholder` | String | `'\{name\} (copy)'` | |

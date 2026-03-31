@@ -1,3 +1,9 @@
+/** CalDAV task priority levels (mapped from iCal 0-9 range). */
+export type TTaskPriority = 'urgent' | 'high' | 'normal' | 'low'
+
+/** CalDAV task status values. */
+export type TTaskStatus = 'needs-action' | 'in-process' | 'completed' | 'cancelled'
+
 /**
  * OpenRegister Task entity type.
  *
@@ -23,9 +29,3 @@ export interface TTask {
 	created?: string
 	updated?: string
 }
-
-/** CalDAV task priority levels (mapped from iCal 0-9 range). */
-export type TTaskPriority = 'urgent' | 'high' | 'normal' | 'low'
-
-/** CalDAV task status values. */
-export type TTaskStatus = 'needs-action' | 'in-process' | 'completed' | 'cancelled'

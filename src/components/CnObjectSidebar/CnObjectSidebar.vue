@@ -204,6 +204,11 @@ export default {
 			default: '',
 		},
 		/** Sidebar subtitle */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+		/** @deprecated Use subtitle instead */
 		subtitleProp: {
 			type: String,
 			default: '',
@@ -235,7 +240,7 @@ export default {
 			return this.title || this.objectType || 'Details'
 		},
 		sidebarSubtitle() {
-			return this.subtitleProp || this.objectId || ''
+			return this.subtitle || this.subtitleProp || ''
 		},
 	},
 

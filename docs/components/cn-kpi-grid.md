@@ -13,6 +13,7 @@ Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `columns` | Number | `4` | Number of columns (2, 3, or 4) |
+| `grid-class` | String | `''` | Extra classes to add on top of the grid |
 
 ## Slots
 
