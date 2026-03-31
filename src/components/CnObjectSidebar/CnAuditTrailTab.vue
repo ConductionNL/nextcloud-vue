@@ -37,76 +37,76 @@
 			</div>
 			<div v-else class="cn-sidebar-tab__list">
 				<div v-for="entry in entries" :key="entry.id" class="cn-audit-entry">
-				<NcListItem
-					:name="formatDate(entry.created)"
-					:bold="false"
-					:details="entry.action"
-					:counter-number="changedCount(entry)"
-					@click="toggleExpand(entry.id)">
-					<template #icon>
-						<History :size="32" />
-					</template>
-					<template #subname>
-						{{ entry.userName || entry.user || 'System' }}
-					</template>
-				</NcListItem>
-				<!-- Expandable details -->
-				<div v-if="expandedId === entry.id" class="cn-audit-details">
-					<div class="cn-audit-details__row">
-						<span class="cn-audit-details__label">Action</span>
-						<span>{{ entry.action }}</span>
-					</div>
-					<div class="cn-audit-details__row">
-						<span class="cn-audit-details__label">User</span>
-						<span>{{ entry.userName || entry.user || 'System' }}</span>
-					</div>
-					<div class="cn-audit-details__row">
-						<span class="cn-audit-details__label">Date</span>
-						<span>{{ formatDate(entry.created) }}</span>
-					</div>
-					<div v-if="entry.ipAddress" class="cn-audit-details__row">
-						<span class="cn-audit-details__label">IP</span>
-						<span>{{ entry.ipAddress }}</span>
-					</div>
-					<div v-if="entry.session" class="cn-audit-details__row">
-						<span class="cn-audit-details__label">Session</span>
-						<span class="cn-audit-details__mono">{{ entry.session }}</span>
-					</div>
-					<!-- Changed fields -->
-					<div v-if="entry.changed && Object.keys(entry.changed).length > 0" class="cn-audit-details__changes">
-						<span class="cn-audit-details__label">Changes</span>
-						<div
-							v-for="(change, field) in entry.changed"
-							:key="field"
-							class="cn-audit-details__change">
-							<span class="cn-audit-details__field">{{ field }}</span>
-							<div v-if="isSimpleValue(change)" class="cn-audit-details__values">
-								<span v-if="change.old !== null && change.old !== undefined" class="cn-audit-details__old">{{ formatValue(change.old) }}</span>
-								<span v-if="change.old !== null && change.new !== null" class="cn-audit-details__arrow">→</span>
-								<span v-if="change.new !== null && change.new !== undefined" class="cn-audit-details__new">{{ formatValue(change.new) }}</span>
-								<span v-if="change.old === null && change.new === null" class="cn-audit-details__null">null</span>
-							</div>
-							<div v-else class="cn-audit-details__values">
-								<span class="cn-audit-details__mono">{{ formatValue(change) }}</span>
+					<NcListItem
+						:name="formatDate(entry.created)"
+						:bold="false"
+						:details="entry.action"
+						:counter-number="changedCount(entry)"
+						@click="toggleExpand(entry.id)">
+						<template #icon>
+							<History :size="32" />
+						</template>
+						<template #subname>
+							{{ entry.userName || entry.user || 'System' }}
+						</template>
+					</NcListItem>
+					<!-- Expandable details -->
+					<div v-if="expandedId === entry.id" class="cn-audit-details">
+						<div class="cn-audit-details__row">
+							<span class="cn-audit-details__label">Action</span>
+							<span>{{ entry.action }}</span>
+						</div>
+						<div class="cn-audit-details__row">
+							<span class="cn-audit-details__label">User</span>
+							<span>{{ entry.userName || entry.user || 'System' }}</span>
+						</div>
+						<div class="cn-audit-details__row">
+							<span class="cn-audit-details__label">Date</span>
+							<span>{{ formatDate(entry.created) }}</span>
+						</div>
+						<div v-if="entry.ipAddress" class="cn-audit-details__row">
+							<span class="cn-audit-details__label">IP</span>
+							<span>{{ entry.ipAddress }}</span>
+						</div>
+						<div v-if="entry.session" class="cn-audit-details__row">
+							<span class="cn-audit-details__label">Session</span>
+							<span class="cn-audit-details__mono">{{ entry.session }}</span>
+						</div>
+						<!-- Changed fields -->
+						<div v-if="entry.changed && Object.keys(entry.changed).length > 0" class="cn-audit-details__changes">
+							<span class="cn-audit-details__label">Changes</span>
+							<div
+								v-for="(change, field) in entry.changed"
+								:key="field"
+								class="cn-audit-details__change">
+								<span class="cn-audit-details__field">{{ field }}</span>
+								<div v-if="isSimpleValue(change)" class="cn-audit-details__values">
+									<span v-if="change.old !== null && change.old !== undefined" class="cn-audit-details__old">{{ formatValue(change.old) }}</span>
+									<span v-if="change.old !== null && change.new !== null" class="cn-audit-details__arrow">→</span>
+									<span v-if="change.new !== null && change.new !== undefined" class="cn-audit-details__new">{{ formatValue(change.new) }}</span>
+									<span v-if="change.old === null && change.new === null" class="cn-audit-details__null">null</span>
+								</div>
+								<div v-else class="cn-audit-details__values">
+									<span class="cn-audit-details__mono">{{ formatValue(change) }}</span>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
+				<!-- Load more -->
+				<NcButton
+					v-if="hasMore"
+					type="tertiary"
+					:wide="true"
+					:disabled="loadingMore"
+					class="cn-sidebar-tab__load-more"
+					@click="loadMore">
+					<template v-if="loadingMore" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ loadingMore ? '' : loadMoreLabel }}
+				</NcButton>
 			</div>
-			<!-- Load more -->
-			<NcButton
-				v-if="hasMore"
-				type="tertiary"
-				:wide="true"
-				:disabled="loadingMore"
-				class="cn-sidebar-tab__load-more"
-				@click="loadMore">
-				<template v-if="loadingMore" #icon>
-					<NcLoadingIcon :size="20" />
-				</template>
-				{{ loadingMore ? '' : loadMoreLabel }}
-			</NcButton>
-		</div>
 		</template>
 		<div v-else class="cn-sidebar-tab__empty">
 			{{ noAuditTrailLabel }}
@@ -255,8 +255,11 @@ export default {
 			if (!dateStr) return ''
 			try {
 				return new Date(dateStr).toLocaleString(undefined, {
-					year: 'numeric', month: 'short', day: 'numeric',
-					hour: '2-digit', minute: '2-digit',
+					year: 'numeric',
+					month: 'short',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
 				})
 			} catch { return dateStr }
 		},
