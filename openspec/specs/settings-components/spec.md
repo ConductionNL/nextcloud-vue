@@ -103,7 +103,7 @@ CnSettingsSection MUST wrap content in `NcSettingsSection` and support loading, 
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: CnConfigurationCard — Slot-Based Configuration Card
 

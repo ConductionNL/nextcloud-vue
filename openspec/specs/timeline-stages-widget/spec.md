@@ -190,7 +190,7 @@ The component MUST provide scoped slots for customizing stage indicators and lab
 - THEN the slot content SHALL replace the default label/subtitle text
 - AND the slot SHALL receive `{ stage, index, state }` as scope
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Error state support
 The component MUST support an `error` state for stages that have failed or require attention, in addition to the existing `completed`, `current`, and `upcoming` states.

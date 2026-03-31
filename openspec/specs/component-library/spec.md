@@ -107,7 +107,7 @@ All component interfaces MUST be documented with JSDoc.
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### REQ-CL-007: Barrel Export Chain
 
