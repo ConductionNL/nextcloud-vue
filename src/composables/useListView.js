@@ -14,6 +14,7 @@ import { useObjectStore } from '../store/index.js'
  *
  * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
  * @param {object} [options] Options (new API only)
+ * @param {object|null} [options.objectStore] Custom object store instance (from createObjectStore). When provided, uses this store instead of the default useObjectStore(). Required when the app uses createObjectStore with a custom store ID.
  * @param {object|null} [options.sidebarState] Sidebar state object from `inject('sidebarState')`. When provided, the composable wires and unwires the sidebar automatically on mount/unmount.
  * @param {number} [options.defaultPageSize=20] Default `_limit` sent to the API
  * @param {number} [options.debounceMs=300] Search debounce in milliseconds
@@ -49,7 +50,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
-	const objectStore = useObjectStore()
+	const objectStore = opts.objectStore || useObjectStore()
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)

@@ -50,13 +50,15 @@ export function buildQueryString(params = {}) {
 
 	for (const [key, value] of Object.entries(params)) {
 		if (value === undefined || value === null || value === '') continue
+		if (Array.isArray(value) && value.length === 0) continue
+		if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
 		if (Array.isArray(value)) {
 			for (const item of value) {
 				if (item !== undefined && item !== null && item !== '') {
 					queryParams.append(key, String(item))
 				}
 			}
-		} else if (key === '_order' && typeof value === 'object') {
+		} else if (typeof value === 'object') {
 			queryParams.set(key, JSON.stringify(value))
 		} else {
 			queryParams.set(key, String(value))
