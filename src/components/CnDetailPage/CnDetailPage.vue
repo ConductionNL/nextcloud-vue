@@ -287,7 +287,7 @@ export default {
 		hasExternalSidebar() {
 			return !!this.objectSidebarState
 		},
-			hasStats() {
+		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
 	},
