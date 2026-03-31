@@ -15,7 +15,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `objects` | Array | `[]` | Object data array |
-| `schema` | Object | *(required)* | Passed to each CnObjectCard |
+| `schema` | Object | `null` | Passed to each CnObjectCard (required only when using the default card template; not needed when providing a custom `#card` slot) |
 | `loading` | Boolean | `false` | Loading state |
 | `selectable` | Boolean | `false` | Enable card selection |
 | `selectedIds` | Array | `[]` | Currently selected IDs |

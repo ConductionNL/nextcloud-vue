@@ -4,7 +4,7 @@
 
 Documents how `@conduction/nextcloud-vue` connects to external systems — specifically OpenRegister (the backend schema/object engine) and the NL Design System (theming layer). These guides help developers understand the full stack, not just the Vue components in isolation.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: OpenRegister Integration Guide
 
