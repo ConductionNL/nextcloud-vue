@@ -43,6 +43,7 @@ export {
 	CnNotesCard,
 	CnTasksCard,
 	CnDetailPage,
+	CnDetailCard,
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,

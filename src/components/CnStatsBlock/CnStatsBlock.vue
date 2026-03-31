@@ -259,16 +259,22 @@ export default {
 	color: inherit;
 	border: 2px solid transparent;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	height: 100%;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal {
 	flex-direction: row;
-	align-items: flex-start;
-	gap: 16px;
+	align-items: center;
+	gap: 12px;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__content {
 	text-align: left;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__count {
@@ -305,6 +311,8 @@ export default {
 
 .cn-stats-block--horizontal .cn-stats-block__icon {
 	margin-bottom: 0;
+	width: 36px;
+	height: 36px;
 }
 
 .cn-stats-block__icon--primary {
@@ -336,25 +344,31 @@ export default {
 
 .cn-stats-block__header h4 {
 	margin-top: 0;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 	color: var(--color-main-text);
 	font-size: 14px;
 	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__count {
 	display: flex;
 	align-items: baseline;
 	justify-content: center;
-	gap: 0.5rem;
+	gap: 0.25rem;
 	font-size: 1.2rem;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .cn-stats-block__count-value {
 	font-size: 2rem;
 	font-weight: bold;
 	color: var(--color-primary-element);
+	flex-shrink: 0;
 }
 
 .cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
@@ -364,6 +378,8 @@ export default {
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__loading {

@@ -181,6 +181,10 @@ export default {
 		Refresh,
 	},
 
+	inject: {
+		objectSidebarState: { default: null },
+	},
+
 	props: {
 		/** Page title */
 		title: {
@@ -275,8 +279,56 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
+		 * rather than inline. When external, CnDetailPage only manages state —
+		 * the parent App renders the actual NcAppSidebar.
+		 */
+		hasExternalSidebar() {
+			return !!this.objectSidebarState
+		},
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
+		},
+	},
+
+	watch: {
+		sidebar: {
+			immediate: true,
+			handler() { this.syncSidebarState() },
+		},
+		title() { this.syncSidebarState() },
+		subtitle() { this.syncSidebarState() },
+		objectType() { this.syncSidebarState() },
+		objectId() { this.syncSidebarState() },
+		sidebarProps: {
+			deep: true,
+			handler() { this.syncSidebarState() },
+		},
+	},
+
+	beforeDestroy() {
+		if (this.hasExternalSidebar) {
+			this.objectSidebarState.active = false
+		}
+	},
+
+	methods: {
+		syncSidebarState() {
+			if (!this.hasExternalSidebar) return
+			if (this.sidebar && this.objectType && this.objectId) {
+				this.objectSidebarState.active = true
+				this.objectSidebarState.open = this.sidebarOpen
+				this.objectSidebarState.objectType = this.objectType
+				this.objectSidebarState.objectId = this.objectId
+				this.objectSidebarState.title = this.sidebarProps.title || this.title || ''
+				this.objectSidebarState.subtitle = this.sidebarProps.subtitle || this.subtitle || ''
+				this.objectSidebarState.register = this.sidebarProps.register || ''
+				this.objectSidebarState.schema = this.sidebarProps.schema || ''
+				this.objectSidebarState.hiddenTabs = this.sidebarProps.hiddenTabs || []
+			} else {
+				this.objectSidebarState.active = false
+			}
 		},
 	},
 }
