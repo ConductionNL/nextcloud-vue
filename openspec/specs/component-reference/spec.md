@@ -1,5 +1,5 @@
 ---
-status: implemented
+status: reviewed
 ---
 
 # component-reference Specification
