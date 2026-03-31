@@ -18,7 +18,7 @@
 				<h4>{{ title || 'Objects' }}</h4>
 			</div>
 
-			<div v-if="count > 0" class="cn-stats-block__count">
+			<div v-if="count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
 				<span class="cn-stats-block__count-value">{{ formattedCount }}</span>
 				<span class="cn-stats-block__count-label">{{ countLabel }}</span>
 			</div>
@@ -31,7 +31,7 @@
 			</div>
 
 			<!-- Breakdown details -->
-			<div v-if="breakdown && count > 0" class="cn-stats-block__breakdown">
+			<div v-if="breakdown && (count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
 				<div
 					v-for="(value, key) in breakdown"
 					:key="key"
@@ -157,6 +157,11 @@ export default {
 		},
 		/** Whether the card is clickable */
 		clickable: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether to display 0 as a count value instead of the empty label */
+		showZeroCount: {
 			type: Boolean,
 			default: false,
 		},
@@ -317,17 +322,17 @@ export default {
 
 .cn-stats-block__icon--success {
 	background: rgba(70, 186, 97, 0.1);
-	color: var(--color-success);
+	color: var(--color-element-success, var(--color-success));
 }
 
 .cn-stats-block__icon--warning {
 	background: rgba(232, 163, 24, 0.1);
-	color: var(--color-warning);
+	color: var(--color-element-warning, var(--color-warning));
 }
 
 .cn-stats-block__icon--error {
 	background: rgba(224, 36, 36, 0.1);
-	color: var(--color-error);
+	color: var(--color-element-error, var(--color-error));
 }
 
 /* Content */
@@ -367,9 +372,9 @@ export default {
 }
 
 .cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
-.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-success); }
-.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-warning); }
-.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-error); }
+.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-element-success, var(--color-success)); }
+.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-element-warning, var(--color-warning)); }
+.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-element-error, var(--color-error)); }
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
@@ -425,7 +430,7 @@ export default {
 	background: var(--color-background-hover);
 }
 
-.cn-stats-block__breakdown-value--invalid { color: var(--color-warning); }
-.cn-stats-block__breakdown-value--deleted { color: var(--color-error); }
-.cn-stats-block__breakdown-value--published { color: var(--color-success); }
+.cn-stats-block__breakdown-value--invalid { color: var(--color-element-warning); }
+.cn-stats-block__breakdown-value--deleted { color: var(--color-element-error); }
+.cn-stats-block__breakdown-value--published { color: var(--color-element-success); }
 </style>

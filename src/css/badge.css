@@ -5,6 +5,7 @@
 .cn-status-badge {
 	display: inline-flex;
 	align-items: center;
+	gap: calc(0.5 * var(--default-grid-baseline));
 	padding: calc(0.5 * var(--default-grid-baseline)) calc(2.5 * var(--default-grid-baseline));
 	border-radius: var(--border-radius-pill);
 	font-size: 0.85em;
@@ -48,4 +49,35 @@
 .cn-status-badge--info {
 	background-color: var(--color-info-light, rgba(0, 130, 201, 0.15));
 	color: var(--color-info, #0082c9);
+}
+
+/* Solid variants — solid background with white text for use on colored backgrounds */
+.cn-status-badge--solid.cn-status-badge--default {
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.cn-status-badge--solid.cn-status-badge--primary {
+	background-color: var(--color-primary-element);
+	color: white;
+}
+
+.cn-status-badge--solid.cn-status-badge--success {
+	background-color: var(--color-success);
+	color: white;
+}
+
+.cn-status-badge--solid.cn-status-badge--warning {
+	background-color: var(--color-warning);
+	color: var(--color-primary-text);
+}
+
+.cn-status-badge--solid.cn-status-badge--error {
+	background-color: var(--color-error);
+	color: white;
+}
+
+.cn-status-badge--solid.cn-status-badge--info {
+	background-color: var(--color-info, #0082c9);
+	color: white;
 }

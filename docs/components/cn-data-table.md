@@ -13,13 +13,13 @@ Sortable data table with row selection, loading states, and schema-driven column
 ## Anatomy
 
 ```
-+--+------+----------↑---------+----------+----------+---------+--+
-|  | sel. |  Column A ▲        | Column B | Column C | Column D|  |
-+--+------+--------------------+----------+----------+---------+--+
-|☐ | 👤   | Alice van den Berg | Dept     | email@.. | Active  |⋮ |
-|☐ | 👤   | Bob Jansen         | Dept     | email@.. | Pending |⋮ |
-|☐ | 👤   | Carol Smit         | Dept     | email@.. | Active  |⋮ |
-+--+------+--------------------+----------+----------+---------+--+
++--+------+----------↑---------+----------+----------+---------+----------------+
+|  | sel. |  Column A ▲        | Column B | Column C | Column D| Actions header |
++--+------+--------------------+----------+----------+---------+----------------+
+|☐ | 👤   | Alice van den Berg | Dept     | email@.. | Active  |⋮               |
+|☐ | 👤   | Bob Jansen         | Dept     | email@.. | Pending |⋮               |
+|☐ | 👤   | Carol Smit         | Dept     | email@.. | Active  |⋮               |
++--+------+--------------------+----------+----------+---------+----------------+
    ↑  ↑          ↑                                      ↑       ↑
    |  avatar   cell value                            badge    row actions
    checkbox                                          renderer
@@ -32,6 +32,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | **Avatar / icon** | Auto-generated from the row's name field via CnCellRenderer |
 | **Cell value** | Type-aware rendering: email links, dates, booleans, status badges |
 | **Row actions** | Per-row `⋮` menu — rendered via the `#row-actions` slot |
+| **Actions header** | Slot above actions row — rendered via the `#actions-header` slot (only renders when row actions exist) |
 | **Loading overlay** | Spinner centered over the table body while `loading` is true |
 | **Empty state** | "No items found" message (or `#empty` slot) when rows array is empty |
 
@@ -90,4 +91,5 @@ Sortable data table with row selection, loading states, and schema-driven column
 |------|-------|-------------|
 | `#column-{key}` | `{ row, value }` | Override the cell renderer for a specific column key |
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
+| `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
