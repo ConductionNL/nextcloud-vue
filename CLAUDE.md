@@ -50,10 +50,11 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnMassImportDialog` — Bulk import with file upload
 
 **Data Viewers**
-- `CnJsonViewer` — Syntax-highlighted JSON viewer/editor with CodeMirror (supports readOnly mode)
+- `CnJsonViewer` — Syntax-highlighted code viewer/editor with CodeMirror (supports JSON, XML, HTML, plain text via `language` prop with `'auto'` detection; readOnly mode)
 
 **UI Elements**
 - `CnStatusBadge` — Color-coded status/priority pill badge
+- `CnDetailCard` — Card container with title, icon, collapsible sections
 - `CnRowActions` — Row action buttons (inline + overflow dropdown)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name

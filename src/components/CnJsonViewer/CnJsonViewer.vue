@@ -1,8 +1,8 @@
 <!--
-  CnJsonViewer — Syntax-highlighted JSON viewer/editor powered by CodeMirror.
+  CnJsonViewer — Syntax-highlighted code viewer/editor powered by CodeMirror.
 
-  Supports read-only mode for displaying JSON data with syntax highlighting,
-  and editable mode with formatting and validation.
+  Supports multiple languages (JSON, XML, HTML, plain text) with optional
+  auto-detection. Use `readOnly` for display-only mode.
 -->
 <template>
 	<div class="cn-json-viewer">
@@ -10,16 +10,16 @@
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
-				placeholder="{ &quot;key&quot;: &quot;value&quot; }"
+				:placeholder="resolvedLanguage === 'json' ? '{ &quot;key&quot;: &quot;value&quot; }' : ''"
 				:dark="isDark"
 				:readonly="readOnly"
-				:linter="readOnly ? null : jsonLinterExtension"
-				:lang="jsonLangExtension"
-				:extensions="[jsonLangExtension, theme]"
+				:linter="linterExtension"
+				:lang="langExtension"
+				:extensions="editorExtensions"
 				:tab-size="2"
 				:style="{ height }" />
 			<NcButton
-				v-if="!readOnly"
+				v-if="!readOnly && resolvedLanguage === 'json'"
 				class="cn-json-viewer__format-btn"
 				type="secondary"
 				size="small"
@@ -27,7 +27,7 @@
 				Format JSON
 			</NcButton>
 		</div>
-		<span v-if="!readOnly && !isValidJson(value)" class="cn-json-viewer__error">
+		<span v-if="!readOnly && resolvedLanguage === 'json' && !isValidJson(value)" class="cn-json-viewer__error">
 			Invalid JSON format
 		</span>
 	</div>
@@ -38,18 +38,27 @@ import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
 import { githubLight, githubDark } from '@uiw/codemirror-theme-github'
 import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
+import { xml as xmlLang } from '@codemirror/lang-xml'
+import { html as htmlLang } from '@codemirror/lang-html'
 import { getTheme } from '../../utils/getTheme.js'
 
 /**
- * CnJsonViewer — Syntax-highlighted JSON viewer/editor.
+ * CnJsonViewer — Syntax-highlighted code viewer/editor.
  *
- * Wraps CodeMirror 6 with JSON language support, syntax highlighting,
- * and optional formatting/validation. Use `readOnly` for display-only mode.
+ * Wraps CodeMirror 6 with support for JSON, XML, HTML, and plain text.
+ * Includes syntax highlighting, and optional formatting/validation for JSON.
+ * Use `readOnly` for display-only mode.
  *
- * @example Read-only display
+ * @example Read-only JSON display (default)
  * <CnJsonViewer :value="jsonString" :read-only="true" />
  *
- * @example Editable with custom height
+ * @example Auto-detect language from content
+ * <CnJsonViewer :value="responseBody" :read-only="true" language="auto" />
+ *
+ * @example Explicit XML mode
+ * <CnJsonViewer :value="xmlString" :read-only="true" language="xml" />
+ *
+ * @example Editable JSON with custom height
  * <CnJsonViewer :value="jsonString" height="500px" @update:value="onUpdate" />
  */
 export default {
@@ -67,12 +76,23 @@ export default {
 		readOnly: { type: Boolean, default: false },
 		/** CSS height for the editor container */
 		height: { type: String, default: '300px' },
+		/**
+		 * Content language for syntax highlighting.
+		 * - 'auto': Auto-detect from content (JSON → xml → text) (default)
+		 * - 'json': JSON with validation and formatting
+		 * - 'xml': XML/HTML tag highlighting
+		 * - 'html': Alias for XML highlighting
+		 * - 'text': Plain text, no highlighting
+		 */
+		language: {
+			type: String,
+			default: 'auto',
+			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
+		},
 	},
 
 	data() {
 		return {
-			jsonLangExtension: jsonLang(),
-			jsonLinterExtension: jsonLinter(),
 			githubLight,
 			githubDark,
 		}
@@ -88,6 +108,66 @@ export default {
 		},
 		theme: {
 			get() { return this.isDark ? githubDark : githubLight },
+		},
+		/**
+		 * Resolve 'auto' language to a concrete language based on content.
+		 * @return {string} Resolved language: 'json', 'xml', or 'text'
+		 */
+		resolvedLanguage() {
+			if (this.language !== 'auto') {
+				return this.language
+			}
+			const trimmed = (this.value || '').trim()
+			if (!trimmed) return 'text'
+			try {
+				JSON.parse(trimmed)
+				return 'json'
+			} catch {
+				// not JSON
+			}
+			if (trimmed.charAt(0) === '<' && trimmed.includes('>')) {
+				// Detect HTML by doctype or common HTML tags
+				if (/<!doctype\s+html/i.test(trimmed) || /<(?:html|head|body|div|span|p|a|script|style|link|meta|form|input|button|table|ul|ol|li|h[1-6]|img|nav|header|footer|main|section|article)\b/i.test(trimmed)) {
+					return 'html'
+				}
+				return 'xml'
+			}
+			return 'text'
+		},
+		/**
+		 * CodeMirror language extension based on resolved language.
+		 * @return {object|null} Language extension or null for plain text
+		 */
+		langExtension() {
+			switch (this.resolvedLanguage) {
+			case 'json':
+				return jsonLang()
+			case 'html':
+				return htmlLang()
+			case 'xml':
+				return xmlLang()
+			case 'text':
+			default:
+				return null
+			}
+		},
+		/**
+		 * CodeMirror linter extension (only active for JSON in edit mode).
+		 * @return {object|null} Linter extension or null
+		 */
+		linterExtension() {
+			if (this.readOnly) return null
+			if (this.resolvedLanguage === 'json') return jsonLinter()
+			return null
+		},
+		/**
+		 * Combined CodeMirror extensions array.
+		 * @return {Array} Extensions including theme and optional language
+		 */
+		editorExtensions() {
+			const exts = [this.theme]
+			if (this.langExtension) exts.push(this.langExtension)
+			return exts
 		},
 	},
 
