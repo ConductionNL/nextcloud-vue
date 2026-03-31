@@ -139,9 +139,20 @@ export default {
 	name: 'CnTasksTab',
 
 	components: {
-		NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon,
-		NcDateTimePickerNative, NcSelect, Plus, Delete, Pencil, Close, ContentSave,
-		CheckboxMarkedOutline, CheckboxBlankOutline,
+		NcButton,
+		NcTextField,
+		NcListItem,
+		NcActionButton,
+		NcLoadingIcon,
+		NcDateTimePickerNative,
+		NcSelect,
+		Plus,
+		Delete,
+		Pencil,
+		Close,
+		ContentSave,
+		CheckboxMarkedOutline,
+		CheckboxBlankOutline,
 	},
 
 	props: {
