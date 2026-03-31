@@ -3,7 +3,7 @@
 ## Purpose
 <!-- What this capability does and why it exists -->
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: {{requirement_name}}
 <!-- Use RFC 2119: MUST, SHALL, SHOULD, MAY -->

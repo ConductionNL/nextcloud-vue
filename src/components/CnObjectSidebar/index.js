@@ -1,1 +1,6 @@
 export { default as CnObjectSidebar } from './CnObjectSidebar.vue'
+export { default as CnFilesTab } from './CnFilesTab.vue'
+export { default as CnNotesTab } from './CnNotesTab.vue'
+export { default as CnTagsTab } from './CnTagsTab.vue'
+export { default as CnTasksTab } from './CnTasksTab.vue'
+export { default as CnAuditTrailTab } from './CnAuditTrailTab.vue'

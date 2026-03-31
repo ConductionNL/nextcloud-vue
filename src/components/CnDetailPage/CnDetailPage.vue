@@ -1,6 +1,18 @@
 <!--
   CnDetailPage — Generic detail/overview page.
 
+  The detail page equivalent of CnDashboardPage. Assembles a complete entity detail
+  view from card-based sections, matching the dashboard visual style (rounded cards
+  with headers). Uses a fixed declarative layout (no drag-and-drop).
+
+  Features:
+  - Header with back button, title, subtitle, and action buttons
+  - Card-based content area (via default slot with CnDetailCard components)
+  - Optional 12-column CSS grid layout mode (via layout + widgets props)
+  - Optional right sidebar (CnObjectSidebar) for files, notes, tags, tasks, audit trail
+  - Loading and error states
+  - Edit mode toggle
+
   A simpler alternative to CnIndexPage for detail, stats, and overview pages.
   No multi-object table, no CRUD dialogs — just a clean layout with:
   - Header (title, description, icon, action buttons)
@@ -76,6 +88,27 @@
 
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
+			<!-- Grid layout mode -->
+			<div v-if="hasGridLayout" class="cn-detail-page__content cn-detail-page__content--grid">
+				<section
+					v-for="item in sortedLayout"
+					:key="item.id"
+					:style="widgetGridStyle(item)"
+					class="cn-detail-page__grid-item"
+					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+					<h3
+						v-if="item.showTitle !== false && findWidget(item)"
+						:id="`widget-title-${item.id}`"
+						class="cn-detail-page__widget-title">
+						{{ findWidget(item).title }}
+					</h3>
+					<slot
+						:name="`widget-${item.widgetId}`"
+						:item="item"
+						:widget="findWidget(item)" />
+				</section>
+			</div>
+
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
 				<slot name="stats-header">
@@ -103,20 +136,23 @@
 				</table>
 			</div>
 
-			<!-- Default content -->
-			<div class="cn-detail-page__content">
-				<slot />
+			<!-- Default vertical stacking mode -->
+			<div v-else class="cn-detail-page__content">
+				<!-- Default content -->
+				<div class="cn-detail-page__content">
+					<slot />
+				</div>
+
+				<!-- Sections slot — additional content below stats -->
+				<div v-if="$slots.sections" class="cn-detail-page__sections">
+					<slot name="sections" />
+				</div>
 			</div>
 
-			<!-- Sections slot — additional content below stats -->
-			<div v-if="$slots.sections" class="cn-detail-page__sections">
-				<slot name="sections" />
+			<!-- Footer -->
+			<div v-if="$slots.footer" class="cn-detail-page__footer">
+				<slot name="footer" />
 			</div>
-		</div>
-
-		<!-- Footer -->
-		<div v-if="$slots.footer" class="cn-detail-page__footer">
-			<slot name="footer" />
 		</div>
 	</div>
 </template>
@@ -126,10 +162,18 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import { gridLayout } from '../../mixins/gridLayout.js'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 
 /**
  * CnDetailPage — Generic detail/overview page.
+ *
+ * Supports two layout modes:
+ * 1. **Default (vertical stacking):** Content provided via default slot, cards stack vertically.
+ * 2. **Grid layout:** When `layout` and `widgets` props are provided, content renders in a
+ *    12-column CSS grid with `#widget-{widgetId}` scoped slots. Same API as CnDashboardPage.
+ *
+ * @example Basic usage (vertical stacking)
  *
  * A simpler alternative to CnIndexPage for pages that display detail info,
  * statistics, charts, or card grids — without multi-object tables or CRUD
@@ -156,6 +200,24 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <SchemaCards :schemas="schemas" />
  * </CnDetailPage>
  *
+ * @example Grid layout mode
+ * <CnDetailPage
+ *   title="Character Detail"
+ *   :layout="[
+ *     { id: 1, widgetId: 'info', gridX: 0, gridY: 0, gridWidth: 8 },
+ *     { id: 2, widgetId: 'stats', gridX: 8, gridY: 0, gridWidth: 4 },
+ *   ]"
+ *   :widgets="[
+ *     { id: 'info', title: 'Character Info' },
+ *     { id: 'stats', title: 'Statistics' },
+ *   ]">
+ *   <template #widget-info="{ item, widget }">
+ *     <CharacterInfoCard :character="character" />
+ *   </template>
+ *   <template #widget-stats="{ item, widget }">
+ *     <StatsCard :stats="character.stats" />
+ *   </template>
+ *
  * @example With header actions and error handling
  * <CnDetailPage
  *   title="Schema Details"
@@ -180,6 +242,8 @@ export default {
 		InformationOutline,
 		Refresh,
 	},
+
+	mixins: [gridLayout],
 
 	inject: {
 		objectSidebarState: { default: null },
