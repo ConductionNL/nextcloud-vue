@@ -279,12 +279,6 @@ export default {
 	},
 
 	computed: {
-		hasStats() {
-			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
-		},
-	},
-
-	computed: {
 		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
@@ -292,6 +286,9 @@ export default {
 		 */
 		hasExternalSidebar() {
 			return !!this.objectSidebarState
+		},
+			hasStats() {
+			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
 	},
 
