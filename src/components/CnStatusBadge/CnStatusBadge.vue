@@ -72,7 +72,8 @@ export default {
 		resolvedVariant() {
 			if (this.colorMap && this.label) {
 				const key = this.label.toLowerCase()
-				return this.colorMap[key] || this.variant
+				const normalizedColorMap = Object.fromEntries(Object.entries(this.colorMap).map(([k, v]) => [k.toLowerCase(), v]))
+				return normalizedColorMap[key] || this.variant
 			}
 			return this.variant
 		},
