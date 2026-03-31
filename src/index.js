@@ -42,6 +42,7 @@ export {
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
+	CnDetailCard,
 	CnDetailPage,
 	CnCard,
 	CnStatsPanel,
