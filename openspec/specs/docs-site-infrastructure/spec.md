@@ -1,5 +1,5 @@
 ---
-status: implemented
+status: reviewed
 ---
 
 # docs-site-infrastructure Specification
