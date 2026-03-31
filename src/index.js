@@ -41,6 +41,10 @@ export {
 	CnTasksCard,
 	CnDetailPage,
 	CnDetailCard,
+	CnChartWidget,
+	CnObjectSidebar,
+	CnInfoWidget,
+	CnTableWidget,
 	registerIcons,
 } from './components/index.js'
 
