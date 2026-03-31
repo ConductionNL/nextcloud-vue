@@ -16,6 +16,7 @@ Two-phase single-item copy dialog with naming pattern selector. User picks a nam
 |------|------|---------|-------------|
 | `item` | Object | *(required)* | Item to copy |
 | `nameField` | String | `'title'` | Field used as display name |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format the display name. Overrides `nameField` when provided. |
 | `dialogTitle` | String | `'Copy Item'` | |
 | `patternLabel` | String | `'Naming pattern'` | |
 | `successText` | String | `'Item successfully copied.'` | |

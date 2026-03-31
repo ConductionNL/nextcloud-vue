@@ -2,7 +2,10 @@
 	<span
 		class="cn-status-badge"
 		:class="badgeClasses">
-		<slot>{{ label }}</slot>
+		<slot>
+			<slot name="icon" />
+			{{ label }}
+		</slot>
 	</span>
 </template>
 
@@ -47,6 +50,14 @@ export default {
 			validator: (v) => ['small', 'medium'].includes(v),
 		},
 		/**
+		 * Use solid background with white text instead of light background with colored text.
+		 * Useful when the badge is placed on a colored background (e.g., an active card).
+		 */
+		solid: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Map of label values to variants. When provided, the variant is resolved
 		 * from this map using the label (case-insensitive). Falls back to the variant prop.
 		 * @example { open: 'success', closed: 'default', overdue: 'error' }
@@ -61,7 +72,8 @@ export default {
 		resolvedVariant() {
 			if (this.colorMap && this.label) {
 				const key = this.label.toLowerCase()
-				return this.colorMap[key] || this.variant
+				const normalizedColorMap = Object.fromEntries(Object.entries(this.colorMap).map(([k, v]) => [k.toLowerCase(), v]))
+				return normalizedColorMap[key] || this.variant
 			}
 			return this.variant
 		},
@@ -70,6 +82,7 @@ export default {
 			return {
 				['cn-status-badge--' + this.resolvedVariant]: true,
 				'cn-status-badge--small': this.size === 'small',
+				'cn-status-badge--solid': this.solid,
 			}
 		},
 	},

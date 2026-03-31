@@ -4,7 +4,7 @@
 
 Defines the per-component documentation pages that explain each Cn* component's purpose, props, events, slots, and usage examples. This is the primary reference for developers building apps with `@conduction/nextcloud-vue`.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Component Reference Index
 

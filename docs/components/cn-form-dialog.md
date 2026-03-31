@@ -22,7 +22,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
-| `fieldOverrides` | Object | `{}` | Per-field overrides |
+| `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
 | `nameField` | String | `'title'` | |
 | `size` | String | `'normal'` | Dialog size |
 | `successText` | String | `''` | |
@@ -126,6 +126,24 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 - Async selects store the **full option object** in `formData` (not just an ID)
 
 **Static enums are unchanged** — arrays work exactly as before, storing just the ID value.
+
+## Field Overrides
+
+The `fieldOverrides` prop accepts an object keyed by field name. Each override is merged onto the auto-generated field definition, so any field property can be changed.
+
+### `enumLabels`
+
+For `select` fields backed by an `enum`, the dropdown displays raw enum values by default. Use `enumLabels` to provide human-readable labels:
+
+```js
+fieldOverrides: {
+  type: {
+    enumLabels: { internal: 'Internal', mongodb: 'MongoDB' },
+  },
+}
+```
+
+The `enumLabels` object maps each enum value to its display label. Values without a mapping fall back to the raw value.
 
 ## Usage
 

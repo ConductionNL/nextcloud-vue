@@ -28,6 +28,7 @@
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
 			:refreshing="refreshing"
+			:show-add="showAdd"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -52,6 +53,7 @@
 			ref="massDeleteDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassDeleteConfirm"
 			@close="showMassDeleteDialog = false" />
 
@@ -61,6 +63,7 @@
 			ref="massCopyDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -94,6 +97,7 @@
 				ref="singleDeleteDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -108,6 +112,7 @@
 				ref="singleCopyDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -500,6 +505,11 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format item names in dialogs. Receives the item, returns a string. Overrides massActionNameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Available export formats for the export dialog */
 		exportFormats: {
 			type: Array,
@@ -562,6 +572,11 @@ export default {
 		refreshing: {
 			type: Boolean,
 			default: false,
+		},
+		/** Whether to show the Add button in the actions bar */
+		showAdd: {
+			type: Boolean,
+			default: true,
 		},
 		/**
 		 * Store instance for automatic save integration. When provided alongside

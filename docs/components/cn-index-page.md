@@ -42,6 +42,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
@@ -52,6 +53,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeFields` | Array | `[]` | Form fields to hide |
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
+| `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
@@ -171,6 +173,49 @@ Set `store` and `objectType` to have the form dialog save directly to the store.
 ```
 
 No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
+
+### Custom item names in dialogs
+
+When items don't have a simple name field (like audit trails that only have an ID), use `nameFormatter` to control how items are displayed in delete and copy dialogs:
+
+```vue
+<CnIndexPage
+  title="Audit Trails"
+  :objects="auditTrails"
+  :columns="columns"
+  :pagination="pagination"
+  :name-formatter="(item) => t('openregister', 'Audit Trail #{id}', { id: item.id })"
+  @delete="onDelete"
+  @refresh="onRefresh" />
+```
+
+This formatter is passed through to `CnDeleteDialog`, `CnMassDeleteDialog`, `CnCopyDialog`, and `CnMassCopyDialog`. It takes precedence over `massActionNameField`.
+
+### Read-only listing
+
+Set `:show-add="false"` to hide the Add button. Combine with disabled row actions and mass actions for a fully read-only page.
+
+```vue
+<CnIndexPage
+  title="Entities"
+  :objects="entities"
+  :columns="columns"
+  :pagination="pagination"
+  :loading="loading"
+  :show-add="false"
+  :selectable="false"
+  :show-edit-action="false"
+  :show-copy-action="false"
+  :show-delete-action="false"
+  :show-form-dialog="false"
+  :show-mass-import="false"
+  :show-mass-export="false"
+  :show-mass-copy="false"
+  :show-mass-delete="false"
+  @row-click="onRowClick"
+  @refresh="onRefresh"
+  @page-changed="onPageChanged" />
+```
 
 ## Two-Phase Pattern
 

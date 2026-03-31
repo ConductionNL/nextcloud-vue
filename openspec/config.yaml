@@ -40,8 +40,14 @@ rules:
     - CSS classes MUST use cn- prefix
     - "Use Nextcloud CSS variables only for colors (--color-*, --border-radius, etc.)"
     - "Consider Rollup tree-shaking implications (sideEffects: true)"
+    - "Components MUST use Vue 2.7 Options API"
+    - "All CSS classes MUST use cn- prefix"
+    - "MUST use Nextcloud CSS variables, never reference --nldesign-* directly"
   tasks:
     - Each task should be small enough for a single Ralph Wiggum iteration
     - Include spec_ref pointing to the relevant spec section
     - Include files_likely_affected list
     - Test with npm test and npm run build after changes
+    - "MUST include unit tests with @vue/test-utils"
+    - "MUST update JSDoc documentation for all public APIs"
+    - "MUST update component reference docs"

@@ -99,6 +99,7 @@ CnIndexPage
 | `show-mass-copy` | Boolean | `true` | Show the built-in Copy (mass) button |
 | `show-mass-delete` | Boolean | `true` | Show the built-in Delete (mass) button |
 | `mass-action-name-field` | String | `'title'` | Property used to display item names inside mass-action dialogs |
+| `name-formatter` | Function | `null` | Optional `(item) => string` to format item names in dialogs. Overrides `mass-action-name-field` when provided. |
 | `export-formats` | Array | `[{ id:'excel', label:'Excel (.xlsx)' }, ...]` | Available formats in the export dialog |
 | `import-options` | Array | `[]` | Option checkboxes shown in the import dialog |
 

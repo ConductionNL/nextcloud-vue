@@ -259,16 +259,22 @@ export default {
 	color: inherit;
 	border: 2px solid transparent;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	height: 100%;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal {
 	flex-direction: row;
-	align-items: flex-start;
-	gap: 16px;
+	align-items: center;
+	gap: 12px;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__content {
 	text-align: left;
+	min-width: 0;
 }
 
 .cn-stats-block--horizontal .cn-stats-block__count {
@@ -305,6 +311,8 @@ export default {
 
 .cn-stats-block--horizontal .cn-stats-block__icon {
 	margin-bottom: 0;
+	width: 36px;
+	height: 36px;
 }
 
 .cn-stats-block__icon--primary {
@@ -314,17 +322,17 @@ export default {
 
 .cn-stats-block__icon--success {
 	background: rgba(70, 186, 97, 0.1);
-	color: var(--color-success);
+	color: var(--color-element-success, var(--color-success));
 }
 
 .cn-stats-block__icon--warning {
 	background: rgba(232, 163, 24, 0.1);
-	color: var(--color-warning);
+	color: var(--color-element-warning, var(--color-warning));
 }
 
 .cn-stats-block__icon--error {
 	background: rgba(224, 36, 36, 0.1);
-	color: var(--color-error);
+	color: var(--color-element-error, var(--color-error));
 }
 
 /* Content */
@@ -336,34 +344,42 @@ export default {
 
 .cn-stats-block__header h4 {
 	margin-top: 0;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 	color: var(--color-main-text);
 	font-size: 14px;
 	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__count {
 	display: flex;
 	align-items: baseline;
 	justify-content: center;
-	gap: 0.5rem;
+	gap: 0.25rem;
 	font-size: 1.2rem;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .cn-stats-block__count-value {
 	font-size: 2rem;
 	font-weight: bold;
 	color: var(--color-primary-element);
+	flex-shrink: 0;
 }
 
 .cn-stats-block--primary .cn-stats-block__count-value { color: var(--color-primary-element); }
-.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-success); }
-.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-warning); }
-.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-error); }
+.cn-stats-block--success .cn-stats-block__count-value { color: var(--color-element-success, var(--color-success)); }
+.cn-stats-block--warning .cn-stats-block__count-value { color: var(--color-element-warning, var(--color-warning)); }
+.cn-stats-block--error .cn-stats-block__count-value { color: var(--color-element-error, var(--color-error)); }
 
 .cn-stats-block__count-label {
 	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-stats-block__loading {

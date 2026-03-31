@@ -251,7 +251,7 @@
 			<NcButton
 				v-if="result === null"
 				type="primary"
-				:disabled="loading"
+				:disabled="loading || !requiredFieldsFilled"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -461,6 +461,18 @@ export default {
 			return `${this.schemaTitle} saved successfully.`
 		},
 
+		/** Whether all required fields have a non-empty value */
+		requiredFieldsFilled() {
+			return this.resolvedFields
+				.filter((f) => f.required)
+				.every((f) => {
+					const val = this.formData[f.key]
+					if (val === null || val === undefined || val === '') return false
+					if (Array.isArray(val) && val.length === 0) return false
+					return true
+				})
+		},
+
 		resolvedFields() {
 			// Manual fields take priority
 			if (this.fields) return this.fields
@@ -525,16 +537,18 @@ export default {
 
 		getEnumOptions(field) {
 			if (!field.enum) return []
+			const labels = field.enumLabels || {}
 			return field.enum.map((val) => ({
 				id: val,
-				label: String(val),
+				label: labels[val] || String(val),
 			}))
 		},
 
 		getSelectedEnumOption(field) {
 			const val = this.formData[field.key]
 			if (val === null || val === undefined) return null
-			return { id: val, label: String(val) }
+			const labels = field.enumLabels || {}
+			return { id: val, label: labels[val] || String(val) }
 		},
 
 		onSelectChange(key, option) {
