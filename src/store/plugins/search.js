@@ -236,7 +236,20 @@ export function searchPlugin() {
 			 * @return {Promise<Array>} The fetched collection (empty array on error)
 			 */
 			async refetchSearchCollection() {
-				const { register, schema, ...queryParams } = this.searchParams
+				const { register, schema, filters, ...queryParams } = this.searchParams
+
+				// Flatten the filters object into individual query params so the
+				// backend receives them as field-level filters (e.g. ?title=foo)
+				// instead of a single `filters=[object Object]` param.
+				if (filters && typeof filters === 'object') {
+					for (const [field, values] of Object.entries(filters)) {
+						if (Array.isArray(values) && values.length > 0) {
+							queryParams[field] = values
+						} else if (values && !Array.isArray(values)) {
+							queryParams[field] = values
+						}
+					}
+				}
 
 				if (!register || !schema) {
 					console.warn('[searchPlugin] refetchSearchCollection called without register/schema in searchParams')

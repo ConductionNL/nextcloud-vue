@@ -39,7 +39,7 @@ artifacts:
       - Modified capabilities: use the existing spec folder name from openspec/specs/<capability>/ when creating the delta spec at specs/<capability>/spec.md.
 
       Delta operations (use ## headers):
-      - **ADDED Requirements**: New capabilities
+      - **Requirements**: New capabilities
       - **MODIFIED Requirements**: Changed behavior - MUST include full updated content
       - **REMOVED Requirements**: Deprecated features - MUST include **Reason** and **Migration**
       - **RENAMED Requirements**: Name changes only - use FROM:/TO: format

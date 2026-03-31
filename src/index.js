@@ -44,11 +44,16 @@ export {
 	CnTasksCard,
 	CnDetailCard,
 	CnDetailPage,
+	CnDetailCard,
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,
 	CnDetailGrid,
 	CnProgressBar,
+	CnChartWidget,
+	CnObjectSidebar,
+	CnInfoWidget,
+	CnTableWidget,
 	registerIcons,
 } from './components/index.js'
 
