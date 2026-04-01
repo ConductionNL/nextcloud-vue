@@ -71,8 +71,8 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
  *   :item="itemToCopy"
- *   @confirm="onCopyConfirm"
- *   @close="showCopyDialog = false" />
+ *   confirm="onCopyConfirm"
+ *   close="showCopyDialog = false" />
  *
  * // In methods:
  * async onCopyConfirm({ id, newName }) {
@@ -195,7 +195,7 @@ export default {
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData Operation result
 		 * @public
 		 */
 		setResult(resultData) {

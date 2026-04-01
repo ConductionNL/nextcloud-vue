@@ -83,8 +83,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *   v-if="showDeleteDialog"
  *   :items="selectedObjects"
  *   :name-field="'title'"
- *   @confirm="onDeleteConfirm"
- *   @close="showDeleteDialog = false" />
+ *   confirm="onDeleteConfirm"
+ *   close="showDeleteDialog = false" />
  *
  * // In methods:
  * async onDeleteConfirm(ids) {
@@ -193,7 +193,7 @@ export default {
 		 * Set the result of the delete operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData Operation result
 		 * @public
 		 */
 		setResult(resultData) {

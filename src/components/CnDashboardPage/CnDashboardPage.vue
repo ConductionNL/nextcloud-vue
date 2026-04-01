@@ -135,7 +135,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  *   title="Dashboard"
  *   :widgets="widgetDefs"
  *   :layout="savedLayout"
- *   @layout-change="saveLayout">
+ *   layout-change="saveLayout">
  *   <template #widget-cases-by-status="{ item }">
  *     <StatusChart :data="statusData" />
  *   </template>
@@ -149,7 +149,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  *   title="Dashboard"
  *   :widgets="[...appWidgets, ...ncWidgets]"
  *   :layout="layout"
- *   @layout-change="saveLayout" />
+ *   layout-change="saveLayout" />
  */
 export default {
 	name: 'CnDashboardPage',

@@ -123,49 +123,49 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {string[]}
 	 */
 	objectTypes: (state) => Object.keys(state.objectTypeRegistry),
 
 	/**
 	 * Get the collection array for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => Array
 	 */
 	getCollection: (state) => (type) => state.collections[type] || [],
 
 	/**
 	 * Get a single cached object by type and ID.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Alias for getObject — check cache without fetching.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getCachedObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Check if a type is currently loading.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => boolean
 	 */
 	isLoading: (state) => (type) => state.loading[type] || false,
 
 	/**
 	 * Get the current error for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
 
 	/**
 	 * Get pagination state for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
 	getPagination: (state) => (type) =>
@@ -173,28 +173,28 @@ const baseGetters = {
 
 	/**
 	 * Get the current search term for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => string
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
 
 	/**
 	 * Get a cached schema for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
 
 	/**
 	 * Get a cached register for a type.
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getRegister: (state) => (type) => state.registers[type] || null,
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
-	 * @param state
+	 * @param {object} state Store state
 	 * @return {Function} (type: string) => object
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
@@ -693,7 +693,7 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {string[]} ids Array of object IDs to resolve
-	 * @return {Promise<Object<string, object>>} Map of id -> object
+	 * @return {Promise<{[key: string]: object}>} Map of id -> object
 	 */
 	async resolveReferences(type, ids) {
 		if (!ids || ids.length === 0) return {}

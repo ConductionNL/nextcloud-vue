@@ -124,8 +124,8 @@ import Export from 'vue-material-design-icons/Export.vue'
  *   :object-count="items.length"
  *   add-label="Add Client"
  *   add-icon="AccountGroup"
- *   @add="createNew"
- *   @refresh="reload" />
+ *   add="createNew"
+ *   refresh="reload" />
  */
 export default {
 	name: 'CnActionsBar',

@@ -56,8 +56,8 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  *   v-if="showDeleteDialog"
  *   ref="deleteDialog"
  *   :item="itemToDelete"
- *   @confirm="onDeleteConfirm"
- *   @close="showDeleteDialog = false" />
+ *   confirm="onDeleteConfirm"
+ *   close="showDeleteDialog = false" />
  *
  * // In methods:
  * async onDeleteConfirm(id) {
@@ -153,7 +153,7 @@ export default {
 		 * Set the result of the delete operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData Operation result
 		 * @public
 		 */
 		setResult(resultData) {

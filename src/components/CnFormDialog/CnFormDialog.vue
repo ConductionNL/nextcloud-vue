@@ -310,8 +310,8 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  *   ref="formDialog"
  *   :schema="schema"
  *   :item="editItem"
- *   @confirm="onFormConfirm"
- *   @close="showFormDialog = false" />
+ *   confirm="onFormConfirm"
+ *   close="showFormDialog = false" />
  *
  * // In methods:
  * async onFormConfirm(formData) {
@@ -848,7 +848,7 @@ export default {
 		 * Set the result of the save operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData Operation result
 		 * @public
 		 */
 		setResult(resultData) {

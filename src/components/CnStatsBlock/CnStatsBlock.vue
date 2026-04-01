@@ -68,7 +68,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   variant="primary"
  *   horizontal
  *   clickable
- *   @click="goToCases" />
+ *   click="goToCases" />
  *
  * @example With route-based navigation (renders as <router-link>)
  * <CnStatsBlock

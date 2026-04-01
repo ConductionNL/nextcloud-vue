@@ -95,7 +95,7 @@ import Update from 'vue-material-design-icons/Update.vue'
  *   :is-up-to-date="false"
  *   :show-update-button="true"
  *   :updating="isUpdating"
- *   @update="runUpdate" />
+ *   update="runUpdate" />
  *
  * @example With additional items and actions
  * <CnVersionInfoCard

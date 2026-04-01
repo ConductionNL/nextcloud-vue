@@ -81,9 +81,9 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  *     { key: 'type', label: 'All types', type: 'select', options: typeOptions, value: selectedType },
  *     { key: 'active', label: 'Active only', type: 'checkbox', value: showActiveOnly },
  *   ]"
- *   @search="onSearch"
- *   @filter-change="onFilterChange"
- *   @clear-all="clearFilters" />
+ *   search="onSearch"
+ *   filter-change="onFilterChange"
+ *   clear-all="clearFilters" />
  */
 export default {
 	name: 'CnFilterBar',

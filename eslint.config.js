@@ -15,6 +15,8 @@ const compat = new FlatCompat({
 })
 
 module.exports = defineConfig([{
+	ignores: ['src/**/*.d.ts'],
+}, {
 	extends: compat.extends('@nextcloud'),
 
 	settings: {

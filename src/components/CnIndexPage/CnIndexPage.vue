@@ -292,12 +292,12 @@ import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
  *   :objects="clients"
  *   :pagination="pagination"
  *   :loading="loading"
- *   @create="onCreate"
- *   @edit="onEdit"
- *   @delete="onDelete"
- *   @refresh="fetchClients"
- *   @row-click="openClient"
- *   @page-changed="onPage" />
+ *   create="onCreate"
+ *   edit="onEdit"
+ *   delete="onDelete"
+ *   refresh="fetchClients"
+ *   row-click="openClient"
+ *   page-changed="onPage" />
  *
  * @example With custom form dialog
  * <CnIndexPage ...>
@@ -323,18 +323,19 @@ import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
  *
- * @slot mass-actions — Extra mass action buttons (shown when items are selected)
- * @slot action-items — Extra action bar buttons
- * @slot header-actions — Extra buttons in the page header
- * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ item, close }`
- * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ item, close }`
- * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ item, schema, close }`
- * @slot form-fields — Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
- * @slot import-fields — Extra fields in the import dialog
- * @slot empty — Custom empty state content
- * @slot card — Custom card template for card view. Scope: `{ row }`
- * @slot row-actions — Custom row actions. Scope: `{ row }`
- * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
+ * Slots:
+ * - mass-actions: Extra mass action buttons (shown when items are selected)
+ * - action-items: Extra action bar buttons
+ * - header-actions: Extra buttons in the page header
+ * - delete-dialog: Replace the single-item delete dialog. Scope: `{ item, close }`
+ * - copy-dialog: Replace the single-item copy dialog. Scope: `{ item, close }`
+ * - form-dialog: Replace the create/edit form dialog. Scope: `{ item, schema, close }`
+ * - form-fields: Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
+ * - import-fields: Extra fields in the import dialog
+ * - empty: Custom empty state content
+ * - card: Custom card template for card view. Scope: `{ row }`
+ * - row-actions: Custom row actions. Scope: `{ row }`
+ * - column-{key}: Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
 export default {
 	name: 'CnIndexPage',
@@ -766,28 +767,40 @@ export default {
 			this.$emit('mass-import', payload)
 		},
 
-		/** @public Forward result to mass delete dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setMassDeleteResult(resultData) {
 			if (this.$refs.massDeleteDialog) {
 				this.$refs.massDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to mass copy dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setMassCopyResult(resultData) {
 			if (this.$refs.massCopyDialog) {
 				this.$refs.massCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to export dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
 				this.$refs.exportDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to import dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
 				this.$refs.importDialog.setResult(resultData)
@@ -795,11 +808,17 @@ export default {
 		},
 
 		// --- Backward-compatible aliases ---
-		/** @public @deprecated Use setMassDeleteResult instead */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
-		/** @public @deprecated Use setMassCopyResult instead */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setCopyResult(resultData) {
 			this.setMassCopyResult(resultData)
 		},
@@ -852,21 +871,30 @@ export default {
 			this.editItem = null
 		},
 
-		/** @public Forward result to single delete dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setSingleDeleteResult(resultData) {
 			if (this.$refs.singleDeleteDialog) {
 				this.$refs.singleDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to single copy dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setSingleCopyResult(resultData) {
 			if (this.$refs.singleCopyDialog) {
 				this.$refs.singleCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to form dialog */
+		/**
+		 * @public
+		 * @param {object} resultData Operation result
+		 */
 		setFormResult(resultData) {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)

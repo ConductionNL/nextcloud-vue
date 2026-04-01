@@ -184,6 +184,7 @@ export default {
 		},
 
 		canDelete(note) {
+			// eslint-disable-next-line @nextcloud/no-deprecations
 			return note.actorId === OC?.currentUser || note.author === OC?.currentUser
 		},
 

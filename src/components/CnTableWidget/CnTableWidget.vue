@@ -173,7 +173,7 @@ export default {
 		/**
 		 * Whether data is currently loading.
 		 *
-		 * @returns {boolean}
+		 * @return {boolean}
 		 */
 		isLoading() {
 			return this.loading
@@ -182,7 +182,7 @@ export default {
 		/**
 		 * All rows (external or fetched).
 		 *
-		 * @returns {object[]}
+		 * @return {object[]}
 		 */
 		allRows() {
 			return this.rows || this.fetchedRows
@@ -191,7 +191,7 @@ export default {
 		/**
 		 * Rows limited to the configured limit.
 		 *
-		 * @returns {object[]}
+		 * @return {object[]}
 		 */
 		displayRows() {
 			if (this.limit > 0) {
@@ -203,7 +203,7 @@ export default {
 		/**
 		 * Total count of all rows (before limiting).
 		 *
-		 * @returns {number}
+		 * @return {number}
 		 */
 		totalCount() {
 			return this.allRows.length
@@ -212,7 +212,7 @@ export default {
 		/**
 		 * Count of displayed rows (after limiting).
 		 *
-		 * @returns {number}
+		 * @return {number}
 		 */
 		limitedCount() {
 			return this.displayRows.length
@@ -229,7 +229,7 @@ export default {
 		/**
 		 * Fetch data from the OpenRegister API.
 		 *
-		 * @returns {Promise<void>}
+		 * @return {Promise<void>}
 		 */
 		async fetchData() {
 			this.loading = true

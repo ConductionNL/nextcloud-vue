@@ -82,8 +82,8 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  *   :total-pages="totalPages"
  *   :total-items="totalItems"
  *   :current-page-size="limit"
- *   @page-changed="onPageChange"
- *   @page-size-changed="onPageSizeChange" />
+ *   page-changed="onPageChange"
+ *   page-size-changed="onPageSizeChange" />
  */
 export default {
 	name: 'CnPagination',

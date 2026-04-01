@@ -61,8 +61,8 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  *   :schema="pubSchema"
  *   :selectable="true"
  *   :selected-ids="selectedIds"
- *   @click="openPublication"
- *   @select="onSelect">
+ *   click="openPublication"
+ *   select="onSelect">
  *   <template #card-actions="{ object }">
  *     <NcActions><NcActionButton>Edit</NcActionButton></NcActions>
  *   </template>
