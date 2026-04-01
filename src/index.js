@@ -58,6 +58,7 @@ export {
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
+export { createCrudStore } from './store/index.js'
 export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 
 // Store plugins
