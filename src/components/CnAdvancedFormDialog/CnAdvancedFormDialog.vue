@@ -358,10 +358,6 @@ export default {
 			if (this.errors[key]) this.$delete(this.errors, key)
 		},
 
-		onRowClick(key, event) {
-			// Forwarded for #tab-properties slot consumers — the sub-component handles it internally
-		},
-
 		/**
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
 		 * @param {string} key - Property key

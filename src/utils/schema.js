@@ -116,7 +116,7 @@ export function columnsFromSchema(schema, options = {}) {
  * @param {*} value The raw value
  * @param {object} [property] The schema property definition `{ type, format, enum, items }`
  * @param {object} [options] Formatting options
- * @param {number} [options.truncate=100] Maximum string length before truncation
+ * @param {number} [options.truncate] Maximum string length before truncation
  * @return {string} Formatted display string
  */
 export function formatValue(value, property = {}, options = {}) {
@@ -301,7 +301,7 @@ function resolveWidget(prop) {
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`
- * @param {boolean} [options.includeReadOnly=false] Whether to include readOnly properties
+ * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
@@ -383,7 +383,7 @@ export function filtersFromSchema(schema) {
 	}
 
 	return Object.entries(schema.properties)
-		.filter(([key, prop]) => {
+		.filter(([, prop]) => {
 			if (prop.facetable !== true) return false
 			return true
 		})
