@@ -27,7 +27,7 @@ export function prefixUrl(path) {
  */
 export function buildHeaders(contentType = 'application/json') {
 	const headers = {
-		requesttoken: OC.requestToken,
+		requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 		'OCS-APIREQUEST': 'true',
 	}
 	if (contentType) {
