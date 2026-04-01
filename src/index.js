@@ -53,6 +53,10 @@ export {
 	CnObjectSidebar,
 	CnInfoWidget,
 	CnTableWidget,
+	CnActionsBar,
+	CnIcon,
+	CnPageHeader,
+	CnNoteCard,
 	registerIcons,
 } from './components/index.js'
 
