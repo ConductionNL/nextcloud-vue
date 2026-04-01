@@ -1,4 +1,4 @@
-import { buildHeaders } from '../../utils/headers.js'
+import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 
 /**
  * Register mapping plugin for the object store.
@@ -93,7 +93,7 @@ export function registerMappingPlugin() {
 				this.registersError = null
 
 				try {
-					let url = '/apps/openregister/api/registers'
+					let url = prefixUrl('/apps/openregister/api/registers')
 					if (withSchemas) {
 						url += '?_extend[]=schemas'
 					}
@@ -165,7 +165,7 @@ export function registerMappingPlugin() {
 				// Fetch from API as fallback
 				try {
 					const response = await fetch(
-						`/apps/openregister/api/registers/${id}?_extend[]=schemas`,
+						prefixUrl(`/apps/openregister/api/registers/${id}?_extend[]=schemas`),
 						{ method: 'GET', headers: buildHeaders() },
 					)
 					if (!response.ok) return []
