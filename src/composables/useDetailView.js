@@ -17,7 +17,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {object|null} [options.router] Vue Router instance — enables post-save/delete navigation
  * @param {string|null} [options.listRouteName] Route name to navigate to after successful delete
  * @param {string|null} [options.detailRouteName] Route name to navigate to after successful create
- * @param {string} [options.nameField='title'] Field shown in error messages
+ * @param {string} [options.nameField] Field shown in error messages
  * @return {object} Reactive state and operation functions
  *
  * @example

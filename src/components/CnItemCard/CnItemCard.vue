@@ -6,7 +6,9 @@
 					<component :is="icon" v-if="icon" :size="iconSize" />
 				</slot>
 				<div class="cn-item-card__title-content">
-					<h3 class="cn-item-card__title">{{ title }}</h3>
+					<h3 class="cn-item-card__title">
+						{{ title }}
+					</h3>
 					<span v-if="subtitle" class="cn-item-card__subtitle">{{ subtitle }}</span>
 				</div>
 			</div>

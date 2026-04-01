@@ -1,7 +1,9 @@
 <template>
 	<div class="cn-facet-sidebar">
 		<div class="cn-facet-sidebar__header">
-			<h3 class="cn-facet-sidebar__title">{{ title }}</h3>
+			<h3 class="cn-facet-sidebar__title">
+				{{ title }}
+			</h3>
 			<NcButton
 				v-if="hasActiveFilters"
 				type="tertiary"

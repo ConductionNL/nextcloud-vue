@@ -156,7 +156,7 @@ export default {
 
 		/**
 		 * Set the result of the export operation.
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

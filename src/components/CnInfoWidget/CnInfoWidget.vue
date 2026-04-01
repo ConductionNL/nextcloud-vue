@@ -107,7 +107,7 @@ export default {
 		 * Resolved fields to display. Manual fields take precedence;
 		 * otherwise generates from object + schema.
 		 *
-		 * @returns {{ label: string, value: string|number }[]}
+		 * @return {{ label: string, value: string|number }[]}
 		 */
 		displayFields() {
 			if (this.fields) {
@@ -124,7 +124,7 @@ export default {
 		/**
 		 * CSS grid style based on column count.
 		 *
-		 * @returns {object}
+		 * @return {object}
 		 */
 		gridStyle() {
 			return {
@@ -137,7 +137,7 @@ export default {
 		/**
 		 * Generate label-value field definitions from object + schema.
 		 *
-		 * @returns {{ label: string, value: string|number }[]}
+		 * @return {{ label: string, value: string|number }[]}
 		 */
 		generateFieldsFromSchema() {
 			const properties = this.schema.properties || {}
@@ -156,10 +156,9 @@ export default {
 		 * Format a field value for display based on its schema type.
 		 *
 		 * @param {*} value - The raw value.
-		 * @param {object} schemaProp - The JSON Schema property definition.
-		 * @returns {string} Formatted display value.
+		 * @return {string} Formatted display value.
 		 */
-		formatFieldValue(value, schemaProp) {
+		formatFieldValue(value) {
 			if (value === null || value === undefined) {
 				return ''
 			}
