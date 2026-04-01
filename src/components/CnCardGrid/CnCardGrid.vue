@@ -18,15 +18,16 @@
 
 		<!-- Card grid -->
 		<div v-else class="cn-card-grid__grid">
-			<slot
+			<div
 				v-for="object in objects"
 				:key="object[rowKey]"
-				name="card"
-				:object="object"
-				:selected="isSelected(object)"
-				:schema="schema">
-				<CnObjectCard
-					:key="object[rowKey]"
+				class="cn-card-grid__item">
+				<slot
+					name="card"
+					:object="object"
+					:selected="isSelected(object)"
+					:schema="schema">
+					<CnObjectCard
 					:object="object"
 					:schema="schema"
 					:selectable="selectable"
@@ -40,7 +41,8 @@
 						<slot name="card-badges" :object="obj" />
 					</template>
 				</CnObjectCard>
-			</slot>
+				</slot>
+			</div>
 		</div>
 	</div>
 </template>
