@@ -35,6 +35,9 @@ module.exports = defineConfig([{
 		// Allow unused i18n functions (t, n) — imported for future translation wiring
 		'no-unused-vars': ['error', { varsIgnorePattern: '^(t|n)$', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
 		'jsdoc/require-jsdoc': 'off',
+		// Vue components use custom @slot and @eventname="handler" documentation patterns
+		// that are not standard JSDoc tags — disable the tag name check entirely.
+		'jsdoc/check-tag-names': 'off',
 		'vue/first-attribute-linebreak': 'off',
 		'@typescript-eslint/no-explicit-any': 'off',
 		'n/no-missing-import': 'off',

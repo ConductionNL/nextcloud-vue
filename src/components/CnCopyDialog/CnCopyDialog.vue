@@ -195,7 +195,7 @@ export default {
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

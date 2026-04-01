@@ -420,7 +420,7 @@ export default {
 	methods: {
 		/**
 		 * Handle tab change from NcAppSidebar
-		 * @param tabId
+		 * @param {string} tabId Tab identifier
 		 */
 		onTabChange(tabId) {
 			this.internalActiveTab = tabId
@@ -429,7 +429,7 @@ export default {
 
 		/**
 		 * Check if a column is currently visible
-		 * @param key
+		 * @param {string} key Column key
 		 */
 		isColumnVisible(key) {
 			if (this.visibleColumns === null) return true
@@ -438,7 +438,7 @@ export default {
 
 		/**
 		 * Check if all columns in a group are visible
-		 * @param columns
+		 * @param {string[]} columns Array of column keys
 		 */
 		isGroupAllVisible(columns) {
 			return columns.every((col) => this.isColumnVisible(col.key))
@@ -446,7 +446,7 @@ export default {
 
 		/**
 		 * Toggle a single column's visibility
-		 * @param key
+		 * @param {string} key Column key
 		 */
 		toggleColumn(key) {
 			let newVisible
@@ -462,7 +462,7 @@ export default {
 
 		/**
 		 * Select or deselect all columns in a group
-		 * @param columns
+		 * @param {string[]} columns Array of column keys
 		 */
 		toggleGroupAll(columns) {
 			const groupKeys = columns.map((c) => c.key)
@@ -486,7 +486,7 @@ export default {
 
 		/**
 		 * Toggle a group's expanded state
-		 * @param groupId
+		 * @param {string} groupId Filter group identifier
 		 */
 		toggleGroup(groupId) {
 			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
@@ -494,7 +494,7 @@ export default {
 
 		/**
 		 * Get filter options for a filter definition
-		 * @param filter
+		 * @param {object} filter Filter object
 		 */
 		getFilterOptions(filter) {
 			const facet = this.facetData[filter.key]
@@ -509,7 +509,7 @@ export default {
 
 		/**
 		 * Get currently selected options for a filter
-		 * @param filter
+		 * @param {object} filter Filter object
 		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
@@ -521,8 +521,8 @@ export default {
 
 		/**
 		 * Handle filter select change
-		 * @param key
-		 * @param selected
+		 * @param {string} key Filter key
+		 * @param {Array} selected Selected values
 		 */
 		onFilterChange(key, selected) {
 			const values = selected ? selected.map((o) => o.id) : []
