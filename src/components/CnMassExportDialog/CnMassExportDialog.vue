@@ -66,8 +66,8 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  *   v-if="showExportDialog"
  *   ref="exportDialog"
  *   description="Export 42 objects from Cases"
- *   confirm="onExportConfirm"
- *   close="showExportDialog = false" />
+ *   @confirm="onExportConfirm"
+ *   @close="showExportDialog = false" />
  *
  * // In methods:
  * async onExportConfirm({ format }) {

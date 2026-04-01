@@ -93,8 +93,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *   ref="copyDialog"
  *   :items="selectedObjects"
  *   :name-field="'title'"
- *   confirm="onCopyConfirm"
- *   close="showCopyDialog = false" />
+ *   @confirm="onCopyConfirm"
+ *   @close="showCopyDialog = false" />
  *
  * // In methods:
  * async onCopyConfirm({ ids, getName }) {

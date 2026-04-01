@@ -292,12 +292,12 @@ import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
  *   :objects="clients"
  *   :pagination="pagination"
  *   :loading="loading"
- *   create="onCreate"
- *   edit="onEdit"
- *   delete="onDelete"
- *   refresh="fetchClients"
- *   row-click="openClient"
- *   page-changed="onPage" />
+ *   @create="onCreate"
+ *   @edit="onEdit"
+ *   @delete="onDelete"
+ *   @refresh="fetchClients"
+ *   @row-click="openClient"
+ *   @page-changed="onPage" />
  *
  * @example With custom form dialog
  * <CnIndexPage ...>
@@ -323,19 +323,18 @@ import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
  *
- * Slots:
- * - mass-actions: Extra mass action buttons (shown when items are selected)
- * - action-items: Extra action bar buttons
- * - header-actions: Extra buttons in the page header
- * - delete-dialog: Replace the single-item delete dialog. Scope: `{ item, close }`
- * - copy-dialog: Replace the single-item copy dialog. Scope: `{ item, close }`
- * - form-dialog: Replace the create/edit form dialog. Scope: `{ item, schema, close }`
- * - form-fields: Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
- * - import-fields: Extra fields in the import dialog
- * - empty: Custom empty state content
- * - card: Custom card template for card view. Scope: `{ row }`
- * - row-actions: Custom row actions. Scope: `{ row }`
- * - column-{key}: Custom cell renderer for a specific column. Scope: `{ row, value }`
+ * @slot mass-actions — Extra mass action buttons (shown when items are selected)
+ * @slot action-items — Extra action bar buttons
+ * @slot header-actions — Extra buttons in the page header
+ * @slot delete-dialog — Replace the single-item delete dialog. Scope: `{ item, close }`
+ * @slot copy-dialog — Replace the single-item copy dialog. Scope: `{ item, close }`
+ * @slot form-dialog — Replace the create/edit form dialog. Scope: `{ item, schema, close }`
+ * @slot form-fields — Replace form content inside the built-in CnFormDialog. Scope: `{ fields, formData, errors, updateField }`
+ * @slot import-fields — Extra fields in the import dialog
+ * @slot empty — Custom empty state content
+ * @slot card — Custom card template for card view. Scope: `{ row }`
+ * @slot row-actions — Custom row actions. Scope: `{ row }`
+ * @slot column-{key} — Custom cell renderer for a specific column. Scope: `{ row, value }`
  */
 export default {
 	name: 'CnIndexPage',

@@ -178,8 +178,8 @@ import { buildHeaders } from '../../utils/headers.js'
  *   }]"
  *   :configuration="config"
  *   :show-reimport-button="true"
- *   save="saveConfig"
- *   reimport="reimport" />
+ *   @save="saveConfig"
+ *   @reimport="reimport" />
  *
  * @example Multi-register (SoftwareCatalog)
  * <CnRegisterMapping
@@ -188,7 +188,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *     { name: 'AMEF', registerConfigKey: 'amef_register', types: [...] },
  *   ]"
  *   :configuration="config"
- *   save="saveConfig" />
+ *   @save="saveConfig" />
  */
 export default {
 	name: 'CnRegisterMapping',

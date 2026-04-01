@@ -310,8 +310,8 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  *   ref="formDialog"
  *   :schema="schema"
  *   :item="editItem"
- *   confirm="onFormConfirm"
- *   close="showFormDialog = false" />
+ *   @confirm="onFormConfirm"
+ *   @close="showFormDialog = false" />
  *
  * // In methods:
  * async onFormConfirm(formData) {

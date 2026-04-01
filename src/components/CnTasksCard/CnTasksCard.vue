@@ -114,7 +114,7 @@ import { buildHeaders } from '../../utils/index.js'
  *   register-id="reg"
  *   schema-id="schema"
  *   object-id="obj"
- *   show-all="openSidebarTasksTab" />
+ *   @show-all="openSidebarTasksTab" />
  */
 export default {
 	name: 'CnTasksCard',
@@ -207,7 +207,6 @@ export default {
 		},
 
 		isCurrentUser(userId) {
-			// eslint-disable-next-line @nextcloud/no-deprecations
 			const currentUser = typeof OC !== 'undefined' ? OC?.currentUser : null
 			return userId === currentUser
 		},

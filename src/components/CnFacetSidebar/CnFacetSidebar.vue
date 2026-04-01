@@ -74,8 +74,8 @@ import { filtersFromSchema } from '../../utils/schema.js'
  *   :schema="schema"
  *   :facet-data="facetData"
  *   :active-filters="filters"
- *   filter-change="onFilterChange"
- *   clear-all="clearFilters" />
+ *   @filter-change="onFilterChange"
+ *   @clear-all="clearFilters" />
  */
 export default {
 	name: 'CnFacetSidebar',

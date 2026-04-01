@@ -32,9 +32,7 @@
 				<tbody>
 					<template v-for="(sheet, key) in result.summary">
 						<tr :key="key">
-							<td class="cn-mass-import__sheet-name">
-								{{ key }}
-							</td>
+							<td class="cn-mass-import__sheet-name">{{ key }}</td>
 							<td class="cn-mass-import__stat cn-mass-import__stat--found">
 								{{ sheet.found || 0 }}
 							</td>
@@ -184,8 +182,8 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *   v-if="showImportDialog"
  *   ref="importDialog"
  *   :options="importOptions"
- *   confirm="onImportConfirm"
- *   close="showImportDialog = false">
+ *   @confirm="onImportConfirm"
+ *   @close="showImportDialog = false">
  *   <template #fields="{ file }">
  *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
  *   </template>

@@ -83,8 +83,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *   v-if="showDeleteDialog"
  *   :items="selectedObjects"
  *   :name-field="'title'"
- *   confirm="onDeleteConfirm"
- *   close="showDeleteDialog = false" />
+ *   @confirm="onDeleteConfirm"
+ *   @close="showDeleteDialog = false" />
  *
  * // In methods:
  * async onDeleteConfirm(ids) {

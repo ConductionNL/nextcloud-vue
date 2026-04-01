@@ -43,7 +43,7 @@ import 'gridstack/dist/gridstack.min.css'
  * <CnDashboardGrid
  *   :layout="placements"
  *   :editable="isEditing"
- *   layout-change="onLayoutChange">
+ *   @layout-change="onLayoutChange">
  *   <template #widget="{ item }">
  *     <MyWidget :config="item" />
  *   </template>

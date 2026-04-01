@@ -57,9 +57,7 @@
 										</template>
 									</NcButton>
 								</template>
-								<p class="cn-index-sidebar__filter-description">
-									{{ filter.description }}
-								</p>
+								<p class="cn-index-sidebar__filter-description">{{ filter.description }}</p>
 							</NcPopover>
 						</div>
 						<NcSelect
@@ -90,9 +88,7 @@
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-sidebar-columns">
 					<h3>{{ columnsHeading }}</h3>
-					<p class="cn-sidebar-columns__description">
-						{{ columnsDescription }}
-					</p>
+					<p class="cn-sidebar-columns__description">{{ columnsDescription }}</p>
 
 					<template v-if="allColumns.length > 0 || allGroups.length > 0">
 						<!-- Schema properties group (collapsible) -->
@@ -190,12 +186,11 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
  *   :schema="schema"
  *   :visible-columns="visibleCols"
  *   :search-value="search"
- *   search="onSearch"
- *   columns-change="onColumnsChange" />
+ *   @search="onSearch"
+ *   @columns-change="onColumnsChange" />
  *
- * Slots:
- * - search-above: Content rendered above the search field in the Search tab (e.g. hints, quick actions).
- * - search-extra: Content rendered below the search field and filters in the Search tab (e.g. saved searches).
+ * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
+ * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).
  */
 export default {
 	name: 'CnIndexSidebar',

@@ -43,7 +43,7 @@ export default {
 	props: {
 		/**
 		 * Action definitions.
-		 * @type {Array<{label: string, icon?: object, handler: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 * @type {Array<{label: string, icon?: Component, handler: Function, disabled?: boolean | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,

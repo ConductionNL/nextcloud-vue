@@ -71,8 +71,8 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
  *   :item="itemToCopy"
- *   confirm="onCopyConfirm"
- *   close="showCopyDialog = false" />
+ *   @confirm="onCopyConfirm"
+ *   @close="showCopyDialog = false" />
  *
  * // In methods:
  * async onCopyConfirm({ id, newName }) {

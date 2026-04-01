@@ -6,12 +6,8 @@
 			</slot>
 		</div>
 		<div class="cn-page-header__text">
-			<h1 class="cn-page-header__title">
-				{{ title }}
-			</h1>
-			<p v-if="description" class="cn-page-header__description">
-				{{ description }}
-			</p>
+			<h1 class="cn-page-header__title">{{ title }}</h1>
+			<p v-if="description" class="cn-page-header__description">{{ description }}</p>
 		</div>
 		<slot name="extra" />
 	</div>

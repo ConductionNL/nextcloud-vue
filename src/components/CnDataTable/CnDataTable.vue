@@ -125,7 +125,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
  *     { key: 'email', label: 'Email' },
  *   ]"
  *   :rows="clients"
- *   row-click="openClient" />
+ *   @row-click="openClient" />
  *
  * @example Schema-driven (auto columns)
  * <CnDataTable :schema="schema" :rows="objects" />

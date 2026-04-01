@@ -54,9 +54,7 @@
 						</strong>
 						<span class="cn-notes-card__time">{{ formatDate(note.creationDateTime || note.created) }}</span>
 					</div>
-					<p class="cn-notes-card__body">
-						{{ note.message || note.content }}
-					</p>
+					<p class="cn-notes-card__body">{{ note.message || note.content }}</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
 						type="tertiary-no-background"
@@ -109,9 +107,9 @@ import { buildHeaders } from '../../utils/index.js'
  *   register-id="reg"
  *   schema-id="schema"
  *   object-id="obj"
- *   note-added="refreshNotes"
- *   note-deleted="refreshNotes"
- *   show-all="openSidebarNotesTab" />
+ *   @note-added="refreshNotes"
+ *   @note-deleted="refreshNotes"
+ *   @show-all="openSidebarNotesTab" />
  */
 export default {
 	name: 'CnNotesCard',
@@ -213,7 +211,6 @@ export default {
 
 		isCurrentUser(note) {
 			const authorId = this.getNoteAuthorId(note)
-			// eslint-disable-next-line @nextcloud/no-deprecations
 			const currentUser = typeof OC !== 'undefined' ? OC?.currentUser : null
 			return authorId === currentUser
 		},
