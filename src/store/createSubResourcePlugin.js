@@ -4,7 +4,7 @@ import { parseResponseError, networkError } from '../utils/errors.js'
 /**
  * Standard empty paginated response shape used by all sub-resource plugins.
  *
- * @param {number} [limit=20] Default page size
+ * @param {number} [limit] Default page size
  * @return {object} Empty paginated state
  */
 export function emptyPaginated(limit = 20) {
@@ -30,8 +30,8 @@ function capitalize(str) {
  *
  * @param {string} name Camel-case name for the sub-resource (e.g. 'auditTrails')
  * @param {string} endpoint URL path segment appended to the object URL (e.g. 'audit-trails')
- * @param {object} [options={}] Plugin options
- * @param {number} [options.limit=20] Default page size
+ * @param {object} [options] Plugin options
+ * @param {number} [options.limit] Default page size
  * @return {Function} Plugin factory that returns the plugin definition
  *
  * @example
@@ -76,7 +76,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The parent object ID
-			 * @param {object} [params={}] Query parameters (_search, _limit, _page)
+			 * @param {object} [params] Query parameters (_search, _limit, _page)
 			 * @return {Promise<Array>} The fetched results
 			 */
 			async [`fetch${cap}`](type, objectId, params = {}) {

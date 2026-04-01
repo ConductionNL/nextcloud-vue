@@ -57,7 +57,9 @@
 										</template>
 									</NcButton>
 								</template>
-								<p class="cn-index-sidebar__filter-description">{{ filter.description }}</p>
+								<p class="cn-index-sidebar__filter-description">
+									{{ filter.description }}
+								</p>
 							</NcPopover>
 						</div>
 						<NcSelect
@@ -88,7 +90,9 @@
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-sidebar-columns">
 					<h3>{{ columnsHeading }}</h3>
-					<p class="cn-sidebar-columns__description">{{ columnsDescription }}</p>
+					<p class="cn-sidebar-columns__description">
+						{{ columnsDescription }}
+					</p>
 
 					<template v-if="allColumns.length > 0 || allGroups.length > 0">
 						<!-- Schema properties group (collapsible) -->
@@ -414,24 +418,36 @@ export default {
 	},
 
 	methods: {
-		/** Handle tab change from NcAppSidebar */
+		/**
+		 * Handle tab change from NcAppSidebar
+		 * @param tabId
+		 */
 		onTabChange(tabId) {
 			this.internalActiveTab = tabId
 			this.$emit('tab-change', tabId)
 		},
 
-		/** Check if a column is currently visible */
+		/**
+		 * Check if a column is currently visible
+		 * @param key
+		 */
 		isColumnVisible(key) {
 			if (this.visibleColumns === null) return true
 			return this.visibleColumns.includes(key)
 		},
 
-		/** Check if all columns in a group are visible */
+		/**
+		 * Check if all columns in a group are visible
+		 * @param columns
+		 */
 		isGroupAllVisible(columns) {
 			return columns.every((col) => this.isColumnVisible(col.key))
 		},
 
-		/** Toggle a single column's visibility */
+		/**
+		 * Toggle a single column's visibility
+		 * @param key
+		 */
 		toggleColumn(key) {
 			let newVisible
 			if (this.visibleColumns === null) {
@@ -444,7 +460,10 @@ export default {
 			this.$emit('columns-change', newVisible)
 		},
 
-		/** Select or deselect all columns in a group */
+		/**
+		 * Select or deselect all columns in a group
+		 * @param columns
+		 */
 		toggleGroupAll(columns) {
 			const groupKeys = columns.map((c) => c.key)
 			const allVisible = this.isGroupAllVisible(columns)
@@ -465,12 +484,18 @@ export default {
 			this.$emit('columns-change', newVisible)
 		},
 
-		/** Toggle a group's expanded state */
+		/**
+		 * Toggle a group's expanded state
+		 * @param groupId
+		 */
 		toggleGroup(groupId) {
 			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
 		},
 
-		/** Get filter options for a filter definition */
+		/**
+		 * Get filter options for a filter definition
+		 * @param filter
+		 */
 		getFilterOptions(filter) {
 			const facet = this.facetData[filter.key]
 			if (facet?.values?.length > 0) {
@@ -482,7 +507,10 @@ export default {
 			return filter.options || []
 		},
 
-		/** Get currently selected options for a filter */
+		/**
+		 * Get currently selected options for a filter
+		 * @param filter
+		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
 			if (!value) return []
@@ -491,7 +519,11 @@ export default {
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })
 		},
 
-		/** Handle filter select change */
+		/**
+		 * Handle filter select change
+		 * @param key
+		 * @param selected
+		 */
 		onFilterChange(key, selected) {
 			const values = selected ? selected.map((o) => o.id) : []
 			this.$emit('filter-change', { key, values })

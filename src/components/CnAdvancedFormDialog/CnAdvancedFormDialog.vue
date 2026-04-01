@@ -32,8 +32,7 @@
 				<!-- Register/schema selection step (optional slot) -->
 				<slot
 					v-if="$scopedSlots['register-schema-selection']"
-					name="register-schema-selection"
-					:proceed="proceedFromRegisterSchemaStep" />
+					name="register-schema-selection" />
 
 				<!-- Main tabs -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
@@ -46,7 +45,6 @@
 								:update-field="updateField"
 								:object-properties="objectPropertiesForSlot"
 								:selected-property="selectedProperty"
-								:handle-row-click="onRowClick"
 								:get-property-display-name="getPropertyDisplayName"
 								:get-property-validation-class="getPropertyValidationClass"
 								:is-property-editable="isPropertyEditable"
@@ -321,10 +319,6 @@ export default {
 	},
 
 	methods: {
-		proceedFromRegisterSchemaStep() {
-			// Placeholder for slot consumers
-		},
-
 		initFormData(item) {
 			if (item) {
 				this.formData = JSON.parse(JSON.stringify(item))
