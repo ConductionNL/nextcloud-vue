@@ -256,16 +256,20 @@ const baseActions = {
 	 * @param {string} slug The type slug to unregister
 	 */
 	unregisterObjectType(slug) {
-		delete this.objectTypeRegistry[slug]
-		delete this.collections[slug]
-		delete this.objects[slug]
-		delete this.loading[slug]
-		delete this.errors[slug]
-		delete this.pagination[slug]
-		delete this.searchTerms[slug]
-		delete this.schemas[slug]
-		delete this.registers[slug]
-		delete this.facets[slug]
+		const omit = (obj, key) => {
+			const { [key]: _, ...rest } = obj
+			return rest
+		}
+		this.objectTypeRegistry = omit(this.objectTypeRegistry, slug)
+		this.collections = omit(this.collections, slug)
+		this.objects = omit(this.objects, slug)
+		this.loading = omit(this.loading, slug)
+		this.errors = omit(this.errors, slug)
+		this.pagination = omit(this.pagination, slug)
+		this.searchTerms = omit(this.searchTerms, slug)
+		this.schemas = omit(this.schemas, slug)
+		this.registers = omit(this.registers, slug)
+		this.facets = omit(this.facets, slug)
 	},
 
 	/**
