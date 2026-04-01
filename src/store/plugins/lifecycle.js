@@ -70,7 +70,7 @@ export function lifecyclePlugin() {
 					const data = await response.json()
 
 					if (this.objects[type] && data.id) {
-						this.objects[type][data.id] = data
+						this.objects = { ...this.objects, [type]: { ...this.objects[type], [data.id]: data } }
 					}
 
 					return data
