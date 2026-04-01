@@ -20,7 +20,9 @@
 			:series="series" />
 		<div v-else class="cn-chart-widget__fallback">
 			<slot name="fallback">
-				<p class="cn-chart-widget__error">{{ unavailableLabel }}</p>
+				<p class="cn-chart-widget__error">
+					{{ unavailableLabel }}
+				</p>
 			</slot>
 		</div>
 	</div>

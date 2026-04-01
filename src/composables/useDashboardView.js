@@ -24,12 +24,12 @@ import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
  * If `visibility` is not set or both arrays are empty, the widget is visible to everyone.
  *
  * @param {object} [options] Configuration options
- * @param {Array} [options.widgets=[]] Static widget definitions from the app
- * @param {Array} [options.defaultLayout=[]] Default layout if no saved layout exists
+ * @param {Array} [options.widgets] Static widget definitions from the app
+ * @param {Array} [options.defaultLayout] Default layout if no saved layout exists
  * @param {Function} [options.loadLayout] Async function that returns saved layout array, or null
  * @param {Function} [options.saveLayout] Async function that persists layout: (layout) => Promise
- * @param {boolean} [options.includeNcWidgets=false] Whether to also load NC Dashboard API widgets
- * @param {number} [options.columns=12] Grid columns
+ * @param {boolean} [options.includeNcWidgets] Whether to also load NC Dashboard API widgets
+ * @param {number} [options.columns] Grid columns
  * @return {object} Reactive state and methods for CnDashboardPage
  *
  * @example Basic usage with static widgets

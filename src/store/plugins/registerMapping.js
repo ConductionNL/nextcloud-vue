@@ -37,18 +37,28 @@ export function registerMappingPlugin() {
 		}),
 
 		getters: {
-			/** @return {Array} Raw register list */
+			/**
+			 * @param state
+			 * @return {Array} Raw register list
+			 */
 			getRegisters: (state) => state.registers,
 
-			/** @return {boolean} Whether registers are loading */
+			/**
+			 * @param state
+			 * @return {boolean} Whether registers are loading
+			 */
 			isRegistersLoading: (state) => state.registersLoading,
 
-			/** @return {string|null} Last error */
+			/**
+			 * @param state
+			 * @return {string|null} Last error
+			 */
 			getRegistersError: (state) => state.registersError,
 
 			/**
 			 * Registers as NcSelect-compatible options.
 			 *
+			 * @param state
 			 * @return {Array<{label: string, value: string}>}
 			 */
 			registerOptions: (state) => state.registers.map((r) => ({
@@ -75,7 +85,7 @@ export function registerMappingPlugin() {
 			/**
 			 * Fetch all registers from OpenRegister with expanded schemas.
 			 *
-			 * @param {boolean} [withSchemas=true] Include schemas in response
+			 * @param {boolean} [withSchemas] Include schemas in response
 			 * @return {Promise<Array>} Fetched registers
 			 */
 			async fetchRegisters(withSchemas = true) {

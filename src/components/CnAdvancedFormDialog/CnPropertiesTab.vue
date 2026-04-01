@@ -130,7 +130,11 @@ export default {
 	},
 
 	methods: {
-		/** The effective value for a key: formData override or the object's own value */
+		/**
+		 * The effective value for a key: formData override or the object's own value
+		 * @param key
+		 * @param objectValue
+		 */
 		resolvedValue(key, objectValue) {
 			return this.formData[key] !== undefined ? this.formData[key] : objectValue
 		},

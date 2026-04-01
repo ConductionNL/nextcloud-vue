@@ -99,46 +99,46 @@ export function searchPlugin() {
 			 */
 			searchVisibleColumns: [],
 
-			/** @private @type {Array} */
+			/** @private */
 			_searchCollection: [],
 
-			/** @private @type {{ total: number, page: number, pages: number, limit: number }} */
+			/** @private */
 			_searchPagination: { total: 0, page: 1, pages: 1, limit: 20 },
 
-			/** @private @type {boolean} */
+			/** @private */
 			_searchLoading: false,
 
-			/** @private @type {object|null} */
+			/** @private */
 			_searchSchema: null,
 
-			/** @private @type {object|null} */
+			/** @private */
 			_searchRegister: null,
 
-			/** @private @type {object} */
+			/** @private */
 			_searchFacets: {},
 
-			/** @private @type {number} Request sequence counter to prevent race conditions */
+			/** @private */
 			_searchRequestId: 0,
 		}),
 
 		getters: {
 			/**
 			 * The current search result objects.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {Array}
 			 */
 			searchCollection: (state) => state._searchCollection,
 
 			/**
 			 * Pagination state for the last search fetch.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {{ total: number, page: number, pages: number, limit: number }}
 			 */
 			searchPagination: (state) => state._searchPagination,
 
 			/**
 			 * True while a search fetch is in progress.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {boolean}
 			 */
 			searchLoading: (state) => state._searchLoading,
@@ -146,7 +146,7 @@ export function searchPlugin() {
 			/**
 			 * The schema object for the current search register/schema pair.
 			 * Populated automatically by `refetchSearchCollection`.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {object|null}
 			 */
 			searchSchema: (state) => state._searchSchema,
@@ -154,7 +154,7 @@ export function searchPlugin() {
 			/**
 			 * The register object for the current search register/schema pair.
 			 * Populated automatically by `refetchSearchCollection`.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {object|null}
 			 */
 			searchRegister: (state) => state._searchRegister,
@@ -162,7 +162,7 @@ export function searchPlugin() {
 			/**
 			 * Facet data from the last search fetch, in CnIndexSidebar-compatible format:
 			 * `{ fieldName: { values: [{ value, count }] } }`.
-			 * @param {object} state
+			 * @param {object} state Pinia state
 			 * @return {object}
 			 */
 			searchFacets: (state) => state._searchFacets,

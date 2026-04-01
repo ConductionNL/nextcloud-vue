@@ -766,28 +766,40 @@ export default {
 			this.$emit('mass-import', payload)
 		},
 
-		/** @public Forward result to mass delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassDeleteResult(resultData) {
 			if (this.$refs.massDeleteDialog) {
 				this.$refs.massDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to mass copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassCopyResult(resultData) {
 			if (this.$refs.massCopyDialog) {
 				this.$refs.massCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to export dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
 				this.$refs.exportDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to import dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
 				this.$refs.importDialog.setResult(resultData)
@@ -795,11 +807,17 @@ export default {
 		},
 
 		// --- Backward-compatible aliases ---
-		/** @public @deprecated Use setMassDeleteResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
-		/** @public @deprecated Use setMassCopyResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setCopyResult(resultData) {
 			this.setMassCopyResult(resultData)
 		},
@@ -852,21 +870,30 @@ export default {
 			this.editItem = null
 		},
 
-		/** @public Forward result to single delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleDeleteResult(resultData) {
 			if (this.$refs.singleDeleteDialog) {
 				this.$refs.singleDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to single copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleCopyResult(resultData) {
 			if (this.$refs.singleCopyDialog) {
 				this.$refs.singleCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to form dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setFormResult(resultData) {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)
