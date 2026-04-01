@@ -20,6 +20,7 @@
 		<div v-else class="cn-card-grid__grid">
 			<slot
 				v-for="object in objects"
+				:key="object[rowKey]"
 				name="card"
 				:object="object"
 				:selected="isSelected(object)"
