@@ -343,7 +343,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/schemas/${config.schema}`,
+				prefixUrl(`/apps/openregister/api/schemas/${config.schema}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -373,7 +373,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/registers/${config.register}`,
+				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -795,7 +795,7 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
  * import { useObjectStore } from '@conduction/nextcloud-vue'
  * const store = useObjectStore()
  */
-export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
+export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(DEFAULT_BASE_URL))
 
 /**
  * Factory function to create an object store with a custom Pinia store ID
