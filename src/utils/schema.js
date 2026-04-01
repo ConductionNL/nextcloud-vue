@@ -383,7 +383,7 @@ export function filtersFromSchema(schema) {
 	}
 
 	return Object.entries(schema.properties)
-		.filter(([key, prop]) => {
+		.filter(([, prop]) => {
 			if (prop.facetable !== true) return false
 			return true
 		})

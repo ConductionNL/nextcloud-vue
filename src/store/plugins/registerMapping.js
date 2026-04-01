@@ -28,7 +28,7 @@ export function registerMappingPlugin() {
 		state: () => ({
 			/** @type {Array} All available registers from OpenRegister */
 			registers: [],
-			/** @type {object} Schemas keyed by register ID */
+			/** @type {{[key: string]: Array}} Schemas keyed by register ID */
 			registerSchemas: {},
 			/** @type {boolean} Whether registers are being fetched */
 			registersLoading: false,
@@ -38,19 +38,19 @@ export function registerMappingPlugin() {
 
 		getters: {
 			/**
-			 * @param {object} state Store state
+			 * @param {object} state - Pinia state
 			 * @return {Array} Raw register list
 			 */
 			getRegisters: (state) => state.registers,
 
 			/**
-			 * @param {object} state Store state
+			 * @param {object} state - Pinia state
 			 * @return {boolean} Whether registers are loading
 			 */
 			isRegistersLoading: (state) => state.registersLoading,
 
 			/**
-			 * @param {object} state Store state
+			 * @param {object} state - Pinia state
 			 * @return {string|null} Last error
 			 */
 			getRegistersError: (state) => state.registersError,
@@ -58,7 +58,7 @@ export function registerMappingPlugin() {
 			/**
 			 * Registers as NcSelect-compatible options.
 			 *
-			 * @param {object} state Store state
+			 * @param {object} state - Pinia state
 			 * @return {Array<{label: string, value: string}>}
 			 */
 			registerOptions: (state) => state.registers.map((r) => ({

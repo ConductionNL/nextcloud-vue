@@ -343,7 +343,7 @@ export default {
 
 		/**
 		 * Set the result of the import operation.
-		 * @param {{ success?: boolean, error?: string, summary?: object }} resultData Operation result
+		 * @param {{ success?: boolean, error?: string, summary?: object }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

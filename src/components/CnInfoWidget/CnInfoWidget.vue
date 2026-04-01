@@ -159,7 +159,7 @@ export default {
 		 * @param {object} schemaProp - The JSON Schema property definition.
 		 * @return {string} Formatted display value.
 		 */
-		formatFieldValue(value, schemaProp) {
+		formatFieldValue(value) {
 			if (value === null || value === undefined) {
 				return ''
 			}

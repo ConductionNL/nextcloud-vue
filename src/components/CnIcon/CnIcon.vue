@@ -28,7 +28,7 @@ const _registry = {
  * Each key must be the PascalCase icon name matching the
  * vue-material-design-icons file name (e.g. "Sword" for Sword.vue).
  *
- * @param {Record<string, import('vue').Component>} icons Map of icon names to Vue components
+ * @param {Record<string, import('vue').Component>} icons - Map of PascalCase icon names to Vue components
  *
  * @example
  * import { registerIcons } from '@conduction/nextcloud-vue'

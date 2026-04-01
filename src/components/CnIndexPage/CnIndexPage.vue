@@ -768,8 +768,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setMassDeleteResult(resultData) {
 			if (this.$refs.massDeleteDialog) {
@@ -778,8 +778,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setMassCopyResult(resultData) {
 			if (this.$refs.massCopyDialog) {
@@ -788,8 +788,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
@@ -798,8 +798,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
@@ -809,15 +809,15 @@ export default {
 
 		// --- Backward-compatible aliases ---
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setCopyResult(resultData) {
 			this.setMassCopyResult(resultData)
@@ -872,8 +872,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setSingleDeleteResult(resultData) {
 			if (this.$refs.singleDeleteDialog) {
@@ -882,8 +882,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setSingleCopyResult(resultData) {
 			if (this.$refs.singleCopyDialog) {
@@ -892,8 +892,8 @@ export default {
 		},
 
 		/**
+		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
-		 * @param {object} resultData Operation result
 		 */
 		setFormResult(resultData) {
 			if (this.$refs.formDialog) {

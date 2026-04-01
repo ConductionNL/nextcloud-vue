@@ -123,49 +123,49 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {string[]}
 	 */
 	objectTypes: (state) => Object.keys(state.objectTypeRegistry),
 
 	/**
 	 * Get the collection array for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => Array
 	 */
 	getCollection: (state) => (type) => state.collections[type] || [],
 
 	/**
 	 * Get a single cached object by type and ID.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Alias for getObject — check cache without fetching.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getCachedObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Check if a type is currently loading.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => boolean
 	 */
 	isLoading: (state) => (type) => state.loading[type] || false,
 
 	/**
 	 * Get the current error for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
 
 	/**
 	 * Get pagination state for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
 	getPagination: (state) => (type) =>
@@ -173,28 +173,28 @@ const baseGetters = {
 
 	/**
 	 * Get the current search term for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => string
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
 
 	/**
 	 * Get a cached schema for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
 
 	/**
 	 * Get a cached register for a type.
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getRegister: (state) => (type) => state.registers[type] || null,
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
-	 * @param {object} state Store state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},

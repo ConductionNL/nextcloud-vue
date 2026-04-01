@@ -332,7 +332,7 @@ export default {
 		 * the success message shows inline for 2 seconds, then clears and
 		 * emits the `reset` event.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData Operation result
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

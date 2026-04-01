@@ -421,7 +421,7 @@ export default {
 	methods: {
 		/**
 		 * Handle tab change from NcAppSidebar
-		 * @param {string} tabId Active tab identifier
+		 * @param {string} tabId Tab identifier
 		 */
 		onTabChange(tabId) {
 			this.internalActiveTab = tabId
@@ -439,7 +439,7 @@ export default {
 
 		/**
 		 * Check if all columns in a group are visible
-		 * @param {Array} columns Column definitions
+		 * @param {string[]} columns Array of column keys
 		 */
 		isGroupAllVisible(columns) {
 			return columns.every((col) => this.isColumnVisible(col.key))
@@ -463,7 +463,7 @@ export default {
 
 		/**
 		 * Select or deselect all columns in a group
-		 * @param {Array} columns Column definitions
+		 * @param {string[]} columns Array of column keys
 		 */
 		toggleGroupAll(columns) {
 			const groupKeys = columns.map((c) => c.key)
@@ -487,7 +487,7 @@ export default {
 
 		/**
 		 * Toggle a group's expanded state
-		 * @param {string} groupId Group identifier
+		 * @param {string} groupId Filter group identifier
 		 */
 		toggleGroup(groupId) {
 			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
@@ -495,7 +495,7 @@ export default {
 
 		/**
 		 * Get filter options for a filter definition
-		 * @param {object} filter Filter definition
+		 * @param {object} filter Filter object
 		 */
 		getFilterOptions(filter) {
 			const facet = this.facetData[filter.key]
@@ -510,7 +510,7 @@ export default {
 
 		/**
 		 * Get currently selected options for a filter
-		 * @param {object} filter Filter definition
+		 * @param {object} filter Filter object
 		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
@@ -523,7 +523,7 @@ export default {
 		/**
 		 * Handle filter select change
 		 * @param {string} key Filter key
-		 * @param {Array} selected Selected options
+		 * @param {Array} selected Selected values
 		 */
 		onFilterChange(key, selected) {
 			const values = selected ? selected.map((o) => o.id) : []
