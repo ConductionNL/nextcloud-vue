@@ -257,8 +257,8 @@ export function useDashboardView(options = {}) {
 
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
-	onMounted(() => {
-		init()
+	onMounted(async () => {
+		await init()
 	})
 
 	// ── Return ───────────────────────────────────────────────────────────
