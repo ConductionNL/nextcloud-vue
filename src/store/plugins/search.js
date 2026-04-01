@@ -276,7 +276,7 @@ export function searchPlugin() {
 				}
 
 				try {
-					const baseUrl = this._options?.baseUrl || '/apps/openregister/api/objects'
+					const baseUrl = this._options?.baseUrl || prefixUrl('/apps/openregister/api/objects')
 					const url = `${baseUrl}/${register}/${schema}` + buildQueryString(queryParams)
 
 					const response = await fetch(url, {

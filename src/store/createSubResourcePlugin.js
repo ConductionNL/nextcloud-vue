@@ -1,4 +1,4 @@
-import { buildHeaders, buildQueryString } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
@@ -9,16 +9,6 @@ import { parseResponseError, networkError } from '../utils/errors.js'
  */
 export function emptyPaginated(limit = 20) {
 	return { results: [], total: 0, page: 1, pages: 0, limit, offset: 0 }
-}
-
-/**
- * Capitalize the first letter of a string.
- *
- * @param {string} str Input string
- * @return {string} Capitalized string
- */
-function capitalize(str) {
-	return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 /**

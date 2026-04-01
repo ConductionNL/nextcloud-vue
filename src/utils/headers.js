@@ -37,6 +37,16 @@ export function buildHeaders(contentType = 'application/json') {
 }
 
 /**
+ * Capitalize the first letter of a string.
+ *
+ * @param {string} str Input string
+ * @return {string} Capitalized string
+ */
+export function capitalize(str) {
+	return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+/**
  * Build a query string from a params object.
  *
  * Handles _order serialization (JSON.stringify for objects) and skips

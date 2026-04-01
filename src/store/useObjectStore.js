@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { buildHeaders, buildQueryString, prefixUrl } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
 
@@ -25,16 +25,6 @@ import { extractId } from '../utils/id.js'
 
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
-
-/**
- * Capitalize the first letter of a string.
- *
- * @param {string} str Input string
- * @return {string} Capitalized string
- */
-function capitalize(str) {
-	return str.charAt(0).toUpperCase() + str.slice(1)
-}
 
 /**
  * Merge plugin state factories into a single state object.
