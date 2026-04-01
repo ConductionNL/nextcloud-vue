@@ -99,25 +99,25 @@ export function searchPlugin() {
 			 */
 			searchVisibleColumns: [],
 
-			/** @private */
+			/** @private @type {Array} */
 			_searchCollection: [],
 
-			/** @private */
+			/** @private @type {{ total: number, page: number, pages: number, limit: number }} */
 			_searchPagination: { total: 0, page: 1, pages: 1, limit: 20 },
 
-			/** @private */
+			/** @private @type {boolean} */
 			_searchLoading: false,
 
-			/** @private */
+			/** @private @type {object|null} */
 			_searchSchema: null,
 
-			/** @private */
+			/** @private @type {object|null} */
 			_searchRegister: null,
 
-			/** @private */
+			/** @private @type {object} */
 			_searchFacets: {},
 
-			/** @private */
+			/** @private @type {number} Request sequence counter to prevent race conditions */
 			_searchRequestId: 0,
 		}),
 

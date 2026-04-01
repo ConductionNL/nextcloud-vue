@@ -54,9 +54,7 @@
 						</strong>
 						<span class="cn-notes-card__time">{{ formatDate(note.creationDateTime || note.created) }}</span>
 					</div>
-					<p class="cn-notes-card__body">
-						{{ note.message || note.content }}
-					</p>
+					<p class="cn-notes-card__body">{{ note.message || note.content }}</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
 						type="tertiary-no-background"

@@ -32,9 +32,7 @@
 				<tbody>
 					<template v-for="(sheet, key) in result.summary">
 						<tr :key="key">
-							<td class="cn-mass-import__sheet-name">
-								{{ key }}
-							</td>
+							<td class="cn-mass-import__sheet-name">{{ key }}</td>
 							<td class="cn-mass-import__stat cn-mass-import__stat--found">
 								{{ sheet.found || 0 }}
 							</td>

@@ -1,0 +1,279 @@
+---
+sidebar_position: 2
+---
+
+# CRUD Store
+
+A factory for creating Pinia stores with standard CRUD operations. Unlike the [Object Store](./object-store.md) which is **multi-type** (keyed by register/schema slugs), a CRUD store manages a **single entity type** with a flat list and a single active item.
+
+Use this for any entity that has its own API endpoint and doesn't go through the register/schema system (e.g. sources, agents, applications, configurations, endpoints).
+
+## createCrudStore
+
+Factory function that creates a Pinia store with list/item state, pagination, filters, and async CRUD actions.
+
+```js
+import { createCrudStore } from '@conduction/nextcloud-vue'
+
+export const useSourceStore = createCrudStore(name, config)
+```
+
+### Parameters
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `name` | String | Pinia store ID (e.g. `'source'`, `'agent'`) | **required** |
+| `config.endpoint` | String | API resource path segment (e.g. `'sources'`) | **required** |
+| `config.baseUrl` | String | API base URL (before endpoint) | `'/apps/openregister/api'` |
+| `config.entity` | Function\|null | Entity class constructor for wrapping items | `null` |
+| `config.cleanFields` | String[] | Fields to strip before POST/PUT | `['id','uuid','created','updated']` |
+| `config.features` | Object | Feature flags (see below) | `{}` |
+| `config.features.loading` | Boolean | Add `loading`/`error` state and getters | `false` |
+| `config.features.viewMode` | Boolean | Add `viewMode` state, getter, and setter action | `false` |
+| `config.parseListResponse` | Function | Custom response parser for `refreshList` (see below) | `(json) => json.results` |
+| `config.extend` | Object | Extra `{ state, getters, actions }` merged into the store | `{}` |
+
+### Return Value
+
+Returns a Pinia `defineStore` composable with the following API.
+
+#### State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `item` | Object\|null | The currently active/selected item |
+| `list` | Array | The full list of items |
+| `filters` | Object | Active filter criteria |
+| `pagination` | Object | `{ page, limit }` |
+| `loading` | Boolean | Whether a request is in progress (requires `features.loading`) |
+| `error` | String\|null | Last error message (requires `features.loading`) |
+| `viewMode` | String | Current view mode, e.g. `'cards'` (requires `features.viewMode`) |
+| `_options` | Object | Internal config: `{ endpoint, cleanFields, baseApiUrl }` (available to extend actions) |
+
+#### Getters
+
+| Getter | Condition | Description |
+|--------|-----------|-------------|
+| `isLoading` | `features.loading` | Alias for `state.loading` |
+| `getError` | `features.loading` | Alias for `state.error` |
+| `getViewMode` | `features.viewMode` | Alias for `state.viewMode` |
+
+#### Actions
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `setItem` | `(data)` | Set the active item. Wraps in Entity class if configured. Pass `null` to clear. |
+| `setList` | `(data)` | Set the item list. Maps each item through Entity class if configured. |
+| `setPagination` | `(page, limit?)` | Set pagination parameters. Default limit: 20. |
+| `setFilters` | `(filters)` | Merge filter criteria into current filters. |
+| `setViewMode` | `(mode)` | Set view mode (requires `features.viewMode`). |
+| `refreshList` | `(search?, soft?)` | GET the list from the API. Optional search query. If `soft=true`, skips loading state toggle. |
+| `getOne` | `(id)` | GET a single item by ID. Sets it as the active item. |
+| `deleteOne` | `(item)` | DELETE an item (must have `.id`). Refreshes the list and clears the active item. |
+| `save` | `(item)` | POST (no `.id`) or PUT (with `.id`). Cleans via `cleanForSave`, sets the active item, refreshes the list. |
+| `cleanForSave` | `(item)` | Strip `cleanFields` from item. Override in `extend.actions` for custom cleaning. |
+
+## Configuration Details
+
+### `config.entity`
+
+When provided, `setItem` and `setList` wrap raw API data in this class via `new Entity(data)`. When `null`, raw data is used as-is.
+
+```js
+import { Source } from '../../entities/index.js'
+
+export const useSourceStore = createCrudStore('source', {
+  endpoint: 'sources',
+  entity: Source,
+})
+```
+
+### `config.cleanFields`
+
+Array of field names stripped from the item before POST/PUT. Default: `['id', 'uuid', 'created', 'updated']`.
+
+Override for entities with extra read-only fields:
+
+```js
+export const useApplicationStore = createCrudStore('application', {
+  endpoint: 'applications',
+  entity: Application,
+  cleanFields: ['id', 'uuid', 'created', 'updated', 'usage', 'owner'],
+})
+```
+
+### `config.parseListResponse`
+
+Called inside `refreshList` after the API responds. Receives the parsed JSON body with the **store instance as `this`**, so custom parsers can perform side effects (e.g. updating extra state).
+
+Must return an array of items to pass to `setList`.
+
+**Default:** `(json) => json.results`
+
+**Custom example** (organisation store extracts user stats from the same response):
+
+```js
+export const useOrganisationStore = createCrudStore('organisation', {
+  endpoint: 'organisations',
+  entity: Organisation,
+  parseListResponse(json) {
+    this.setUserStats(json)      // side effect: update extra state
+    return json.results || []    // return the list array
+  },
+  extend: {
+    state: () => ({
+      userStats: { total: 0, active: null, list: [] },
+    }),
+    actions: {
+      setUserStats(stats) {
+        this.userStats = { /* ... */ }
+      },
+    },
+  },
+})
+```
+
+### `config.extend`
+
+Merge extra state, getters, and actions into the store. Actions with the same name as base actions **override** them.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `extend.state` | Function | State factory returning extra state properties |
+| `extend.getters` | Object | Extra getters (or overrides of base getters) |
+| `extend.actions` | Object | Extra actions (or overrides of base actions) |
+
+Inside extend actions, `this` is the full store instance. Use `this._options.baseApiUrl` to build API URLs and `this._options.cleanFields` to reference the configured clean fields.
+
+## Examples
+
+### Minimal (pure CRUD)
+
+```js
+import { createCrudStore } from '@conduction/nextcloud-vue'
+import { Source } from '../../entities/index.js'
+
+export const useSourceStore = createCrudStore('source', {
+  endpoint: 'sources',
+  entity: Source,
+})
+```
+
+**Result:** 8 lines instead of ~140. Provides `setItem`, `setList`, `refreshList`, `getOne`, `deleteOne`, `save`, `cleanForSave`, `setPagination`, `setFilters`.
+
+### With features and a domain action
+
+```js
+import { createCrudStore } from '@conduction/nextcloud-vue'
+import { Agent } from '../../entities/index.js'
+
+export const useAgentStore = createCrudStore('agent', {
+  endpoint: 'agents',
+  entity: Agent,
+  features: { loading: true, viewMode: true },
+  parseListResponse(json) {
+    return Array.isArray(json) ? json : (json.results || [])
+  },
+  extend: {
+    actions: {
+      async getStats() {
+        const response = await fetch(this._options.baseApiUrl + '/stats')
+        if (!response.ok) throw new Error('HTTP ' + response.status)
+        return response.json()
+      },
+    },
+  },
+})
+```
+
+### Overriding base actions
+
+Override `cleanForSave` for custom field handling while reusing `cleanFields`:
+
+```js
+export const useApplicationStore = createCrudStore('application', {
+  endpoint: 'applications',
+  entity: Application,
+  cleanFields: ['id', 'uuid', 'created', 'updated', 'usage', 'owner'],
+  features: { loading: true, viewMode: true },
+  extend: {
+    actions: {
+      cleanForSave(item) {
+        const cleaned = { ...item }
+        for (const field of this._options.cleanFields) {
+          delete cleaned[field]
+        }
+        // Custom: coerce boolean
+        if (cleaned.active !== undefined) {
+          cleaned.active = cleaned.active === '' ? true : Boolean(cleaned.active)
+        }
+        return cleaned
+      },
+    },
+  },
+})
+```
+
+### With extra state and custom parseListResponse
+
+```js
+export const useOrganisationStore = createCrudStore('organisation', {
+  endpoint: 'organisations',
+  entity: Organisation,
+  features: { viewMode: true },
+  parseListResponse(json) {
+    this.setUserStats(json)
+    return json.results || []
+  },
+  extend: {
+    state: () => ({
+      activeOrganisation: null,
+      userStats: { total: 0, active: null, list: [] },
+    }),
+    getters: {
+      activeOrganisationGetter: (state) => state.activeOrganisation,
+    },
+    actions: {
+      setUserStats(stats) { /* ... */ },
+      async joinOrganisation(uuid) { /* ... */ },
+      async leaveOrganisation(uuid) { /* ... */ },
+    },
+  },
+})
+```
+
+## CRUD Store vs Object Store
+
+| | CRUD Store | Object Store |
+|---|---|---|
+| **Use case** | Single entity type with its own API endpoint | Objects within OpenRegister's register/schema system |
+| **State shape** | Flat: `item`, `list` | Per-type: `collections[type]`, `objects[type][id]` |
+| **API pattern** | `/api/{endpoint}` | `/api/objects/{register}/{schema}` |
+| **Entity wrapping** | Optional via `config.entity` | Not used (raw objects) |
+| **Plugin system** | No (use `extend` instead) | Yes (files, audit trails, relations, etc.) |
+| **Caching** | None (list is refreshed on each mutation) | Per-type object cache |
+| **Factory** | `createCrudStore(name, config)` | `createObjectStore(storeId, options)` |
+
+## Usage in Components
+
+```js
+// In store.js (singleton initialization)
+import { useSourceStore } from './modules/source.js'
+const sourceStore = useSourceStore(pinia)
+export { sourceStore }
+
+// In a component
+import { sourceStore } from '../../store/store.js'
+
+// Read state
+sourceStore.list         // Array of Source entities
+sourceStore.item         // Currently active Source or null
+sourceStore.loading      // Boolean (if features.loading enabled)
+
+// Actions
+await sourceStore.refreshList('search term')
+await sourceStore.getOne(123)
+await sourceStore.save({ title: 'New Source', type: 'internal' })
+await sourceStore.deleteOne(sourceStore.item)
+sourceStore.setItem(null) // clear selection
+```

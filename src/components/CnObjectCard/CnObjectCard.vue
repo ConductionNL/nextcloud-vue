@@ -21,9 +21,7 @@
 					class="cn-object-card__image">
 
 				<div class="cn-object-card__title-area">
-					<h3 class="cn-object-card__title">
-						{{ title }}
-					</h3>
+					<h3 class="cn-object-card__title">{{ title }}</h3>
 					<p v-if="description" class="cn-object-card__description">
 						{{ truncatedDescription }}
 					</p>

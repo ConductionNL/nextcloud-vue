@@ -57,9 +57,7 @@
 										</template>
 									</NcButton>
 								</template>
-								<p class="cn-index-sidebar__filter-description">
-									{{ filter.description }}
-								</p>
+								<p class="cn-index-sidebar__filter-description">{{ filter.description }}</p>
 							</NcPopover>
 						</div>
 						<NcSelect
@@ -90,9 +88,7 @@
 			<div class="cn-index-sidebar__tab-content">
 				<div class="cn-sidebar-columns">
 					<h3>{{ columnsHeading }}</h3>
-					<p class="cn-sidebar-columns__description">
-						{{ columnsDescription }}
-					</p>
+					<p class="cn-sidebar-columns__description">{{ columnsDescription }}</p>
 
 					<template v-if="allColumns.length > 0 || allGroups.length > 0">
 						<!-- Schema properties group (collapsible) -->
