@@ -54,6 +54,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
 | `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
+| `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
+| `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |

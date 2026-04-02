@@ -31,7 +31,7 @@
 			</div>
 
 			<!-- Add button (primary) -->
-			<NcButton v-if="showAdd" type="primary" @click="$emit('add')">
+			<NcButton v-if="showAdd" type="primary" :disabled="addDisabled" @click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
 					<Plus v-else :size="20" />
@@ -46,7 +46,7 @@
 				:force-name="true"
 				:inline="0"
 				menu-name="Actions">
-				<NcActionButton :disabled="refreshing" @click="$emit('refresh')">
+				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
 						<NcLoadingIcon v-if="refreshing" :size="20" />
 						<Refresh v-else :size="20" />
@@ -215,6 +215,16 @@ export default {
 		},
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
+		refreshDisabled: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the Add button is disabled (e.g. when required selections are missing) */
+		addDisabled: {
 			type: Boolean,
 			default: false,
 		},
