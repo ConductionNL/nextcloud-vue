@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { buildHeaders, buildQueryString, prefixUrl } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
 
@@ -25,16 +25,6 @@ import { extractId } from '../utils/id.js'
 
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
-
-/**
- * Capitalize the first letter of a string.
- *
- * @param {string} str Input string
- * @return {string} Capitalized string
- */
-function capitalize(str) {
-	return str.charAt(0).toUpperCase() + str.slice(1)
-}
 
 /**
  * Merge plugin state factories into a single state object.
@@ -123,49 +113,49 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {string[]}
 	 */
 	objectTypes: (state) => Object.keys(state.objectTypeRegistry),
 
 	/**
 	 * Get the collection array for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => Array
 	 */
 	getCollection: (state) => (type) => state.collections[type] || [],
 
 	/**
 	 * Get a single cached object by type and ID.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Alias for getObject — check cache without fetching.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
 	getCachedObject: (state) => (type, id) => state.objects[type]?.[id] || null,
 
 	/**
 	 * Check if a type is currently loading.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => boolean
 	 */
 	isLoading: (state) => (type) => state.loading[type] || false,
 
 	/**
 	 * Get the current error for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
 	getError: (state) => (type) => state.errors[type] || null,
 
 	/**
 	 * Get pagination state for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
 	getPagination: (state) => (type) =>
@@ -173,28 +163,28 @@ const baseGetters = {
 
 	/**
 	 * Get the current search term for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => string
 	 */
 	getSearchTerm: (state) => (type) => state.searchTerms[type] || '',
 
 	/**
 	 * Get a cached schema for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getSchema: (state) => (type) => state.schemas[type] || null,
 
 	/**
 	 * Get a cached register for a type.
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
 	getRegister: (state) => (type) => state.registers[type] || null,
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
-	 * @param state
+	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
@@ -256,16 +246,20 @@ const baseActions = {
 	 * @param {string} slug The type slug to unregister
 	 */
 	unregisterObjectType(slug) {
-		delete this.objectTypeRegistry[slug]
-		delete this.collections[slug]
-		delete this.objects[slug]
-		delete this.loading[slug]
-		delete this.errors[slug]
-		delete this.pagination[slug]
-		delete this.searchTerms[slug]
-		delete this.schemas[slug]
-		delete this.registers[slug]
-		delete this.facets[slug]
+		const omit = (obj, key) => {
+			const { [key]: _, ...rest } = obj
+			return rest
+		}
+		this.objectTypeRegistry = omit(this.objectTypeRegistry, slug)
+		this.collections = omit(this.collections, slug)
+		this.objects = omit(this.objects, slug)
+		this.loading = omit(this.loading, slug)
+		this.errors = omit(this.errors, slug)
+		this.pagination = omit(this.pagination, slug)
+		this.searchTerms = omit(this.searchTerms, slug)
+		this.schemas = omit(this.schemas, slug)
+		this.registers = omit(this.registers, slug)
+		this.facets = omit(this.facets, slug)
 	},
 
 	/**
@@ -343,7 +337,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/schemas/${config.schema}`,
+				prefixUrl(`/apps/openregister/api/schemas/${config.schema}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -373,7 +367,7 @@ const baseActions = {
 
 		try {
 			const response = await fetch(
-				`/apps/openregister/api/registers/${config.register}`,
+				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: buildHeaders() },
 			)
 
@@ -693,7 +687,7 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {string[]} ids Array of object IDs to resolve
-	 * @return {Promise<Object<string, object>>} Map of id -> object
+	 * @return {Promise<{[key: string]: object}>} Map of id -> object
 	 */
 	async resolveReferences(type, ids) {
 		if (!ids || ids.length === 0) return {}
@@ -795,7 +789,7 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
  * import { useObjectStore } from '@conduction/nextcloud-vue'
  * const store = useObjectStore()
  */
-export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID)
+export const useObjectStore = defineObjectStore(DEFAULT_STORE_ID, [], prefixUrl(DEFAULT_BASE_URL))
 
 /**
  * Factory function to create an object store with a custom Pinia store ID

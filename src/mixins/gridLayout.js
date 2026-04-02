@@ -53,7 +53,7 @@ export const gridLayout = {
 		 * rendering order. Ensures DOM order matches visual order for
 		 * accessibility (WCAG 2.4.3 Focus Order).
 		 *
-		 * @returns {Array} Sorted copy of the layout array.
+		 * @return {Array} Sorted copy of the layout array.
 		 */
 		sortedLayout() {
 			if (!this.layout) return []
@@ -68,7 +68,7 @@ export const gridLayout = {
 		/**
 		 * Whether grid layout mode is active (layout array is provided and non-empty).
 		 *
-		 * @returns {boolean}
+		 * @return {boolean}
 		 */
 		hasGridLayout() {
 			return Array.isArray(this.layout) && this.layout.length > 0
@@ -83,7 +83,7 @@ export const gridLayout = {
 		 * and gridY + gridHeight to grid-row values.
 		 *
 		 * @param {{ gridX: number, gridWidth: number, gridY?: number, gridHeight?: number }} item - Layout item.
-		 * @returns {object} CSS style object for grid-column and grid-row placement.
+		 * @return {object} CSS style object for grid-column and grid-row placement.
 		 */
 		widgetGridStyle(item) {
 			const colStart = (item.gridX || 0) + 1
@@ -107,7 +107,7 @@ export const gridLayout = {
 		 * Find the widget definition for a layout item.
 		 *
 		 * @param {{ widgetId: string }} item - Layout item with widgetId reference.
-		 * @returns {object|undefined} The matching widget definition.
+		 * @return {object|undefined} The matching widget definition.
 		 */
 		findWidget(item) {
 			return this.widgets.find(w => w.id === item.widgetId)

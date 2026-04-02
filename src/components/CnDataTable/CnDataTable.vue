@@ -337,9 +337,13 @@ export default {
 
 		toggleSelectAll() {
 			if (this.allSelected) {
-				this.$emit('select', [])
+				// Remove only current page IDs, preserving cross-page selections
+				const currentPageIds = new Set(this.rows.map((row) => row[this.rowKey]))
+				this.$emit('select', this.selectedIds.filter((id) => !currentPageIds.has(id)))
 			} else {
-				this.$emit('select', this.rows.map((row) => row[this.rowKey]))
+				// Add current page IDs to existing selections
+				const merged = new Set([...this.selectedIds, ...this.rows.map((row) => row[this.rowKey])])
+				this.$emit('select', [...merged])
 			}
 			/** @event select-all Emitted when select-all checkbox is toggled. */
 			this.$emit('select-all', !this.allSelected)

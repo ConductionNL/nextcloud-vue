@@ -45,6 +45,10 @@
 		"vue-frag": "^1.4.3",
 		"vue-material-design-icons": "^5.0.0"
 	},
+	"overrides": {
+		"json5": "^2.2.3",
+		"loader-utils": "^1.4.2"
+	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",
 		"@babel/preset-env": "^7.29.0",

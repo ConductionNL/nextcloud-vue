@@ -179,7 +179,7 @@ export default {
 		sortedProperties() {
 			const properties = this.schema.properties || {}
 			return Object.entries(properties)
-				.sort(([keyA, propA], [keyB, propB]) => {
+				.sort(([, propA], [, propB]) => {
 					const orderA = propA.order || 0
 					const orderB = propB.order || 0
 					if (orderA > 0 && orderB > 0) {
