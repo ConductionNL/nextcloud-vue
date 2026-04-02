@@ -14,6 +14,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
  * @param {string|import('vue').Ref<string>} [id] Object ID or `'new'` for a new object
  * @param {object} [options] Options (new API only)
+ * @param {Function} [options.objectStore] Custom object store instance (from createObjectStore)
  * @param {object|null} [options.router] Vue Router instance — enables post-save/delete navigation
  * @param {string|null} [options.listRouteName] Route name to navigate to after successful delete
  * @param {string|null} [options.detailRouteName] Route name to navigate to after successful create
@@ -54,7 +55,7 @@ export function useDetailView(objectTypeOrOptions, id, options) {
 	// Normalise `id` to a ref so we can watch it
 	const idRef = isRef(id) ? id : ref(id)
 
-	const objectStore = useObjectStore()
+	const objectStore = opts.objectStore ? opts.objectStore() : useObjectStore()
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const editing = ref(false)

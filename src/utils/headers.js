@@ -27,13 +27,23 @@ export function prefixUrl(path) {
  */
 export function buildHeaders(contentType = 'application/json') {
 	const headers = {
-		requesttoken: OC.requestToken,
+		requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 		'OCS-APIREQUEST': 'true',
 	}
 	if (contentType) {
 		headers['Content-Type'] = contentType
 	}
 	return headers
+}
+
+/**
+ * Capitalize the first letter of a string.
+ *
+ * @param {string} str Input string
+ * @return {string} Capitalized string
+ */
+export function capitalize(str) {
+	return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 /**

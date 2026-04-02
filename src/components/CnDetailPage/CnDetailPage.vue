@@ -280,6 +280,36 @@ export default {
 			type: String,
 			default: 'Loading...',
 		},
+		/** Whether to activate the external sidebar (via objectSidebarState inject) */
+		sidebar: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the sidebar is open (expanded) */
+		sidebarOpen: {
+			type: Boolean,
+			default: true,
+		},
+		/** The registered object type slug for the sidebar */
+		objectType: {
+			type: String,
+			default: '',
+		},
+		/** The object ID to display in the sidebar */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+		/** Subtitle shown in the sidebar header */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle) */
+		sidebarProps: {
+			type: Object,
+			default: () => ({}),
+		},
 		/** Whether the page is in an error state */
 		error: {
 			type: Boolean,
