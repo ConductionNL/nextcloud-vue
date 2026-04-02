@@ -6,7 +6,7 @@
 
 ---
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: icon rendering
 

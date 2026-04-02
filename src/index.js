@@ -35,17 +35,34 @@ export {
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnItemCard,
+	CnSchemaFormDialog,
+	CnTabbedFormDialog,
 	CnTimelineStages,
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
-	CnDetailPage,
 	CnDetailCard,
+	CnDetailPage,
+	CnCard,
+	CnStatsPanel,
+	CnJsonViewer,
+	CnDetailGrid,
+	CnProgressBar,
+	CnChartWidget,
+	CnObjectSidebar,
+	CnInfoWidget,
+	CnTableWidget,
+	CnActionsBar,
+	CnIcon,
+	CnPageHeader,
+	CnNoteCard,
 	registerIcons,
 } from './components/index.js'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
+export { createCrudStore } from './store/index.js'
 export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 
 // Store plugins
@@ -68,3 +85,4 @@ export { useListView, useDetailView, useSubResource, useDashboardView } from './
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from './utils/index.js'
+export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'

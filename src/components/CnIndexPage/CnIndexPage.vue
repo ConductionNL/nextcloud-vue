@@ -7,6 +7,11 @@
 			:description="description"
 			:icon="resolvedIcon" />
 
+		<!-- Optional content below header, above actions bar -->
+		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+			<slot name="below-header" />
+		</div>
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="pagination"
@@ -22,6 +27,8 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:refreshing="refreshing"
+			:show-add="showAdd"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -46,6 +53,7 @@
 			ref="massDeleteDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassDeleteConfirm"
 			@close="showMassDeleteDialog = false" />
 
@@ -55,6 +63,7 @@
 			ref="massCopyDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -88,6 +97,7 @@
 				ref="singleDeleteDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -102,6 +112,7 @@
 				ref="singleCopyDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -494,6 +505,11 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format item names in dialogs. Receives the item, returns a string. Overrides massActionNameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Available export formats for the export dialog */
 		exportFormats: {
 			type: Array,
@@ -549,6 +565,16 @@ export default {
 		},
 		/** Whether to show the Cards/Table view toggle in the actions bar */
 		showViewToggle: {
+			type: Boolean,
+			default: true,
+		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether to show the Add button in the actions bar */
+		showAdd: {
 			type: Boolean,
 			default: true,
 		},
@@ -740,28 +766,40 @@ export default {
 			this.$emit('mass-import', payload)
 		},
 
-		/** @public Forward result to mass delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassDeleteResult(resultData) {
 			if (this.$refs.massDeleteDialog) {
 				this.$refs.massDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to mass copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassCopyResult(resultData) {
 			if (this.$refs.massCopyDialog) {
 				this.$refs.massCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to export dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
 				this.$refs.exportDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to import dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
 				this.$refs.importDialog.setResult(resultData)
@@ -769,11 +807,17 @@ export default {
 		},
 
 		// --- Backward-compatible aliases ---
-		/** @public @deprecated Use setMassDeleteResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
-		/** @public @deprecated Use setMassCopyResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setCopyResult(resultData) {
 			this.setMassCopyResult(resultData)
 		},
@@ -826,21 +870,30 @@ export default {
 			this.editItem = null
 		},
 
-		/** @public Forward result to single delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleDeleteResult(resultData) {
 			if (this.$refs.singleDeleteDialog) {
 				this.$refs.singleDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to single copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleCopyResult(resultData) {
 			if (this.$refs.singleCopyDialog) {
 				this.$refs.singleCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to form dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setFormResult(resultData) {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)
@@ -855,6 +908,16 @@ export default {
 		openFormDialog(item = null) {
 			this.editItem = item
 			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Programmatically open the single-item delete dialog.
+		 * @param {object} item The item to delete
+		 * @public
+		 */
+		openDeleteDialog(item) {
+			this.actionTargetItem = item
+			this.showSingleDeleteDialog = true
 		},
 	},
 }

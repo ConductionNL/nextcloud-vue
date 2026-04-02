@@ -414,24 +414,36 @@ export default {
 	},
 
 	methods: {
-		/** Handle tab change from NcAppSidebar */
+		/**
+		 * Handle tab change from NcAppSidebar
+		 * @param {string} tabId Tab identifier
+		 */
 		onTabChange(tabId) {
 			this.internalActiveTab = tabId
 			this.$emit('tab-change', tabId)
 		},
 
-		/** Check if a column is currently visible */
+		/**
+		 * Check if a column is currently visible
+		 * @param {string} key Column key
+		 */
 		isColumnVisible(key) {
 			if (this.visibleColumns === null) return true
 			return this.visibleColumns.includes(key)
 		},
 
-		/** Check if all columns in a group are visible */
+		/**
+		 * Check if all columns in a group are visible
+		 * @param {string[]} columns Array of column keys
+		 */
 		isGroupAllVisible(columns) {
 			return columns.every((col) => this.isColumnVisible(col.key))
 		},
 
-		/** Toggle a single column's visibility */
+		/**
+		 * Toggle a single column's visibility
+		 * @param {string} key Column key
+		 */
 		toggleColumn(key) {
 			let newVisible
 			if (this.visibleColumns === null) {
@@ -444,7 +456,10 @@ export default {
 			this.$emit('columns-change', newVisible)
 		},
 
-		/** Select or deselect all columns in a group */
+		/**
+		 * Select or deselect all columns in a group
+		 * @param {string[]} columns Array of column keys
+		 */
 		toggleGroupAll(columns) {
 			const groupKeys = columns.map((c) => c.key)
 			const allVisible = this.isGroupAllVisible(columns)
@@ -465,12 +480,18 @@ export default {
 			this.$emit('columns-change', newVisible)
 		},
 
-		/** Toggle a group's expanded state */
+		/**
+		 * Toggle a group's expanded state
+		 * @param {string} groupId Filter group identifier
+		 */
 		toggleGroup(groupId) {
 			this.$set(this.expandedGroups, groupId, !this.expandedGroups[groupId])
 		},
 
-		/** Get filter options for a filter definition */
+		/**
+		 * Get filter options for a filter definition
+		 * @param {object} filter Filter object
+		 */
 		getFilterOptions(filter) {
 			const facet = this.facetData[filter.key]
 			if (facet?.values?.length > 0) {
@@ -482,7 +503,10 @@ export default {
 			return filter.options || []
 		},
 
-		/** Get currently selected options for a filter */
+		/**
+		 * Get currently selected options for a filter
+		 * @param {object} filter Filter object
+		 */
 		getSelectedFilterOptions(filter) {
 			const value = this.activeFilters[filter.key]
 			if (!value) return []
@@ -491,7 +515,11 @@ export default {
 			return values.map((v) => options.find((o) => o.id === v) || { id: v, label: String(v) })
 		},
 
-		/** Handle filter select change */
+		/**
+		 * Handle filter select change
+		 * @param {string} key Filter key
+		 * @param {Array} selected Selected values
+		 */
 		onFilterChange(key, selected) {
 			const values = selected ? selected.map((o) => o.id) : []
 			this.$emit('filter-change', { key, values })

@@ -1,3 +1,16 @@
+/** Notification type categories. */
+export type TNotificationType =
+	| 'status-change'
+	| 'assignment'
+	| 'deadline'
+	| 'mention'
+	| 'comment'
+	| 'system'
+	| string
+
+/** Notification priority levels. */
+export type TNotificationPriority = 'urgent' | 'high' | 'normal' | 'low'
+
 /**
  * OpenRegister Notification entity type.
  *
@@ -21,16 +34,3 @@ export interface TNotification {
 	created: string
 	updated?: string
 }
-
-/** Notification type categories. */
-export type TNotificationType =
-	| 'status-change'
-	| 'assignment'
-	| 'deadline'
-	| 'mention'
-	| 'comment'
-	| 'system'
-	| string
-
-/** Notification priority levels. */
-export type TNotificationPriority = 'urgent' | 'high' | 'normal' | 'low'

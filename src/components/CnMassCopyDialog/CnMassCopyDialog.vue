@@ -132,6 +132,11 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
@@ -190,6 +195,7 @@ export default {
 
 	methods: {
 		getItemName(item) {
+			if (this.nameFormatter) return this.nameFormatter(item)
 			return item[this.nameField] || item.name || item.title || item.id
 		},
 
@@ -240,7 +246,7 @@ export default {
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

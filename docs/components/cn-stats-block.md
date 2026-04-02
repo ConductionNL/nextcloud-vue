@@ -26,6 +26,7 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `variant` | String | `'default'` | `'default'`, `'primary'`, `'success'`, `'warning'`, `'error'` |
 | `horizontal` | Boolean | `false` | Icon-left layout |
 | `clickable` | Boolean | `false` | Enable click interaction |
+| `showZeroCount` | Boolean | `false` | Display 0 as a count value instead of the empty label |
 
 ## Events
 

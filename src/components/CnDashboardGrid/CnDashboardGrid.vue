@@ -217,6 +217,10 @@ export default {
 	overflow: hidden;
 }
 
+:deep(.grid-stack-item-content:has(.cn-widget-wrapper--borderless)) {
+	background: transparent;
+}
+
 :deep(.grid-stack-placeholder > .placeholder-content) {
 	background: var(--color-primary-element-light);
 	border: 2px dashed var(--color-primary-element);

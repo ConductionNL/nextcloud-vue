@@ -18,28 +18,28 @@
 
 		<!-- Card grid -->
 		<div v-else class="cn-card-grid__grid">
-			<slot
-				v-for="object in objects"
-				name="card"
-				:object="object"
-				:selected="isSelected(object)"
-				:schema="schema">
-				<CnObjectCard
-					:key="object[rowKey]"
+			<div v-for="object in objects" :key="object[rowKey]">
+				<slot
+					name="card"
 					:object="object"
-					:schema="schema"
-					:selectable="selectable"
 					:selected="isSelected(object)"
-					@click="$emit('click', object)"
-					@select="toggleSelect(object)">
-					<template v-if="$scopedSlots['card-actions']" #actions="{ object: obj }">
-						<slot name="card-actions" :object="obj" />
-					</template>
-					<template v-if="$scopedSlots['card-badges']" #badges="{ object: obj }">
-						<slot name="card-badges" :object="obj" />
-					</template>
-				</CnObjectCard>
-			</slot>
+					:schema="schema">
+					<CnObjectCard
+						:object="object"
+						:schema="schema"
+						:selectable="selectable"
+						:selected="isSelected(object)"
+						@click="$emit('click', object)"
+						@select="toggleSelect(object)">
+						<template v-if="$scopedSlots['card-actions']" #actions="{ object: obj }">
+							<slot name="card-actions" :object="obj" />
+						</template>
+						<template v-if="$scopedSlots['card-badges']" #badges="{ object: obj }">
+							<slot name="card-badges" :object="obj" />
+						</template>
+					</CnObjectCard>
+				</slot>
+			</div>
 		</div>
 	</div>
 </template>
@@ -87,7 +87,7 @@ export default {
 		/** Schema definition (passed through to CnObjectCard) */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/** Whether data is loading */
 		loading: {
