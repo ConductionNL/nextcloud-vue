@@ -31,7 +31,10 @@
 			</div>
 
 			<!-- Add button (primary) -->
-			<NcButton v-if="showAdd" type="primary" :disabled="addDisabled" @click="$emit('add')">
+			<NcButton v-if="showAdd"
+				type="primary"
+				:disabled="addDisabled"
+				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
 					<Plus v-else :size="20" />
