@@ -81,7 +81,7 @@ export default {
 		/** Full JSON schema object */
 		schema: { type: Object, default: null },
 		/** Resolved current value (formData[key] ?? objectValue) */
-		value: { default: null },
+		value: { type: [String, Number, Boolean, Object, Array], default: null },
 		/** Whether this property is editable at all */
 		isEditable: { type: Boolean, default: true },
 		/** Whether this row is currently selected for editing */

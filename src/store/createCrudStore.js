@@ -67,16 +67,16 @@ function defaultParseListResponse(json) {
  * @param {string} name Pinia store ID (e.g. 'source', 'agent')
  * @param {object} config Store configuration
  * @param {string} config.endpoint API resource path segment (e.g. 'sources')
- * @param {string} [config.baseUrl='/apps/openregister/api'] API base URL (before endpoint)
- * @param {Function|null} [config.entity=null] Entity class constructor for wrapping items, or null for raw data
- * @param {string[]} [config.cleanFields=['id','uuid','created','updated']] Fields to strip in cleanForSave
- * @param {object} [config.features={}] Feature flags to enable optional state/getters/actions
- * @param {boolean} [config.features.loading=false] Add loading/error state and isLoading/getError getters
- * @param {boolean} [config.features.viewMode=false] Add viewMode state, getViewMode getter, setViewMode action
+ * @param {string} [config.baseUrl] API base URL (before endpoint)
+ * @param {Function|null} [config.entity] Entity class constructor for wrapping items, or null for raw data
+ * @param {string[]} [config.cleanFields] Fields to strip in cleanForSave
+ * @param {object} [config.features] Feature flags to enable optional state/getters/actions
+ * @param {boolean} [config.features.loading] Add loading/error state and isLoading/getError getters
+ * @param {boolean} [config.features.viewMode] Add viewMode state, getViewMode getter, setViewMode action
  * @param {Function} [config.parseListResponse] Custom response parser for refreshList.
  *   Receives the parsed JSON body with the store instance as `this`.
  *   Must return an array of items. Default: `(json) => json.results`
- * @param {object} [config.extend={}] Extra state/getters/actions to merge into the store
+ * @param {object} [config.extend] Extra state/getters/actions to merge into the store
  * @param {Function} [config.extend.state] State factory returning extra state properties
  * @param {object} [config.extend.getters] Extra getters (or overrides of base getters)
  * @param {object} [config.extend.actions] Extra actions (or overrides of base actions)
@@ -158,7 +158,7 @@ export function createCrudStore(name, config = {}) {
 			/**
 			 * Set pagination parameters.
 			 * @param {number} page Current page number
-			 * @param {number} [limit=20] Items per page
+			 * @param {number} [limit] Items per page
 			 */
 			setPagination(page, limit = 20) {
 				this.pagination = { page, limit }
@@ -189,8 +189,8 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Fetch the item list from the API.
-			 * @param {string|null} [search=null] Optional search query
-			 * @param {boolean} [soft=false] If true, don't toggle loading state
+			 * @param {string|null} [search] Optional search query
+			 * @param {boolean} [soft] If true, don't toggle loading state
 			 * @return {Promise<{response: Response, data: Array}>}
 			 */
 			async refreshList(search = null, soft = false) {

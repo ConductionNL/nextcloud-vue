@@ -28,6 +28,8 @@
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
 			:refreshing="refreshing"
+			:refresh-disabled="refreshDisabled"
+			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
@@ -570,6 +572,16 @@ export default {
 		},
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
+		refreshDisabled: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the Add button is disabled (e.g. when required selections are missing) */
+		addDisabled: {
 			type: Boolean,
 			default: false,
 		},
