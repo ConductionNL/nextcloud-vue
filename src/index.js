@@ -57,6 +57,8 @@ export {
 	CnIcon,
 	CnPageHeader,
 	CnNoteCard,
+	CnObjectDataWidget,
+	CnObjectMetadataWidget,
 	registerIcons,
 } from './components/index.js'
 
