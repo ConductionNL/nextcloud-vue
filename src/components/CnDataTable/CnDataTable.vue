@@ -63,7 +63,8 @@
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@click="$emit('row-click', row)">
+					@click="$emit('row-click', row)"
+					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch

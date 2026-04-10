@@ -80,7 +80,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu } from './composables/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
