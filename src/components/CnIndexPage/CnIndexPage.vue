@@ -236,26 +236,12 @@
 				</CnCardGrid>
 
 				<!-- Right-click context menu (positioned at cursor via CSS) -->
-				<NcActions
+				<CnContextMenu
 					:open.sync="contextMenuOpen"
-					:manual-open="true"
-					:force-menu="true"
-					class="cn-index-page__context-menu"
-					container="body"
-					@close="closeContextMenu">
-					<NcActionButton
-						v-for="action in mergedActions"
-						:key="action.label"
-						:disabled="isContextActionDisabled(action)"
-						:class="{ 'cn-row-action--destructive': action.destructive }"
-						close-after-click
-						@click="onContextAction(action)">
-						<template v-if="action.icon" #icon>
-							<component :is="action.icon" :size="20" />
-						</template>
-						{{ action.label }}
-					</NcActionButton>
-				</NcActions>
+					:actions="mergedActions"
+					:target-item="contextMenuRow"
+					@action="$emit('action', $event)"
+					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
@@ -273,7 +259,7 @@
 </template>
 
 <script>
-import { NcLoadingIcon, NcEmptyContent, NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -294,6 +280,7 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
 import { useContextMenu } from '../../composables/index.js'
 
 /**
@@ -368,8 +355,6 @@ export default {
 	components: {
 		NcLoadingIcon,
 		NcEmptyContent,
-		NcActions,
-		NcActionButton,
 		DatabaseSearch,
 		CnPageHeader,
 		CnActionsBar,
@@ -386,6 +371,7 @@ export default {
 		CnCopyDialog,
 		CnFormDialog,
 		CnAdvancedFormDialog,
+		CnContextMenu,
 	},
 
 	props: {
@@ -636,8 +622,6 @@ export default {
 			targetItem: contextMenuRow,
 			open: openContextMenu,
 			close: closeContextMenu,
-			isActionDisabled: isContextActionDisabled,
-			triggerAction: triggerContextAction,
 		} = useContextMenu()
 
 		return {
@@ -645,8 +629,6 @@ export default {
 			contextMenuRow,
 			openContextMenu,
 			closeContextMenu,
-			isContextActionDisabled,
-			triggerContextAction,
 		}
 	},
 
@@ -964,11 +946,6 @@ export default {
 			this.openContextMenu({ item: row, event })
 		},
 
-		onContextAction(action) {
-			const payload = this.triggerContextAction(action)
-			this.$emit('action', payload)
-		},
-
 		/**
 		 * Programmatically open the form dialog.
 		 * @param {object|null} item Pass null for create mode, or an object for edit mode
@@ -993,10 +970,3 @@ export default {
 </script>
 
 <!-- Styles in css/index-page.css -->
-
-<style scoped>
-.cn-index-page__context-menu {
-	/* Hide the trigger button — menu opens only via right-click */
-	display: none;
-}
-</style>

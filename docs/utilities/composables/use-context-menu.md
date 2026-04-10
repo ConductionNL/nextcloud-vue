@@ -4,9 +4,9 @@ sidebar_position: 5
 
 # useContextMenu
 
-Composable for adding a right-click context menu positioned at the cursor to any component. Manages open/close state, cursor positioning via CSS custom properties, and action helpers.
+Composable for managing right-click context menu positioning and state. Handles cursor-based positioning through CSS custom properties and a data attribute on `document.documentElement`.
 
-Uses the same pattern as the Nextcloud Files app: sets CSS custom properties and a data attribute on `document.documentElement`, with shared CSS that overrides Popper.js transforms to place the `<NcActions>` menu at the click coordinates.
+Pair with the [`CnContextMenu`](../../components/cn-context-menu.md) component to avoid writing NcActions boilerplate — the composable manages state, the component renders the menu.
 
 ## Signature
 
@@ -20,102 +20,59 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `isOpen` | `Ref<boolean>` | Whether the context menu is open. Bind to NcActions via `:open.sync="isOpen"`. |
-| `targetItem` | `Ref<any>` | The item that was right-clicked (row, folder, etc.). `null` when closed. |
+| `isOpen` | `Ref<boolean>` | Whether the context menu is open. Bind to CnContextMenu via `:open.sync="isOpen"`. |
+| `targetItem` | `Ref<any>` | The item that was right-clicked (`null` when closed). Bind to CnContextMenu via `:target-item`. |
 | `open({ item, event })` | Function | Open the menu at the cursor position. Sets CSS vars and data attribute on `documentElement`. |
-| `close()` | Function | Close the menu and clean up DOM attributes. Use as `@close` handler on NcActions. |
-| `isActionDisabled(action)` | Function | Resolve `action.disabled` — supports both `boolean` and `(item) => boolean`. |
-| `triggerAction(action)` | Function | Call `action.handler(targetItem)` and return `{ action: label, row: item }` for emitting. |
+| `close()` | Function | Close the menu and clean up DOM. Use as `@close` handler on CnContextMenu. |
+| `isActionDisabled(action)` | Function | Resolve `action.disabled` — supports both `boolean` and `(item) => boolean`. Only needed when not using CnContextMenu (which handles this internally). |
+| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row }`. Only needed when not using CnContextMenu. |
 
 ## Usage
 
-### In an Options API component (with setup)
+### With CnContextMenu (recommended)
 
 ```vue
 <template>
-  <!-- Emit the contextmenu event from your interactive element -->
-  <tr
-    v-for="row in rows"
-    :key="row.id"
-    @contextmenu.prevent="onRowContextMenu({ row, event: $event })">
-    <!-- cells... -->
-  </tr>
+  <table>
+    <tr
+      v-for="row in rows"
+      :key="row.id"
+      @contextmenu.prevent="onContextMenu({ item: row, event: $event })">
+      <!-- cells -->
+    </tr>
+  </table>
 
-  <!-- Context menu (hidden trigger, opens at cursor) -->
-  <NcActions
+  <CnContextMenu
     :open.sync="contextMenuOpen"
-    :manual-open="true"
-    :force-menu="true"
-    class="my-context-menu"
-    container="body"
-    @close="closeContextMenu">
-    <NcActionButton
-      v-for="action in actions"
-      :key="action.label"
-      :disabled="isContextActionDisabled(action)"
-      :class="{ 'cn-row-action--destructive': action.destructive }"
-      close-after-click
-      @click="onContextAction(action)">
-      <template v-if="action.icon" #icon>
-        <component :is="action.icon" :size="20" />
-      </template>
-      {{ action.label }}
-    </NcActionButton>
-  </NcActions>
+    :actions="actions"
+    :target-item="contextMenuRow"
+    @action="onAction"
+    @close="closeContextMenu" />
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
-import { useContextMenu } from '@conduction/nextcloud-vue'
+import { CnContextMenu, useContextMenu } from '@conduction/nextcloud-vue'
 
 export default {
-  components: { NcActions, NcActionButton },
+  components: { CnContextMenu },
 
   setup() {
     const {
       isOpen: contextMenuOpen,
       targetItem: contextMenuRow,
-      open: openContextMenu,
+      open: onContextMenu,
       close: closeContextMenu,
-      isActionDisabled: isContextActionDisabled,
-      triggerAction: triggerContextAction,
     } = useContextMenu()
 
-    return {
-      contextMenuOpen,
-      contextMenuRow,
-      openContextMenu,
-      closeContextMenu,
-      isContextActionDisabled,
-      triggerContextAction,
-    }
-  },
-
-  methods: {
-    onRowContextMenu({ row, event }) {
-      this.openContextMenu({ item: row, event })
-    },
-    onContextAction(action) {
-      const payload = this.triggerContextAction(action)
-      this.$emit('action', payload)
-    },
+    return { contextMenuOpen, contextMenuRow, onContextMenu, closeContextMenu }
   },
 }
 </script>
-
-<style scoped>
-.my-context-menu {
-  /* Hide the NcActions trigger button — menu opens only via right-click */
-  display: none;
-}
-</style>
 ```
 
-### Key points
+### Without CnContextMenu (advanced — custom NcActions)
 
-- The `<NcActions>` trigger button must be hidden with scoped CSS (`display: none` or `clip`) since the menu opens programmatically via right-click, not by clicking the trigger.
-- The shared positioning CSS (`src/css/context-menu.css`) is auto-imported via the library's CSS entry point — no manual import needed.
-- Only one context menu can be open at a time. Opening a new one while another is open will work correctly because the CSS vars and data attribute are global singletons on `documentElement`.
+For cases where CnContextMenu's template doesn't fit (e.g., complex conditional rendering), use `isActionDisabled` and `triggerAction` directly with your own NcActions instance. See the composable's return value table for details.
 
 ## How it works
 
@@ -124,6 +81,7 @@ export default {
 3. `close()` removes the CSS vars and data attribute, restoring normal Popper behavior
 4. `onBeforeUnmount` calls `close()` automatically if the component unmounts while the menu is open
 
-## Components using this composable
+## Related
 
-- **CnIndexPage** — Right-click context menu on table rows, rendering `mergedActions` (same actions as the three-dot row menu)
+- [CnContextMenu](../../components/cn-context-menu.md) — Template component (recommended pairing)
+- [CnIndexPage](../../components/cn-index-page.md) — Uses both internally for table row right-click

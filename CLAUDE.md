@@ -56,6 +56,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnStatusBadge` — Color-coded status/priority pill badge
 - `CnDetailCard` — Card container with title, icon, collapsible sections
 - `CnRowActions` — Row action buttons (inline + overflow dropdown)
+- `CnContextMenu` — Right-click context menu (wraps NcActions, pair with `useContextMenu` composable)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
 - `CnKpiGrid` — KPI metric cards grid

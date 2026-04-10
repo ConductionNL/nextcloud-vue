@@ -6,7 +6,7 @@ sidebar_position: 2
 
 The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, CRUD dialogs, and a right-click context menu into a single schema-driven page.
 
-**Wraps**: NcEmptyContent, NcLoadingIcon, NcActions, NcActionButton (from @nextcloud/vue)
+**Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue), CnContextMenu
 
 ![CnIndexPage showing the full list page with filter bar, data table, and right sidebar](/img/screenshots/cn-index-page.png)
 
@@ -223,7 +223,7 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
 
 Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
 
-Powered by the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable, which handles cursor positioning via CSS custom properties on `document.documentElement` and shared CSS that overrides Popper.js transforms.
+Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContextMenu`](../utilities/composables/use-context-menu.md) composable. The composable handles cursor positioning via CSS custom properties; the component renders the NcActions menu.
 
 - Each action's `disabled` state (boolean or function) is respected
 - Destructive actions are styled with `--color-error`

@@ -17,6 +17,7 @@ export {
 	CnCardGrid,
 	CnFacetSidebar,
 	CnRowActions,
+	CnContextMenu,
 	CnIndexPage,
 	CnMassActionBar,
 	CnDeleteDialog,
