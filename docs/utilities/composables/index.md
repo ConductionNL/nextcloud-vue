@@ -162,6 +162,29 @@ const {
 - **422 validation error**: sets `validationErrors.value` to the error map; no redirect
 - **Other errors**: sets `error.value`; no redirect
 
+## useContextMenu
+
+Manages right-click context menu positioning and state. Handles cursor-based positioning through CSS custom properties and a data attribute on `document.documentElement`, so any `<NcActions>` can be opened at the click position.
+
+See [useContextMenu](./use-context-menu.md) for full documentation and usage examples.
+
+### Signature
+
+```js
+const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = useContextMenu()
+```
+
+### Return Value
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `isOpen` | `Ref<boolean>` | Whether the menu is open (bind to NcActions `:open.sync`) |
+| `targetItem` | `Ref<any>` | The right-clicked item (`null` when closed) |
+| `open({ item, event })` | Function | Open menu at cursor; sets CSS vars + data attribute |
+| `close()` | Function | Close menu and clean up DOM |
+| `isActionDisabled(action)` | Function | Resolve `action.disabled` (boolean or function) |
+| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row }` |
+
 ## useSubResource
 
 Manages sub-resources on an object (e.g., notes, comments).
