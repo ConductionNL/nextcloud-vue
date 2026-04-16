@@ -38,6 +38,23 @@ Components: `CnIndexPage`, `CnDetailPage`, `CnDashboardPage`, `CnActionsBar`
 
 Components: `CnWidgetWrapper`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnDetailCard`
 
+### Per-widget actions on CnDashboardPage (`#widget-{widgetId}-actions`)
+
+`CnDashboardPage` passes per-widget action slots through to each widget's `CnWidgetWrapper#header-actions`:
+
+```vue
+<CnDashboardPage :widgets="widgets" :layout="layout">
+  <template #widget-my-work="{ item }">
+    <MyWorkList />
+  </template>
+  <template #widget-my-work-actions>
+    <NcButton @click="refreshWork">Refresh</NcButton>
+  </template>
+</CnDashboardPage>
+```
+
+The slot name follows the pattern `widget-{widgetId}-actions` where `widgetId` matches the widget's `id` in the widgets array.
+
 ### Card-level (`#actions`)
 
 ```vue

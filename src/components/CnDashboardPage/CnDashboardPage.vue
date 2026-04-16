@@ -76,6 +76,10 @@
 						:flush="item.flush === true"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}">
+						<!-- Per-widget header actions (e.g. #widget-my-work-actions) -->
+						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #header-actions>
+							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
+						</template>
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
 					</CnWidgetWrapper>
 				</template>
