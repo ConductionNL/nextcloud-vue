@@ -4,9 +4,9 @@ sidebar_position: 2
 
 # CnIndexPage
 
-The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, and CRUD dialogs into a single schema-driven page.
+The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, CRUD dialogs, and a right-click context menu into a single schema-driven page.
 
-**Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue)
+**Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue), CnContextMenu
 
 ![CnIndexPage showing the full list page with filter bar, data table, and right sidebar](/img/screenshots/cn-index-page.png)
 
@@ -25,8 +25,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
-| `sortKey` | String | `null` | Current sort column key |
-| `sortOrder` | String | `'asc'` | `'asc'` or `'desc'` |
+| `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
+| `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
@@ -75,7 +75,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
 | `row-click` | `row` | Row or card clicked |
-| `sort` | `\{ key, order \}` | Sort changed |
+| `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
@@ -218,6 +218,17 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
   @refresh="onRefresh"
   @page-changed="onPageChanged" />
 ```
+
+## Context Menu
+
+Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
+
+Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContextMenu`](../utilities/composables/use-context-menu.md) composable. The composable handles cursor positioning via CSS custom properties; the component renders the NcActions menu.
+
+- Each action's `disabled` state (boolean or function) is respected
+- Destructive actions are styled with `--color-error`
+- The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
+- Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
 
 ## Two-Phase Pattern
 

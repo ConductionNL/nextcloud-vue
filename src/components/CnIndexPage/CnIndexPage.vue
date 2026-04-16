@@ -191,7 +191,8 @@
 					:row-class="rowClass"
 					@sort="$emit('sort', $event)"
 					@select="onSelect"
-					@row-click="onRowClick">
+					@row-click="onRowClick"
+					@row-context-menu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -234,6 +235,14 @@
 					</template>
 				</CnCardGrid>
 
+				<!-- Right-click context menu (positioned at cursor via CSS) -->
+				<CnContextMenu
+					:open.sync="contextMenuOpen"
+					:actions="mergedActions"
+					:target-item="contextMenuRow"
+					@action="$emit('action', $event)"
+					@close="closeContextMenu" />
+
 				<!-- Pagination -->
 				<CnPagination
 					v-if="pagination && pagination.pages > 1"
@@ -271,6 +280,8 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { useContextMenu } from '../../composables/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -360,6 +371,7 @@ export default {
 		CnCopyDialog,
 		CnFormDialog,
 		CnAdvancedFormDialog,
+		CnContextMenu,
 	},
 
 	props: {
@@ -602,6 +614,22 @@ export default {
 		 * Required when store is set — a console warning is emitted if missing.
 		 */
 		objectType: { type: String, default: '' },
+	},
+
+	setup() {
+		const {
+			isOpen: contextMenuOpen,
+			targetItem: contextMenuRow,
+			open: openContextMenu,
+			close: closeContextMenu,
+		} = useContextMenu()
+
+		return {
+			contextMenuOpen,
+			contextMenuRow,
+			openContextMenu,
+			closeContextMenu,
+		}
 	},
 
 	data() {
@@ -918,6 +946,12 @@ export default {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)
 			}
+		},
+
+		// --- Context menu handlers ---
+
+		onRowContextMenu({ row, event }) {
+			this.openContextMenu({ item: row, event })
 		},
 
 		/**

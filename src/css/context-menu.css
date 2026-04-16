@@ -1,0 +1,20 @@
+/* useContextMenu — Position the context menu popper at cursor coordinates.
+ *
+ * Works with any NcActions that uses useContextMenu().
+ * The data attribute ensures transforms only apply when a context menu is active,
+ * avoiding interference with regular NcActions poppers.
+ */
+html[data-cn-ctx-menu] .v-popper__popper {
+	transform: translate3d(var(--cn-ctx-menu-x), var(--cn-ctx-menu-y), 0px) !important;
+}
+html[data-cn-ctx-menu] .v-popper__popper[data-popper-placement="top"] {
+	transform: translate3d(var(--cn-ctx-menu-x), calc(var(--cn-ctx-menu-y) - 50vh + 34px), 0px) !important;
+}
+html[data-cn-ctx-menu] .v-popper__popper .v-popper__arrow-container {
+	display: none;
+}
+
+/* Destructive action styling (shared across all context menus) */
+html[data-cn-ctx-menu] .cn-row-action--destructive {
+	color: var(--color-error) !important;
+}

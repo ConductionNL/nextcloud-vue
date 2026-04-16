@@ -63,7 +63,8 @@
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@click="$emit('row-click', row)">
+					@click="$emit('row-click', row)"
+					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
@@ -199,11 +200,11 @@ export default {
 			type: String,
 			default: null,
 		},
-		/** Current sort order: 'asc' or 'desc' */
+		/** Current sort order: 'asc', 'desc', or null (no sort) */
 		sortOrder: {
 			type: String,
 			default: 'asc',
-			validator: (v) => ['asc', 'desc'].includes(v),
+			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
@@ -316,15 +317,22 @@ export default {
 		 * @param {string} key Column key
 		 */
 		onSort(key) {
+			let newKey = key
 			let order = 'asc'
 			if (this.sortKey === key) {
-				order = this.sortOrder === 'asc' ? 'desc' : 'asc'
+				if (this.sortOrder === 'asc') {
+					order = 'desc'
+				} else {
+					// desc → disabled: clear sort entirely
+					newKey = null
+					order = null
+				}
 			}
 			/**
 			 * @event sort Emitted when a sortable column header is clicked.
-			 * @type {{ key: string, order: 'asc'|'desc' }}
+			 * @type {{ key: string|null, order: 'asc'|'desc'|null }}
 			 */
-			this.$emit('sort', { key, order })
+			this.$emit('sort', { key: newKey, order })
 		},
 
 		toggleSelect(row) {
