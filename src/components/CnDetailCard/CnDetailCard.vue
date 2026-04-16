@@ -25,7 +25,7 @@
 				</h3>
 			</div>
 			<div class="cn-detail-card__header-right">
-				<slot name="header-actions" />
+				<slot name="actions" />
 				<button
 					v-if="collapsible"
 					class="cn-detail-card__collapse-btn"
@@ -62,7 +62,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *
  * @example With icon and actions
  * <CnDetailCard title="Pipeline" :icon="ChartIcon">
- *   <template #header-actions>
+ *   <template #actions>
  *     <NcButton>Edit</NcButton>
  *   </template>
  *   <PipelineProgress :stages="stages" />

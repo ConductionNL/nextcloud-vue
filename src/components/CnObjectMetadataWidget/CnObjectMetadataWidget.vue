@@ -9,8 +9,8 @@
 -->
 <template>
 	<CnDetailCard :title="title" :icon="iconComponent" :collapsible="collapsible" :collapsed="collapsed">
-		<template #header-actions>
-			<slot name="header-actions" />
+		<template #actions>
+			<slot name="actions" />
 		</template>
 
 		<CnDetailGrid

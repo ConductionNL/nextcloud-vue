@@ -22,7 +22,7 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
-				<slot name="header-actions" />
+				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
 					:type="isEditing ? 'primary' : 'secondary'"
@@ -77,7 +77,7 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}">
 						<!-- Per-widget header actions (e.g. #widget-my-work-actions) -->
-						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #header-actions>
+						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #actions>
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />

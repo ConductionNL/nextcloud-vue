@@ -44,8 +44,8 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['header-actions']" #header-actions>
-				<slot name="header-actions" />
+			<template v-if="$scopedSlots['actions']" #actions>
+				<slot name="actions" />
 			</template>
 		</CnActionsBar>
 

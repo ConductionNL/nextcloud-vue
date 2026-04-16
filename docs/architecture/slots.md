@@ -4,43 +4,52 @@ All components follow a consistent slot naming scheme. This page documents the c
 
 ## Header action slots
 
-Components that have a header area with action buttons use one of these patterns:
+All components that have a header area with action buttons use the standard `#actions` slot.
 
 | Slot name | Used by | Purpose |
 |-----------|---------|---------|
-| `#header-actions` | Pages, widgets, detail cards | Buttons in the component header (right side) |
-| `#actions` | Simple cards, sections | Buttons in the card/section header |
+| `#actions` | All page, widget, and card components | Buttons in the component header (right side) |
 
-**Rule:** Page-level and widget-level components use `#header-actions`. Simple card components use `#actions`.
-
-### Page-level (`#header-actions`)
+### Usage
 
 ```vue
 <CnIndexPage>
-  <template #header-actions>
+  <template #actions>
     <NcButton @click="doSomething">Extra action</NcButton>
   </template>
 </CnIndexPage>
 ```
 
-Components: `CnIndexPage`, `CnDetailPage`, `CnDashboardPage`, `CnActionsBar`
-
-### Widget-level (`#header-actions`)
+```vue
+<CnDetailPage>
+  <template #actions>
+    <NcButton @click="save">Save</NcButton>
+  </template>
+</CnDetailPage>
+```
 
 ```vue
 <CnWidgetWrapper title="My widget">
-  <template #header-actions>
+  <template #actions>
     <NcButton @click="refresh">Refresh</NcButton>
   </template>
   <!-- widget content -->
 </CnWidgetWrapper>
 ```
 
-Components: `CnWidgetWrapper`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnDetailCard`
+```vue
+<CnDetailCard title="Card title">
+  <template #actions>
+    <NcButton @click="doSomething">Action</NcButton>
+  </template>
+</CnDetailCard>
+```
+
+Components using `#actions`: `CnIndexPage`, `CnDetailPage`, `CnDashboardPage`, `CnActionsBar`, `CnWidgetWrapper`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `CnDetailCard`, `CnCard`, `CnConfigurationCard`, `CnVersionInfoCard`, `CnSettingsSection`, `CnRegisterMapping`, `CnObjectCard`, `CnItemCard`, `CnMassActionBar`
 
 ### Per-widget actions on CnDashboardPage (`#widget-{widgetId}-actions`)
 
-`CnDashboardPage` passes per-widget action slots through to each widget's `CnWidgetWrapper#header-actions`:
+`CnDashboardPage` passes per-widget action slots through to each widget's `CnWidgetWrapper#actions`:
 
 ```vue
 <CnDashboardPage :widgets="widgets" :layout="layout">
@@ -54,18 +63,6 @@ Components: `CnWidgetWrapper`, `CnObjectDataWidget`, `CnObjectMetadataWidget`, `
 ```
 
 The slot name follows the pattern `widget-{widgetId}-actions` where `widgetId` matches the widget's `id` in the widgets array.
-
-### Card-level (`#actions`)
-
-```vue
-<CnConfigurationCard title="API settings">
-  <template #actions>
-    <NcButton @click="save">Save</NcButton>
-  </template>
-</CnConfigurationCard>
-```
-
-Components: `CnCard`, `CnConfigurationCard`, `CnVersionInfoCard`, `CnSettingsSection`, `CnRegisterMapping`, `CnObjectCard`, `CnItemCard`
 
 ## Row action slots
 

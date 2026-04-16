@@ -42,7 +42,7 @@
 				</div>
 			</div>
 			<div class="cn-detail-page__header-actions">
-				<slot name="header-actions" />
+				<slot name="actions" />
 			</div>
 		</div>
 
@@ -224,7 +224,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   :error="hasError"
  *   error-message="Failed to load schema"
  *   :on-retry="loadSchema">
- *   <template #header-actions>
+ *   <template #actions>
  *     <NcButton @click="editSchema">Edit</NcButton>
  *   </template>
  *   <DetailContent :schema="schema" />
