@@ -64,6 +64,10 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `CnProgressBar` — Labeled horizontal progress bars with variant colors for distribution visualizations
 - `CnIndexSidebar` — Index page sidebar
 
+**Object Widgets**
+- `CnObjectDataWidget` — Schema-driven editable data grid widget. Displays object properties in a CSS grid, supports inline editing (click-to-edit with all widget types), dirty tracking, and saves via objectStore. Configurable per-property overrides for order, grid span, visibility, editability, label, and widget type.
+- `CnObjectMetadataWidget` — Read-only metadata display widget. Automatically extracts and formats system metadata from OpenRegister objects (@self block: id, uuid, uri, register, schema, created, updated, owner, etc.). Supports include/exclude filters and extra items.
+
 **Dashboard**
 - `CnDashboardPage` — Top-level dashboard page with GridStack widget grid (the dashboard equivalent of CnIndexPage)
 - `CnDashboardGrid` — Low-level GridStack grid layout engine (drag/drop, resize)

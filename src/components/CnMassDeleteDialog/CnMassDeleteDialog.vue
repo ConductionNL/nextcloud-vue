@@ -64,6 +64,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -127,27 +128,27 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Delete Items',
+			default: () => t('nextcloud-vue', 'Delete items'),
 		},
 		/** Warning text shown above the item list */
 		warningText: {
 			type: String,
-			default: 'The following items will be permanently deleted. Remove any items you want to keep.',
+			default: () => t('nextcloud-vue', 'The following items will be permanently deleted. Remove any items you want to keep.'),
 		},
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
-			default: 'No items selected for deletion.',
+			default: () => t('nextcloud-vue', 'No items selected for deletion.'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Items successfully deleted.',
+			default: () => t('nextcloud-vue', 'Items successfully deleted.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Delete' },
-		removeLabel: { type: String, default: 'Remove from list' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
 	data() {

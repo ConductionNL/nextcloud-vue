@@ -102,6 +102,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -223,7 +224,7 @@ export default {
 		/** Text shown when there are no rows */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
@@ -238,7 +239,7 @@ export default {
 		/** Text shown while loading */
 		loadingText: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 	},
 

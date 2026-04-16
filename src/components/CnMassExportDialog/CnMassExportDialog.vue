@@ -51,6 +51,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
@@ -101,7 +102,7 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Export Objects',
+			default: () => t('nextcloud-vue', 'Export objects'),
 		},
 		/** Description text shown above the format selector */
 		description: {
@@ -124,12 +125,12 @@ export default {
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Export completed successfully.',
+			default: () => t('nextcloud-vue', 'Export completed successfully.'),
 		},
-		formatLabel: { type: String, default: 'Export format' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Export' },
+		formatLabel: { type: String, default: () => t('nextcloud-vue', 'Export format') },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
 	data() {

@@ -64,6 +64,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect } from '@nextcloud/vue'
 
 /**
@@ -135,27 +136,27 @@ export default {
 		/** Label for "First" button */
 		firstLabel: {
 			type: String,
-			default: 'First',
+			default: () => t('nextcloud-vue', 'First'),
 		},
 		/** Label for "Previous" button */
 		previousLabel: {
 			type: String,
-			default: 'Previous',
+			default: () => t('nextcloud-vue', 'Previous'),
 		},
 		/** Label for "Next" button */
 		nextLabel: {
 			type: String,
-			default: 'Next',
+			default: () => t('nextcloud-vue', 'Next'),
 		},
 		/** Label for "Last" button */
 		lastLabel: {
 			type: String,
-			default: 'Last',
+			default: () => t('nextcloud-vue', 'Last'),
 		},
 		/** Label for "Items per page:" */
 		itemsPerPageLabel: {
 			type: String,
-			default: 'Items per page:',
+			default: () => t('nextcloud-vue', 'Items per page:'),
 		},
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
@@ -163,7 +164,7 @@ export default {
 		 */
 		pageInfoFormat: {
 			type: String,
-			default: 'Page {current} of {total}',
+			default: () => t('nextcloud-vue', 'Page {current} of {total}'),
 		},
 	},
 

@@ -191,7 +191,7 @@
 					:row-class="rowClass"
 					@sort="$emit('sort', $event)"
 					@select="onSelect"
-					@row-click="$emit('row-click', $event)"
+					@row-click="onRowClick"
 					@row-context-menu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
@@ -220,7 +220,7 @@
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
-					@click="$emit('row-click', $event)"
+					@click="onRowClick"
 					@select="onSelect">
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
@@ -674,7 +674,7 @@ export default {
 					label: 'View',
 					icon: this.schemaIconComponent,
 					handler: (row) => {
-						this.$emit('row-click', row)
+						this.onRowClick(row)
 					},
 				})
 			}
@@ -756,6 +756,14 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * @param {object} row The clicked row object
+		 */
+		onRowClick(row) {
+			this.$emit('row-click', row)
+		},
+
 		/**
 		 * Handle the Add button click. If the consumer listens to @add,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
