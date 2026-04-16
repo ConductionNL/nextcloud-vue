@@ -8,7 +8,10 @@
   Not editable — purely informational. Wraps CnDetailCard + CnDetailGrid.
 -->
 <template>
-	<CnDetailCard :title="title" :icon="iconComponent" :collapsible="collapsible" :collapsed="collapsed">
+	<CnDetailCard :title="title"
+		:icon="iconComponent"
+		:collapsible="collapsible"
+		:collapsed="collapsed">
 		<template #header-actions>
 			<slot name="header-actions" />
 		</template>
@@ -208,6 +211,8 @@ export default {
 	methods: {
 		/**
 		 * Format a metadata value for display.
+		 * @param value
+		 * @param def
 		 */
 		formatMetadataValue(value, def) {
 			if (value === null || value === undefined) return '-'

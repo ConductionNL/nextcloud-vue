@@ -441,8 +441,8 @@ export default {
 			// Re-sort by order after overrides are applied
 			// (fieldsFromSchema sorts before applying overrides, so order may have changed)
 			result.sort(function(a, b) {
-				var orderA = typeof a.order === 'number' ? a.order : Infinity
-				var orderB = typeof b.order === 'number' ? b.order : Infinity
+				const orderA = typeof a.order === 'number' ? a.order : Infinity
+				const orderB = typeof b.order === 'number' ? b.order : Infinity
 				if (orderA !== orderB) return orderA - orderB
 				return a.key.localeCompare(b.key)
 			})
@@ -502,6 +502,7 @@ export default {
 	methods: {
 		/**
 		 * Check if a field is editable.
+		 * @param field
 		 */
 		isEditable(field) {
 			if (!this.editable) return false
@@ -516,6 +517,7 @@ export default {
 
 		/**
 		 * Check if a field's current value is empty.
+		 * @param key
 		 */
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
@@ -526,6 +528,7 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
+		 * @param field
 		 */
 		startEdit(field) {
 			// Set working value: dirty value > current object value
@@ -552,6 +555,8 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
+		 * @param key
+		 * @param value
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }
@@ -657,6 +662,7 @@ export default {
 
 		/**
 		 * Compute CSS grid placement for a field cell.
+		 * @param field
 		 */
 		cellStyle(field) {
 			const style = {}
@@ -674,6 +680,7 @@ export default {
 		/**
 		 * Normalize an option to { id, label } format.
 		 * Accepts plain strings or objects with id/label properties.
+		 * @param val
 		 */
 		_normalizeOption(val) {
 			if (val && typeof val === 'object' && val.id !== undefined) {
