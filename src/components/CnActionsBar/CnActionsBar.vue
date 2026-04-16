@@ -242,7 +242,7 @@ export default {
 	computed: {
 		countText() {
 			if (!this.pagination) return ''
-			return t('nextcloud-vue', 'Showing {count} of {total}').replace('{count}', this.objectCount).replace('{total}', this.pagination.total)
+			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete

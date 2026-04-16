@@ -6,7 +6,6 @@
 				{{ title }}
 			</h3>
 			<div class="cn-card-header__actions">
-				<slot name="header-actions" />
 				<slot name="actions" />
 			</div>
 		</div>

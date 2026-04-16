@@ -22,7 +22,6 @@
 			</NcButton>
 
 			<!-- Additional Actions (slot) -->
-			<slot name="header-actions" />
 			<slot name="actions" />
 		</template>
 

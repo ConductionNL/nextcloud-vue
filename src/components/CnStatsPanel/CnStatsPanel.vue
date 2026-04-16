@@ -1,11 +1,8 @@
 <template>
 	<div class="cn-stats-panel">
 		<!-- Header slot for filters/selectors -->
-		<div v-if="$slots.header || $slots['header-actions']" class="cn-stats-panel__header">
+		<div v-if="$slots.header" class="cn-stats-panel__header">
 			<slot name="header" />
-			<div v-if="$slots['header-actions']" class="cn-stats-panel__header-actions">
-				<slot name="header-actions" />
-			</div>
 		</div>
 
 		<!-- Global loading state -->
@@ -309,18 +306,8 @@ export default {
 }
 
 .cn-stats-panel__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
 	padding-bottom: 12px;
 	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-stats-panel__header-actions {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	flex-shrink: 0;
 }
 
 .cn-stats-panel__footer {
