@@ -55,6 +55,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 
@@ -115,21 +116,21 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Copy Item',
+			default: () => t('nextcloud-vue', 'Copy item'),
 		},
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
-			default: 'Naming pattern',
+			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Item successfully copied.',
+			default: () => t('nextcloud-vue', 'Item successfully copied.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Copy' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
 	},
 
 	data() {
@@ -149,9 +150,9 @@ export default {
 
 		patternOptions() {
 			return [
-				{ id: 'copy-of', label: 'Copy of {name}' },
-				{ id: 'name-copy', label: '{name} - Copy' },
-				{ id: 'name-parens', label: '{name} (Copy)' },
+				{ id: 'copy-of', label: t('nextcloud-vue', 'Copy of {name}') },
+				{ id: 'name-copy', label: t('nextcloud-vue', '{name} - Copy') },
+				{ id: 'name-parens', label: t('nextcloud-vue', '{name} (Copy)') },
 			]
 		},
 

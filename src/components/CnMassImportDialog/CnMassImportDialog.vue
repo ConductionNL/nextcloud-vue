@@ -161,6 +161,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import ImportIcon from 'vue-material-design-icons/Import.vue'
@@ -254,30 +255,30 @@ export default {
 		/** Success text when all rows imported without errors */
 		successText: {
 			type: String,
-			default: 'Import completed successfully!',
+			default: () => t('nextcloud-vue', 'Import completed successfully!'),
 		},
 		/** Text when import partially succeeded */
 		partialSuccessText: {
 			type: String,
-			default: 'Import completed with errors. Check the details below.',
+			default: () => t('nextcloud-vue', 'Import completed with errors. Check the details below.'),
 		},
 		/** Text shown while importing */
 		loadingText: {
 			type: String,
-			default: 'Importing data — this may take a moment for large files...',
+			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
 		},
-		summaryTitle: { type: String, default: 'Import Summary' },
-		supportedFormatsLabel: { type: String, default: 'Supported file types:' },
-		selectFileLabel: { type: String, default: 'Select File' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Import' },
-		sheetLabel: { type: String, default: 'Sheet' },
-		foundLabel: { type: String, default: 'Found' },
-		createdLabel: { type: String, default: 'Created' },
-		updatedLabel: { type: String, default: 'Updated' },
-		unchangedLabel: { type: String, default: 'Unchanged' },
-		errorsLabel: { type: String, default: 'Errors' },
+		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
+		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
+		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select File') },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		sheetLabel: { type: String, default: () => t('nextcloud-vue', 'Sheet') },
+		foundLabel: { type: String, default: () => t('nextcloud-vue', 'Found') },
+		createdLabel: { type: String, default: () => t('nextcloud-vue', 'Created') },
+		updatedLabel: { type: String, default: () => t('nextcloud-vue', 'Updated') },
+		unchangedLabel: { type: String, default: () => t('nextcloud-vue', 'Unchanged') },
+		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
 
 	data() {

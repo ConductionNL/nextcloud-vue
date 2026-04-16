@@ -7,6 +7,7 @@
 -->
 <template>
 	<NcAppSidebar
+		:name="sidebarTitle"
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
 		:active.sync="activeTab"

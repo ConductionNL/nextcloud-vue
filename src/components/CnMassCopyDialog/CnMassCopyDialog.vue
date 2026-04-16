@@ -72,6 +72,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -140,27 +141,27 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Copy Items',
+			default: () => t('nextcloud-vue', 'Copy items'),
 		},
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
-			default: 'Naming pattern',
+			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
-			default: 'No items selected for copying.',
+			default: () => t('nextcloud-vue', 'No items selected for copying.'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Items successfully copied.',
+			default: () => t('nextcloud-vue', 'Items successfully copied.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Copy' },
-		removeLabel: { type: String, default: 'Remove from list' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
 	data() {

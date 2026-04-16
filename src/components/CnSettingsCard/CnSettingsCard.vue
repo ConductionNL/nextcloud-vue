@@ -1,19 +1,25 @@
 <template>
 	<div class="cn-settings-card" :class="{ 'cn-settings-card--collapsible': collapsible }">
-		<h4
+		<div
 			v-if="title"
+			class="cn-settings-card__header"
 			:class="{ 'cn-settings-card__header--clickable': collapsible }"
 			@click="collapsible ? toggleCollapsed() : null">
-			<span>{{ icon }} {{ title }}</span>
-			<ChevronDown
-				v-if="collapsible && !isCollapsed"
-				:size="20"
-				class="cn-settings-card__chevron" />
-			<ChevronUp
-				v-if="collapsible && isCollapsed"
-				:size="20"
-				class="cn-settings-card__chevron" />
-		</h4>
+			<h4 class="cn-settings-card__title">
+				<span>{{ icon }} {{ title }}</span>
+				<ChevronDown
+					v-if="collapsible && !isCollapsed"
+					:size="20"
+					class="cn-settings-card__chevron" />
+				<ChevronUp
+					v-if="collapsible && isCollapsed"
+					:size="20"
+					class="cn-settings-card__chevron" />
+			</h4>
+			<div v-if="$slots['header-actions']" class="cn-settings-card__header-actions" @click.stop>
+				<slot name="header-actions" />
+			</div>
+		</div>
 
 		<transition v-if="collapsible" name="cn-slide-fade">
 			<div v-show="!isCollapsed" class="cn-settings-card__content">
