@@ -25,8 +25,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
-| `sortKey` | String | `null` | Current sort column key |
-| `sortOrder` | String | `'asc'` | `'asc'` or `'desc'` |
+| `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
+| `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
@@ -75,7 +75,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
 | `row-click` | `row` | Row or card clicked |
-| `sort` | `\{ key, order \}` | Sort changed |
+| `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
