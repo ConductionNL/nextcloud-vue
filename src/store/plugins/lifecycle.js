@@ -42,7 +42,7 @@ export function lifecyclePlugin() {
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
 			 * @param {string} action The lifecycle action endpoint (e.g. 'lock', 'publish')
-			 * @param {object} [body=null] Optional request body
+			 * @param {object} [body] Optional request body
 			 * @return {Promise<object|null>} Response data or null on error
 			 */
 			async _lifecycleAction(type, objectId, action, body = null) {
@@ -70,7 +70,7 @@ export function lifecyclePlugin() {
 					const data = await response.json()
 
 					if (this.objects[type] && data.id) {
-						this.objects[type][data.id] = data
+						this.objects = { ...this.objects, [type]: { ...this.objects[type], [data.id]: data } }
 					}
 
 					return data
@@ -115,7 +115,7 @@ export function lifecyclePlugin() {
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
-			 * @param {object} [options={}] Publish options
+			 * @param {object} [options] Publish options
 			 * @param {string} [options.date] Publish date (ISO 8601)
 			 * @return {Promise<object|null>} Updated object or null on error
 			 */
@@ -128,7 +128,7 @@ export function lifecyclePlugin() {
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The object ID
-			 * @param {object} [options={}] Depublish options
+			 * @param {object} [options] Depublish options
 			 * @param {string} [options.date] Depublish date (ISO 8601)
 			 * @return {Promise<object|null>} Updated object or null on error
 			 */

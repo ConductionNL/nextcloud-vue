@@ -55,6 +55,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 
@@ -107,24 +108,29 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Copy Item',
+			default: () => t('nextcloud-vue', 'Copy item'),
 		},
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
-			default: 'Naming pattern',
+			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Item successfully copied.',
+			default: () => t('nextcloud-vue', 'Item successfully copied.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Copy' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
 	},
 
 	data() {
@@ -138,14 +144,15 @@ export default {
 
 	computed: {
 		itemName() {
+			if (this.nameFormatter) return this.nameFormatter(this.item)
 			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
 		},
 
 		patternOptions() {
 			return [
-				{ id: 'copy-of', label: 'Copy of {name}' },
-				{ id: 'name-copy', label: '{name} - Copy' },
-				{ id: 'name-parens', label: '{name} (Copy)' },
+				{ id: 'copy-of', label: t('nextcloud-vue', 'Copy of {name}') },
+				{ id: 'name-copy', label: t('nextcloud-vue', '{name} - Copy') },
+				{ id: 'name-parens', label: t('nextcloud-vue', '{name} (Copy)') },
 			]
 		},
 
@@ -189,7 +196,7 @@ export default {
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

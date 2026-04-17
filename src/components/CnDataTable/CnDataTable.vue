@@ -38,7 +38,7 @@
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
-						<!-- Actions header intentionally empty -->
+						<slot name="actions-header" />
 					</th>
 				</tr>
 			</thead>
@@ -63,7 +63,8 @@
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@click="$emit('row-click', row)">
+					@click="$emit('row-click', row)"
+					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
@@ -101,6 +102,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -198,11 +200,11 @@ export default {
 			type: String,
 			default: null,
 		},
-		/** Current sort order: 'asc' or 'desc' */
+		/** Current sort order: 'asc', 'desc', or null (no sort) */
 		sortOrder: {
 			type: String,
 			default: 'asc',
-			validator: (v) => ['asc', 'desc'].includes(v),
+			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
@@ -222,7 +224,7 @@ export default {
 		/** Text shown when there are no rows */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
@@ -237,7 +239,7 @@ export default {
 		/** Text shown while loading */
 		loadingText: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 	},
 
@@ -315,15 +317,22 @@ export default {
 		 * @param {string} key Column key
 		 */
 		onSort(key) {
+			let newKey = key
 			let order = 'asc'
 			if (this.sortKey === key) {
-				order = this.sortOrder === 'asc' ? 'desc' : 'asc'
+				if (this.sortOrder === 'asc') {
+					order = 'desc'
+				} else {
+					// desc → disabled: clear sort entirely
+					newKey = null
+					order = null
+				}
 			}
 			/**
 			 * @event sort Emitted when a sortable column header is clicked.
-			 * @type {{ key: string, order: 'asc'|'desc' }}
+			 * @type {{ key: string|null, order: 'asc'|'desc'|null }}
 			 */
-			this.$emit('sort', { key, order })
+			this.$emit('sort', { key: newKey, order })
 		},
 
 		toggleSelect(row) {
@@ -337,9 +346,13 @@ export default {
 
 		toggleSelectAll() {
 			if (this.allSelected) {
-				this.$emit('select', [])
+				// Remove only current page IDs, preserving cross-page selections
+				const currentPageIds = new Set(this.rows.map((row) => row[this.rowKey]))
+				this.$emit('select', this.selectedIds.filter((id) => !currentPageIds.has(id)))
 			} else {
-				this.$emit('select', this.rows.map((row) => row[this.rowKey]))
+				// Add current page IDs to existing selections
+				const merged = new Set([...this.selectedIds, ...this.rows.map((row) => row[this.rowKey])])
+				this.$emit('select', [...merged])
 			}
 			/** @event select-all Emitted when select-all checkbox is toggled. */
 			this.$emit('select-all', !this.allSelected)

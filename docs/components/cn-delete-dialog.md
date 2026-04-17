@@ -18,6 +18,7 @@ Two-phase single-item delete confirmation dialog. Shows a warning, waits for API
 |------|------|---------|-------------|
 | `item` | Object | *(required)* | Item to delete (must have id) |
 | `nameField` | String | `'title'` | Field used as display name |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format the display name. Overrides `nameField` when provided. |
 | `dialogTitle` | String | `'Delete Item'` | |
 | `warningText` | String | `'Are you sure...'` | Supports `\{name\}` placeholder |
 | `successText` | String | `'Item successfully deleted.'` | |
@@ -37,6 +38,18 @@ Two-phase single-item delete confirmation dialog. Shows a warning, waits for API
 | Method | Description |
 |--------|-------------|
 | `setResult(\{ success?, error? \})` | Set operation result after API call |
+
+## Custom Name Formatting
+
+When items don't have a simple name field, use `nameFormatter` to build a display name from any item properties:
+
+```vue
+<CnDeleteDialog
+  :item="auditTrail"
+  :name-formatter="(item) => t('myapp', 'Audit Trail #{id}', { id: item.id })"
+  @confirm="onDeleteConfirm"
+  @close="deleteItem = null" />
+```
 
 ## Two-Phase Pattern
 

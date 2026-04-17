@@ -35,12 +35,16 @@ export default {
 			default: 4,
 			validator: (v) => [2, 3, 4].includes(v),
 		},
+		gridClass: {
+			type: String,
+			default: '',
+		},
 	},
 
 	computed: {
 		gridClasses() {
 			return {
-				[`cn-kpi-grid--cols-${this.columns}`]: true,
+				[`cn-kpi-grid--cols-${this.columns} ${this.gridClass}`]: true,
 			}
 		},
 	},

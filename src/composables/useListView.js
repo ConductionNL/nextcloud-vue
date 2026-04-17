@@ -14,9 +14,10 @@ import { useObjectStore } from '../store/index.js'
  *
  * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
  * @param {object} [options] Options (new API only)
+ * @param {object|null} [options.objectStore] Custom object store instance (from createObjectStore). When provided, uses this store instead of the default useObjectStore(). Required when the app uses createObjectStore with a custom store ID.
  * @param {object|null} [options.sidebarState] Sidebar state object from `inject('sidebarState')`. When provided, the composable wires and unwires the sidebar automatically on mount/unmount.
- * @param {number} [options.defaultPageSize=20] Default `_limit` sent to the API
- * @param {number} [options.debounceMs=300] Search debounce in milliseconds
+ * @param {number} [options.defaultPageSize] Default `_limit` sent to the API
+ * @param {number} [options.debounceMs] Search debounce in milliseconds
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
  * @return {object} Reactive state and event handlers
  *
@@ -49,7 +50,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
-	const objectStore = useObjectStore()
+	const objectStore = opts.objectStore || useObjectStore()
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
@@ -103,7 +104,7 @@ export function useListView(objectTypeOrOptions, options) {
 	/**
 	 * Fetch the collection using current state params and update sidebar facet data.
 	 *
-	 * @param {number} [page=1] Page to fetch
+	 * @param {number} [page] Page to fetch
 	 * @return {Promise<void>}
 	 */
 	async function refresh(page = 1) {
@@ -256,8 +257,8 @@ export function useListView(objectTypeOrOptions, options) {
  * @param {object} options Legacy options object
  * @param {string} [options.objectType] The registered object type slug
  * @param {Function} [options.fetchFn] Function to call: (type, params) => Promise<Array>
- * @param {number} [options.debounceMs=300] Search debounce in milliseconds
- * @param {number} [options.pageSize=20] Default page size
+ * @param {number} [options.debounceMs] Search debounce in milliseconds
+ * @param {number} [options.pageSize] Default page size
  * @param {object} [options.defaultSort] Default sort: { key: string, order: 'asc'|'desc' }
  * @return {object} Reactive state and methods
  */

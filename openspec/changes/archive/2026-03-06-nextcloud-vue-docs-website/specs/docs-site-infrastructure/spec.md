@@ -4,7 +4,7 @@
 
 Defines the Docusaurus project setup, build pipeline, GitHub Pages deployment, and site structure for the `@conduction/nextcloud-vue` documentation website. This is the foundation that all other documentation specs build on.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Docusaurus Project Structure
 

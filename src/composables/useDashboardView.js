@@ -1,22 +1,35 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
 
 /**
  * Composable for managing dashboard view state.
  *
  * Handles widget definition loading (including NC Dashboard API widgets),
- * layout management, and edit mode. Apps provide their own widget
- * definitions and persist layouts however they choose (app config,
- * OpenRegister objects, etc.).
+ * layout management, edit mode, and role-based widget visibility filtering.
+ *
+ * Widgets can specify a `visibility` property to control which users see them:
+ * ```js
+ * {
+ *   id: 'kcc-search',
+ *   type: 'custom',
+ *   title: 'Quick Search',
+ *   visibility: {
+ *     users: ['admin'],           // specific user IDs (optional)
+ *     groups: ['KCC', 'Admins'],  // Nextcloud group names (optional)
+ *   }
+ * }
+ * ```
+ * If `visibility` is not set or both arrays are empty, the widget is visible to everyone.
  *
  * @param {object} [options] Configuration options
- * @param {Array} [options.widgets=[]] Static widget definitions from the app
- * @param {Array} [options.defaultLayout=[]] Default layout if no saved layout exists
+ * @param {Array} [options.widgets] Static widget definitions from the app
+ * @param {Array} [options.defaultLayout] Default layout if no saved layout exists
  * @param {Function} [options.loadLayout] Async function that returns saved layout array, or null
  * @param {Function} [options.saveLayout] Async function that persists layout: (layout) => Promise
- * @param {boolean} [options.includeNcWidgets=false] Whether to also load NC Dashboard API widgets
- * @param {number} [options.columns=12] Grid columns
+ * @param {boolean} [options.includeNcWidgets] Whether to also load NC Dashboard API widgets
+ * @param {number} [options.columns] Grid columns
  * @return {object} Reactive state and methods for CnDashboardPage
  *
  * @example Basic usage with static widgets
@@ -39,6 +52,16 @@ import { generateOcsUrl } from '@nextcloud/router'
  *   saveLayout: (layout) => fetch('/api/dashboard-layout', { method: 'PUT', body: JSON.stringify(layout) }),
  *   includeNcWidgets: true,
  * })
+ *
+ * @example With role-based visibility
+ * const dashboard = useDashboardView({
+ *   widgets: [
+ *     { id: 'admin-panel', title: 'Admin Panel', type: 'custom', visibility: { groups: ['admin'] } },
+ *     { id: 'kcc-search', title: 'KCC Search', type: 'custom', visibility: { groups: ['KCC'] } },
+ *     { id: 'public-info', title: 'Info', type: 'custom' }, // visible to everyone
+ *   ],
+ *   defaultLayout: [...],
+ * })
  */
 export function useDashboardView(options = {}) {
 	const opts = {
@@ -54,6 +77,8 @@ export function useDashboardView(options = {}) {
 	// ── State ────────────────────────────────────────────────────────────
 	const appWidgets = ref(opts.widgets)
 	const ncWidgets = ref([])
+	const visibleAppWidgets = ref([])
+	const visibleNcWidgets = ref([])
 	const layout = ref([])
 	const loading = ref(false)
 	const saving = ref(false)
@@ -61,9 +86,9 @@ export function useDashboardView(options = {}) {
 
 	// ── Computed ─────────────────────────────────────────────────────────
 
-	/** All available widgets (app + NC Dashboard API) */
+	/** All available widgets (app + NC Dashboard API), filtered by visibility */
 	const widgets = computed(() => {
-		return [...appWidgets.value, ...ncWidgets.value]
+		return [...visibleAppWidgets.value, ...visibleNcWidgets.value]
 	})
 
 	/** Widget IDs currently on the dashboard */
@@ -77,6 +102,22 @@ export function useDashboardView(options = {}) {
 	})
 
 	// ── Methods ──────────────────────────────────────────────────────────
+
+	/**
+	 * Apply visibility filtering to the current widget sets and update
+	 * the layout to remove items whose widgets are no longer visible.
+	 */
+	async function applyVisibilityFilter() {
+		visibleAppWidgets.value = await filterWidgetsByVisibility(appWidgets.value)
+		visibleNcWidgets.value = await filterWidgetsByVisibility(ncWidgets.value)
+
+		// Remove layout items that reference widgets the user cannot see
+		const visibleIds = new Set(widgets.value.map(w => w.id))
+		const filteredLayout = layout.value.filter(item => visibleIds.has(item.widgetId))
+		if (filteredLayout.length !== layout.value.length) {
+			layout.value = filteredLayout
+		}
+	}
 
 	/**
 	 * Load NC Dashboard API widgets from the OCS endpoint.
@@ -132,6 +173,9 @@ export function useDashboardView(options = {}) {
 			}
 
 			await Promise.all(tasks)
+
+			// Apply visibility filtering after all data is loaded
+			await applyVisibilityFilter()
 		} catch (error) {
 			console.error('[useDashboardView] Init failed:', error)
 			layout.value = [...opts.defaultLayout]
@@ -202,17 +246,19 @@ export function useDashboardView(options = {}) {
 
 	/**
 	 * Update app widget definitions (e.g., when data changes).
+	 * Re-applies visibility filtering after update.
 	 *
 	 * @param {Array} newWidgets Updated widget definitions
 	 */
-	function setWidgets(newWidgets) {
+	async function setWidgets(newWidgets) {
 		appWidgets.value = newWidgets
+		await applyVisibilityFilter()
 	}
 
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
-	onMounted(() => {
-		init()
+	onMounted(async () => {
+		await init()
 	})
 
 	// ── Return ───────────────────────────────────────────────────────────

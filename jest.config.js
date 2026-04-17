@@ -13,6 +13,8 @@ module.exports = {
 		'\\.(css)$': 'jest-transform-stub',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
+		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
+		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
 	},
 	testMatch: [

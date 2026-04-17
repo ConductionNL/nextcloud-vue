@@ -1,24 +1,14 @@
-import { buildHeaders, buildQueryString } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
  * Standard empty paginated response shape used by all sub-resource plugins.
  *
- * @param {number} [limit=20] Default page size
+ * @param {number} [limit] Default page size
  * @return {object} Empty paginated state
  */
 export function emptyPaginated(limit = 20) {
 	return { results: [], total: 0, page: 1, pages: 0, limit, offset: 0 }
-}
-
-/**
- * Capitalize the first letter of a string.
- *
- * @param {string} str Input string
- * @return {string} Capitalized string
- */
-function capitalize(str) {
-	return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 /**
@@ -30,8 +20,8 @@ function capitalize(str) {
  *
  * @param {string} name Camel-case name for the sub-resource (e.g. 'auditTrails')
  * @param {string} endpoint URL path segment appended to the object URL (e.g. 'audit-trails')
- * @param {object} [options={}] Plugin options
- * @param {number} [options.limit=20] Default page size
+ * @param {object} [options] Plugin options
+ * @param {number} [options.limit] Default page size
  * @return {Function} Plugin factory that returns the plugin definition
  *
  * @example
@@ -76,7 +66,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 			 *
 			 * @param {string} type The registered object type slug
 			 * @param {string} objectId The parent object ID
-			 * @param {object} [params={}] Query parameters (_search, _limit, _page)
+			 * @param {object} [params] Query parameters (_search, _limit, _page)
 			 * @return {Promise<Array>} The fetched results
 			 */
 			async [`fetch${cap}`](type, objectId, params = {}) {

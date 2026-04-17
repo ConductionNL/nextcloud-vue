@@ -4,9 +4,9 @@ sidebar_position: 2
 
 # CnIndexPage
 
-The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, and CRUD dialogs into a single schema-driven page.
+The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, CRUD dialogs, and a right-click context menu into a single schema-driven page.
 
-**Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue)
+**Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue), CnContextMenu
 
 ![CnIndexPage showing the full list page with filter bar, data table, and right sidebar](/img/screenshots/cn-index-page.png)
 
@@ -25,8 +25,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
-| `sortKey` | String | `null` | Current sort column key |
-| `sortOrder` | String | `'asc'` | `'asc'` or `'desc'` |
+| `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
+| `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
@@ -42,6 +42,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showMassCopy` | Boolean | `true` | Show mass copy action |
 | `showMassDelete` | Boolean | `true` | Show mass delete action |
 | `massActionNameField` | String | `'title'` | Field for display names in mass action dialogs |
+| `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names in dialogs. Overrides `massActionNameField` when provided. Passed to all delete and copy dialogs. |
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
@@ -52,6 +53,9 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeFields` | Array | `[]` | Form fields to hide |
 | `includeFields` | Array | `null` | Form fields to show (whitelist) |
 | `fieldOverrides` | Object | `\{\}` | Per-field overrides |
+| `showAdd` | Boolean | `true` | Show the Add button in the actions bar |
+| `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
+| `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
@@ -71,7 +75,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
 | `row-click` | `row` | Row or card clicked |
-| `sort` | `\{ key, order \}` | Sort changed |
+| `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
@@ -81,6 +85,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `#below-header` | — | Content rendered between the page header and the actions bar (e.g. status banners, alerts) |
 | `#mass-actions` | `\{ count, selectedIds \}` | Extra mass action buttons |
 | `#action-items` | — | Extra action bar buttons |
 | `#header-actions` | — | Extra header buttons |
@@ -88,6 +93,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
 | `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog (any variant) |
 | `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
+| `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select field (forwarded to NcSelect `#option`) |
+| `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select field (forwarded to NcSelect `#selected-option`) |
 | `#import-fields` | `\{ file \}` | Extra import dialog fields |
 | `#empty` | — | Custom empty state |
 | `#card` | `\{ object, selected \}` | Custom card template (cards view) |
@@ -168,6 +175,60 @@ Set `store` and `objectType` to have the form dialog save directly to the store.
 ```
 
 No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
+
+### Custom item names in dialogs
+
+When items don't have a simple name field (like audit trails that only have an ID), use `nameFormatter` to control how items are displayed in delete and copy dialogs:
+
+```vue
+<CnIndexPage
+  title="Audit Trails"
+  :objects="auditTrails"
+  :columns="columns"
+  :pagination="pagination"
+  :name-formatter="(item) => t('openregister', 'Audit Trail #{id}', { id: item.id })"
+  @delete="onDelete"
+  @refresh="onRefresh" />
+```
+
+This formatter is passed through to `CnDeleteDialog`, `CnMassDeleteDialog`, `CnCopyDialog`, and `CnMassCopyDialog`. It takes precedence over `massActionNameField`.
+
+### Read-only listing
+
+Set `:show-add="false"` to hide the Add button. Combine with disabled row actions and mass actions for a fully read-only page.
+
+```vue
+<CnIndexPage
+  title="Entities"
+  :objects="entities"
+  :columns="columns"
+  :pagination="pagination"
+  :loading="loading"
+  :show-add="false"
+  :selectable="false"
+  :show-edit-action="false"
+  :show-copy-action="false"
+  :show-delete-action="false"
+  :show-form-dialog="false"
+  :show-mass-import="false"
+  :show-mass-export="false"
+  :show-mass-copy="false"
+  :show-mass-delete="false"
+  @row-click="onRowClick"
+  @refresh="onRefresh"
+  @page-changed="onPageChanged" />
+```
+
+## Context Menu
+
+Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
+
+Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContextMenu`](../utilities/composables/use-context-menu.md) composable. The composable handles cursor positioning via CSS custom properties; the component renders the NcActions menu.
+
+- Each action's `disabled` state (boolean or function) is respected
+- Destructive actions are styled with `--color-error`
+- The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
+- Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
 
 ## Two-Phase Pattern
 

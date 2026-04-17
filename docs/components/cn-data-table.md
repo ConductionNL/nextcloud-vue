@@ -13,13 +13,13 @@ Sortable data table with row selection, loading states, and schema-driven column
 ## Anatomy
 
 ```
-+--+------+----------↑---------+----------+----------+---------+--+
-|  | sel. |  Column A ▲        | Column B | Column C | Column D|  |
-+--+------+--------------------+----------+----------+---------+--+
-|☐ | 👤   | Alice van den Berg | Dept     | email@.. | Active  |⋮ |
-|☐ | 👤   | Bob Jansen         | Dept     | email@.. | Pending |⋮ |
-|☐ | 👤   | Carol Smit         | Dept     | email@.. | Active  |⋮ |
-+--+------+--------------------+----------+----------+---------+--+
++--+------+----------↑---------+----------+----------+---------+----------------+
+|  | sel. |  Column A ▲        | Column B | Column C | Column D| Actions header |
++--+------+--------------------+----------+----------+---------+----------------+
+|☐ | 👤   | Alice van den Berg | Dept     | email@.. | Active  |⋮               |
+|☐ | 👤   | Bob Jansen         | Dept     | email@.. | Pending |⋮               |
+|☐ | 👤   | Carol Smit         | Dept     | email@.. | Active  |⋮               |
++--+------+--------------------+----------+----------+---------+----------------+
    ↑  ↑          ↑                                      ↑       ↑
    |  avatar   cell value                            badge    row actions
    checkbox                                          renderer
@@ -28,10 +28,11 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Region | Description |
 |--------|-------------|
 | **Select-all checkbox** | Checks/unchecks all rows on the current page |
-| **Column headers** | Clickable to sort; active column shows ▲ / ▼ direction indicator |
+| **Column headers** | Clickable to sort; cycles through ascending (▲), descending (▼), and no sort (indicator hidden) |
 | **Avatar / icon** | Auto-generated from the row's name field via CnCellRenderer |
 | **Cell value** | Type-aware rendering: email links, dates, booleans, status badges |
 | **Row actions** | Per-row `⋮` menu — rendered via the `#row-actions` slot |
+| **Actions header** | Slot above actions row — rendered via the `#actions-header` slot (only renders when row actions exist) |
 | **Loading overlay** | Spinner centered over the table body while `loading` is true |
 | **Empty state** | "No items found" message (or `#empty` slot) when rows array is empty |
 
@@ -66,8 +67,8 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `rows` | Array | `[]` | Array of row data objects to display |
 | `loading` | Boolean | `false` | Shows a loading spinner overlay while `true` |
 | `loadingText` | String | `'Loading...'` | Accessible label for the loading spinner |
-| `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator |
-| `sortOrder` | String | `'asc'` | Current sort direction — `'asc'` or `'desc'` |
+| `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
+| `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
@@ -79,10 +80,11 @@ Sortable data table with row selection, loading states, and schema-driven column
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `sort` | `{ key, order }` | Emitted when a sortable column header is clicked |
+| `sort` | `{ key, order }` | Emitted when a sortable column header is clicked. Cycles through `asc → desc → null`. When the user clears the sort, both `key` and `order` are `null`. |
 | `select` | `ids[]` | Emitted when row selection changes; payload is the full updated selection array |
 | `select-all` | `isSelectAll` | Emitted when the select-all checkbox is toggled |
 | `row-click` | `row` | Emitted when a data row is clicked (not the checkbox) |
+| `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
 
 ### Slots
 
@@ -90,4 +92,5 @@ Sortable data table with row selection, loading states, and schema-driven column
 |------|-------|-------------|
 | `#column-{key}` | `{ row, value }` | Override the cell renderer for a specific column key |
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
+| `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |

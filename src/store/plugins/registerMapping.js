@@ -1,4 +1,4 @@
-import { buildHeaders } from '../../utils/headers.js'
+import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 
 /**
  * Register mapping plugin for the object store.
@@ -28,7 +28,7 @@ export function registerMappingPlugin() {
 		state: () => ({
 			/** @type {Array} All available registers from OpenRegister */
 			registers: [],
-			/** @type {Object<string, Array>} Schemas keyed by register ID */
+			/** @type {{[key: string]: Array}} Schemas keyed by register ID */
 			registerSchemas: {},
 			/** @type {boolean} Whether registers are being fetched */
 			registersLoading: false,
@@ -37,18 +37,28 @@ export function registerMappingPlugin() {
 		}),
 
 		getters: {
-			/** @return {Array} Raw register list */
+			/**
+			 * @param {object} state - Pinia state
+			 * @return {Array} Raw register list
+			 */
 			getRegisters: (state) => state.registers,
 
-			/** @return {boolean} Whether registers are loading */
+			/**
+			 * @param {object} state - Pinia state
+			 * @return {boolean} Whether registers are loading
+			 */
 			isRegistersLoading: (state) => state.registersLoading,
 
-			/** @return {string|null} Last error */
+			/**
+			 * @param {object} state - Pinia state
+			 * @return {string|null} Last error
+			 */
 			getRegistersError: (state) => state.registersError,
 
 			/**
 			 * Registers as NcSelect-compatible options.
 			 *
+			 * @param {object} state - Pinia state
 			 * @return {Array<{label: string, value: string}>}
 			 */
 			registerOptions: (state) => state.registers.map((r) => ({
@@ -75,7 +85,7 @@ export function registerMappingPlugin() {
 			/**
 			 * Fetch all registers from OpenRegister with expanded schemas.
 			 *
-			 * @param {boolean} [withSchemas=true] Include schemas in response
+			 * @param {boolean} [withSchemas] Include schemas in response
 			 * @return {Promise<Array>} Fetched registers
 			 */
 			async fetchRegisters(withSchemas = true) {
@@ -83,7 +93,7 @@ export function registerMappingPlugin() {
 				this.registersError = null
 
 				try {
-					let url = '/apps/openregister/api/registers'
+					let url = prefixUrl('/apps/openregister/api/registers')
 					if (withSchemas) {
 						url += '?_extend[]=schemas'
 					}
@@ -155,7 +165,7 @@ export function registerMappingPlugin() {
 				// Fetch from API as fallback
 				try {
 					const response = await fetch(
-						`/apps/openregister/api/registers/${id}?_extend[]=schemas`,
+						prefixUrl(`/apps/openregister/api/registers/${id}?_extend[]=schemas`),
 						{ method: 'GET', headers: buildHeaders() },
 					)
 					if (!response.ok) return []

@@ -53,6 +53,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton } from '@nextcloud/vue'
 import TuneVariant from 'vue-material-design-icons/TuneVariant.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
@@ -143,12 +144,12 @@ export default {
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,
-			default: 'Mass Actions ({count})',
+			default: () => t('nextcloud-vue', 'Mass Actions ({count})'),
 		},
-		importLabel: { type: String, default: 'Import' },
-		exportLabel: { type: String, default: 'Export' },
-		copyLabel: { type: String, default: 'Copy' },
-		deleteLabel: { type: String, default: 'Delete' },
+		importLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		exportLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
+		copyLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
 	computed: {

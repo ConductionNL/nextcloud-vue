@@ -7,6 +7,11 @@
 			:description="description"
 			:icon="resolvedIcon" />
 
+		<!-- Optional content below header, above actions bar -->
+		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
+			<slot name="below-header" />
+		</div>
+
 		<!-- Actions bar -->
 		<CnActionsBar
 			:pagination="pagination"
@@ -22,6 +27,10 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:refreshing="refreshing"
+			:refresh-disabled="refreshDisabled"
+			:add-disabled="addDisabled"
+			:show-add="showAdd"
 			@add="onAddClick"
 			@refresh="$emit('refresh')"
 			@show-import="showImportDialog = true"
@@ -35,8 +44,8 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['header-actions']" #header-actions>
-				<slot name="header-actions" />
+			<template v-if="$scopedSlots['actions']" #actions>
+				<slot name="actions" />
 			</template>
 		</CnActionsBar>
 
@@ -46,6 +55,7 @@
 			ref="massDeleteDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassDeleteConfirm"
 			@close="showMassDeleteDialog = false" />
 
@@ -55,6 +65,7 @@
 			ref="massCopyDialog"
 			:items="selectedObjects"
 			:name-field="massActionNameField"
+			:name-formatter="nameFormatter"
 			@confirm="onMassCopyConfirm"
 			@close="showMassCopyDialog = false" />
 
@@ -88,6 +99,7 @@
 				ref="singleDeleteDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -102,6 +114,7 @@
 				ref="singleCopyDialog"
 				:item="actionTargetItem"
 				:name-field="massActionNameField"
+				:name-formatter="nameFormatter"
 				@confirm="onSingleCopyConfirm"
 				@close="closeSingleCopy" />
 		</slot>
@@ -178,7 +191,8 @@
 					:row-class="rowClass"
 					@sort="$emit('sort', $event)"
 					@select="onSelect"
-					@row-click="$emit('row-click', $event)">
+					@row-click="onRowClick"
+					@row-context-menu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -206,7 +220,7 @@
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
-					@click="$emit('row-click', $event)"
+					@click="onRowClick"
 					@select="onSelect">
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
@@ -220,6 +234,14 @@
 						</slot>
 					</template>
 				</CnCardGrid>
+
+				<!-- Right-click context menu (positioned at cursor via CSS) -->
+				<CnContextMenu
+					:open.sync="contextMenuOpen"
+					:actions="mergedActions"
+					:target-item="contextMenuRow"
+					@action="$emit('action', $event)"
+					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
@@ -258,6 +280,8 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { useContextMenu } from '../../composables/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -347,6 +371,7 @@ export default {
 		CnCopyDialog,
 		CnFormDialog,
 		CnAdvancedFormDialog,
+		CnContextMenu,
 	},
 
 	props: {
@@ -494,6 +519,11 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format item names in dialogs. Receives the item, returns a string. Overrides massActionNameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Available export formats for the export dialog */
 		exportFormats: {
 			type: Array,
@@ -552,6 +582,26 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/** Whether the refresh action is currently in progress */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
+		refreshDisabled: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether the Add button is disabled (e.g. when required selections are missing) */
+		addDisabled: {
+			type: Boolean,
+			default: false,
+		},
+		/** Whether to show the Add button in the actions bar */
+		showAdd: {
+			type: Boolean,
+			default: true,
+		},
 		/**
 		 * Store instance for automatic save integration. When provided alongside
 		 * objectType, the form dialog saves directly to the store instead of
@@ -564,6 +614,22 @@ export default {
 		 * Required when store is set — a console warning is emitted if missing.
 		 */
 		objectType: { type: String, default: '' },
+	},
+
+	setup() {
+		const {
+			isOpen: contextMenuOpen,
+			targetItem: contextMenuRow,
+			open: openContextMenu,
+			close: closeContextMenu,
+		} = useContextMenu()
+
+		return {
+			contextMenuOpen,
+			contextMenuRow,
+			openContextMenu,
+			closeContextMenu,
+		}
 	},
 
 	data() {
@@ -608,7 +674,7 @@ export default {
 					label: 'View',
 					icon: this.schemaIconComponent,
 					handler: (row) => {
-						this.$emit('row-click', row)
+						this.onRowClick(row)
 					},
 				})
 			}
@@ -691,6 +757,14 @@ export default {
 
 	methods: {
 		/**
+		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * @param {object} row The clicked row object
+		 */
+		onRowClick(row) {
+			this.$emit('row-click', row)
+		},
+
+		/**
 		 * Handle the Add button click. If the consumer listens to @add,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
 		 */
@@ -740,28 +814,40 @@ export default {
 			this.$emit('mass-import', payload)
 		},
 
-		/** @public Forward result to mass delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassDeleteResult(resultData) {
 			if (this.$refs.massDeleteDialog) {
 				this.$refs.massDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to mass copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setMassCopyResult(resultData) {
 			if (this.$refs.massCopyDialog) {
 				this.$refs.massCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to export dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setExportResult(resultData) {
 			if (this.$refs.exportDialog) {
 				this.$refs.exportDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to import dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setImportResult(resultData) {
 			if (this.$refs.importDialog) {
 				this.$refs.importDialog.setResult(resultData)
@@ -769,11 +855,17 @@ export default {
 		},
 
 		// --- Backward-compatible aliases ---
-		/** @public @deprecated Use setMassDeleteResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
-		/** @public @deprecated Use setMassCopyResult instead */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setCopyResult(resultData) {
 			this.setMassCopyResult(resultData)
 		},
@@ -826,25 +918,40 @@ export default {
 			this.editItem = null
 		},
 
-		/** @public Forward result to single delete dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleDeleteResult(resultData) {
 			if (this.$refs.singleDeleteDialog) {
 				this.$refs.singleDeleteDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to single copy dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setSingleCopyResult(resultData) {
 			if (this.$refs.singleCopyDialog) {
 				this.$refs.singleCopyDialog.setResult(resultData)
 			}
 		},
 
-		/** @public Forward result to form dialog */
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
 		setFormResult(resultData) {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)
 			}
+		},
+
+		// --- Context menu handlers ---
+
+		onRowContextMenu({ row, event }) {
+			this.openContextMenu({ item: row, event })
 		},
 
 		/**
@@ -855,6 +962,16 @@ export default {
 		openFormDialog(item = null) {
 			this.editItem = item
 			this.showFormDialogVisible = true
+		},
+
+		/**
+		 * Programmatically open the single-item delete dialog.
+		 * @param {object} item The item to delete
+		 * @public
+		 */
+		openDeleteDialog(item) {
+			this.actionTargetItem = item
+			this.showSingleDeleteDialog = true
 		},
 	},
 }

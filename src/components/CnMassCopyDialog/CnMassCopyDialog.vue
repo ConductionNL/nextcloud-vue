@@ -72,6 +72,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -132,30 +133,35 @@ export default {
 			type: String,
 			default: 'title',
 		},
+		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
+		nameFormatter: {
+			type: Function,
+			default: null,
+		},
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Copy Items',
+			default: () => t('nextcloud-vue', 'Copy items'),
 		},
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
-			default: 'Naming pattern',
+			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
-			default: 'No items selected for copying.',
+			default: () => t('nextcloud-vue', 'No items selected for copying.'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Items successfully copied.',
+			default: () => t('nextcloud-vue', 'Items successfully copied.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Copy' },
-		removeLabel: { type: String, default: 'Remove from list' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
 	data() {
@@ -190,6 +196,7 @@ export default {
 
 	methods: {
 		getItemName(item) {
+			if (this.nameFormatter) return this.nameFormatter(item)
 			return item[this.nameField] || item.name || item.title || item.id
 		},
 
@@ -240,7 +247,7 @@ export default {
 		 * Set the result of the copy operation. Call this from the parent
 		 * after the API call completes.
 		 *
-		 * @param {{ success?: boolean, error?: string }} resultData
+		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */
 		setResult(resultData) {

@@ -32,8 +32,7 @@
 				<!-- Register/schema selection step (optional slot) -->
 				<slot
 					v-if="$scopedSlots['register-schema-selection']"
-					name="register-schema-selection"
-					:proceed="proceedFromRegisterSchemaStep" />
+					name="register-schema-selection" />
 
 				<!-- Main tabs -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
@@ -46,7 +45,6 @@
 								:update-field="updateField"
 								:object-properties="objectPropertiesForSlot"
 								:selected-property="selectedProperty"
-								:handle-row-click="onRowClick"
 								:get-property-display-name="getPropertyDisplayName"
 								:get-property-validation-class="getPropertyValidationClass"
 								:is-property-editable="isPropertyEditable"
@@ -321,10 +319,6 @@ export default {
 	},
 
 	methods: {
-		proceedFromRegisterSchemaStep() {
-			// Placeholder for slot consumers
-		},
-
 		initFormData(item) {
 			if (item) {
 				this.formData = JSON.parse(JSON.stringify(item))
@@ -356,10 +350,6 @@ export default {
 		onPropertyValueUpdate({ key, value }) {
 			this.$set(this.formData, key, value)
 			if (this.errors[key]) this.$delete(this.errors, key)
-		},
-
-		onRowClick(key, event) {
-			// Forwarded for #tab-properties slot consumers — the sub-component handles it internally
 		},
 
 		/**
@@ -502,6 +492,44 @@ export default {
 /* Bootstrap-Vue tab styling to match ViewObject */
 .tabContainer {
 	margin-top: 20px;
+}
+
+.tabContainer > * ul > li {
+  display: flex;
+  flex: 1;
+}
+
+.tabContainer > * ul > li:hover {
+  background-color: var(--color-background-hover);
+}
+
+.tabContainer > * ul > li > a {
+  flex: 1;
+  text-align: center;
+}
+
+.tabContainer > * ul > li > .active {
+  background: transparent !important;
+  color: var(--color-main-text) !important;
+  border-bottom: var(--default-grid-baseline) solid var(--color-primary-element) !important;
+}
+
+.tabContainer > * ul[role="tablist"] {
+  display: flex;
+  margin: 10px 8px 0 8px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabContainer > * ul[role="tablist"] > * a[role="tab"] {
+  padding-inline-start: 10px;
+  padding-inline-end: 10px;
+  padding-block-start: 10px;
+  padding-block-end: 10px;
+}
+
+.tabContainer > * div[role="tabpanel"] {
+  margin-block-start: var(--OR-margin-10);
 }
 
 :deep(.nav-tabs) {

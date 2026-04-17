@@ -60,6 +60,8 @@ function onAction({ action, row }) {
 |------|------|---------|-------------|
 | `actions` | Array | `[]` | Array of action definition objects (see Action definition below) |
 | `row` | Object | `null` | The row data object — passed as-is in the `action` event payload so handlers can access it |
+| `primary` | Boolean | false | Whether to use primary styling for the action menu trigger |
+| `menuName` | String | `null` | Label shown on the action menu trigger button |
 
 #### Action definition
 
