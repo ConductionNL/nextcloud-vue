@@ -30,7 +30,7 @@
 				</h3>
 			</div>
 			<div class="cn-widget-wrapper__actions">
-				<slot name="header-actions" />
+				<slot name="actions" />
 			</div>
 		</div>
 

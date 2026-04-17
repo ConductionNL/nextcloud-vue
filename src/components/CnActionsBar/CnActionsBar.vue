@@ -42,7 +42,7 @@
 				{{ addLabel }}
 			</NcButton>
 
-			<slot name="header-actions" />
+			<slot name="actions" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions

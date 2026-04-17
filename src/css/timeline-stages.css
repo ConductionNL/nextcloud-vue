@@ -6,7 +6,7 @@
 .cn-timeline-stages {
 	display: flex;
 	align-items: flex-start;
-	gap: calc(var(--default-grid-baseline, 4px) * 2);
+	gap: 0;
 	width: 100%;
 }
 
@@ -39,10 +39,10 @@
 /* Vertical stages: row layout */
 .cn-timeline-stages--vertical .cn-timeline-stages__stage {
 	flex-direction: row;
-	align-items: flex-start;
+	align-items: center;
 	text-align: left;
 	min-width: 0;
-	gap: calc(var(--default-grid-baseline, 4px) * 2);
+	gap: calc(var(--default-grid-baseline, 4px) * 3);
 }
 
 /* ---------- Track line (horizontal) ---------- */
@@ -60,16 +60,16 @@
 /* Completed + current track segments: filled */
 .cn-timeline-stages--horizontal .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage::before,
 .cn-timeline-stages--horizontal .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage--current::before {
-	background-color: var(--color-success, #46ba61);
+	background-color: var(--color-success-text, var(--color-success, #46ba61));
 }
 
 /* ---------- Track line (vertical) ---------- */
 .cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
 	content: '';
 	position: absolute;
-	left: 15px; /* center of 32px indicator (minus half of line width) */
-	top: calc(-1 * var(--default-grid-baseline, 4px) * 2);
-	bottom: calc(100% - var(--default-grid-baseline, 4px));
+	left: 15px; /* center of 32px indicator */
+	top: -6px;
+	height: 6px;
 	width: 2px;
 	background-color: var(--color-border, #ededed);
 	z-index: 0;
@@ -78,7 +78,7 @@
 /* Completed + current track segments: filled (vertical) */
 .cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage::before,
 .cn-timeline-stages--vertical .cn-timeline-stages__stage--completed + .cn-timeline-stages__stage--current::before {
-	background-color: var(--color-success, #46ba61);
+	background-color: var(--color-success-text, var(--color-success, #46ba61));
 }
 
 /* ---------- Indicator (circle) ---------- */
@@ -99,9 +99,9 @@
 
 /* Completed indicator: success green with white icon */
 .cn-timeline-stages__stage--completed .cn-timeline-stages__indicator {
-	background-color: var(--color-success, #46ba61);
-	border-color: var(--color-success, #46ba61);
-	color: var(--color-primary-element-text, #fff);
+	background-color: var(--color-success-text, var(--color-success, #46ba61));
+	border-color: var(--color-success-text, var(--color-success, #46ba61));
+	color: #fff;
 }
 
 /* Current indicator: primary blue */
@@ -136,9 +136,9 @@
 	word-break: break-word;
 }
 
-/* Vertical: label has no top margin */
+/* Vertical: label aligns with indicator center */
 .cn-timeline-stages--vertical .cn-timeline-stages__label {
-	margin-top: calc(var(--default-grid-baseline, 4px) * 1);
+	margin-top: 0;
 }
 
 /* Completed stage label */
@@ -195,6 +195,8 @@
 /* Small vertical track line offset */
 .cn-timeline-stages--small.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
 	left: 9px; /* center of 20px indicator */
+	top: -6px;
+	height: 6px;
 }
 
 /* ---------- Clickable mode ---------- */

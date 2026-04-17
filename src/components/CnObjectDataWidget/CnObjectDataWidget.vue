@@ -10,7 +10,7 @@
 -->
 <template>
 	<CnDetailCard :title="title" :icon="iconComponent">
-		<template #header-actions>
+		<template #actions>
 			<NcButton
 				v-if="isDirty"
 				type="primary"
@@ -27,7 +27,7 @@
 				@click="discard">
 				{{ discardLabel }}
 			</NcButton>
-			<slot name="header-actions" />
+			<slot name="actions" />
 		</template>
 
 		<!-- Empty state -->
