@@ -25,6 +25,12 @@
 	gap: calc(2 * var(--default-grid-baseline));
 }
 
+.cn-actions-bar__actions .button-vue {
+	/* fix issue when adding custom content, button gets squished when not needed */
+	/* this is a quick and dirty fix and its possible that this will caused issue of its own when there are too many buttons */
+	min-width: fit-content !important;
+}
+
 /* View mode toggle container */
 .cn-actions-bar__view-toggle {
 	display: flex;

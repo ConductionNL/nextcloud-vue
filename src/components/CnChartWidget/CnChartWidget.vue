@@ -29,6 +29,8 @@
 </template>
 
 <script>
+import VueApexCharts from 'vue-apexcharts'
+
 /**
  * CnChartWidget — Chart component for dashboard widgets.
  *
@@ -262,14 +264,8 @@ export default {
 		},
 	},
 
-	async created() {
-		try {
-			const VueApexCharts = await import('vue-apexcharts')
-			this.chartComponent = VueApexCharts.default || VueApexCharts
-		} catch {
-			console.warn('[CnChartWidget] vue-apexcharts not found. Install it: npm install apexcharts vue-apexcharts')
-			this.chartComponent = null
-		}
+	created() {
+		this.chartComponent = VueApexCharts
 	},
 
 	methods: {

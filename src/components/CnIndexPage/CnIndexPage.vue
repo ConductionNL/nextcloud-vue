@@ -44,8 +44,8 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['header-actions']" #header-actions>
-				<slot name="header-actions" />
+			<template v-if="$scopedSlots['actions']" #actions>
+				<slot name="actions" />
 			</template>
 		</CnActionsBar>
 
@@ -191,7 +191,8 @@
 					:row-class="rowClass"
 					@sort="$emit('sort', $event)"
 					@select="onSelect"
-					@row-click="$emit('row-click', $event)">
+					@row-click="onRowClick"
+					@row-context-menu="onRowContextMenu">
 					<!-- Pass through column slots -->
 					<template
 						v-for="col in slotColumns"
@@ -219,7 +220,7 @@
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
-					@click="$emit('row-click', $event)"
+					@click="onRowClick"
 					@select="onSelect">
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
@@ -233,6 +234,14 @@
 						</slot>
 					</template>
 				</CnCardGrid>
+
+				<!-- Right-click context menu (positioned at cursor via CSS) -->
+				<CnContextMenu
+					:open.sync="contextMenuOpen"
+					:actions="mergedActions"
+					:target-item="contextMenuRow"
+					@action="$emit('action', $event)"
+					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
@@ -271,6 +280,8 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { useContextMenu } from '../../composables/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -360,6 +371,7 @@ export default {
 		CnCopyDialog,
 		CnFormDialog,
 		CnAdvancedFormDialog,
+		CnContextMenu,
 	},
 
 	props: {
@@ -604,6 +616,22 @@ export default {
 		objectType: { type: String, default: '' },
 	},
 
+	setup() {
+		const {
+			isOpen: contextMenuOpen,
+			targetItem: contextMenuRow,
+			open: openContextMenu,
+			close: closeContextMenu,
+		} = useContextMenu()
+
+		return {
+			contextMenuOpen,
+			contextMenuRow,
+			openContextMenu,
+			closeContextMenu,
+		}
+	},
+
 	data() {
 		return {
 			currentViewMode: this.viewMode,
@@ -646,7 +674,7 @@ export default {
 					label: 'View',
 					icon: this.schemaIconComponent,
 					handler: (row) => {
-						this.$emit('row-click', row)
+						this.onRowClick(row)
 					},
 				})
 			}
@@ -728,6 +756,14 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * @param {object} row The clicked row object
+		 */
+		onRowClick(row) {
+			this.$emit('row-click', row)
+		},
+
 		/**
 		 * Handle the Add button click. If the consumer listens to @add,
 		 * emit the event (backward compatible). Otherwise open the form dialog.
@@ -910,6 +946,12 @@ export default {
 			if (this.$refs.formDialog) {
 				this.$refs.formDialog.setResult(resultData)
 			}
+		},
+
+		// --- Context menu handlers ---
+
+		onRowContextMenu({ row, event }) {
+			this.openContextMenu({ item: row, event })
 		},
 
 		/**

@@ -16,7 +16,7 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:checked="$emit('view-mode-change', 'cards')">
-					Cards
+					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
 					:checked="viewMode"
@@ -26,7 +26,7 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:checked="$emit('view-mode-change', 'table')">
-					Table
+					{{ t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 
@@ -42,7 +42,7 @@
 				{{ addLabel }}
 			</NcButton>
 
-			<slot name="header-actions" />
+			<slot name="actions" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -54,7 +54,7 @@
 						<NcLoadingIcon v-if="refreshing" :size="20" />
 						<Refresh v-else :size="20" />
 					</template>
-					{{ refreshing ? 'Refreshing...' : 'Refresh' }}
+					{{ refreshing ? t('nextcloud-vue', 'Refreshing...') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
 				<!-- Custom primary action items (overflow) -->
@@ -70,7 +70,7 @@
 					<template #icon>
 						<Import :size="20" />
 					</template>
-					Import
+					{{ t('nextcloud-vue', 'Import') }}
 				</NcActionButton>
 				<NcActionButton
 					v-if="showMassExport"
@@ -78,27 +78,27 @@
 					<template #icon>
 						<Export :size="20" />
 					</template>
-					Export
+					{{ t('nextcloud-vue', 'Export') }}
 				</NcActionButton>
 				<NcActionButton
 					v-if="showMassCopy"
 					:disabled="selectedIds.length < 1"
-					:title="selectedIds.length < 1 ? 'Select 1 or more items to copy' : ''"
+					:title="selectedIds.length < 1 ? t('nextcloud-vue', 'Select 1 or more items to copy') : ''"
 					@click="$emit('show-copy')">
 					<template #icon>
 						<ContentCopy :size="20" />
 					</template>
-					Copy selected
+					{{ t('nextcloud-vue', 'Copy selected') }}
 				</NcActionButton>
 				<NcActionButton
 					v-if="showMassDelete"
 					:disabled="selectedIds.length < 1"
-					:title="selectedIds.length < 1 ? 'Select 1 or more items to delete' : ''"
+					:title="selectedIds.length < 1 ? t('nextcloud-vue', 'Select 1 or more items to delete') : ''"
 					@click="$emit('show-delete')">
 					<template #icon>
 						<TrashCanOutline :size="20" />
 					</template>
-					Delete selected
+					{{ t('nextcloud-vue', 'Delete selected') }}
 				</NcActionButton>
 
 				<!-- Custom mass actions (overflow) -->
@@ -109,6 +109,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -173,7 +174,7 @@ export default {
 		/** Label for the Add button */
 		addLabel: {
 			type: String,
-			default: 'Add',
+			default: () => t('nextcloud-vue', 'Add'),
 		},
 		/** MDI icon name for the Add button (e.g. 'AccountGroup'). Falls back to Plus icon. */
 		addIcon: {
@@ -241,7 +242,7 @@ export default {
 	computed: {
 		countText() {
 			if (!this.pagination) return ''
-			return `Showing ${this.objectCount} of ${this.pagination.total}`
+			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete

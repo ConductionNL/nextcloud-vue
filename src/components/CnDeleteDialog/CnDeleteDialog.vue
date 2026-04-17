@@ -41,6 +41,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
@@ -99,21 +100,21 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Delete Item',
+			default: () => t('nextcloud-vue', 'Delete item'),
 		},
 		/** Warning text. Use `{name}` as placeholder for the item name. */
 		warningText: {
 			type: String,
-			default: 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.',
+			default: () => t('nextcloud-vue', 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.'),
 		},
 		/** Success message */
 		successText: {
 			type: String,
-			default: 'Item successfully deleted.',
+			default: () => t('nextcloud-vue', 'Item successfully deleted.'),
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
-		confirmLabel: { type: String, default: 'Delete' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
 	data() {

@@ -18,7 +18,10 @@
 
 		<!-- Card grid -->
 		<div v-else class="cn-card-grid__grid">
-			<div v-for="object in objects" :key="object[rowKey]">
+			<div
+				v-for="object in objects"
+				:key="object[rowKey]"
+				class="cn-card-grid__item">
 				<slot
 					name="card"
 					:object="object"

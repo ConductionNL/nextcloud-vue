@@ -5,6 +5,8 @@
 	align-items: flex-start;
 	gap: calc(3 * var(--default-grid-baseline));
 	margin-bottom: calc(4 * var(--default-grid-baseline));
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely positioned) */
+	padding-left: 44px;
 }
 
 .cn-page-header__icon {
