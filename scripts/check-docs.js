@@ -30,10 +30,32 @@ const ROOT = path.resolve(__dirname, '..')
 const INDEX_FILE = path.join(ROOT, 'src', 'index.js')
 const DOCS_DIR = path.join(ROOT, 'docs')
 
+/**
+ * Exports that don't need a dedicated doc page. classify() short-circuits
+ * to `category: 'Exempt'` for anything listed here, and the main loop
+ * skips exempt items entirely (not counted toward any category's totals).
+ *
+ * Use sparingly — reserved for lifecycle/bootstrap helpers that are
+ * covered by another doc (e.g. `registerIcons` is described in
+ * docs/getting-started.md as part of the install flow, not as a
+ * standalone API).
+ */
 const EXEMPT = new Set([
 	'registerIcons',
 ])
 
+/**
+ * Store factory/helper identifiers → their expected doc filename stem
+ * under docs/store/. Needed because the default kebab-case rule would
+ * produce e.g. 'use-object-store', but the established convention strips
+ * the leading verb (`use`/`create`) so the docs read as 'object-store',
+ * 'crud-store', etc.
+ *
+ * Multiple identifiers may map to the same stem when they're part of
+ * one API surface — `useObjectStore` and `createObjectStore` both point
+ * at docs/store/object-store.md because a single page documents the
+ * singleton hook and its factory together.
+ */
 const STORE_FACTORY_STEMS = {
 	useObjectStore: 'object-store',
 	createObjectStore: 'object-store',
@@ -41,8 +63,20 @@ const STORE_FACTORY_STEMS = {
 	createSubResourcePlugin: 'sub-resource-plugin',
 }
 
+/**
+ * Exports that don't warrant their own .md file but MUST be mentioned
+ * by name in an existing doc. Keys are the export names; values are
+ * paths (relative to docs/store/) of the file that's expected to
+ * reference them.
+ *
+ * Used for constants and small helpers that belong with a larger API:
+ * `SEARCH_TYPE` only makes sense alongside `searchPlugin`, so it's
+ * checked inside plugins/search.md rather than getting a standalone
+ * 'search-type.md'. Coverage passes when the file exists and a plain
+ * substring match for the symbol name is found.
+ */
 const STORE_MENTION_ONLY = {
-	SEARCH_TYPE: 'search.md',
+	SEARCH_TYPE: 'plugins/search.md',
 	emptyPaginated: 'sub-resource-plugin.md',
 	getRegisterApiUrl: 'plugins.md',
 	getSchemaApiUrl: 'plugins.md',
@@ -133,6 +167,7 @@ function classify(name) {
 		return {
 			category: 'Store constants',
 			mentionFile: path.join(DOCS_DIR, 'store', file),
+			mentionSymbol: name,
 			expectedPath: `docs/store/${file} (must mention \`${name}\`)`,
 		}
 	}
@@ -186,8 +221,7 @@ function isCovered(info) {
 			return false
 		}
 		const contents = fs.readFileSync(info.mentionFile, 'utf8')
-		const symbol = Object.keys(STORE_MENTION_ONLY).find((k) => STORE_MENTION_ONLY[k] === path.basename(info.mentionFile) && info.expectedPath.includes(k))
-		return symbol ? contents.includes(symbol) : false
+		return contents.includes(info.mentionSymbol)
 	}
 	const stems = collectDocStems(info.searchDir)
 	return stems.has(info.expectedStem)

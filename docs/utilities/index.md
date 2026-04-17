@@ -4,129 +4,48 @@ sidebar_position: 7
 
 # Utilities
 
-Helper functions exported by the library.
+Helper functions exported by `@conduction/nextcloud-vue`. Each function has its own reference page.
 
-## Schema Utilities
+## HTTP
 
-### columnsFromSchema
+| Function | Purpose |
+|----------|---------|
+| [buildHeaders](./build-headers.md) | Build Nextcloud OCS request headers (CSRF token + flags) |
+| [buildQueryString](./build-query-string.md) | Serialise a params object into a URL query string |
 
-Generates table column definitions from a schema.
+## Errors
 
-```js
-import { columnsFromSchema } from '@conduction/nextcloud-vue'
+All three error helpers return the same `ApiError` shape so consumers can surface them uniformly regardless of source.
 
-const columns = columnsFromSchema(schema, options?)
-```
+| Function | Use when |
+|----------|----------|
+| [parseResponseError](./parse-response-error.md) | `response.ok === false` — an HTTP response *was* received |
+| [networkError](./network-error.md) | `fetch` threw a `TypeError` — no response (offline/DNS/CORS) |
+| [genericError](./generic-error.md) | Any other caught exception |
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `schema` | Object | OpenRegister schema |
-| `options.exclude` | Array | Property keys to exclude |
-| `options.include` | Array | Property keys to include (whitelist) |
-| `options.overrides` | Object | Per-column overrides |
+## Schema
 
-Returns: `Array<\{ key, label, sortable, type, format, width? \}>`
+Helpers that derive UI structure from an OpenRegister / JSON Schema.
 
-### filtersFromSchema
+| Function | Purpose |
+|----------|---------|
+| [columnsFromSchema](./columns-from-schema.md) | Generate `CnDataTable` column definitions |
+| [filtersFromSchema](./filters-from-schema.md) | Generate filter definitions from `facetable` properties |
+| [fieldsFromSchema](./fields-from-schema.md) | Generate form field descriptors (widget, validation, required) |
+| [formatValue](./format-value.md) | Format a raw value for display using a property descriptor |
 
-Generates filter definitions from schema properties.
+## Widget visibility
 
-```js
-import { filtersFromSchema } from '@conduction/nextcloud-vue'
+Used by the dashboard composable and any custom widget loader that wants the same user/group visibility rules.
 
-const filters = filtersFromSchema(schema)
-```
+| Function | Purpose |
+|----------|---------|
+| [filterWidgetsByVisibility](./filter-widgets-by-visibility.md) | Async filter of widget definitions for the current user |
+| [isWidgetVisible](./is-widget-visible.md) | Sync predicate for a single widget |
+| [getCurrentUserId](./get-current-user-id.md) | Read `OC.currentUser` |
+| [getCurrentUserGroups](./get-current-user-groups.md) | Fetch (and cache) the current user's groups |
+| [resetVisibilityCache](./reset-visibility-cache.md) | Clear the cached groups |
 
-Returns filter definitions for enum, boolean, and facetable properties.
+## Composables
 
-### fieldsFromSchema
-
-Generates form field definitions from schema properties.
-
-```js
-import { fieldsFromSchema } from '@conduction/nextcloud-vue'
-
-const fields = fieldsFromSchema(schema, options?)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `schema` | Object | OpenRegister schema |
-| `options.exclude` | Array | Property keys to exclude |
-| `options.include` | Array | Property keys to include |
-| `options.overrides` | Object | Per-field overrides |
-
-Returns: `Array<\{ key, label, type, widget, required, options?, default? \}>`
-
-## HTTP Utilities
-
-### buildHeaders
-
-Builds HTTP headers for OpenRegister API requests.
-
-```js
-import { buildHeaders } from '@conduction/nextcloud-vue'
-
-const headers = buildHeaders(options?)
-```
-
-Returns headers object with `Content-Type`, CSRF token, and authentication.
-
-### buildQueryString
-
-Builds a URL query string from an options object.
-
-```js
-import { buildQueryString } from '@conduction/nextcloud-vue'
-
-const qs = buildQueryString({ page: 1, limit: 20, _search: 'test' })
-// "?page=1&limit=20&_search=test"
-```
-
-## Display Utilities
-
-### formatValue
-
-Formats a value for display based on its schema type.
-
-```js
-import { formatValue } from '@conduction/nextcloud-vue'
-
-formatValue('2025-01-15T10:30:00Z', { type: 'string', format: 'date-time' })
-// "15 Jan 2025 10:30"
-
-formatValue(true, { type: 'boolean' })
-// "Yes"
-
-formatValue(1500.5, { type: 'number', format: 'currency' })
-// "€1,500.50"
-```
-
-## Error Utilities
-
-### parseApiError
-
-Parses API error responses into user-friendly messages.
-
-```js
-import { parseApiError } from '@conduction/nextcloud-vue'
-
-try {
-  await store.saveObject('contact', data)
-} catch (e) {
-  const message = parseApiError(e)
-  // "Validation failed: email is required"
-}
-```
-
-### isNetworkError
-
-Checks if an error is a network connectivity issue.
-
-```js
-import { isNetworkError } from '@conduction/nextcloud-vue'
-
-if (isNetworkError(error)) {
-  showToast('Connection lost. Please check your network.')
-}
-```
+Vue 3 composables live under [utilities/composables/](./composables/index.md).
