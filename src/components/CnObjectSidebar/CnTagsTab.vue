@@ -56,6 +56,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -72,8 +73,8 @@ export default {
 		register: { type: String, default: '' },
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTagPlaceholder: { type: String, default: 'Add tag...' },
-		noTagsLabel: { type: String, default: 'No tags' },
+		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag...') },
+		noTagsLabel: { type: String, default: () => t('nextcloud-vue', 'No tags') },
 	},
 
 	data() {

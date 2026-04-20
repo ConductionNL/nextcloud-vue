@@ -114,6 +114,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcDialog,
 	NcButton,
@@ -165,8 +166,8 @@ export default {
 		dialogTitle: { type: String, default: '' },
 		nameField: { type: String, default: 'title' },
 		successText: { type: String, default: '' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		confirmLabel: { type: String, default: '' },
 		excludeFields: { type: Array, default: () => [] },
 		includeFields: { type: Array, default: null },
@@ -199,7 +200,7 @@ export default {
 		},
 
 		schemaTitle() {
-			return (this.schema && this.schema.title) || 'Item'
+			return (this.schema && this.schema.title) || t('nextcloud-vue', 'Item')
 		},
 
 		currentSchema() {
@@ -209,18 +210,18 @@ export default {
 		resolvedTitle() {
 			if (this.dialogTitle) return this.dialogTitle
 			return this.isCreateMode
-				? `Create ${this.schemaTitle}`
-				: `Edit ${this.schemaTitle}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) return this.confirmLabel
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return `${this.schemaTitle} saved successfully.`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		resolvedShowMetadataTab() {

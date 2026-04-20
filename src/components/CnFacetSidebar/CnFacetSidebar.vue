@@ -59,6 +59,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { filtersFromSchema } from '../../utils/schema.js'
 
@@ -112,12 +113,12 @@ export default {
 		/** Sidebar title */
 		title: {
 			type: String,
-			default: 'Filters',
+			default: () => t('nextcloud-vue', 'Filters'),
 		},
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
-			default: 'Clear all',
+			default: () => t('nextcloud-vue', 'Clear all'),
 		},
 		/**
 		 * Whether the current user is an admin.

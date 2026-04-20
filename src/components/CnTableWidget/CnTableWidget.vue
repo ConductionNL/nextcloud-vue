@@ -51,6 +51,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 
@@ -153,12 +154,12 @@ export default {
 		/** Pre-translated "View all" label. */
 		viewAllLabel: {
 			type: String,
-			default: 'View all',
+			default: () => t('nextcloud-vue', 'View all'),
 		},
 		/** Pre-translated empty state text. */
 		emptyText: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 

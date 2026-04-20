@@ -70,6 +70,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { NcLoadingIcon, NcButton } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -122,12 +123,12 @@ export default {
 		/** Section title */
 		title: {
 			type: String,
-			default: 'Version Information',
+			default: () => t('nextcloud-vue', 'Version Information'),
 		},
 		/** Section description */
 		description: {
 			type: String,
-			default: 'Information about the current application installation',
+			default: () => t('nextcloud-vue', 'Information about the current application installation'),
 		},
 		/** Documentation URL (shows info icon next to title) */
 		docUrl: {
@@ -137,7 +138,7 @@ export default {
 		/** Card heading text */
 		cardTitle: {
 			type: String,
-			default: 'Application Information',
+			default: () => t('nextcloud-vue', 'Application Information'),
 		},
 		/** Application name to display */
 		appName: {

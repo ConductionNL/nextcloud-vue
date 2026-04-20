@@ -164,6 +164,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover, NcButton } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import FormatColumns from 'vue-material-design-icons/FormatColumns.vue'
@@ -272,37 +273,37 @@ export default {
 		/** Search input placeholder */
 		searchPlaceholder: {
 			type: String,
-			default: 'Type to search...',
+			default: () => t('nextcloud-vue', 'Type to search...'),
 		},
 		/** Search tab label */
 		searchTabLabel: {
 			type: String,
-			default: 'Search',
+			default: () => t('nextcloud-vue', 'Search'),
 		},
 		/** Columns tab label */
 		columnsTabLabel: {
 			type: String,
-			default: 'Columns',
+			default: () => t('nextcloud-vue', 'Columns'),
 		},
 		/** Search section heading */
 		searchLabel: {
 			type: String,
-			default: 'Search',
+			default: () => t('nextcloud-vue', 'Search'),
 		},
 		/** Filters section heading */
 		filtersLabel: {
 			type: String,
-			default: 'Filters',
+			default: () => t('nextcloud-vue', 'Filters'),
 		},
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
-			default: 'Column Visibility',
+			default: () => t('nextcloud-vue', 'Column Visibility'),
 		},
 		/** Columns section description */
 		columnsDescription: {
 			type: String,
-			default: 'Select which columns to display in the table',
+			default: () => t('nextcloud-vue', 'Select which columns to display in the table'),
 		},
 		/** Override label for the schema properties group. Defaults to schema.title. */
 		propertiesGroupLabel: {

@@ -265,6 +265,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -414,8 +415,8 @@ export default {
 			type: String,
 			default: '',
 		},
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
 			type: String,
@@ -441,24 +442,24 @@ export default {
 		},
 
 		schemaTitle() {
-			return (this.schema && this.schema.title) || 'Item'
+			return (this.schema && this.schema.title) || t('nextcloud-vue', 'Item')
 		},
 
 		resolvedTitle() {
 			if (this.dialogTitle) return this.dialogTitle
 			return this.isCreateMode
-				? `Create ${this.schemaTitle}`
-				: `Edit ${this.schemaTitle}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) return this.confirmLabel
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return `${this.schemaTitle} saved successfully.`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		/** Whether all required fields have a non-empty value */

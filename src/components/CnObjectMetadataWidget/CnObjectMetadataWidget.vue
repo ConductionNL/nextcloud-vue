@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 
@@ -87,7 +88,7 @@ export default {
 		/** Widget title shown in the card header */
 		title: {
 			type: String,
-			default: 'Metadata',
+			default: () => t('nextcloud-vue', 'Metadata'),
 		},
 		/** Optional MDI icon component for the header */
 		icon: {
@@ -160,7 +161,7 @@ export default {
 		/** Label shown when no metadata available */
 		emptyLabel: {
 			type: String,
-			default: 'No metadata available',
+			default: () => t('nextcloud-vue', 'No metadata available'),
 		},
 	},
 

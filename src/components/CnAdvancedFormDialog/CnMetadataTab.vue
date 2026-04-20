@@ -4,17 +4,17 @@
 			<thead>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<th class="cn-advanced-form-dialog__table-col-constrained">
-						Metadata
+						{{ t('nextcloud-vue', 'Metadata') }}
 					</th>
 					<th class="cn-advanced-form-dialog__table-col-expanded">
-						Value
+						{{ t('nextcloud-vue', 'Value') }}
 					</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<td class="cn-advanced-form-dialog__table-col-constrained">
-						ID
+						{{ t('nextcloud-vue', 'ID') }}
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded">
 						{{ metadataId }}
@@ -22,7 +22,7 @@
 				</tr>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<td class="cn-advanced-form-dialog__table-col-constrained">
-						Created
+						{{ t('nextcloud-vue', 'Created') }}
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded">
 						{{ metadataCreated }}
@@ -30,7 +30,7 @@
 				</tr>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<td class="cn-advanced-form-dialog__table-col-constrained">
-						Updated
+						{{ t('nextcloud-vue', 'Updated') }}
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded">
 						{{ metadataUpdated }}

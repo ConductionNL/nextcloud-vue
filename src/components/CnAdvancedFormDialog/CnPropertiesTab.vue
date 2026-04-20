@@ -4,10 +4,10 @@
 			<thead>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<th class="cn-advanced-form-dialog__table-col-constrained">
-						Property
+						{{ t('nextcloud-vue', 'Property') }}
 					</th>
 					<th class="cn-advanced-form-dialog__table-col-expanded">
-						Value
+						{{ t('nextcloud-vue', 'Value') }}
 					</th>
 				</tr>
 			</thead>

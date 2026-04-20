@@ -228,7 +228,7 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Import Data',
+			default: () => t('nextcloud-vue', 'Import Data'),
 		},
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {

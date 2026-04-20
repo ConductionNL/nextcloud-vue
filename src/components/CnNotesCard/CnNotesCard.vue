@@ -83,6 +83,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Send from 'vue-material-design-icons/Send.vue'
@@ -158,12 +159,12 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		titleLabel: { type: String, default: 'Notes' },
-		addNoteLabel: { type: String, default: 'Add note' },
-		addNotePlaceholder: { type: String, default: 'Write a note...' },
-		noNotesLabel: { type: String, default: 'No notes yet' },
-		showAllLabel: { type: String, default: 'Show all' },
-		deleteLabel: { type: String, default: 'Delete note' },
+		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
+		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete note') },
 	},
 
 	emits: ['note-added', 'note-deleted', 'show-all'],

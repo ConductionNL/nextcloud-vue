@@ -219,6 +219,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -274,7 +275,7 @@ export default {
 		/** Widget title shown in the card header */
 		title: {
 			type: String,
-			default: 'Data',
+			default: () => t('nextcloud-vue', 'Data'),
 		},
 		/** Optional MDI icon component for the header */
 		icon: {
@@ -366,17 +367,17 @@ export default {
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
-			default: 'Save',
+			default: () => t('nextcloud-vue', 'Save'),
 		},
 		/** Label for the discard button */
 		discardLabel: {
 			type: String,
-			default: 'Discard',
+			default: () => t('nextcloud-vue', 'Discard'),
 		},
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 

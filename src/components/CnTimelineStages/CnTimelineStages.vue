@@ -67,6 +67,8 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+
 /**
  * CnTimelineStages — Timeline/progress stages component.
  *
@@ -148,7 +150,7 @@ export default {
 		 */
 		ariaLabel: {
 			type: String,
-			default: 'Progress stages',
+			default: () => t('nextcloud-vue', 'Progress stages'),
 		},
 	},
 

@@ -97,6 +97,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcPopover, NcActionButton, NcAvatar } from '@nextcloud/vue'
 
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
@@ -143,7 +144,7 @@ export default {
 		/** The user's display name */
 		displayName: {
 			type: String,
-			default: 'Unknown',
+			default: () => t('nextcloud-vue', 'Unknown'),
 		},
 		/** Whether the menu is interactive (false for current user or system accounts) */
 		interactive: {
@@ -152,11 +153,11 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		sendMessageLabel: { type: String, default: 'Send message' },
-		startChatLabel: { type: String, default: 'Start chat' },
-		sendEmailLabel: { type: String, default: 'Send email' },
-		planMeetingLabel: { type: String, default: 'Plan meeting' },
-		noActionsLabel: { type: String, default: 'No communication apps available' },
+		sendMessageLabel: { type: String, default: () => t('nextcloud-vue', 'Send message') },
+		startChatLabel: { type: String, default: () => t('nextcloud-vue', 'Start chat') },
+		sendEmailLabel: { type: String, default: () => t('nextcloud-vue', 'Send email') },
+		planMeetingLabel: { type: String, default: () => t('nextcloud-vue', 'Plan meeting') },
+		noActionsLabel: { type: String, default: () => t('nextcloud-vue', 'No communication apps available') },
 	},
 
 	emits: ['action'],

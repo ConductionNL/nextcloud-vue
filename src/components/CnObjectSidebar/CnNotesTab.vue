@@ -67,6 +67,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Send from 'vue-material-design-icons/Send.vue'
@@ -84,13 +85,13 @@ export default {
 		register: { type: String, default: '' },
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addNoteLabel: { type: String, default: 'Add note' },
-		addNotePlaceholder: { type: String, default: 'Write a note...' },
-		editLabel: { type: String, default: 'Edit' },
-		saveLabel: { type: String, default: 'Save' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		deleteLabel: { type: String, default: 'Delete' },
-		noNotesLabel: { type: String, default: 'No notes yet' },
+		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		saveLabel: { type: String, default: () => t('nextcloud-vue', 'Save') },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 	},
 
 	data() {
