@@ -34,10 +34,29 @@ export type { TFile } from './file'
 export type { TTask, TTaskPriority, TTaskStatus } from './task'
 export type { TNotification, TNotificationType, TNotificationPriority } from './notification'
 
-// Runtime exports used from TypeScript consumers.
-// Intentionally loosely typed — the return of `createCrudStore` is a Pinia
-// composable whose shape depends on the caller's config.extend; typing it
-// precisely would require generics across the whole factory.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createCrudStore(name: string, config: Record<string, any>): (pinia?: unknown) => any
-
+// Runtime exports from the store factory. The implementation is in
+// `../store/createCrudStore.js`; its companion `createCrudStore.d.ts`
+// provides full generic types (entity inference, feature-flag gating,
+// extend merging with correct `this` typing). We re-export both the
+// factory and its supporting types so consumers can `import type
+// { BaseState, MergedActions, Features } from '@conduction/nextcloud-vue'`.
+export { createCrudStore } from '../store/createCrudStore'
+export type {
+	Prettify,
+	EntityClass,
+	InferEntity,
+	Features,
+	LoadingState,
+	ViewModeState,
+	LoadingGetters,
+	ViewModeGetters,
+	ViewModeActions,
+	BaseState,
+	BaseActions,
+	MergedActions,
+	FullState,
+	FullGetters,
+	StoreThis,
+	ExtendConfig,
+	CrudConfig,
+} from '../store/createCrudStore'

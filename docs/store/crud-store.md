@@ -242,6 +242,130 @@ export const useOrganisationStore = createCrudStore('organisation', {
 })
 ```
 
+## TypeScript support
+
+`createCrudStore` ships hand-written type definitions alongside the JavaScript
+implementation. TypeScript consumers get full inference for the entity type,
+feature flags, and the `extend` block — with correct `this` context inside
+extend actions and getters.
+
+### Entity inference
+
+When `config.entity` is a class constructor, the entity instance type flows
+through to `item`, `list`, and all base actions:
+
+```ts
+import { createCrudStore } from '@conduction/nextcloud-vue'
+import { Source } from '../../entities/index.js'
+
+export const useSourceStore = createCrudStore('source', {
+  endpoint: 'sources',
+  entity: Source, // inferred
+})
+
+const store = useSourceStore()
+store.item                 // Source | null
+store.list                 // Source[]
+await store.getOne(1)      // Promise<Source>
+await store.save({ name: 'x' }) // accepts Partial<Source>
+```
+
+### Raw-data stores (no entity class)
+
+Pass the entity shape as an explicit type argument:
+
+```ts
+interface LogShape { id: number; message: string }
+
+export const useLogStore = createCrudStore<'log', LogShape>('log', {
+  endpoint: 'logs',
+})
+
+useLogStore().item // LogShape | null
+```
+
+### Feature flags
+
+Each flag is a conditional type — it only adds the corresponding property to
+the store when enabled:
+
+```ts
+const useStore = createCrudStore('x', {
+  endpoint: 'xs',
+  entity: X,
+  features: { loading: true, viewMode: true },
+})
+const s = useStore()
+s.loading     // boolean
+s.error       // string | null
+s.isLoading   // boolean (getter)
+s.viewMode    // string
+s.setViewMode('table')
+```
+
+Omit a flag and the corresponding property disappears from the type —
+accessing it becomes a compile-time error. Requires TypeScript 5.0+ for the
+flag-literal inference (older versions: use `as const`).
+
+### `extend` with full `this` typing
+
+Inside `extend.actions` and `extend.getters`, `this` is the fully-merged
+store (base state + extend state + getters + base actions + extend
+actions):
+
+```ts
+createCrudStore('source', {
+  endpoint: 'sources',
+  entity: Source,
+  features: { loading: true },
+  extend: {
+    state: () => ({ sourceTest: null as object | null }),
+    actions: {
+      async setSourceTest(item: object | null) {
+        this.sourceTest = item  // ✓ from extend.state
+        this.item               // ✓ Source | null, from base
+        this.loading            // ✓ boolean, from features.loading
+        await this.refreshList() // ✓ base action
+      },
+    },
+  },
+})
+```
+
+Don't annotate `this` manually inside extend methods — TypeScript resolves it
+automatically via `ThisType<...>`, and a manual annotation will break inference.
+
+### Action override precedence
+
+An `extend` action with the same name as a base action **replaces** the base
+action on the returned store type. The extended signature wins:
+
+```ts
+const useStore = createCrudStore('o', {
+  endpoint: 'xs',
+  entity: Source,
+  extend: {
+    actions: {
+      setItem(data: Source) { this.item = data }, // narrower than base
+    },
+  },
+})
+useStore().setItem // (data: Source) => void
+```
+
+### Exported helper types
+
+```ts
+import type {
+  BaseState,
+  BaseActions,
+  MergedActions,
+  Features,
+  EntityClass,
+  CrudConfig,
+} from '@conduction/nextcloud-vue'
+```
+
 ## CRUD Store vs Object Store
 
 | | CRUD Store | Object Store |
