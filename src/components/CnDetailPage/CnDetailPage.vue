@@ -158,6 +158,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -278,7 +279,7 @@ export default {
 		/** Message shown during loading */
 		loadingLabel: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 		/** Whether to activate the external sidebar (via objectSidebarState inject) */
 		sidebar: {
@@ -318,7 +319,7 @@ export default {
 		/** Error message shown in error state */
 		errorMessage: {
 			type: String,
-			default: 'An error occurred',
+			default: () => t('nextcloud-vue', 'An error occurred'),
 		},
 		/** Callback for retry button in error state. If null, no retry button is shown. */
 		onRetry: {
@@ -328,7 +329,7 @@ export default {
 		/** Label for the retry button */
 		retryLabel: {
 			type: String,
-			default: 'Retry',
+			default: () => t('nextcloud-vue', 'Retry'),
 		},
 		/** Whether the page has no data to show */
 		empty: {
@@ -338,7 +339,7 @@ export default {
 		/** Message shown when page is empty */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 		/** Title shown above the statistics table */
 		statsTitle: {

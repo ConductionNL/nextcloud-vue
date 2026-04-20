@@ -30,6 +30,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import VueApexCharts from 'vue-apexcharts'
 
 /**
@@ -150,7 +151,7 @@ export default {
 		 */
 		unavailableLabel: {
 			type: String,
-			default: 'Chart library not available',
+			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
 	},
 

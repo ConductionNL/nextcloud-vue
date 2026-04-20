@@ -20,3 +20,10 @@ global.OC = {
 if (!global.fetch) {
 	global.fetch = jest.fn()
 }
+
+// Register t/n as global Vue methods — consumer apps normally do this via
+// Vue.mixin({ methods: { t, n } }) in their main.js. Mirror that here so
+// components using `{{ t('nextcloud-vue', '...') }}` in templates render.
+const Vue = require('vue').default || require('vue')
+const { translate, translatePlural } = require('@nextcloud/l10n')
+Vue.mixin({ methods: { t: translate, n: translatePlural } })

@@ -55,6 +55,8 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
  *
@@ -79,7 +81,7 @@ export default {
 		/** Widget title */
 		title: {
 			type: String,
-			default: 'Widget',
+			default: () => t('nextcloud-vue', 'Widget'),
 		},
 		/** Whether to show the header with title */
 		showTitle: {

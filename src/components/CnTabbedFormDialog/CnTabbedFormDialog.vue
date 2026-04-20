@@ -102,6 +102,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcDialog,
@@ -171,7 +172,7 @@ export default {
 		 */
 		entityName: {
 			type: String,
-			default: 'Item',
+			default: () => t('nextcloud-vue', 'Item'),
 		},
 		/**
 		 * NcDialog size. One of 'small', 'normal', 'large', 'full'.
@@ -220,7 +221,7 @@ export default {
 		 */
 		cancelLabel: {
 			type: String,
-			default: 'Cancel',
+			default: () => t('nextcloud-vue', 'Cancel'),
 		},
 		/**
 		 * Close button label shown in the result phase.
@@ -229,7 +230,7 @@ export default {
 		 */
 		closeLabel: {
 			type: String,
-			default: 'Close',
+			default: () => t('nextcloud-vue', 'Close'),
 		},
 		/**
 		 * Primary confirm button label. Defaults to "Create" in create mode
@@ -248,7 +249,7 @@ export default {
 		 */
 		createAnotherLabel: {
 			type: String,
-			default: 'Create another',
+			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
 	data() {
@@ -292,8 +293,8 @@ export default {
 				return this.dialogTitle
 			}
 			return this.isCreateMode
-				? `Create ${this.entityName}`
-				: `Edit ${this.entityName}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.entityName })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.entityName })
 		},
 		/**
 		 * Resolved success text for NcNoteCard.
@@ -304,7 +305,7 @@ export default {
 			if (this.successText) {
 				return this.successText
 			}
-			return `${this.entityName} saved successfully`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.entityName })
 		},
 		/**
 		 * Resolved primary button label.
@@ -315,7 +316,7 @@ export default {
 			if (this.confirmLabel) {
 				return this.confirmLabel
 			}
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 	},
 	beforeDestroy() {

@@ -52,6 +52,8 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
  *
@@ -132,7 +134,7 @@ export default {
 		 */
 		emptyLabel: {
 			type: String,
-			default: 'No details available',
+			default: () => t('nextcloud-vue', 'No details available'),
 		},
 	},
 

@@ -15,7 +15,7 @@
 		<!-- Content -->
 		<div class="cn-stats-block__content">
 			<div class="cn-stats-block__header">
-				<h4>{{ title || 'Objects' }}</h4>
+				<h4>{{ title || t('nextcloud-vue', 'Objects') }}</h4>
 			</div>
 
 			<div v-if="count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
@@ -113,7 +113,7 @@ export default {
 		/** Label displayed next to the count */
 		countLabel: {
 			type: String,
-			default: 'objects',
+			default: () => t('nextcloud-vue', 'objects'),
 		},
 		/** Detailed breakdown object (key-value pairs) */
 		breakdown: {
@@ -128,7 +128,7 @@ export default {
 		/** Text shown while loading */
 		loadingLabel: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 		/** Text shown when count is 0 */
 		emptyLabel: {

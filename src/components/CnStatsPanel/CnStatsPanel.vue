@@ -143,6 +143,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
 import { CnStatsBlock } from '../CnStatsBlock/index.js'
 import { CnKpiGrid } from '../CnKpiGrid/index.js'
@@ -238,13 +239,13 @@ export default {
 		/** Label shown during loading state */
 		loadingLabel: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 
 		/** Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 

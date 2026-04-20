@@ -87,6 +87,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
@@ -162,10 +163,10 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		titleLabel: { type: String, default: 'Tasks' },
-		noTasksLabel: { type: String, default: 'No tasks' },
-		showAllLabel: { type: String, default: 'Show all' },
-		unassignedLabel: { type: String, default: 'Unassigned' },
+		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		noTasksLabel: { type: String, default: () => t('nextcloud-vue', 'No tasks') },
+		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		unassignedLabel: { type: String, default: () => t('nextcloud-vue', 'Unassigned') },
 	},
 
 	emits: ['show-all'],

@@ -16,11 +16,11 @@
 				type="secondary"
 				size="small"
 				@click="formatJson">
-				Format JSON
+				{{ t('nextcloud-vue', 'Format JSON') }}
 			</NcButton>
 		</div>
 		<span v-if="!isValidJson(value)" class="cn-advanced-form-dialog__json-error">
-			Invalid JSON format
+			{{ t('nextcloud-vue', 'Invalid JSON format') }}
 		</span>
 	</div>
 </template>

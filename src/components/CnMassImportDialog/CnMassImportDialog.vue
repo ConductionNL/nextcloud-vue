@@ -228,7 +228,7 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Import Data',
+			default: () => t('nextcloud-vue', 'Import data'),
 		},
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {
@@ -271,7 +271,7 @@ export default {
 		},
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
 		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
-		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select File') },
+		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select file') },
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
