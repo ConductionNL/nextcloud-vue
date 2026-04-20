@@ -144,7 +144,7 @@ export default {
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Mass Actions ({count})'),
+			default: () => t('nextcloud-vue', 'Mass actions ({count})'),
 		},
 		importLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
 		exportLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },

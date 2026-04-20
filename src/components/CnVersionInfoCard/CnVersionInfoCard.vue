@@ -123,7 +123,7 @@ export default {
 		/** Section title */
 		title: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Version Information'),
+			default: () => t('nextcloud-vue', 'Version information'),
 		},
 		/** Section description */
 		description: {
@@ -138,7 +138,7 @@ export default {
 		/** Card heading text */
 		cardTitle: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Application Information'),
+			default: () => t('nextcloud-vue', 'Application information'),
 		},
 		/** Application name to display */
 		appName: {

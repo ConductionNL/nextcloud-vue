@@ -226,7 +226,7 @@ export default {
 		notesLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
-		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit Trail') },
+		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 	},
 
 	emits: ['update:open'],

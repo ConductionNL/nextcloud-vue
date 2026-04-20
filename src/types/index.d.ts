@@ -33,3 +33,11 @@ export type { TOrganisation, TOrganisationAuthorization } from './organisation'
 export type { TFile } from './file'
 export type { TTask, TTaskPriority, TTaskStatus } from './task'
 export type { TNotification, TNotificationType, TNotificationPriority } from './notification'
+
+// Runtime exports used from TypeScript consumers.
+// Intentionally loosely typed — the return of `createCrudStore` is a Pinia
+// composable whose shape depends on the caller's config.extend; typing it
+// precisely would require generics across the whole factory.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createCrudStore(name: string, config: Record<string, any>): (pinia?: unknown) => any
+

@@ -156,7 +156,7 @@ export default {
 		sendMessageLabel: { type: String, default: () => t('nextcloud-vue', 'Send message') },
 		startChatLabel: { type: String, default: () => t('nextcloud-vue', 'Start chat') },
 		sendEmailLabel: { type: String, default: () => t('nextcloud-vue', 'Send email') },
-		planMeetingLabel: { type: String, default: () => t('nextcloud-vue', 'Plan meeting') },
+		planMeetingLabel: { type: String, default: () => t('nextcloud-vue', 'Schedule meeting') },
 		noActionsLabel: { type: String, default: () => t('nextcloud-vue', 'No communication apps available') },
 	},
 

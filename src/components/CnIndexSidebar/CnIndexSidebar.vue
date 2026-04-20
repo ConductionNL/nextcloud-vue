@@ -298,7 +298,7 @@ export default {
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Column Visibility'),
+			default: () => t('nextcloud-vue', 'Column visibility'),
 		},
 		/** Columns section description */
 		columnsDescription: {

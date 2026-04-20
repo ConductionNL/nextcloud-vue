@@ -210,7 +210,7 @@ export default {
 		/** Section title */
 		name: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Register Configuration'),
+			default: () => t('nextcloud-vue', 'Register configuration'),
 		},
 		/** Section description */
 		description: {
@@ -260,7 +260,7 @@ export default {
 		/** Save button text */
 		saveButtonText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Save Configuration'),
+			default: () => t('nextcloud-vue', 'Save configuration'),
 		},
 		/** Reimport button text */
 		reimportButtonText: {
