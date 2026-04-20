@@ -184,7 +184,6 @@ const DEFAULT_LAYOUT = [
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
-8. **Translation**: Components accept pre-translated strings via props with English defaults. Never import `t()` from a specific app.
 
 ## Adding New Components
 
