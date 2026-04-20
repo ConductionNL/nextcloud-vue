@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 
 /**
@@ -132,7 +133,7 @@ export default {
 		/** Text shown when count is 0 */
 		emptyLabel: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {

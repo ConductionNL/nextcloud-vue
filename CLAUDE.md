@@ -18,6 +18,8 @@ import { useObjectStore } from '@conduction/nextcloud-vue'
 import '@conduction/nextcloud-vue/src/css/index.css'
 ```
 
+Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongside `registerIcons({})`) **before** `new Vue().$mount(...)` — without it, library-rendered strings stay in English even when the user's Nextcloud language is Dutch. See [docs/getting-started.md](docs/getting-started.md#register-library-translations-required).
+
 ### Available Components
 
 **Layout & Pages**
@@ -184,7 +186,6 @@ const DEFAULT_LAYOUT = [
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
-8. **Translation**: Components accept pre-translated strings via props with English defaults. Never import `t()` from a specific app.
 
 ## Adding New Components
 
@@ -268,3 +269,13 @@ scripts/
 
 This library is used by: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash.
 Changes here affect all of them. Test carefully.
+
+Every consumer's `main.js` must include:
+
+```js
+import { registerIcons, registerTranslations } from '@conduction/nextcloud-vue'
+registerIcons({ /* app-specific icons */ })
+registerTranslations()
+```
+
+`registerTranslations()` is a required bootstrap call — without it, the library falls back to English regardless of the user's Nextcloud language.

@@ -42,6 +42,7 @@ const DOCS_DIR = path.join(ROOT, 'docs')
  */
 const EXEMPT = new Set([
 	'registerIcons',
+	'registerTranslations',
 ])
 
 /**
