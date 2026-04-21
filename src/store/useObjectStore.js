@@ -703,8 +703,10 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
 	const pluginState = mergePluginState(plugins)
 	const pluginGetters = mergePluginGetters(plugins)
 	const pluginActions = mergePluginActions(plugins)
+	const setupPlugins = plugins.filter((p) => typeof p.setup === 'function')
+	const initialized = new WeakSet()
 
-	return defineStore(storeId, {
+	const useStore = defineStore(storeId, {
 		state: () => ({
 			...baseState(baseUrl),
 			...pluginState,
@@ -733,6 +735,21 @@ function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL) {
 			},
 		},
 	})
+
+	if (setupPlugins.length === 0) {
+		return useStore
+	}
+
+	return function useObjectStoreWithSetup(pinia) {
+		const store = useStore(pinia)
+		if (!initialized.has(store)) {
+			initialized.add(store)
+			for (const plugin of setupPlugins) {
+				plugin.setup(store)
+			}
+		}
+		return store
+	}
 }
 
 /**

@@ -21,9 +21,12 @@ import { parseResponseError, networkError, genericError } from '../../utils/erro
  * - `refreshLogs(filters?)` — fetch and store; returns `{ response, data }`
  * - `setLogs(data)` — replace state directly
  * - `clearLogs()` — reset to empty
- * - `setItem(data)` — **overridden** only when `autoRefreshOnItemChange: true`;
- *   calls the base `setItem` and then auto-fires `refreshLogs()` when the new
- *   item has an id. Opt-in because most stores don't need it.
+ *
+ * When `autoRefreshOnItemChange: true`, the plugin registers a
+ * `store.$onAction` subscriber in its `setup` hook that observes `setItem`
+ * and triggers `refreshLogs()` / `clearLogs()` after the action resolves.
+ * This composes cleanly with other plugins that also want to observe
+ * `setItem` — none of them have to override the action.
  *
  * **URL construction**
  * - `this._options.baseApiUrl + '/' + path` → e.g. `/sources/logs`
@@ -130,23 +133,7 @@ export function logsPlugin(options = {}) {
 		},
 	}
 
-	if (autoRefreshOnItemChange) {
-		actions.setItem = function setItem(data) {
-			const Entity = this._options.entity
-			this.item = data
-				? (Entity ? new Entity(data) : data)
-				: null
-			if (data?.id != null) {
-				this.refreshLogs().catch((error) => {
-					console.error('logsPlugin: auto-refresh failed:', error)
-				})
-			} else {
-				this.clearLogs()
-			}
-		}
-	}
-
-	return {
+	const plugin = {
 		name: 'logs',
 
 		state: () => ({
@@ -163,4 +150,23 @@ export function logsPlugin(options = {}) {
 
 		actions,
 	}
+
+	if (autoRefreshOnItemChange) {
+		plugin.setup = function setup(store) {
+			store.$onAction(({ name, after }) => {
+				if (name !== 'setItem') return
+				after(() => {
+					if (store.item?.id != null) {
+						store.refreshLogs().catch((error) => {
+							console.error('logsPlugin: auto-refresh failed:', error)
+						})
+					} else {
+						store.clearLogs()
+					}
+				})
+			})
+		}
+	}
+
+	return plugin
 }

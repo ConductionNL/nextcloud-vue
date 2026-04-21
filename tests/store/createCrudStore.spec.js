@@ -677,4 +677,109 @@ describe('createCrudStore', () => {
 			expect(store.item.tagged).toBe(true)
 		})
 	})
+
+	describe('plugin setup hook', () => {
+		it('runs setup(store) once per store instance', () => {
+			const setup = jest.fn()
+			const useStore = createCrudStore('setup-once', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', setup }],
+			})
+			const a = useStore()
+			const b = useStore()
+			const c = useStore()
+
+			expect(setup).toHaveBeenCalledTimes(1)
+			expect(setup).toHaveBeenCalledWith(a)
+			expect(a).toBe(b)
+			expect(b).toBe(c)
+		})
+
+		it('does not call setup when no plugin defines one', () => {
+			const useStore = createCrudStore('setup-none', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', state: () => ({ x: 1 }) }],
+			})
+			const s = useStore()
+			expect(s.x).toBe(1)
+		})
+
+		it('runs setup for every plugin that defines one', () => {
+			const calls = []
+			const pa = { name: 'a', setup: (s) => calls.push(['a', s]) }
+			const pb = { name: 'b', setup: (s) => calls.push(['b', s]) }
+			const useStore = createCrudStore('setup-many', {
+				endpoint: 'items',
+				plugins: [pa, pb],
+			})
+			const s = useStore()
+			expect(calls.map((c) => c[0])).toEqual(['a', 'b'])
+			expect(calls[0][1]).toBe(s)
+			expect(calls[1][1]).toBe(s)
+		})
+
+		it('supports multiple $onAction observers watching the same action', () => {
+			const aAfter = jest.fn()
+			const bAfter = jest.fn()
+			const pa = {
+				name: 'a',
+				setup(s) {
+					s.$onAction(({ name, after }) => {
+						if (name === 'setItem') after(aAfter)
+					})
+				},
+			}
+			const pb = {
+				name: 'b',
+				setup(s) {
+					s.$onAction(({ name, after }) => {
+						if (name === 'setItem') after(bAfter)
+					})
+				},
+			}
+			const useStore = createCrudStore('setup-onaction', {
+				endpoint: 'items',
+				plugins: [pa, pb],
+			})
+			const s = useStore()
+
+			s.setItem({ id: 1 })
+
+			expect(aAfter).toHaveBeenCalledTimes(1)
+			expect(bAfter).toHaveBeenCalledTimes(1)
+		})
+
+		it('setup-triggered observers do not re-arm when the store is re-used', () => {
+			const after = jest.fn()
+			const plugin = {
+				name: 'p',
+				setup(s) {
+					s.$onAction(({ name, after: afterCb }) => {
+						if (name === 'setItem') afterCb(after)
+					})
+				},
+			}
+			const useStore = createCrudStore('setup-rearm', {
+				endpoint: 'items',
+				plugins: [plugin],
+			})
+			useStore()
+			useStore()
+			useStore().setItem({ id: 1 })
+
+			expect(after).toHaveBeenCalledTimes(1)
+		})
+
+		it('runs setup again for a fresh store under a new Pinia instance', () => {
+			const setup = jest.fn()
+			const useStore = createCrudStore('setup-fresh', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', setup }],
+			})
+			useStore()
+			setActivePinia(createPinia())
+			useStore()
+			expect(setup).toHaveBeenCalledTimes(2)
+		})
+	})
 })

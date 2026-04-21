@@ -158,6 +158,7 @@ The plugin shape matches the one used by the [Object Store](./object-store.md):
   state: () => ({ /* ... */ }),
   getters: { /* ... */ },
   actions: { /* ... */ },
+  setup(store) { /* optional — runs once per store instance */ },
 }
 ```
 
@@ -180,10 +181,31 @@ export const useSourceStore = createCrudStore('source', {
 Plugins are merged **after** base actions and **before** `extend.actions`. This means:
 
 1. Base actions (`setItem`, `refreshList`, `save`, etc.) are defined first.
-2. Plugin actions run next — a plugin can override a base action (e.g. `logsPlugin` with `autoRefreshOnItemChange: true` overrides `setItem`).
+2. Plugin actions run next — a plugin *can* override a base action, but this doesn't compose well if multiple plugins want to react to the same action. Prefer the `setup` hook below for observation.
 3. `extend.actions` run last and can override anything from the plugin or the base.
 
 State and getters follow the same ordering. If two plugins contribute a state field with the same name, the later plugin wins — order the `plugins` array accordingly.
+
+### The `setup(store)` hook
+
+The `setup` hook lets a plugin observe base or other-plugin actions **without overriding them**. It runs once per store instance, the first time `useStore()` resolves a store under a given Pinia root. Inside setup, a plugin typically registers Pinia-native subscriptions:
+
+```js
+{
+  name: 'audit',
+  setup(store) {
+    store.$onAction(({ name, args, after, onError }) => {
+      after((result) => { /* react to successful actions */ })
+      onError((err) => { /* react to failures */ })
+    })
+    // or: store.$subscribe((mutation, state) => { ... })
+  },
+}
+```
+
+Multiple plugins can each register their own `$onAction` subscriber for the same action — they run independently. Use this instead of overriding a base action whenever you only need to **react** to it.
+
+Setup is called exactly once per store instance (tracked via `WeakSet`), even if `useStore()` is invoked many times. Creating a fresh Pinia root (e.g. between tests) produces a fresh store instance that re-runs setup.
 
 ### Available plugins
 
