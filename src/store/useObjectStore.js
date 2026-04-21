@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
 import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
+import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 
 /**
  * Generic Pinia store for OpenRegister object CRUD operations.
@@ -25,54 +26,6 @@ import { extractId } from '../utils/id.js'
 
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
-
-/**
- * Merge plugin state factories into a single state object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged state object
- */
-function mergePluginState(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.state) {
-			Object.assign(merged, plugin.state())
-		}
-	}
-	return merged
-}
-
-/**
- * Merge plugin getters into a single getters object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged getters object
- */
-function mergePluginGetters(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.getters) {
-			Object.assign(merged, plugin.getters)
-		}
-	}
-	return merged
-}
-
-/**
- * Merge plugin actions into a single actions object.
- *
- * @param {Array} plugins Array of plugin definitions
- * @return {object} Merged actions object
- */
-function mergePluginActions(plugins) {
-	const merged = {}
-	for (const plugin of plugins) {
-		if (plugin.actions) {
-			Object.assign(merged, plugin.actions)
-		}
-	}
-	return merged
-}
 
 // ── Base state ──────────────────────────────────────────────────────────
 

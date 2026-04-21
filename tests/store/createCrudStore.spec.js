@@ -561,5 +561,120 @@ describe('createCrudStore', () => {
 			expect(store._options.cleanFields).toEqual(['id', 'secret'])
 			expect(store._options.baseApiUrl).toContain('/widgets')
 		})
+
+		it('exposes the entity class for plugins', () => {
+			const useStore = createCrudStore('with-entity', {
+				endpoint: 'items',
+				entity: TestEntity,
+			})
+			store = useStore()
+			expect(store._options.entity).toBe(TestEntity)
+		})
+	})
+
+	describe('plugins', () => {
+		const makePlugin = () => ({
+			name: 'test',
+			state: () => ({ pluginValue: 'hello', counter: 0 }),
+			getters: {
+				getPluginValue: (state) => state.pluginValue,
+				doubledCounter: (state) => state.counter * 2,
+			},
+			actions: {
+				bump() {
+					this.counter += 1
+				},
+				setPluginValue(v) {
+					this.pluginValue = v
+				},
+			},
+		})
+
+		it('merges plugin state into the store', () => {
+			const useStore = createCrudStore('p-state', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			expect(store.pluginValue).toBe('hello')
+			expect(store.counter).toBe(0)
+		})
+
+		it('merges plugin getters', () => {
+			const useStore = createCrudStore('p-getters', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			expect(store.getPluginValue).toBe('hello')
+			expect(store.doubledCounter).toBe(0)
+			store.bump()
+			expect(store.doubledCounter).toBe(2)
+		})
+
+		it('merges plugin actions and they can access plugin state via this', () => {
+			const useStore = createCrudStore('p-actions', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			store.bump()
+			store.bump()
+			expect(store.counter).toBe(2)
+			store.setPluginValue('world')
+			expect(store.pluginValue).toBe('world')
+		})
+
+		it('multiple plugins merge side by side', () => {
+			const a = { name: 'a', state: () => ({ a: 1 }), actions: { incA() { this.a += 1 } } }
+			const b = { name: 'b', state: () => ({ b: 10 }), actions: { incB() { this.b += 1 } } }
+			const useStore = createCrudStore('p-multi', {
+				endpoint: 'items',
+				plugins: [a, b],
+			})
+			store = useStore()
+			store.incA()
+			store.incB()
+			expect(store.a).toBe(2)
+			expect(store.b).toBe(11)
+		})
+
+		it('extend.actions overrides plugin actions with the same name', () => {
+			const useStore = createCrudStore('p-override', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+				extend: {
+					actions: {
+						bump() {
+							this.counter += 10
+						},
+					},
+				},
+			})
+			store = useStore()
+			store.bump()
+			expect(store.counter).toBe(10)
+		})
+
+		it('plugin setItem override replaces the base setItem', () => {
+			const plugin = {
+				name: 'wrap',
+				state: () => ({ setItemCalls: 0 }),
+				actions: {
+					setItem(data) {
+						this.setItemCalls += 1
+						this.item = data ? { ...data, tagged: true } : null
+					},
+				},
+			}
+			const useStore = createCrudStore('p-setitem', {
+				endpoint: 'items',
+				plugins: [plugin],
+			})
+			store = useStore()
+			store.setItem({ id: 1, name: 'x' })
+			expect(store.setItemCalls).toBe(1)
+			expect(store.item.tagged).toBe(true)
+		})
 	})
 })

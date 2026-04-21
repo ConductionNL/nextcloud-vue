@@ -88,7 +88,7 @@ export interface BaseState<T> {
 	list: T[]
 	filters: Record<string, unknown>
 	pagination: { page: number; limit: number }
-	_options: { endpoint: string; cleanFields: readonly string[]; baseApiUrl: string }
+	_options: { endpoint: string; cleanFields: readonly string[]; baseApiUrl: string; entity: EntityClass<T> | null }
 }
 
 export interface BaseActions<T> {
@@ -108,16 +108,29 @@ export interface BaseActions<T> {
  *   - Base actions not overridden by the extend block are preserved.
  *   - Actions declared in `extend.actions` replace base actions of the same name.
  *   - `viewMode` feature action is appended when the flag is set.
+ *   - Plugin-contributed actions are reachable via the loose index signature
+ *     on `PluginActionContribution` below (typed as `any`-returning callables).
  */
+export type PluginActionContribution = { [key: string]: (...args: any[]) => any }
+
 export type MergedActions<T, ExtActions, F> =
-	Omit<BaseActions<T>, keyof ExtActions> & ExtActions & ViewModeActions<F>
+	Omit<BaseActions<T>, keyof ExtActions> & ExtActions & ViewModeActions<F> & PluginActionContribution
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Full store shape (state + getters + actions) used inside ThisType<...>
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Plugins contribute arbitrary state, getters, and actions at runtime. We spread
+// a loose index signature into the resolved store shape so plugin-contributed
+// members are reachable via dot access without `as any`. The index signature
+// returns `any` (not `unknown`) so callable plugin actions (`store.refreshLogs()`)
+// type-check without an intermediate cast — trade-off is that typos on
+// plugin-contributed members are not caught. Plugins needing strict typing
+// should ship their own `.d.ts` augmenting the specific store.
+export type PluginContribution = { [key: string]: any }
+
 export type FullState<T, ExtState, F> =
-	BaseState<T> & ExtState & LoadingState<F> & ViewModeState<F>
+	BaseState<T> & ExtState & LoadingState<F> & ViewModeState<F> & PluginContribution
 
 export type FullGetters<ExtGetters, F> =
 	ExtGetters & LoadingGetters<F> & ViewModeGetters<F>
@@ -129,6 +142,32 @@ export type StoreThis<T, ExtState, ExtGetters, ExtActions, F> =
 	{ [K in keyof ExtGetters]: ExtGetters[K] extends (state: any) => infer R ? R : never } &
 	LoadingGetters<F> & ViewModeGetters<F> &
 	MergedActions<T, ExtActions, F>
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugins
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A plugin definition. Merged into the store at creation time:
+ * state is spread into store state, getters into getters, actions into actions.
+ *
+ * Merge precedence: base actions → plugin actions → extend.actions.
+ *
+ * Plugin-contributed properties are loosely typed on the resulting store
+ * (they appear as unknown state / any-returning actions). Consumers needing
+ * strict types on plugin output should augment the store's types at the
+ * call site, or use a plugin that ships a dedicated `.d.ts` with the shape.
+ */
+export interface CrudPlugin {
+	name: string
+	state?: () => Record<string, unknown>
+	getters?: Record<string, (state: any) => unknown>
+	actions?: Record<string, (...args: any[]) => any>
+}
+
+export interface PluginContrib {
+	[key: string]: unknown
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config & extend shapes
@@ -160,6 +199,7 @@ export interface CrudConfig<
 	cleanFields?: readonly string[]
 	features?: F
 	parseListResponse?: (this: StoreThis<T, ExtState, ExtGetters, ExtActions, F>, json: unknown) => T[] | Array<Partial<T>>
+	plugins?: readonly CrudPlugin[]
 	extend?: ExtendConfig<T, ExtState, ExtGetters, ExtActions, F>
 }
 

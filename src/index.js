@@ -74,6 +74,7 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	logsPlugin,
 	registerMappingPlugin,
 	selectionPlugin,
 	searchPlugin,
