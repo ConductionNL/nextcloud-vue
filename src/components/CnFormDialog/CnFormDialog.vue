@@ -236,13 +236,13 @@
 								:value="jsonStringFor(field)"
 								language="json"
 								:read-only="field.readOnly"
-								:show-invalid-json-error="false"
+								:error-text="jsonErrors[field.key] || ''"
 								@update:value="value => onJsonFieldInput(field, value)" />
 							<span
-								v-if="jsonErrors[field.key] || errors[field.key] || field.description"
+								v-if="errors[field.key] || field.description"
 								class="cn-form-dialog__helper"
-								:class="{ 'cn-form-dialog__helper--error': jsonErrors[field.key] || errors[field.key] }">
-								{{ jsonErrors[field.key] || errors[field.key] || field.description }}
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
 							</span>
 						</div>
 

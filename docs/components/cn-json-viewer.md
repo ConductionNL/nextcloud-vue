@@ -18,7 +18,7 @@ This component also backs the `json` and `code` widgets of [`CnFormDialog`](cn-f
 | `readOnly` | Boolean | `false` | When `true`, the editor is non-editable and the format button and validation error are hidden. |
 | `height` | String | `'300px'` | CSS height for the editor container (e.g. `'200px'`, `'50vh'`). |
 | `language` | String | `'auto'` | Content language for syntax highlighting. See [Language modes](#language-modes) below. |
-| `showInvalidJsonError` | Boolean | `true` | Show the built-in "Invalid JSON format" banner below the editor when JSON is malformed. Set to `false` when the caller surfaces its own validation message (e.g. CnFormDialog's `json` widget). |
+| `errorText` | String | `null` | Custom text for the error banner below the editor. `null` keeps the built-in behavior (renders "Invalid JSON format" when `language === 'json'` and content fails to parse). Any string lets the caller own the banner — rendered when non-empty, hidden when empty — useful for surfacing richer parse errors. |
 
 ## Language Modes
 
