@@ -115,7 +115,7 @@ CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **o
    - `#copy-dialog="{ item, close }"` — Replace copy dialog
    - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog (use CnFormDialog or CnAdvancedFormDialog)
 2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
-3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
+3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field. For JSON / code-editor fields this slot is rarely needed: set `widget: 'json'` (structured value, parses on input) or `widget: 'code'` (raw string + `field.language` for highlighting) on the schema property and CnFormDialog renders `CnJsonViewer` automatically.
 4. **Per-field option rendering** — `#field-{key}-option` and `#field-{key}-selected-option` customize dropdown option display for select/multiselect/tags fields
 
 Key events emitted by CnIndexPage:

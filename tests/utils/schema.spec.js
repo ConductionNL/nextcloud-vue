@@ -542,6 +542,22 @@ describe('fieldsFromSchema', () => {
 		expect(keys).not.toContain('metadata')
 	})
 
+	it('includes object-type properties when an explicit widget opts in', () => {
+		const schemaWithJsonWidget = {
+			title: 'Thing',
+			properties: {
+				config: { type: 'object', title: 'Config', widget: 'json' },
+				other: { type: 'object', title: 'Other' }, // no widget → still filtered
+			},
+		}
+		const fields = fieldsFromSchema(schemaWithJsonWidget)
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('config')
+		expect(keys).not.toContain('other')
+		const configField = fields.find((f) => f.key === 'config')
+		expect(configField.widget).toBe('json')
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)

@@ -13,7 +13,7 @@ Use **CnAdvancedFormDialog** when you need:
 - Raw JSON view and editing with validation
 - Metadata display (id, created, updated) in edit mode
 
-Use **CnFormDialog** when you need a simpler form with auto-generated fields and standard widgets (text, select, checkbox, etc.) without the table/JSON tabs.
+Use **CnFormDialog** when you need a simpler form with auto-generated fields and standard widgets (text, select, checkbox, etc.) without the table/JSON tabs. CnFormDialog also has native `json` and `code` widgets (backed by [`CnJsonViewer`](cn-json-viewer.md)) for single-field JSON/code editing — reach for those before CnAdvancedFormDialog when the richer properties table and metadata tab aren't needed.
 
 ---
 

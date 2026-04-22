@@ -323,8 +323,9 @@ export function fieldsFromSchema(schema, options = {}) {
 			if (exclude.includes(key)) return false
 			// Apply include whitelist
 			if (include && !include.includes(key)) return false
-			// Skip complex object types (not supported in auto-form)
-			if (prop.type === 'object') return false
+			// Skip complex object types unless the caller opts in with an explicit widget
+			// (e.g. `widget: 'json'` or `widget: 'code'` in CnFormDialog).
+			if (prop.type === 'object' && !prop.widget) return false
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
