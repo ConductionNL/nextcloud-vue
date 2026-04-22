@@ -74,6 +74,7 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	logsPlugin,
 	registerMappingPlugin,
 	selectionPlugin,
 	searchPlugin,
@@ -84,6 +85,9 @@ export {
 
 // Composables
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu } from './composables/index.js'
+
+// Localization
+export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'

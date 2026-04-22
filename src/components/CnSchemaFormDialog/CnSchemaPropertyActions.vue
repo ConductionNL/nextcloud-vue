@@ -1240,7 +1240,7 @@ export default {
 
 		getDisplayGroupName(groupId) {
 			if (groupId === 'public') return 'Public'
-			if (groupId === 'user') return 'User'
+			if (groupId === 'authenticated') return 'Authenticated'
 			if (groupId === 'admin') return 'Admin'
 
 			const group = this.userGroups.find(g => g.id === groupId)
@@ -1284,8 +1284,8 @@ export default {
 			return permissionsList.sort((a, b) => {
 				if (a.groupId === 'public') return -1
 				if (b.groupId === 'public') return 1
-				if (a.groupId === 'user') return -1
-				if (b.groupId === 'user') return 1
+				if (a.groupId === 'authenticated') return -1
+				if (b.groupId === 'authenticated') return 1
 				if (a.groupId === 'admin') return 1
 				if (b.groupId === 'admin') return -1
 				return a.group.localeCompare(b.group)
@@ -1295,7 +1295,7 @@ export default {
 		getAvailableGroupsForProperty() {
 			return [
 				{ id: 'public', label: 'Public (Unauthenticated)' },
-				{ id: 'user', label: 'User (Authenticated)' },
+				{ id: 'authenticated', label: 'Authenticated' },
 				...this.sortedUserGroups.map(group => ({
 					id: group.id,
 					label: group.displayname || group.id,

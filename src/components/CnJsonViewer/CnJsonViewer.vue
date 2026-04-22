@@ -27,8 +27,8 @@
 				Format JSON
 			</NcButton>
 		</div>
-		<span v-if="!readOnly && resolvedLanguage === 'json' && !isValidJson(value)" class="cn-json-viewer__error">
-			Invalid JSON format
+		<span v-if="shouldShowError" class="cn-json-viewer__error">
+			{{ resolvedErrorText }}
 		</span>
 	</div>
 </template>
@@ -89,6 +89,15 @@ export default {
 			default: 'auto',
 			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
 		},
+		/**
+		 * Custom text for the error banner rendered below the editor.
+		 * - `null` (default): the built-in "Invalid JSON format" banner renders
+		 *   whenever `language === 'json'` and the content fails to parse.
+		 * - Any string: the caller owns the banner — it renders when this
+		 *   string is non-empty, and is hidden when empty. Use this to surface
+		 *   a richer parse error (e.g. the exception message).
+		 */
+		errorText: { type: String, default: null },
 	},
 
 	data() {
@@ -169,6 +178,28 @@ export default {
 			if (this.langExtension) exts.push(this.langExtension)
 			return exts
 		},
+		/**
+		 * Error text displayed in the banner. Caller-provided `errorText` wins;
+		 * otherwise falls back to the built-in "Invalid JSON format" message.
+		 * @return {string} Message to show.
+		 */
+		resolvedErrorText() {
+			if (this.errorText !== null) return this.errorText
+			return 'Invalid JSON format'
+		},
+		/**
+		 * Whether to show the error banner.
+		 * - If `errorText` is supplied, the caller controls visibility via its
+		 *   emptiness.
+		 * - Otherwise, show iff the content is editable JSON and fails to parse.
+		 * @return {boolean} Visibility flag.
+		 */
+		shouldShowError() {
+			if (this.errorText !== null) return this.errorText !== ''
+			return !this.readOnly
+				&& this.resolvedLanguage === 'json'
+				&& !this.isValidJson(this.value)
+		},
 	},
 
 	methods: {
@@ -214,8 +245,6 @@ export default {
 }
 
 .cn-json-viewer__codemirror {
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
 	position: relative;
 }
 

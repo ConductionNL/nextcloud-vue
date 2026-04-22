@@ -33,3 +33,35 @@ export type { TOrganisation, TOrganisationAuthorization } from './organisation'
 export type { TFile } from './file'
 export type { TTask, TTaskPriority, TTaskStatus } from './task'
 export type { TNotification, TNotificationType, TNotificationPriority } from './notification'
+
+// Runtime exports from the store factory. The implementation is in
+// `../store/createCrudStore.js`; its companion `createCrudStore.d.ts`
+// provides full generic types (entity inference, feature-flag gating,
+// extend merging with correct `this` typing). We re-export both the
+// factory and its supporting types so consumers can `import type
+// { BaseState, MergedActions, Features } from '@conduction/nextcloud-vue'`.
+export { createCrudStore } from '../store/createCrudStore'
+export type {
+	Prettify,
+	EntityClass,
+	InferEntity,
+	Features,
+	LoadingState,
+	ViewModeState,
+	LoadingGetters,
+	ViewModeGetters,
+	ViewModeActions,
+	BaseState,
+	BaseActions,
+	MergedActions,
+	FullState,
+	FullGetters,
+	StoreThis,
+	ExtendConfig,
+	CrudConfig,
+	CrudPlugin,
+} from '../store/createCrudStore'
+
+// Runtime store plugins. Each plugin is a factory returning a plugin definition
+// consumed by `createCrudStore({ plugins: [...] })` or `createObjectStore`.
+export { logsPlugin } from '../store/plugins/logs'

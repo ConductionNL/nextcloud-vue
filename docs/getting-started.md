@@ -104,6 +104,28 @@ registerIcons({
 
 Icons are resolved by PascalCase name. If a schema references `icon: "AccountGroupOutline"`, it renders the registered component. Unregistered icons fall back to `HelpCircleOutline`.
 
+## Register Library Translations (required)
+
+The library ships its own translation bundles (currently English + Dutch) and registers them under the `nextcloud-vue` namespace at runtime. Call `registerTranslations()` **once** during bootstrap in `main.js`, before mounting your root Vue instance:
+
+```js
+// main.js
+import Vue from 'vue'
+import { registerIcons, registerTranslations } from '@conduction/nextcloud-vue'
+import '@conduction/nextcloud-vue/css/index.css'
+
+registerIcons({ /* ...your icons */ })
+registerTranslations()
+
+new Vue({ /* ...router, pinia, etc. */ }).$mount('#content')
+```
+
+:::danger This is not optional
+Without `registerTranslations()`, **every library-rendered string stays in English** — even when the user's Nextcloud language is Dutch. Labels like "Delete", "Cancel", "Items per page:", etc. will *not* pick up translations automatically, because Nextcloud's server-side l10n discovery only scans each app's own `l10n/` directory and cannot see an npm package's bundles.
+:::
+
+See [Internationalisation (i18n)](./integrations/i18n.md) for details on overriding individual strings via props, and how to contribute a new language to the library bundles.
+
 ## Create the Object Store
 
 Use `createObjectStore` with plugins for your data needs:

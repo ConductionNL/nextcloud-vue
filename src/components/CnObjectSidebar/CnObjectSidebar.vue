@@ -109,6 +109,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
 
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
@@ -221,11 +222,11 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		filesLabel: { type: String, default: 'Files' },
-		notesLabel: { type: String, default: 'Notes' },
-		tagsLabel: { type: String, default: 'Tags' },
-		tasksLabel: { type: String, default: 'Tasks' },
-		auditTrailLabel: { type: String, default: 'Audit Trail' },
+		filesLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
+		notesLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
+		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
+		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 	},
 
 	emits: ['update:open'],

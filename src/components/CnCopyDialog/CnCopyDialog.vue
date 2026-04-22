@@ -138,7 +138,7 @@ export default {
 			loading: false,
 			result: null,
 			closeTimeout: null,
-			selectedPattern: { id: 'copy-of', label: 'Copy of {name}' },
+			selectedPatternId: 'copy-of',
 		}
 	},
 
@@ -156,8 +156,17 @@ export default {
 			]
 		},
 
+		selectedPattern: {
+			get() {
+				return this.patternOptions.find((p) => p.id === this.selectedPatternId) || this.patternOptions[0]
+			},
+			set(pattern) {
+				this.selectedPatternId = pattern ? pattern.id : 'copy-of'
+			},
+		},
+
 		newName() {
-			return this.applyPattern(this.itemName, this.selectedPattern.id)
+			return this.applyPattern(this.itemName, this.selectedPatternId)
 		},
 	},
 
@@ -174,13 +183,13 @@ export default {
 		applyPattern(name, patternId) {
 			switch (patternId) {
 			case 'copy-of':
-				return `Copy of ${name}`
+				return t('nextcloud-vue', 'Copy of {name}', { name })
 			case 'name-copy':
-				return `${name} - Copy`
+				return t('nextcloud-vue', '{name} - Copy', { name })
 			case 'name-parens':
-				return `${name} (Copy)`
+				return t('nextcloud-vue', '{name} (Copy)', { name })
 			default:
-				return `Copy of ${name}`
+				return t('nextcloud-vue', 'Copy of {name}', { name })
 			}
 		},
 

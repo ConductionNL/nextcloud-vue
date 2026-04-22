@@ -219,6 +219,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -274,7 +275,7 @@ export default {
 		/** Widget title shown in the card header */
 		title: {
 			type: String,
-			default: 'Data',
+			default: () => t('nextcloud-vue', 'Data'),
 		},
 		/** Optional MDI icon component for the header */
 		icon: {
@@ -326,7 +327,7 @@ export default {
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
 		 *
-		 * @type {Object<string, { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string }>}
+		 * @type {{ [key: string]: { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string } }}
 		 */
 		overrides: {
 			type: Object,
@@ -366,17 +367,17 @@ export default {
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
-			default: 'Save',
+			default: () => t('nextcloud-vue', 'Save'),
 		},
 		/** Label for the discard button */
 		discardLabel: {
 			type: String,
-			default: 'Discard',
+			default: () => t('nextcloud-vue', 'Discard'),
 		},
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 
@@ -502,7 +503,7 @@ export default {
 	methods: {
 		/**
 		 * Check if a field is editable.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
 			if (!this.editable) return false
@@ -517,7 +518,7 @@ export default {
 
 		/**
 		 * Check if a field's current value is empty.
-		 * @param key
+		 * @param {string} key - Field key to check
 		 */
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
@@ -528,7 +529,7 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		startEdit(field) {
 			// Set working value: dirty value > current object value
@@ -555,8 +556,8 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
-		 * @param key
-		 * @param value
+		 * @param {string} key - Field key to update
+		 * @param {*} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }

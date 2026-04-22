@@ -63,6 +63,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 
@@ -113,7 +114,7 @@ export default {
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
-			default: 'Search...',
+			default: () => t('nextcloud-vue', 'Search...'),
 		},
 		/** Whether to show the "Clear all" button */
 		showClearAll: {
@@ -123,7 +124,7 @@ export default {
 		/** Clear all button label */
 		clearAllLabel: {
 			type: String,
-			default: 'Clear filters',
+			default: () => t('nextcloud-vue', 'Clear filters'),
 		},
 	},
 

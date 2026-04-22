@@ -73,6 +73,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
@@ -90,11 +91,11 @@ export default {
 		register: { type: String, default: '' },
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		dropZoneLabel: { type: String, default: 'Drop files here or click to browse' },
-		noFilesLabel: { type: String, default: 'No files attached' },
-		openLabel: { type: String, default: 'Open' },
-		deleteLabel: { type: String, default: 'Delete' },
-		loadMoreLabel: { type: String, default: 'Load more' },
+		dropZoneLabel: { type: String, default: () => t('nextcloud-vue', 'Drop files here or click to browse') },
+		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
+		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
 	data() {

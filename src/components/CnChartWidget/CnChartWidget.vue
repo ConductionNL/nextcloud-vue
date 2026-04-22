@@ -13,6 +13,7 @@
 		<component
 			:is="chartComponent"
 			v-if="chartComponent"
+			ref="chart"
 			:type="type"
 			:height="computedHeight"
 			:width="computedWidth"
@@ -29,6 +30,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import VueApexCharts from 'vue-apexcharts'
 
 /**
@@ -149,7 +151,7 @@ export default {
 		 */
 		unavailableLabel: {
 			type: String,
-			default: 'Chart library not available',
+			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
 	},
 
@@ -266,6 +268,32 @@ export default {
 
 	created() {
 		this.chartComponent = VueApexCharts
+	},
+
+	mounted() {
+		if (typeof ResizeObserver === 'undefined') return
+		this._lastWidth = this.$el.offsetWidth
+		this._resizeTimer = null
+		this._resizeObserver = new ResizeObserver((entries) => {
+			const newWidth = entries[0]?.contentRect?.width ?? this.$el.offsetWidth
+			if (newWidth === this._lastWidth) return
+			this._lastWidth = newWidth
+			clearTimeout(this._resizeTimer)
+			this._resizeTimer = setTimeout(() => {
+				if (this.$refs.chart?.refresh) {
+					this.$refs.chart.refresh()
+				}
+			}, 100)
+		})
+		this._resizeObserver.observe(this.$el)
+	},
+
+	beforeDestroy() {
+		clearTimeout(this._resizeTimer)
+		if (this._resizeObserver) {
+			this._resizeObserver.disconnect()
+			this._resizeObserver = null
+		}
 	},
 
 	methods: {

@@ -114,6 +114,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -236,22 +237,22 @@ export default {
 		/** Label for the edit button */
 		editLabel: {
 			type: String,
-			default: 'Edit',
+			default: () => t('nextcloud-vue', 'Edit'),
 		},
 		/** Label for the done button (when editing) */
 		doneLabel: {
 			type: String,
-			default: 'Done',
+			default: () => t('nextcloud-vue', 'Done'),
 		},
 		/** Label for the empty state */
 		emptyLabel: {
 			type: String,
-			default: 'No widgets configured',
+			default: () => t('nextcloud-vue', 'No widgets configured'),
 		},
 		/** Label for unavailable widgets */
 		unavailableLabel: {
 			type: String,
-			default: 'Widget not available',
+			default: () => t('nextcloud-vue', 'Widget not available'),
 		},
 	},
 

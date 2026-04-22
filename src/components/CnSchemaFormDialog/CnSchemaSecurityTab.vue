@@ -57,31 +57,31 @@
 						</td>
 					</tr>
 
-					<!-- User group (authenticated users) -->
+					<!-- Authenticated users group -->
 					<tr class="cn-schema-form__user-row">
 						<td class="cn-schema-form__group-name">
-							<span class="cn-schema-form__group-badge cn-schema-form__user">user</span>
+							<span class="cn-schema-form__group-badge cn-schema-form__user">authenticated</span>
 							<small>Authenticated users</small>
 						</td>
 						<td>
 							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('user', 'create')"
-								@update:checked="updateGroupPermission('user', 'create', $event)" />
+								:checked="hasGroupPermission('authenticated', 'create')"
+								@update:checked="updateGroupPermission('authenticated', 'create', $event)" />
 						</td>
 						<td>
 							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('user', 'read')"
-								@update:checked="updateGroupPermission('user', 'read', $event)" />
+								:checked="hasGroupPermission('authenticated', 'read')"
+								@update:checked="updateGroupPermission('authenticated', 'read', $event)" />
 						</td>
 						<td>
 							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('user', 'update')"
-								@update:checked="updateGroupPermission('user', 'update', $event)" />
+								:checked="hasGroupPermission('authenticated', 'update')"
+								@update:checked="updateGroupPermission('authenticated', 'update', $event)" />
 						</td>
 						<td>
 							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('user', 'delete')"
-								@update:checked="updateGroupPermission('user', 'delete', $event)" />
+								:checked="hasGroupPermission('authenticated', 'delete')"
+								@update:checked="updateGroupPermission('authenticated', 'delete', $event)" />
 						</td>
 					</tr>
 

@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcSettingsSection, NcLoadingIcon, NcButton } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -140,7 +141,7 @@ export default {
 		/** Message shown during loading */
 		loadingMessage: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 		/** Whether the section is in an error state */
 		error: {
@@ -150,7 +151,7 @@ export default {
 		/** Message shown when in error state */
 		errorMessage: {
 			type: String,
-			default: 'An error occurred',
+			default: () => t('nextcloud-vue', 'An error occurred'),
 		},
 		/** Callback function for retry button (shown in error state). If null, no retry button is shown. */
 		onRetry: {
@@ -160,7 +161,7 @@ export default {
 		/** Text for the retry button */
 		retryButtonText: {
 			type: String,
-			default: 'Retry',
+			default: () => t('nextcloud-vue', 'Retry'),
 		},
 		/** Whether the section has no data to show */
 		empty: {
@@ -170,7 +171,7 @@ export default {
 		/** Message shown when section is empty */
 		emptyMessage: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 }

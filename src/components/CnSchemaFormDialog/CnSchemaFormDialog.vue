@@ -179,6 +179,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcTextField,
@@ -268,25 +269,25 @@ export default {
 		/** Show "Delete" button */
 		showDelete: { type: Boolean, default: false },
 		// Labels (pre-translated strings with English defaults)
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: { type: String, default: '' },
 		/** Success message. Defaults to "Schema saved successfully." */
 		successText: { type: String, default: '' },
-		extendSchemaLabel: { type: String, default: 'Extend Schema' },
-		analyzePropertiesLabel: { type: String, default: 'Analyze Properties' },
-		validateObjectsLabel: { type: String, default: 'Validate Objects' },
-		deleteObjectsLabel: { type: String, default: 'Delete Objects' },
-		publishObjectsLabel: { type: String, default: 'Publish Objects' },
-		deleteLabel: { type: String, default: 'Delete' },
-		deleteObjectsTooltip: { type: String, default: 'Delete all objects in this schema' },
-		publishObjectsTooltip: { type: String, default: 'Publish all objects in this schema' },
+		extendSchemaLabel: { type: String, default: () => t('nextcloud-vue', 'Extend schema') },
+		analyzePropertiesLabel: { type: String, default: () => t('nextcloud-vue', 'Analyze properties') },
+		validateObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Validate objects') },
+		deleteObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Delete objects') },
+		publishObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Publish objects') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		deleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Delete all objects in this schema') },
+		publishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Publish all objects in this schema') },
 		/** Tooltip for the Delete Objects button when no objects exist */
-		noDeleteObjectsTooltip: { type: String, default: 'No objects to delete' },
+		noDeleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to delete') },
 		/** Tooltip for the Publish Objects button when no objects exist */
-		noPublishObjectsTooltip: { type: String, default: 'No objects to publish' },
-		cannotDeleteTooltip: { type: String, default: 'Cannot delete: objects are still attached' },
+		noPublishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to publish') },
+		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
 	data() {
 		return {
@@ -333,7 +334,7 @@ export default {
 		},
 		sortedUserGroups() {
 			return this.userGroups
-				.filter(group => group.id !== 'admin' && group.id !== 'public')
+				.filter(group => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
 				.sort((a, b) => {
 					const nameA = a.displayname || a.id
 					const nameB = b.displayname || b.id
