@@ -59,4 +59,9 @@ export type {
 	StoreThis,
 	ExtendConfig,
 	CrudConfig,
+	CrudPlugin,
 } from '../store/createCrudStore'
+
+// Runtime store plugins. Each plugin is a factory returning a plugin definition
+// consumed by `createCrudStore({ plugins: [...] })` or `createObjectStore`.
+export { logsPlugin } from '../store/plugins/logs'

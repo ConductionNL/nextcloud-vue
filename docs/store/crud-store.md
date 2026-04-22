@@ -31,6 +31,7 @@ export const useSourceStore = createCrudStore(name, config)
 | `config.features.loading` | Boolean | Add `loading`/`error` state and getters | `false` |
 | `config.features.viewMode` | Boolean | Add `viewMode` state, getter, and setter action | `false` |
 | `config.parseListResponse` | Function | Custom response parser for `refreshList` (see below) | `(json) => json.results` |
+| `config.plugins` | Array | Plugin definitions merged into the store (see [Plugins](#plugins)) | `[]` |
 | `config.extend` | Object | Extra `{ state, getters, actions }` merged into the store | `{}` |
 
 ### Return Value
@@ -48,7 +49,7 @@ Returns a Pinia `defineStore` composable with the following API.
 | `loading` | Boolean | Whether a request is in progress (requires `features.loading`) |
 | `error` | String\|null | Last error message (requires `features.loading`) |
 | `viewMode` | String | Current view mode, e.g. `'cards'` (requires `features.viewMode`) |
-| `_options` | Object | Internal config: `{ endpoint, cleanFields, baseApiUrl }` (available to extend actions) |
+| `_options` | Object | Internal config: `{ endpoint, cleanFields, baseApiUrl, entity }` (available to extend actions and plugins) |
 
 #### Getters
 
@@ -144,6 +145,104 @@ Merge extra state, getters, and actions into the store. Actions with the same na
 | `extend.actions` | Object | Extra actions (or overrides of base actions) |
 
 Inside extend actions, `this` is the full store instance. Use `this._options.baseApiUrl` to build API URLs and `this._options.cleanFields` to reference the configured clean fields.
+
+## Plugins
+
+Plugins factor out reusable sub-resource patterns that would otherwise be repeated across stores. Each plugin contributes extra state, getters, and actions; multiple plugins can be combined on a single store.
+
+The plugin shape matches the one used by the [Object Store](./object-store.md):
+
+```js
+{
+  name: 'myFeature',
+  state: () => ({ /* ... */ }),
+  getters: { /* ... */ },
+  actions: { /* ... */ },
+  setup(store) { /* optional — runs once per store instance */ },
+}
+```
+
+### Registering plugins
+
+```js
+import { createCrudStore, logsPlugin } from '@conduction/nextcloud-vue'
+
+export const useSourceStore = createCrudStore('source', {
+  endpoint: 'sources',
+  entity: Source,
+  plugins: [
+    logsPlugin({ parentIdParam: 'source_id', autoRefreshOnItemChange: true }),
+  ],
+})
+```
+
+### Merge precedence
+
+Plugins are merged **after** base actions and **before** `extend.actions`. This means:
+
+1. Base actions (`setItem`, `refreshList`, `save`, etc.) are defined first.
+2. Plugin actions run next — a plugin *can* override a base action, but this doesn't compose well if multiple plugins want to react to the same action. Prefer the `setup` hook below for observation.
+3. `extend.actions` run last and can override anything from the plugin or the base.
+
+State and getters follow the same ordering. If two plugins contribute a state field with the same name, the later plugin wins — order the `plugins` array accordingly.
+
+### The `setup(store)` hook
+
+The `setup` hook lets a plugin observe base or other-plugin actions **without overriding them**. It runs once per store instance, the first time `useStore()` resolves a store under a given Pinia root. Inside setup, a plugin typically registers Pinia-native subscriptions:
+
+```js
+{
+  name: 'audit',
+  setup(store) {
+    store.$onAction(({ name, args, after, onError }) => {
+      after((result) => { /* react to successful actions */ })
+      onError((err) => { /* react to failures */ })
+    })
+    // or: store.$subscribe((mutation, state) => { ... })
+  },
+}
+```
+
+Multiple plugins can each register their own `$onAction` subscriber for the same action — they run independently. Use this instead of overriding a base action whenever you only need to **react** to it.
+
+Setup is called exactly once per store instance (tracked via `WeakSet`), even if `useStore()` is invoked many times. Creating a fresh Pinia root (e.g. between tests) produces a fresh store instance that re-runs setup.
+
+### Available plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| [`logsPlugin`](./plugins/logs.md) | Fetch a per-item logs collection from a flat sub-resource endpoint (e.g. `/sources/logs?source_id=…`). |
+
+Plugins from the object-store family (e.g. `auditTrailsPlugin`, `filesPlugin`) are shaped the same way and can be registered against a CRUD store provided they don't rely on the `_buildUrl(type, id)` helper that only the object store exposes.
+
+### Writing your own plugin
+
+A plugin is a plain object with the same optional keys as `extend`:
+
+```js
+export function statsPlugin() {
+  return {
+    name: 'stats',
+    state: () => ({ stats: null, statsLoading: false }),
+    getters: { getStats: (state) => state.stats },
+    actions: {
+      async refreshStats() {
+        this.statsLoading = true
+        try {
+          const response = await fetch(this._options.baseApiUrl + '/stats')
+          this.stats = await response.json()
+        } finally {
+          this.statsLoading = false
+        }
+      },
+    },
+  }
+}
+```
+
+Inside plugin actions `this` is the fully-merged store, so you can read `this.item`, call other actions (`this.refreshList()`), and use `this._options.baseApiUrl` / `this._options.entity`.
+
+When publishing a plugin under the `*Plugin` export name from the library's `src/index.js`, it must ship a doc page under `docs/store/plugins/` (enforced by [`scripts/check-docs.js`](../../scripts/check-docs.js)).
 
 ## Examples
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { buildHeaders, prefixUrl } from '../utils/headers.js'
 import { parseResponseError } from '../utils/errors.js'
+import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 
 /**
  * Default fields stripped from items before POST/PUT.
@@ -76,10 +77,14 @@ function defaultParseListResponse(json) {
  * @param {Function} [config.parseListResponse] Custom response parser for refreshList.
  *   Receives the parsed JSON body with the store instance as `this`.
  *   Must return an array of items. Default: `(json) => json.results`
+ * @param {Array} [config.plugins] Array of plugin definitions to merge into the store.
+ *   Each plugin is `{ name, state?, getters?, actions? }` — same shape as object-store
+ *   plugins. Merge order is base → plugins → extend, so `extend` can still override
+ *   anything a plugin provides.
  * @param {object} [config.extend] Extra state/getters/actions to merge into the store
  * @param {Function} [config.extend.state] State factory returning extra state properties
  * @param {object} [config.extend.getters] Extra getters (or overrides of base getters)
- * @param {object} [config.extend.actions] Extra actions (or overrides of base actions)
+ * @param {object} [config.extend.actions] Extra actions (or overrides of base/plugin actions)
  * @return {Function} Pinia store composable (useXxxStore)
  */
 export function createCrudStore(name, config = {}) {
@@ -90,6 +95,7 @@ export function createCrudStore(name, config = {}) {
 		cleanFields = DEFAULT_CLEAN_FIELDS,
 		features = {},
 		parseListResponse = defaultParseListResponse,
+		plugins = [],
 		extend = {},
 	} = config
 
@@ -99,7 +105,18 @@ export function createCrudStore(name, config = {}) {
 
 	const baseApiUrl = prefixUrl(`${baseUrl}/${endpoint}`)
 
-	return defineStore(name, {
+	const pluginState = mergePluginState(plugins)
+	const pluginGetters = mergePluginGetters(plugins)
+	const pluginActions = mergePluginActions(plugins)
+	const setupPlugins = plugins.filter((p) => typeof p.setup === 'function')
+	// Track which store instances have already been set up so plugin setup
+	// hooks run exactly once per instance, even if useStore() is called many
+	// times. WeakSet lets garbage collection reclaim entries when a Pinia
+	// instance (and therefore its stores) are discarded — e.g. between tests
+	// that call createPinia() afresh.
+	const initialized = new WeakSet()
+
+	const useStore = defineStore(name, {
 		state: () => ({
 			// ── Core state ──
 			item: null,
@@ -111,8 +128,11 @@ export function createCrudStore(name, config = {}) {
 			...(features.loading ? { loading: false, error: null } : {}),
 			...(features.viewMode ? { viewMode: 'cards' } : {}),
 
-			// ── Internal config (available to extend actions) ──
-			_options: { endpoint, cleanFields, baseApiUrl },
+			// ── Plugin state ──
+			...pluginState,
+
+			// ── Internal config (available to extend actions and plugins) ──
+			_options: { endpoint, cleanFields, baseApiUrl, entity: Entity },
 
 			// ── Domain-specific state ──
 			...(typeof extend.state === 'function' ? extend.state() : {}),
@@ -127,6 +147,9 @@ export function createCrudStore(name, config = {}) {
 					getError: (state) => state.error,
 				}
 				: {}),
+
+			// ── Plugin getters ──
+			...pluginGetters,
 
 			// ── Domain-specific getters ──
 			...(extend.getters ?? {}),
@@ -353,8 +376,38 @@ export function createCrudStore(name, config = {}) {
 				}
 			},
 
-			// ── Domain-specific actions (may override base actions) ──
+			// ── Plugin actions (may override base actions) ──
+			...pluginActions,
+
+			// ── Domain-specific actions (may override base/plugin actions) ──
 			...(extend.actions ?? {}),
 		},
 	})
+
+	// When no plugin declares a setup hook, return Pinia's composable
+	// directly — zero runtime overhead for the common case.
+	if (setupPlugins.length === 0) {
+		return useStore
+	}
+
+	/**
+	 * Wrapped composable: resolves the Pinia store, then runs each plugin's
+	 * `setup(store)` exactly once per instance. Plugins typically use the
+	 * setup hook to register `store.$onAction` / `store.$subscribe`
+	 * subscriptions that observe base or other plugin actions without
+	 * overriding them.
+	 *
+	 * @param {import('pinia').Pinia} [pinia] Optional Pinia instance override
+	 * @return {object} The Pinia store instance with all plugin setups applied
+	 */
+	return function useCrudStore(pinia) {
+		const store = useStore(pinia)
+		if (!initialized.has(store)) {
+			initialized.add(store)
+			for (const plugin of setupPlugins) {
+				plugin.setup(store)
+			}
+		}
+		return store
+	}
 }
