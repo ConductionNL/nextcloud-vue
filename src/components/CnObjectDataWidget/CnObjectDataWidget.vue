@@ -327,7 +327,7 @@ export default {
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
 		 *
-		 * @type {Object<string, { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string }>}
+		 * @type {{ [key: string]: { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string } }}
 		 */
 		overrides: {
 			type: Object,
@@ -503,7 +503,7 @@ export default {
 	methods: {
 		/**
 		 * Check if a field is editable.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
 			if (!this.editable) return false
@@ -518,7 +518,7 @@ export default {
 
 		/**
 		 * Check if a field's current value is empty.
-		 * @param key
+		 * @param {string} key - Field key to check
 		 */
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
@@ -529,7 +529,7 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		startEdit(field) {
 			// Set working value: dirty value > current object value
@@ -556,8 +556,8 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
-		 * @param key
-		 * @param value
+		 * @param {string} key - Field key to update
+		 * @param {*} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }
