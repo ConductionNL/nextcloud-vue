@@ -334,7 +334,7 @@ export default {
 		},
 		sortedUserGroups() {
 			return this.userGroups
-				.filter(group => group.id !== 'admin' && group.id !== 'public')
+				.filter(group => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
 				.sort((a, b) => {
 					const nameA = a.displayname || a.id
 					const nameB = b.displayname || b.id
