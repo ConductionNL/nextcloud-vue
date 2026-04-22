@@ -227,6 +227,43 @@
 							:disabled="field.readOnly"
 							@update:value="value => updateField(field.key, value)" />
 
+						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
+						<div v-else-if="field.widget === 'json'" class="cn-form-dialog__json-wrapper">
+							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ field.required ? ' *' : '' }}
+							</label>
+							<CnJsonViewer
+								:value="jsonStringFor(field)"
+								language="json"
+								:read-only="field.readOnly"
+								:show-invalid-json-error="false"
+								@update:value="value => onJsonFieldInput(field, value)" />
+							<span
+								v-if="jsonErrors[field.key] || errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': jsonErrors[field.key] || errors[field.key] }">
+								{{ jsonErrors[field.key] || errors[field.key] || field.description }}
+							</span>
+						</div>
+
+						<!-- Code (freeform editor, stored as raw string; optional `field.language` chooses highlighting) -->
+						<div v-else-if="field.widget === 'code'" class="cn-form-dialog__json-wrapper">
+							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ field.required ? ' *' : '' }}
+							</label>
+							<CnJsonViewer
+								:value="formData[field.key] != null ? String(formData[field.key]) : ''"
+								:language="field.language || 'auto'"
+								:read-only="field.readOnly"
+								@update:value="value => updateField(field.key, value)" />
+							<span
+								v-if="errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
+							</span>
+						</div>
+
 						<!-- Fallback: text input -->
 						<NcTextField
 							v-else
@@ -251,7 +288,7 @@
 			<NcButton
 				v-if="result === null"
 				type="primary"
-				:disabled="loading || !requiredFieldsFilled"
+				:disabled="loading || !requiredFieldsFilled || !jsonFieldsValid"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -267,6 +304,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import { fieldsFromSchema } from '../../utils/schema.js'
@@ -297,6 +335,17 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  * (each must have a `label` property for default display). Options are loaded on mount
  * (with empty query) and on each search input (debounced, default 300ms, configurable
  * via `field.debounce`). Async selects store the full option object in formData.
+ *
+ * ## JSON / code fields
+ *
+ * Two widgets render a CnJsonViewer-powered editor:
+ *
+ * - `widget: 'json'` — Parses on input. formData holds the parsed value (object,
+ *   array, number, string, boolean, or `null` for empty). Invalid JSON displays an
+ *   inline error and blocks the confirm button until fixed. Pair with `type: 'object'`
+ *   (or any type) to opt a property out of the default object-filter in `fieldsFromSchema`.
+ * - `widget: 'code'` — Stores the raw string. Optional `field.language` chooses
+ *   syntax highlighting (`'json'|'xml'|'html'|'text'|'auto'`, default `'auto'`).
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -360,6 +409,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		NcCheckboxRadioSwitch,
+		CnJsonViewer,
 		Plus,
 		ContentSaveOutline,
 	},
@@ -433,6 +483,10 @@ export default {
 			closeTimeout: null,
 			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
 			asyncState: {},
+			/** Per-field editor string for `json` widgets (preserves input between keystrokes even while invalid) */
+			jsonDrafts: {},
+			/** Per-field parse-error messages for `json` widgets (blocks confirm) */
+			jsonErrors: {},
 		}
 	},
 
@@ -472,6 +526,11 @@ export default {
 					if (Array.isArray(val) && val.length === 0) return false
 					return true
 				})
+		},
+
+		/** Whether every `json` widget currently parses successfully */
+		jsonFieldsValid() {
+			return Object.keys(this.jsonErrors).every((k) => !this.jsonErrors[k])
 		},
 
 		resolvedFields() {
@@ -518,6 +577,8 @@ export default {
 						data[field.key] = false
 					} else if (field.widget === 'tags' || field.widget === 'multiselect') {
 						data[field.key] = []
+					} else if (field.widget === 'code') {
+						data[field.key] = ''
 					} else {
 						data[field.key] = null
 					}
@@ -525,6 +586,8 @@ export default {
 				this.formData = data
 			}
 			this.errors = {}
+			this.jsonDrafts = {}
+			this.jsonErrors = {}
 			this.initAsyncFields()
 		},
 
@@ -533,6 +596,53 @@ export default {
 			// Clear error when field is edited
 			if (this.errors[key]) {
 				this.$delete(this.errors, key)
+			}
+		},
+
+		/**
+		 * Resolve the string shown in the CnJsonViewer for a `json`-widget field.
+		 * Prefers the unparsed draft (so invalid typing isn't clobbered), falling
+		 * back to a pretty-printed stringification of the parsed value in formData.
+		 *
+		 * @param {object} field Field definition.
+		 * @return {string} JSON string for the editor.
+		 */
+		jsonStringFor(field) {
+			if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, field.key)) {
+				return this.jsonDrafts[field.key]
+			}
+			const value = this.formData[field.key]
+			if (value === null || value === undefined) return ''
+			try {
+				return JSON.stringify(value, null, 2)
+			} catch (e) {
+				return String(value)
+			}
+		},
+
+		/**
+		 * Handle input in a `json`-widget CnJsonViewer. Parses on the fly:
+		 * on success, the parsed value lands in formData and any previous error
+		 * is cleared; on failure, formData keeps its last-known-good value and
+		 * `jsonErrors[key]` is set, which surfaces inline and disables confirm.
+		 *
+		 * @param {object} field Field definition.
+		 * @param {string} newString Current editor content.
+		 */
+		onJsonFieldInput(field, newString) {
+			this.$set(this.jsonDrafts, field.key, newString)
+			const trimmed = (newString || '').trim()
+			if (!trimmed) {
+				this.updateField(field.key, null)
+				this.$delete(this.jsonErrors, field.key)
+				return
+			}
+			try {
+				const parsed = JSON.parse(trimmed)
+				this.updateField(field.key, parsed)
+				this.$delete(this.jsonErrors, field.key)
+			} catch (e) {
+				this.$set(this.jsonErrors, field.key, t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message }))
 			}
 		},
 
@@ -836,6 +946,7 @@ export default {
 
 		executeConfirm() {
 			if (!this.validate()) return
+			if (!this.jsonFieldsValid) return
 
 			this.loading = true
 			/**
@@ -889,7 +1000,8 @@ export default {
 }
 
 .cn-form-dialog__textarea-wrapper,
-.cn-form-dialog__select-wrapper {
+.cn-form-dialog__select-wrapper,
+.cn-form-dialog__json-wrapper {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;

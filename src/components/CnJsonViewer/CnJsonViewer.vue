@@ -27,7 +27,7 @@
 				Format JSON
 			</NcButton>
 		</div>
-		<span v-if="!readOnly && resolvedLanguage === 'json' && !isValidJson(value)" class="cn-json-viewer__error">
+		<span v-if="showInvalidJsonError && !readOnly && resolvedLanguage === 'json' && !isValidJson(value)" class="cn-json-viewer__error">
 			Invalid JSON format
 		</span>
 	</div>
@@ -89,6 +89,12 @@ export default {
 			default: 'auto',
 			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
 		},
+		/**
+		 * Show the built-in "Invalid JSON format" banner below the editor when
+		 * JSON is malformed. Set to false when the caller already surfaces its
+		 * own validation message (e.g. CnFormDialog's `json` widget).
+		 */
+		showInvalidJsonError: { type: Boolean, default: true },
 	},
 
 	data() {

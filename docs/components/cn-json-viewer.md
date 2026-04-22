@@ -8,6 +8,8 @@ Syntax-highlighted code viewer and editor powered by CodeMirror 6. Supports JSON
 
 Use **read-only mode** to display structured data with syntax highlighting in detail views, audit logs, or API response previews. Use **editable mode** for JSON input fields with live validation and formatting.
 
+This component also backs the `json` and `code` widgets of [`CnFormDialog`](cn-form-dialog.md), so schema-driven forms get a rich JSON/code editor for free — you rarely need to embed `CnJsonViewer` directly inside a form.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -16,6 +18,7 @@ Use **read-only mode** to display structured data with syntax highlighting in de
 | `readOnly` | Boolean | `false` | When `true`, the editor is non-editable and the format button and validation error are hidden. |
 | `height` | String | `'300px'` | CSS height for the editor container (e.g. `'200px'`, `'50vh'`). |
 | `language` | String | `'auto'` | Content language for syntax highlighting. See [Language modes](#language-modes) below. |
+| `showInvalidJsonError` | Boolean | `true` | Show the built-in "Invalid JSON format" banner below the editor when JSON is malformed. Set to `false` when the caller surfaces its own validation message (e.g. CnFormDialog's `json` widget). |
 
 ## Language Modes
 
