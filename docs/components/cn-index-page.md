@@ -91,7 +91,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#header-actions` | — | Extra header buttons |
 | `#delete-dialog` | `\{ item, close \}` | Replace single-item delete dialog |
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
-| `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog (any variant) |
+| `#form-dialog` | `\{ show, item, schema, close \}` | Replace create/edit dialog (any variant). Use `show` as a `v-if` guard so the dialog unmounts after `close`; otherwise an always-mounted override re-opens when its internal close animation finishes. |
 | `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
 | `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select field (forwarded to NcSelect `#option`) |
 | `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select field (forwarded to NcSelect `#selected-option`) |
