@@ -122,6 +122,7 @@
 		<!-- Form dialog for create/edit (overridable via slot) -->
 		<slot
 			name="form-dialog"
+			:show="showFormDialogVisible"
 			:item="editItem"
 			:schema="schema"
 			:close="closeFormDialog">
