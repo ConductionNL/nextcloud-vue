@@ -17,6 +17,7 @@ export default {
 			format: 'es',
 			sourcemap: true,
 			inlineDynamicImports: true,
+			banner: "import './nextcloud-vue.css';",
 		},
 		{
 			file: 'dist/nextcloud-vue.cjs.js',
@@ -42,7 +43,7 @@ export default {
 			},
 		},
 		vue({ css: false }),
-		postcss({ inject: true, plugins: [postcssImport()] }),
+		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		commonjs(),
