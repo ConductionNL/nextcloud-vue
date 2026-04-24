@@ -24,7 +24,7 @@
 		"lint": "eslint src/",
 		"lint-fix": "npm run lint -- --fix",
 		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
-		"check:docs": "node scripts/check-docs.js",
+		"check:docs": "node scripts/check-docs.cjs",
 		"prepublishOnly": "npm run build"
 	},
 	"tsd": {
