@@ -524,6 +524,167 @@
   color: var(--color-info-text);
 }
 
+/* Advanced: Conditional Access Rules */
+.cn-schema-form__conditional-section {
+  margin-top: 32px;
+}
+
+.cn-schema-form__conditional-section h3 {
+  margin-bottom: 12px;
+  color: var(--color-main-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cn-schema-form__cond-action {
+  margin-top: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-element);
+  overflow: hidden;
+}
+
+.cn-schema-form__cond-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--color-background-dark);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cn-schema-form__cond-action-name {
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.cn-schema-form__cond-empty {
+  padding: 12px 16px;
+  color: var(--color-text-maxcontrast);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.cn-schema-form__cond-rule-card {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cn-schema-form__cond-rule-card:last-child {
+  border-bottom: none;
+}
+
+.cn-schema-form__cond-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cn-schema-form__cond-rule-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-maxcontrast);
+  white-space: nowrap;
+}
+
+.cn-schema-form__cond-select {
+  flex: 1;
+  max-width: 220px;
+  height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  font-size: 13px;
+}
+
+.cn-schema-form__cond-match-list {
+  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cn-schema-form__cond-match-empty {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-text-maxcontrast);
+}
+
+.cn-schema-form__cond-match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cn-schema-form__cond-match-prop,
+.cn-schema-form__cond-match-val {
+  background: var(--color-background-dark);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-small);
+  font-size: 12px;
+}
+
+.cn-schema-form__cond-match-op {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-maxcontrast);
+  background: var(--color-background-hover);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--color-border);
+}
+
+.cn-schema-form__cond-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--color-background-hover);
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--color-border-dark);
+}
+
+.cn-schema-form__cond-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cn-schema-form__cond-input {
+  flex: 1;
+  min-width: 100px;
+  height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  font-size: 13px;
+}
+
+.cn-schema-form__cond-op-select {
+  width: 90px;
+  height: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.cn-schema-form__cond-add-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* Copied from openregister/SolrWarmupModal — also used in other files */
 .cn-schema-form__schema-option {
   display: flex;
