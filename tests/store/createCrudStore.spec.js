@@ -561,5 +561,225 @@ describe('createCrudStore', () => {
 			expect(store._options.cleanFields).toEqual(['id', 'secret'])
 			expect(store._options.baseApiUrl).toContain('/widgets')
 		})
+
+		it('exposes the entity class for plugins', () => {
+			const useStore = createCrudStore('with-entity', {
+				endpoint: 'items',
+				entity: TestEntity,
+			})
+			store = useStore()
+			expect(store._options.entity).toBe(TestEntity)
+		})
+	})
+
+	describe('plugins', () => {
+		const makePlugin = () => ({
+			name: 'test',
+			state: () => ({ pluginValue: 'hello', counter: 0 }),
+			getters: {
+				getPluginValue: (state) => state.pluginValue,
+				doubledCounter: (state) => state.counter * 2,
+			},
+			actions: {
+				bump() {
+					this.counter += 1
+				},
+				setPluginValue(v) {
+					this.pluginValue = v
+				},
+			},
+		})
+
+		it('merges plugin state into the store', () => {
+			const useStore = createCrudStore('p-state', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			expect(store.pluginValue).toBe('hello')
+			expect(store.counter).toBe(0)
+		})
+
+		it('merges plugin getters', () => {
+			const useStore = createCrudStore('p-getters', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			expect(store.getPluginValue).toBe('hello')
+			expect(store.doubledCounter).toBe(0)
+			store.bump()
+			expect(store.doubledCounter).toBe(2)
+		})
+
+		it('merges plugin actions and they can access plugin state via this', () => {
+			const useStore = createCrudStore('p-actions', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+			})
+			store = useStore()
+			store.bump()
+			store.bump()
+			expect(store.counter).toBe(2)
+			store.setPluginValue('world')
+			expect(store.pluginValue).toBe('world')
+		})
+
+		it('multiple plugins merge side by side', () => {
+			const a = { name: 'a', state: () => ({ a: 1 }), actions: { incA() { this.a += 1 } } }
+			const b = { name: 'b', state: () => ({ b: 10 }), actions: { incB() { this.b += 1 } } }
+			const useStore = createCrudStore('p-multi', {
+				endpoint: 'items',
+				plugins: [a, b],
+			})
+			store = useStore()
+			store.incA()
+			store.incB()
+			expect(store.a).toBe(2)
+			expect(store.b).toBe(11)
+		})
+
+		it('extend.actions overrides plugin actions with the same name', () => {
+			const useStore = createCrudStore('p-override', {
+				endpoint: 'items',
+				plugins: [makePlugin()],
+				extend: {
+					actions: {
+						bump() {
+							this.counter += 10
+						},
+					},
+				},
+			})
+			store = useStore()
+			store.bump()
+			expect(store.counter).toBe(10)
+		})
+
+		it('plugin setItem override replaces the base setItem', () => {
+			const plugin = {
+				name: 'wrap',
+				state: () => ({ setItemCalls: 0 }),
+				actions: {
+					setItem(data) {
+						this.setItemCalls += 1
+						this.item = data ? { ...data, tagged: true } : null
+					},
+				},
+			}
+			const useStore = createCrudStore('p-setitem', {
+				endpoint: 'items',
+				plugins: [plugin],
+			})
+			store = useStore()
+			store.setItem({ id: 1, name: 'x' })
+			expect(store.setItemCalls).toBe(1)
+			expect(store.item.tagged).toBe(true)
+		})
+	})
+
+	describe('plugin setup hook', () => {
+		it('runs setup(store) once per store instance', () => {
+			const setup = jest.fn()
+			const useStore = createCrudStore('setup-once', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', setup }],
+			})
+			const a = useStore()
+			const b = useStore()
+			const c = useStore()
+
+			expect(setup).toHaveBeenCalledTimes(1)
+			expect(setup).toHaveBeenCalledWith(a)
+			expect(a).toBe(b)
+			expect(b).toBe(c)
+		})
+
+		it('does not call setup when no plugin defines one', () => {
+			const useStore = createCrudStore('setup-none', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', state: () => ({ x: 1 }) }],
+			})
+			const s = useStore()
+			expect(s.x).toBe(1)
+		})
+
+		it('runs setup for every plugin that defines one', () => {
+			const calls = []
+			const pa = { name: 'a', setup: (s) => calls.push(['a', s]) }
+			const pb = { name: 'b', setup: (s) => calls.push(['b', s]) }
+			const useStore = createCrudStore('setup-many', {
+				endpoint: 'items',
+				plugins: [pa, pb],
+			})
+			const s = useStore()
+			expect(calls.map((c) => c[0])).toEqual(['a', 'b'])
+			expect(calls[0][1]).toBe(s)
+			expect(calls[1][1]).toBe(s)
+		})
+
+		it('supports multiple $onAction observers watching the same action', () => {
+			const aAfter = jest.fn()
+			const bAfter = jest.fn()
+			const pa = {
+				name: 'a',
+				setup(s) {
+					s.$onAction(({ name, after }) => {
+						if (name === 'setItem') after(aAfter)
+					})
+				},
+			}
+			const pb = {
+				name: 'b',
+				setup(s) {
+					s.$onAction(({ name, after }) => {
+						if (name === 'setItem') after(bAfter)
+					})
+				},
+			}
+			const useStore = createCrudStore('setup-onaction', {
+				endpoint: 'items',
+				plugins: [pa, pb],
+			})
+			const s = useStore()
+
+			s.setItem({ id: 1 })
+
+			expect(aAfter).toHaveBeenCalledTimes(1)
+			expect(bAfter).toHaveBeenCalledTimes(1)
+		})
+
+		it('setup-triggered observers do not re-arm when the store is re-used', () => {
+			const after = jest.fn()
+			const plugin = {
+				name: 'p',
+				setup(s) {
+					s.$onAction(({ name, after: afterCb }) => {
+						if (name === 'setItem') afterCb(after)
+					})
+				},
+			}
+			const useStore = createCrudStore('setup-rearm', {
+				endpoint: 'items',
+				plugins: [plugin],
+			})
+			useStore()
+			useStore()
+			useStore().setItem({ id: 1 })
+
+			expect(after).toHaveBeenCalledTimes(1)
+		})
+
+		it('runs setup again for a fresh store under a new Pinia instance', () => {
+			const setup = jest.fn()
+			const useStore = createCrudStore('setup-fresh', {
+				endpoint: 'items',
+				plugins: [{ name: 'p', setup }],
+			})
+			useStore()
+			setActivePinia(createPinia())
+			useStore()
+			expect(setup).toHaveBeenCalledTimes(2)
+		})
 	})
 })
