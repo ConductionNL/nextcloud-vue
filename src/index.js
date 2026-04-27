@@ -61,6 +61,7 @@ export {
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
 	CnPageRenderer,
+	CnAppNav,
 	registerIcons,
 } from './components/index.js'
 
