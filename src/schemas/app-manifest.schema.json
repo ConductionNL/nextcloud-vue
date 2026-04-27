@@ -1,0 +1,133 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"title": "Conduction App Manifest",
+	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema.",
+	"version": "1.0.0",
+	"type": "object",
+	"required": ["version", "menu", "pages"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"format": "uri",
+			"description": "Optional URL of the schema this manifest validates against. Enables editor auto-validation."
+		},
+		"version": {
+			"type": "string",
+			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+			"description": "Semver of the manifest content. Bump when the manifest changes meaningfully. Used for cache busting and app-builder migration tracking. Distinct from the schema's own version."
+		},
+		"dependencies": {
+			"type": "array",
+			"default": [],
+			"items": { "type": "string" },
+			"description": "Nextcloud app IDs that MUST be installed and enabled for this app to function. CnAppRoot checks each via useAppStatus(appId)."
+		},
+		"menu": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/menuItem" },
+			"description": "Top-level navigation entries rendered by CnAppNav."
+		},
+		"pages": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/page" },
+			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by useAppManifest at validation time."
+		}
+	},
+	"$defs": {
+		"menuItem": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "A top-level navigation entry. May contain one level of nested children.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this menu entry."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key resolved by the consuming app's t() function at render time."
+				},
+				"icon": {
+					"type": "string",
+					"description": "CSS class for the icon (e.g. 'icon-checkmark')."
+				},
+				"route": {
+					"type": "string",
+					"description": "Vue-router route name (matches a pages[].id) that this entry navigates to."
+				},
+				"order": {
+					"type": "integer",
+					"description": "Display order in the menu. Items without an order render last."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Permission string the user must hold for this entry to render. CnAppNav filters items whose permission is not present in its permissions prop."
+				},
+				"children": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/menuItemLeaf" },
+					"description": "Nested entries. Only one level of nesting is supported (children cannot themselves have children)."
+				}
+			}
+		},
+		"menuItemLeaf": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "A nested menu entry. Has no further children.",
+			"properties": {
+				"id": { "type": "string" },
+				"label": { "type": "string" },
+				"icon": { "type": "string" },
+				"route": { "type": "string" },
+				"order": { "type": "integer" },
+				"permission": { "type": "string" }
+			}
+		},
+		"page": {
+			"type": "object",
+			"required": ["id", "route", "type", "title"],
+			"additionalProperties": false,
+			"description": "A page definition. CnPageRenderer dispatches by `type` and matches by $route.name === page.id.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Vue-router route name. MUST be unique across pages[]. CnPageRenderer matches the current route by id only (not by path)."
+				},
+				"route": {
+					"type": "string",
+					"description": "Path pattern (e.g. '/decisions', '/decisions/:id'). Used by the consuming app when generating its vue-router config from the manifest."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["index", "detail", "dashboard", "custom"],
+					"description": "Closed enum. Adding new types requires a library schema release. Use type: 'custom' as the escape hatch for app-specific pages."
+				},
+				"title": {
+					"type": "string",
+					"description": "i18n translation key for the page title."
+				},
+				"config": {
+					"type": "object",
+					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions }. For type='detail': { register, schema, tabs }. For type='dashboard': { widgets, layout }. For type='custom': any shape the custom component expects.",
+					"additionalProperties": true
+				},
+				"component": {
+					"type": "string",
+					"description": "For type='custom': name resolved against the app-provided customComponents registry that is passed to CnAppRoot at boot."
+				},
+				"headerComponent": {
+					"type": "string",
+					"description": "Optional registry name for a component injected into the page's #header slot. Enables partial bailout without going full type='custom'."
+				},
+				"actionsComponent": {
+					"type": "string",
+					"description": "Optional registry name for a component injected into the page's #actions slot. Enables partial bailout without going full type='custom'."
+				}
+			}
+		}
+	}
+}
