@@ -60,6 +60,7 @@ export {
 	CnNoteCard,
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
+	CnPageRenderer,
 	registerIcons,
 } from './components/index.js'
 
