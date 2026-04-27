@@ -1,11 +1,19 @@
 <template>
 	<div class="cn-index-page">
-		<!-- Header (hidden by default — shown in sidebar instead) -->
-		<CnPageHeader
-			v-if="showTitle"
+		<!-- Header — overridable via #header slot. Default renders CnPageHeader
+		     when showTitle is true (existing behaviour, hidden by default). -->
+		<slot
+			name="header"
 			:title="title"
 			:description="description"
-			:icon="resolvedIcon" />
+			:icon="resolvedIcon"
+			:show-title="showTitle">
+			<CnPageHeader
+				v-if="showTitle"
+				:title="title"
+				:description="description"
+				:icon="resolvedIcon" />
+		</slot>
 
 		<!-- Optional content below header, above actions bar -->
 		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">

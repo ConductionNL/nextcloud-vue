@@ -24,23 +24,34 @@
 	<div class="cn-detail-page" :style="{ maxWidth: maxWidth }">
 		<!-- Header -->
 		<div class="cn-detail-page__header">
-			<div class="cn-detail-page__header-left">
-				<slot name="icon">
-					<CnIcon
-						v-if="icon"
-						:name="icon"
-						:size="iconSize"
-						class="cn-detail-page__icon" />
-				</slot>
-				<div class="cn-detail-page__header-text">
-					<h2 v-if="title" class="cn-detail-page__title">
-						{{ title }}
-					</h2>
-					<p v-if="description" class="cn-detail-page__description">
-						{{ description }}
-					</p>
+			<!-- Header (left block) — overridable via #header slot. Default
+			     renders the icon + title + description. The right-hand
+			     #actions slot remains separate so headerComponent and
+			     actionsComponent can be replaced independently. -->
+			<slot
+				name="header"
+				:title="title"
+				:description="description"
+				:icon="icon"
+				:icon-size="iconSize">
+				<div class="cn-detail-page__header-left">
+					<slot name="icon">
+						<CnIcon
+							v-if="icon"
+							:name="icon"
+							:size="iconSize"
+							class="cn-detail-page__icon" />
+					</slot>
+					<div class="cn-detail-page__header-text">
+						<h2 v-if="title" class="cn-detail-page__title">
+							{{ title }}
+						</h2>
+						<p v-if="description" class="cn-detail-page__description">
+							{{ description }}
+						</p>
+					</div>
 				</div>
-			</div>
+			</slot>
 			<div class="cn-detail-page__header-actions">
 				<slot name="actions" />
 			</div>

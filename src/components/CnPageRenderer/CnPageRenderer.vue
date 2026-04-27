@@ -29,7 +29,14 @@
 		<component
 			:is="resolvedComponent"
 			v-if="resolvedComponent"
-			v-bind="resolvedProps" />
+			v-bind="resolvedProps">
+			<template v-if="headerOverride" #header="slotProps">
+				<component :is="headerOverride" v-bind="slotProps" />
+			</template>
+			<template v-if="actionsOverride" #actions="slotProps">
+				<component :is="actionsOverride" v-bind="slotProps" />
+			</template>
+		</component>
 	</div>
 </template>
 
@@ -153,6 +160,38 @@ export default {
 		 */
 		resolvedProps() {
 			return this.currentPage?.config ?? {}
+		},
+		/**
+		 * Custom component to render in the dispatched page's `#header`
+		 * slot, resolved from `page.headerComponent` against the registry.
+		 * Null when not set or not found in the registry (with a console
+		 * warning emitted when an unknown name is referenced).
+		 */
+		headerOverride() {
+			return this.resolveSlotOverride('headerComponent')
+		},
+		/**
+		 * Custom component to render in the dispatched page's `#actions`
+		 * slot, resolved from `page.actionsComponent` against the registry.
+		 */
+		actionsOverride() {
+			return this.resolveSlotOverride('actionsComponent')
+		},
+	},
+
+	methods: {
+		resolveSlotOverride(field) {
+			const name = this.currentPage?.[field]
+			if (!name) return null
+			const resolved = this.effectiveCustomComponents[name]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnPageRenderer] Slot-override component "${name}" referenced by page id "${this.currentPage.id}" (${field}) not found in registry.`,
+				)
+				return null
+			}
+			return resolved
 		},
 	},
 

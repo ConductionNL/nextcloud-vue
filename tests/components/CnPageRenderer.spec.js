@@ -15,6 +15,9 @@ const SettingsPageStub = {
 	template: '<div class="settings-stub">settings</div>',
 }
 
+const HeaderStub = { name: 'HeaderStub', template: '<div class="header-stub" />' }
+const ActionsStub = { name: 'ActionsStub', template: '<div class="actions-stub" />' }
+
 const sampleManifest = {
 	version: '1.0.0',
 	menu: [],
@@ -24,10 +27,31 @@ const sampleManifest = {
 		{ id: 'overview', route: '/overview', type: 'dashboard', title: 'app.overview' },
 		{ id: 'settings', route: '/settings', type: 'custom', title: 'app.settings', component: 'SettingsPage' },
 		{ id: 'broken', route: '/broken', type: 'custom', title: 'app.broken', component: 'NonExistent' },
+		{
+			id: 'home-with-header',
+			route: '/with-header',
+			type: 'index',
+			title: 'app.home',
+			headerComponent: 'MyHeader',
+			actionsComponent: 'MyActions',
+		},
+		{
+			id: 'home-bad-header',
+			route: '/bad-header',
+			type: 'index',
+			title: 'app.home',
+			headerComponent: 'NonExistent',
+		},
 	],
 }
 
-function mountRenderer(routeName, { useProps = false, customComponents = { SettingsPage: SettingsPageStub } } = {}) {
+const defaultRegistry = () => ({
+	SettingsPage: SettingsPageStub,
+	MyHeader: HeaderStub,
+	MyActions: ActionsStub,
+})
+
+function mountRenderer(routeName, { useProps = false, customComponents = defaultRegistry() } = {}) {
 	const provide = useProps
 		? {}
 		: {
@@ -165,6 +189,28 @@ describe('CnPageRenderer', () => {
 			})
 			expect(wrapper.vm.effectiveManifest).toEqual(sampleManifest)
 			expect(wrapper.vm.resolvedComponent).toBe(SettingsPageStub)
+		})
+	})
+
+	describe('slot overrides (headerComponent / actionsComponent)', () => {
+		it('resolves headerComponent and actionsComponent against the registry', () => {
+			const wrapper = mountRenderer('home-with-header')
+			expect(wrapper.vm.headerOverride).toBe(HeaderStub)
+			expect(wrapper.vm.actionsOverride).toBe(ActionsStub)
+		})
+
+		it('returns null overrides when the page does not declare them', () => {
+			const wrapper = mountRenderer('home')
+			expect(wrapper.vm.headerOverride).toBeNull()
+			expect(wrapper.vm.actionsOverride).toBeNull()
+		})
+
+		it('logs a warning when a referenced override component is missing from the registry', () => {
+			const wrapper = mountRenderer('home-bad-header')
+			expect(wrapper.vm.headerOverride).toBeNull()
+			expect(warnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Slot-override component "NonExistent"'),
+			)
 		})
 	})
 
