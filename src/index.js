@@ -64,6 +64,7 @@ export {
 	CnAppNav,
 	CnAppLoading,
 	CnDependencyMissing,
+	CnAppRoot,
 	registerIcons,
 } from './components/index.js'
 
