@@ -84,7 +84,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest } from './composables/index.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'
