@@ -22,6 +22,14 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
+				<!-- Public slot. Documented in CLAUDE.md and used by every
+				     existing consumer (decidesk, mydash, opencatalogi,
+				     pipelinq, procest). -->
+				<slot name="header-actions" />
+				<!-- Back-compat alias: original slot name shipped before
+				     CLAUDE.md was updated. Render alongside so any
+				     stragglers still work; consumers should prefer
+				     #header-actions. -->
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
