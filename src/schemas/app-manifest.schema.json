@@ -125,7 +125,12 @@
 				},
 				"actionsComponent": {
 					"type": "string",
-					"description": "Optional registry name for a component injected into the page's #actions slot. Enables partial bailout without going full type='custom'."
+					"description": "Optional registry name for a component injected into the page's #actions slot. Enables partial bailout without going full type='custom'. Equivalent to `slots.actions`; takes precedence when both are set."
+				},
+				"slots": {
+					"type": "object",
+					"description": "Generic slot-override map. Each key is the name of a scoped slot exposed by the dispatched page component (e.g. 'create-dialog', 'form-fields', 'row-actions', 'empty'); each value is a registry component name resolved against the customComponents registry passed to CnAppRoot. CnPageRenderer creates a scoped-slot template for each entry and forwards all slot-scope props to the resolved component. Use this to preserve every slot override the underlying Cn*Page supports without writing a wrapper component.",
+					"additionalProperties": { "type": "string" }
 				}
 			}
 		}

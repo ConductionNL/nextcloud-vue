@@ -41,6 +41,13 @@ export interface TManifestPage {
 	component?: string
 	headerComponent?: string
 	actionsComponent?: string
+	/**
+	 * Generic slot-override map: slot name → registry component name.
+	 * Forwarded by CnPageRenderer to the dispatched page component as
+	 * scoped slots, preserving every override the underlying Cn*Page
+	 * exposes (`#create-dialog`, `#form-fields`, `#row-actions`, etc.).
+	 */
+	slots?: Record<string, string>
 }
 
 /**

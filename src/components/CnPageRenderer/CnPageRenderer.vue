@@ -30,11 +30,13 @@
 			:is="resolvedComponent"
 			v-if="resolvedComponent"
 			v-bind="resolvedProps">
-			<template v-if="headerOverride" #header="slotProps">
-				<component :is="headerOverride" v-bind="slotProps" />
-			</template>
-			<template v-if="actionsOverride" #actions="slotProps">
-				<component :is="actionsOverride" v-bind="slotProps" />
+			<template
+				v-for="entry in resolvedSlotEntries"
+				#[entry.name]="slotProps">
+				<component
+					:is="entry.component"
+					:key="entry.name"
+					v-bind="slotProps" />
 			</template>
 		</component>
 	</div>
@@ -162,32 +164,63 @@ export default {
 			return this.currentPage?.config ?? {}
 		},
 		/**
-		 * Custom component to render in the dispatched page's `#header`
-		 * slot, resolved from `page.headerComponent` against the registry.
-		 * Null when not set or not found in the registry (with a console
-		 * warning emitted when an unknown name is referenced).
+		 * Combined slot-override map for the dispatched page component.
+		 * Sources:
+		 *   1. `page.slots` — generic { slotName: registryName } map.
+		 *   2. `page.headerComponent` — sugar for `slots.header`.
+		 *   3. `page.actionsComponent` — sugar for `slots.actions`.
+		 *
+		 * Sugar fields take precedence when both are set so that the
+		 * legacy fields remain meaningful in mixed manifests. Returned
+		 * as an array of `{ name, component }` entries to make the
+		 * `<template v-for>` + dynamic-slot-name pattern work in Vue 2.
 		 */
-		headerOverride() {
-			return this.resolveSlotOverride('headerComponent')
+		resolvedSlotEntries() {
+			const page = this.currentPage
+			if (!page) return []
+			const map = { ...(page.slots ?? {}) }
+			if (page.headerComponent) map.header = page.headerComponent
+			if (page.actionsComponent) map.actions = page.actionsComponent
+			const entries = []
+			for (const [name, registryName] of Object.entries(map)) {
+				const component = this.resolveRegistryName(registryName, name)
+				if (component) entries.push({ name, component })
+			}
+			return entries
 		},
 		/**
-		 * Custom component to render in the dispatched page's `#actions`
-		 * slot, resolved from `page.actionsComponent` against the registry.
+		 * @deprecated Use `resolvedSlotEntries` for general slot
+		 * resolution. Retained for compatibility with code that read the
+		 * computed directly.
+		 */
+		headerOverride() {
+			return this.resolvedSlotEntries.find((e) => e.name === 'header')?.component ?? null
+		},
+		/**
+		 * @deprecated See `headerOverride`.
 		 */
 		actionsOverride() {
-			return this.resolveSlotOverride('actionsComponent')
+			return this.resolvedSlotEntries.find((e) => e.name === 'actions')?.component ?? null
 		},
 	},
 
 	methods: {
-		resolveSlotOverride(field) {
-			const name = this.currentPage?.[field]
-			if (!name) return null
-			const resolved = this.effectiveCustomComponents[name]
+		/**
+		 * Resolve a registry component name. Logs a single console.warn
+		 * naming the slot if the name is not in the registry.
+		 *
+		 * @param {string} registryName Name of the component to look up
+		 *   in `effectiveCustomComponents`.
+		 * @param {string} slotName Slot the component would have filled
+		 *   (used only for the warning message).
+		 * @return {object|null}
+		 */
+		resolveRegistryName(registryName, slotName) {
+			const resolved = this.effectiveCustomComponents[registryName]
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(
-					`[CnPageRenderer] Slot-override component "${name}" referenced by page id "${this.currentPage.id}" (${field}) not found in registry.`,
+					`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`,
 				)
 				return null
 			}

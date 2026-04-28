@@ -17,6 +17,8 @@ const SettingsPageStub = {
 
 const HeaderStub = { name: 'HeaderStub', template: '<div class="header-stub" />' }
 const ActionsStub = { name: 'ActionsStub', template: '<div class="actions-stub" />' }
+const CreateDialogStub = { name: 'CreateDialogStub', template: '<div class="create-dialog-stub" />' }
+const FormFieldsStub = { name: 'FormFieldsStub', template: '<div class="form-fields-stub" />' }
 
 const sampleManifest = {
 	version: '1.0.0',
@@ -42,6 +44,37 @@ const sampleManifest = {
 			title: 'app.home',
 			headerComponent: 'NonExistent',
 		},
+		{
+			id: 'home-with-slots',
+			route: '/with-slots',
+			type: 'index',
+			title: 'app.home',
+			slots: {
+				'create-dialog': 'CreateDialog',
+				'form-fields': 'FormFields',
+			},
+		},
+		{
+			id: 'home-mixed-overrides',
+			route: '/mixed',
+			type: 'index',
+			title: 'app.home',
+			headerComponent: 'MyHeader',
+			actionsComponent: 'MyActions',
+			slots: {
+				'create-dialog': 'CreateDialog',
+				header: 'CreateDialog',
+			},
+		},
+		{
+			id: 'home-bad-slot',
+			route: '/bad-slot',
+			type: 'index',
+			title: 'app.home',
+			slots: {
+				'create-dialog': 'NonExistent',
+			},
+		},
 	],
 }
 
@@ -49,6 +82,8 @@ const defaultRegistry = () => ({
 	SettingsPage: SettingsPageStub,
 	MyHeader: HeaderStub,
 	MyActions: ActionsStub,
+	CreateDialog: CreateDialogStub,
+	FormFields: FormFieldsStub,
 })
 
 function mountRenderer(routeName, { useProps = false, customComponents = defaultRegistry() } = {}) {
@@ -210,6 +245,40 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.headerOverride).toBeNull()
 			expect(warnSpy).toHaveBeenCalledWith(
 				expect.stringContaining('Slot-override component "NonExistent"'),
+			)
+		})
+	})
+
+	describe('generic slots map', () => {
+		it('resolves every entry in pages[].slots into a {name, component} entry', () => {
+			const wrapper = mountRenderer('home-with-slots')
+			const entries = wrapper.vm.resolvedSlotEntries
+			expect(entries).toHaveLength(2)
+			expect(entries.find((e) => e.name === 'create-dialog').component).toBe(CreateDialogStub)
+			expect(entries.find((e) => e.name === 'form-fields').component).toBe(FormFieldsStub)
+		})
+
+		it('combines `slots` map with the headerComponent / actionsComponent sugar fields', () => {
+			const wrapper = mountRenderer('home-mixed-overrides')
+			const entries = wrapper.vm.resolvedSlotEntries
+			const byName = Object.fromEntries(entries.map((e) => [e.name, e.component]))
+			// headerComponent ("MyHeader") wins over slots.header ("CreateDialog") because
+			// the sugar fields are applied after the slots map.
+			expect(byName.header).toBe(HeaderStub)
+			expect(byName.actions).toBe(ActionsStub)
+			expect(byName['create-dialog']).toBe(CreateDialogStub)
+		})
+
+		it('returns an empty array when page has no slot overrides', () => {
+			const wrapper = mountRenderer('home')
+			expect(wrapper.vm.resolvedSlotEntries).toEqual([])
+		})
+
+		it('skips and warns on a slot whose component is missing from the registry', () => {
+			const wrapper = mountRenderer('home-bad-slot')
+			expect(wrapper.vm.resolvedSlotEntries).toEqual([])
+			expect(warnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('slot "create-dialog"'),
 			)
 		})
 	})
