@@ -7,6 +7,7 @@
 				row-key="_id"
 				:selectable="false"
 				:row-class="getRowClass"
+				:cell-class="getCellClass"
 				:empty-text="'No properties found. Click &quot;Add property&quot; to create one.'"
 				@row-click="onRowClick">
 				<template #actions-header>
@@ -263,6 +264,10 @@ export default {
 				classes.push('cn-schema-form__modified-row')
 			}
 			return classes.join(' ')
+		},
+
+		getCellClass(row) {
+			return this.selectedProperty === row._key ? 'cn-schema-form__editing-cell' : ''
 		},
 
 		onRowClick(row) {
