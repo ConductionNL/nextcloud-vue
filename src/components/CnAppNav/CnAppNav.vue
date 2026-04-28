@@ -235,11 +235,20 @@ export default {
  * `#footer` slot). Reset list defaults so the entries align with the
  * main list, and add a thin separator above the group so it visually
  * detaches from the scrollable list when the two meet.
+ *
+ * NcAppNavigation's scoped style targets `.app-navigation__content >
+ * ul` with `overflow-y: auto` + flex padding, and Vue 2 propagates the
+ * parent's data-v attribute onto slot-root elements — so without these
+ * overrides the footer list renders its own scrollbar even though the
+ * footer area has plenty of room. The `!important` flags force-beat
+ * the parent rule's specificity (which includes the data-v attribute).
  */
 .cn-app-nav__footer-list {
 	list-style: none;
 	margin: 0;
-	padding: 0;
+	padding: 0 !important;
 	border-top: 1px solid var(--color-border);
+	overflow: visible !important;
+	flex: 0 0 auto;
 }
 </style>
