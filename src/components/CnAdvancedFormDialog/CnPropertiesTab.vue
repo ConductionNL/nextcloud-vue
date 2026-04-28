@@ -51,6 +51,11 @@
 								:size="16"
 								:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
 							<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
+							<span
+								v-if="isRequired(key)"
+								class="cn-advanced-form-dialog__required-indicator"
+								:title="t('nextcloud-vue', 'Required')"
+								aria-label="required">*</span>
 						</div>
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
@@ -215,6 +220,19 @@ export default {
 
 		onPropertyValueUpdate(key, value) {
 			this.$emit('update:property-value', { key, value })
+		},
+
+		/**
+		 * Whether a property is marked required either via `schema.required: [...]`
+		 * (the JSON-Schema-canonical place) or via `prop.required: true` on the
+		 * property entry itself (a non-standard but commonly seen variant).
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
+		isRequired(key) {
+			if ((this.schema?.required || []).includes(key)) return true
+			const prop = this.schema?.properties?.[key]
+			return !!(prop && prop.required === true)
 		},
 
 		isConstantOrImmutableKey(key) {
@@ -506,5 +524,11 @@ export default {
 
 .cn-advanced-form-dialog__validation-icon--new {
 	color: var(--color-primary-element);
+}
+
+.cn-advanced-form-dialog__required-indicator {
+	color: var(--color-error);
+	font-weight: bold;
+	cursor: help;
 }
 </style>

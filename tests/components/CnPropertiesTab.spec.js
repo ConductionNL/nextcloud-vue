@@ -123,6 +123,41 @@ describe('CnPropertiesTab', () => {
 		expect(wrapper.emitted('update:property-value')[0][0]).toEqual({ key: 'title', value: 'World' })
 	})
 
+	it('renders a required indicator for properties listed in schema.required', () => {
+		const wrapper = mount(CnPropertiesTab, {
+			propsData: {
+				schema: {
+					required: ['title'],
+					properties: {
+						title: { type: 'string', title: 'Title' },
+						summary: { type: 'string', title: 'Summary' },
+					},
+				},
+				item: { title: 'Hello', summary: '' },
+				formData: {},
+			},
+			stubs: baseStubs,
+		})
+		const indicators = wrapper.findAll('.cn-advanced-form-dialog__required-indicator')
+		expect(indicators.length).toBe(1)
+		expect(indicators.at(0).text()).toBe('*')
+		expect(wrapper.vm.isRequired('title')).toBe(true)
+		expect(wrapper.vm.isRequired('summary')).toBe(false)
+	})
+
+	it('isRequired honours per-property required:true as well', () => {
+		const wrapper = mount(CnPropertiesTab, {
+			propsData: {
+				schema: { properties: { tag: { type: 'string', required: true } } },
+				item: { tag: 'a' },
+				formData: {},
+			},
+			stubs: baseStubs,
+		})
+		expect(wrapper.vm.isRequired('tag')).toBe(true)
+		expect(wrapper.findAll('.cn-advanced-form-dialog__required-indicator').length).toBe(1)
+	})
+
 	it('value-cell scoped slot replaces the default cell', () => {
 		const wrapper = mount(CnPropertiesTab, {
 			propsData: {

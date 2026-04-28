@@ -71,6 +71,14 @@ If the standard create/edit dialog with Properties / Metadata / Data tabs is eno
 
 ---
 
+## Required-property indicator
+
+Properties listed in the schema's `required` array (or marked `required: true` on the property entry itself) get a red `*` next to their display name. The indicator is independent of validation state — it always shows for required fields, even when they have a valid value — so the user can tell at a glance which fields the schema treats as mandatory.
+
+The validation icon (red `AlertCircle`) still appears separately when a required field is empty (or otherwise invalid).
+
+---
+
 ## Public properties
 
 These are accessible via `$refs` and are useful for parents that want to drive UI based on the table state.
