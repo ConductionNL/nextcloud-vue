@@ -22,6 +22,9 @@
  */
 export type TPageType = 'index' | 'detail' | 'dashboard' | 'custom' | (string & {})
 
+/** Where a menu entry renders inside CnAppNav. */
+export type TManifestMenuSection = 'main' | 'settings'
+
 /** A nested menu entry. Cannot have further children. */
 export interface TManifestMenuItemLeaf {
 	id: string
@@ -30,6 +33,17 @@ export interface TManifestMenuItemLeaf {
 	route?: string
 	order?: number
 	permission?: string
+	/**
+	 * Placement within CnAppNav. `"main"` (default) renders in the top
+	 * list; `"settings"` renders inside the NcAppNavigationSettings
+	 * footer group.
+	 */
+	section?: TManifestMenuSection
+	/**
+	 * External URL. When set, the item opens this URL in a new tab and
+	 * `route` is ignored.
+	 */
+	href?: string
 }
 
 /** A top-level menu entry. May contain one level of nested children. */

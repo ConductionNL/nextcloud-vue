@@ -66,6 +66,16 @@
 					"type": "string",
 					"description": "Permission string the user must hold for this entry to render. CnAppNav filters items whose permission is not present in its permissions prop."
 				},
+				"section": {
+					"type": "string",
+					"enum": ["main", "settings"],
+					"default": "main",
+					"description": "Where the entry renders inside CnAppNav. \"main\" (default) places it in the top list. \"settings\" places it inside the NcAppNavigationSettings footer group, below the separator. Use \"settings\" for items that act on app configuration, help/docs links, or anything that belongs near Settings."
+				},
+				"href": {
+					"type": "string",
+					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
+				},
 				"children": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/menuItemLeaf" },
@@ -84,7 +94,13 @@
 				"icon": { "type": "string" },
 				"route": { "type": "string" },
 				"order": { "type": "integer" },
-				"permission": { "type": "string" }
+				"permission": { "type": "string" },
+				"section": {
+					"type": "string",
+					"enum": ["main", "settings"],
+					"default": "main"
+				},
+				"href": { "type": "string" }
 			}
 		},
 		"page": {

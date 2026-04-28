@@ -16,25 +16,39 @@
 <template>
 	<NcAppNavigation>
 		<NcAppNavigationItem
-			v-for="item in visibleItems"
+			v-for="item in mainItems"
 			:key="item.id"
 			:name="resolveLabel(item)"
-			:to="item.route ? { name: item.route } : null"
+			:to="itemTo(item)"
 			:icon="item.icon"
-			:active="isActive(item)">
+			:active="isActive(item)"
+			@click="onItemClick(item, $event)">
 			<NcAppNavigationItem
 				v-for="child in visibleChildren(item)"
 				:key="child.id"
 				:name="resolveLabel(child)"
-				:to="child.route ? { name: child.route } : null"
+				:to="itemTo(child)"
 				:icon="child.icon"
-				:active="isActive(child)" />
+				:active="isActive(child)"
+				@click="onItemClick(child, $event)" />
 		</NcAppNavigationItem>
+		<template v-if="settingsItems.length" #footer>
+			<NcAppNavigationSettings>
+				<NcAppNavigationItem
+					v-for="item in settingsItems"
+					:key="item.id"
+					:name="resolveLabel(item)"
+					:to="itemTo(item)"
+					:icon="item.icon"
+					:active="isActive(item)"
+					@click="onItemClick(item, $event)" />
+			</NcAppNavigationSettings>
+		</template>
 	</NcAppNavigation>
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationSettings } from '@nextcloud/vue'
 
 export default {
 	name: 'CnAppNav',
@@ -42,6 +56,7 @@ export default {
 	components: {
 		NcAppNavigation,
 		NcAppNavigationItem,
+		NcAppNavigationSettings,
 	},
 
 	inject: {
@@ -92,9 +107,10 @@ export default {
 			return this.translate ?? this.cnTranslate
 		},
 		/**
-		 * Top-level items, filtered by permission and sorted by order.
-		 * Items without an order sink to the bottom; otherwise stable
-		 * by ascending order.
+		 * All visible items (filtered by permission, sorted by order).
+		 * Retained for backwards-compat with the previous public API and
+		 * tests that read this computed; new code should use
+		 * `mainItems` / `settingsItems` instead.
 		 */
 		visibleItems() {
 			const items = this.effectiveManifest?.menu ?? []
@@ -109,6 +125,18 @@ export default {
 					if (!aHas && !bHas) return 0
 					return a.order - b.order
 				})
+		},
+		/** Items that render in the top list (default placement). */
+		mainItems() {
+			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
+		},
+		/**
+		 * Items that render inside `NcAppNavigationSettings` (the footer
+		 * group below the separator). Use for help / docs / settings
+		 * entries that should sit visually distinct from the main nav.
+		 */
+		settingsItems() {
+			return this.visibleItems.filter((item) => item.section === 'settings')
 		},
 	},
 
@@ -126,8 +154,30 @@ export default {
 			return this.effectiveTranslate(item.label)
 		},
 		isActive(item) {
-			if (!item.route) return false
+			if (item.href || !item.route) return false
 			return this.$route?.name === item.route
+		},
+		/**
+		 * Build the `:to` value for an `NcAppNavigationItem`. External
+		 * (`href`) items return `null` so the underlying anchor falls
+		 * through to a click handler instead of vue-router; route items
+		 * return a named route.
+		 */
+		itemTo(item) {
+			if (item.href) return null
+			return item.route ? { name: item.route } : null
+		},
+		/**
+		 * Click handler. For external (`href`) items, opens the URL in a
+		 * new tab with safe rel attributes. Route items are handled by
+		 * `:to` and skip this path.
+		 */
+		onItemClick(item, event) {
+			if (!item.href) return
+			if (event && typeof event.preventDefault === 'function') {
+				event.preventDefault()
+			}
+			window.open(item.href, '_blank', 'noopener,noreferrer')
 		},
 	},
 }
