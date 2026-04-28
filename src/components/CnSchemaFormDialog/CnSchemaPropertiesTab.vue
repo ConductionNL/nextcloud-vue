@@ -276,8 +276,8 @@ export default {
 		},
 
 		onPropertyKeyUpdate(oldKey, newKey) {
-			if (!newKey || newKey === oldKey) return
-			if (this.schema.properties[newKey] && newKey !== oldKey) return
+			if (newKey === oldKey) return
+			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) return
 
 			this.isRenaming = true
 

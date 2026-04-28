@@ -6,7 +6,8 @@
 		:dialog-title="dialogTitle"
 		entity-name="Schema"
 		:size="size"
-		:disable-save="!schemaItem.title"
+		:disable-save="!!saveDisabledReason"
+		:disable-save-tooltip="saveDisabledReason"
 		:success-text="resolvedSuccessText"
 		:cancel-label="cancelLabel"
 		:close-label="closeLabel"
@@ -387,6 +388,23 @@ export default {
 			if (this.successText) return this.successText
 			return 'Schema saved successfully.'
 		},
+		/**
+		 * Returns a human-readable reason the save button is disabled, or '' when saving is allowed.
+		 * Used for both :disable-save and the WCAG tooltip/aria-label on the button.
+		 *
+		 * @return {string}
+		 */
+		saveDisabledReason() {
+			if (!this.schemaItem.title) {
+				return t('nextcloud-vue', 'A schema title is required before saving')
+			}
+			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some(key => key === '')
+			if (hasUnnamedProperty) {
+				return t('nextcloud-vue', 'All properties must have a name before saving')
+			}
+			return ''
+		},
+
 		allOfSchemaNames() {
 			if (!this.schemaItem.allOf || !Array.isArray(this.schemaItem.allOf) || this.schemaItem.allOf.length === 0) {
 				return []
@@ -636,8 +654,8 @@ export default {
 		},
 
 		updatePropertyKey(oldKey, newKey) {
-			if (!newKey || newKey === oldKey) return
-			if (this.schemaItem.properties[newKey] && newKey !== oldKey) return
+			if (newKey === oldKey) return
+			if (this.schemaItem.properties[newKey] !== undefined && newKey !== oldKey) return
 
 			const propertyData = { ...this.schemaItem.properties[oldKey] }
 

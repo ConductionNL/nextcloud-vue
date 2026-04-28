@@ -86,8 +86,10 @@
 			<!-- Primary action button (Save / Create) -->
 			<NcButton
 				v-if="createAnother || result === null"
+				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				type="primary"
 				:disabled="loading || disableSave"
+				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -203,6 +205,16 @@ export default {
 		disableSave: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Tooltip shown on the save button when it is disabled.
+		 * Also used as aria-label so screen readers can explain the blocked state (WCAG 2.1 AA).
+		 *
+		 * @type {string}
+		 */
+		disableSaveTooltip: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * Custom success message shown in the result NcNoteCard.
