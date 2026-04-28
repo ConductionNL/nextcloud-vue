@@ -13,21 +13,32 @@ const cache = new Map()
 
 /**
  * Composable that reports whether a given Nextcloud app is installed
- * and enabled, by checking the bootstrapped capabilities object.
+ * and enabled.
  *
  * Implements REQ-JMR-012 of the json-manifest-renderer capability:
  *  - generic over `appId` so callers can check `openregister`,
- *    `opencatalogi`, or any other Conduction app
+ *    `opencatalogi`, or any other Nextcloud app
  *  - results are cached per `appId` for the page lifetime; repeated
- *    calls reuse the same refs without re-invoking `getCapabilities()`
+ *    calls reuse the same refs without re-checking
  *  - on error the composable falls back to `{ installed: false,
  *    enabled: false }` and logs a `console.warn`, so a failed
- *    capabilities read never crashes the app shell
+ *    lookup never crashes the app shell
  *
- * The current implementation reads from `@nextcloud/capabilities`,
- * which is populated synchronously at page bootstrap. The OCS apps
- * endpoint is not used as a fallback today; if/when capabilities turn
- * out to lag a fresh app install, that fallback is a small addition.
+ * Detection order:
+ *  1. `OC.appswebroots[appId]` — a global object Nextcloud injects on
+ *     every authenticated page load that contains a key for every app
+ *     enabled for the current user. This is the most reliable signal:
+ *     it doesn't require the target app to opt into the capabilities
+ *     API, and it reflects per-user enablement.
+ *  2. `getCapabilities()[appId]` — falls back to the capabilities
+ *     bootstrap when `OC` is not available (rare; mostly for tests).
+ *     Apps that implement `\OCP\Capabilities\ICapability` advertise
+ *     themselves here.
+ *
+ * Most Conduction / OpenRegister-backed apps do NOT register a
+ * capability key, which is why the appswebroots check has to come
+ * first — capabilities alone would report every Conduction app as
+ * "missing" even when they are installed and enabled.
  *
  * @param {string} appId Nextcloud app id (e.g. `"openregister"`).
  * @return {{ installed: import('vue').Ref<boolean>, enabled: import('vue').Ref<boolean>, loading: import('vue').Ref<boolean> }}
@@ -49,6 +60,19 @@ export function useAppStatus(appId) {
 	cache.set(appId, result)
 
 	try {
+		// Primary check: the global `OC.appswebroots` map. NC populates
+		// this with one key per app enabled for the current user. Tests
+		// running outside a real Nextcloud page won't have it, in which
+		// case we fall through to the capabilities check.
+		const ocAppsWebRoots = (typeof OC !== 'undefined' && OC && OC.appswebroots) || null
+		if (ocAppsWebRoots && Object.prototype.hasOwnProperty.call(ocAppsWebRoots, appId)) {
+			installed.value = true
+			enabled.value = true
+			return result
+		}
+
+		// Secondary check: capabilities API. Only apps that implement
+		// `ICapability` advertise themselves here.
 		const capabilities = getCapabilities()
 		if (
 			capabilities
@@ -61,7 +85,7 @@ export function useAppStatus(appId) {
 	} catch (err) {
 		// eslint-disable-next-line no-console
 		console.warn(
-			`[useAppStatus] Failed to read capabilities for "${appId}":`,
+			`[useAppStatus] Failed to determine status for "${appId}":`,
 			err,
 		)
 		// installed and enabled stay false

@@ -46,16 +46,18 @@
 			<slot name="menu">
 				<CnAppNav :permissions="permissions" />
 			</slot>
-			<router-view />
-			<slot name="header-actions" />
+			<NcAppContent>
+				<router-view />
+				<slot name="header-actions" />
+				<slot name="footer" />
+			</NcAppContent>
 			<slot name="sidebar" />
-			<slot name="footer" />
 		</template>
 	</NcContent>
 </template>
 
 <script>
-import { NcContent } from '@nextcloud/vue'
+import { NcAppContent, NcContent } from '@nextcloud/vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
@@ -65,6 +67,7 @@ export default {
 	name: 'CnAppRoot',
 
 	components: {
+		NcAppContent,
 		NcContent,
 		CnAppNav,
 		CnAppLoading,
