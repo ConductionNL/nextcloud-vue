@@ -15,23 +15,27 @@
 -->
 <template>
 	<NcAppNavigation>
-		<NcAppNavigationItem
-			v-for="item in mainItems"
-			:key="item.id"
-			:name="resolveLabel(item)"
-			:to="itemTo(item)"
-			:icon="item.icon"
-			:active="isActive(item)"
-			@click="onItemClick(item, $event)">
+		<template #list>
 			<NcAppNavigationItem
-				v-for="child in visibleChildren(item)"
-				:key="child.id"
-				:name="resolveLabel(child)"
-				:to="itemTo(child)"
-				:icon="child.icon"
-				:active="isActive(child)"
-				@click="onItemClick(child, $event)" />
-		</NcAppNavigationItem>
+				v-for="item in mainItems"
+				:key="item.id"
+				:name="resolveLabel(item)"
+				:to="itemTo(item)"
+				:exact="isExact(item)"
+				:icon="item.icon"
+				:active="isActive(item)"
+				@click="onItemClick(item, $event)">
+				<NcAppNavigationItem
+					v-for="child in visibleChildren(item)"
+					:key="child.id"
+					:name="resolveLabel(child)"
+					:to="itemTo(child)"
+					:exact="isExact(child)"
+					:icon="child.icon"
+					:active="isActive(child)"
+					@click="onItemClick(child, $event)" />
+			</NcAppNavigationItem>
+		</template>
 		<template v-if="settingsItems.length" #footer>
 			<NcAppNavigationSettings>
 				<NcAppNavigationItem
@@ -39,6 +43,7 @@
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
+					:exact="isExact(item)"
 					:icon="item.icon"
 					:active="isActive(item)"
 					@click="onItemClick(item, $event)" />
@@ -158,6 +163,26 @@ export default {
 			return this.$route?.name === item.route
 		},
 		/**
+		 * Look up an item's resolved page (`pages[]` entry whose `id`
+		 * matches the menu item's `route`) — used to decide whether the
+		 * NcAppNavigationItem should match its router-link `exact`.
+		 */
+		pageForItem(item) {
+			if (!item.route) return null
+			const pages = this.effectiveManifest?.pages ?? []
+			return pages.find((p) => p.id === item.route) ?? null
+		},
+		/**
+		 * Pass-through for `NcAppNavigationItem`'s router-link `exact`.
+		 * Root paths (`/`) match every nested route by default, which
+		 * makes the root item permanently look active. Returning true
+		 * for `route === '/'` restores the expected behaviour.
+		 */
+		isExact(item) {
+			const page = this.pageForItem(item)
+			return page?.route === '/'
+		},
+		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. External
 		 * (`href`) items return `null` so the underlying anchor falls
 		 * through to a click handler instead of vue-router; route items
@@ -182,3 +207,18 @@ export default {
 	},
 }
 </script>
+
+<style>
+/*
+ * The legacy `icon-*` classes in Nextcloud render a background-image
+ * with a hardcoded dark fill, so they stay grey when an entry becomes
+ * active (text turns white against the primary-element background).
+ * Force the icon to white in the active state to match the label.
+ * Only applies when the icon is provided via the `icon` prop (CSS
+ * class) — items using a `<template #icon>` MDI component already
+ * inherit `currentColor`.
+ */
+.app-navigation-entry.active .app-navigation-entry-icon[class*="icon-"] {
+	filter: brightness(0) invert(1);
+}
+</style>
