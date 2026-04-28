@@ -130,7 +130,7 @@ import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
-const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
+const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
 
 /**
  * CnAdvancedFormDialog — Create/edit dialog with properties table (click-to-edit), JSON tab, and optional store integration.

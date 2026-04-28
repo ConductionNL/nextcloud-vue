@@ -9,6 +9,11 @@
 					<th class="cn-advanced-form-dialog__table-col-expanded">
 						{{ t('nextcloud-vue', 'Value') }}
 					</th>
+					<th
+						v-if="hasRowActionsSlot"
+						class="cn-advanced-form-dialog__table-col-actions">
+						<slot name="row-actions-header" />
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -49,16 +54,44 @@
 						</div>
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
-						<CnPropertyValueCell
-							:ref="'cell-' + key"
+						<slot
+							name="value-cell"
 							:property-key="key"
-							:schema="schema"
-							:value="resolvedValue(key, value)"
-							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+							:value="value"
+							:resolved-value="resolvedValue(key, value)"
 							:is-editing="selectedProperty === key"
+							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
 							:display-name="getPropertyDisplayName(key)"
+							:schema-prop="schema && schema.properties && schema.properties[key]"
 							:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
-							@update:value="onPropertyValueUpdate(key, $event)" />
+							:on-update="(v) => onPropertyValueUpdate(key, v)">
+							<CnPropertyValueCell
+								:ref="'cell-' + key"
+								:property-key="key"
+								:schema="schema"
+								:value="resolvedValue(key, value)"
+								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+								:is-editing="selectedProperty === key"
+								:display-name="getPropertyDisplayName(key)"
+								:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
+								:widget="(propertyOverrides[key] && propertyOverrides[key].widget) || null"
+								:select-options="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
+								:select-multiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
+								:textarea-rows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
+								@update:value="onPropertyValueUpdate(key, $event)" />
+						</slot>
+					</td>
+					<td
+						v-if="hasRowActionsSlot"
+						class="cn-advanced-form-dialog__table-col-actions"
+						@click.stop>
+						<slot
+							name="row-actions"
+							:property-key="key"
+							:value="value"
+							:resolved-value="resolvedValue(key, value)"
+							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+							:is-schema-property="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
 					</td>
 				</tr>
 			</tbody>
@@ -67,6 +100,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
@@ -89,10 +123,20 @@ export default {
 		item: { type: Object, default: null },
 		formData: { type: Object, default: () => ({}) },
 		selectedProperty: { type: String, default: null },
-		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean'] },
+		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean', 'array', 'object'] },
 		validationDisplay: { type: String, default: 'indicator' },
 		excludeFields: { type: Array, default: () => [] },
 		includeFields: { type: Array, default: null },
+		/**
+		 * When false (default), properties whose schema entry has `const` set or `immutable: true`
+		 * are filtered out of the list. When true, every property is shown regardless.
+		 */
+		showConstantProperties: { type: Boolean, default: true },
+		/**
+		 * Per-property overrides forwarded to CnPropertyValueCell. Keyed by property key.
+		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows }`.
+		 */
+		propertyOverrides: { type: Object, default: () => ({}) },
 	},
 
 	computed: {
@@ -125,11 +169,41 @@ export default {
 					missing.push([key, def])
 				}
 			}
-			return [...existing, ...missing]
+			const all = [...existing, ...missing]
+			if (this.showConstantProperties) return all
+			return all.filter(([key]) => !this.isConstantOrImmutableKey(key))
+		},
+
+		/**
+		 * True when at least one property in the (unfiltered) list is constant or immutable.
+		 * Useful for parents that want to render a show/hide-toggle button only when relevant.
+		 */
+		hasConstantOrImmutableProperties() {
+			const schemaProps = this.schema?.properties || {}
+			const obj = this.item || {}
+			const exclude = this.excludeFields || []
+			const include = this.includeFields
+			const keys = new Set([
+				...Object.keys(obj),
+				...Object.keys(schemaProps),
+			])
+			for (const k of keys) {
+				if (k === '@self' || k === 'id') continue
+				if (exclude.includes(k)) continue
+				if (include && !include.includes(k)) continue
+				if (this.isConstantOrImmutableKey(k)) return true
+			}
+			return false
+		},
+
+		hasRowActionsSlot() {
+			return !!this.$scopedSlots['row-actions']
 		},
 	},
 
 	methods: {
+		t,
+
 		/**
 		 * The effective value for a key: formData override or the object's own value
 		 * @param {string} key - The property key to look up
@@ -141,6 +215,14 @@ export default {
 
 		onPropertyValueUpdate(key, value) {
 			this.$emit('update:property-value', { key, value })
+		},
+
+		isConstantOrImmutableKey(key) {
+			const prop = this.schema?.properties?.[key]
+			if (!prop) return false
+			if (prop.const !== undefined) return true
+			if (prop.immutable === true || prop.readOnly === true) return true
+			return false
 		},
 
 		isPropertyEditable(key, value) {
@@ -380,6 +462,12 @@ export default {
 .cn-advanced-form-dialog__table-col-expanded {
 	width: auto;
 	min-width: 200px;
+}
+
+.cn-advanced-form-dialog__table-col-actions {
+	width: 56px;
+	text-align: right;
+	white-space: nowrap;
 }
 
 .cn-advanced-form-dialog__prop-cell {
