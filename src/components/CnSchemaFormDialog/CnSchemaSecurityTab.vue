@@ -29,116 +29,45 @@
 					</tr>
 				</thead>
 				<tbody>
-					<!-- Public group at top -->
 					<tr class="cn-schema-form__public-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__public">public</span>
 							<small>Unauthenticated users</small>
 						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('public', 'create')"
-								@update:checked="updateGroupPermission('public', 'create', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('public', 'read')"
-								@update:checked="updateGroupPermission('public', 'read', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('public', 'update')"
-								@update:checked="updateGroupPermission('public', 'update', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('public', 'delete')"
-								@update:checked="updateGroupPermission('public', 'delete', $event)" />
-						</td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'create')" @update:checked="updateGroupPermission('public', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'read')" @update:checked="updateGroupPermission('public', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'update')" @update:checked="updateGroupPermission('public', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'delete')" @update:checked="updateGroupPermission('public', 'delete', $event)" /></td>
 					</tr>
-
-					<!-- Authenticated users group -->
 					<tr class="cn-schema-form__user-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__user">authenticated</span>
 							<small>Authenticated users</small>
 						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('authenticated', 'create')"
-								@update:checked="updateGroupPermission('authenticated', 'create', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('authenticated', 'read')"
-								@update:checked="updateGroupPermission('authenticated', 'read', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('authenticated', 'update')"
-								@update:checked="updateGroupPermission('authenticated', 'update', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission('authenticated', 'delete')"
-								@update:checked="updateGroupPermission('authenticated', 'delete', $event)" />
-						</td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'create')" @update:checked="updateGroupPermission('authenticated', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'read')" @update:checked="updateGroupPermission('authenticated', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'update')" @update:checked="updateGroupPermission('authenticated', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'delete')" @update:checked="updateGroupPermission('authenticated', 'delete', $event)" /></td>
 					</tr>
-
-					<!-- Regular user groups -->
 					<tr v-for="group in sortedUserGroups" :key="group.id">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge">{{ group.displayname || group.id }}</span>
 							<small v-if="group.displayname && group.displayname !== group.id">{{ group.id }}</small>
 						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission(group.id, 'create')"
-								@update:checked="updateGroupPermission(group.id, 'create', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission(group.id, 'read')"
-								@update:checked="updateGroupPermission(group.id, 'read', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission(group.id, 'update')"
-								@update:checked="updateGroupPermission(group.id, 'update', $event)" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="hasGroupPermission(group.id, 'delete')"
-								@update:checked="updateGroupPermission(group.id, 'delete', $event)" />
-						</td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'create')" @update:checked="updateGroupPermission(group.id, 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'read')" @update:checked="updateGroupPermission(group.id, 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'update')" @update:checked="updateGroupPermission(group.id, 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'delete')" @update:checked="updateGroupPermission(group.id, 'delete', $event)" /></td>
 					</tr>
-
-					<!-- Admin group at bottom (disabled) -->
 					<tr class="cn-schema-form__admin-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__admin">admin</span>
 							<small>Always has full access</small>
 						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="true"
-								:disabled="true" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="true"
-								:disabled="true" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="true"
-								:disabled="true" />
-						</td>
-						<td>
-							<NcCheckboxRadioSwitch
-								:checked="true"
-								:disabled="true" />
-						</td>
+						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
 					</tr>
 				</tbody>
 			</table>
@@ -153,132 +82,181 @@
 			</div>
 		</div>
 
-		<!-- Advanced: Conditional Access Rules -->
+		<!-- Advanced: Conditional Access Rules (accordion) -->
 		<div class="cn-schema-form__conditional-section">
-			<h3>Advanced: Conditional access rules</h3>
-			<CnNoteCard type="info">
-				<p>Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access. Conditional rules and group permissions above work independently.</p>
-				<p>
-					<strong>Variables:</strong> <code>$now</code> (current date/time) &nbsp;
-					<code>$userId</code> (current user) &nbsp;
-					<code>$organisation</code> (current organisation)
-				</p>
-				<p>
-					<strong>Operators:</strong>
-					<code>$eq</code> <code>$ne</code> <code>$gt</code> <code>$gte</code>
-					<code>$lt</code> <code>$lte</code> <code>$in</code> <code>$nin</code> <code>$exists</code>
-				</p>
-			</CnNoteCard>
+			<!--
+				type="button" prevents browser from treating this as a form submit button,
+				which would reset scroll position inside NcDialog's internal <form>.
+			-->
+			<button type="button"
+				class="cn-schema-form__cond-accordion-header"
+				@click="showAdvanced = !showAdvanced">
+				<ChevronDown v-if="showAdvanced" :size="20" class="cn-schema-form__cond-chevron" />
+				<ChevronRight v-else :size="20" class="cn-schema-form__cond-chevron" />
+				<span>Advanced: Conditional access rules</span>
+				<span v-if="totalConditionalRules > 0" class="cn-schema-form__cond-count-badge">
+					{{ totalConditionalRules }}
+				</span>
+			</button>
 
-			<div v-for="action in actions" :key="action" class="cn-schema-form__cond-action">
-				<div class="cn-schema-form__cond-action-header">
-					<strong class="cn-schema-form__cond-action-name">{{ capitalize(action) }}</strong>
-					<NcButton size="small" @click="addConditionalRule(action)">
-						<template #icon>
-							<Plus :size="16" />
-						</template>
-						Add rule
-					</NcButton>
-				</div>
+			<div v-show="showAdvanced" class="cn-schema-form__cond-accordion-body">
+				<CnNoteCard type="info">
+					<p>Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.</p>
+					<p>
+						<strong>Variables:</strong>
+						<code>$now</code> (current date/time) &nbsp;
+						<code>$userId</code> (current user ID) &nbsp;
+						<code>$organisation</code> (current organisation)
+					</p>
+				</CnNoteCard>
 
-				<div v-if="getConditionalRules(action).length === 0" class="cn-schema-form__cond-empty">
-					No conditional rules for {{ action }}
-				</div>
-
-				<div v-for="({ rule, originalIndex }, ruleIdx) in getConditionalRules(action)"
-					:key="originalIndex"
-					class="cn-schema-form__cond-rule-card">
-					<!-- Rule header: group selector + remove button -->
-					<div class="cn-schema-form__cond-rule-header">
-						<label class="cn-schema-form__cond-rule-label">Group</label>
-						<select :value="rule.group"
-							class="cn-schema-form__cond-select"
-							@change="setRuleGroup(action, originalIndex, $event.target.value)">
-							<option value="public">public</option>
-							<option value="authenticated">authenticated</option>
-							<option v-for="group in sortedUserGroups" :key="group.id" :value="group.id">
-								{{ group.displayname || group.id }}
-							</option>
-						</select>
-						<NcButton type="tertiary-no-background"
-							@click="removeConditionalRule(action, originalIndex)">
+				<div v-for="action in actions" :key="action" class="cn-schema-form__cond-action">
+					<div class="cn-schema-form__cond-action-header">
+						<strong class="cn-schema-form__cond-action-name">{{ capitalize(action) }}</strong>
+						<NcButton size="small" @click="addConditionalRule(action)">
 							<template #icon>
-								<TrashCanOutline :size="16" />
+								<Plus :size="16" />
 							</template>
+							Add rule
 						</NcButton>
 					</div>
 
-					<!-- Conditions in match -->
-					<div class="cn-schema-form__cond-match-list">
-						<div v-if="!rule.match || Object.keys(rule.match).length === 0"
-							class="cn-schema-form__cond-match-empty">
-							No conditions yet — add at least one condition
-						</div>
-						<div v-for="(condObj, propKey) in (rule.match || {})"
-							:key="propKey"
-							class="cn-schema-form__cond-match-row">
-							<code class="cn-schema-form__cond-match-prop">{{ propKey }}</code>
-							<span class="cn-schema-form__cond-match-op">{{ Object.keys(condObj)[0] }}</span>
-							<code class="cn-schema-form__cond-match-val">{{ String(Object.values(condObj)[0]) }}</code>
-							<NcButton type="tertiary-no-background"
-								@click="removeCondition(action, originalIndex, propKey)">
+					<div v-if="getConditionalRules(action).length === 0" class="cn-schema-form__cond-empty">
+						No conditional rules for {{ action }}
+					</div>
+
+					<div v-for="({ rule, originalIndex }, ruleIdx) in getConditionalRules(action)"
+						:key="originalIndex"
+						class="cn-schema-form__cond-rule-card"
+						:class="{
+							'cn-schema-form__cond-rule-card--public': rule.group === 'public',
+							'cn-schema-form__cond-rule-card--authenticated': rule.group === 'authenticated',
+							'cn-schema-form__cond-rule-card--admin': rule.group === 'admin',
+						}">
+						<!-- Rule header row — styled like a table row with group + remove -->
+						<div class="cn-schema-form__cond-rule-header">
+							<span class="cn-schema-form__group-badge">
+								{{ rule.group }}
+							</span>
+							<div class="cn-schema-form__cond-rule-group-select">
+								<NcSelect
+									:value="getGroupOption(rule.group)"
+									:options="allGroupOptions"
+									:clearable="false"
+									aria-label-combobox="Group"
+									@input="setRuleGroup(action, originalIndex, $event)" />
+							</div>
+							<NcButton type="error"
+								@click="removeConditionalRule(action, originalIndex)">
 								<template #icon>
-									<Close :size="14" />
+									<TrashCanOutline :size="16" />
 								</template>
+								Remove rule
 							</NcButton>
 						</div>
-					</div>
 
-					<!-- Inline add-condition form -->
-					<div v-if="isAddingConditionFor(action, ruleIdx)"
-						class="cn-schema-form__cond-add-form">
-						<div class="cn-schema-form__cond-add-row">
-							<input v-model="newCondition.property"
-								:list="`cn-props-${action}-${ruleIdx}`"
-								class="cn-schema-form__cond-input"
-								placeholder="Property name" />
-							<datalist :id="`cn-props-${action}-${ruleIdx}`">
-								<option v-for="propKey in schemaPropertyKeys" :key="propKey" :value="propKey" />
-							</datalist>
+						<!-- Conditions list -->
+						<div class="cn-schema-form__cond-match-list">
+							<p v-if="!rule.match || Object.keys(rule.match).length === 0"
+								class="cn-schema-form__cond-match-empty">
+								No conditions yet — add at least one condition
+							</p>
+							<table v-else class="cn-schema-form__cond-match-table">
+								<thead>
+									<tr>
+										<th>Property</th>
+										<th>Operator</th>
+										<th>Value</th>
+										<th />
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(condObj, propKey) in (rule.match || {})"
+										:key="propKey"
+										class="cn-schema-form__cond-match-row">
+										<td>{{ propKey }}</td>
+										<td :title="Object.keys(condObj)[0]">
+											{{ getOperatorLabel(Object.keys(condObj)[0]) }}
+										</td>
+										<td>{{ formatConditionValue(Object.values(condObj)[0]) }}</td>
+										<td class="cn-schema-form__cond-match-actions">
+											<NcButton type="error"
+												size="small"
+												aria-label="Remove condition"
+												@click="removeCondition(action, originalIndex, propKey)">
+												<template #icon>
+													<Close :size="14" />
+												</template>
+											</NcButton>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
 
-							<select v-model="newCondition.operator" class="cn-schema-form__cond-op-select">
-								<option v-for="op in operators" :key="op" :value="op">{{ op }}</option>
-							</select>
+						<!-- Inline add-condition form -->
+						<div v-if="isAddingConditionFor(action, ruleIdx)"
+							:ref="`addForm-${action}-${ruleIdx}`"
+							class="cn-schema-form__cond-add-form">
+							<div class="cn-schema-form__cond-add-row">
+								<div class="cn-schema-form__cond-add-field">
+									<NcSelect
+										v-model="newCondition.propertyOption"
+										:options="availablePropertyOptions(action, ruleIdx)"
+										:clearable="false"
+										input-label="Property"
+										placeholder="Select property" />
+								</div>
+								<div class="cn-schema-form__cond-add-field">
+									<NcSelect
+										v-model="newCondition.operatorOption"
+										:options="operatorOptions"
+										:clearable="false"
+										input-label="Operator" />
+								</div>
+								<div class="cn-schema-form__cond-add-field">
+									<NcSelect
+										v-if="newCondition.operatorOption && newCondition.operatorOption.id === '$exists'"
+										v-model="newCondition.existsOption"
+										:options="existsOptions"
+										:clearable="false"
+										input-label="Value" />
+									<NcSelect
+										v-else
+										v-model="newCondition.valueOption"
+										:options="specialValueOptions"
+										:clearable="true"
+										input-label="Value"
+										placeholder="Select or type…"
+										@input="onValueOptionChange" />
+								</div>
+							</div>
+							<!-- Custom value appears below the three selects, never displaces them -->
+							<div v-if="newCondition.customValue !== null" class="cn-schema-form__cond-custom-row">
+								<label class="cn-schema-form__cond-add-label">Custom value</label>
+								<input v-model="newCondition.customValue"
+									class="cn-schema-form__cond-custom-input"
+									placeholder="Enter a custom value">
+							</div>
+							<div class="cn-schema-form__cond-add-actions">
+								<NcButton @click="confirmAddCondition(action, originalIndex)">
+									Add
+								</NcButton>
+								<NcButton type="tertiary" @click="cancelAddCondition()">
+									Cancel
+								</NcButton>
+							</div>
+						</div>
 
-							<select v-if="newCondition.operator === '$exists'"
-								v-model="newCondition.existsValue"
-								class="cn-schema-form__cond-input">
-								<option :value="true">true</option>
-								<option :value="false">false</option>
-							</select>
-							<template v-else>
-								<input v-model="newCondition.value"
-									:list="`cn-vals-${action}-${ruleIdx}`"
-									class="cn-schema-form__cond-input"
-									placeholder="Value (e.g. $now)" />
-								<datalist :id="`cn-vals-${action}-${ruleIdx}`">
-									<option value="$now" />
-									<option value="$userId" />
-									<option value="$organisation" />
-								</datalist>
+						<NcButton v-else
+							size="small"
+							@click="startAddCondition(action, ruleIdx)">
+							<template #icon>
+								<Plus :size="14" />
 							</template>
-						</div>
-						<div class="cn-schema-form__cond-add-actions">
-							<NcButton @click="confirmAddCondition(action, originalIndex)">
-								Add
-							</NcButton>
-							<NcButton type="tertiary" @click="cancelAddCondition()">
-								Cancel
-							</NcButton>
-						</div>
+							Add condition
+						</NcButton>
 					</div>
-
-					<NcButton v-else size="small" @click="startAddCondition(action, ruleIdx)">
-						<template #icon>
-							<Plus :size="14" />
-						</template>
-						Add condition
-					</NcButton>
 				</div>
 			</div>
 		</div>
@@ -290,12 +268,15 @@ import {
 	NcButton,
 	NcCheckboxRadioSwitch,
 	NcLoadingIcon,
+	NcSelect,
 } from '@nextcloud/vue'
 import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 
 /**
  * CnSchemaSecurityTab — RBAC permissions table + conditional access rules tab for CnSchemaFormDialog.
@@ -304,8 +285,8 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * schemaItem.authorization directly.
  *
  * authorization[action] is a mixed array:
- *   - strings like "public", "authenticated" — managed by the RBAC checkboxes above
- *   - objects like { group, match } — managed by the conditional rules section
+ *   - strings like "public", "authenticated" — managed by the RBAC checkboxes
+ *   - objects like { group, match } — managed by the conditional rules accordion
  */
 export default {
 	name: 'CnSchemaSecurityTab',
@@ -314,16 +295,19 @@ export default {
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
+		NcSelect,
 		Plus,
 		Close,
 		TrashCanOutline,
+		ChevronDown,
+		ChevronRight,
 	},
 	props: {
 		/** The full schema item — mutates authorization directly */
 		schemaItem: { type: Object, required: true },
 		/** Full user groups array */
 		userGroups: { type: Array, default: () => [] },
-		/** Filtered/sorted user groups (excludes admin/public) */
+		/** Filtered/sorted user groups (excludes admin/public/authenticated) */
 		sortedUserGroups: { type: Array, default: () => [] },
 		/** Whether groups are loading */
 		loadingGroups: { type: Boolean, default: false },
@@ -335,9 +319,15 @@ export default {
 	data() {
 		return {
 			actions: ['create', 'read', 'update', 'delete'],
-			operators: ['$eq', '$ne', '$gt', '$gte', '$lt', '$lte', '$in', '$nin', '$exists'],
+			showAdvanced: false,
 			addingCondition: { action: null, ruleIdx: null },
-			newCondition: { property: '', operator: '$lte', value: '', existsValue: true },
+			newCondition: {
+				propertyOption: null,
+				operatorOption: null,
+				valueOption: null,
+				customValue: null,
+				existsOption: null,
+			},
 		}
 	},
 	computed: {
@@ -345,13 +335,93 @@ export default {
 		schema() {
 			return this.schemaItem
 		},
-		schemaPropertyKeys() {
-			return Object.keys(this.schemaItem.properties || {})
+
+		operatorOptions() {
+			return [
+				{ id: '$eq', label: '= Equal to' },
+				{ id: '$ne', label: '≠ Not equal to' },
+				{ id: '$gt', label: '> Greater than' },
+				{ id: '$gte', label: '≥ Greater than or equal' },
+				{ id: '$lt', label: '< Less than' },
+				{ id: '$lte', label: '≤ Less than or equal' },
+				{ id: '$in', label: '∈ In list' },
+				{ id: '$nin', label: '∉ Not in list' },
+				{ id: '$exists', label: '∃ Exists' },
+			]
+		},
+
+		propertyOptions() {
+			const schemaProps = Object.keys(this.schemaItem.properties || {}).map(key => ({
+				id: key,
+				label: key,
+			}))
+			const systemProps = [
+				{ id: '_organisation', label: '_organisation (system)' },
+				{ id: '_owner', label: '_owner (system)' },
+				{ id: '_created', label: '_created (system)' },
+				{ id: '_updated', label: '_updated (system)' },
+			]
+			return [...schemaProps, ...systemProps]
+		},
+
+		specialValueOptions() {
+			return [
+				{ id: '$now', label: '$now — current date/time' },
+				{ id: '$userId', label: '$userId — current user ID' },
+				{ id: '$organisation', label: '$organisation — current organisation' },
+				{ id: '__custom__', label: 'Custom value…' },
+			]
+		},
+
+		existsOptions() {
+			return [
+				{ id: 'true', label: 'true — field must exist' },
+				{ id: 'false', label: 'false — field must not exist' },
+			]
+		},
+
+		allGroupOptions() {
+			return [
+				{ id: 'public', label: 'public' },
+				{ id: 'authenticated', label: 'authenticated' },
+				...this.sortedUserGroups.map(g => ({ id: g.id, label: g.displayname || g.id })),
+			]
+		},
+
+		totalConditionalRules() {
+			return this.actions.reduce((total, action) => {
+				return total + this.getConditionalRules(action).length
+			}, 0)
 		},
 	},
 	methods: {
 		capitalize(str) {
 			return str.charAt(0).toUpperCase() + str.slice(1)
+		},
+
+		availablePropertyOptions(action, ruleIdx) {
+			const rules = this.getConditionalRules(action)
+			const currentRule = rules[ruleIdx]
+			if (!currentRule || !currentRule.rule.match) return this.propertyOptions
+			const used = Object.keys(currentRule.rule.match)
+			return this.propertyOptions.filter(opt => !used.includes(opt.id))
+		},
+
+		// ─── Operator / value helpers ─────────────────────────────────────
+
+		getOperatorLabel(opId) {
+			const op = this.operatorOptions.find(o => o.id === opId)
+			return op ? op.label : opId
+		},
+
+		formatConditionValue(val) {
+			if (Array.isArray(val)) return val.join(', ')
+			return String(val)
+		},
+
+		getGroupOption(groupId) {
+			return this.allGroupOptions.find(opt => opt.id === groupId)
+				|| { id: groupId, label: groupId }
 		},
 
 		// ─── Simple RBAC (string entries) ────────────────────────────────
@@ -369,21 +439,16 @@ export default {
 			if (!this.schema.authorization[action]) {
 				this.$set(this.schema.authorization, action, [])
 			}
-
 			const currentPermissions = this.schema.authorization[action]
 			const groupIndex = currentPermissions.indexOf(groupId)
-
 			if (hasPermission && groupIndex === -1) {
 				currentPermissions.push(groupId)
 			} else if (!hasPermission && groupIndex !== -1) {
 				currentPermissions.splice(groupIndex, 1)
 			}
-
-			// Only delete the action key if the array is truly empty (no conditional rules either)
 			if (currentPermissions.length === 0) {
 				this.$delete(this.schema.authorization, action)
 			}
-
 			if (Object.keys(this.schema.authorization).length === 0) {
 				this.$set(this.schema, 'authorization', {})
 			}
@@ -417,6 +482,16 @@ export default {
 				this.$set(this.schema.authorization, action, [])
 			}
 			this.schema.authorization[action].push({ group: 'public', match: {} })
+			// Focus the new rule card's first interactive element so NcDialog's focus-trap
+			// does not reset focus to the dialog top when new DOM appears.
+			this.$nextTick(() => {
+				const cards = this.$el.querySelectorAll('.cn-schema-form__cond-rule-card')
+				const lastCard = cards[cards.length - 1]
+				if (lastCard) {
+					const firstFocusable = lastCard.querySelector('input, button, [tabindex]')
+					if (firstFocusable) firstFocusable.focus({ preventScroll: true })
+				}
+			})
 		},
 
 		removeConditionalRule(action, originalIndex) {
@@ -429,8 +504,10 @@ export default {
 			this.cancelAddCondition()
 		},
 
-		setRuleGroup(action, originalIndex, newGroup) {
-			this.$set(this.schema.authorization[action][originalIndex], 'group', newGroup)
+		setRuleGroup(action, originalIndex, option) {
+			if (option && option.id) {
+				this.$set(this.schema.authorization[action][originalIndex], 'group', option.id)
+			}
 		},
 
 		removeCondition(action, originalIndex, propKey) {
@@ -448,24 +525,66 @@ export default {
 
 		startAddCondition(action, ruleIdx) {
 			this.addingCondition = { action, ruleIdx }
-			this.newCondition = { property: '', operator: '$lte', value: '', existsValue: true }
+			this.newCondition = {
+				propertyOption: null,
+				operatorOption: this.operatorOptions.find(o => o.id === '$lte'),
+				valueOption: null,
+				customValue: null,
+				existsOption: this.existsOptions[0],
+			}
+			// Focus the first input inside the new form so NcDialog's focus-trap does not
+			// reset focus to the dialog top when the "Add condition" button unmounts.
+			this.$nextTick(() => {
+				const refKey = `addForm-${action}-${ruleIdx}`
+				const formEl = this.$refs[refKey]
+				const form = Array.isArray(formEl) ? formEl[0] : formEl
+				if (form) {
+					const firstInput = (form.$el || form).querySelector('input, [tabindex="0"]')
+					if (firstInput) firstInput.focus({ preventScroll: true })
+				}
+			})
 		},
 
 		cancelAddCondition() {
 			this.addingCondition = { action: null, ruleIdx: null }
-			this.newCondition = { property: '', operator: '$lte', value: '', existsValue: true }
+			this.newCondition = {
+				propertyOption: null,
+				operatorOption: null,
+				valueOption: null,
+				customValue: null,
+				existsOption: null,
+			}
+		},
+
+		onValueOptionChange(option) {
+			if (option && option.id === '__custom__') {
+				this.newCondition.customValue = ''
+			} else {
+				this.newCondition.customValue = null
+			}
 		},
 
 		confirmAddCondition(action, originalIndex) {
-			const { property, operator, value, existsValue } = this.newCondition
+			const property = this.newCondition.propertyOption && this.newCondition.propertyOption.id
+			const operator = this.newCondition.operatorOption && this.newCondition.operatorOption.id
 			if (!property || !operator) return
+
+			let conditionValue
+			if (operator === '$exists') {
+				const existsId = this.newCondition.existsOption && this.newCondition.existsOption.id
+				conditionValue = existsId !== 'false'
+			} else if (this.newCondition.customValue !== null) {
+				conditionValue = this.newCondition.customValue
+			} else {
+				conditionValue = this.newCondition.valueOption && this.newCondition.valueOption.id
+			}
+
+			if (!conditionValue && conditionValue !== false) return
 
 			const rule = this.schema.authorization[action][originalIndex]
 			if (!rule.match) {
 				this.$set(rule, 'match', {})
 			}
-
-			const conditionValue = operator === '$exists' ? existsValue : value
 			this.$set(rule.match, property, { [operator]: conditionValue })
 
 			this.cancelAddCondition()
