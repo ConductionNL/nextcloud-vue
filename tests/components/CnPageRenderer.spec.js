@@ -249,6 +249,53 @@ describe('CnPageRenderer', () => {
 		})
 	})
 
+	describe('extensible page-type registry', () => {
+		const ReportPage = { name: 'ReportPage', template: '<div class="report-stub" />' }
+		const reportManifest = {
+			version: '1.0.0',
+			menu: [],
+			pages: [
+				{ id: 'report', route: '/report', type: 'report', title: 'app.report' },
+				{ id: 'unknown', route: '/x', type: 'mystery', title: 'app.x' },
+			],
+		}
+
+		it('dispatches to a consumer-supplied page type via the pageTypes prop', () => {
+			const wrapper = require('@vue/test-utils').shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: reportManifest,
+					pageTypes: { report: ReportPage },
+				},
+				mocks: { $route: { name: 'report' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(ReportPage)
+		})
+
+		it('warns and renders nothing for an unknown type, recommending the pageTypes registry', () => {
+			const wrapper = require('@vue/test-utils').shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: reportManifest,
+					pageTypes: { report: ReportPage },
+				},
+				mocks: { $route: { name: 'unknown' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBeNull()
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown page type "mystery"'))
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('pageTypes registry'))
+		})
+
+		it('falls back to defaultPageTypes when no pageTypes prop or inject is given', () => {
+			const wrapper = mountRenderer('home')
+			// effectivePageTypes defaults to defaultPageTypes which contains
+			// index/detail/dashboard. The resolved component for type:"index"
+			// is therefore the defineAsyncComponent wrapper of CnIndexPage.
+			expect(wrapper.vm.effectivePageTypes).toBeDefined()
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.index)
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.detail)
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.dashboard)
+		})
+	})
+
 	describe('generic slots map', () => {
 		it('resolves every entry in pages[].slots into a {name, component} entry', () => {
 			const wrapper = mountRenderer('home-with-slots')

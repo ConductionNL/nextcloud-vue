@@ -103,8 +103,7 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "custom"],
-					"description": "Closed enum. Adding new types requires a library schema release. Use type: 'custom' as the escape hatch for app-specific pages."
+					"description": "Page type. Must match a key in the renderer's `pageTypes` registry (library defaults: \"index\", \"detail\", \"dashboard\") OR be \"custom\" — in which case `component` resolves against the customComponents registry. Library extensions add their built-in types to `defaultPageTypes`; consumer apps pass a merged map via the `pageTypes` prop on CnAppRoot / CnPageRenderer."
 				},
 				"title": {
 					"type": "string",

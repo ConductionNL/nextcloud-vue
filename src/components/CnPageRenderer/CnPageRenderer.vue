@@ -3,21 +3,24 @@
 
   Mounted inside <router-view>, CnPageRenderer reads the manifest, finds
   the page definition whose `id` matches the current route name, and
-  renders the appropriate page component:
+  renders the appropriate page component by dispatching on `type`.
 
-    - type: "index"     → CnIndexPage
-    - type: "detail"    → CnDetailPage
-    - type: "dashboard" → CnDashboardPage
-    - type: "custom"    → component resolved from the customComponents
-                          registry by `page.component`
+  Page types are resolved via the `pageTypes` registry. The library
+  ships a built-in registry (`defaultPageTypes` — index, detail,
+  dashboard) and consumers can extend it by passing a merged map to
+  CnAppRoot or CnPageRenderer. The `custom` type is special: it
+  resolves `page.component` against the customComponents registry
+  rather than the page-types map. Adding a new built-in page type to
+  the library is one line in `pageTypes.js` — no change here.
 
-  The page-type components are loaded via `defineAsyncComponent` so that
-  apps using only a subset of types do not pay the bundle cost for the
-  others (notably CnDashboardPage which depends on GridStack).
+  Each entry in `pageTypes` is wrapped in `defineAsyncComponent` so
+  apps using only a subset of types do not pay the bundle cost for
+  others (notably the GridStack-backed dashboard).
 
-  Manifest, customComponents, and translate are injected from CnAppRoot
-  by default but can also be passed as props for standalone use without
-  CnAppRoot. Props always take precedence over inject.
+  Manifest, customComponents, pageTypes, and translate are injected
+  from CnAppRoot by default; each can also be passed as props for
+  standalone use without CnAppRoot. Props always take precedence
+  over inject.
 
   See REQ-JMR-005 of the json-manifest-renderer specification.
 -->
@@ -43,13 +46,7 @@
 </template>
 
 <script>
-import { defineAsyncComponent } from 'vue'
-
-const PAGE_TYPE_LOADERS = {
-	index: () => import('../CnIndexPage/CnIndexPage.vue'),
-	detail: () => import('../CnDetailPage/CnDetailPage.vue'),
-	dashboard: () => import('../CnDashboardPage/CnDashboardPage.vue'),
-}
+import { defaultPageTypes } from './pageTypes.js'
 
 export default {
 	name: 'CnPageRenderer',
@@ -58,6 +55,7 @@ export default {
 		cnManifest: { default: null },
 		cnCustomComponents: { default: () => ({}) },
 		cnTranslate: { default: () => (key) => key },
+		cnPageTypes: { default: null },
 	},
 
 	props: {
@@ -96,6 +94,22 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * Page-type registry. Map of `pages[].type` value → Vue
+		 * component to mount. Consumers extend the library defaults by
+		 * spreading them: `{ ...defaultPageTypes, report: MyReportPage }`.
+		 *
+		 * Falls back to the injected `cnPageTypes` and finally to the
+		 * library's `defaultPageTypes`. The special `custom` type is
+		 * NOT looked up here — it resolves through the customComponents
+		 * registry instead.
+		 *
+		 * @type {object|null}
+		 */
+		pageTypes: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	computed: {
@@ -106,6 +120,15 @@ export default {
 		/** Effective custom-component registry. */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+		/**
+		 * Effective page-type registry. Prop wins over inject; both
+		 * fall back to the library's `defaultPageTypes`. Apps that want
+		 * the library defaults plus extras typically construct the prop
+		 * value as `{ ...defaultPageTypes, ...myExtras }`.
+		 */
+		effectivePageTypes() {
+			return this.pageTypes ?? this.cnPageTypes ?? defaultPageTypes
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
@@ -120,11 +143,15 @@ export default {
 			return manifest.pages.find((page) => page.id === routeName) ?? null
 		},
 		/**
-		 * Component to render for the current page. For built-in types
-		 * this is a `defineAsyncComponent` wrapper so unused page types
-		 * don't ship in apps that don't reference them. For custom types
-		 * it's the synchronous component resolved from the app-provided
-		 * registry.
+		 * Component to render for the current page. Looked up in
+		 * `effectivePageTypes` for built-in / library / consumer-extended
+		 * types; resolved against `effectiveCustomComponents` for
+		 * `type: "custom"` pages.
+		 *
+		 * Async loading is the responsibility of whoever populated the
+		 * `pageTypes` map (the library wraps each entry in
+		 * `defineAsyncComponent`); the renderer treats any value in the
+		 * map as a Vue component.
 		 */
 		resolvedComponent() {
 			const page = this.currentPage
@@ -143,16 +170,15 @@ export default {
 				}
 				return resolved
 			}
-			const loader = PAGE_TYPE_LOADERS[page.type]
-			if (!loader) {
-				// Schema validation should have prevented this, but be defensive.
+			const component = this.effectivePageTypes[page.type]
+			if (!component) {
 				// eslint-disable-next-line no-console
 				console.warn(
-					`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}".`,
+					`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`,
 				)
 				return null
 			}
-			return defineAsyncComponent(loader)
+			return component
 		},
 		/**
 		 * Props forwarded to the dispatched page component. Spreads the

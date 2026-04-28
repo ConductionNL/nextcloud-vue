@@ -1,5 +1,3 @@
-import schema from '../schemas/app-manifest.schema.json'
-
 /**
  * Validate a manifest object against the manifest JSON Schema.
  *
@@ -7,7 +5,10 @@ import schema from '../schemas/app-manifest.schema.json'
  * REQ-JMR-001 of the json-manifest-renderer spec:
  *  - Top-level `version`, `menu`, `pages` are required.
  *  - `version` matches the semver pattern.
- *  - `pages[].type` is in the closed enum.
+ *  - `pages[].type` is a non-empty string. Whether the type resolves
+ *    to a real component is checked by CnPageRenderer at render time
+ *    against the consumer-resolved `pageTypes` map; the validator
+ *    cannot enforce that without knowing the runtime registry.
  *  - `pages[].id` is unique across the array.
  *  - Required fields on menu items and pages are present.
  *  - `dependencies` (when present) is an array of strings.
@@ -19,9 +20,16 @@ import schema from '../schemas/app-manifest.schema.json'
  * narrow so a FE-only failure produces tight, actionable messages.
  *
  * @param {object} manifest The manifest object to validate.
+ * @param {object} [options] Optional validation options.
+ * @param {Array<string>} [options.allowedTypes] When provided, restrict
+ *   the allowed `pages[].type` values to this list (plus `"custom"`).
+ *   Useful in CI / build-time checks where the consumer's full
+ *   `pageTypes` registry is known up-front. When omitted, any
+ *   non-empty string is accepted; the runtime renderer logs a warning
+ *   for unknown types.
  * @return {{ valid: boolean, errors: string[] }}
  */
-export function validateManifest(manifest) {
+export function validateManifest(manifest, options = {}) {
 	const errors = []
 
 	if (!isPlainObject(manifest)) {
@@ -52,7 +60,9 @@ export function validateManifest(manifest) {
 		})
 	}
 
-	const allowedTypes = schema.$defs.page.properties.type.enum
+	const allowedTypes = Array.isArray(options.allowedTypes)
+		? Array.from(new Set([...options.allowedTypes, 'custom']))
+		: null
 
 	if (!Array.isArray(manifest.pages)) {
 		errors.push('/pages must be an array')
@@ -72,8 +82,10 @@ export function validateManifest(manifest) {
 			}
 			if (typeof page.route !== 'string') errors.push(`/pages/${index}/route must be a string`)
 			if (typeof page.title !== 'string') errors.push(`/pages/${index}/title must be a string`)
-			if (typeof page.type !== 'string' || !allowedTypes.includes(page.type)) {
-				errors.push(`/pages/${index}/type must be one of: ${allowedTypes.join(', ')}`)
+			if (typeof page.type !== 'string' || page.type.length === 0) {
+				errors.push(`/pages/${index}/type must be a non-empty string`)
+			} else if (allowedTypes && !allowedTypes.includes(page.type)) {
+				errors.push(`/pages/${index}/type "${page.type}" must be one of: ${allowedTypes.join(', ')}`)
 			}
 			if (page.type === 'custom' && typeof page.component !== 'string') {
 				errors.push(`/pages/${index}/component is required when type is "custom"`)

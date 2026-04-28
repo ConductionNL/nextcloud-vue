@@ -76,6 +76,7 @@ export default {
 			cnManifest: this.manifest,
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
+			cnPageTypes: this.pageTypes,
 		}
 	},
 
@@ -153,6 +154,19 @@ export default {
 		permissions: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Page-type registry. Map of `pages[].type` → Vue component.
+		 * Provided to descendant CnPageRenderer instances via inject.
+		 * When omitted, the renderer falls back to the library's
+		 * `defaultPageTypes`. Apps with custom page types pass a merged
+		 * map: `{ ...defaultPageTypes, report: MyReportPage }`.
+		 *
+		 * @type {object|null}
+		 */
+		pageTypes: {
+			type: Object,
+			default: null,
 		},
 	},
 

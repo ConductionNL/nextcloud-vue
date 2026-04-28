@@ -61,6 +61,7 @@ export {
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
 	CnPageRenderer,
+	defaultPageTypes,
 	CnAppNav,
 	CnAppLoading,
 	CnDependencyMissing,

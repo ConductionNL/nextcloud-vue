@@ -33,8 +33,9 @@ describe('app-manifest.schema.json (metadata)', () => {
 		expect(typeof schema.description).toBe('string')
 	})
 
-	it('has a closed page-type enum of exactly index|detail|dashboard|custom', () => {
-		expect(schema.$defs.page.properties.type.enum).toEqual(['index', 'detail', 'dashboard', 'custom'])
+	it('declares page.type as a free-form string (extensible via the pageTypes registry)', () => {
+		expect(schema.$defs.page.properties.type).toMatchObject({ type: 'string' })
+		expect(schema.$defs.page.properties.type.enum).toBeUndefined()
 	})
 
 	it('lists version, menu, pages as top-level required fields', () => {
@@ -59,9 +60,21 @@ describe('validateManifest (FE)', () => {
 		expect(result.errors.some((e) => e.includes('/version') && e.includes('semver'))).toBe(true)
 	})
 
-	it('rejects a page with an unknown type', () => {
-		const result = validateManifest(invalid)
-		expect(result.errors.some((e) => e.includes('type must be one of'))).toBe(true)
+	it('accepts any non-empty type string by default; restrict via options.allowedTypes', () => {
+		const restricted = validateManifest(invalid, { allowedTypes: ['index', 'detail', 'dashboard'] })
+		expect(restricted.valid).toBe(false)
+		expect(restricted.errors.some((e) => e.includes('"wizard"') && e.includes('must be one of'))).toBe(true)
+
+		// Without the option the same fixture's "wizard" type passes the type
+		// check (other rules still fire — duplicate id, missing component, etc.).
+		const lenient = validateManifest(invalid)
+		expect(lenient.errors.some((e) => e.includes('/pages/0/type'))).toBe(false)
+	})
+
+	it('rejects an empty page type', () => {
+		const result = validateManifest({ version: '1.0.0', menu: [], pages: [{ id: 'x', route: '/x', type: '', title: 'x' }] })
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/type must be a non-empty string'))).toBe(true)
 	})
 
 	it('rejects duplicate page ids', () => {

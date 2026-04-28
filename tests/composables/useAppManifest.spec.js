@@ -89,14 +89,20 @@ describe('useAppManifest', () => {
 		axios.get.mockResolvedValue({
 			status: 200,
 			data: {
-				pages: [{ id: 'bad', route: '/bad', type: 'wizard', title: 'app.bad' }],
+				// Two duplicate ids — duplicates are still rejected even with
+				// the open-type registry because uniqueness is independent of
+				// the type field.
+				pages: [
+					{ id: 'dup', route: '/a', type: 'index', title: 'a' },
+					{ id: 'dup', route: '/b', type: 'index', title: 'b' },
+				],
 			},
 		})
 		const { manifest, validationErrors } = useAppManifest('myapp', validBundled)
 		await flush()
 		expect(manifest.value).toEqual(validBundled)
 		expect(validationErrors.value).not.toBeNull()
-		expect(validationErrors.value.some((e) => e.includes('type'))).toBe(true)
+		expect(validationErrors.value.some((e) => e.includes('unique'))).toBe(true)
 		expect(warnSpy).toHaveBeenCalled()
 		warnSpy.mockRestore()
 	})

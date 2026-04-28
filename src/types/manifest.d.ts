@@ -9,8 +9,18 @@
  * import type { TManifest, TManifestPage } from '@conduction/nextcloud-vue'
  */
 
-/** The four supported page types. Closed enum — extending it requires a library schema release. */
-export type TPageType = 'index' | 'detail' | 'dashboard' | 'custom'
+/**
+ * Built-in page types shipped by the library. The `type` field of a
+ * manifest page is a string that should match a key in the resolved
+ * `pageTypes` registry (library defaults plus any consumer extensions)
+ * OR be `"custom"`, in which case `component` is resolved against the
+ * customComponents registry.
+ *
+ * Apps with custom built-in types declare those keys in their own
+ * pageTypes map and may extend this string union locally for type
+ * safety.
+ */
+export type TPageType = 'index' | 'detail' | 'dashboard' | 'custom' | (string & {})
 
 /** A nested menu entry. Cannot have further children. */
 export interface TManifestMenuItemLeaf {
