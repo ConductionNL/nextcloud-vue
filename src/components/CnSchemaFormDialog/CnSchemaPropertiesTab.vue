@@ -7,6 +7,7 @@
 				row-key="_id"
 				:selectable="false"
 				:row-class="getRowClass"
+				:cell-class="getCellClass"
 				:empty-text="'No properties found. Click &quot;Add property&quot; to create one.'"
 				@row-click="onRowClick">
 				<template #actions-header>
@@ -202,7 +203,7 @@ export default {
 	},
 	watch: {
 		selectedProperty(newKey) {
-			if (newKey) {
+			if (newKey !== null) {
 				// Skip focus+select when the change comes from a rename —
 				// onPropertyKeyUpdate handles its own cursor positioning.
 				if (this.isRenaming) {
@@ -265,14 +266,18 @@ export default {
 			return classes.join(' ')
 		},
 
+		getCellClass(row) {
+			return this.selectedProperty === row._key ? 'cn-schema-form__editing-cell' : ''
+		},
+
 		onRowClick(row) {
 			if (this.selectedProperty === row._key) return
 			this.$emit('update:selected-property', row._key)
 		},
 
 		onPropertyKeyUpdate(oldKey, newKey) {
-			if (!newKey || newKey === oldKey) return
-			if (this.schema.properties[newKey] && newKey !== oldKey) return
+			if (newKey === oldKey) return
+			if (this.schema.properties[newKey] !== undefined && newKey !== oldKey) return
 
 			this.isRenaming = true
 

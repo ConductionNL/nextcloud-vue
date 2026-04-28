@@ -152,6 +152,11 @@
   background-color: var(--color-primary-light);
 }
 
+/* Applied to each td of the row currently being edited so inputs sit at the same baseline */
+.cn-schema-form__editing-cell {
+  vertical-align: baseline !important;
+}
+
 .cn-schema-form__viewTable tbody tr.cn-schema-form__modified-row {
   background-color: var(--color-warning);
   border-left: 3px solid var(--color-element-warning);
