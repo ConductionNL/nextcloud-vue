@@ -1,0 +1,20 @@
+/*
+ * Global theme override for NcDateTimePicker's disabled calendar cells.
+ * The underlying vue2-datepicker library ships hardcoded `#f3f3f3` / `#ccc`,
+ * which breaks dark mode. The popup is portaled to <body>, so this must be
+ * unscoped and lives here rather than in each modal that uses the picker.
+ */
+.mx-calendar-content .cell.disabled {
+	background-color: var(--color-background-dark) !important;
+	color: var(--color-text-maxcontrast) !important;
+	cursor: not-allowed;
+}
+
+.mx-calendar-content .cell.disabled,
+.mx-calendar-content .cell.disabled * {
+	cursor: not-allowed !important;
+}
+
+.mx-calendar-content .cell.disabled:hover {
+	background-color: var(--color-background-dark) !important;
+}
