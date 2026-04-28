@@ -264,6 +264,7 @@
 </template>
 
 <script>
+import _ from 'lodash'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -395,9 +396,7 @@ export default {
 		},
 	},
 	methods: {
-		capitalize(str) {
-			return str.charAt(0).toUpperCase() + str.slice(1)
-		},
+		capitalize: _.capitalize,
 
 		availablePropertyOptions(action, ruleIdx) {
 			const rules = this.getConditionalRules(action)
