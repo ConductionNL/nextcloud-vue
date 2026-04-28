@@ -458,7 +458,7 @@ export default {
 		/**
 		 * Returns conditional (object-type) entries for an action with their original array indices.
 		 *
-		 * @param {string} action
+		 * @param {string} action - The CRUD action name (create, read, update, delete).
 		 * @return {{ rule: object, originalIndex: number }[]}
 		 */
 		getConditionalRules(action) {
