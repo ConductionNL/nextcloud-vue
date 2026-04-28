@@ -7,6 +7,13 @@
   an order render last. Items with a `permission` are filtered against
   the `permissions` prop — when the prop is omitted, all items render.
 
+  Items split into two groups by `section`:
+  - `section: "main"` (default) — top of the navigation, scrollable.
+  - `section: "settings"` — pinned to the bottom inside NcAppNavigation's
+    `#footer` slot, always visible above the close-toggle, separated
+    from the main list by a thin border. Use for documentation links,
+    settings entries, or anything that should sit at the bottom.
+
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
   win over inject when both are present.
@@ -37,7 +44,7 @@
 			</NcAppNavigationItem>
 		</template>
 		<template v-if="settingsItems.length" #footer>
-			<NcAppNavigationSettings>
+			<ul class="cn-app-nav__footer-list">
 				<NcAppNavigationItem
 					v-for="item in settingsItems"
 					:key="item.id"
@@ -47,13 +54,13 @@
 					:icon="item.icon"
 					:active="isActive(item)"
 					@click="onItemClick(item, $event)" />
-			</NcAppNavigationSettings>
+			</ul>
 		</template>
 	</NcAppNavigation>
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationSettings } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
 
 export default {
 	name: 'CnAppNav',
@@ -61,7 +68,6 @@ export default {
 	components: {
 		NcAppNavigation,
 		NcAppNavigationItem,
-		NcAppNavigationSettings,
 	},
 
 	inject: {
@@ -136,9 +142,11 @@ export default {
 			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
 		},
 		/**
-		 * Items that render inside `NcAppNavigationSettings` (the footer
-		 * group below the separator). Use for help / docs / settings
-		 * entries that should sit visually distinct from the main nav.
+		 * Items that render inside the `#footer` slot of NcAppNavigation
+		 * — always visible at the bottom of the navigation, above the
+		 * close-toggle. Use for help / docs / settings entries that
+		 * should anchor to the bottom rather than scroll with the main
+		 * list.
 		 */
 		settingsItems() {
 			return this.visibleItems.filter((item) => item.section === 'settings')
@@ -220,5 +228,18 @@ export default {
  */
 .app-navigation-entry.active .app-navigation-entry-icon[class*="icon-"] {
 	filter: brightness(0) invert(1);
+}
+
+/*
+ * Footer-list (section: "settings" items rendered in NcAppNavigation's
+ * `#footer` slot). Reset list defaults so the entries align with the
+ * main list, and add a thin separator above the group so it visually
+ * detaches from the scrollable list when the two meet.
+ */
+.cn-app-nav__footer-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid var(--color-border);
 }
 </style>
