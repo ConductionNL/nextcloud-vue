@@ -202,7 +202,7 @@ export default {
 	},
 	watch: {
 		selectedProperty(newKey) {
-			if (newKey) {
+			if (newKey !== null) {
 				// Skip focus+select when the change comes from a rename —
 				// onPropertyKeyUpdate handles its own cursor positioning.
 				if (this.isRenaming) {

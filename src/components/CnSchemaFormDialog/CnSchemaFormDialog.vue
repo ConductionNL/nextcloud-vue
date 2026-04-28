@@ -623,24 +623,16 @@ export default {
 		},
 
 		addProperty() {
-			let newPropertyName = 'new'
-			let counter = 1
-
-			while (this.schemaItem.properties[newPropertyName]) {
-				counter++
-				newPropertyName = `new_${counter}`
-			}
-
-			this.$set(this.schemaItem.properties, newPropertyName, {
+			this.$set(this.schemaItem.properties, '', {
 				type: 'string',
 				format: '',
-				title: newPropertyName,
+				title: '',
 				description: '',
 				facetable: false,
 			})
 
 			this.checkPropertiesModified()
-			this.selectedProperty = newPropertyName
+			this.selectedProperty = ''
 		},
 
 		updatePropertyKey(oldKey, newKey) {
