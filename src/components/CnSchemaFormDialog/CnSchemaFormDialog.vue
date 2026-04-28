@@ -20,14 +20,14 @@
 				<div v-if="schemaItem.id"
 					class="cn-schema-form__detail-item cn-schema-form__id-card">
 					<div class="cn-schema-form__id-card-header">
-						<span class="cn-schema-form__detail-label">ID / UUID:</span>
+						<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'ID / UUID:') }}</span>
 						<NcButton class="cn-schema-form__copy-button"
 							@click="copyToClipboard(schemaItem.uuid || schemaItem.id)">
 							<template #icon>
 								<Check v-if="isCopied" :size="20" />
 								<ContentCopy v-else :size="20" />
 							</template>
-							{{ isCopied ? 'Copied' : 'Copy' }}
+							{{ isCopied ? t('nextcloud-vue', 'Copied') : t('nextcloud-vue', 'Copy') }}
 						</NcButton>
 					</div>
 					<span class="cn-schema-form__detail-value">{{ schemaItem.id }}</span>
@@ -36,7 +36,7 @@
 				</div>
 				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
 					<NcTextField :disabled="dialogLoading"
-						label="Title *"
+						:label="t('nextcloud-vue', 'Title *')"
 						:value.sync="schemaItem.title" />
 					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0"
 						class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
@@ -52,20 +52,20 @@
 					</span>
 				</div>
 				<div v-if="schemaItem.created" class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Created:</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Created:') }}</span>
 					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
 				</div>
 				<div v-if="schemaItem.updated" class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Updated:</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Updated:') }}</span>
 					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Version:</span>
-					<span class="cn-schema-form__detail-value">{{ schemaItem.version || 'Not set' }}</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Version:') }}</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.version || t('nextcloud-vue', 'Not set') }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
-					<span class="cn-schema-form__detail-label">Owner:</span>
-					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || 'Not set' }}</span>
+					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Owner:') }}</span>
+					<span class="cn-schema-form__detail-value">{{ schemaItem.owner || t('nextcloud-vue', 'Not set') }}</span>
 				</div>
 			</div>
 		</template>
@@ -328,9 +328,9 @@ export default {
 		 */
 		dialogTabs() {
 			return [
-				{ id: 'properties', title: 'Properties' },
-				{ id: 'configuration', title: 'Configuration' },
-				{ id: 'security', title: 'Security' },
+				{ id: 'properties', title: t('nextcloud-vue', 'Properties') },
+				{ id: 'configuration', title: t('nextcloud-vue', 'Configuration') },
+				{ id: 'security', title: t('nextcloud-vue', 'Security') },
 			]
 		},
 		sortedUserGroups() {
@@ -358,15 +358,15 @@ export default {
 		},
 		typeOptionsForSelect() {
 			return [
-				{ id: 'string', label: 'String' },
-				{ id: 'number', label: 'Number' },
-				{ id: 'integer', label: 'Integer' },
-				{ id: 'boolean', label: 'Boolean' },
-				{ id: 'array', label: 'Array' },
-				{ id: 'object', label: 'Object' },
-				{ id: 'dictionary', label: 'Dictionary' },
-				{ id: 'file', label: 'File' },
-				{ id: 'oneOf', label: 'One Of' },
+				{ id: 'string', label: t('nextcloud-vue', 'String') },
+				{ id: 'number', label: t('nextcloud-vue', 'Number') },
+				{ id: 'integer', label: t('nextcloud-vue', 'Integer') },
+				{ id: 'boolean', label: t('nextcloud-vue', 'Boolean') },
+				{ id: 'array', label: t('nextcloud-vue', 'Array') },
+				{ id: 'object', label: t('nextcloud-vue', 'Object') },
+				{ id: 'dictionary', label: t('nextcloud-vue', 'Dictionary') },
+				{ id: 'file', label: t('nextcloud-vue', 'File') },
+				{ id: 'oneOf', label: t('nextcloud-vue', 'One of') },
 			]
 		},
 		propertyOptions() {
@@ -386,7 +386,7 @@ export default {
 		 */
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return 'Schema saved successfully.'
+			return t('nextcloud-vue', '{title} saved successfully.', { title: t('nextcloud-vue', 'Schema') })
 		},
 		/**
 		 * Returns a human-readable reason the save button is disabled, or '' when saving is allowed.
@@ -503,6 +503,7 @@ export default {
 		},
 	},
 	methods: {
+		t,
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) return undefined
 			return this.availableSchemas.find(schema =>

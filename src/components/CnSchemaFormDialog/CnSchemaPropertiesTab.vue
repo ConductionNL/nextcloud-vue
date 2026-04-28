@@ -8,7 +8,7 @@
 				:selectable="false"
 				:row-class="getRowClass"
 				:cell-class="getCellClass"
-				:empty-text="'No properties found. Click &quot;Add property&quot; to create one.'"
+				:empty-text="t('nextcloud-vue', 'No properties found. Click &quot;Add property&quot; to create one.')"
 				@row-click="onRowClick">
 				<template #actions-header>
 					<NcButton
@@ -18,7 +18,7 @@
 						<template #icon>
 							<Plus :size="20" />
 						</template>
-						Add property
+						{{ t('nextcloud-vue', 'Add property') }}
 					</NcButton>
 				</template>
 
@@ -27,11 +27,11 @@
 						<AlertOutline v-if="isPropertyModified(row._key)"
 							:size="16"
 							class="cn-schema-form__warning-icon"
-							:title="'Property has been modified. Changes will only take effect after the schema is saved.'" />
+							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 						<NcTextField
 							ref="propertyNameInput"
 							:value="row._key"
-							label="(technical) Property Name"
+							:label="t('nextcloud-vue', '(technical) Property name')"
 							@update:value="onPropertyKeyUpdate(row._key, $event)"
 							@click.stop />
 					</div>
@@ -39,30 +39,30 @@
 						<AlertOutline v-if="isPropertyModified(row._key)"
 							:size="16"
 							class="cn-schema-form__warning-icon"
-							:title="'Property has been modified. Changes will only take effect after the schema is saved.'" />
+							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 						<div class="cn-schema-form__name-with-chips">
 							<span class="cn-schema-form__property-name">{{ row._key }}</span>
 							<div class="cn-schema-form__inline-chips">
 								<span v-if="isPropertyRequired(schema, row._key)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-primary">Required</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-primary">{{ t('nextcloud-vue', 'Required') }}</span>
 								<span v-if="row.immutable"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Immutable</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Immutable') }}</span>
 								<span v-if="row.deprecated"
-									class="cn-schema-form__property-chip cn-schema-form__chip-warning">Deprecated</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-warning">{{ t('nextcloud-vue', 'Deprecated') }}</span>
 								<span v-if="row.visible === false"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in view</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in view') }}</span>
 								<span v-if="row.hideOnCollection"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in Collection</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in collection') }}</span>
 								<span v-if="row.hideOnForm"
-									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">Hidden in Form</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-secondary">{{ t('nextcloud-vue', 'Hidden in form') }}</span>
 								<span v-if="row.const !== undefined"
-									class="cn-schema-form__property-chip cn-schema-form__chip-success">Constant</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Constant') }}</span>
 								<span v-if="row.enum && row.enum.length > 0"
-									class="cn-schema-form__property-chip cn-schema-form__chip-success">Enumeration ({{ row.enum.length }})</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-success">{{ t('nextcloud-vue', 'Enumeration ({count})', { count: row.enum.length }) }}</span>
 								<span v-if="row.facetable === true || (typeof row.facetable === 'object' && row.facetable !== null)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-info">Facetable</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-info">{{ t('nextcloud-vue', 'Facetable') }}</span>
 								<span v-if="hasCustomTableSettings(row._key)"
-									class="cn-schema-form__property-chip cn-schema-form__chip-table">Table</span>
+									class="cn-schema-form__property-chip cn-schema-form__chip-table">{{ t('nextcloud-vue', 'Table') }}</span>
 							</div>
 						</div>
 					</div>
@@ -73,7 +73,7 @@
 						v-if="selectedProperty === row._key"
 						v-model="schema.properties[row._key].type"
 						:options="typeOptionsForSelect"
-						input-label="Property Type"
+						:input-label="t('nextcloud-vue', 'Property type')"
 						@click.stop />
 					<span v-else>{{ row.type }}</span>
 				</template>
@@ -96,13 +96,14 @@
 			</CnDataTable>
 		</div>
 		<CnNoteCard v-if="propertiesModified && !loading" type="warning" class="cn-schema-form__properties-warning">
-			<p>Properties have been modified. Changes will only take effect after the schema is saved.</p>
+			<p>{{ t('nextcloud-vue', 'Properties have been modified. Changes will only take effect after the schema is saved.') }}</p>
 		</CnNoteCard>
 	</Fragment>
 </template>
 
 <!-- eslint-disable jsdoc/valid-types -->
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnNoteCard } from '../CnNoteCard/index.js'
@@ -167,8 +168,8 @@ export default {
 			nextPropertyId: 1,
 			isRenaming: false,
 			tableColumns: [
-				{ key: '_key', label: 'Name', sortable: false },
-				{ key: 'type', label: 'Type', sortable: false },
+				{ key: '_key', label: t('nextcloud-vue', 'Name'), sortable: false },
+				{ key: 'type', label: t('nextcloud-vue', 'Type'), sortable: false },
 			],
 		}
 	},
@@ -228,6 +229,7 @@ export default {
 		},
 	},
 	methods: {
+		t,
 		getStablePropertyId(propertyName) {
 			if (!this.propertyStableIds[propertyName]) {
 				this.propertyStableIds[propertyName] = this.nextPropertyId++

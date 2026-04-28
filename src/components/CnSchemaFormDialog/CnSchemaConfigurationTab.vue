@@ -1,18 +1,18 @@
 <template>
 	<div class="cn-schema-form__form-editor">
 		<NcTextArea :disabled="loading"
-			label="Description"
+			:label="t('nextcloud-vue', 'Description')"
 			:value.sync="schema.description" />
 		<NcTextArea :disabled="loading"
-			label="Summary"
+			:label="t('nextcloud-vue', 'Summary')"
 			:value.sync="schema.summary" />
 		<NcTextField :disabled="loading"
-			label="Slug"
+			:label="t('nextcloud-vue', 'Slug')"
 			:value.sync="schema.slug" />
 
 		<!-- Schema Composition Section -->
 		<div>
-			<h3>Schema Composition (JSON Schema)</h3>
+			<h3>{{ t('nextcloud-vue', 'Schema composition (JSON Schema)') }}</h3>
 
 			<!-- allOf - Multiple Inheritance (Recommended) -->
 			<NcSelect
@@ -24,8 +24,8 @@
 				:close-on-select="false"
 				label="title"
 				track-by="id"
-				input-label="allOf - Inherits from ALL schemas (Recommended)"
-				placeholder="Select schemas to inherit from (supports multiple parents)">
+				:input-label="t('nextcloud-vue', 'allOf - Inherits from ALL schemas (Recommended)')"
+				:placeholder="t('nextcloud-vue', 'Select schemas to inherit from (supports multiple parents)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
 						<span class="cn-schema-form__option-title">{{ title }}</span>
@@ -34,11 +34,11 @@
 				</template>
 			</NcSelect>
 			<NcNoteCard v-if="schema.allOf && schema.allOf.length > 0" type="info">
-				<p><strong>allOf - Multiple Inheritance</strong></p>
-				<p>Instance must validate against ALL selected schemas. Properties from all parent schemas are merged. This is the recommended pattern for schema extension and multiple inheritance.</p>
-				<p><strong>Important:</strong> Child schemas can only ADD constraints, never relax them (Liskov Substitution Principle). Metadata (title, description, order) can be overridden.</p>
+				<p><strong>{{ t('nextcloud-vue', 'allOf - Multiple inheritance') }}</strong></p>
+				<p>{{ t('nextcloud-vue', 'Instance must validate against all selected schemas. Properties from all parent schemas are merged. This is the recommended pattern for schema extension and multiple inheritance.') }}</p>
+				<p><strong>{{ t('nextcloud-vue', 'Important:') }}</strong> {{ t('nextcloud-vue', 'Child schemas can only add constraints, never relax them (Liskov substitution principle). Metadata (title, description, order) can be overridden.') }}</p>
 				<div v-if="allOfSchemaNames.length > 0">
-					<strong>Parent Schemas:</strong>
+					<strong>{{ t('nextcloud-vue', 'Parent schemas:') }}</strong>
 					<ul>
 						<li v-for="name in allOfSchemaNames" :key="name">
 							{{ name }}
@@ -57,8 +57,8 @@
 				:close-on-select="false"
 				label="title"
 				track-by="id"
-				input-label="oneOf - Exactly ONE schema must match"
-				placeholder="Select schemas (instance must match exactly one)">
+				:input-label="t('nextcloud-vue', 'oneOf - Exactly one schema must match')"
+				:placeholder="t('nextcloud-vue', 'Select schemas (instance must match exactly one)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
 						<span class="cn-schema-form__option-title">{{ title }}</span>
@@ -67,8 +67,8 @@
 				</template>
 			</NcSelect>
 			<NcNoteCard v-if="schema.oneOf && schema.oneOf.length > 0" type="info">
-				<p><strong>oneOf - Mutually Exclusive</strong></p>
-				<p>Instance must validate against EXACTLY ONE of the selected schemas. Properties are NOT merged. Use for discriminated unions or type variants.</p>
+				<p><strong>{{ t('nextcloud-vue', 'oneOf - Mutually exclusive') }}</strong></p>
+				<p>{{ t('nextcloud-vue', 'Instance must validate against exactly one of the selected schemas. Properties are not merged. Use for discriminated unions or type variants.') }}</p>
 			</NcNoteCard>
 
 			<!-- anyOf - Flexible Composition -->
@@ -81,8 +81,8 @@
 				:close-on-select="false"
 				label="title"
 				track-by="id"
-				input-label="anyOf - At least ONE schema must match"
-				placeholder="Select schemas (instance must match at least one)">
+				:input-label="t('nextcloud-vue', 'anyOf - At least one schema must match')"
+				:placeholder="t('nextcloud-vue', 'Select schemas (instance must match at least one)')">
 				<template #option="{ title, description }">
 					<div class="cn-schema-form__schema-option">
 						<span class="cn-schema-form__option-title">{{ title }}</span>
@@ -91,73 +91,74 @@
 				</template>
 			</NcSelect>
 			<NcNoteCard v-if="schema.anyOf && schema.anyOf.length > 0" type="info">
-				<p><strong>anyOf - Flexible Composition</strong></p>
-				<p>Instance must validate against AT LEAST ONE of the selected schemas. Properties are NOT merged. More permissive than oneOf.</p>
+				<p><strong>{{ t('nextcloud-vue', 'anyOf - Flexible composition') }}</strong></p>
+				<p>{{ t('nextcloud-vue', 'Instance must validate against at least one of the selected schemas. Properties are not merged. More permissive than oneOf.') }}</p>
 			</NcNoteCard>
 		</div>
 		<NcSelect
 			v-model="schema.configuration.objectNameField"
 			:disabled="loading"
 			:options="propertyOptions"
-			input-label="Object Name Field"
-			placeholder="Select a property to use as object name" />
+			:input-label="t('nextcloud-vue', 'Object name field')"
+			:placeholder="t('nextcloud-vue', 'Select a property to use as object name')" />
 		<NcSelect
 			v-model="schema.configuration.objectDescriptionField"
 			:disabled="loading"
 			:options="propertyOptions"
-			input-label="Object Description Field"
-			placeholder="Select a property to use as object description" />
+			:input-label="t('nextcloud-vue', 'Object description field')"
+			:placeholder="t('nextcloud-vue', 'Select a property to use as object description')" />
 		<NcSelect
 			v-model="schema.configuration.objectImageField"
 			:disabled="loading"
 			:options="propertyOptions"
-			input-label="Object Image Field"
-			placeholder="Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)" />
+			:input-label="t('nextcloud-vue', 'Object image field')"
+			:placeholder="t('nextcloud-vue', 'Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)')" />
 		<NcSelect
 			v-model="schema.configuration.objectSummaryField"
 			:disabled="loading"
 			:options="propertyOptions"
-			input-label="Object Summary Field"
-			placeholder="Select a property to use as object summary. e.g. summary, abstract, or excerpt" />
+			:input-label="t('nextcloud-vue', 'Object summary field')"
+			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.configuration.allowFiles">
-			Allow Files
+			{{ t('nextcloud-vue', 'Allow files') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.configuration.autoPublish">
-			Auto-Publish Objects
+			{{ t('nextcloud-vue', 'Auto-publish objects') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField
 			v-model="allowedTagsInput"
 			:disabled="loading"
-			label="Allowed Tags (comma-separated)"
-			placeholder="image, document, audio, video"
+			:label="t('nextcloud-vue', 'Allowed tags (comma-separated)')"
+			:placeholder="t('nextcloud-vue', 'image, document, audio, video')"
 			@update:value="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.hardValidation">
-			Hard Validation
+			{{ t('nextcloud-vue', 'Hard validation') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField :disabled="loading"
-			label="Max Depth"
+			:label="t('nextcloud-vue', 'Max depth')"
 			type="number"
 			:value.sync="schema.maxDepth" />
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.immutable">
-			Immutable
+			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
 			:disabled="loading"
 			:checked.sync="schema.searchable">
-			Searchable in SOLR
+			{{ t('nextcloud-vue', 'Searchable in SOLR') }}
 		</NcCheckboxRadioSwitch>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcTextField,
 	NcTextArea,
@@ -213,6 +214,7 @@ export default {
 		},
 	},
 	methods: {
+		t,
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
 				this.$set(this.schema.configuration, 'allowedTags', [])
