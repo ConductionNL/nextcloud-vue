@@ -1,38 +1,38 @@
 <template>
 	<div class="cn-schema-form__security-section">
 		<CnNoteCard type="info">
-			<p><strong>Role-Based Access Control (RBAC)</strong></p>
-			<p>Configure which Nextcloud user groups can perform CRUD operations on objects of this schema.</p>
+			<p><strong>{{ t('nextcloud-vue', 'Role-based access control (RBAC)') }}</strong></p>
+			<p>{{ t('nextcloud-vue', 'Configure which Nextcloud user groups can perform CRUD operations on objects of this schema.') }}</p>
 			<ul>
-				<li>If no groups are specified for an operation, all users can perform it</li>
-				<li>The 'admin' group always has full access (cannot be changed)</li>
-				<li>The object owner always has full access</li>
-				<li>'public' represents unauthenticated access</li>
+				<li>{{ t('nextcloud-vue', 'If no groups are specified for an operation, all users can perform it') }}</li>
+				<li>{{ t('nextcloud-vue', "The 'admin' group always has full access (cannot be changed)") }}</li>
+				<li>{{ t('nextcloud-vue', 'The object owner always has full access') }}</li>
+				<li>{{ t('nextcloud-vue', "'public' represents unauthenticated access") }}</li>
 			</ul>
 		</CnNoteCard>
 
 		<div v-if="loadingGroups" class="cn-schema-form__loading-groups">
 			<NcLoadingIcon :size="20" />
-			<span>Loading user groups...</span>
+			<span>{{ t('nextcloud-vue', 'Loading user groups...') }}</span>
 		</div>
 
 		<div v-else class="cn-schema-form__rbac-table-container">
-			<h3>Group permissions</h3>
+			<h3>{{ t('nextcloud-vue', 'Group permissions') }}</h3>
 			<table class="cn-schema-form__rbac-table">
 				<thead>
 					<tr>
-						<th>Group</th>
-						<th>Create</th>
-						<th>Read</th>
-						<th>Update</th>
-						<th>Delete</th>
+						<th>{{ t('nextcloud-vue', 'Group') }}</th>
+						<th>{{ t('nextcloud-vue', 'Create') }}</th>
+						<th>{{ t('nextcloud-vue', 'Read') }}</th>
+						<th>{{ t('nextcloud-vue', 'Update') }}</th>
+						<th>{{ t('nextcloud-vue', 'Delete') }}</th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr class="cn-schema-form__public-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__public">public</span>
-							<small>Unauthenticated users</small>
+							<small>{{ t('nextcloud-vue', 'Unauthenticated users') }}</small>
 						</td>
 						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'create')" @update:checked="updateGroupPermission('public', 'create', $event)" /></td>
 						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'read')" @update:checked="updateGroupPermission('public', 'read', $event)" /></td>
@@ -42,7 +42,7 @@
 					<tr class="cn-schema-form__user-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__user">authenticated</span>
-							<small>Authenticated users</small>
+							<small>{{ t('nextcloud-vue', 'Authenticated users') }}</small>
 						</td>
 						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'create')" @update:checked="updateGroupPermission('authenticated', 'create', $event)" /></td>
 						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'read')" @update:checked="updateGroupPermission('authenticated', 'read', $event)" /></td>
@@ -62,7 +62,7 @@
 					<tr class="cn-schema-form__admin-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__admin">admin</span>
-							<small>Always has full access</small>
+							<small>{{ t('nextcloud-vue', 'Always has full access') }}</small>
 						</td>
 						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
 						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
@@ -74,10 +74,10 @@
 
 			<div class="cn-schema-form__rbac-summary">
 				<CnNoteCard v-if="!hasAnyPermissions" type="success">
-					<p><strong>Open access:</strong> No specific permissions set — all users can perform all operations.</p>
+					<p><strong>{{ t('nextcloud-vue', 'Open access:') }}</strong> {{ t('nextcloud-vue', 'No specific permissions set — all users can perform all operations.') }}</p>
 				</CnNoteCard>
 				<CnNoteCard v-else-if="isRestrictiveSchema" type="warning">
-					<p><strong>Restrictive schema:</strong> Access is limited to specified groups only.</p>
+					<p><strong>{{ t('nextcloud-vue', 'Restrictive schema:') }}</strong> {{ t('nextcloud-vue', 'Access is limited to specified groups only.') }}</p>
 				</CnNoteCard>
 			</div>
 		</div>
@@ -93,7 +93,7 @@
 				@click="showAdvanced = !showAdvanced">
 				<ChevronDown v-if="showAdvanced" :size="20" class="cn-schema-form__cond-chevron" />
 				<ChevronRight v-else :size="20" class="cn-schema-form__cond-chevron" />
-				<span>Advanced: Conditional access rules</span>
+				<span>{{ t('nextcloud-vue', 'Advanced: Conditional access rules') }}</span>
 				<span v-if="totalConditionalRules > 0" class="cn-schema-form__cond-count-badge">
 					{{ totalConditionalRules }}
 				</span>
@@ -101,12 +101,12 @@
 
 			<div v-show="showAdvanced" class="cn-schema-form__cond-accordion-body">
 				<CnNoteCard type="info">
-					<p>Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.</p>
+					<p>{{ t('nextcloud-vue', "Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.") }}</p>
 					<p>
-						<strong>Variables:</strong>
-						<code>$now</code> (current date/time) &nbsp;
-						<code>$userId</code> (current user ID) &nbsp;
-						<code>$organisation</code> (current organisation)
+						<strong>{{ t('nextcloud-vue', 'Variables:') }}</strong>
+						<code>$now</code> {{ t('nextcloud-vue', '(current date/time)') }} &nbsp;
+						<code>$userId</code> {{ t('nextcloud-vue', '(current user ID)') }} &nbsp;
+						<code>$organisation</code> {{ t('nextcloud-vue', '(current organisation)') }}
 					</p>
 				</CnNoteCard>
 
@@ -117,12 +117,12 @@
 							<template #icon>
 								<Plus :size="16" />
 							</template>
-							Add rule
+							{{ t('nextcloud-vue', 'Add rule') }}
 						</NcButton>
 					</div>
 
 					<div v-if="getConditionalRules(action).length === 0" class="cn-schema-form__cond-empty">
-						No conditional rules for {{ action }}
+						{{ t('nextcloud-vue', 'No conditional rules for {action}', { action }) }}
 					</div>
 
 					<div v-for="({ rule, originalIndex }, ruleIdx) in getConditionalRules(action)"
@@ -143,7 +143,7 @@
 									:value="getGroupOption(rule.group)"
 									:options="allGroupOptions"
 									:clearable="false"
-									aria-label-combobox="Group"
+									:aria-label-combobox="t('nextcloud-vue', 'Group')"
 									@input="setRuleGroup(action, originalIndex, $event)" />
 							</div>
 							<NcButton type="error"
@@ -151,7 +151,7 @@
 								<template #icon>
 									<TrashCanOutline :size="16" />
 								</template>
-								Remove rule
+								{{ t('nextcloud-vue', 'Remove rule') }}
 							</NcButton>
 						</div>
 
@@ -159,14 +159,14 @@
 						<div class="cn-schema-form__cond-match-list">
 							<p v-if="!rule.match || Object.keys(rule.match).length === 0"
 								class="cn-schema-form__cond-match-empty">
-								No conditions yet — add at least one condition
+								{{ t('nextcloud-vue', 'No conditions yet — add at least one condition') }}
 							</p>
 							<table v-else class="cn-schema-form__cond-match-table">
 								<thead>
 									<tr>
-										<th>Property</th>
-										<th>Operator</th>
-										<th>Value</th>
+										<th>{{ t('nextcloud-vue', 'Property') }}</th>
+										<th>{{ t('nextcloud-vue', 'Operator') }}</th>
+										<th>{{ t('nextcloud-vue', 'Value') }}</th>
 										<th />
 									</tr>
 								</thead>
@@ -182,7 +182,7 @@
 										<td class="cn-schema-form__cond-match-actions">
 											<NcButton type="error"
 												size="small"
-												aria-label="Remove condition"
+												:aria-label="t('nextcloud-vue', 'Remove condition')"
 												@click="removeCondition(action, originalIndex, propKey)">
 												<template #icon>
 													<Close :size="14" />
@@ -204,15 +204,15 @@
 										v-model="newCondition.propertyOption"
 										:options="availablePropertyOptions(action, ruleIdx)"
 										:clearable="false"
-										input-label="Property"
-										placeholder="Select property" />
+										:input-label="t('nextcloud-vue', 'Property')"
+										:placeholder="t('nextcloud-vue', 'Select property')" />
 								</div>
 								<div class="cn-schema-form__cond-add-field">
 									<NcSelect
 										v-model="newCondition.operatorOption"
 										:options="operatorOptions"
 										:clearable="false"
-										input-label="Operator" />
+										:input-label="t('nextcloud-vue', 'Operator')" />
 								</div>
 								<div class="cn-schema-form__cond-add-field">
 									<NcSelect
@@ -220,30 +220,30 @@
 										v-model="newCondition.existsOption"
 										:options="existsOptions"
 										:clearable="false"
-										input-label="Value" />
+										:input-label="t('nextcloud-vue', 'Value')" />
 									<NcSelect
 										v-else
 										v-model="newCondition.valueOption"
 										:options="specialValueOptions"
 										:clearable="true"
-										input-label="Value"
-										placeholder="Select or type…"
+										:input-label="t('nextcloud-vue', 'Value')"
+										:placeholder="t('nextcloud-vue', 'Select or type…')"
 										@input="onValueOptionChange" />
 								</div>
 							</div>
 							<!-- Custom value appears below the three selects, never displaces them -->
 							<div v-if="newCondition.customValue !== null" class="cn-schema-form__cond-custom-row">
-								<label class="cn-schema-form__cond-add-label">Custom value</label>
+								<label class="cn-schema-form__cond-add-label">{{ t('nextcloud-vue', 'Custom value') }}</label>
 								<input v-model="newCondition.customValue"
 									class="cn-schema-form__cond-custom-input"
-									placeholder="Enter a custom value">
+									:placeholder="t('nextcloud-vue', 'Enter a custom value')">
 							</div>
 							<div class="cn-schema-form__cond-add-actions">
 								<NcButton @click="confirmAddCondition(action, originalIndex)">
-									Add
+									{{ t('nextcloud-vue', 'Add') }}
 								</NcButton>
 								<NcButton type="tertiary" @click="cancelAddCondition()">
-									Cancel
+									{{ t('nextcloud-vue', 'Cancel') }}
 								</NcButton>
 							</div>
 						</div>
@@ -254,7 +254,7 @@
 							<template #icon>
 								<Plus :size="14" />
 							</template>
-							Add condition
+							{{ t('nextcloud-vue', 'Add condition') }}
 						</NcButton>
 					</div>
 				</div>
@@ -339,15 +339,15 @@ export default {
 
 		operatorOptions() {
 			return [
-				{ id: '$eq', label: '= Equal to' },
-				{ id: '$ne', label: '≠ Not equal to' },
-				{ id: '$gt', label: '> Greater than' },
-				{ id: '$gte', label: '≥ Greater than or equal' },
-				{ id: '$lt', label: '< Less than' },
-				{ id: '$lte', label: '≤ Less than or equal' },
-				{ id: '$in', label: '∈ In list' },
-				{ id: '$nin', label: '∉ Not in list' },
-				{ id: '$exists', label: '∃ Exists' },
+				{ id: '$eq', label: t('nextcloud-vue', '= Equal to') },
+				{ id: '$ne', label: t('nextcloud-vue', '≠ Not equal to') },
+				{ id: '$gt', label: t('nextcloud-vue', '> Greater than') },
+				{ id: '$gte', label: t('nextcloud-vue', '≥ Greater than or equal') },
+				{ id: '$lt', label: t('nextcloud-vue', '< Less than') },
+				{ id: '$lte', label: t('nextcloud-vue', '≤ Less than or equal') },
+				{ id: '$in', label: t('nextcloud-vue', '∈ In list') },
+				{ id: '$nin', label: t('nextcloud-vue', '∉ Not in list') },
+				{ id: '$exists', label: t('nextcloud-vue', '∃ Exists') },
 			]
 		},
 
@@ -357,27 +357,27 @@ export default {
 				label: key,
 			}))
 			const systemProps = [
-				{ id: '_organisation', label: '_organisation (system)' },
-				{ id: '_owner', label: '_owner (system)' },
-				{ id: '_created', label: '_created (system)' },
-				{ id: '_updated', label: '_updated (system)' },
+				{ id: '_organisation', label: t('nextcloud-vue', '_organisation (system)') },
+				{ id: '_owner', label: t('nextcloud-vue', '_owner (system)') },
+				{ id: '_created', label: t('nextcloud-vue', '_created (system)') },
+				{ id: '_updated', label: t('nextcloud-vue', '_updated (system)') },
 			]
 			return [...schemaProps, ...systemProps]
 		},
 
 		specialValueOptions() {
 			return [
-				{ id: '$now', label: '$now — current date/time' },
-				{ id: '$userId', label: '$userId — current user ID' },
-				{ id: '$organisation', label: '$organisation — current organisation' },
-				{ id: '__custom__', label: 'Custom value…' },
+				{ id: '$now', label: t('nextcloud-vue', '$now — current date/time') },
+				{ id: '$userId', label: t('nextcloud-vue', '$userId — current user ID') },
+				{ id: '$organisation', label: t('nextcloud-vue', '$organisation — current organisation') },
+				{ id: '__custom__', label: t('nextcloud-vue', 'Custom value…') },
 			]
 		},
 
 		existsOptions() {
 			return [
-				{ id: 'true', label: 'true — field must exist' },
-				{ id: 'false', label: 'false — field must not exist' },
+				{ id: 'true', label: t('nextcloud-vue', 'true — field must exist') },
+				{ id: 'false', label: t('nextcloud-vue', 'false — field must not exist') },
 			]
 		},
 
