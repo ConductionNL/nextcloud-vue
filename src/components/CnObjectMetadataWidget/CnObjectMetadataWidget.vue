@@ -212,8 +212,8 @@ export default {
 	methods: {
 		/**
 		 * Format a metadata value for display.
-		 * @param value
-		 * @param def
+		 * @param {*} value - The raw metadata value.
+		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */
 		formatMetadataValue(value, def) {
 			if (value === null || value === undefined) return '-'

@@ -54,7 +54,7 @@ export function useContextMenu() {
 	 * Sets CSS custom properties for x/y coordinates and a data attribute on
 	 * `document.documentElement` so the shared CSS can override Popper positioning.
 	 *
-	 * @param {object} params
+	 * @param {object} params - Context menu trigger parameters.
 	 * @param {any} params.item The item associated with the right-click (row, folder, etc.)
 	 * @param {MouseEvent} params.event The native contextmenu event
 	 */

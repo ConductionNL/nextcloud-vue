@@ -101,6 +101,7 @@ export default {
 
 .cn-advanced-form-dialog__codemirror-container :deep(.cm-editor) {
 	height: 100%;
+	outline: none !important;
 }
 
 .cn-advanced-form-dialog__codemirror-container :deep(.cm-scroller) {
@@ -110,10 +111,6 @@ export default {
 .cn-advanced-form-dialog__codemirror-container :deep(.cm-content) {
 	border-radius: 0 !important;
 	border: none !important;
-}
-
-.cn-advanced-form-dialog__codemirror-container :deep(.cm-editor) {
-	outline: none !important;
 }
 
 .cn-advanced-form-dialog__codemirror-container--light > .vue-codemirror {

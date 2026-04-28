@@ -79,7 +79,7 @@ export default {
 		 * Action definitions rendered as NcActionButton items.
 		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, destructive? }`.
 		 * When empty, only the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: Component, handler?: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
