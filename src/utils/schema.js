@@ -520,6 +520,12 @@ export function validateValue(value, property = {}, options = {}) {
 		if (typeof property.maxItems === 'number' && value.length > property.maxItems) {
 			return `Select at most ${property.maxItems} items.`
 		}
+		if (property.items && typeof property.items === 'object') {
+			for (let i = 0; i < value.length; i++) {
+				const itemErr = validateValue(value[i], property.items)
+				if (itemErr) return `Item ${i + 1}: ${itemErr}`
+			}
+		}
 	}
 	if (type === 'boolean' && typeof value !== 'boolean') return 'Value must be a boolean.'
 	if (Array.isArray(property.enum) && property.enum.length > 0 && !property.enum.includes(value)) {

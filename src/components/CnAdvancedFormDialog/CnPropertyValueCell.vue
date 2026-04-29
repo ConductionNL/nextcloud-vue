@@ -61,6 +61,48 @@
 				:height="objectEditorHeight"
 				language="json"
 				@update:value="emitObject($event)" />
+			<div
+				v-else-if="resolvedWidget === 'objectArray'"
+				class="cn-advanced-form-dialog__object-array">
+				<div class="cn-advanced-form-dialog__object-array-chips">
+					<button
+						v-for="(item, idx) in objectArrayItems"
+						:key="idx"
+						type="button"
+						class="cn-advanced-form-dialog__object-array-chip"
+						:title="t('nextcloud-vue', 'Edit item')"
+						@click.stop="openObjectArrayItem(idx)">
+						<span class="cn-advanced-form-dialog__object-array-chip-label">{{ objectArrayItemLabel(item, idx) }}</span>
+						<NcButton
+							type="tertiary-no-background"
+							:aria-label="t('nextcloud-vue', 'Remove item')"
+							:title="t('nextcloud-vue', 'Remove item')"
+							class="cn-advanced-form-dialog__object-array-chip-remove"
+							@click.stop="removeObjectArrayItem(idx)">
+							<template #icon>
+								<Close :size="14" />
+							</template>
+						</NcButton>
+					</button>
+				</div>
+				<NcButton
+					type="secondary"
+					class="cn-advanced-form-dialog__object-array-add"
+					@click.stop="openObjectArrayItem(null)">
+					<template #icon>
+						<Plus :size="16" />
+					</template>
+					{{ t('nextcloud-vue', 'Add item') }}
+				</NcButton>
+				<CnAdvancedFormDialog
+					v-if="objectArrayDialogOpen"
+					:schema="schemaProp.items"
+					:item="objectArrayDialogItem"
+					:dialog-title="objectArrayDialogTitle"
+					:show-metadata-tab="false"
+					@confirm="onObjectArrayConfirm"
+					@close="closeObjectArrayDialog" />
+			</div>
 			<NcTextField
 				v-else
 				ref="inputRef"
@@ -127,14 +169,17 @@ import {
 	NcTextArea,
 	NcCheckboxRadioSwitch,
 	NcSelect,
+	NcButton,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip.js'
 import { formatValue, validateValue } from '../../utils/schema.js'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
-const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'color']
+const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'objectArray', 'color']
 
 /** String formats that map to HTML5 `<input type="url">`. */
 const URL_FORMATS = new Set([
@@ -166,9 +211,14 @@ export default {
 		NcTextArea,
 		NcCheckboxRadioSwitch,
 		NcSelect,
+		NcButton,
 		InformationOutline,
+		Plus,
+		Close,
 		CnJsonViewer,
 		CnColorPicker,
+		// Lazy-required to break the circular dep with CnAdvancedFormDialog.
+		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue'),
 	},
 
 	props: {
@@ -218,6 +268,10 @@ export default {
 			pendingColor: null,
 			pendingColorTimer: null,
 			colorPickerOpen: false,
+			/** State for the object-array sub-dialog. `null` index means "add new". */
+			objectArrayDialogOpen: false,
+			objectArrayDialogIndex: null,
+			objectArrayDialogItem: null,
 		}
 	},
 
@@ -238,7 +292,10 @@ export default {
 			const prop = this.schemaProp
 			if (!prop) return 'text'
 			if (prop.type === 'boolean') return 'boolean'
-			if (prop.type === 'array') return 'select'
+			if (prop.type === 'array') {
+				if (prop.items?.type === 'object') return 'objectArray'
+				return 'select'
+			}
 			if (prop.type === 'object') return 'object'
 			if (prop.type === 'string') {
 				if (Array.isArray(prop.enum) && prop.enum.length > 0) return 'select'
@@ -460,6 +517,19 @@ export default {
 			return lookup(v)
 		},
 
+		/** Items array for the `objectArray` widget. Always an array. */
+		objectArrayItems() {
+			return Array.isArray(this.value) ? this.value : []
+		},
+
+		/** Title shown in the sub-dialog when adding/editing an object item. */
+		objectArrayDialogTitle() {
+			const itemTitle = this.schemaProp?.items?.title || this.displayName || t('nextcloud-vue', 'Item')
+			return this.objectArrayDialogIndex === null
+				? t('nextcloud-vue', 'Add {title}', { title: itemTitle })
+				: t('nextcloud-vue', 'Edit {title}', { title: itemTitle })
+		},
+
 		stringValue() {
 			const v = this.value
 			if (v == null) return ''
@@ -580,10 +650,125 @@ export default {
 			const toId = (item) => (item && typeof item === 'object' ? item.id : item)
 			if (this.effectiveSelectMultiple) {
 				const arr = Array.isArray(selected) ? selected : []
-				this.$emit('update:value', arr.map(toId))
+				const itemType = this.schemaProp?.items?.type
+				// Coerce taggable input (always emitted as strings) to the
+				// declared `items.type`. Drop entries that fail to coerce.
+				const coerced = arr
+					.map(toId)
+					.map((v) => this.coerceItem(v, itemType))
+					.filter((v) => v !== undefined)
+				this.$emit('update:value', coerced)
 				return
 			}
 			this.$emit('update:value', selected == null ? null : toId(selected))
+		},
+
+		/**
+		 * Coerce a raw select-emitted value (typically a string from a
+		 * taggable NcSelect) into the array's declared `items.type`. Returns
+		 * `undefined` for entries that can't be coerced so the caller can drop
+		 * them from the array.
+		 * @param {*} v - The raw value.
+		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
+		 * @return {*}
+		 */
+		coerceItem(v, itemType) {
+			if (v === null || v === undefined) return v
+			// No declared item type — pass through untouched (preserves the
+			// shape consumers may have set up via `selectOptions` etc).
+			if (!itemType) return v
+			// Already the right shape — pass through.
+			if (itemType === 'number' && typeof v === 'number') return v
+			if (itemType === 'integer' && typeof v === 'number' && Number.isInteger(v)) return v
+			if (itemType === 'boolean' && typeof v === 'boolean') return v
+			if (itemType === 'string' && typeof v === 'string') return v
+			const s = String(v).trim()
+			if (s === '') return undefined
+			if (itemType === 'number') {
+				const n = Number(s)
+				return Number.isFinite(n) ? n : undefined
+			}
+			if (itemType === 'integer') {
+				const n = Number(s)
+				return Number.isFinite(n) && Number.isInteger(n) ? n : undefined
+			}
+			if (itemType === 'boolean') {
+				if (/^(true|1|yes|on)$/i.test(s)) return true
+				if (/^(false|0|no|off)$/i.test(s)) return false
+				return undefined
+			}
+			return s
+		},
+
+		/**
+		 * Open the sub-dialog to add a new object item or edit an existing
+		 * one. `idx === null` means add.
+		 * @param {number|null} idx - Index of the item to edit, or `null`.
+		 */
+		openObjectArrayItem(idx) {
+			this.objectArrayDialogIndex = idx
+			this.objectArrayDialogItem = idx === null
+				? null
+				: JSON.parse(JSON.stringify(this.objectArrayItems[idx] || {}))
+			this.objectArrayDialogOpen = true
+		},
+
+		closeObjectArrayDialog() {
+			this.objectArrayDialogOpen = false
+			this.objectArrayDialogIndex = null
+			this.objectArrayDialogItem = null
+		},
+
+		/**
+		 * Confirmed object from the sub-dialog. Replace the existing item or
+		 * append a new one, then emit the updated array.
+		 * @param {object} formData - Form data emitted by CnAdvancedFormDialog.
+		 */
+		onObjectArrayConfirm(formData) {
+			const next = [...this.objectArrayItems]
+			if (this.objectArrayDialogIndex === null) {
+				next.push(formData)
+			} else {
+				next.splice(this.objectArrayDialogIndex, 1, formData)
+			}
+			this.$emit('update:value', next)
+			this.closeObjectArrayDialog()
+		},
+
+		/**
+		 * Remove an item from the object array.
+		 * @param {number} idx - Index of the item to remove.
+		 */
+		removeObjectArrayItem(idx) {
+			const next = [...this.objectArrayItems]
+			next.splice(idx, 1)
+			this.$emit('update:value', next)
+		},
+
+		/**
+		 * Pick a human-readable label for an item chip. Tries the schema-
+		 * declared name field first, then the first non-empty primitive
+		 * property, then falls back to "Item N".
+		 * @param {object} item - The array item.
+		 * @param {number} idx - Index of the item (used for fallback label).
+		 * @return {string}
+		 */
+		objectArrayItemLabel(item, idx) {
+			const items = this.schemaProp?.items
+			const nameField = items?.objectConfiguration?.objectNameField
+				|| items?.configuration?.objectNameField
+			if (nameField && item && item[nameField] != null && item[nameField] !== '') {
+				return String(item[nameField])
+			}
+			if (item && typeof item === 'object') {
+				for (const v of Object.values(item)) {
+					if (v == null || v === '') continue
+					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+						return String(v)
+					}
+				}
+			}
+			return t('nextcloud-vue', 'Item {n}', { n: idx + 1 })
 		},
 
 		isValidDate(v) {
@@ -884,5 +1069,51 @@ export default {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
+}
+
+/* Object-array widget: chip list + add button */
+.cn-advanced-form-dialog__object-array {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+}
+
+.cn-advanced-form-dialog__object-array-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.cn-advanced-form-dialog__object-array-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 4px 2px 10px;
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-pill, 14px);
+	color: var(--color-main-text);
+	cursor: pointer;
+	font: inherit;
+	max-width: 240px;
+}
+
+.cn-advanced-form-dialog__object-array-chip:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-advanced-form-dialog__object-array-chip-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-advanced-form-dialog__object-array-chip-remove {
+	flex-shrink: 0;
+}
+
+.cn-advanced-form-dialog__object-array-add {
+	align-self: flex-start;
 }
 </style>
