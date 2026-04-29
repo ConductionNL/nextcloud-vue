@@ -156,7 +156,6 @@ export default {
 		 * Format a field value for display based on its schema type.
 		 *
 		 * @param {*} value - The raw value.
-		 * @param {object} schemaProp - The JSON Schema property definition.
 		 * @return {string} Formatted display value.
 		 */
 		formatFieldValue(value) {

@@ -663,7 +663,7 @@ export default {
 
 		/**
 		 * Compute CSS grid placement for a field cell.
-		 * @param field
+		 * @param {object} field - The field configuration object.
 		 */
 		cellStyle(field) {
 			const style = {}
@@ -681,7 +681,7 @@ export default {
 		/**
 		 * Normalize an option to { id, label } format.
 		 * Accepts plain strings or objects with id/label properties.
-		 * @param val
+		 * @param {string|object} val - Raw option value to normalize.
 		 */
 		_normalizeOption(val) {
 			if (val && typeof val === 'object' && val.id !== undefined) {
