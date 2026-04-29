@@ -42,8 +42,10 @@ describe('CnPropertiesTab', () => {
 		expect(keys).toContain('locked')
 	})
 
-	it('marks an immutable row with an existing value as non-editable', () => {
-		const wrapper = mount(CnPropertiesTab, {
+	it('immutable rows lock based on the persisted item, not the live value', () => {
+		// Persisted object already has a `locked` value → field is locked
+		// regardless of what the user is currently typing.
+		const editing = mount(CnPropertiesTab, {
 			propsData: {
 				schema,
 				item: { locked: 'val' },
@@ -51,10 +53,22 @@ describe('CnPropertiesTab', () => {
 			},
 			stubs: baseStubs,
 		})
-		expect(wrapper.vm.isPropertyEditable('locked', 'val')).toBe(false)
-		// Empty immutable: editable so the user can fill it during creation.
-		expect(wrapper.vm.isPropertyEditable('locked', '')).toBe(true)
-		expect(wrapper.vm.isPropertyEditable('locked', null)).toBe(true)
+		expect(editing.vm.isPropertyEditable('locked', 'val')).toBe(false)
+		expect(editing.vm.isPropertyEditable('locked', '')).toBe(false)
+
+		// New object: persisted item has no value → editable while the user
+		// types (the field doesn't lock the moment they enter a character).
+		const creating = mount(CnPropertiesTab, {
+			propsData: {
+				schema,
+				item: null,
+				formData: {},
+			},
+			stubs: baseStubs,
+		})
+		expect(creating.vm.isPropertyEditable('locked', '')).toBe(true)
+		expect(creating.vm.isPropertyEditable('locked', 'partial')).toBe(true)
+		expect(creating.vm.isImmutableHint('locked')).toBe(true)
 	})
 
 	it('hasConstantOrImmutableProperties only counts const properties (not immutable)', () => {
