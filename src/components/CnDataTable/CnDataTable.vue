@@ -76,7 +76,7 @@
 					<td
 						v-for="col in effectiveColumns"
 						:key="col.key"
-						:class="col.cellClass || ''"
+						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
 						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
 							<!-- Schema-driven: use CnCellRenderer -->
@@ -92,7 +92,7 @@
 					</td>
 
 					<!-- Row actions -->
-					<td v-if="$scopedSlots['row-actions']" class="cn-table-col--actions" @click.stop>
+					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
 						<slot name="row-actions" :row="row" />
 					</td>
 				</tr>
@@ -228,6 +228,11 @@ export default {
 		},
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
+			type: Function,
+			default: null,
+		},
+		/** Function returning CSS class(es) for a data cell: (row, col) => string|object */
+		cellClass: {
 			type: Function,
 			default: null,
 		},
