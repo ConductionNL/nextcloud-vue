@@ -133,10 +133,14 @@ export default {
 		excludeFields: { type: Array, default: () => [] },
 		includeFields: { type: Array, default: null },
 		/**
-		 * When false (default), properties whose schema entry has `const` set or `immutable: true`
-		 * are filtered out of the list. When true, every property is shown regardless.
+		 * When false (default), properties whose schema entry has `const`
+		 * set are filtered out of the list — the user can't change them so
+		 * they only add noise. Set to `true` to render them anyway (e.g. for
+		 * debugging or admin views). `immutable` / `readOnly` properties are
+		 * always rendered regardless of this flag; they're just non-editable
+		 * once they have a value.
 		 */
-		showConstantProperties: { type: Boolean, default: true },
+		showConstantProperties: { type: Boolean, default: false },
 		/**
 		 * Per-property overrides forwarded to CnPropertyValueCell. Keyed by property key.
 		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows }`.
@@ -263,19 +267,28 @@ export default {
 			return !!(prop && prop.required === true)
 		},
 
+		/**
+		 * Whether the property's value is fixed by the schema (`const`) and
+		 * should be hide-able via the show/hide toggle. Note: `immutable` /
+		 * `readOnly` are NOT considered constant — they're set on creation
+		 * and locked afterward, but should remain visible in the form.
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
 		isConstantOrImmutableKey(key) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return false
-			if (prop.const !== undefined) return true
-			if (prop.immutable === true || prop.readOnly === true) return true
-			return false
+			return prop.const !== undefined
 		},
 
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return true
 			if (prop.const !== undefined) return false
-			if (prop.immutable && value != null && value !== '') return false
+			// `immutable` / `readOnly` lock the field once it has a value,
+			// but stay editable while empty so users can fill it on create.
+			const lockOnce = prop.immutable === true || prop.readOnly === true
+			if (lockOnce && value != null && value !== '') return false
 			const type = prop.type || 'string'
 			return this.editableTypes.includes(type)
 		},

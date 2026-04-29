@@ -23,7 +23,7 @@ const schema = {
 }
 
 describe('CnPropertiesTab', () => {
-	it('hides const + immutable rows when showConstantProperties is false', () => {
+	it('hides const rows when showConstantProperties is false but keeps immutable rows visible', () => {
 		const wrapper = mount(CnPropertiesTab, {
 			propsData: {
 				schema,
@@ -36,11 +36,29 @@ describe('CnPropertiesTab', () => {
 		const keys = wrapper.vm.objectProperties.map(([k]) => k)
 		expect(keys).toContain('title')
 		expect(keys).toContain('count')
+		// Const → hidden by the toggle.
 		expect(keys).not.toContain('fixed')
-		expect(keys).not.toContain('locked')
+		// Immutable → still shown (you can create it, you just can't edit it).
+		expect(keys).toContain('locked')
 	})
 
-	it('exposes hasConstantOrImmutableProperties for parents', () => {
+	it('marks an immutable row with an existing value as non-editable', () => {
+		const wrapper = mount(CnPropertiesTab, {
+			propsData: {
+				schema,
+				item: { locked: 'val' },
+				formData: {},
+			},
+			stubs: baseStubs,
+		})
+		expect(wrapper.vm.isPropertyEditable('locked', 'val')).toBe(false)
+		// Empty immutable: editable so the user can fill it during creation.
+		expect(wrapper.vm.isPropertyEditable('locked', '')).toBe(true)
+		expect(wrapper.vm.isPropertyEditable('locked', null)).toBe(true)
+	})
+
+	it('hasConstantOrImmutableProperties only counts const properties (not immutable)', () => {
+		// Schema has const (`fixed`) and immutable (`locked`) — only const counts.
 		const wrapper = mount(CnPropertiesTab, {
 			propsData: {
 				schema,
@@ -51,10 +69,11 @@ describe('CnPropertiesTab', () => {
 		})
 		expect(wrapper.vm.hasConstantOrImmutableProperties).toBe(true)
 
+		// Schema with only an immutable prop (no const) → false.
 		const wrapper2 = mount(CnPropertiesTab, {
 			propsData: {
-				schema: { properties: { title: { type: 'string' } } },
-				item: { title: 'Hello' },
+				schema: { properties: { locked: { type: 'string', immutable: true } } },
+				item: { locked: 'val' },
 				formData: {},
 			},
 			stubs: baseStubs,
