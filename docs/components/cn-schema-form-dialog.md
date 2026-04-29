@@ -93,11 +93,11 @@ All labels accept pre-translated strings with English defaults. Use these to loc
 | `closeLabel` | `String` | `'Close'` | Label for the close button (shown during result phase). |
 | `confirmLabel` | `String` | `''` | Label for the primary action button. When empty, defaults to `'Create'` (create mode) or `'Save'` (edit mode). |
 | `successText` | `String` | `''` | Success message shown in the result phase. When empty, defaults to `'Schema saved successfully.'`. |
-| `extendSchemaLabel` | `String` | `'Extend Schema'` | Label for the Extend Schema action button. |
-| `analyzePropertiesLabel` | `String` | `'Analyze Properties'` | Label for the Analyze Properties action button. |
-| `validateObjectsLabel` | `String` | `'Validate Objects'` | Label for the Validate Objects action button. |
-| `deleteObjectsLabel` | `String` | `'Delete Objects'` | Label for the Delete Objects action button. |
-| `publishObjectsLabel` | `String` | `'Publish Objects'` | Label for the Publish Objects action button. |
+| `extendSchemaLabel` | `String` | `'Extend schema'` | Label for the Extend Schema action button. |
+| `analyzePropertiesLabel` | `String` | `'Analyze properties'` | Label for the Analyze Properties action button. |
+| `validateObjectsLabel` | `String` | `'Validate objects'` | Label for the Validate Objects action button. |
+| `deleteObjectsLabel` | `String` | `'Delete objects'` | Label for the Delete Objects action button. |
+| `publishObjectsLabel` | `String` | `'Publish objects'` | Label for the Publish Objects action button. |
 | `deleteLabel` | `String` | `'Delete'` | Label for the Delete (schema) action button. |
 | `deleteObjectsTooltip` | `String` | `'Delete all objects in this schema'` | Tooltip shown on the Delete Objects button when it is enabled. |
 | `publishObjectsTooltip` | `String` | `'Publish all objects in this schema'` | Tooltip shown on the Publish Objects button when it is enabled. |
@@ -192,18 +192,31 @@ The Configuration tab provides schema-level settings:
 
 ### Security tab
 
-The Security tab provides a Role-Based Access Control (RBAC) table:
+The Security tab provides a Role-Based Access Control (RBAC) table and an advanced conditional access rules section.
 
+**RBAC table:**
 - **Columns**: Group, Create, Read, Update, Delete
 - **Built-in rows** (always shown):
-  - `public` — anonymous/unauthenticated users (blue badge)
-  - `user` — all authenticated users (orange badge)
-  - `admin` — always has full access, all toggles disabled/checked (green badge)
-- **Custom group rows** — populated from the `userGroups` prop, sorted alphabetically, shown between `user` and `admin`
+  - `public` — anonymous/unauthenticated users
+  - `authenticated` — all authenticated users
+  - `admin` — always has full access, all toggles disabled/checked
+- **Custom group rows** — populated from the `userGroups` prop, sorted alphabetically, shown between `authenticated` and `admin`
 - **Loading state** — when `loadingGroups` is `true`, a spinner is shown instead of the table
 - **Summary cards** — below the table:
-  - "Open Access" (success) when no permissions are set
-  - "Restrictive Schema" (warning) when permissions restrict access to specific groups
+  - "Open access" (success) when no permissions are set
+  - "Restrictive schema" (warning) when permissions restrict access to specific groups
+
+**Advanced: Conditional access rules** (accordion, collapsed by default):
+
+Grant access based on object property values evaluated at runtime. Conditions are per-action (create/read/update/delete). Multiple rules per action are OR'd — any matching rule grants access.
+
+Each rule has:
+- A **group** (public, authenticated, or a named user group)
+- One or more **match conditions**: `property → operator → value`
+
+Supported operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`
+
+Special value variables: `$now` (current date/time), `$userId` (current user ID), `$organisation` (current organisation)
 
 ---
 
