@@ -56,6 +56,12 @@
 								class="cn-advanced-form-dialog__required-indicator"
 								:title="t('nextcloud-vue', 'Required')"
 								aria-label="required">*</span>
+							<span
+								v-if="isImmutableHint(key)"
+								class="cn-advanced-form-dialog__immutable-badge"
+								:title="t('nextcloud-vue', 'This value can be set on creation but cannot be changed afterwards.')">
+								{{ t('nextcloud-vue', 'Set once') }}
+							</span>
 						</div>
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
@@ -275,20 +281,46 @@ export default {
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
+		/**
+		 * True when an "immutable" / "readOnly" hint badge should be shown
+		 * for this property — i.e. the prop is settable on creation but
+		 * locks once persisted, AND it isn't already locked. Once locked the
+		 * lock icon takes over and the badge would be redundant.
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
+		isImmutableHint(key) {
+			const prop = this.schema?.properties?.[key]
+			if (!prop) return false
+			if (prop.const !== undefined) return false
+			const lockOnce = prop.immutable === true || prop.readOnly === true
+			if (!lockOnce) return false
+			return this.isPropertyEditable(key, null)
+		},
+
 		isConstantOrImmutableKey(key) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return false
 			return prop.const !== undefined
 		},
 
+		// `value` is intentionally unused — kept in the signature for callers
+		// that already pass it (slot consumers, the cell, the row click
+		// handler). Editability is now driven by the persisted `item`.
+		// eslint-disable-next-line no-unused-vars
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return true
 			if (prop.const !== undefined) return false
-			// `immutable` / `readOnly` lock the field once it has a value,
-			// but stay editable while empty so users can fill it on create.
+			// `immutable` / `readOnly` mean "settable on creation, locked
+			// once persisted". Use the persisted `item` (not the live value
+			// the user is typing) as the source of truth — otherwise the
+			// field would lock the moment the first character is entered.
 			const lockOnce = prop.immutable === true || prop.readOnly === true
-			if (lockOnce && value != null && value !== '') return false
+			if (lockOnce) {
+				const persisted = this.item && this.item[key]
+				if (persisted != null && persisted !== '') return false
+			}
 			const type = prop.type || 'string'
 			return this.editableTypes.includes(type)
 		},
@@ -583,5 +615,19 @@ export default {
 	color: var(--color-error);
 	font-weight: bold;
 	cursor: help;
+}
+
+.cn-advanced-form-dialog__immutable-badge {
+	display: inline-block;
+	padding: 1px 6px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 0.75em;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	cursor: help;
+	white-space: nowrap;
 }
 </style>
