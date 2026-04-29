@@ -152,9 +152,13 @@ export function formatValue(value, property = {}, options = {}) {
 		return `${value.slice(0, 3).join(', ')} +${value.length - 3}`
 	}
 
-	// Object (shouldn't normally appear in tables)
+	// Object — render as JSON; tables truncate, multi-line value cells wrap with `<pre>`.
 	if (type === 'object' || (typeof value === 'object' && value !== null)) {
-		return '[Object]'
+		try {
+			return truncateString(JSON.stringify(value, null, 2), truncate)
+		} catch {
+			return '[Object]'
+		}
 	}
 
 	// String types
@@ -420,4 +424,149 @@ export function filtersFromSchema(schema) {
 
 			return filter
 		})
+}
+
+/**
+ * URL-like string formats — values must parse as a `URL` to be considered valid.
+ */
+const URL_FORMATS = new Set([
+	'url', 'uri', 'uri-reference', 'iri', 'iri-reference', 'uri-template',
+	'accessUrl', 'shareUrl', 'downloadUrl',
+])
+
+/**
+ * Regex-based validators for additional standard string formats.
+ */
+const FORMAT_PATTERNS = {
+	email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/i,
+	'idn-email': /^[^\s@]+@[^\s@]+\.[^\s@]+$/i,
+	uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+	ipv4: /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/,
+	ipv6: /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i,
+	hostname: /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i,
+	semver: /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/,
+	'color-hex': /^#[0-9a-f]{6}$/i,
+	'color-hex-alpha': /^#[0-9a-f]{8}$/i,
+	'color-rgb': /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/i,
+	'color-rgba': /^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*[\d.]+\s*\)$/i,
+	'color-hsl': /^hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)$/i,
+	'color-hsla': /^hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*[\d.]+\s*\)$/i,
+}
+
+/**
+ * Validate a single value against a JSON-Schema-style property definition.
+ *
+ * Returns null when the value is valid, otherwise a short English error
+ * message describing the violation (caller is responsible for translation).
+ * An empty value (`null`/`undefined`/`''`) is considered valid here unless
+ * `options.required` is set; required-ness is typically enforced separately
+ * by the form so an empty input doesn't show a redundant inline error.
+ *
+ * @param {*} value The value to validate.
+ * @param {object} [property] The schema property definition.
+ * @param {object} [options] Extra checks.
+ * @param {boolean} [options.required] When true, an empty value is reported.
+ * @return {string|null}
+ */
+export function validateValue(value, property = {}, options = {}) {
+	const { required = false } = options
+	const empty = value === null || value === undefined || value === ''
+		|| (Array.isArray(value) && value.length === 0)
+	if (empty) {
+		return required ? 'This field is required.' : null
+	}
+	const type = property.type || 'string'
+	if (type === 'integer') {
+		if (typeof value !== 'number' || !Number.isInteger(value)) return 'Value must be an integer.'
+	} else if (type === 'number') {
+		if (typeof value !== 'number' || Number.isNaN(value)) return 'Value must be a number.'
+	}
+	if (type === 'integer' || type === 'number') {
+		if (typeof property.minimum === 'number' && value < property.minimum) {
+			return `Value must be at least ${property.minimum}.`
+		}
+		if (typeof property.maximum === 'number' && value > property.maximum) {
+			return `Value must be at most ${property.maximum}.`
+		}
+	}
+	if (type === 'string') {
+		if (typeof value !== 'string') return 'Value must be a string.'
+		if (typeof property.minLength === 'number' && value.length < property.minLength) {
+			return `Must be at least ${property.minLength} characters.`
+		}
+		if (typeof property.maxLength === 'number' && value.length > property.maxLength) {
+			return `Must be at most ${property.maxLength} characters.`
+		}
+		if (property.pattern) {
+			try {
+				if (!new RegExp(property.pattern).test(value)) {
+					return 'Value does not match the required pattern.'
+				}
+			} catch {
+				// Ignore broken schema patterns.
+			}
+		}
+		if (property.const !== undefined && value !== property.const) {
+			return `Value must be '${property.const}'.`
+		}
+		const fmtErr = validateStringFormat(property.format, value)
+		if (fmtErr) return fmtErr
+	}
+	if (type === 'array') {
+		if (!Array.isArray(value)) return 'Value must be a list.'
+		if (typeof property.minItems === 'number' && value.length < property.minItems) {
+			return `Select at least ${property.minItems} items.`
+		}
+		if (typeof property.maxItems === 'number' && value.length > property.maxItems) {
+			return `Select at most ${property.maxItems} items.`
+		}
+	}
+	if (type === 'boolean' && typeof value !== 'boolean') return 'Value must be a boolean.'
+	if (Array.isArray(property.enum) && property.enum.length > 0 && !property.enum.includes(value)) {
+		return 'Value must be one of the allowed options.'
+	}
+	return null
+}
+
+/**
+ * Validate a string value against a JSON-Schema `format`.
+ * @param {string} format Schema format identifier.
+ * @param {string} value String value to validate.
+ * @return {string|null} Error message or null when valid.
+ */
+function validateStringFormat(format, value) {
+	if (!format) return null
+	if (format === 'time') {
+		// HTML5 `<input type="time">` produces `HH:MM` or `HH:MM:SS[.sss]`.
+		// `new Date()` won't parse a bare time, so check the shape directly.
+		return /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?$/.test(value)
+			? null
+			: 'Value must be a valid time.'
+	}
+	if (format === 'date' || format === 'date-time') {
+		return Number.isNaN(new Date(value).getTime()) ? `Value must be a valid ${format}.` : null
+	}
+	if (URL_FORMATS.has(format)) {
+		// Accept fully-qualified URLs (`https://example.com`) and protocol-less
+		// shorthand (`example.com/path`) by retrying with an `https://` prefix.
+		// Reject obviously non-URL inputs (whitespace, missing dots / authority).
+		if (/\s/.test(value)) return 'Value must be a valid URL.'
+		try {
+			/* eslint-disable-next-line no-new */
+			new URL(value)
+			return null
+		} catch {
+			// Fall through to the prefix retry.
+		}
+		try {
+			const parsed = new URL('https://' + value)
+			if (parsed.hostname && parsed.hostname.includes('.')) return null
+		} catch {
+			// Fall through to the rejection below.
+		}
+		return 'Value must be a valid URL.'
+	}
+	const re = FORMAT_PATTERNS[format]
+	if (re && !re.test(value)) return `Value must be a valid '${format}'.`
+	return null
 }

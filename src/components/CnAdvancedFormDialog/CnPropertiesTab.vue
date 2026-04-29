@@ -154,6 +154,7 @@ export default {
 				if (k === '@self' || k === 'id') return false
 				if (exclude.includes(k)) return false
 				if (include && !include.includes(k)) return false
+				if (schemaProps[k]?.hideOnForm === true) return false
 				return true
 			}
 			const existing = Object.entries(obj).filter(([k]) => filterKey(k))
@@ -161,22 +162,27 @@ export default {
 			for (const [key, prop] of Object.entries(schemaProps)) {
 				if (!filterKey(key)) continue
 				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-					let def
-					switch (prop.type) {
-					case 'string': def = prop.const ?? ''; break
-					case 'number':
-					case 'integer': def = 0; break
-					case 'boolean': def = false; break
-					case 'array': def = []; break
-					case 'object': def = {}; break
-					default: def = ''
-					}
-					missing.push([key, def])
+					missing.push([key, this.defaultForProperty(prop)])
 				}
 			}
 			const all = [...existing, ...missing]
-			if (this.showConstantProperties) return all
-			return all.filter(([key]) => !this.isConstantOrImmutableKey(key))
+			const filtered = this.showConstantProperties
+				? all
+				: all.filter(([key]) => !this.isConstantOrImmutableKey(key))
+			// Sort: schema `order` ascending (0 first), unspecified last; preserve
+			// schema/property declaration order as a stable tiebreaker.
+			const indexFor = (key) => {
+				const i = Object.keys(schemaProps).indexOf(key)
+				return i === -1 ? Number.MAX_SAFE_INTEGER : i
+			}
+			const orderFor = (key) => {
+				const o = schemaProps[key]?.order
+				return typeof o === 'number' ? o : Number.MAX_SAFE_INTEGER
+			}
+			return filtered
+				.map(([k, v], i) => ({ k, v, order: orderFor(k), idx: indexFor(k), insertion: i }))
+				.sort((a, b) => (a.order - b.order) || (a.idx - b.idx) || (a.insertion - b.insertion))
+				.map(({ k, v }) => [k, v])
 		},
 
 		/**
@@ -196,6 +202,7 @@ export default {
 				if (k === '@self' || k === 'id') continue
 				if (exclude.includes(k)) continue
 				if (include && !include.includes(k)) continue
+				if (schemaProps[k]?.hideOnForm === true) continue
 				if (this.isConstantOrImmutableKey(k)) return true
 			}
 			return false
@@ -216,6 +223,27 @@ export default {
 		 */
 		resolvedValue(key, objectValue) {
 			return this.formData[key] !== undefined ? this.formData[key] : objectValue
+		},
+
+		/**
+		 * Initial display value for a schema property that doesn't yet exist on the
+		 * object. Honors `default` and `const` first, then falls back to the
+		 * type-appropriate empty value.
+		 * @param {object} prop - The schema property entry.
+		 */
+		defaultForProperty(prop) {
+			if (!prop) return ''
+			if (prop.default !== undefined) return prop.default
+			if (prop.const !== undefined) return prop.const
+			switch (prop.type) {
+			case 'string': return ''
+			case 'number':
+			case 'integer': return 0
+			case 'boolean': return false
+			case 'array': return []
+			case 'object': return {}
+			default: return ''
+			}
 		},
 
 		onPropertyValueUpdate(key, value) {
@@ -413,6 +441,13 @@ export default {
 	vertical-align: middle;
 }
 
+/* Selected (editing) row: align the constrained label cell to the top of the
+   value cell so tall inputs (textarea, JSON editor) do not visually overflow
+   into the next row. */
+.cn-advanced-form-dialog__table-row--selected td {
+	vertical-align: top;
+}
+
 .cn-advanced-form-dialog__table th {
 	background: var(--color-background-dark);
 	font-weight: 500;
@@ -498,6 +533,11 @@ export default {
 	width: 70%;
 	word-break: break-word;
 	border-radius: 4px;
+	overflow: hidden;
+}
+
+.cn-advanced-form-dialog__value-cell > * {
+	max-width: 100%;
 }
 
 .cn-advanced-form-dialog__prop-cell-content {

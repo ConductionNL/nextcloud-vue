@@ -12,7 +12,7 @@ const stubs = {
 }
 
 describe('CnPropertyValueCell', () => {
-	it('auto-detects textarea from format: text', () => {
+	it('renders a single-line text input for format: text', () => {
 		const wrapper = mount(CnPropertyValueCell, {
 			propsData: {
 				propertyKey: 'description',
@@ -24,26 +24,45 @@ describe('CnPropertyValueCell', () => {
 			},
 			stubs,
 		})
+		expect(wrapper.vm.resolvedWidget).toBe('text')
+		expect(wrapper.find('.nc-textfield').exists()).toBe(true)
+	})
+
+	it('auto-detects textarea from format: markdown', () => {
+		const wrapper = mount(CnPropertyValueCell, {
+			propsData: {
+				propertyKey: 'body',
+				schema: { properties: { body: { type: 'string', format: 'markdown' } } },
+				value: '# hi',
+				isEditable: true,
+				isEditing: true,
+			},
+			stubs,
+		})
 		expect(wrapper.vm.resolvedWidget).toBe('textarea')
 		expect(wrapper.find('.nc-textarea').exists()).toBe(true)
 	})
 
-	it('auto-detects array widget from type: array', () => {
-		const wrapper = mount(CnPropertyValueCell, {
+	it('color formats resolve to the color widget', () => {
+		const make = (format) => mount(CnPropertyValueCell, {
 			propsData: {
-				propertyKey: 'tags',
-				schema: { properties: { tags: { type: 'array' } } },
-				value: ['a', 'b'],
+				propertyKey: 'k',
+				schema: { properties: { k: { type: 'string', format } } },
+				value: '',
 				isEditable: true,
 				isEditing: true,
-				displayName: 'Tags',
 			},
 			stubs,
-		})
-		expect(wrapper.vm.resolvedWidget).toBe('array')
+		}).vm
+		expect(make('color').resolvedWidget).toBe('color')
+		expect(make('color-hex').resolvedWidget).toBe('color')
+		expect(make('color-rgb').resolvedWidget).toBe('color')
+		expect(make('color-rgba').resolvedWidget).toBe('color')
+		expect(make('color-hsl').resolvedWidget).toBe('color')
+		expect(make('color-hsla').resolvedWidget).toBe('color')
 	})
 
-	it('emits comma-split array on update for array widget', async () => {
+	it('arrays render as a multi NcSelect with taggable when items.enum is missing', () => {
 		const wrapper = mount(CnPropertyValueCell, {
 			propsData: {
 				propertyKey: 'tags',
@@ -52,12 +71,45 @@ describe('CnPropertyValueCell', () => {
 				isEditable: true,
 				isEditing: true,
 				displayName: 'Tags',
-				widget: 'array',
 			},
 			stubs,
 		})
-		wrapper.vm.emitArray('one, two , three')
-		expect(wrapper.emitted('update:value')[0][0]).toEqual(['one', 'two', 'three'])
+		expect(wrapper.vm.resolvedWidget).toBe('select')
+		expect(wrapper.vm.effectiveSelectMultiple).toBe(true)
+		expect(wrapper.vm.effectiveSelectTaggable).toBe(true)
+	})
+
+	it('arrays with items.enum become a multi NcSelect of those enums', () => {
+		const wrapper = mount(CnPropertyValueCell, {
+			propsData: {
+				propertyKey: 'roles',
+				schema: { properties: { roles: { type: 'array', items: { type: 'string', enum: ['admin', 'user'] } } } },
+				value: [],
+				isEditable: true,
+				isEditing: true,
+			},
+			stubs,
+		})
+		expect(wrapper.vm.resolvedWidget).toBe('select')
+		expect(wrapper.vm.effectiveSelectMultiple).toBe(true)
+		expect(wrapper.vm.effectiveSelectTaggable).toBe(false)
+		expect(wrapper.vm.effectiveSelectOptions).toEqual(['admin', 'user'])
+	})
+
+	it('string with enum becomes a single NcSelect of those values', () => {
+		const wrapper = mount(CnPropertyValueCell, {
+			propsData: {
+				propertyKey: 'status',
+				schema: { properties: { status: { type: 'string', enum: ['draft', 'published'] } } },
+				value: 'draft',
+				isEditable: true,
+				isEditing: true,
+			},
+			stubs,
+		})
+		expect(wrapper.vm.resolvedWidget).toBe('select')
+		expect(wrapper.vm.effectiveSelectMultiple).toBe(false)
+		expect(wrapper.vm.effectiveSelectOptions).toEqual(['draft', 'published'])
 	})
 
 	it('respects explicit widget override', () => {
@@ -161,10 +213,10 @@ describe('CnPropertyValueCell', () => {
 		expect(make('downloadUrl').inputType).toBe('url')
 		expect(make('password').inputType).toBe('password')
 		expect(make('telephone').inputType).toBe('tel')
-		expect(make('color').inputType).toBe('color')
-		expect(make('color-hex-alpha').inputType).toBe('color')
-		expect(make('color-rgb').inputType).toBe('text')
 		expect(make('uuid').inputType).toBe('text')
+		expect(make('date').inputType).toBe('date')
+		expect(make('time').inputType).toBe('time')
+		expect(make('date-time').inputType).toBe('datetime-local')
 	})
 
 	it('html format auto-detects to textarea', () => {
