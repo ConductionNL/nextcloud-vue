@@ -26,7 +26,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 
 <!-- With custom footer and header actions -->
 <CnWidgetWrapper title="Tasks">
-  <template #header-actions>
+  <template #actions>
     <NcButton type="tertiary" @click="refresh">Refresh</NcButton>
   </template>
   <TaskList :items="tasks" />
@@ -54,5 +54,5 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | Slot | Description |
 |------|-------------|
 | default | Widget content rendered in the scrollable body area |
-| `header-actions` | Buttons or controls placed in the right side of the header |
+| `actions` | Buttons or controls placed in the right side of the header |
 | `footer` | Custom footer content (replaces the `buttons` prop rendering) |
