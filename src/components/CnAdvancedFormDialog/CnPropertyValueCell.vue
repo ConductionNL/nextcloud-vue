@@ -35,6 +35,13 @@
 					:placeholder="colorPlaceholder"
 					@update:value="onColorTextInput($event)" />
 			</div>
+			<NcDateTimePicker
+				v-else-if="resolvedWidget === 'datetime'"
+				:value="datetimeValue"
+				:type="datetimePickerType"
+				:placeholder="displayName"
+				:input-label="displayName"
+				@input="emitDatetime($event)" />
 			<NcTextArea
 				v-else-if="resolvedWidget === 'textarea'"
 				ref="inputRef"
@@ -170,6 +177,7 @@ import {
 	NcCheckboxRadioSwitch,
 	NcSelect,
 	NcButton,
+	NcDateTimePicker,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -212,6 +220,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcSelect,
 		NcButton,
+		NcDateTimePicker,
 		InformationOutline,
 		Plus,
 		Close,
@@ -313,9 +322,6 @@ export default {
 			if (!prop) return 'text'
 			const fmt = prop.format || ''
 			if (prop.type === 'string') {
-				if (fmt === 'date') return 'date'
-				if (fmt === 'time') return 'time'
-				if (fmt === 'date-time') return 'datetime-local'
 				if (fmt === 'email' || fmt === 'idn-email') return 'email'
 				if (URL_FORMATS.has(fmt)) return 'url'
 				if (fmt === 'password') return 'password'
@@ -530,6 +536,25 @@ export default {
 				: t('nextcloud-vue', 'Edit {title}', { title: itemTitle })
 		},
 
+		/**
+		 * NcDateTimePicker `type` mapped from the schema's string `format`.
+		 * Falls back to `datetime` for unknown date-ish formats.
+		 */
+		datetimePickerType() {
+			const fmt = this.schemaProp?.format
+			if (fmt === 'date') return 'date'
+			if (fmt === 'time') return 'time'
+			return 'datetime'
+		},
+
+		/** Current value as a `Date` instance for NcDateTimePicker, or null. */
+		datetimeValue() {
+			const v = this.value
+			if (!v) return null
+			const d = new Date(v)
+			return Number.isNaN(d.getTime()) ? null : d
+		},
+
 		stringValue() {
 			const v = this.value
 			if (v == null) return ''
@@ -624,6 +649,28 @@ export default {
 				}
 			}
 			this.$emit('update:value', converted)
+		},
+
+		/**
+		 * Emit a `Date` from NcDateTimePicker as the schema-appropriate string:
+		 * `date` → `YYYY-MM-DD`, `time` → `HH:MM:SS`, `date-time` → ISO 8601.
+		 * @param {Date|null} date - Date emitted by the picker.
+		 */
+		emitDatetime(date) {
+			if (!date) {
+				this.$emit('update:value', null)
+				return
+			}
+			const fmt = this.schemaProp?.format
+			if (fmt === 'date') {
+				this.$emit('update:value', date.toISOString().slice(0, 10))
+				return
+			}
+			if (fmt === 'time') {
+				this.$emit('update:value', date.toTimeString().slice(0, 8))
+				return
+			}
+			this.$emit('update:value', date.toISOString())
 		},
 
 		emitObject(jsonString) {

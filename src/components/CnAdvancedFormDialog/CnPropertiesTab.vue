@@ -466,7 +466,6 @@ export default {
 .cn-advanced-form-dialog__table-container {
 	background: var(--color-main-background);
 	border-radius: var(--border-radius);
-	overflow: hidden;
 	box-shadow: 0 2px 4px var(--color-box-shadow);
 	border: 1px solid var(--color-border);
 	margin-bottom: calc(5 * var(--default-grid-baseline));
@@ -578,7 +577,6 @@ export default {
 	width: 70%;
 	word-break: break-word;
 	border-radius: 4px;
-	overflow: hidden;
 }
 
 .cn-advanced-form-dialog__value-cell > * {
