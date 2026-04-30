@@ -612,7 +612,7 @@ export default {
 }
 
 .cn-advanced-form-dialog__required-indicator {
-	color: var(--color-error);
+	color: var(--color-error-text);
 	font-weight: bold;
 	cursor: help;
 }
