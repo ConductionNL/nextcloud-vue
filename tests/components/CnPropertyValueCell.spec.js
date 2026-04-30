@@ -6,6 +6,7 @@ const stubs = {
 	NcTextArea: { template: '<textarea class="nc-textarea" :value="value" @input="$emit(\'update:value\', $event.target.value)" />', props: ['value'] },
 	NcCheckboxRadioSwitch: { template: '<input type="checkbox" class="nc-switch" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />', props: ['checked'] },
 	NcDateTimePickerNative: { template: '<input class="nc-datetime" :value="value" @input="$emit(\'update:value\', $event.target.value)" />', props: ['value'] },
+	NcDateTimePicker: { template: '<input class="nc-datetime-picker" :value="value" @input="$emit(\'input\', $event.target.value)" />', props: ['value', 'type'] },
 	NcSelect: { template: '<div class="nc-select"></div>', props: ['value', 'options', 'multiple'] },
 	InformationOutline: true,
 	CnJsonViewer: { template: '<div class="cn-json-viewer-stub" :data-value="value"></div>', props: ['value', 'language', 'height'] },
@@ -214,9 +215,11 @@ describe('CnPropertyValueCell', () => {
 		expect(make('password').inputType).toBe('password')
 		expect(make('telephone').inputType).toBe('tel')
 		expect(make('uuid').inputType).toBe('text')
-		expect(make('date').inputType).toBe('date')
-		expect(make('time').inputType).toBe('time')
-		expect(make('date-time').inputType).toBe('datetime-local')
+		// Date formats are routed to NcDateTimePicker, not NcTextField, so
+		// `inputType` falls through to `text` for them.
+		expect(make('date').inputType).toBe('text')
+		expect(make('time').inputType).toBe('text')
+		expect(make('date-time').inputType).toBe('text')
 	})
 
 	it('html format auto-detects to textarea', () => {
