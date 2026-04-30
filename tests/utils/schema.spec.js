@@ -289,8 +289,14 @@ describe('formatValue', () => {
 		expect(result.length).toBeLessThanOrEqual(23) // 20 + '...'
 	})
 
-	it('formats objects as [Object]', () => {
-		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('[Object]')
+	it('formats objects as JSON', () => {
+		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('{\n  "a": 1\n}')
+	})
+
+	it('falls back to [Object] when JSON cannot be produced', () => {
+		const circular = {}
+		circular.self = circular
+		expect(formatValue(circular, { type: 'object' })).toBe('[Object]')
 	})
 
 	it('works without property definition', () => {

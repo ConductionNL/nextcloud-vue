@@ -9,6 +9,11 @@
 					<th class="cn-advanced-form-dialog__table-col-expanded">
 						{{ t('nextcloud-vue', 'Value') }}
 					</th>
+					<th
+						v-if="hasRowActionsSlot"
+						class="cn-advanced-form-dialog__table-col-actions">
+						<slot name="row-actions-header" />
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -46,19 +51,58 @@
 								:size="16"
 								:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
 							<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
+							<span
+								v-if="isRequired(key)"
+								class="cn-advanced-form-dialog__required-indicator"
+								:title="t('nextcloud-vue', 'Required')"
+								aria-label="required">*</span>
+							<span
+								v-if="isImmutableHint(key)"
+								class="cn-advanced-form-dialog__immutable-badge"
+								:title="t('nextcloud-vue', 'This value can be set on creation but cannot be changed afterwards.')">
+								{{ t('nextcloud-vue', 'Set once') }}
+							</span>
 						</div>
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
-						<CnPropertyValueCell
-							:ref="'cell-' + key"
+						<slot
+							name="value-cell"
 							:property-key="key"
-							:schema="schema"
-							:value="resolvedValue(key, value)"
-							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+							:value="value"
+							:resolved-value="resolvedValue(key, value)"
 							:is-editing="selectedProperty === key"
+							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
 							:display-name="getPropertyDisplayName(key)"
+							:schema-prop="schema && schema.properties && schema.properties[key]"
 							:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
-							@update:value="onPropertyValueUpdate(key, $event)" />
+							:on-update="(v) => onPropertyValueUpdate(key, v)">
+							<CnPropertyValueCell
+								:ref="'cell-' + key"
+								:property-key="key"
+								:schema="schema"
+								:value="resolvedValue(key, value)"
+								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+								:is-editing="selectedProperty === key"
+								:display-name="getPropertyDisplayName(key)"
+								:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
+								:widget="(propertyOverrides[key] && propertyOverrides[key].widget) || null"
+								:select-options="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
+								:select-multiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
+								:textarea-rows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
+								@update:value="onPropertyValueUpdate(key, $event)" />
+						</slot>
+					</td>
+					<td
+						v-if="hasRowActionsSlot"
+						class="cn-advanced-form-dialog__table-col-actions"
+						@click.stop>
+						<slot
+							name="row-actions"
+							:property-key="key"
+							:value="value"
+							:resolved-value="resolvedValue(key, value)"
+							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+							:is-schema-property="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
 					</td>
 				</tr>
 			</tbody>
@@ -67,6 +111,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
@@ -89,10 +134,24 @@ export default {
 		item: { type: Object, default: null },
 		formData: { type: Object, default: () => ({}) },
 		selectedProperty: { type: String, default: null },
-		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean'] },
+		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean', 'array', 'object'] },
 		validationDisplay: { type: String, default: 'indicator' },
 		excludeFields: { type: Array, default: () => [] },
 		includeFields: { type: Array, default: null },
+		/**
+		 * When false (default), properties whose schema entry has `const`
+		 * set are filtered out of the list — the user can't change them so
+		 * they only add noise. Set to `true` to render them anyway (e.g. for
+		 * debugging or admin views). `immutable` / `readOnly` properties are
+		 * always rendered regardless of this flag; they're just non-editable
+		 * once they have a value.
+		 */
+		showConstantProperties: { type: Boolean, default: false },
+		/**
+		 * Per-property overrides forwarded to CnPropertyValueCell. Keyed by property key.
+		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows }`.
+		 */
+		propertyOverrides: { type: Object, default: () => ({}) },
 	},
 
 	computed: {
@@ -105,6 +164,7 @@ export default {
 				if (k === '@self' || k === 'id') return false
 				if (exclude.includes(k)) return false
 				if (include && !include.includes(k)) return false
+				if (schemaProps[k]?.hideOnForm === true) return false
 				return true
 			}
 			const existing = Object.entries(obj).filter(([k]) => filterKey(k))
@@ -112,24 +172,60 @@ export default {
 			for (const [key, prop] of Object.entries(schemaProps)) {
 				if (!filterKey(key)) continue
 				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-					let def
-					switch (prop.type) {
-					case 'string': def = prop.const ?? ''; break
-					case 'number':
-					case 'integer': def = 0; break
-					case 'boolean': def = false; break
-					case 'array': def = []; break
-					case 'object': def = {}; break
-					default: def = ''
-					}
-					missing.push([key, def])
+					missing.push([key, this.defaultForProperty(prop)])
 				}
 			}
-			return [...existing, ...missing]
+			const all = [...existing, ...missing]
+			const filtered = this.showConstantProperties
+				? all
+				: all.filter(([key]) => !this.isConstantOrImmutableKey(key))
+			// Sort: schema `order` ascending (0 first), unspecified last; preserve
+			// schema/property declaration order as a stable tiebreaker.
+			const indexFor = (key) => {
+				const i = Object.keys(schemaProps).indexOf(key)
+				return i === -1 ? Number.MAX_SAFE_INTEGER : i
+			}
+			const orderFor = (key) => {
+				const o = schemaProps[key]?.order
+				return typeof o === 'number' ? o : Number.MAX_SAFE_INTEGER
+			}
+			return filtered
+				.map(([k, v], i) => ({ k, v, order: orderFor(k), idx: indexFor(k), insertion: i }))
+				.sort((a, b) => (a.order - b.order) || (a.idx - b.idx) || (a.insertion - b.insertion))
+				.map(({ k, v }) => [k, v])
+		},
+
+		/**
+		 * True when at least one property in the (unfiltered) list is constant or immutable.
+		 * Useful for parents that want to render a show/hide-toggle button only when relevant.
+		 */
+		hasConstantOrImmutableProperties() {
+			const schemaProps = this.schema?.properties || {}
+			const obj = this.item || {}
+			const exclude = this.excludeFields || []
+			const include = this.includeFields
+			const keys = new Set([
+				...Object.keys(obj),
+				...Object.keys(schemaProps),
+			])
+			for (const k of keys) {
+				if (k === '@self' || k === 'id') continue
+				if (exclude.includes(k)) continue
+				if (include && !include.includes(k)) continue
+				if (schemaProps[k]?.hideOnForm === true) continue
+				if (this.isConstantOrImmutableKey(k)) return true
+			}
+			return false
+		},
+
+		hasRowActionsSlot() {
+			return !!this.$scopedSlots['row-actions']
 		},
 	},
 
 	methods: {
+		t,
+
 		/**
 		 * The effective value for a key: formData override or the object's own value
 		 * @param {string} key - The property key to look up
@@ -139,15 +235,92 @@ export default {
 			return this.formData[key] !== undefined ? this.formData[key] : objectValue
 		},
 
+		/**
+		 * Initial display value for a schema property that doesn't yet exist on the
+		 * object. Honors `default` and `const` first, then falls back to the
+		 * type-appropriate empty value.
+		 * @param {object} prop - The schema property entry.
+		 */
+		defaultForProperty(prop) {
+			if (!prop) return ''
+			if (prop.default !== undefined) return prop.default
+			if (prop.const !== undefined) return prop.const
+			switch (prop.type) {
+			case 'string': return ''
+			case 'number':
+			case 'integer': return 0
+			case 'boolean': return false
+			case 'array': return []
+			case 'object': return {}
+			default: return ''
+			}
+		},
+
 		onPropertyValueUpdate(key, value) {
 			this.$emit('update:property-value', { key, value })
 		},
 
+		/**
+		 * Whether a property is marked required either via `schema.required: [...]`
+		 * (the JSON-Schema-canonical place) or via `prop.required: true` on the
+		 * property entry itself (a non-standard but commonly seen variant).
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
+		isRequired(key) {
+			if ((this.schema?.required || []).includes(key)) return true
+			const prop = this.schema?.properties?.[key]
+			return !!(prop && prop.required === true)
+		},
+
+		/**
+		 * Whether the property's value is fixed by the schema (`const`) and
+		 * should be hide-able via the show/hide toggle. Note: `immutable` /
+		 * `readOnly` are NOT considered constant — they're set on creation
+		 * and locked afterward, but should remain visible in the form.
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
+		/**
+		 * True when an "immutable" / "readOnly" hint badge should be shown
+		 * for this property — i.e. the prop is settable on creation but
+		 * locks once persisted, AND it isn't already locked. Once locked the
+		 * lock icon takes over and the badge would be redundant.
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
+		isImmutableHint(key) {
+			const prop = this.schema?.properties?.[key]
+			if (!prop) return false
+			if (prop.const !== undefined) return false
+			const lockOnce = prop.immutable === true || prop.readOnly === true
+			if (!lockOnce) return false
+			return this.isPropertyEditable(key, null)
+		},
+
+		isConstantOrImmutableKey(key) {
+			const prop = this.schema?.properties?.[key]
+			if (!prop) return false
+			return prop.const !== undefined
+		},
+
+		// `value` is intentionally unused — kept in the signature for callers
+		// that already pass it (slot consumers, the cell, the row click
+		// handler). Editability is now driven by the persisted `item`.
+		// eslint-disable-next-line no-unused-vars
 		isPropertyEditable(key, value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return true
 			if (prop.const !== undefined) return false
-			if (prop.immutable && value != null && value !== '') return false
+			// `immutable` / `readOnly` mean "settable on creation, locked
+			// once persisted". Use the persisted `item` (not the live value
+			// the user is typing) as the source of truth — otherwise the
+			// field would lock the moment the first character is entered.
+			const lockOnce = prop.immutable === true || prop.readOnly === true
+			if (lockOnce) {
+				const persisted = this.item && this.item[key]
+				if (persisted != null && persisted !== '') return false
+			}
 			const type = prop.type || 'string'
 			return this.editableTypes.includes(type)
 		},
@@ -293,7 +466,6 @@ export default {
 .cn-advanced-form-dialog__table-container {
 	background: var(--color-main-background);
 	border-radius: var(--border-radius);
-	overflow: hidden;
 	box-shadow: 0 2px 4px var(--color-box-shadow);
 	border: 1px solid var(--color-border);
 	margin-bottom: calc(5 * var(--default-grid-baseline));
@@ -311,6 +483,13 @@ export default {
 	text-align: left;
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: middle;
+}
+
+/* Selected (editing) row: align the constrained label cell to the top of the
+   value cell so tall inputs (textarea, JSON editor) do not visually overflow
+   into the next row. */
+.cn-advanced-form-dialog__table-row--selected td {
+	vertical-align: top;
 }
 
 .cn-advanced-form-dialog__table th {
@@ -382,6 +561,12 @@ export default {
 	min-width: 200px;
 }
 
+.cn-advanced-form-dialog__table-col-actions {
+	width: 56px;
+	text-align: right;
+	white-space: nowrap;
+}
+
 .cn-advanced-form-dialog__prop-cell {
 	width: 30%;
 	font-weight: 600;
@@ -392,6 +577,10 @@ export default {
 	width: 70%;
 	word-break: break-word;
 	border-radius: 4px;
+}
+
+.cn-advanced-form-dialog__value-cell > * {
+	max-width: 100%;
 }
 
 .cn-advanced-form-dialog__prop-cell-content {
@@ -418,5 +607,25 @@ export default {
 
 .cn-advanced-form-dialog__validation-icon--new {
 	color: var(--color-primary-element);
+}
+
+.cn-advanced-form-dialog__required-indicator {
+	color: var(--color-error-text);
+	font-weight: bold;
+	cursor: help;
+}
+
+.cn-advanced-form-dialog__immutable-badge {
+	display: inline-block;
+	padding: 1px 6px;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	font-size: 0.75em;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	cursor: help;
+	white-space: nowrap;
 }
 </style>
