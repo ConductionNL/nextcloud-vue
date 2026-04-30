@@ -1062,7 +1062,7 @@ export default {
 .cn-advanced-form-dialog__field-error {
 	margin-top: 4px;
 	font-size: 0.85em;
-	color: var(--color-error);
+	color: var(--color-error-text);
 }
 
 .cn-advanced-form-dialog__value-cell-wrapper {
