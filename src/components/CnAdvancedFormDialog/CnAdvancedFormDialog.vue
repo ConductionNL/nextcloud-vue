@@ -37,8 +37,13 @@
 				<!-- Main tabs -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
 					<BTabs v-model="activeTab" content-class="mt-3" justified>
-						<!-- Properties tab -->
-						<BTab v-if="showPropertiesTable" title="Properties">
+						<!-- Properties tab — disabled when the active schema has no
+						     properties to render (a bare JSON blob is still
+						     editable via the Data tab). -->
+						<BTab
+							v-if="showPropertiesTable"
+							title="Properties"
+							:disabled="!hasSchemaProperties">
 							<slot
 								name="tab-properties"
 								:form-data="formData"
@@ -130,7 +135,7 @@ import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
-const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
+const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
 
 /**
  * CnAdvancedFormDialog — Create/edit dialog with properties table (click-to-edit), JSON tab, and optional store integration.
@@ -229,6 +234,24 @@ export default {
 			return !!this.item
 		},
 
+		/**
+		 * True when the active schema declares at least one (non-metadata)
+		 * property the Properties tab can render. Used to disable the tab
+		 * when there's nothing for it to show — the Data tab still works.
+		 */
+		hasSchemaProperties() {
+			const props = this.schema?.properties || {}
+			const exclude = this.excludeFields || []
+			const include = this.includeFields
+			for (const key of Object.keys(props)) {
+				if (key === '@self' || key === 'id') continue
+				if (exclude.includes(key)) continue
+				if (include && !include.includes(key)) continue
+				return true
+			}
+			return false
+		},
+
 		resolvedFields() {
 			return fieldsFromSchema(this.schema, {
 				exclude: this.excludeFields,
@@ -295,6 +318,16 @@ export default {
 			immediate: true,
 			handler(newItem) {
 				this.initFormData(newItem)
+			},
+		},
+		hasSchemaProperties: {
+			immediate: true,
+			handler(hasProps) {
+				// When the Properties tab is disabled, skip past it so we
+				// don't land on a non-interactive tab on first render.
+				if (!hasProps && this.activeTab === 0 && this.showPropertiesTable) {
+					this.activeTab = this.resolvedShowMetadataTab ? 1 : (this.showJsonTab ? 1 : 0)
+				}
 			},
 		},
 		jsonData(newVal) {

@@ -24,6 +24,9 @@ export {
 	CnCopyDialog,
 	CnFormDialog,
 	CnAdvancedFormDialog,
+	CnPropertiesTab,
+	CnMetadataTab,
+	CnPropertyValueCell,
 	CnMassDeleteDialog,
 	CnMassCopyDialog,
 	CnKpiGrid,
@@ -48,6 +51,7 @@ export {
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,
+	CnColorPicker,
 	CnDetailGrid,
 	CnProgressBar,
 	CnChartWidget,
@@ -91,5 +95,5 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
-export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema } from './utils/index.js'
+export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
