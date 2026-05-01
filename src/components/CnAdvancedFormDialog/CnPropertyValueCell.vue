@@ -551,6 +551,15 @@ export default {
 		datetimeValue() {
 			const v = this.value
 			if (!v) return null
+			// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the spec,
+			// which shifts to the previous day in positive-UTC-offset timezones when
+			// fed to a picker that renders in local time. Parse them as local midnight.
+			if (this.schemaProp?.format === 'date'
+				&& typeof v === 'string'
+				&& /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+				const [year, month, day] = v.split('-').map(Number)
+				return new Date(year, month - 1, day)
+			}
 			const d = new Date(v)
 			return Number.isNaN(d.getTime()) ? null : d
 		},
@@ -594,6 +603,11 @@ export default {
 			const v = this.value
 			if (!v) return ''
 			const fmt = this.schemaProp?.format
+			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
+			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+				const [year, month, day] = v.split('-').map(Number)
+				return new Date(year, month - 1, day).toLocaleDateString()
+			}
 			const d = new Date(v)
 			if (Number.isNaN(d.getTime())) return String(v)
 			if (fmt === 'date') return d.toLocaleDateString()
@@ -663,7 +677,12 @@ export default {
 			}
 			const fmt = this.schemaProp?.format
 			if (fmt === 'date') {
-				this.$emit('update:value', date.toISOString().slice(0, 10))
+				// Use local-time accessors — toISOString() converts to UTC first,
+				// which shifts midnight local time to the previous day in UTC+n zones.
+				const year = date.getFullYear()
+				const month = String(date.getMonth() + 1).padStart(2, '0')
+				const day = String(date.getDate()).padStart(2, '0')
+				this.$emit('update:value', `${year}-${month}-${day}`)
 				return
 			}
 			if (fmt === 'time') {
