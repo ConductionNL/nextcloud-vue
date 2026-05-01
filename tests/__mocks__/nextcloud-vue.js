@@ -1,11 +1,21 @@
 /**
  * Mock for @nextcloud/vue — provides stub components for CnAdvancedFormDialog tests.
+ *
+ * The stub renders default children plus every named slot so components that
+ * place v-for blocks inside slots like `#list` or `#footer` (e.g. CnAppNav)
+ * still execute their render expressions during mount.
  */
 const createStub = (name) => ({
 	name,
 	functional: true,
-	render(h, { data, children }) {
-		return h('div', { class: ['stub', name], ...data }, children)
+	render(h, { data, children, slots }) {
+		const named = slots ? slots() : {}
+		const namedVnodes = []
+		for (const key of Object.keys(named)) {
+			if (key === 'default') continue
+			namedVnodes.push(named[key])
+		}
+		return h('div', { class: ['stub', name], ...data }, [...(children || []), ...namedVnodes])
 	},
 })
 

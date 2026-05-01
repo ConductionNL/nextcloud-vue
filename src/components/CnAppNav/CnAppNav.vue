@@ -174,6 +174,10 @@ export default {
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
 		 * NcAppNavigationItem should match its router-link `exact`.
+		 *
+		 * @param {object} item Menu item to resolve.
+		 * @return {object|null} Matching page entry, or null when the item
+		 *   has no `route` or no page matches.
 		 */
 		pageForItem(item) {
 			if (!item.route) return null
@@ -185,6 +189,9 @@ export default {
 		 * Root paths (`/`) match every nested route by default, which
 		 * makes the root item permanently look active. Returning true
 		 * for `route === '/'` restores the expected behaviour.
+		 *
+		 * @param {object} item Menu item being rendered.
+		 * @return {boolean} Whether to enable exact router-link matching.
 		 */
 		isExact(item) {
 			const page = this.pageForItem(item)
@@ -195,6 +202,10 @@ export default {
 		 * (`href`) items return `null` so the underlying anchor falls
 		 * through to a click handler instead of vue-router; route items
 		 * return a named route.
+		 *
+		 * @param {object} item Menu item being rendered.
+		 * @return {object|null} A `{ name }` route object, or null for
+		 *   external / route-less items.
 		 */
 		itemTo(item) {
 			if (item.href) return null
@@ -204,6 +215,10 @@ export default {
 		 * Click handler. For external (`href`) items, opens the URL in a
 		 * new tab with safe rel attributes. Route items are handled by
 		 * `:to` and skip this path.
+		 *
+		 * @param {object} item Menu item being clicked.
+		 * @param {Event} [event] Native click event (used to call
+		 *   preventDefault for external links).
 		 */
 		onItemClick(item, event) {
 			if (!item.href) return
