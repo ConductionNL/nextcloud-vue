@@ -16,6 +16,7 @@ module.exports = {
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
+		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
 	},
 	testMatch: [
 		'<rootDir>/tests/**/*.spec.js',

@@ -75,6 +75,12 @@ export {
 	CnNoteCard,
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
+	CnPageRenderer,
+	defaultPageTypes,
+	CnAppNav,
+	CnAppLoading,
+	CnDependencyMissing,
+	CnAppRoot,
 	registerIcons,
 } from './components/index.js'
 
@@ -99,7 +105,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus } from './composables/index.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'
@@ -107,4 +113,5 @@ export { registerTranslations } from './l10n/index.js'
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
+export { validateManifest } from './utils/validateManifest.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'

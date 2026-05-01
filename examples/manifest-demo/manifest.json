@@ -1,0 +1,95 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.0.0",
+	"dependencies": ["openregister"],
+	"menu": [
+		{
+			"id": "overview",
+			"label": "demo.menu.overview",
+			"icon": "icon-home",
+			"route": "overview",
+			"order": 10
+		},
+		{
+			"id": "decisions",
+			"label": "demo.menu.decisions",
+			"icon": "icon-checkmark",
+			"route": "decisions-index",
+			"order": 20
+		},
+		{
+			"id": "configuration",
+			"label": "demo.menu.configuration",
+			"icon": "icon-settings",
+			"order": 90,
+			"children": [
+				{ "id": "users", "label": "demo.menu.users", "route": "users-index" },
+				{ "id": "audit", "label": "demo.menu.audit", "route": "audit-index", "permission": "admin" }
+			]
+		},
+		{
+			"id": "settings",
+			"label": "demo.menu.settings",
+			"icon": "icon-settings",
+			"route": "settings",
+			"order": 99
+		}
+	],
+	"pages": [
+		{
+			"id": "overview",
+			"route": "/",
+			"type": "dashboard",
+			"title": "demo.overview.title",
+			"config": {
+				"widgets": [
+					{ "id": "kpis", "title": "demo.overview.kpis", "type": "custom" },
+					{ "id": "trend", "title": "demo.overview.trend", "type": "custom" }
+				],
+				"layout": [
+					{ "id": 1, "widgetId": "kpis", "gridX": 0, "gridY": 0, "gridWidth": 12, "gridHeight": 2 },
+					{ "id": 2, "widgetId": "trend", "gridX": 0, "gridY": 2, "gridWidth": 12, "gridHeight": 4 }
+				]
+			}
+		},
+		{
+			"id": "decisions-index",
+			"route": "/decisions",
+			"type": "index",
+			"title": "demo.decisions.list",
+			"config": {
+				"register": "decisions",
+				"schema": "decision",
+				"columns": ["title", "status", "deadline"]
+			}
+		},
+		{
+			"id": "decisions-detail",
+			"route": "/decisions/:id",
+			"type": "detail",
+			"title": "demo.decisions.detail",
+			"config": { "register": "decisions", "schema": "decision" }
+		},
+		{
+			"id": "users-index",
+			"route": "/users",
+			"type": "index",
+			"title": "demo.users.title",
+			"config": { "register": "users", "schema": "user" }
+		},
+		{
+			"id": "audit-index",
+			"route": "/audit",
+			"type": "index",
+			"title": "demo.audit.title",
+			"config": { "register": "audit", "schema": "audit-event" }
+		},
+		{
+			"id": "settings",
+			"route": "/settings",
+			"type": "custom",
+			"title": "demo.settings.title",
+			"component": "SettingsPage"
+		}
+	]
+}
