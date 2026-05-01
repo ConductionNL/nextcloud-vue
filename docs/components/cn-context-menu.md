@@ -13,7 +13,7 @@ Right-click context menu component that wraps NcActions with cursor positioning.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `open` | Boolean | `false` | Whether the menu is open. Use with `.sync` modifier, bound to `useContextMenu().isOpen`. |
-| `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, destructive? }]`. Same format as CnRowActions. |
+| `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, visible?, destructive? }]`. Same format as CnRowActions. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. |
 | `targetItem` | Object/String/Number | `null` | The right-clicked item. Passed to action `handler` and `disabled` callbacks. Bind to `useContextMenu().targetItem`. |
 
 ## Events
