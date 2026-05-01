@@ -146,8 +146,9 @@ export default {
 			validator: (tabs) => tabs.length > 0 && tabs.every(t => t.id && t.title),
 		},
 		/**
-		 * Existing item for edit mode. Pass null or undefined for create mode.
-		 * The component only checks for truthiness to determine create vs edit mode.
+		 * Existing item for edit mode. Pass null or undefined for plain create
+		 * mode. A non-null object without an `id` is also treated as create mode
+		 * — useful for pre-filled payloads (extend, clone, duplicate flows).
 		 *
 		 * @type {object|null}
 		 */
@@ -287,12 +288,16 @@ export default {
 	},
 	computed: {
 		/**
-		 * Whether the dialog is in create mode (no existing item).
+		 * Whether the dialog is in create mode (no existing persisted item).
+		 *
+		 * An item is considered "existing" only when it has an `id`. A non-null
+		 * item without an `id` (e.g. a pre-filled payload for extend/clone flows)
+		 * is treated as create mode.
 		 *
 		 * @return {boolean}
 		 */
 		isCreateMode() {
-			return !this.item
+			return !this.item || !this.item.id
 		},
 		/**
 		 * Resolved dialog title. Uses dialogTitle prop if provided,
