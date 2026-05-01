@@ -47,6 +47,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
+| `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
 | `showDeleteAction` | Boolean | `true` | Show delete row action |
@@ -74,7 +75,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked |
+| `row-click` | `row` | Row or card clicked. Conceptually distinct from `view` — handle row interaction here (selection, expand, drilldown). |
+| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row"; bind alongside `row-click` (with the same handler) when click-to-view is desired. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
