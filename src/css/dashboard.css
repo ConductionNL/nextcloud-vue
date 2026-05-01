@@ -7,6 +7,7 @@
 }
 
 /* Widget grid item borders for non-tile widgets */
+/* stylelint-disable-next-line selector-pseudo-class-no-unknown */
 .cn-dashboard-grid :deep(.grid-stack-item-content:has(.cn-widget-wrapper)) {
 	border: 1px solid var(--color-border);
 }

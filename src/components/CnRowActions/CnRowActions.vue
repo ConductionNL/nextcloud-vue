@@ -1,7 +1,7 @@
 <template>
-	<NcActions :force-menu="actions.length > 3" :primary="primary" :menu-name="menuName">
+	<NcActions :force-menu="visibleActions.length > 3" :primary="primary" :menu-name="menuName">
 		<NcActionButton
-			v-for="action in actions"
+			v-for="action in visibleActions"
 			:key="action.label"
 			:disabled="isDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
@@ -43,7 +43,16 @@ export default {
 	props: {
 		/**
 		 * Action definitions.
-		 * @type {Array<{label: string, icon?: Component, handler: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 *
+		 * Each action supports:
+		 * - `label` (string, required) — display text
+		 * - `icon` (component) — MDI icon
+		 * - `handler` (function) — called with `row` on click
+		 * - `disabled` (boolean | (row) => boolean) — gray out the entry
+		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
+		 * - `destructive` (boolean) — apply error color styling
+		 *
+		 * @type {Array<{label: string, icon?: object, handler: Function, disabled?: boolean | Function, visible?: boolean | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -63,6 +72,23 @@ export default {
 		menuName: {
 			type: String,
 			default: undefined,
+		},
+	},
+
+	computed: {
+		/**
+		 * Filter actions by their `visible` predicate. An action without a
+		 * `visible` field is always shown (backwards compatible).
+		 * @return {Array} Visible actions for the current row.
+		 */
+		visibleActions() {
+			return this.actions.filter((action) => {
+				if (action.visible === undefined) return true
+				if (typeof action.visible === 'function') {
+					return !!action.visible(this.row)
+				}
+				return !!action.visible
+			})
 		},
 	},
 

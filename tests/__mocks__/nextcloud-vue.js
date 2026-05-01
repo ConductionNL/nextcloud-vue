@@ -19,6 +19,8 @@ export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
 export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
+export const NcActions = createStub('NcActions')
+export const NcActionButton = createStub('NcActionButton')
 
 export default {
 	NcDialog,
@@ -31,4 +33,6 @@ export default {
 	NcAppNavigationItem,
 	NcContent,
 	NcEmptyContent,
+	NcActions,
+	NcActionButton,
 }

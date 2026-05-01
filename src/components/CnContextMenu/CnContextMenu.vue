@@ -8,7 +8,7 @@
 		@close="onClose">
 		<!-- Dynamic actions from array prop -->
 		<NcActionButton
-			v-for="action in actions"
+			v-for="action in visibleActions"
 			:key="action.label"
 			:disabled="resolveDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
@@ -77,9 +77,11 @@ export default {
 		},
 		/**
 		 * Action definitions rendered as NcActionButton items.
-		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, destructive? }`.
-		 * When empty, only the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: Component, handler?: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, visible?, destructive? }`.
+		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
+		 * (default: shown). When the entire array is empty (or all entries are
+		 * filtered out), only the default slot content is rendered.
+		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, visible?: boolean | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -100,6 +102,23 @@ export default {
 		return {
 			internalOpen: this.open,
 		}
+	},
+
+	computed: {
+		/**
+		 * Filter actions by their `visible` predicate. Entries without
+		 * `visible` are always shown (backwards compatible).
+		 * @return {Array} Visible actions for the current targetItem.
+		 */
+		visibleActions() {
+			return this.actions.filter((action) => {
+				if (action.visible === undefined) return true
+				if (typeof action.visible === 'function') {
+					return !!action.visible(this.targetItem)
+				}
+				return !!action.visible
+			})
+		},
 	},
 
 	watch: {

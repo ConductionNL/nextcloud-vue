@@ -556,6 +556,17 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Whether to add a View action to row actions. The action emits a
+		 * dedicated `view` event — independent of `row-click`. Bind `@view`
+		 * to handle "open detail" and `@row-click` to handle row click
+		 * (selection, expand, etc.); they may share a handler when the app
+		 * wants click-to-view, but they are conceptually distinct.
+		 */
+		showViewAction: {
+			type: Boolean,
+			default: true,
+		},
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
 			type: Boolean,
@@ -678,12 +689,12 @@ export default {
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
 			const builtIn = []
-			if (this.$listeners && this.$listeners['row-click']) {
+			if (this.showViewAction) {
 				builtIn.push({
 					label: 'View',
 					icon: this.schemaIconComponent,
 					handler: (row) => {
-						this.onRowClick(row)
+						this.onView(row)
 					},
 				})
 			}
@@ -771,6 +782,17 @@ export default {
 		 */
 		onRowClick(row) {
 			this.$emit('row-click', row)
+		},
+
+		/**
+		 * Handle the built-in View action — emits a dedicated `view` event.
+		 * Kept distinct from `row-click` because the two are conceptually
+		 * different: a row click might mean select/expand/drilldown, while
+		 * View always means "open the detail view of this row".
+		 * @param {object} row The row whose View action was triggered
+		 */
+		onView(row) {
+			this.$emit('view', row)
 		},
 
 		/**

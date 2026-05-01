@@ -170,6 +170,13 @@ export default {
 	overflow: hidden;
 }
 
+.cn-widget-wrapper__content {
+	flex: 1;
+	overflow: auto;
+	min-height: 0;
+	padding: 16px;
+}
+
 .cn-widget-wrapper--borderless {
 	border: none;
 	background: transparent;
@@ -212,13 +219,6 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.cn-widget-wrapper__content {
-	flex: 1;
-	overflow: auto;
-	min-height: 0;
-	padding: 16px;
 }
 
 .cn-widget-wrapper__actions {
