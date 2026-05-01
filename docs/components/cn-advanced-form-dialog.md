@@ -47,7 +47,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 | `showPropertiesTable` | Boolean | `true` | Show the Properties tab |
 | `showJsonTab` | Boolean | `true` | Show the Data (JSON) tab |
 | `showMetadataTab` | Boolean | `null` | Force show/hide Metadata tab; `null` = show only when `item` is set (edit mode) |
-| `editablePropertyTypes` | Array | `null` | Schema types that are editable in the table; default `['string','number','integer','boolean']` |
+| `editablePropertyTypes` | Array | `null` | Schema types that are editable in the table; default `['string','number','integer','boolean','array','object']` |
 | `validationDisplay` | String | `'indicator'` | `'indicator'` = show validation state on rows (valid/invalid/new/warning); `'none'` = no indicator |
 | `jsonEditorDark` | Boolean | `false` | Use dark theme for the CodeMirror JSON editor |
 
@@ -95,7 +95,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 
 ## Properties table behavior
 
-- **Editable types**: By default only `string`, `number`, `integer`, `boolean` are editable in the table; others are read-only and displayed as formatted values or JSON. Use `editablePropertyTypes` to restrict or extend.
+- **Editable types**: By default `string`, `number`, `integer`, `boolean`, `array`, and `object` are editable in the table — strings get type-specific HTML5 inputs from their `format`, arrays get a comma-separated input, and objects get a CodeMirror JSON editor. Use `editablePropertyTypes` to restrict (e.g. lock arrays and objects to read-only).
 - **Row selection**: Clicking a row selects it and shows an inline input for editable properties; clicking outside or on another row commits the value. 
   - **Exception: boolean properties** always render as a visible toggle switch — no row click is needed to activate editing.
 - **Validation**: Rows can get CSS classes for valid/invalid/new/warning when `validationDisplay === 'indicator'`. Properties with `const` or `immutable` (with existing value) are not editable and show a lock icon.
