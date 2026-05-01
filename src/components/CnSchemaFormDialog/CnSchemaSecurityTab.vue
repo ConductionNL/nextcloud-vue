@@ -514,10 +514,11 @@ export default {
 		},
 
 		removeCondition(action, originalIndex, propKey) {
-			const match = this.schema.authorization[action][originalIndex].match
-			if (match) {
-				this.$delete(match, propKey)
-			}
+			const rule = this.schema.authorization[action][originalIndex]
+			if (!rule.match) return
+			const updated = { ...rule.match }
+			delete updated[propKey]
+			this.$set(rule, 'match', updated)
 		},
 
 		// ─── Add-condition form state ─────────────────────────────────────
@@ -585,10 +586,9 @@ export default {
 			if (!conditionValue && conditionValue !== false) return
 
 			const rule = this.schema.authorization[action][originalIndex]
-			if (!rule.match) {
-				this.$set(rule, 'match', {})
-			}
-			this.$set(rule.match, property, { [operator]: conditionValue })
+			// Replace the entire match object so Vue 2's property-level dep on `rule.match`
+			// fires and the condition table v-for updates correctly.
+			this.$set(rule, 'match', { ...(rule.match || {}), [property]: { [operator]: conditionValue } })
 
 			this.cancelAddCondition()
 		},
