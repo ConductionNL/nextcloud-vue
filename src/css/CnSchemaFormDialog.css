@@ -173,6 +173,17 @@
   border-left: 3px solid var(--color-primary);
 }
 
+.cn-schema-form__viewTable tbody tr.cn-schema-form__inherited-row {
+  background-color: var(--color-background-dark);
+  border-left: 3px solid var(--color-text-maxcontrast);
+  cursor: default;
+  opacity: 0.8;
+}
+
+.cn-schema-form__viewTable tbody tr.cn-schema-form__inherited-row:hover {
+  background-color: var(--color-background-dark);
+}
+
 /* Form editor */
 .cn-schema-form__form-editor {
   display: flex;
@@ -190,6 +201,11 @@
 
 .cn-schema-form__warning-icon {
   color: var(--color-warning-text);
+  flex-shrink: 0;
+}
+
+.cn-schema-form__lock-icon {
+  color: var(--color-text-maxcontrast);
   flex-shrink: 0;
 }
 
@@ -510,6 +526,12 @@
 .cn-schema-form__chip-success {
   background-color: var(--color-success);
   color: var(--color-success-text);
+}
+
+.cn-schema-form__chip-inherited {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-maxcontrast);
+  border: 1px solid var(--color-border);
 }
 
 .cn-schema-form__properties-warning {

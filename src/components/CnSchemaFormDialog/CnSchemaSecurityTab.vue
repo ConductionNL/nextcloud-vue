@@ -265,6 +265,7 @@
 
 <script>
 import _ from 'lodash'
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -316,6 +317,8 @@ export default {
 		hasAnyPermissions: { type: Boolean, default: false },
 		/** Whether schema has restrictive permissions */
 		isRestrictiveSchema: { type: Boolean, default: false },
+		/** Properties inherited from parent schemas (allOf) */
+		inheritedProperties: { type: Object, default: () => ({}) },
 	},
 	data() {
 		return {
@@ -352,10 +355,10 @@ export default {
 		},
 
 		propertyOptions() {
-			const schemaProps = Object.keys(this.schemaItem.properties || {}).map(key => ({
-				id: key,
-				label: key,
-			}))
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			const allKeys = [...new Set([...inheritedKeys, ...ownKeys])]
+			const schemaProps = allKeys.map(key => ({ id: key, label: key }))
 			const systemProps = [
 				{ id: '_organisation', label: t('nextcloud-vue', '_organisation (system)') },
 				{ id: '_owner', label: t('nextcloud-vue', '_owner (system)') },
@@ -396,6 +399,7 @@ export default {
 		},
 	},
 	methods: {
+		t,
 		capitalize: _.capitalize,
 
 		availablePropertyOptions(action, ruleIdx) {

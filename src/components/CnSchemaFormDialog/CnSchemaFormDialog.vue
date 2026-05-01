@@ -78,6 +78,7 @@
 				:selected-property="selectedProperty"
 				:properties-modified="propertiesModified"
 				:original-properties="originalProperties"
+				:inherited-properties="inheritedProperties"
 				:type-options-for-select="typeOptionsForSelect"
 				:available-schemas="availableSchemas"
 				:available-registers="availableRegisters"
@@ -110,7 +111,8 @@
 				:sorted-user-groups="sortedUserGroups"
 				:loading-groups="loadingGroups"
 				:has-any-permissions="hasAnyPermissions"
-				:is-restrictive-schema="isRestrictiveSchema" />
+				:is-restrictive-schema="isRestrictiveSchema"
+				:inherited-properties="inheritedProperties" />
 		</template>
 
 		<!-- Optional Action Buttons (edit mode only) -->
@@ -254,6 +256,8 @@ export default {
 		availableTags: { type: Array, default: () => [] },
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
+		/** Properties inherited from parent schemas (allOf) — shown as locked rows in the properties tab */
+		inheritedProperties: { type: Object, default: () => ({}) },
 		/** Number of objects attached to this schema (used for action button disable logic) */
 		objectCount: { type: Number, default: 0 },
 		// Optional action button visibility
@@ -370,8 +374,9 @@ export default {
 			]
 		},
 		propertyOptions() {
-			const properties = this.schemaItem.properties || {}
-			return ['', ...Object.keys(properties)]
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			return [...new Set([...inheritedKeys, ...ownKeys])]
 		},
 		availableTagsOptions() {
 			return this.availableTags.map(tag => ({
