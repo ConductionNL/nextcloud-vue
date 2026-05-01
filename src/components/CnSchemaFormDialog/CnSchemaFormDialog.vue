@@ -78,6 +78,7 @@
 				:selected-property="selectedProperty"
 				:properties-modified="propertiesModified"
 				:original-properties="originalProperties"
+				:inherited-properties="inheritedProperties"
 				:type-options-for-select="typeOptionsForSelect"
 				:available-schemas="availableSchemas"
 				:available-registers="availableRegisters"
@@ -110,7 +111,8 @@
 				:sorted-user-groups="sortedUserGroups"
 				:loading-groups="loadingGroups"
 				:has-any-permissions="hasAnyPermissions"
-				:is-restrictive-schema="isRestrictiveSchema" />
+				:is-restrictive-schema="isRestrictiveSchema"
+				:inherited-properties="inheritedProperties" />
 		</template>
 
 		<!-- Optional Action Buttons (edit mode only) -->
@@ -254,6 +256,8 @@ export default {
 		availableTags: { type: Array, default: () => [] },
 		/** Whether user groups are still loading */
 		loadingGroups: { type: Boolean, default: false },
+		/** Properties inherited from parent schemas (allOf) — shown as locked rows in the properties tab */
+		inheritedProperties: { type: Object, default: () => ({}) },
 		/** Number of objects attached to this schema (used for action button disable logic) */
 		objectCount: { type: Number, default: 0 },
 		// Optional action button visibility
@@ -370,8 +374,9 @@ export default {
 			]
 		},
 		propertyOptions() {
-			const properties = this.schemaItem.properties || {}
-			return ['', ...Object.keys(properties)]
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			return [...new Set([...inheritedKeys, ...ownKeys])]
 		},
 		availableTagsOptions() {
 			return this.availableTags.map(tag => ({
@@ -539,76 +544,17 @@ export default {
 				this.$refs.dialog.resetDialog()
 			}
 
-			if (this.item && this.item.id) {
-				this.schemaItem = {
-					...this.schemaItem,
-					...JSON.parse(JSON.stringify(this.item)),
-				}
-
-				// Ensure configuration object exists
-				if (!this.schemaItem.configuration) {
-					this.schemaItem.configuration = {
-						objectNameField: '',
-						objectDescriptionField: '',
-						objectImageField: '',
-						objectSummaryField: '',
-						allowFiles: false,
-						allowedTags: [],
-					}
-				} else {
-					if (!this.schemaItem.configuration.objectNameField) {
-						this.schemaItem.configuration.objectNameField = ''
-					}
-					if (!this.schemaItem.configuration.objectDescriptionField) {
-						this.schemaItem.configuration.objectDescriptionField = ''
-					}
-					if (!this.schemaItem.configuration.objectImageField) {
-						this.schemaItem.configuration.objectImageField = ''
-					}
-					if (!this.schemaItem.configuration.objectSummaryField) {
-						this.schemaItem.configuration.objectSummaryField = ''
-					}
-					if (this.schemaItem.configuration.allowFiles === undefined) {
-						this.schemaItem.configuration.allowFiles = false
-					}
-					if (!this.schemaItem.configuration.allowedTags) {
-						this.schemaItem.configuration.allowedTags = []
-					}
-					if (this.schemaItem.configuration.autoPublish === undefined) {
-						this.schemaItem.configuration.autoPublish = false
-					}
-				}
-
-				// Ensure authorization object exists
-				if (!this.schemaItem.authorization) {
-					this.schemaItem.authorization = {}
-				}
-
-				// Ensure existing properties have facetable set to false by default
-				Object.keys(this.schemaItem.properties || {}).forEach(key => {
-					if (this.schemaItem.properties[key].facetable === undefined) {
-						this.$set(this.schemaItem.properties[key], 'facetable', false)
-					}
-
-					if (this.schemaItem.properties[key].enum && Array.isArray(this.schemaItem.properties[key].enum)) {
-						this.$set(this.schemaItem.properties[key], 'enum', [...this.schemaItem.properties[key].enum])
-					}
-
-					const property = this.schemaItem.properties[key]
-					if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
-						this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
-					}
-				})
-
-				// Ensure all $ref values are strings and migrate old structure
-				Object.keys(this.schemaItem.properties || {}).forEach(key => {
-					this.ensureRefIsString(this.schemaItem.properties, key)
-					this.migratePropertyToNewStructure(key)
-				})
-
-				this.originalProperties = JSON.parse(JSON.stringify(this.schemaItem.properties || {}))
-			} else {
-				this.schemaItem.configuration = {
+			// Always rebuild schemaItem from defaults + incoming item. This handles
+			// create mode (item null), edit mode (item with id), and extend mode
+			// (item non-null with no id) without leaking stale state across opens.
+			const defaults = {
+				title: '',
+				version: '0.0.0',
+				description: '',
+				summary: '',
+				slug: '',
+				properties: {},
+				configuration: {
 					objectNameField: '',
 					objectDescriptionField: '',
 					objectImageField: '',
@@ -616,9 +562,79 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
-				}
-				this.originalProperties = {}
+				},
+				authorization: {},
+				hardValidation: false,
+				immutable: false,
+				searchable: true,
+				maxDepth: 0,
 			}
+			this.schemaItem = this.item
+				? { ...defaults, ...JSON.parse(JSON.stringify(this.item)) }
+				: { ...defaults }
+
+			// Ensure configuration object has all expected keys (the spread above may
+			// have replaced our defaults with a partial configuration from the item)
+			if (!this.schemaItem.configuration) {
+				this.schemaItem.configuration = { ...defaults.configuration }
+			} else {
+				if (!this.schemaItem.configuration.objectNameField) {
+					this.schemaItem.configuration.objectNameField = ''
+				}
+				if (!this.schemaItem.configuration.objectDescriptionField) {
+					this.schemaItem.configuration.objectDescriptionField = ''
+				}
+				if (!this.schemaItem.configuration.objectImageField) {
+					this.schemaItem.configuration.objectImageField = ''
+				}
+				if (!this.schemaItem.configuration.objectSummaryField) {
+					this.schemaItem.configuration.objectSummaryField = ''
+				}
+				if (this.schemaItem.configuration.allowFiles === undefined) {
+					this.schemaItem.configuration.allowFiles = false
+				}
+				if (!this.schemaItem.configuration.allowedTags) {
+					this.schemaItem.configuration.allowedTags = []
+				}
+				if (this.schemaItem.configuration.autoPublish === undefined) {
+					this.schemaItem.configuration.autoPublish = false
+				}
+			}
+
+			// Ensure authorization object exists
+			if (!this.schemaItem.authorization) {
+				this.schemaItem.authorization = {}
+			}
+
+			// Ensure existing properties have facetable set to false by default
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+				if (this.schemaItem.properties[key].facetable === undefined) {
+					this.$set(this.schemaItem.properties[key], 'facetable', false)
+				}
+
+				if (this.schemaItem.properties[key].enum && Array.isArray(this.schemaItem.properties[key].enum)) {
+					this.$set(this.schemaItem.properties[key], 'enum', [...this.schemaItem.properties[key].enum])
+				}
+
+				const property = this.schemaItem.properties[key]
+				if (property.type === 'array' && property.items && property.items.type === 'object' && !property.items.objectConfiguration) {
+					this.$set(this.schemaItem.properties[key].items, 'objectConfiguration', { handling: 'nested-object' })
+				}
+			})
+
+			// Ensure all $ref values are strings and migrate old structure
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
+				this.ensureRefIsString(this.schemaItem.properties, key)
+				this.migratePropertyToNewStructure(key)
+			})
+
+			// Snapshot original properties for change detection. For new/extending
+			// items (no id), there's no "original" — start empty so any added
+			// properties register as modifications.
+			this.originalProperties = this.schemaItem.id
+				? JSON.parse(JSON.stringify(this.schemaItem.properties || {}))
+				: {}
+
 			this.propertiesModified = false
 		},
 
@@ -722,6 +738,19 @@ export default {
 					delete cleanedSchemaItem.properties[key].items.register
 				}
 			})
+
+			// NcSelect (track-by="id") can convert plain IDs to full option objects.
+			// Normalise back to plain IDs before emitting so the backend always gets scalars.
+			for (const field of ['allOf', 'oneOf', 'anyOf']) {
+				if (Array.isArray(cleanedSchemaItem[field])) {
+					cleanedSchemaItem[field] = cleanedSchemaItem[field]
+						.map(ref => (typeof ref === 'object' && ref !== null ? ref.id : ref))
+						.filter(id => id != null && id !== '')
+					if (cleanedSchemaItem[field].length === 0) {
+						delete cleanedSchemaItem[field]
+					}
+				}
+			}
 
 			this.$emit('confirm', cleanedSchemaItem)
 		},

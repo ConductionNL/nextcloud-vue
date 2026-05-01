@@ -1,6 +1,17 @@
 // CSS — auto-imported so consumers get styles with components
 import './css/index.css'
 
+// Re-export every Nc* component from @nextcloud/vue so consumer apps
+// can import all Nextcloud-Vue + Conduction components from a single
+// barrel, per ADR-004: "NEVER import from @nextcloud/vue directly —
+// use @conduction/nextcloud-vue which re-exports all". Wildcard form
+// is intentional so the barrel stays in sync without per-component
+// edits when @nextcloud/vue adds new components. check-docs.js skips
+// `export *` (its regex only matches the named-export form), so no
+// docs are required for these pass-through re-exports — the source
+// of truth is the upstream @nextcloud/vue documentation.
+export * from '@nextcloud/vue'
+
 // Components
 export {
 	CnDataTable,
@@ -64,6 +75,12 @@ export {
 	CnNoteCard,
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
+	CnPageRenderer,
+	defaultPageTypes,
+	CnAppNav,
+	CnAppLoading,
+	CnDependencyMissing,
+	CnAppRoot,
 	registerIcons,
 } from './components/index.js'
 
@@ -88,7 +105,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus } from './composables/index.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'
@@ -96,4 +113,5 @@ export { registerTranslations } from './l10n/index.js'
 // Utilities
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
+export { validateManifest } from './utils/validateManifest.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'

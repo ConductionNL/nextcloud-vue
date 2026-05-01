@@ -99,24 +99,28 @@
 			v-model="schema.configuration.objectNameField"
 			:disabled="loading"
 			:options="propertyOptions"
+			:clearable="true"
 			:input-label="t('nextcloud-vue', 'Object name field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object name')" />
 		<NcSelect
 			v-model="schema.configuration.objectDescriptionField"
 			:disabled="loading"
 			:options="propertyOptions"
+			:clearable="true"
 			:input-label="t('nextcloud-vue', 'Object description field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object description')" />
 		<NcSelect
 			v-model="schema.configuration.objectImageField"
 			:disabled="loading"
 			:options="propertyOptions"
+			:clearable="true"
 			:input-label="t('nextcloud-vue', 'Object image field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object image representing the object. e.g. logo (should contain base64 encoded image)')" />
 		<NcSelect
 			v-model="schema.configuration.objectSummaryField"
 			:disabled="loading"
 			:options="propertyOptions"
+			:clearable="true"
 			:input-label="t('nextcloud-vue', 'Object summary field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch

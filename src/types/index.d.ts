@@ -34,6 +34,15 @@ export type { TFile } from './file'
 export type { TTask, TTaskPriority, TTaskStatus } from './task'
 export type { TNotification, TNotificationType, TNotificationPriority } from './notification'
 
+// Manifest types (json-manifest-renderer capability)
+export type {
+	TManifest,
+	TManifestMenuItem,
+	TManifestMenuItemLeaf,
+	TManifestPage,
+	TPageType,
+} from './manifest'
+
 // Runtime exports from the store factory. The implementation is in
 // `../store/createCrudStore.js`; its companion `createCrudStore.d.ts`
 // provides full generic types (entity inference, feature-flag gating,

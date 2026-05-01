@@ -36,13 +36,19 @@
 							@click.stop />
 					</div>
 					<div v-else class="cn-schema-form__name-display-container">
-						<AlertOutline v-if="isPropertyModified(row._key)"
+						<LockOutline v-if="row._inherited"
+							:size="16"
+							class="cn-schema-form__lock-icon"
+							:title="t('nextcloud-vue', 'Inherited from parent schema (read-only)')" />
+						<AlertOutline v-else-if="isPropertyModified(row._key)"
 							:size="16"
 							class="cn-schema-form__warning-icon"
 							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 						<div class="cn-schema-form__name-with-chips">
 							<span class="cn-schema-form__property-name">{{ row._key }}</span>
 							<div class="cn-schema-form__inline-chips">
+								<span v-if="row._inherited"
+									class="cn-schema-form__property-chip cn-schema-form__chip-inherited">{{ t('nextcloud-vue', 'Inherited') }}</span>
 								<span v-if="isPropertyRequired(schema, row._key)"
 									class="cn-schema-form__property-chip cn-schema-form__chip-primary">{{ t('nextcloud-vue', 'Required') }}</span>
 								<span v-if="row.immutable"
@@ -80,6 +86,7 @@
 
 				<template #row-actions="{ row }">
 					<CnSchemaPropertyActions
+						v-if="!row._inherited"
 						:property-key="row._key"
 						:property="schema.properties[row._key]"
 						:schema-item="schema"
@@ -111,6 +118,7 @@ import CnSchemaPropertyActions from './CnSchemaPropertyActions.vue'
 
 import Plus from 'vue-material-design-icons/Plus.vue'
 import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 
 /**
  * CnSchemaPropertiesTab — Properties table tab for CnSchemaFormDialog.
@@ -135,6 +143,7 @@ export default {
 		CnSchemaPropertyActions,
 		Plus,
 		AlertOutline,
+		LockOutline,
 	},
 	props: {
 		/** The full schema item (needs .properties, .required) */
@@ -161,6 +170,8 @@ export default {
 		sortedUserGroups: { type: Array, default: () => [] },
 		/** Whether groups are loading */
 		loadingGroups: { type: Boolean, default: false },
+		/** Properties inherited from parent schemas (allOf) — shown as locked/read-only rows */
+		inheritedProperties: { type: Object, default: () => ({}) },
 	},
 	data() {
 		return {
@@ -195,11 +206,24 @@ export default {
 				})
 		},
 		propertyRows() {
-			return this.sortedProperties.map(([key, prop]) => ({
+			const ownProperties = this.schema.properties || {}
+			const inheritedRows = Object.entries(this.inheritedProperties || {})
+				.filter(([key]) => !(key in ownProperties))
+				.map(([key, prop]) => ({
+					_id: `inherited_${key}`,
+					_key: key,
+					_inherited: true,
+					...prop,
+				}))
+
+			const ownRows = this.sortedProperties.map(([key, prop]) => ({
 				_id: this.getStablePropertyId(key),
 				_key: key,
+				_inherited: false,
 				...prop,
 			}))
+
+			return [...inheritedRows, ...ownRows]
 		},
 	},
 	watch: {
@@ -258,6 +282,9 @@ export default {
 		},
 
 		getRowClass(row) {
+			if (row._inherited) {
+				return 'cn-schema-form__inherited-row'
+			}
 			const classes = []
 			if (this.selectedProperty === row._key) {
 				classes.push('cn-schema-form__selected-row')
@@ -273,6 +300,7 @@ export default {
 		},
 
 		onRowClick(row) {
+			if (row._inherited) return
 			if (this.selectedProperty === row._key) return
 			this.$emit('update:selected-property', row._key)
 		},

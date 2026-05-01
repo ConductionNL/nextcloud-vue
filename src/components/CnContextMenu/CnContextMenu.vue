@@ -8,8 +8,9 @@
 		@close="onClose">
 		<!-- Dynamic actions from array prop -->
 		<NcActionButton
-			v-for="action in actions"
+			v-for="action in visibleActions"
 			:key="action.label"
+			:title="resolveTitle(action)"
 			:disabled="resolveDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
 			close-after-click
@@ -77,9 +78,13 @@ export default {
 		},
 		/**
 		 * Action definitions rendered as NcActionButton items.
-		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, destructive? }`.
-		 * When empty, only the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, destructive?: boolean}>}
+		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, visible?, title?, destructive? }`.
+		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
+		 * (default: shown). `title` (string | (targetItem) => string) renders as
+		 * a native tooltip — useful for explaining why an entry is disabled.
+		 * When the entire array is empty (or all entries are filtered out), only
+		 * the default slot content is rendered.
+		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, visible?: boolean | Function, title?: string | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
@@ -102,6 +107,23 @@ export default {
 		}
 	},
 
+	computed: {
+		/**
+		 * Filter actions by their `visible` predicate. Entries without
+		 * `visible` are always shown (backwards compatible).
+		 * @return {Array} Visible actions for the current targetItem.
+		 */
+		visibleActions() {
+			return this.actions.filter((action) => {
+				if (action.visible === undefined) return true
+				if (typeof action.visible === 'function') {
+					return !!action.visible(this.targetItem)
+				}
+				return !!action.visible
+			})
+		},
+	},
+
 	watch: {
 		open(val) {
 			this.internalOpen = val
@@ -117,6 +139,21 @@ export default {
 				return action.disabled(this.targetItem)
 			}
 			return !!action.disabled
+		},
+
+		/**
+		 * Resolve the `title` field on an action descriptor — supports both
+		 * a static string and a function `(targetItem) => string`. Returns
+		 * undefined when no title is provided so the attribute isn't rendered.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string|undefined} The tooltip text, or undefined.
+		 */
+		resolveTitle(action) {
+			if (typeof action.title === 'function') {
+				return action.title(this.targetItem) || undefined
+			}
+			return action.title || undefined
 		},
 
 		onAction(action) {

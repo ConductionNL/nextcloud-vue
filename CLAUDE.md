@@ -23,10 +23,17 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 ### Available Components
 
 **Layout & Pages**
-- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
-- `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots (simpler alternative to CnIndexPage)
+- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs). Overridable via `#header` and `#actions` slots.
+- `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots. Overridable via `#header` and `#actions` slots.
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+
+**Manifest Renderer (JSON-driven app shell)**
+- `CnAppRoot` — Top-level app wrapper. Orchestrates loading → dependency-check → shell phases. Provides `cnManifest`, `cnCustomComponents`, `cnTranslate` to descendants. Slots: `#loading`, `#dependency-missing`, `#menu`, `#header-actions`, `#sidebar`, `#footer` — each independently overridable. Use this when adopting the full manifest pattern; lower tiers (just `useAppManifest`, or `+ CnPageRenderer`, or `+ CnAppNav`) are also supported.
+- `CnAppNav` — Manifest-driven `NcAppNavigation`. Reads `manifest.menu[]`; sorts by `order`; filters by `permission`; one level of `children[]`. Accepts `manifest`, `translate`, `permissions` as props (with inject fallback) for standalone use.
+- `CnPageRenderer` — Type dispatcher mounted inside `<router-view>`. Matches `$route.name === page.id`, dispatches by `page.type` (`index | detail | dashboard | custom`) using `defineAsyncComponent` for tree-shaking. Forwards `page.config` as props; resolves `page.headerComponent` / `page.actionsComponent` against the customComponents registry.
+- `CnAppLoading` — Default loading screen (logo slot + NcLoadingIcon + message). Used by CnAppRoot's `#loading` phase.
+- `CnDependencyMissing` — Default dependency-missing screen (lists missing apps with install/enable links). Used by CnAppRoot's `#dependency-missing` phase.
 
 **Data Display**
 - `CnDetailGrid` — Data-driven label-value grid with grid and horizontal layout modes
@@ -94,6 +101,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `buildQueryString(params)` — Build URL query string from params object
 - `parseResponseError(response)` — Extract error message from API response
 - `networkError()` / `genericError()` — Standard error message helpers
+- `validateManifest(manifest)` — Validate an app manifest against the JSON Schema. Returns `{ valid, errors }`. Use at build time or in test fixtures; the same validator runs at runtime inside `useAppManifest`.
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
@@ -105,6 +113,8 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `useFileSelection(options)` — File upload/drop handling
 - `useDashboardView(options)` — Dashboard state: widget defs, layout, NC widget loading, add/remove/persist
 - `useContextMenu()` — Right-click context menu positioning and state (cursor CSS vars, open/close, action helpers)
+- `useAppManifest(appId, bundledManifest, options?)` — Load + validate the app manifest. Returns `{ manifest, isLoading, validationErrors }`. Synchronous bundled load + async backend-merge stub (silent fallback on 4xx / network errors); validates via `validateManifest`. Pass `options.endpoint` or `options.fetcher` to override the backend URL or inject a mock.
+- `useAppStatus(appId)` — Check whether a Nextcloud app is installed and enabled via `@nextcloud/capabilities`. Returns `{ installed, enabled, loading }`. Cached per appId for the page lifetime. CnAppRoot calls this once per `manifest.dependencies` entry to drive the dependency-check phase.
 
 ### CnIndexPage Dialog Override System
 
@@ -176,6 +186,34 @@ const DEFAULT_LAYOUT = [
   <template #widget-chart="{ item }"><MyChart /></template>
 </CnDashboardPage>
 ```
+
+### JSON Manifest Renderer
+
+Apps can declare their entire shell — routes, navigation, page configuration, dependencies — in a single `src/manifest.json`. The library reads it and renders the app. Adoption is incremental (four tiers from "just `useAppManifest`" to "full `CnAppRoot` shell"); a custom menu component can replace the default `CnAppNav` via the `#menu` slot.
+
+Minimal manifest:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+  "version": "1.0.0",
+  "dependencies": ["openregister"],
+  "menu": [
+    { "id": "decisions", "label": "myapp.menu.decisions", "icon": "icon-checkmark", "route": "decisions-index", "order": 10 }
+  ],
+  "pages": [
+    { "id": "decisions-index", "route": "/decisions", "type": "index", "title": "myapp.decisions.title",
+      "config": { "register": "decisions", "schema": "decision", "columns": ["title", "status"] } },
+    { "id": "decisions-detail", "route": "/decisions/:id", "type": "detail", "title": "myapp.decisions.detail",
+      "config": { "register": "decisions", "schema": "decision" } },
+    { "id": "settings", "route": "/settings", "type": "custom", "title": "myapp.settings.title", "component": "SettingsPage" }
+  ]
+}
+```
+
+`page.id` is also the vue-router route name; CnPageRenderer matches by `$route.name === page.id`. The `type` enum is closed (`index | detail | dashboard | custom`) — bespoke pages use `type: "custom"` with a registry component.
+
+See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migrating-to-manifest.md` for tier-by-tier adoption guidance.
 
 ## Rules for Modifying Components
 
