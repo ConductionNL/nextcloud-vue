@@ -23,18 +23,24 @@
 					class="cn-advanced-form-dialog__table-row"
 					:class="{
 						'cn-advanced-form-dialog__table-row--selected': selectedProperty === key,
-						'cn-advanced-form-dialog__table-row--edited': formData[key] !== undefined,
+						'cn-advanced-form-dialog__table-row--edited': isValueChanged(key),
 						'cn-advanced-form-dialog__table-row--non-editable': !isPropertyEditable(key, resolvedValue(key, value)),
 						[getPropertyValidationClass(key, value)]: validationDisplay === 'indicator',
 					}"
 					@click="handleRowClick(key, $event)">
-					<td class="cn-advanced-form-dialog__table-col-constrained cn-advanced-form-dialog__prop-cell">
+					<td class="cn-advanced-form-dialog__table-col-constrained cn-advanced-form-dialog__prop-cell"
+						:style="getPropCellStyle(key, value)">
 						<div class="cn-advanced-form-dialog__prop-cell-content">
 							<AlertCircle
 								v-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'invalid'"
 								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--error"
 								:size="16"
 								:title="getPropertyErrorMessage(key, resolvedValue(key, value))" />
+							<Alert
+								v-else-if="validationDisplay === 'indicator' && isValueChanged(key) && getPropertyValidationState(key, resolvedValue(key, value)) !== 'invalid'"
+								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--edited"
+								:size="16"
+								:title="t('nextcloud-vue', 'This field has been changed')" />
 							<Alert
 								v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'warning'"
 								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--warning"
@@ -152,9 +158,22 @@ export default {
 		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows }`.
 		 */
 		propertyOverrides: { type: Object, default: () => ({}) },
+		/**
+		 * Override the left-edge indicator color on the property-name cell.
+		 * When null (default) the CSS default is used (var(--color-primary)).
+		 * Pass "none" to remove the indicator and let the per-row validation
+		 * colors (green/yellow/red) on the <tr> show through instead.
+		 * Any other CSS color string is applied directly.
+		 */
+		propCellColor: { type: String, default: null },
 	},
 
 	computed: {
+		propCellStyle() {
+			if (this.propCellColor === null) return undefined
+			if (this.propCellColor === 'none') return { boxShadow: 'none' }
+			return { boxShadow: `inset 3px 0 0 0 ${this.propCellColor}` }
+		},
 		objectProperties() {
 			const schemaProps = this.schema?.properties || {}
 			const obj = this.item || {}
@@ -225,6 +244,40 @@ export default {
 
 	methods: {
 		t,
+
+		getPropCellStyle(key, value) {
+			if (this.validationDisplay !== 'indicator') {
+				return this.propCellStyle
+			}
+			const resolvedVal = this.resolvedValue(key, value)
+			const state = this.getPropertyValidationState(key, resolvedVal)
+			if (state === 'invalid') {
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-error)' }
+			}
+			if (this.isValueChanged(key)) {
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-warning)' }
+			}
+			if (state === 'valid') {
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-success)' }
+			}
+			if (state === 'warning') {
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-warning)' }
+			}
+			if (state === 'new') {
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-primary-element)' }
+			}
+			return this.propCellStyle
+		},
+
+		isValueChanged(key) {
+			if (this.formData[key] === undefined) return false
+			const original = this.item ? this.item[key] : undefined
+			const current = this.formData[key]
+			if (typeof current === 'object' || typeof original === 'object') {
+				return JSON.stringify(current) !== JSON.stringify(original)
+			}
+			return current !== original
+		},
 
 		/**
 		 * The effective value for a key: formData override or the object's own value
@@ -370,6 +423,8 @@ export default {
 			case 'string':
 				if (typeof value !== 'string') return false
 				if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) return false
+				if (schemaProperty?.format === 'email' && !this.isValidEmail(value)) return false
+				if (schemaProperty?.format === 'uri' && !this.isValidUri(value)) return false
 				if (schemaProperty?.const && value !== schemaProperty.const) return false
 				return true
 			case 'number':
@@ -401,6 +456,12 @@ export default {
 			}
 			if (prop.format === 'date-time' && !this.isValidDate(value)) {
 				return `Property '${key}' should be a valid date-time value.`
+			}
+			if (prop.format === 'email' && !this.isValidEmail(value)) {
+				return `Property '${key}' should be a valid email address.`
+			}
+			if (prop.format === 'uri' && !this.isValidUri(value)) {
+				return `Property '${key}' should be a valid URI.`
 			}
 			if (prop.const && value !== prop.const) {
 				return `Property '${key}' should be '${prop.const}' but is '${value}'.`
@@ -457,6 +518,20 @@ export default {
 			if (!v) return false
 			const d = new Date(v)
 			return d instanceof Date && !Number.isNaN(d.getTime())
+		},
+
+		isValidEmail(v) {
+			if (!v) return false
+			return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+		},
+
+		isValidUri(v) {
+			if (!v) return false
+			try {
+				return !!new URL(v)
+			} catch {
+				return false
+			}
 		},
 	},
 }
@@ -516,8 +591,7 @@ export default {
 }
 
 .cn-advanced-form-dialog__table-row--edited {
-	background-color: var(--color-success-light);
-	box-shadow: inset 3px 0 0 0 var(--color-success);
+	background-color: var(--color-warning-light);
 }
 
 .cn-advanced-form-dialog__table-row--non-editable {
@@ -530,22 +604,12 @@ export default {
 	cursor: not-allowed !important;
 }
 
-.cn-advanced-form-dialog__table-row--valid {
-	box-shadow: inset 3px 0 0 0 var(--color-success);
-}
-
 .cn-advanced-form-dialog__table-row--invalid {
 	background-color: var(--color-error-light);
-	box-shadow: inset 3px 0 0 0 var(--color-error);
 }
 
 .cn-advanced-form-dialog__table-row--warning {
 	background-color: var(--color-warning-light);
-	box-shadow: inset 3px 0 0 0 var(--color-warning);
-}
-
-.cn-advanced-form-dialog__table-row--new {
-	box-shadow: inset 3px 0 0 0 var(--color-primary-element);
 }
 
 .cn-advanced-form-dialog__table-col-constrained {
@@ -570,7 +634,6 @@ export default {
 .cn-advanced-form-dialog__prop-cell {
 	width: 30%;
 	font-weight: 600;
-	box-shadow: inset 3px 0 0 0 var(--color-primary);
 }
 
 .cn-advanced-form-dialog__value-cell {
@@ -595,6 +658,10 @@ export default {
 
 .cn-advanced-form-dialog__validation-icon--error {
 	color: var(--color-error);
+}
+
+.cn-advanced-form-dialog__validation-icon--edited {
+	color: var(--color-warning);
 }
 
 .cn-advanced-form-dialog__validation-icon--warning {
