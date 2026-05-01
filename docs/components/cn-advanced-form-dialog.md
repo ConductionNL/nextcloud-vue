@@ -35,7 +35,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 |------|------|---------|-------------|
 | `schema` | Object | `null` | JSON Schema used to derive property list, types, and labels (e.g. `schema.properties`, `schema.required`, `schema.title`) |
 | `item` | Object | `null` | Existing object for edit mode; `null` for create mode |
-| `dialogTitle` | String | `''` | Override dialog title; default is "Create {schemaTitle}" or "Edit {schemaTitle}" |
+| `dialogTitle` | String | `''` | Override dialog title; default is "Create \{schemaTitle\}" or "Edit \{schemaTitle\}" |
 | `nameField` | String | `'title'` | Property used as display name (e.g. in breadcrumbs or other UI) |
 | `successText` | String | `''` | Message shown in result phase on success; default "\{schemaTitle\} saved successfully." |
 | `cancelLabel` | String | `'Cancel'` | Label for cancel button in form phase |
