@@ -27,6 +27,7 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 | `horizontal` | Boolean | `false` | Icon-left layout |
 | `clickable` | Boolean | `false` | Enable click interaction |
 | `showZeroCount` | Boolean | `false` | Display 0 as a count value instead of the empty label |
+| `route` | Object | `null` | Vue Router location object (`{ name, path, query, ... }`). When set, the card renders as a `<router-link>` and clickable styles are applied automatically. |
 
 ## Events
 

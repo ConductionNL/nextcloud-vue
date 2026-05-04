@@ -1,6 +1,6 @@
 # CnColorPicker
 
-Themed wrapper around vue-color's `Chrome` picker. Forwards all props and events to the underlying component, so the full vue-color API stays available — this component only exists to remap the picker's hardcoded light-mode palette to Nextcloud CSS variables so it follows the active theme (light, dark, or nldesign).
+A color swatch button that opens a themed `Chrome` color picker (vue-color) in a popover. Clicking the swatch square toggles the picker. The active color is shown in the swatch (with a checker pattern behind it so alpha values render correctly). Remaps the picker's hardcoded light-mode palette to Nextcloud CSS variables so it follows the active theme (light, dark, or nldesign).
 
 ## Usage
 
@@ -30,21 +30,17 @@ export default {
 
 ## Props & events
 
-All props and listeners are forwarded to vue-color's `Chrome` component. The most commonly used:
-
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `string \| object` | — | Current color (string like `'#abcdef'`, `'rgba(...)'`, `'hsl(...)'`, or a vue-color color object). |
-| `disabled` | `Boolean` | `false` | Disables the swatch trigger and prevents the popover from opening. |
+| `value` | `string \| object` | `null` | Current color (string like `'#abcdef'`, `'rgba(...)'`, `'hsl(...)'`, or a vue-color color object). `null`/empty renders a transparent swatch. |
+| `disabled` | `Boolean` | `false` | Disables the swatch button and prevents the popover from opening. |
 | `mode` | `'hex' \| 'rgb' \| 'hsl' \| null` | `null` | Lock the numeric-input fields to a single mode and hide the toggle. `null` lets the user switch. The shown fields include alpha when `disable-alpha` is `false` (so `'rgb'` becomes RGBA, `'hsl'` becomes HSLA). |
-| `disable-alpha` | `Boolean` | `false` | Forwarded to `Chrome`. Hides the alpha bar and the alpha numeric field. |
-| `disable-fields` | `Boolean` | `false` | Forwarded to `Chrome`. Hides the hex/RGB/HSL numeric fields entirely. |
+
+Additional props (e.g. `disable-alpha`, `disable-fields`) are forwarded via `$attrs` to the underlying `Chrome` picker. See vue-color's [`Chrome` component](https://github.com/linx4200/vue-color) for the full prop surface.
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `input` | `{ hex, hex8, rgba, hsl, hsv, a, source }` | Fires whenever the user changes the color via any control. |
-
-See vue-color's [`Chrome` component](https://github.com/linx4200/vue-color) for the full prop and event surface.
 
 ## Theming
 
@@ -64,7 +60,6 @@ Consumers don't need to add any CSS overrides themselves.
 
 ## Notes
 
-- This is purely the picker UI. It does not include a swatch trigger, popover, text input, or format conversion — wire those at the call site if you need them.
 - `vue-color` is a direct dependency of this library, so the picker is always available.
 
 ## Related

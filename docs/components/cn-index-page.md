@@ -18,6 +18,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
+| `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
+| `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
 | `schema` | Object | `null` | OpenRegister schema for auto-generating columns, filters, and form fields |
 | `objects` | Array | `[]` | Row data |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |

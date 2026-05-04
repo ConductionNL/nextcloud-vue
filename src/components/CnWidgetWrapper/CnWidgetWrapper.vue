@@ -15,6 +15,12 @@
 		:style="wrapperStyles">
 		<!-- Header -->
 		<div v-if="showTitle" class="cn-widget-wrapper__header">
+			<!-- Title icon — left: rendered before the title group -->
+			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
+				class="cn-widget-wrapper__title-icon"
+				:style="titleIconColor ? { color: titleIconColor } : {}">
+				<slot name="title-icon" />
+			</div>
 			<div class="cn-widget-wrapper__header-left">
 				<img
 					v-if="iconUrl"
@@ -31,6 +37,12 @@
 			</div>
 			<div class="cn-widget-wrapper__actions">
 				<slot name="actions" />
+			</div>
+			<!-- Title icon — right: rendered after actions, far right -->
+			<div v-if="$slots['title-icon'] && titleIconPosition === 'right'"
+				class="cn-widget-wrapper__title-icon"
+				:style="titleIconColor ? { color: titleIconColor } : {}">
+				<slot name="title-icon" />
 			</div>
 		</div>
 
@@ -111,6 +123,20 @@ export default {
 		},
 		/** Icon CSS class (e.g., Nextcloud icon class) */
 		iconClass: {
+			type: String,
+			default: null,
+		},
+		/**
+		 * Position of the title-icon slot in the header.
+		 * 'left' places it before the title; 'right' places it after the actions.
+		 */
+		titleIconPosition: {
+			type: String,
+			default: 'right',
+			validator: (v) => ['left', 'right'].includes(v),
+		},
+		/** CSS color value applied to the title-icon slot container */
+		titleIconColor: {
 			type: String,
 			default: null,
 		},
@@ -224,6 +250,12 @@ export default {
 .cn-widget-wrapper__actions {
 	display: flex;
 	gap: 4px;
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__title-icon {
+	display: flex;
+	align-items: center;
 	flex-shrink: 0;
 }
 
