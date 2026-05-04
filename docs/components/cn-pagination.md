@@ -49,7 +49,7 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 | `totalPages` | Number | `1` | Total number of pages |
 | `totalItems` | Number | `0` | Total number of items across all pages — used for the page info label |
 | `currentPageSize` | Number | `20` | Currently selected number of items per page |
-| `pageSizeOptions` | Array | `[10, 20, 50, 100, 250, 500, 1000]` | Options shown in the "Items per page" dropdown |
+| `pageSizeOptions` | Array | `[{ value: 10, label: '10' }, { value: 20, label: '20' }, …]` | Options shown in the "Items per page" dropdown. Each entry must be `{ value: number, label: string }` |
 | `minItemsToShow` | Number | `10` | Minimum item count before the pagination bar is rendered; hides it when all items fit on one page |
 | `firstLabel` | String | `'First'` | Accessible label for the First button |
 | `previousLabel` | String | `'Previous'` | Accessible label for the Previous button |

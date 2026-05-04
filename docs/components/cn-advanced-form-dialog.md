@@ -66,11 +66,11 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `#form` | formData, updateField, objectProperties, jsonData, updateJsonFromExternal, isValidJson | Replace the entire form content (all tabs). Use for fully custom UI while still using the dialog chrome and confirm/close flow. |
+| `#form` | formData, updateField, objectProperties, jsonData, updateJson, isValidJson | Replace the entire form content (all tabs). Use for fully custom UI while still using the dialog chrome and confirm/close flow. |
 | `#register-schema-selection` | proceed | Optional step before the main tabs (e.g. choose register/schema). When this slot is provided, the main tabs are not shown until the consumer calls `proceed()`. |
 | `#tab-properties` | formData, updateField, objectProperties, selectedProperty, handleRowClick, getPropertyDisplayName, getPropertyValidationClass, isPropertyEditable, validationDisplay | Override the Properties tab content. Default is the built-in properties table. |
 | `#tab-metadata` | item, formData | Override the Metadata tab content. Default is a table with ID, Created, Updated. |
-| `#tab-data` | jsonData, updateJsonFromExternal, isValid, formatJSON | Override the Data (JSON) tab content. Default is CodeMirror + "Format JSON" button. |
+| `#tab-data` | jsonData, updateJson, isValid, formatJSON | Override the Data (JSON) tab content. Default is CodeMirror + "Format JSON" button. |
 | `#actions-left` | — | Content to the left of the Cancel/Close button in the dialog footer |
 | `#actions-right` | — | Content to the right of the primary Confirm button in the dialog footer |
 
@@ -188,9 +188,9 @@ async onConfirm(payload) {
 
 ```vue
 <CnAdvancedFormDialog :schema="schema" :item="item" @confirm="onConfirm" @close="close">
-  <template #form="{ formData, updateField, jsonData, updateJsonFromExternal, isValidJson }">
+  <template #form="{ formData, updateField, jsonData, updateJson, isValidJson }">
     <MyCustomForm :data="formData" @update="updateField" />
-    <MyJsonEditor :value="jsonData" :valid="isValidJson" @input="updateJsonFromExternal" />
+    <MyJsonEditor :value="jsonData" :valid="isValidJson" @input="updateJson" />
   </template>
 </CnAdvancedFormDialog>
 ```
