@@ -70,6 +70,7 @@ Tags:
 | `publishFile` | `(type, objectId, fileId) => Promise<boolean>` | POST `<object>/files/<fileId>/publish`. Re-fetches on success. |
 | `unpublishFile` | `(type, objectId, fileId) => Promise<boolean>` | POST `<object>/files/<fileId>/depublish`. Re-fetches on success. |
 | `deleteFile` | `(type, objectId, fileId) => Promise<boolean>` | DELETE `<object>/files/<fileId>`. Re-fetches on success. |
+| `batchFiles` | `(type, objectId, action, fileIds, params?) => Promise<object \| null>` | POST `<object>/files/batch` to apply `publish` / `depublish` / `delete` / `label` across many files in ONE round-trip. Returns `{ results, summary: { succeeded, failed, total } }` for both 200 (all OK) and 207 (partial). Re-fetches on success. |
 | `fetchTags` | `() => Promise<string[]>` | GET the tags endpoint (derived from `baseUrl` by replacing `/objects` with `/tags`). Returns the array (also stored in `state.tags`). |
 | `clearFiles` | `() => void` | From `createSubResourcePlugin`. Reset files state. |
 

@@ -1,4 +1,5 @@
 /* @conduction/nextcloud-vue — Main CSS entry point */
+@import './main.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';

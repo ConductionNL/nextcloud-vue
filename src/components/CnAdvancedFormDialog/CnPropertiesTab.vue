@@ -1,125 +1,135 @@
 <template>
-	<div class="cn-advanced-form-dialog__table-container">
-		<table class="cn-advanced-form-dialog__table">
-			<thead>
-				<tr class="cn-advanced-form-dialog__table-row">
-					<th class="cn-advanced-form-dialog__table-col-constrained">
-						{{ t('nextcloud-vue', 'Property') }}
-					</th>
-					<th class="cn-advanced-form-dialog__table-col-expanded">
-						{{ t('nextcloud-vue', 'Value') }}
-					</th>
-					<th
-						v-if="hasRowActionsSlot"
-						class="cn-advanced-form-dialog__table-col-actions">
-						<slot name="row-actions-header" />
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr
-					v-for="([key, value]) in objectProperties"
-					:key="key"
-					class="cn-advanced-form-dialog__table-row"
-					:class="{
-						'cn-advanced-form-dialog__table-row--selected': selectedProperty === key,
-						'cn-advanced-form-dialog__table-row--edited': isValueChanged(key),
-						'cn-advanced-form-dialog__table-row--non-editable': !isPropertyEditable(key, resolvedValue(key, value)),
-						[getPropertyValidationClass(key, value)]: validationDisplay === 'indicator',
-					}"
-					@click="handleRowClick(key, $event)">
-					<td class="cn-advanced-form-dialog__table-col-constrained cn-advanced-form-dialog__prop-cell"
-						:style="getPropCellStyle(key, value)">
-						<div class="cn-advanced-form-dialog__prop-cell-content">
-							<AlertCircle
-								v-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'invalid'"
-								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--error"
-								:size="16"
-								:title="getPropertyErrorMessage(key, resolvedValue(key, value))" />
-							<Alert
-								v-else-if="validationDisplay === 'indicator' && isValueChanged(key) && getPropertyValidationState(key, resolvedValue(key, value)) !== 'invalid'"
-								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--edited"
-								:size="16"
-								:title="t('nextcloud-vue', 'This field has been changed')" />
-							<Alert
-								v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'warning'"
-								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--warning"
-								:size="16"
-								:title="getPropertyWarningMessage(key, resolvedValue(key, value))" />
-							<Plus
-								v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'new'"
-								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--new"
-								:size="16"
-								:title="getPropertyNewMessage(key)" />
-							<LockOutline
-								v-else-if="!isPropertyEditable(key, resolvedValue(key, value))"
-								class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--lock"
-								:size="16"
-								:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
-							<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
-							<span
-								v-if="isRequired(key)"
-								class="cn-advanced-form-dialog__required-indicator"
-								:title="t('nextcloud-vue', 'Required')"
-								aria-label="required">*</span>
-							<span
-								v-if="isImmutableHint(key)"
-								class="cn-advanced-form-dialog__immutable-badge"
-								:title="t('nextcloud-vue', 'This value can be set on creation but cannot be changed afterwards.')">
-								{{ t('nextcloud-vue', 'Set once') }}
-							</span>
-						</div>
-					</td>
-					<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
-						<slot
-							name="value-cell"
-							:property-key="key"
-							:value="value"
-							:resolved-value="resolvedValue(key, value)"
-							:is-editing="selectedProperty === key"
-							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
-							:display-name="getPropertyDisplayName(key)"
-							:schema-prop="schema && schema.properties && schema.properties[key]"
-							:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
-							:on-update="(v) => onPropertyValueUpdate(key, v)">
-							<CnPropertyValueCell
-								:ref="'cell-' + key"
+	<div>
+		<NcNoteCard
+			v-if="hasUnsavedChanges"
+			type="warning"
+			class="cn-advanced-form-dialog__unsaved-note">
+			{{ t('nextcloud-vue', 'You have unsaved changes. Save to apply them.') }}
+		</NcNoteCard>
+		<div class="cn-advanced-form-dialog__table-container">
+			<table class="cn-advanced-form-dialog__table">
+				<thead>
+					<tr class="cn-advanced-form-dialog__table-row">
+						<th class="cn-advanced-form-dialog__table-col-constrained">
+							{{ t('nextcloud-vue', 'Property') }}
+						</th>
+						<th class="cn-advanced-form-dialog__table-col-expanded">
+							{{ t('nextcloud-vue', 'Value') }}
+						</th>
+						<th
+							v-if="hasRowActionsSlot"
+							class="cn-advanced-form-dialog__table-col-actions">
+							<slot name="row-actions-header" />
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr
+						v-for="([key, value]) in objectProperties"
+						:key="key"
+						class="cn-advanced-form-dialog__table-row"
+						:class="{
+							'cn-advanced-form-dialog__table-row--selected': selectedProperty === key,
+							'cn-advanced-form-dialog__table-row--edited': isValueChanged(key),
+							'cn-advanced-form-dialog__table-row--non-editable': !isPropertyEditable(key, resolvedValue(key, value)),
+							[getPropertyValidationClass(key, value)]: validationDisplay === 'indicator',
+						}"
+						@click="handleRowClick(key, $event)">
+						<td class="cn-advanced-form-dialog__table-col-constrained cn-advanced-form-dialog__prop-cell"
+							:style="getPropCellStyle(key, value)">
+							<div class="cn-advanced-form-dialog__prop-cell-content">
+								<AlertCircle
+									v-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'invalid'"
+									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--error"
+									:size="16"
+									:title="getPropertyErrorMessage(key, resolvedValue(key, value))" />
+								<PencilOutline
+									v-else-if="validationDisplay === 'indicator' && isValueChanged(key) && getPropertyValidationState(key, resolvedValue(key, value)) !== 'invalid'"
+									v-tooltip="t('nextcloud-vue', 'This field has been changed — save to apply')"
+									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--edited"
+									:size="16" />
+								<Alert
+									v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'warning'"
+									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--warning"
+									:size="16"
+									:title="getPropertyWarningMessage(key, resolvedValue(key, value))" />
+								<Plus
+									v-else-if="validationDisplay === 'indicator' && getPropertyValidationState(key, resolvedValue(key, value)) === 'new'"
+									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--new"
+									:size="16"
+									:title="getPropertyNewMessage(key)" />
+								<LockOutline
+									v-else-if="!isPropertyEditable(key, resolvedValue(key, value))"
+									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--lock"
+									:size="16"
+									:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
+								<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
+								<span
+									v-if="isRequired(key)"
+									class="cn-advanced-form-dialog__required-indicator"
+									:title="t('nextcloud-vue', 'Required')"
+									aria-label="required">*</span>
+								<span
+									v-if="isImmutableHint(key)"
+									class="cn-advanced-form-dialog__immutable-badge"
+									:title="t('nextcloud-vue', 'This value can be set on creation but cannot be changed afterwards.')">
+									{{ t('nextcloud-vue', 'Set once') }}
+								</span>
+							</div>
+						</td>
+						<td class="cn-advanced-form-dialog__table-col-expanded cn-advanced-form-dialog__value-cell">
+							<slot
+								name="value-cell"
 								:property-key="key"
-								:schema="schema"
-								:value="resolvedValue(key, value)"
-								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+								:value="value"
+								:resolved-value="resolvedValue(key, value)"
 								:is-editing="selectedProperty === key"
+								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
 								:display-name="getPropertyDisplayName(key)"
+								:schema-prop="schema && schema.properties && schema.properties[key]"
 								:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
-								:widget="(propertyOverrides[key] && propertyOverrides[key].widget) || null"
-								:select-options="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
-								:select-multiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
-								:textarea-rows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
-								@update:value="onPropertyValueUpdate(key, $event)" />
-						</slot>
-					</td>
-					<td
-						v-if="hasRowActionsSlot"
-						class="cn-advanced-form-dialog__table-col-actions"
-						@click.stop>
-						<slot
-							name="row-actions"
-							:property-key="key"
-							:value="value"
-							:resolved-value="resolvedValue(key, value)"
-							:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
-							:is-schema-property="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
-					</td>
-				</tr>
-			</tbody>
-		</table>
+								:on-update="(v) => onPropertyValueUpdate(key, v)">
+								<CnPropertyValueCell
+									:ref="'cell-' + key"
+									:property-key="key"
+									:schema="schema"
+									:value="resolvedValue(key, value)"
+									:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+									:is-editing="selectedProperty === key"
+									:display-name="getPropertyDisplayName(key)"
+									:editability-warning="getPropertyEditabilityWarning(key, resolvedValue(key, value))"
+									:widget="(propertyOverrides[key] && propertyOverrides[key].widget) || null"
+									:select-options="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
+									:select-multiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
+									:textarea-rows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
+									@update:value="onPropertyValueUpdate(key, $event)" />
+							</slot>
+						</td>
+						<td
+							v-if="hasRowActionsSlot"
+							class="cn-advanced-form-dialog__table-col-actions"
+							@click.stop>
+							<slot
+								name="row-actions"
+								:property-key="key"
+								:value="value"
+								:resolved-value="resolvedValue(key, value)"
+								:is-editable="isPropertyEditable(key, resolvedValue(key, value))"
+								:is-schema-property="!!(schema && schema.properties && Object.prototype.hasOwnProperty.call(schema.properties, key))" />
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { NcNoteCard } from '@nextcloud/vue'
 import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
+import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPropertyValueCell from './CnPropertyValueCell.vue'
@@ -128,8 +138,10 @@ export default {
 	name: 'CnPropertiesTab',
 
 	components: {
+		NcNoteCard,
 		AlertCircle,
 		Alert,
+		PencilOutline,
 		LockOutline,
 		Plus,
 		CnPropertyValueCell,
@@ -166,9 +178,14 @@ export default {
 		 * Any other CSS color string is applied directly.
 		 */
 		propCellColor: { type: String, default: null },
+		isNew: { type: Boolean, default: false },
 	},
 
 	computed: {
+		hasUnsavedChanges() {
+			if (this.isNew) return false
+			return Object.keys(this.formData).some(key => this.isValueChanged(key))
+		},
 		propCellStyle() {
 			if (this.propCellColor === null) return undefined
 			if (this.propCellColor === 'none') return { boxShadow: 'none' }
@@ -255,7 +272,7 @@ export default {
 				return { boxShadow: 'inset 3px 0 0 0 var(--color-error)' }
 			}
 			if (this.isValueChanged(key)) {
-				return { boxShadow: 'inset 3px 0 0 0 var(--color-warning)' }
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-primary-element)' }
 			}
 			if (state === 'valid') {
 				return { boxShadow: 'inset 3px 0 0 0 var(--color-success)' }
@@ -264,7 +281,7 @@ export default {
 				return { boxShadow: 'inset 3px 0 0 0 var(--color-warning)' }
 			}
 			if (state === 'new') {
-				return { boxShadow: 'inset 3px 0 0 0 var(--color-primary-element)' }
+				return { boxShadow: 'inset 3px 0 0 0 var(--color-new)' }
 			}
 			return this.propCellStyle
 		},
@@ -590,10 +607,6 @@ export default {
 	box-shadow: inset 3px 0 0 0 var(--color-primary);
 }
 
-.cn-advanced-form-dialog__table-row--edited {
-	background-color: var(--color-warning-light);
-}
-
 .cn-advanced-form-dialog__table-row--non-editable {
 	background-color: var(--color-background-dark);
 	cursor: not-allowed;
@@ -661,7 +674,7 @@ export default {
 }
 
 .cn-advanced-form-dialog__validation-icon--edited {
-	color: var(--color-warning);
+	color: var(--color-primary-element);
 }
 
 .cn-advanced-form-dialog__validation-icon--warning {
@@ -673,7 +686,7 @@ export default {
 }
 
 .cn-advanced-form-dialog__validation-icon--new {
-	color: var(--color-primary-element);
+	color: var(--color-new);
 }
 
 .cn-advanced-form-dialog__required-indicator {
@@ -694,5 +707,9 @@ export default {
 	letter-spacing: 0.02em;
 	cursor: help;
 	white-space: nowrap;
+}
+
+.cn-advanced-form-dialog__unsaved-note {
+	margin-bottom: calc(3 * var(--default-grid-baseline));
 }
 </style>

@@ -83,7 +83,13 @@
 						:borderless="item.showTitle === false"
 						:flush="item.flush === true"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
+						:style-config="item.styleConfig || {}"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)">
+						<!-- Per-widget title icon (e.g. #widget-my-work-title-icon) -->
+						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
+							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
+						</template>
 						<!-- Per-widget header actions (e.g. #widget-my-work-actions) -->
 						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #actions>
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
@@ -318,6 +324,16 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		getWidgetTitleIconPosition(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.titleIconPosition || 'right'
+		},
+
+		getWidgetTitleIconColor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.titleIconColor || null
 		},
 
 		isTile(item) {

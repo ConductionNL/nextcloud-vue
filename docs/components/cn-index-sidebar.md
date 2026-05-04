@@ -86,6 +86,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `filtersLabel` | String | `'Filters'` | Heading above the filter controls |
 | `columnsHeading` | String | `'Column Visibility'` | Heading inside the Columns tab |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Subtitle inside the Columns tab |
+| `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list in the Search tab. |
 
 ### Events
 

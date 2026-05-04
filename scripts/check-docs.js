@@ -19,8 +19,12 @@
  *
  * Exempt exports are allow-listed in EXEMPT (e.g. registerIcons).
  *
- * Exits 1 when any export lacks coverage. All categories are reported in
- * a single run so CI surfaces every gap at once.
+ * Phase 1 — existence: exits 1 when any export lacks a doc file.
+ * Phase 2 — accuracy: for every Component export, verifies that each prop
+ *   name and each static named-slot from the SFC appears somewhere in the
+ *   component's doc file. Exits 1 when any are missing.
+ *
+ * All categories are reported in a single run so CI surfaces every gap at once.
  */
 
 const fs = require('fs')
@@ -82,6 +86,267 @@ const STORE_MENTION_ONLY = {
 	getRegisterApiUrl: 'plugins.md',
 	getSchemaApiUrl: 'plugins.md',
 }
+
+// ---------------------------------------------------------------------------
+// JS source helpers (used by Phase 2 accuracy check — non-component exports)
+// ---------------------------------------------------------------------------
+
+/**
+ * @param names that should be skipped during the accuracy check because they
+ * are either generic containers ('options', 'params') or too short to carry
+ * meaningful signal ('e', 'err'). The check would produce too many false
+ * positives if it required every doc to spell out these placeholder names.
+ */
+const SKIP_PARAMS = new Set(['options', 'params', 'e', 'err', 'error', 'cb', 'fn', 'response'])
+
+/**
+ * Find the JS source file that contains the definition of a given export.
+ * Returns null when the file cannot be determined (e.g. store constants that
+ * live in the same file as a plugin — those are covered by mention-only checks
+ * in Phase 1 and don't need an accuracy check).
+ * @param {string} exportName identifier from src/index.js
+ * @param {string} category classification returned by classify()
+ * @return {string|null} absolute path to the source file, or null
+ */
+function findSourceFile(exportName, category) {
+	if (category === 'Composables') {
+		return path.join(ROOT, 'src', 'composables', `${exportName}.js`)
+	}
+	if (category === 'Store plugins') {
+		// e.g. 'auditTrailsPlugin' → 'auditTrails.js'
+		const stem = exportName.slice(0, -'Plugin'.length)
+		return path.join(ROOT, 'src', 'store', 'plugins', `${stem}.js`)
+	}
+	if (category === 'Store factories') {
+		const map = {
+			useObjectStore: path.join(ROOT, 'src', 'store', 'index.js'),
+			createObjectStore: path.join(ROOT, 'src', 'store', 'index.js'),
+			createCrudStore: path.join(ROOT, 'src', 'store', 'createCrudStore.js'),
+			createSubResourcePlugin: path.join(ROOT, 'src', 'store', 'createSubResourcePlugin.js'),
+		}
+		return map[exportName] || null
+	}
+	if (category === 'Utilities') {
+		// Search every utils/*.js file (excluding the barrel) for this export
+		const utilDir = path.join(ROOT, 'src', 'utils')
+		for (const file of fs.readdirSync(utilDir)) {
+			if (!file.endsWith('.js') || file === 'index.js') continue
+			const filePath = path.join(utilDir, file)
+			const content = fs.readFileSync(filePath, 'utf8')
+			const funcRe = new RegExp(`export\\s+(?:async\\s+)?function\\s+${exportName}\\b`)
+			const constRe = new RegExp(`export\\s+const\\s+${exportName}\\b`)
+			if (funcRe.test(content) || constRe.test(content)) return filePath
+		}
+		return null
+	}
+	return null
+}
+
+/**
+ * Extract @param names from the JSDoc block immediately preceding the named
+ * export declaration in a JS file. Only looks at the JSDoc for that specific
+ * function so params from sibling exports don't pollute results.
+ * @param {string} filePath absolute path to the .js source file
+ * @param {string} exportName identifier to look up (function or const name)
+ * @return {string[]} @param identifiers (may include 'options.subKey' dotted forms)
+ */
+function extractFunctionParams(filePath, exportName) {
+	if (!filePath || !fs.existsSync(filePath)) return []
+	const source = fs.readFileSync(filePath, 'utf8')
+
+	// Locate the export declaration for this specific function
+	const funcRe = new RegExp(
+		`export\\s+(?:async\\s+)?function\\s+${exportName}\\b|export\\s+const\\s+${exportName}\\s*=`,
+	)
+	const funcMatch = funcRe.exec(source)
+	if (!funcMatch) return []
+
+	// Find the last /** ... */ JSDoc block that sits before this declaration
+	const before = source.slice(0, funcMatch.index)
+	const jsdocRe = /\/\*\*[\s\S]*?\*\//g
+	let lastJsdoc = null
+	let jsdocMatch
+	while ((jsdocMatch = jsdocRe.exec(before)) !== null) {
+		lastJsdoc = jsdocMatch[0]
+	}
+	if (!lastJsdoc) return []
+
+	// Pull out every @param identifier (handles both plain and [optional] forms)
+	const paramRe = /@param\s+\{[^}]+\}\s+\[?([a-zA-Z][a-zA-Z0-9._]*)\]?/g
+	const params = new Set()
+	let m
+	while ((m = paramRe.exec(lastJsdoc)) !== null) {
+		params.add(m[1])
+	}
+	return [...params]
+}
+
+/**
+ * Accuracy check for a non-component JS export: verifies that every
+ * meaningful @param name from the JSDoc appears in the export's doc file
+ * (by exact match or, for `options.subKey` dotted paths, by the leaf name).
+ * @param {string} exportName identifier from src/index.js
+ * @param {string|null} srcPath absolute path to the source file
+ * @param {string} docPath absolute path to the expected .md doc file
+ * @return {string[]} plain-English issue strings (empty when all covered)
+ */
+function checkJsAccuracy(exportName, srcPath, docPath) {
+	if (!srcPath || !fs.existsSync(srcPath) || !fs.existsSync(docPath)) return []
+
+	const params = extractFunctionParams(srcPath, exportName)
+	if (params.length === 0) return []
+
+	const docContent = fs.readFileSync(docPath, 'utf8')
+	const issues = []
+
+	for (const param of params) {
+		const parts = param.split('.')
+		const leaf = parts[parts.length - 1]
+
+		// Skip generic placeholder names
+		if (SKIP_PARAMS.has(leaf) || SKIP_PARAMS.has(param)) continue
+		// Skip single-character params and dual-form implementation names
+		if (leaf.length <= 1 || param.endsWith('OrOptions') || param.endsWith('OrString')) continue
+
+		// Check: the exact param name OR (for dotted paths) just the leaf must appear in the doc
+		if (!docContent.includes(param) && !docContent.includes(leaf)) {
+			issues.push(`param \`${param}\` not mentioned in doc`)
+		}
+	}
+
+	return issues
+}
+
+// ---------------------------------------------------------------------------
+// SFC parsing helpers (used by Phase 2 accuracy check — Component exports)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract prop names from a Vue SFC's script-block `props:` definition.
+ * Handles both object form (`props: { name: { ... } }`) and array form
+ * (`props: ['name1', 'name2']`). Uses brace-depth tracking so prop option
+ * keys (type, default, required, validator) are not mistaken for prop names.
+ * @param {string} sfcPath absolute path to the .vue file
+ * @return {string[]} camelCase prop names, or empty array when none found
+ */
+function extractSfcProps(sfcPath) {
+	if (!fs.existsSync(sfcPath)) return []
+	const source = fs.readFileSync(sfcPath, 'utf8')
+	const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/m)
+	if (!scriptMatch) return []
+	const script = scriptMatch[1]
+
+	const propsIdx = script.search(/\bprops\s*:/)
+	if (propsIdx === -1) return []
+	const afterProps = script.slice(propsIdx)
+
+	// Array form: props: ['a', 'b']
+	const arrMatch = afterProps.match(/^props\s*:\s*\[([^\]]*)\]/)
+	if (arrMatch) {
+		const names = []
+		const re = /['"]([^'"]+)['"]/g
+		let m
+		while ((m = re.exec(arrMatch[1])) !== null) names.push(m[1])
+		return names
+	}
+
+	// Object form: walk characters tracking brace depth.
+	// Keys are captured at depth 1 (direct children of the props object):
+	//   - Right before a `{` opens a sub-object (e.g. `title: {`)
+	//   - At end of line for flat props (e.g. `name: String,`)
+	const braceIdx = afterProps.indexOf('{')
+	if (braceIdx === -1) return []
+
+	const propNames = []
+	let depth = 0
+	let lineText = ''
+
+	for (let i = braceIdx; i < afterProps.length; i++) {
+		const ch = afterProps[i]
+		if (ch === '{') {
+			// Capture key immediately before its options object opens
+			if (depth === 1) {
+				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
+				if (key) propNames.push(key[1])
+			}
+			depth++
+		} else if (ch === '}') {
+			depth--
+			if (depth === 0) break
+		} else if (ch === '\n') {
+			// Capture flat prop (no sub-object) at end of its line
+			if (depth === 1) {
+				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
+				if (key) propNames.push(key[1])
+			}
+			lineText = ''
+			continue
+		}
+		lineText += ch
+	}
+
+	return [...new Set(propNames)]
+}
+
+/**
+ * Extract names of all statically-named `<slot>` elements from a Vue SFC
+ * template. Dynamic `:name="..."` bindings are intentionally skipped since
+ * the slot name is only known at runtime and cannot be literally checked.
+ * @param {string} sfcPath absolute path to the .vue file
+ * @return {string[]} static slot names (the implicit default slot is excluded)
+ */
+function extractSfcNamedSlots(sfcPath) {
+	if (!fs.existsSync(sfcPath)) return []
+	const source = fs.readFileSync(sfcPath, 'utf8')
+	const templateMatch = source.match(/<template\b[^>]*>([\s\S]*?)<\/template>/m)
+	if (!templateMatch) return []
+
+	const slots = new Set()
+	const slotRe = /<slot\b([^>]*?)(?:\s*\/?>)/g
+	let m
+	while ((m = slotRe.exec(templateMatch[1])) !== null) {
+		const attrs = m[1]
+		if (attrs.includes(':name=')) continue // skip dynamic slot names
+		const nameM = attrs.match(/\bname="([^"]+)"/)
+		if (nameM) slots.add(nameM[1])
+	}
+	return [...slots]
+}
+
+/**
+ * Accuracy check for one Component export: verifies that every prop name and
+ * every static named slot defined in the SFC is mentioned at least once in
+ * the component's doc file (by camelCase or kebab-case name).
+ * @param {string} componentName PascalCase name (e.g. 'CnWidgetWrapper')
+ * @param {string} docPath absolute path to the component's .md file
+ * @return {string[]} plain-English issue strings (empty when all covered)
+ */
+function checkComponentDetail(componentName, docPath) {
+	const sfcPath = path.join(ROOT, 'src', 'components', componentName, `${componentName}.vue`)
+	if (!fs.existsSync(sfcPath) || !fs.existsSync(docPath)) return []
+
+	const docContent = fs.readFileSync(docPath, 'utf8')
+	const issues = []
+
+	for (const prop of extractSfcProps(sfcPath)) {
+		const kebab = toKebab(prop)
+		if (!docContent.includes(prop) && !docContent.includes(kebab)) {
+			issues.push(`prop \`${prop}\` (${kebab}) not mentioned in doc`)
+		}
+	}
+
+	for (const slot of extractSfcNamedSlots(sfcPath)) {
+		if (!docContent.includes(slot)) {
+			issues.push(`slot \`${slot}\` not mentioned in doc`)
+		}
+	}
+
+	return issues
+}
+
+// ---------------------------------------------------------------------------
+// Shared utilities
+// ---------------------------------------------------------------------------
 
 /**
  * Convert PascalCase or camelCase to kebab-case.
@@ -228,13 +493,32 @@ function isCovered(info) {
 	return stems.has(info.expectedStem)
 }
 
+// ---------------------------------------------------------------------------
+// Phase 1: existence check
+// ---------------------------------------------------------------------------
+
 const exports_ = parsePublicExports(INDEX_FILE)
 
 const categories = new Map()
+const componentExports = [] // collected for Phase 2a (SFC prop/slot check)
+
+// Categories that get a Phase 2b @param accuracy check (must have their own
+// doc file — Store constants use mention-only and are skipped).
+const JS_ACCURACY_CATEGORIES = new Set(['Composables', 'Utilities', 'Store factories', 'Store plugins'])
+const jsExports = [] // { name, category, docPath } collected for Phase 2b
+
 for (const name of exports_) {
 	const info = classify(name)
 	if (info.category === 'Exempt') {
 		continue
+	}
+	if (info.category === 'Components') {
+		componentExports.push(name)
+	}
+	// Collect JS exports that have a dedicated doc file for the @param check
+	if (JS_ACCURACY_CATEGORIES.has(info.category) && !info.mentionFile && info.searchDir && info.expectedStem) {
+		const docPath = path.join(info.searchDir, `${info.expectedStem}.md`)
+		jsExports.push({ name, category: info.category, docPath })
 	}
 	if (!categories.has(info.category)) {
 		categories.set(info.category, { checked: 0, missing: [] })
@@ -261,21 +545,116 @@ for (const [category, { checked, missing }] of ordered) {
 	console.log(`  ${mark} ${category}: ${covered}/${checked}`)
 }
 
-if (totalMissing === 0) {
-	console.log(`\n✓ All ${totalChecked} public exports are documented.`)
-	process.exit(0)
+if (totalMissing > 0) {
+	console.error(`\n✗ ${totalMissing} export(s) are missing documentation:\n`)
+	for (const [category, { missing }] of ordered) {
+		if (missing.length === 0) {
+			continue
+		}
+		console.error(`${category}:`)
+		for (const { name, expectedPath } of missing) {
+			console.error(`  - ${name}  →  ${expectedPath}`)
+		}
+		console.error('')
+	}
+	console.error('Create the missing files (or add the missing mention) so every public export is documented.')
+	process.exit(1)
 }
 
-console.error(`\n✗ ${totalMissing} export(s) are missing documentation:\n`)
-for (const [category, { missing }] of ordered) {
-	if (missing.length === 0) {
-		continue
+console.log(`\n✓ All ${totalChecked} public exports are documented.`)
+
+// ---------------------------------------------------------------------------
+// Phase 2a: accuracy check — every SFC prop and named slot must appear in doc
+// ---------------------------------------------------------------------------
+
+console.log('\nChecking component doc accuracy (props and slots):\n')
+
+const detailFailures = []
+
+for (const name of componentExports) {
+	const kebab = toKebab(name)
+	const docPath = path.join(DOCS_DIR, 'components', `${kebab}.md`)
+	const issues = checkComponentDetail(name, docPath)
+	if (issues.length > 0) {
+		detailFailures.push({ name, issues })
 	}
-	console.error(`${category}:`)
-	for (const { name, expectedPath } of missing) {
-		console.error(`  - ${name}  →  ${expectedPath}`)
-	}
-	console.error('')
 }
-console.error('Create the missing files (or add the missing mention) so every public export is documented.')
-process.exit(1)
+
+const detailChecked = componentExports.length
+const detailFailed = detailFailures.length
+
+if (detailFailed === 0) {
+	console.log(`  ✓ All ${detailChecked} component docs cover their props and slots.`)
+} else {
+	console.log(`  ✓ ${detailChecked - detailFailed}/${detailChecked} component docs cover their props and slots.`)
+	console.error(`\n✗ ${detailFailed} component doc(s) are missing prop or slot coverage:\n`)
+	for (const { name, issues } of detailFailures) {
+		const kebab = toKebab(name)
+		console.error(`${name}  (docs/components/${kebab}.md):`)
+		for (const issue of issues) {
+			console.error(`  - ${issue}`)
+		}
+		console.error('')
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2b: accuracy check — every JSDoc @param must appear in the doc
+// ---------------------------------------------------------------------------
+
+console.log('\nChecking JS export doc accuracy (JSDoc @param names):\n')
+
+// Accumulate results per category so we can print a Phase-1-style summary
+const jsDetailByCategory = new Map()
+for (const cat of JS_ACCURACY_CATEGORIES) {
+	jsDetailByCategory.set(cat, { checked: 0, failures: [] })
+}
+
+for (const { name, category, docPath } of jsExports) {
+	const bucket = jsDetailByCategory.get(category)
+	bucket.checked += 1
+	const srcPath = findSourceFile(name, category)
+	const issues = checkJsAccuracy(name, srcPath, docPath)
+	if (issues.length > 0) {
+		bucket.failures.push({ name, issues, docPath })
+	}
+}
+
+const JS_ORDER = ['Composables', 'Store factories', 'Store plugins', 'Utilities']
+let jsDetailFailed = 0
+
+for (const cat of JS_ORDER) {
+	const { checked, failures } = jsDetailByCategory.get(cat)
+	const covered = checked - failures.length
+	const mark = failures.length === 0 ? '✓' : '✗'
+	console.log(`  ${mark} ${cat}: ${covered}/${checked}`)
+	jsDetailFailed += failures.length
+}
+
+if (jsDetailFailed > 0) {
+	console.error(`\n✗ ${jsDetailFailed} JS export doc(s) are missing @param coverage:\n`)
+	for (const cat of JS_ORDER) {
+		const { failures } = jsDetailByCategory.get(cat)
+		if (failures.length === 0) continue
+		console.error(`${cat}:`)
+		for (const { name, issues, docPath } of failures) {
+			const rel = path.relative(ROOT, docPath).replace(/\\/g, '/')
+			console.error(`  ${name}  (${rel}):`)
+			for (const issue of issues) {
+				console.error(`    - ${issue}`)
+			}
+		}
+		console.error('')
+	}
+	console.error('Add the missing @param names to the doc so every JSDoc parameter is covered.')
+}
+
+// ---------------------------------------------------------------------------
+// Final exit
+// ---------------------------------------------------------------------------
+
+if (detailFailed > 0 || jsDetailFailed > 0) {
+	process.exit(1)
+}
+console.log('\n✓ All accuracy checks passed.')
+process.exit(0)
