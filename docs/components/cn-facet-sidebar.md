@@ -20,6 +20,7 @@ Auto-generated faceted search sidebar from schema. Renders filter controls for p
 | `loading` | Boolean | `false` | Loading state |
 | `title` | String | `'Filters'` | Sidebar title |
 | `clearLabel` | String | `'Clear all'` | Clear all button label |
+| `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list. |
 
 ## Events
 

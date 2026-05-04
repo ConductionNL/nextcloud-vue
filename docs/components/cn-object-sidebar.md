@@ -60,6 +60,7 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `open` | Boolean | | `true` | Whether the sidebar is visible |
 | `title` | String | | `''` | Sidebar title (defaults to `objectType`) |
 | `subtitle` | String | | `''` | Sidebar subtitle |
+| `subtitleProp` | String | | `''` | **Deprecated** — use `subtitle` instead |
 | `apiBase` | String | | `'/apps/openregister/api'` | Base URL for OpenRegister API calls |
 | `filesLabel` | String | | `'Files'` | Files tab label |
 | `notesLabel` | String | | `'Notes'` | Notes tab label |

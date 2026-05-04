@@ -13,9 +13,9 @@ Collapsible card for organizing settings into sections. Used in admin settings p
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Card title |
-| `description` | String | `''` | Card description |
-| `collapsed` | Boolean | `false` | Initial collapsed state |
-| `collapsible` | Boolean | `true` | Allow collapsing |
+| `icon` | String | `''` | Emoji or text icon displayed before the title |
+| `collapsible` | Boolean | `false` | Allow collapsing the card |
+| `defaultCollapsed` | Boolean | `false` | Whether the card starts in a collapsed state (only relevant when `collapsible` is `true`) |
 
 ## Events
 
