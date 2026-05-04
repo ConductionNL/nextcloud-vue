@@ -604,29 +604,45 @@ if (detailFailed === 0) {
 
 console.log('\nChecking JS export doc accuracy (JSDoc @param names):\n')
 
-const jsDetailFailures = []
+// Accumulate results per category so we can print a Phase-1-style summary
+const jsDetailByCategory = new Map()
+for (const cat of JS_ACCURACY_CATEGORIES) {
+	jsDetailByCategory.set(cat, { checked: 0, failures: [] })
+}
 
 for (const { name, category, docPath } of jsExports) {
+	const bucket = jsDetailByCategory.get(category)
+	bucket.checked += 1
 	const srcPath = findSourceFile(name, category)
 	const issues = checkJsAccuracy(name, srcPath, docPath)
 	if (issues.length > 0) {
-		jsDetailFailures.push({ name, category, issues, docPath })
+		bucket.failures.push({ name, issues, docPath })
 	}
 }
 
-const jsDetailChecked = jsExports.length
-const jsDetailFailed = jsDetailFailures.length
+const JS_ORDER = ['Composables', 'Store factories', 'Store plugins', 'Utilities']
+let jsDetailFailed = 0
 
-if (jsDetailFailed === 0) {
-	console.log(`  ✓ All ${jsDetailChecked} JS export docs cover their @param names.`)
-} else {
-	console.log(`  ✓ ${jsDetailChecked - jsDetailFailed}/${jsDetailChecked} JS export docs cover their @param names.`)
+for (const cat of JS_ORDER) {
+	const { checked, failures } = jsDetailByCategory.get(cat)
+	const covered = checked - failures.length
+	const mark = failures.length === 0 ? '✓' : '✗'
+	console.log(`  ${mark} ${cat}: ${covered}/${checked}`)
+	jsDetailFailed += failures.length
+}
+
+if (jsDetailFailed > 0) {
 	console.error(`\n✗ ${jsDetailFailed} JS export doc(s) are missing @param coverage:\n`)
-	for (const { name, category, issues, docPath } of jsDetailFailures) {
-		const rel = path.relative(ROOT, docPath).replace(/\\/g, '/')
-		console.error(`${name} [${category}]  (${rel}):`)
-		for (const issue of issues) {
-			console.error(`  - ${issue}`)
+	for (const cat of JS_ORDER) {
+		const { failures } = jsDetailByCategory.get(cat)
+		if (failures.length === 0) continue
+		console.error(`${cat}:`)
+		for (const { name, issues, docPath } of failures) {
+			const rel = path.relative(ROOT, docPath).replace(/\\/g, '/')
+			console.error(`  ${name}  (${rel}):`)
+			for (const issue of issues) {
+				console.error(`    - ${issue}`)
+			}
 		}
 		console.error('')
 	}
