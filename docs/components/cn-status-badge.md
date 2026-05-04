@@ -23,6 +23,7 @@ Color-coded pill badge for status, priority, or category display. Supports autom
 | Slot | Description |
 |------|-------------|
 | default | Custom label content |
+| `#icon` | Icon element displayed before the label text |
 
 ## Usage
 

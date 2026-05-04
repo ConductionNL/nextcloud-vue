@@ -14,24 +14,16 @@ Configuration card with title, actions, and status indicator. Used for feature t
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `''` | Card title |
-| `description` | String | `''` | Card description |
-| `status` | String | `null` | `'active'`, `'inactive'`, `'error'`, `'warning'` |
-| `statusLabel` | String | `''` | Override status display text |
-| `loading` | Boolean | `false` | Loading state |
-
-## Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `action` | `actionName` | Action button clicked |
 
 ## Slots
 
 | Slot | Description |
 |------|-------------|
 | `default` | Card content |
-| `#actions` | Action buttons |
+| `#icon` | Icon displayed in the card header |
+| `#actions` | Action buttons in the card header |
 | `#status` | Custom status indicator |
+| `#footer` | Footer content below the card body |
 
 ## Usage
 

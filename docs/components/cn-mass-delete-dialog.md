@@ -18,9 +18,13 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 | `nameField` | String | `'title'` | Field to display as item name |
 | `nameFormatter` | Function | `null` | Optional function `(item) => string` to format item names. Overrides `nameField` when provided. |
 | `dialogTitle` | String | `'Delete items'` | |
-| `warningText` | String | `''` | Warning message |
-| `confirmLabel` | String | `'Delete'` | |
+| `warningText` | String | `''` | Warning text shown above the item list |
+| `emptyText` | String | `'No items selected for deletion.'` | Message shown when all items have been removed from the list |
+| `successText` | String | `'Items successfully deleted.'` | Message shown in the result phase on success |
 | `cancelLabel` | String | `'Cancel'` | |
+| `closeLabel` | String | `'Close'` | Label for the close button shown in the result phase |
+| `confirmLabel` | String | `'Delete'` | |
+| `removeLabel` | String | `'Remove from list'` | Tooltip/label for the per-item remove button |
 
 ## Events
 

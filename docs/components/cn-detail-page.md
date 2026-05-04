@@ -18,6 +18,11 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingLabel` | String | `'Loading...'` | Message shown during loading |
+| `sidebar` | Boolean | `false` | Whether to activate the external `CnObjectSidebar` via the `objectSidebarState` inject |
+| `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is `true`) |
+| `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`) |
+| `objectId` | String\|Number | `''` | Object ID passed to the sidebar |
+| `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
 | `error` | Boolean | `false` | Error state |
 | `errorMessage` | String | `'An error occurred'` | Message shown in error state |
 | `onRetry` | Function | `null` | Callback for retry button in error state. If null, no retry button shown. |

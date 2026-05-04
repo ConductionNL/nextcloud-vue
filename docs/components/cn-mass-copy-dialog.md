@@ -20,8 +20,12 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 | `dialogTitle` | String | `'Copy items'` | |
 | `patternLabel` | String | `'Naming pattern'` | |
 | `patternPlaceholder` | String | `'\{name\} (copy)'` | |
-| `confirmLabel` | String | `'Copy'` | |
+| `emptyText` | String | `'No items selected for copying.'` | Message shown when all items have been removed from the list |
+| `successText` | String | `'Items successfully copied.'` | Message shown in the result phase on success |
 | `cancelLabel` | String | `'Cancel'` | |
+| `closeLabel` | String | `'Close'` | Label for the close button shown in the result phase |
+| `confirmLabel` | String | `'Copy'` | |
+| `removeLabel` | String | `'Remove from list'` | Tooltip/label for the per-item remove button |
 
 ## Events
 
