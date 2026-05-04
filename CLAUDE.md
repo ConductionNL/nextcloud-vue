@@ -224,6 +224,7 @@ See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migr
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
+8. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
 
 ## Adding New Components
 

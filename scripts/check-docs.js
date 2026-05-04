@@ -19,8 +19,12 @@
  *
  * Exempt exports are allow-listed in EXEMPT (e.g. registerIcons).
  *
- * Exits 1 when any export lacks coverage. All categories are reported in
- * a single run so CI surfaces every gap at once.
+ * Phase 1 — existence: exits 1 when any export lacks a doc file.
+ * Phase 2 — accuracy: for every Component export, verifies that each prop
+ *   name and each static named-slot from the SFC appears somewhere in the
+ *   component's doc file. Exits 1 when any are missing.
+ *
+ * All categories are reported in a single run so CI surfaces every gap at once.
  */
 
 const fs = require('fs')
@@ -82,6 +86,137 @@ const STORE_MENTION_ONLY = {
 	getRegisterApiUrl: 'plugins.md',
 	getSchemaApiUrl: 'plugins.md',
 }
+
+// ---------------------------------------------------------------------------
+// SFC parsing helpers (used by Phase 2 accuracy check)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract prop names from a Vue SFC's script-block `props:` definition.
+ * Handles both object form (`props: { name: { ... } }`) and array form
+ * (`props: ['name1', 'name2']`). Uses brace-depth tracking so prop option
+ * keys (type, default, required, validator) are not mistaken for prop names.
+ * @param {string} sfcPath absolute path to the .vue file
+ * @return {string[]} camelCase prop names, or empty array when none found
+ */
+function extractSfcProps(sfcPath) {
+	if (!fs.existsSync(sfcPath)) return []
+	const source = fs.readFileSync(sfcPath, 'utf8')
+	const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/m)
+	if (!scriptMatch) return []
+	const script = scriptMatch[1]
+
+	const propsIdx = script.search(/\bprops\s*:/)
+	if (propsIdx === -1) return []
+	const afterProps = script.slice(propsIdx)
+
+	// Array form: props: ['a', 'b']
+	const arrMatch = afterProps.match(/^props\s*:\s*\[([^\]]*)\]/)
+	if (arrMatch) {
+		const names = []
+		const re = /['"]([^'"]+)['"]/g
+		let m
+		while ((m = re.exec(arrMatch[1])) !== null) names.push(m[1])
+		return names
+	}
+
+	// Object form: walk characters tracking brace depth.
+	// Keys are captured at depth 1 (direct children of the props object):
+	//   - Right before a `{` opens a sub-object (e.g. `title: {`)
+	//   - At end of line for flat props (e.g. `name: String,`)
+	const braceIdx = afterProps.indexOf('{')
+	if (braceIdx === -1) return []
+
+	const propNames = []
+	let depth = 0
+	let lineText = ''
+
+	for (let i = braceIdx; i < afterProps.length; i++) {
+		const ch = afterProps[i]
+		if (ch === '{') {
+			// Capture key immediately before its options object opens
+			if (depth === 1) {
+				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
+				if (key) propNames.push(key[1])
+			}
+			depth++
+		} else if (ch === '}') {
+			depth--
+			if (depth === 0) break
+		} else if (ch === '\n') {
+			// Capture flat prop (no sub-object) at end of its line
+			if (depth === 1) {
+				const key = lineText.match(/^\s+([a-zA-Z][a-zA-Z0-9]*)\s*:/)
+				if (key) propNames.push(key[1])
+			}
+			lineText = ''
+			continue
+		}
+		lineText += ch
+	}
+
+	return [...new Set(propNames)]
+}
+
+/**
+ * Extract names of all statically-named `<slot>` elements from a Vue SFC
+ * template. Dynamic `:name="..."` bindings are intentionally skipped since
+ * the slot name is only known at runtime and cannot be literally checked.
+ * @param {string} sfcPath absolute path to the .vue file
+ * @return {string[]} static slot names (the implicit default slot is excluded)
+ */
+function extractSfcNamedSlots(sfcPath) {
+	if (!fs.existsSync(sfcPath)) return []
+	const source = fs.readFileSync(sfcPath, 'utf8')
+	const templateMatch = source.match(/<template\b[^>]*>([\s\S]*?)<\/template>/m)
+	if (!templateMatch) return []
+
+	const slots = new Set()
+	const slotRe = /<slot\b([^>]*?)(?:\s*\/?>)/g
+	let m
+	while ((m = slotRe.exec(templateMatch[1])) !== null) {
+		const attrs = m[1]
+		if (attrs.includes(':name=')) continue // skip dynamic slot names
+		const nameM = attrs.match(/\bname="([^"]+)"/)
+		if (nameM) slots.add(nameM[1])
+	}
+	return [...slots]
+}
+
+/**
+ * Accuracy check for one Component export: verifies that every prop name and
+ * every static named slot defined in the SFC is mentioned at least once in
+ * the component's doc file (by camelCase or kebab-case name).
+ * @param {string} componentName PascalCase name (e.g. 'CnWidgetWrapper')
+ * @param {string} docPath absolute path to the component's .md file
+ * @return {string[]} plain-English issue strings (empty when all covered)
+ */
+function checkComponentDetail(componentName, docPath) {
+	const sfcPath = path.join(ROOT, 'src', 'components', componentName, `${componentName}.vue`)
+	if (!fs.existsSync(sfcPath) || !fs.existsSync(docPath)) return []
+
+	const docContent = fs.readFileSync(docPath, 'utf8')
+	const issues = []
+
+	for (const prop of extractSfcProps(sfcPath)) {
+		const kebab = toKebab(prop)
+		if (!docContent.includes(prop) && !docContent.includes(kebab)) {
+			issues.push(`prop \`${prop}\` (${kebab}) not mentioned in doc`)
+		}
+	}
+
+	for (const slot of extractSfcNamedSlots(sfcPath)) {
+		if (!docContent.includes(slot)) {
+			issues.push(`slot \`${slot}\` not mentioned in doc`)
+		}
+	}
+
+	return issues
+}
+
+// ---------------------------------------------------------------------------
+// Shared utilities
+// ---------------------------------------------------------------------------
 
 /**
  * Convert PascalCase or camelCase to kebab-case.
@@ -228,13 +363,22 @@ function isCovered(info) {
 	return stems.has(info.expectedStem)
 }
 
+// ---------------------------------------------------------------------------
+// Phase 1: existence check
+// ---------------------------------------------------------------------------
+
 const exports_ = parsePublicExports(INDEX_FILE)
 
 const categories = new Map()
+const componentExports = [] // collected for Phase 2
+
 for (const name of exports_) {
 	const info = classify(name)
 	if (info.category === 'Exempt') {
 		continue
+	}
+	if (info.category === 'Components') {
+		componentExports.push(name)
 	}
 	if (!categories.has(info.category)) {
 		categories.set(info.category, { checked: 0, missing: [] })
@@ -261,21 +405,58 @@ for (const [category, { checked, missing }] of ordered) {
 	console.log(`  ${mark} ${category}: ${covered}/${checked}`)
 }
 
-if (totalMissing === 0) {
-	console.log(`\n✓ All ${totalChecked} public exports are documented.`)
+if (totalMissing > 0) {
+	console.error(`\n✗ ${totalMissing} export(s) are missing documentation:\n`)
+	for (const [category, { missing }] of ordered) {
+		if (missing.length === 0) {
+			continue
+		}
+		console.error(`${category}:`)
+		for (const { name, expectedPath } of missing) {
+			console.error(`  - ${name}  →  ${expectedPath}`)
+		}
+		console.error('')
+	}
+	console.error('Create the missing files (or add the missing mention) so every public export is documented.')
+	process.exit(1)
+}
+
+console.log(`\n✓ All ${totalChecked} public exports are documented.`)
+
+// ---------------------------------------------------------------------------
+// Phase 2: accuracy check — every SFC prop and named slot must appear in doc
+// ---------------------------------------------------------------------------
+
+console.log('\nChecking component doc accuracy (props and slots):\n')
+
+const detailFailures = []
+
+for (const name of componentExports) {
+	const kebab = toKebab(name)
+	const docPath = path.join(DOCS_DIR, 'components', `${kebab}.md`)
+	const issues = checkComponentDetail(name, docPath)
+	if (issues.length > 0) {
+		detailFailures.push({ name, issues })
+	}
+}
+
+const detailChecked = componentExports.length
+const detailFailed = detailFailures.length
+
+if (detailFailed === 0) {
+	console.log(`  ✓ All ${detailChecked} component docs cover their props and slots.`)
 	process.exit(0)
 }
 
-console.error(`\n✗ ${totalMissing} export(s) are missing documentation:\n`)
-for (const [category, { missing }] of ordered) {
-	if (missing.length === 0) {
-		continue
-	}
-	console.error(`${category}:`)
-	for (const { name, expectedPath } of missing) {
-		console.error(`  - ${name}  →  ${expectedPath}`)
+console.log(`  ✓ ${detailChecked - detailFailed}/${detailChecked} component docs cover their props and slots.`)
+console.error(`\n✗ ${detailFailed} component doc(s) are missing prop or slot coverage:\n`)
+for (const { name, issues } of detailFailures) {
+	const kebab = toKebab(name)
+	console.error(`${name}  (docs/components/${kebab}.md):`)
+	for (const issue of issues) {
+		console.error(`  - ${issue}`)
 	}
 	console.error('')
 }
-console.error('Create the missing files (or add the missing mention) so every public export is documented.')
+console.error('Add the missing props/slots to the component doc so every SFC interface item is covered.')
 process.exit(1)
