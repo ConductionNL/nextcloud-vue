@@ -46,6 +46,8 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
 | `iconUrl` | String | `null` | Image URL for the header icon |
 | `iconClass` | String | `null` | CSS class for the header icon (e.g. Nextcloud icon class) |
+| `titleIconPosition` | String | `'right'` | Position of the `title-icon` slot in the header: `'left'` places it before the title group; `'right'` places it after the actions |
+| `titleIconColor` | String | `null` | CSS color value applied to the `title-icon` slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | `[]` | Footer button links: `[{ text, link }]` |
 | `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left } }` |
 
@@ -55,4 +57,5 @@ Container shell around a dashboard widget. Provides a header with icon and title
 |------|-------------|
 | default | Widget content rendered in the scrollable body area |
 | `actions` | Buttons or controls placed in the right side of the header |
+| `title-icon` | Extra icon element rendered in the header at the position controlled by `titleIconPosition` (left of title or right of actions) |
 | `footer` | Custom footer content (replaces the `buttons` prop rendering) |

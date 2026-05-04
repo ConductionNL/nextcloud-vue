@@ -98,6 +98,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `type` | String | `'custom'` (default) or `'tile'` |
 | `iconUrl` | String | Header icon image URL |
 | `iconClass` | String | Header icon CSS class |
+| `titleIconPosition` | String | Position of the `widget-{id}-title-icon` slot: `'left'` (before title) or `'right'` (after actions, default) |
+| `titleIconColor` | String | CSS color applied to the title-icon slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | Footer buttons: `[{ text, link }]` |
 | `itemApiVersions` | Number[] | NC Dashboard API versions — triggers auto-rendering |
 | `reloadInterval` | Number | Auto-refresh interval in seconds (NC widgets) |
@@ -129,4 +131,5 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `header-actions` | — | Extra buttons in the page header (right side) |
 | `widget-{widgetId}` | `{ item, widget }` | Custom content for a specific widget |
 | `widget-{widgetId}-actions` | `{ item, widget }` | Header action buttons for a specific widget |
+| `widget-{widgetId}-title-icon` | `{ item, widget }` | Extra icon in the widget header; position and color controlled by `titleIconPosition` / `titleIconColor` on the widget definition |
 | `empty` | — | Custom empty state when no layout items exist |
