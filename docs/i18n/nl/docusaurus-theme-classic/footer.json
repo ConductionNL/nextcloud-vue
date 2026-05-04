@@ -1,0 +1,50 @@
+{
+  "link.title.Docs": {
+    "message": "Documentatie",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.Community": {
+    "message": "Community",
+    "description": "The title of the footer links column with title=Community in the footer"
+  },
+  "link.title.Related": {
+    "message": "Gerelateerd",
+    "description": "The title of the footer links column with title=Related in the footer"
+  },
+  "link.item.label.Getting Started": {
+    "message": "Aan de slag",
+    "description": "The label of footer link with label=Getting Started linking to /docs/getting-started"
+  },
+  "link.item.label.Components": {
+    "message": "Componenten",
+    "description": "The label of footer link with label=Components linking to /docs/components/"
+  },
+  "link.item.label.Architecture": {
+    "message": "Architectuur",
+    "description": "The label of footer link with label=Architecture linking to /docs/architecture/overview"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/ConductionNL/nextcloud-vue"
+  },
+  "link.item.label.Conduction": {
+    "message": "Conduction",
+    "description": "The label of footer link with label=Conduction linking to https://conduction.nl"
+  },
+  "link.item.label.Nextcloud Vue Components": {
+    "message": "Nextcloud Vue Componenten",
+    "description": "The label of footer link with label=Nextcloud Vue Components linking to https://nextcloud-vue-components.netlify.app/"
+  },
+  "link.item.label.Nextcloud Layout Components": {
+    "message": "Nextcloud Layout Componenten",
+    "description": "The label of footer link with label=Nextcloud Layout Components linking to https://docs.nextcloud.com/server/stable/developer_manual/design/layoutcomponents.html"
+  },
+  "link.item.label.Nextcloud App Development": {
+    "message": "Nextcloud App Ontwikkeling",
+    "description": "The label of footer link with label=Nextcloud App Development linking to https://docs.nextcloud.com/server/stable/developer_manual/app_development/index.html"
+  },
+  "copyright": {
+    "message": "Copyright © 2026 for <a href=\"https://openwebconcept.nl\">Open Webconcept</a> by <a href=\"https://conduction.nl\">Conduction B.V.</a>",
+    "description": "The footer copyright"
+  }
+}

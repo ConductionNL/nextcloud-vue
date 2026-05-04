@@ -128,7 +128,7 @@ export default {
 	computed: {
 		itemName() {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
-			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
+			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
