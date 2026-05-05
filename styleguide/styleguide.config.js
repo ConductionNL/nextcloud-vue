@@ -17,11 +17,15 @@ module.exports = {
 		const kebab = name.replace(/([A-Z])/g, (_, l, offset) => (offset > 0 ? '-' : '') + l.toLowerCase())
 		const docsRoot = path.resolve(__dirname, '../docs')
 
-		// docs/components/ is the canonical home — check it first
+		// Co-located example file takes priority — pure live demos, no narrative prose
+		const colocated = path.join(path.dirname(componentPath), `${name}.md`)
+		if (fs.existsSync(colocated)) return colocated
+
+		// docs/components/ is the fallback for components without a co-located example
 		const inComponents = path.join(docsRoot, 'components', `${kebab}.md`)
 		if (fs.existsSync(inComponents)) return inComponents
 
-		// Fall back to a recursive search across all docs/ subdirectories
+		// Last resort: recursive search across all docs/ subdirectories
 		const findInDir = (dir) => {
 			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 				const full = path.join(dir, entry.name)
@@ -38,9 +42,8 @@ module.exports = {
 		return findInDir(docsRoot) || inComponents
 	},
 
-	// Show usage and examples expanded by default
-	usageMode: 'expand',
-	exampleMode: 'expand',
+	usageMode: 'collapse',
+	exampleMode: 'collapse',
 
 	// Build output — relative to this styleguide/ directory
 	styleguideDir: 'build',
@@ -48,6 +51,7 @@ module.exports = {
 	// Run the setup script before every example sandbox
 	require: [
 		path.join(__dirname, 'setup.js'),
+		path.join(__dirname, 'theme.css'),
 	],
 
 	// Webpack overrides
