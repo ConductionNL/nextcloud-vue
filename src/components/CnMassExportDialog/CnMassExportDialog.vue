@@ -62,7 +62,6 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  * The parent handles the actual download. Based on the OpenRegister
  * ExportRegister pattern.
  *
- * @example
  * <CnMassExportDialog
  *   v-if="showExportDialog"
  *   ref="exportDialog"

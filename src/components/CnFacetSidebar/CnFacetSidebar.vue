@@ -70,7 +70,6 @@ import { filtersFromSchema } from '../../utils/schema.js'
  * appropriate filter widgets. Accepts live facet data from the API for
  * dynamic option values with counts.
  *
- * @example
  * <CnFacetSidebar
  *   :schema="schema"
  *   :facet-data="facetData"

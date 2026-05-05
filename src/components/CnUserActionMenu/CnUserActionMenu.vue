@@ -117,7 +117,7 @@ let _capabilitiesPromise = null
  * Shows contextual actions based on installed Nextcloud apps (Talk, Mail, Calendar).
  * Uses @nextcloud/capabilities when available, falls back to OCS API.
  *
- * @example Usage in notes/tasks cards
+ * Usage in notes/tasks cards
  * <CnUserActionMenu
  *   :user-id="note.actorId || note.author"
  *   :display-name="note.actorDisplayName || note.author || 'Unknown'" />

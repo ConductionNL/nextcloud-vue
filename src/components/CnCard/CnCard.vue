@@ -84,7 +84,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  * CnObjectCard (schema-driven), CnCard takes direct props and is ideal
  * for known, fixed-structure entities.
  *
- * @example Basic usage
+ * Basic usage
  * <CnCard
  *   title="My Source"
  *   description="A PostgreSQL data source"
@@ -95,7 +95,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  *   </template>
  * </CnCard>
  *
- * @example With labels and active state
+ * With labels and active state
  * <CnCard
  *   title="My Organisation"
  *   :icon="OfficeBuilding"

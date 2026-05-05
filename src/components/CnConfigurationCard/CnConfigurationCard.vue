@@ -35,7 +35,6 @@
  * props and slots — no store dependencies. Consumer wraps this and handles
  * navigation/store logic.
  *
- * @example
  * <CnConfigurationCard title="Database Configuration">
  *   <template #actions>
  *     <NcActions><NcActionButton @click="edit">Edit</NcActionButton></NcActions>

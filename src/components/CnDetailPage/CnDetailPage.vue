@@ -185,14 +185,14 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  * 2. **Grid layout:** When `layout` and `widgets` props are provided, content renders in a
  *    12-column CSS grid with `#widget-{widgetId}` scoped slots. Same API as CnDashboardPage.
  *
- * @example Basic usage (vertical stacking)
+ * Basic usage (vertical stacking)
  *
  * A simpler alternative to CnIndexPage for pages that display detail info,
  * statistics, charts, or card grids — without multi-object tables or CRUD
  * dialogs. Provides a consistent layout with header, loading/error/empty
  * states, a statistics table, and flexible content slots.
  *
- * @example Basic usage with stats table and content
+ * Basic usage with stats table and content
  * <CnDetailPage
  *   title="Register Overview"
  *   description="Statistics and schema details"
@@ -212,7 +212,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <SchemaCards :schemas="schemas" />
  * </CnDetailPage>
  *
- * @example Grid layout mode
+ * Grid layout mode
  * <CnDetailPage
  *   title="Character Detail"
  *   :layout="[
@@ -230,7 +230,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *     <StatsCard :stats="character.stats" />
  *   </template>
  *
- * @example With header actions and error handling
+ * With header actions and error handling
  * <CnDetailPage
  *   title="Schema Details"
  *   :error="hasError"

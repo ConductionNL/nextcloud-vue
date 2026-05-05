@@ -185,7 +185,6 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
  * Must be rendered at the App.vue level as a sibling of NcAppContent.
  * Use provide/inject to connect it to page components.
  *
- * @example
  * <!-- Minimal usage — schema drives everything -->
  * <CnIndexSidebar
  *   :schema="schema"

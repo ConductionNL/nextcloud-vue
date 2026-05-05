@@ -74,7 +74,6 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  * LeadList, RequestList across Pipelinq and Procest. Supports text search,
  * select dropdowns, text inputs, and checkbox filters.
  *
- * @example
  * <CnFilterBar
  *   :search-value="searchTerm"
  *   search-placeholder="Search clients..."

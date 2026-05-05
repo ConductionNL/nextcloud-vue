@@ -41,7 +41,6 @@ import { generateUrl } from '@nextcloud/router'
 /**
  * CnTileWidget — Quick-access tile with icon and link.
  *
- * @example
  * <CnTileWidget :tile="{
  *   title: 'Files',
  *   icon: 'M12,2C6.48,...',

@@ -49,16 +49,16 @@ import { getTheme } from '../../utils/getTheme.js'
  * Includes syntax highlighting, and optional formatting/validation for JSON.
  * Use `readOnly` for display-only mode.
  *
- * @example Read-only JSON display (default)
+ * Read-only JSON display (default)
  * <CnJsonViewer :value="jsonString" :read-only="true" />
  *
- * @example Auto-detect language from content
+ * Auto-detect language from content
  * <CnJsonViewer :value="responseBody" :read-only="true" language="auto" />
  *
- * @example Explicit XML mode
+ * Explicit XML mode
  * <CnJsonViewer :value="xmlString" :read-only="true" language="xml" />
  *
- * @example Editable JSON with custom height
+ * Editable JSON with custom height
  * <CnJsonViewer :value="jsonString" height="500px" @update:value="onUpdate" />
  */
 export default {

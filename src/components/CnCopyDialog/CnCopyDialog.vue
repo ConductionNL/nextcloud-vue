@@ -67,7 +67,6 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  * and the new name. The parent performs the actual API call and calls
  * `setResult()` via a ref.
  *
- * @example
  * <CnCopyDialog
  *   v-if="showCopyDialog"
  *   ref="copyDialog"

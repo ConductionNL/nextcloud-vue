@@ -180,7 +180,6 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  * with the file and options. The parent handles the API call and calls
  * `setResult()` via a ref.
  *
- * @example
  * <CnMassImportDialog
  *   v-if="showImportDialog"
  *   ref="importDialog"

@@ -99,13 +99,13 @@ import { buildHeaders } from '../../utils/index.js'
  * Shows up to 5 recent notes with add/delete functionality.
  * Integrates CnUserActionMenu on author names for quick communication.
  *
- * @example Basic usage
+ * Basic usage
  * <CnNotesCard
  *   register-id="uuid-register"
  *   schema-id="uuid-schema"
  *   object-id="uuid-object" />
  *
- * @example With sidebar sync
+ * With sidebar sync
  * <CnNotesCard
  *   register-id="reg"
  *   schema-id="schema"

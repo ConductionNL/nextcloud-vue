@@ -70,7 +70,6 @@ import { formatValue } from '../../utils/schema.js'
  * Uses `schema.configuration` to determine which fields map to the card title,
  * description, and image. Remaining visible properties are shown as metadata.
  *
- * @example
  * <CnObjectCard :object="publication" :schema="pubSchema">
  *   <template #actions="{ object }">
  *     <NcActions><NcActionButton @click="edit(object)">Edit</NcActionButton></NcActions>

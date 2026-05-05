@@ -77,7 +77,6 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  * NL Design tokens used:
  * - Inherits from cn-pagination CSS class (see css/pagination.css)
  *
- * @example
  * <CnPagination
  *   :current-page="page"
  *   :total-pages="totalPages"
@@ -160,7 +159,7 @@ export default {
 		},
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
-		 * @example "Page {current} of {total}"
+		 * "Page {current} of {total}"
 		 */
 		pageInfoFormat: {
 			type: String,

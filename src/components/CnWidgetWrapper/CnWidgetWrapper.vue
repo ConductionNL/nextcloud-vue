@@ -72,12 +72,11 @@ import { translate as t } from '@nextcloud/l10n'
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
  *
- * @example
  * <CnWidgetWrapper title="My Cases" :icon-url="casesIconUrl">
  *   <MyCasesChart :data="chartData" />
  * </CnWidgetWrapper>
  *
- * @example With NC widget object
+ * With NC widget object
  * <CnWidgetWrapper
  *   :title="widget.title"
  *   :icon-url="widget.iconUrl"

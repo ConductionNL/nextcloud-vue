@@ -59,7 +59,6 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  * Displays objects in a responsive CSS grid layout using schema-driven cards.
  * Supports selection, loading/empty states, and custom card rendering via slots.
  *
- * @example
  * <CnCardGrid
  *   :objects="publications"
  *   :schema="pubSchema"

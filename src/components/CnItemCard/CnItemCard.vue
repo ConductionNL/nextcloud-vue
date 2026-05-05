@@ -30,12 +30,12 @@
  * a flexible content area. Designed for use in sidebar lists such as
  * schema listings, source listings, etc.
  *
- * @example Basic usage
+ * Basic usage
  * <CnItemCard title="My Schema" :icon="FileCodeOutline">
  *   <p>Schema content here</p>
  * </CnItemCard>
  *
- * @example With actions and stats
+ * With actions and stats
  * <CnItemCard title="My Schema" :icon="FileCodeOutline" subtitle="v1.0">
  *   <template #actions>
  *     <NcActions>

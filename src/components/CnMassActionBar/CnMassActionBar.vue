@@ -88,7 +88,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  * </CnMassActionBar>
  * ```
  *
- * @example Basic usage
+ * Basic usage
  * <CnMassActionBar
  *   :selected-ids="selectedIds"
  *   :count="selectedIds.length"

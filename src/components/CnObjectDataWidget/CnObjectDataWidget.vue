@@ -235,7 +235,7 @@ import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
  * as a label-value cell. Editable cells can be clicked to switch to inline editing.
  * Uses the objectStore to persist changes.
  *
- * @example Basic usage
+ * Basic usage
  * <CnObjectDataWidget
  *   title="Character Info"
  *   :schema="schema"
@@ -248,7 +248,7 @@ import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
  *     internalId: { hidden: true },
  *   }" />
  *
- * @example Read-only mode
+ * Read-only mode
  * <CnObjectDataWidget
  *   title="Summary"
  *   :schema="schema"

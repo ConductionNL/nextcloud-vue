@@ -167,7 +167,7 @@ import { buildHeaders } from '../../utils/headers.js'
  * Supports multiple register groups (stacked sections) with expandable
  * type rows for manual schema override.
  *
- * @example Single register (Pipelinq)
+ * Single register (Pipelinq)
  * <CnRegisterMapping
  *   name="Register Configuration"
  *   :groups="[{
@@ -182,7 +182,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *   @save="saveConfig"
  *   @reimport="reimport" />
  *
- * @example Multi-register (SoftwareCatalog)
+ * Multi-register (SoftwareCatalog)
  * <CnRegisterMapping
  *   :groups="[
  *     { name: 'Voorzieningen', registerConfigKey: 'voorzieningen_register', types: [...] },

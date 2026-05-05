@@ -52,7 +52,6 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * itself — it emits a `confirm` event with the item ID. The parent performs
  * the actual API call and calls `setResult()` via a ref.
  *
- * @example
  * <CnDeleteDialog
  *   v-if="showDeleteDialog"
  *   ref="deleteDialog"

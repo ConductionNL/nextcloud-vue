@@ -354,7 +354,6 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
  * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  *
- * @example
  * <CnFormDialog
  *   v-if="showFormDialog"
  *   ref="formDialog"
@@ -377,7 +376,7 @@ import { fieldsFromSchema } from '../../utils/schema.js'
  *   }
  * }
  *
- * @example <caption>Async select with custom option rendering</caption>
+ * <caption>Async select with custom option rendering</caption>
  * <CnFormDialog :fields="[{
  *   key: 'organisation',
  *   widget: 'select',

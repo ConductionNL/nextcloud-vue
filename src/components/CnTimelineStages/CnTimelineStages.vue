@@ -76,7 +76,7 @@ import { translate as t } from '@nextcloud/l10n'
  * connected by a track line. Supports horizontal and vertical layout,
  * small and medium sizes, clickable stages, keyboard navigation, and ARIA roles.
  *
- * @example Basic horizontal timeline
+ * Basic horizontal timeline
  * <CnTimelineStages
  *   :stages="[
  *     { id: 'new', label: 'New' },
@@ -85,7 +85,7 @@ import { translate as t } from '@nextcloud/l10n'
  *   ]"
  *   currentStage="review" />
  *
- * @example Vertical clickable timeline
+ * Vertical clickable timeline
  * <CnTimelineStages
  *   :stages="pipelineStages"
  *   :currentStage="deal.stage"

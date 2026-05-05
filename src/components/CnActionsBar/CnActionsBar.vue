@@ -122,7 +122,6 @@ import Export from 'vue-material-design-icons/Export.vue'
 /**
  * CnActionsBar — Reusable actions toolbar with count, mass actions, and primary actions.
  *
- * @example
  * <CnActionsBar
  *   :pagination="pagination"
  *   :object-count="items.length"

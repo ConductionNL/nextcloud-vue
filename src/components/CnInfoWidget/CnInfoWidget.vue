@@ -29,13 +29,13 @@
 /**
  * CnInfoWidget — Renders label-value pairs in a responsive CSS grid.
  *
- * @example Manual fields
+ * Manual fields
  * <CnInfoWidget :fields="[
  *   { label: 'Email', value: 'test@example.com' },
  *   { label: 'Phone', value: '+31 6 12345678' },
  * ]" :columns="2" />
  *
- * @example Auto-generated from schema
+ * Auto-generated from schema
  * <CnInfoWidget :object="myObject" :schema="mySchema" :columns="3" />
  */
 export default {

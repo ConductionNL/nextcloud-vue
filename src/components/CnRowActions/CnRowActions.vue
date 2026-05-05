@@ -25,7 +25,6 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * Wraps NcActions + NcActionButton for consistent row/card action menus.
  * Actions are defined as an array of objects with label, icon, handler, etc.
  *
- * @example
  * <CnRowActions
  *   :actions="[
  *     { label: 'Edit', icon: PencilIcon, handler: (row) => editRow(row) },

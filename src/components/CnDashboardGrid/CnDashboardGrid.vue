@@ -39,7 +39,6 @@ import 'gridstack/dist/gridstack.min.css'
  * changes. Does NOT handle widget rendering — that's done by the parent
  * via the `#widget` scoped slot.
  *
- * @example
  * <CnDashboardGrid
  *   :layout="placements"
  *   :editable="isEditing"

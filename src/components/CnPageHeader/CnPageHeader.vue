@@ -23,7 +23,6 @@ import { CnIcon } from '../CnIcon/index.js'
 /**
  * CnPageHeader — Reusable page header with optional icon, title, and description.
  *
- * @example
  * <CnPageHeader title="Clients" description="Manage your clients" icon="AccountGroup" />
  */
 export default {

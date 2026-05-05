@@ -55,12 +55,12 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 /**
  * CnDetailCard — Card container for detail page sections.
  *
- * @example Basic usage
+ * Basic usage
  * <CnDetailCard title="Core Info">
  *   <div class="info-grid">...</div>
  * </CnDetailCard>
  *
- * @example With icon and actions
+ * With icon and actions
  * <CnDetailCard title="Pipeline" :icon="ChartIcon">
  *   <template #actions>
  *     <NcButton>Edit</NcButton>
@@ -68,7 +68,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *   <PipelineProgress :stages="stages" />
  * </CnDetailCard>
  *
- * @example Collapsible
+ * Collapsible
  * <CnDetailCard title="Products" :collapsible="true">
  *   <ProductList :items="products" />
  * </CnDetailCard>

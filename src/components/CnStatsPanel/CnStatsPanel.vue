@@ -158,7 +158,7 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  * 'list' section (renders NcListItems). Suitable for sidebar tabs, dashboard widgets,
  * or any panel that displays statistics.
  *
- * @example Stats stack (vertical)
+ * Stats stack (vertical)
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'totals',
@@ -170,7 +170,7 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *   ],
  * }]" />
  *
- * @example Stats grid (2-column)
+ * Stats grid (2-column)
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'operations',
@@ -183,7 +183,7 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *   ],
  * }]" />
  *
- * @example List section
+ * List section
  * <CnStatsPanel :sections="[{
  *   type: 'list',
  *   id: 'topObjects',
@@ -193,7 +193,7 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *   ],
  * }]" />
  *
- * @example With header slot for filters
+ * With header slot for filters
  * <CnStatsPanel :sections="sections">
  *   <template #header>
  *     <NcSelect v-bind="registerOptions" />

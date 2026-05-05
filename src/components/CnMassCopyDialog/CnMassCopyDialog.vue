@@ -88,7 +88,6 @@ import Close from 'vue-material-design-icons/Close.vue'
  * with the items and naming function. The parent performs the actual API
  * call and calls `setResult()` via a ref.
  *
- * @example
  * <CnMassCopyDialog
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
