@@ -18,7 +18,7 @@ Dependency status is resolved by [`useAppStatus`](../utilities/composables/use-a
 
 ## Usage
 
-```vue
+```vue {static}
 <template>
   <CnAppRoot
     :manifest="manifest"

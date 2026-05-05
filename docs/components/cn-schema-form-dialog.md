@@ -314,11 +314,39 @@ The component internally manages a `schemaItem` data object with this structure:
 
 ---
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">New schema</button>
+    <CnSchemaFormDialog
+      v-if="open"
+      ref="dlg"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(schemaData) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+---
+
 ## Usage examples
 
 ### Basic create/edit (standalone)
 
-```vue
+```vue {static}
 <template>
   <CnSchemaFormDialog
     ref="schemaForm"
@@ -365,7 +393,7 @@ export default {
 
 ### With all action buttons (edit mode)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   :item="schema"
@@ -393,7 +421,7 @@ export default {
 
 ### With translations (i18n)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   :item="schema"
@@ -414,7 +442,7 @@ export default {
 
 ### Inside CnIndexPage (slot override)
 
-```vue
+```vue {static}
 <CnIndexPage
   :schema="schema"
   :objects="items"
@@ -445,7 +473,7 @@ export default {
 
 ### Minimal create-only (no external data)
 
-```vue
+```vue {static}
 <CnSchemaFormDialog
   ref="schemaForm"
   dialog-title="New Schema"

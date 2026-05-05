@@ -189,11 +189,48 @@ fieldOverrides: {
 
 The `enumLabels` object maps each enum value to its display label. Values without a mapping fall back to the raw value.
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">New contact</button>
+    <CnFormDialog
+      v-if="open"
+      ref="dlg"
+      dialog-title="New contact"
+      :fields="fields"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: false,
+      fields: [
+        { key: 'name', label: 'Name', widget: 'text', required: true },
+        { key: 'email', label: 'Email', widget: 'email' },
+        { key: 'notes', label: 'Notes', widget: 'textarea' },
+      ],
+    }
+  },
+  methods: {
+    async onConfirm(formData) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
 ## Usage
 
 ### Basic (schema-driven)
 
-```vue
+```vue {static}
 <CnFormDialog
   :schema="schema"
   :item="editItem"
@@ -209,7 +246,7 @@ The `enumLabels` object maps each enum value to its display label. Values withou
 
 ### Async select with custom option rendering
 
-```vue
+```vue {static}
 <CnFormDialog
   :fields="fields"
   dialog-title="Add User to Organisation"
@@ -242,7 +279,7 @@ The `enumLabels` object maps each enum value to its display label. Values withou
 </CnFormDialog>
 ```
 
-```js
+```js {static}
 // In setup / data:
 const fields = [
   {

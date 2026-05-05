@@ -129,11 +129,52 @@ This means the directive is self-contained — it works even if the consuming ap
 
 ---
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Edit contact</button>
+    <CnAdvancedFormDialog
+      v-if="open"
+      ref="dlg"
+      :schema="schema"
+      :item="item"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: false,
+      schema: {
+        title: 'Contact',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          email: { type: 'string', format: 'email', title: 'Email' },
+          notes: { type: 'string', title: 'Notes' },
+        },
+      },
+      item: { id: 1, name: 'Jane Doe', email: 'jane@example.com', notes: '' },
+    }
+  },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
 ## Usage examples
 
 ### Standalone (emit confirm, parent saves)
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog
   ref="advancedForm"
   :schema="schema"
@@ -156,7 +197,7 @@ async onConfirm(payload) {
 
 ### With CnIndexPage (useAdvancedFormDialog)
 
-```vue
+```vue {static}
 <CnIndexPage
   title="Items"
   :schema="schema"
@@ -172,7 +213,7 @@ async onConfirm(payload) {
 
 ### Custom Properties tab
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog :schema="schema" :item="item" @confirm="onConfirm" @close="close">
   <template #tab-properties="{ formData, updateField, objectProperties }">
     <MyCustomPropertyGrid
@@ -186,7 +227,7 @@ async onConfirm(payload) {
 
 ### Full form override
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog :schema="schema" :item="item" @confirm="onConfirm" @close="close">
   <template #form="{ formData, updateField, jsonData, updateJson, isValidJson }">
     <MyCustomForm :data="formData" @update="updateField" />

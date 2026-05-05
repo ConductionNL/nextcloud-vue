@@ -34,31 +34,29 @@ Right-click context menu component that wraps NcActions with cursor positioning.
 
 ### With actions array (common case)
 
+Right-click one of the rows below:
+
 ```vue
 <template>
-  <table>
-    <tr
+  <div>
+    <div
       v-for="row in rows"
       :key="row.id"
-      @contextmenu.prevent="onContextMenu({ item: row, event: $event })">
-      <!-- cells -->
-    </tr>
-  </table>
-
-  <CnContextMenu
-    :open.sync="contextMenuOpen"
-    :actions="actions"
-    :target-item="contextMenuRow"
-    @action="onAction"
-    @close="closeContextMenu" />
+      style="padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 4px; margin-bottom: 4px; cursor: context-menu; user-select: none;"
+      @contextmenu.prevent="e => onContextMenu({ item: row, event: e })">
+      {{ row.title }}
+    </div>
+    <CnContextMenu
+      :open.sync="contextMenuOpen"
+      :actions="actions"
+      :target-item="contextMenuRow"
+      @close="closeContextMenu" />
+    <p v-if="lastAction" style="margin-top: 8px; font-size: 13px; color: var(--color-text-maxcontrast);">Last: {{ lastAction }}</p>
+  </div>
 </template>
-
 <script>
-import { CnContextMenu, useContextMenu } from '@conduction/nextcloud-vue'
-
+import { useContextMenu } from '@conduction/nextcloud-vue'
 export default {
-  components: { CnContextMenu },
-
   setup() {
     const {
       isOpen: contextMenuOpen,
@@ -66,17 +64,20 @@ export default {
       open: onContextMenu,
       close: closeContextMenu,
     } = useContextMenu()
-
     return { contextMenuOpen, contextMenuRow, onContextMenu, closeContextMenu }
   },
-
-  computed: {
-    actions() {
-      return [
-        { label: 'Edit', icon: PencilIcon, handler: (row) => this.editRow(row) },
-        { label: 'Delete', icon: TrashIcon, handler: (row) => this.deleteRow(row), destructive: true },
-      ]
-    },
+  data() {
+    return {
+      lastAction: '',
+      rows: [
+        { id: 1, title: 'Item one — right-click me' },
+        { id: 2, title: 'Item two — right-click me' },
+      ],
+      actions: [
+        { label: 'Edit', handler: (row) => { this.lastAction = 'Edit: ' + row.title } },
+        { label: 'Delete', handler: (row) => { this.lastAction = 'Delete: ' + row.title }, destructive: true },
+      ],
+    }
   },
 }
 </script>
@@ -84,7 +85,7 @@ export default {
 
 ### With custom slot content
 
-```vue
+```vue {static}
 <CnContextMenu
   :open.sync="contextMenuOpen"
   @close="closeContextMenu">
@@ -101,7 +102,7 @@ export default {
 
 ### Mixed (actions array + slot)
 
-```vue
+```vue {static}
 <CnContextMenu
   :open.sync="contextMenuOpen"
   :actions="commonActions"
