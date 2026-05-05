@@ -47,7 +47,7 @@
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
-				:inline="0"
+				:inline="inlineActionCount"
 				menu-name="Actions">
 				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
@@ -184,7 +184,7 @@ export default {
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
-			default: 2,
+			default: 0,
 		},
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
