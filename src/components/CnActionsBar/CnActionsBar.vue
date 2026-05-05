@@ -47,7 +47,7 @@
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
-				:inline="0"
+				:inline="inlineActionCount"
 				menu-name="Actions">
 				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
