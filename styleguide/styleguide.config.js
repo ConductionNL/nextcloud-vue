@@ -291,10 +291,17 @@ module.exports = {
 
 	// Theming — Conduction brand blue
 	theme: {
+		maxWidth: '100%',
+		sidebarWidth: 280,
+		spaceFactor: 20,
+		borderRadius: 8,
 		color: {
 			link: '#0082c9',
 			linkHover: '#006ea0',
 			sidebarBackground: '#f5f7f9',
+			ribbonBackground: '#0082c9',
+			errorBackground: '#e22d44',
+			border: '#ededed',
 		},
 		fontFamily: {
 			base: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

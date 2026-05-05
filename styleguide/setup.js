@@ -35,25 +35,23 @@ styleEl.textContent = `
     --color-border-dark: #b3b3b3;
     --color-border-maxcontrast: #888888;
 
-    /* Semantic element colors */
-    --color-element-error: #e9322d;
-    --color-element-info: #0082c9;
-    --color-element-success: #46ba61;
-    --color-element-warning: #eca700;
-
-    /* Semantic background/text pairs */
-    --color-error: #fce4e4;
-    --color-error-hover: #f5c6c6;
-    --color-error-text: #8c1515;
-    --color-warning: #fff3cd;
-    --color-warning-hover: #ffe59a;
-    --color-warning-text: #856404;
-    --color-success: #d4edda;
-    --color-success-hover: #b8dcc3;
-    --color-success-text: #155724;
-    --color-info: #d1ecf1;
-    --color-info-hover: #b8e0e8;
-    --color-info-text: #0c5460;
+    /* Semantic element colors — solid backgrounds for buttons/badges */
+    --color-error: #DB0606;
+    --color-error-rgb: 219, 6, 6;
+    --color-error-hover: #df2525;
+    --color-error-text: #ffffff;
+    --color-warning: #A37200;
+    --color-warning-rgb: 163, 114, 0;
+    --color-warning-hover: #8a6000;
+    --color-warning-text: #ffffff;
+    --color-success: #2d7b41;
+    --color-success-rgb: 45, 123, 65;
+    --color-success-hover: #428854;
+    --color-success-text: #ffffff;
+    --color-info: #0071ad;
+    --color-info-rgb: 0, 113, 173;
+    --color-info-hover: #197fb5;
+    --color-info-text: #ffffff;
 
     /* Brand / primary */
     --color-primary: #00679e;
@@ -102,11 +100,44 @@ styleEl.textContent = `
     --sidebar-min-width: 300px;
     --sidebar-max-width: 500px;
 
+    /* Box shadow */
+    --color-box-shadow: rgba(77, 77, 77, 0.5);
+    --color-box-shadow-rgb: 77, 77, 77;
+
+    /* Loading spinner */
+    --color-loading-light: #cccccc;
+    --color-loading-dark: #444444;
+
     /* Misc */
-    --color-box-shadow: rgba(0, 0, 0, 0.15);
-    --color-loading-light: #ccc;
-    --color-loading-dark: #888;
-    --color-favorite: #ffde00;
+    --color-favorite: #A37200;
+    --color-scrollbar: rgba(34, 34, 34, 0.15);
+    --color-placeholder-light: #e6e6e6;
+    --color-placeholder-dark: #cccccc;
+
+    /* Font weight for interactive elements (buttons, etc.) */
+    --font-weight-element: bold;
+
+    /* Background plain (used for header/primary-colored surfaces) */
+    --color-background-plain: #00679e;
+    --color-background-plain-text: #ffffff;
+
+    /* Icon invert filters */
+    --primary-invert-if-bright: no;
+    --primary-invert-if-dark: invert(100%);
+    --background-invert-if-dark: no;
+    --background-invert-if-bright: invert(100%);
+    --background-image-invert-if-bright: no;
+    --filter-background-blur: blur(25px);
+
+    /* Body layout */
+    --body-container-margin: 8px;
+    --body-container-radius: 12px;
+    --breakpoint-mobile: 1024px;
+    --list-min-width: 200px;
+    --list-max-width: 300px;
+    --sidebar-min-width: 300px;
+    --sidebar-max-width: 500px;
+    --header-menu-item-height: 44px;
   }
 
   body {

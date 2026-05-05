@@ -1,0 +1,61 @@
+/* Styleguide shell — global overrides for vue-styleguidist */
+
+/* -------------------------------------------------------
+   Full-viewport layout
+   Required for proper scrolling behaviour
+   ------------------------------------------------------- */
+#rsg-root {
+  height: 100%;
+}
+
+/* -------------------------------------------------------
+   Box-model fix
+   Prevents components using 100% width from overflowing
+   the preview container.
+   ------------------------------------------------------- */
+div[data-preview],
+div[data-preview] * {
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------
+   Full-page components
+   Remove the preview padding and give more vertical room.
+   data-preview and data-testid="preview-wrapper" are on
+   the SAME element, so no descendant combinator here.
+   ------------------------------------------------------- */
+[data-preview="CnIndexPage"],
+[data-preview="CnDetailPage"],
+[data-preview="CnDashboardPage"],
+[data-preview="CnAppRoot"] {
+  padding: 0 !important;
+  min-height: 480px;
+}
+
+/* -------------------------------------------------------
+   Dialog previews
+   Extra vertical room so dialogs aren't clipped.
+   ------------------------------------------------------- */
+[data-preview="CnFormDialog"],
+[data-preview="CnAdvancedFormDialog"],
+[data-preview="CnSchemaFormDialog"],
+[data-preview="CnDeleteDialog"],
+[data-preview="CnMassDeleteDialog"],
+[data-preview="CnMassCopyDialog"],
+[data-preview="CnMassExportDialog"],
+[data-preview="CnMassImportDialog"],
+[data-preview="CnCopyDialog"] {
+  min-height: 320px;
+}
+
+/* -------------------------------------------------------
+   Sidebar logo
+   ------------------------------------------------------- */
+[class*="rsg--logo"] h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+  padding: 12px 16px;
+  letter-spacing: 0.01em;
+}

@@ -1,0 +1,66 @@
+Basic — card with title and content:
+
+```vue
+<CnDetailCard title="Contact information">
+  <CnDetailGrid :items="[
+    { label: 'Name', value: 'Jane Smith' },
+    { label: 'Email', value: 'jane@example.com' },
+    { label: 'Phone', value: '+31 6 12 34 56 78' },
+  ]" layout="horizontal" />
+</CnDetailCard>
+```
+
+With actions slot:
+
+```vue
+<template>
+  <CnDetailCard title="API configuration">
+    <template #actions>
+      <NcButton type="secondary" @click="editing = !editing">
+        {{ editing ? 'Cancel' : 'Edit' }}
+      </NcButton>
+    </template>
+    <CnDetailGrid :items="[
+      { label: 'Endpoint', value: 'https://api.example.com/v1' },
+      { label: 'Key', value: '••••••••••••' },
+      { label: 'Timeout', value: '30s' },
+    ]" layout="horizontal" />
+  </CnDetailCard>
+</template>
+<script>
+export default {
+  data() { return { editing: false } }
+}
+</script>
+```
+
+Collapsible — click header to collapse/expand:
+
+```vue
+<div style="display: flex; flex-direction: column; gap: 12px;">
+  <CnDetailCard title="Core information" :collapsible="true">
+    <CnDetailGrid :items="[
+      { label: 'ID', value: 'obj-001' },
+      { label: 'Created', value: '2024-01-10' },
+    ]" layout="horizontal" />
+  </CnDetailCard>
+  <CnDetailCard title="Advanced settings" :collapsible="true" :collapsed="true">
+    <CnDetailGrid :items="[
+      { label: 'Timeout', value: '30s' },
+      { label: 'Retries', value: '3' },
+    ]" layout="horizontal" />
+  </CnDetailCard>
+</div>
+```
+
+Flush — removes padding so tables/lists go edge-to-edge:
+
+```vue
+<CnDetailCard title="Recent items" :flush="true">
+  <div style="padding: 0;">
+    <div v-for="i in 3" :key="i" style="padding: 10px 16px; border-bottom: 1px solid var(--color-border);">
+      Item {{ i }}
+    </div>
+  </div>
+</CnDetailCard>
+```
