@@ -1,4 +1,4 @@
-Search only — just the search input with clear button:
+Search only — just the search input with clear button. The `showClearAll` prop (default `true`) controls whether the "Clear filters" button appears when there are active filters; `clearAllLabel` customises its text:
 
 ```vue
 <template>
@@ -88,4 +88,23 @@ export default {
   },
 }
 </script>
+```
+
+Hide the clear button — set `showClearAll` to `false` when the parent controls reset itself:
+
+```vue
+<CnFilterBar
+  :search-value="search"
+  :show-clear-all="false"
+  @search="search = $event" />
+```
+
+Custom clear label — override the default "Clear filters" text via `clearAllLabel`:
+
+```vue
+<CnFilterBar
+  :search-value="search"
+  clear-all-label="Reset"
+  @search="search = $event"
+  @clear-all="search = ''" />
 ```

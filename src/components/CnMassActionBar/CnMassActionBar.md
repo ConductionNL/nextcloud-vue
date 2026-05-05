@@ -65,3 +65,44 @@ export default {
 }
 </script>
 ```
+
+Custom button label and action labels — override `menuLabelTemplate` and the individual action labels:
+
+```vue
+<CnMassActionBar
+  :count="3"
+  :selected-ids="['x', 'y', 'z']"
+  menu-label-template="{count} items geselecteerd"
+  import-label="Importeren"
+  export-label="Exporteren"
+  copy-label="Kopiëren"
+  delete-label="Verwijderen"
+  @mass-copy="() => {}"
+  @mass-delete="() => {}"
+  @mass-export="() => {}"
+  @mass-import="() => {}" />
+```
+
+Hiding built-in actions — use `showExport` and `showDelete` to remove actions you don't need:
+
+```vue
+<CnMassActionBar
+  :count="2"
+  :selected-ids="['a', 'b']"
+  :show-export="false"
+  :show-delete="false"
+  @mass-copy="() => {}"
+  @mass-import="() => {}" />
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `showExport` | `Boolean` | `true` | Whether to show the built-in Export action |
+| `showDelete` | `Boolean` | `true` | Whether to show the built-in Delete action |
+| `menuLabelTemplate` | `String` | `'Mass actions ({count})'` | Template for the dropdown button label; use `{count}` as a placeholder for the selection count |
+| `importLabel` | `String` | `'Import'` | Label for the Import action item |
+| `exportLabel` | `String` | `'Export'` | Label for the Export action item |
+| `copyLabel` | `String` | `'Copy'` | Label for the Copy action item |
+| `deleteLabel` | `String` | `'Delete'` | Label for the Delete action item |

@@ -34,3 +34,19 @@ export default {
 }
 </script>
 ```
+
+## Label customization
+
+All user-visible strings have props so they can be pre-translated by the consumer app.
+
+| Prop | Default (English) | Description |
+|---|---|---|
+| `nameFormatter` | `null` | Optional function `(item) => string` to format each item's displayed name. Overrides `nameField` when provided. |
+| `dialogTitle` | `'Delete items'` | Dialog title shown in the header. |
+| `warningText` | `'The following items will be permanently deleted...'` | Warning text shown above the item list. |
+| `emptyText` | `'No items selected for deletion.'` | Text shown when all items have been removed from the review list. |
+| `successText` | `'Items successfully deleted.'` | Message shown in the success note card. |
+| `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
+| `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
+| `confirmLabel` | `'Delete'` | Label for the confirm/delete button. |
+| `removeLabel` | `'Remove from list'` | Aria-label for the per-item remove button (the × icon beside each item). |

@@ -26,6 +26,19 @@ Basic — title, description, and stats:
 </div>
 ```
 
+With icon, iconSize, and titleTooltip:
+
+```vue
+<div style="max-width: 280px;">
+  <CnCard
+    title="Database source"
+    description="PostgreSQL production database"
+    title-tooltip="PostgreSQL — click to view details"
+    :icon-size="24"
+    :stats="[{ label: 'Tables', value: 48 }]" />
+</div>
+```
+
 With labels and active state:
 
 ```vue
@@ -45,6 +58,21 @@ With labels and active state:
 </template>
 ```
 
+With actions slot:
+
+```vue
+<div style="max-width: 280px;">
+  <CnCard title="My pipeline" description="Sales automation">
+    <template #actions>
+      <NcActions>
+        <NcActionButton @click="() => {}">Edit</NcActionButton>
+        <NcActionButton @click="() => {}">Delete</NcActionButton>
+      </NcActions>
+    </template>
+  </CnCard>
+</div>
+```
+
 With footer tags and links:
 
 ```vue
@@ -54,6 +82,17 @@ With footer tags and links:
     description="A Nextcloud app for structured data"
     :tags="['vue', 'nextcloud', 'open-source']"
     :footer-links="[{ url: 'https://github.com', label: 'GitHub' }]" />
+</div>
+```
+
+Controlling description line clamp via descriptionLines:
+
+```vue
+<div style="max-width: 280px;">
+  <CnCard
+    title="Long description"
+    description="This is a very long description that should be truncated after two lines to keep the card compact and readable."
+    :description-lines="2" />
 </div>
 ```
 
@@ -87,3 +126,17 @@ export default {
 }
 </script>
 ```
+
+## Additional props and slots
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `titleTooltip` | String | `''` | Tooltip for the title text. Falls back to the title itself when the text is truncated (ellipsized). |
+| `icon` | Object\|Function | `null` | Icon component (e.g. imported MDI icon) rendered before the title via `<component :is>` |
+| `iconSize` | Number | `20` | Icon size in pixels |
+| `descriptionLines` | Number | `3` | Maximum lines before the description is truncated with CSS `line-clamp` |
+
+| Slot | Description |
+|------|-------------|
+| `icon` | Override the icon rendered in the card title (replaces the `icon` prop) |
+| `actions` | Action controls rendered in the top-right corner of the card header |

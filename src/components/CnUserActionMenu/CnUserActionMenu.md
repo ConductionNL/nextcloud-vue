@@ -29,3 +29,26 @@ Non-interactive — just displays the name without popover:
   </div>
 </div>
 ```
+
+With pre-translated label props:
+
+```vue
+<CnUserActionMenu
+  user-id="jan"
+  display-name="Jan de Vries"
+  send-message-label="Stuur bericht"
+  start-chat-label="Start chat"
+  send-email-label="Stuur e-mail"
+  plan-meeting-label="Plan vergadering"
+  no-actions-label="Geen communicatie-apps beschikbaar" />
+```
+
+## Additional label props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `sendMessageLabel` | String | `'Send message'` | Label for the Talk "send message" action button |
+| `startChatLabel` | String | `'Start chat'` | Label for the Talk "start chat" action button |
+| `sendEmailLabel` | String | `'Send email'` | Label for the email action button |
+| `planMeetingLabel` | String | `'Schedule meeting'` | Label for the Calendar "plan meeting" action button |
+| `noActionsLabel` | String | `'No communication apps available'` | Text shown when no communication apps are installed |

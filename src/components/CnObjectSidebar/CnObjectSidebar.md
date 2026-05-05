@@ -8,6 +8,7 @@ It renders within the Nextcloud app layout. In the styleguide, it appears in a c
     <CnObjectSidebar
       :open="true"
       :object-id="'obj-001'"
+      object-type="contacts-contact"
       :register="'contacts'"
       :schema="'contact'"
       sidebar-title="Jane Smith"
@@ -27,6 +28,7 @@ Custom tab content via slot:
     <CnObjectSidebar
       :open="true"
       :object-id="'obj-002'"
+      object-type="projects-project"
       :register="'projects'"
       :schema="'project'"
       sidebar-title="Project Alpha"
@@ -43,3 +45,30 @@ Custom tab content via slot:
   </div>
 </template>
 ```
+
+With custom tab labels:
+
+```vue
+<CnObjectSidebar
+  :open="true"
+  :object-id="caseId"
+  object-type="procest-case"
+  files-label="Bijlagen"
+  notes-label="Notities"
+  tags-label="Labels"
+  tasks-label="Taken"
+  audit-trail-label="Geschiedenis"
+  @update:open="open = $event" />
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `objectType` | String | Required | The entity type slug (e.g. `'pipelinq_lead'`, `'procest_case'`). Used as the sidebar title fallback |
+| `subtitleProp` | String | `''` | Deprecated alias for `subtitle`. Use `subtitle` instead |
+| `filesLabel` | String | `'Files'` | Pre-translated label for the Files tab |
+| `notesLabel` | String | `'Notes'` | Pre-translated label for the Notes tab |
+| `tagsLabel` | String | `'Tags'` | Pre-translated label for the Tags tab |
+| `tasksLabel` | String | `'Tasks'` | Pre-translated label for the Tasks tab |
+| `auditTrailLabel` | String | `'Audit trail'` | Pre-translated label for the Audit Trail tab |

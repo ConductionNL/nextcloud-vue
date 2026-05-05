@@ -59,3 +59,34 @@ With additional items and extra actions:
   </template>
 </CnVersionInfoCard>
 ```
+
+With `title`, `description`, `docUrl`, `cardTitle`, `loading`, and `labels`:
+
+```vue
+<CnVersionInfoCard
+  title="App information"
+  description="Review the installed version of this application"
+  doc-url="https://docs.example.com/my-app"
+  card-title="Installation details"
+  :loading="false"
+  :labels="{
+    appName: 'App name',
+    version: 'Installed version',
+    configuredVersion: 'DB schema version',
+  }"
+  app-name="Procest"
+  app-version="0.4.2"
+  configured-version="0.4.2"
+  :is-up-to-date="true" />
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | String | `'Version information'` | Section heading (passed to the wrapping CnSettingsSection) |
+| `description` | String | `'Information about the current application installation'` | Section sub-heading |
+| `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the section title |
+| `cardTitle` | String | `'Application information'` | Heading inside the gray version card |
+| `loading` | Boolean | `false` | Show a loading spinner and hide the card content while data is fetching |
+| `labels` | Object | `{ appName, version, configuredVersion }` | Custom labels for the standard row headings (for i18n) |

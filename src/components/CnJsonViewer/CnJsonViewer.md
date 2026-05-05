@@ -39,6 +39,37 @@ XML mode:
   :value="`<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>\n<person>\n  <name>Jane Smith</name>\n  <email>jane@example.com</email>\n  <role>admin</role>\n</person>`" />
 ```
 
+Custom error text — use `errorText` to replace the built-in "Invalid JSON format" banner with a caller-controlled message. The banner shows when `errorText` is a non-empty string and hides when it is empty:
+
+```vue
+<template>
+  <div>
+    <CnJsonViewer
+      :value="json"
+      height="160px"
+      :error-text="parseError"
+      @update:value="validate($event)" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      json: '{"key": "value"}',
+      parseError: '',
+    }
+  },
+  methods: {
+    validate(val) {
+      this.json = val
+      try { JSON.parse(val); this.parseError = '' }
+      catch (e) { this.parseError = e.message }
+    },
+  },
+}
+</script>
+```
+
 Auto-detect mode — sniffs JSON, XML/HTML, or falls back to plain text:
 
 ```vue

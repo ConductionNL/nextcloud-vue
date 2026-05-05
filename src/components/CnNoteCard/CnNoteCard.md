@@ -30,3 +30,50 @@ Custom content via default slot:
   <a href="#" style="display: block; margin-top: 4px;">View migration guide →</a>
 </CnNoteCard>
 ```
+
+`showAlert` — force the ARIA `alert` role for messages that need immediate user attention (normally only `type="error"` uses the alert role automatically):
+
+```vue
+<div style="display: flex; flex-direction: column; gap: 12px;">
+  <CnNoteCard
+    type="warning"
+    :show-alert="true"
+    text="Your session is about to expire. Save your work now." />
+  <CnNoteCard
+    type="info"
+    :show-alert="false"
+    text="This note uses the default 'note' role." />
+</div>
+```
+
+Custom icon via `icon` slot — replace the built-in MDI icon with any content:
+
+```vue
+<template>
+  <CnNoteCard type="info">
+    <template #icon>
+      <LockOutline :size="20" style="color: var(--color-info-text);" />
+    </template>
+    This resource is read-only for your account.
+  </CnNoteCard>
+</template>
+<script>
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+export default {
+  data() { return { LockOutline } }
+}
+</script>
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `showAlert` | `Boolean` | `undefined` | When `true`, forces the ARIA `alert` role on the element regardless of `type`. `type="error"` implicitly sets this role even without the prop. Use for warnings that require immediate attention. |
+
+## Slots
+
+| Slot | Description |
+|---|---|
+| `icon` | Replaces the default type-based MDI icon. Use to render a custom icon or component in the leading position. |
+| default | The note card body content. When provided, overrides the `text` prop. |

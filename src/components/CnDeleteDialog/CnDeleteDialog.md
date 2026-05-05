@@ -33,6 +33,18 @@ export default {
 </script>
 ```
 
+Custom name formatter — override how the item name is resolved:
+
+```vue
+<CnDeleteDialog
+  v-if="show"
+  ref="deleteDialog"
+  :item="item"
+  :name-formatter="item => `${item.firstName} ${item.lastName}`"
+  @confirm="onConfirm"
+  @close="show = false" />
+```
+
 Error result — call `setResult({ error: '...' })` on failure:
 
 ```vue
@@ -66,3 +78,15 @@ export default {
 }
 </script>
 ```
+
+## Label customization
+
+All user-visible strings have props so they can be pre-translated by the consumer app via `registerTranslations()`.
+
+| Prop | Default (English) | Description |
+|---|---|---|
+| `nameFormatter` | `null` | Optional function `(item) => string` to format the displayed item name. Overrides `nameField` when provided. |
+| `successText` | `'Item successfully deleted.'` | Message shown in the success note card after deletion. |
+| `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
+| `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
+| `confirmLabel` | `'Delete'` | Label for the confirm/delete button. |

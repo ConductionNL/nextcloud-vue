@@ -1,10 +1,11 @@
-Basic — icon, title, and description:
+Basic — icon, title, and description. Use `iconSize` (default `28`) to adjust the icon pixel size:
 
 ```vue
 <CnPageHeader
   title="Clients"
   description="Manage your clients and contact information"
-  icon="HelpCircleOutline" />
+  icon="HelpCircleOutline"
+  :icon-size="32" />
 ```
 
 Title only (no icon, no description):

@@ -53,6 +53,27 @@ Dynamic variant — function resolves color based on value:
   ]" />
 ```
 
+Rounded corners — enabled by default (`rounded` prop); set to `false` for square-cornered tracks:
+
+```vue
+<div style="display: flex; flex-direction: column; gap: 16px;">
+  <div>
+    <p style="font-size: 12px; margin-bottom: 4px; color: var(--color-text-maxcontrast);">rounded (default)</p>
+    <CnProgressBar :items="[
+      { key: 'a', label: 'Tasks done', count: 70, variant: 'success' },
+      { key: 'b', label: 'Remaining', count: 30, variant: 'default' },
+    ]" />
+  </div>
+  <div>
+    <p style="font-size: 12px; margin-bottom: 4px; color: var(--color-text-maxcontrast);">not rounded</p>
+    <CnProgressBar :rounded="false" :items="[
+      { key: 'a', label: 'Tasks done', count: 70, variant: 'success' },
+      { key: 'b', label: 'Remaining', count: 30, variant: 'default' },
+    ]" />
+  </div>
+</div>
+```
+
 Tooltips and custom bar height:
 
 ```vue

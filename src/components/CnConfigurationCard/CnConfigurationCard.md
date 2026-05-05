@@ -1,4 +1,18 @@
-Basic — card with status badge, content, and footer action:
+Basic — card with status badge, content, and footer action. The `icon` slot renders before the title in the card header:
+
+```vue
+<CnConfigurationCard title="Object storage">
+  <template #icon>
+    <DatabaseOutline :size="20" />
+  </template>
+  <template #status>
+    <CnStatusBadge label="Connected" variant="success" />
+  </template>
+  <p style="font-size: 14px; color: var(--color-text-maxcontrast);">S3-compatible bucket on us-east-1</p>
+</CnConfigurationCard>
+```
+
+Cards with content and footer:
 
 ```vue
 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 600px;">

@@ -67,8 +67,64 @@ Multiple sections:
   ]" />
 ```
 
-Loading state:
+Loading state — `loadingLabel` is shown next to the spinner:
 
 ```vue
-<CnStatsPanel :sections="[]" :loading="true" />
+<CnStatsPanel :sections="[]" :loading="true" loading-label="Fetching statistics..." />
 ```
+
+Empty section — `emptyLabel` is shown when a section has no items:
+
+```vue
+<CnStatsPanel
+  empty-label="No data available for this period."
+  :sections="[
+    { id: 'empty', title: 'No data', type: 'stats', layout: 'stack', items: [] },
+  ]" />
+```
+
+With `header` slot — add a register selector or date picker above the sections:
+
+```vue
+<template>
+  <CnStatsPanel :sections="sections">
+    <template #header>
+      <NcSelect
+        v-model="selectedRegister"
+        :options="registerOptions"
+        placeholder="Select register" />
+    </template>
+  </CnStatsPanel>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      selectedRegister: null,
+      registerOptions: [
+        { label: 'Decisions', value: 'decisions' },
+        { label: 'Contacts', value: 'contacts' },
+      ],
+      sections: [],
+    }
+  },
+}
+</script>
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `loadingLabel` | `String` | `'Loading...'` | Text shown next to the spinner during the panel-level loading state, and in section-level loading states |
+| `emptyLabel` | `String` | `'No data available'` | Default text shown when a section has no items; can be overridden per section via `section.emptyLabel` |
+
+## Slots
+
+| Slot | Description |
+|---|---|
+| `header` | Content rendered above all sections (e.g. a register/date selector). Only rendered when the slot is provided. |
+| `footer` | Content rendered below all sections. Only rendered when the slot is provided. |
+| `section-{id}` | Override the rendering of an entire section. Receives `{ section }` as scope. |
+| `item-icon-{sectionId}` | Custom icon for list-section items. Receives `{ item }` as scope. |
+| `item-subname-{sectionId}` | Custom subname for list-section items. Receives `{ item }` as scope. |

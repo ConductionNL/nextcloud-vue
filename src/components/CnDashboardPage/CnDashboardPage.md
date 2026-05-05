@@ -49,3 +49,68 @@ export default {
 }
 </script>
 ```
+
+With `loading`, `cellHeight`, `gridMargin`, `emptyLabel`, `unavailableLabel`, `header-actions`, and `actions` slots:
+
+```vue
+<template>
+  <div style="height: 500px; overflow: hidden; background: var(--color-main-background);">
+    <CnDashboardPage
+      title="Operations dashboard"
+      :widgets="widgets"
+      :layout="layout"
+      :loading="isLoading"
+      :allow-edit="true"
+      :columns="12"
+      :cell-height="100"
+      :grid-margin="16"
+      empty-label="No widgets have been added yet"
+      unavailable-label="This widget is unavailable"
+      @layout-change="layout = $event">
+      <template #header-actions>
+        <NcButton type="secondary" @click="resetLayout">Reset layout</NcButton>
+      </template>
+      <template #actions>
+        <NcButton type="tertiary" @click="exportDashboard">Export</NcButton>
+      </template>
+      <template #widget-summary="{ item }">
+        <div style="padding: 16px; font-size: 14px;">Summary widget content</div>
+      </template>
+    </CnDashboardPage>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      isLoading: false,
+      widgets: [{ id: 'summary', title: 'Summary', type: 'custom' }],
+      layout: [{ id: 1, widgetId: 'summary', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3 }],
+    }
+  },
+  methods: {
+    resetLayout() {},
+    exportDashboard() {},
+  },
+}
+</script>
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `loading` | Boolean | `false` | Show a loading spinner instead of the widget grid |
+| `cellHeight` | Number | `80` | Grid cell height in pixels (passed to CnDashboardGrid) |
+| `gridMargin` | Number | `12` | Grid margin (gutter) in pixels between widgets |
+| `emptyLabel` | String | `'No widgets configured'` | Text shown in the empty state when `layout` is empty |
+| `unavailableLabel` | String | `'Widget not available'` | Text shown for unknown or unavailable widgets |
+
+## Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `header-actions` | — | Extra buttons shown in the page header (right side, before the edit toggle) |
+| `actions` | — | Back-compat alias for `header-actions`; prefer `header-actions` in new code |
+| `widget-{widgetId}` | `{ item, widget }` | Custom widget content for a widget with the given ID |
+| `empty` | — | Custom empty state when no widgets are in the layout |

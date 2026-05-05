@@ -60,3 +60,107 @@ export default {
 }
 </script>
 ```
+
+With icon, subtitle, and stats table:
+
+```vue
+<CnDetailPage
+  title="Register Overview"
+  description="Statistics and schema details"
+  icon="DatabaseOutline"
+  :icon-size="32"
+  :stats-title="'Register statistics'"
+  :stats-columns="[
+    { key: 'type', label: 'Type' },
+    { key: 'total', label: 'Total' },
+    { key: 'size', label: 'Size' },
+  ]"
+  :stats-rows="[
+    { type: 'Objects', total: 150, size: '2.4 MB' },
+    { type: 'Files', total: 42, size: '1.1 MB' },
+  ]"
+  :max-width="'960px'"
+  :loading="isLoading">
+  <ChartGrid :data="chartData" />
+</CnDetailPage>
+```
+
+With error state and retry:
+
+```vue
+<CnDetailPage
+  title="Schema details"
+  :error="hasError"
+  error-message="Failed to load schema"
+  :on-retry="loadSchema"
+  retry-label="Try again">
+  <template #error>
+    <div>Custom error layout</div>
+  </template>
+  <template #actions>
+    <NcButton @click="editSchema">Edit</NcButton>
+  </template>
+</CnDetailPage>
+```
+
+With empty state and loading label:
+
+```vue
+<CnDetailPage
+  title="Audit log"
+  :empty="noData"
+  empty-label="No audit entries yet"
+  loading-label="Fetching audit log..."
+  :loading="fetching" />
+```
+
+With sidebar integration:
+
+```vue
+<CnDetailPage
+  title="Lead detail"
+  :sidebar="true"
+  :sidebar-open="true"
+  object-type="pipelinq-lead"
+  :object-id="lead.id"
+  subtitle="Assigned to Jane"
+  :sidebar-props="{ register: 'leads', schema: 'lead', hiddenTabs: ['tasks'] }" />
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `icon` | String | `''` | Optional MDI icon name rendered in the header via `CnIcon` |
+| `iconSize` | Number | `28` | Icon size in pixels |
+| `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
+| `sidebarOpen` | Boolean | `true` | Whether the sidebar starts expanded |
+| `objectType` | String | `''` | Registered object type slug for the sidebar |
+| `objectId` | String\|Number | `''` | Object ID to display in the sidebar |
+| `subtitle` | String | `''` | Subtitle shown in the sidebar header |
+| `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
+| `error` | Boolean | `false` | Whether the page is in an error state |
+| `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
+| `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
+| `retryLabel` | String | `'Retry'` | Label for the retry button |
+| `empty` | Boolean | `false` | Whether there is no data to show |
+| `emptyLabel` | String | `'No data available'` | Message shown in the empty state |
+| `statsTitle` | String | `''` | Title shown above the statistics table |
+| `statsColumns` | Array | `[]` | Column definitions for the stats table: `{ key, label, align? }` |
+| `statsRows` | Array | `[]` | Row data for the stats table; set `indent: true` for sub-row styling |
+| `maxWidth` | String | `'1200px'` | Maximum width of the page content area |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `header` | Replace the left header block (icon + title + description). Scope: `{ title, description, icon, iconSize }` |
+| `icon` | Replace the icon inside the default header |
+| `actions` | Action buttons rendered in the right-hand header area |
+| `error` | Custom error state content (replaces default `NcEmptyContent`) |
+| `empty` | Custom empty state content |
+| `stats-header` | Content above the stats table (replaces the default `statsTitle` heading) |
+| `stats-rows` | Custom `<tr>` rows inside the stats table body |
+| `sections` | Additional content below the main content area |
+| `footer` | Footer content rendered below the body |
+| `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget }` |

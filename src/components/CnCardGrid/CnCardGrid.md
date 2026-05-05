@@ -39,6 +39,47 @@ Empty state:
   empty-text="No items found" />
 ```
 
+Selectable cards — enable checkboxes for mass selection using `selectable` and `selectedIds`:
+
+```vue
+<template>
+  <div>
+    <p style="font-size: 13px; margin-bottom: 8px;">Selected: {{ selectedIds.join(', ') || 'none' }}</p>
+    <CnCardGrid
+      :objects="items"
+      :schema="schema"
+      :selectable="true"
+      :selected-ids="selectedIds"
+      row-key="id"
+      @click="openItem"
+      @select="selectedIds = $event" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      selectedIds: [],
+      items: [
+        { id: 1, title: 'Alpha', description: 'First project' },
+        { id: 2, title: 'Beta', description: 'Second project' },
+      ],
+      schema: {
+        properties: {
+          title: { type: 'string', title: 'Title' },
+          description: { type: 'string', title: 'Description' },
+        },
+        configuration: { titleProperty: 'title', descriptionProperty: 'description' },
+      },
+    }
+  },
+  methods: {
+    openItem(object) { alert(`Clicked: ${object.title}`) },
+  },
+}
+</script>
+```
+
 Custom card slot — replace the default CnObjectCard with your own rendering:
 
 ```vue
@@ -58,3 +99,10 @@ Custom card slot — replace the default CnObjectCard with your own rendering:
   </template>
 </CnCardGrid>
 ```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `selectable` | `Boolean` | `false` | When `true`, each card shows a selection checkbox and the grid emits `select` events |
+| `selectedIds` | `Array` | `[]` | Array of currently selected object IDs (matched against `object[rowKey]`) |

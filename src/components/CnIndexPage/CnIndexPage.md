@@ -65,3 +65,171 @@ export default {
 }
 </script>
 ```
+
+With inline header, custom icon, and view toggle:
+
+```vue
+<CnIndexPage
+  title="Clients"
+  description="Manage all clients"
+  icon="AccountGroup"
+  :show-title="true"
+  :show-view-toggle="true"
+  :objects="objects"
+  :schema="schema"
+  :loading="false"
+  :pagination="pagination" />
+```
+
+With column and field control:
+
+```vue
+<CnIndexPage
+  title="Orders"
+  :objects="orders"
+  :schema="schema"
+  :columns="columns"
+  :exclude-columns="['internalNote']"
+  :include-columns="['id','title','status']"
+  :column-overrides="{ status: { label: 'State' } }"
+  :sort-key="sortKey"
+  :sort-order="sortOrder"
+  :row-key="'id'"
+  :row-class="row => row.urgent ? 'cn-row--urgent' : ''"
+  :selectable="true"
+  :selected-ids="selectedIds"
+  :empty-text="'No orders found'"
+  :inline-action-count="3"
+  @sort="onSort"
+  @select="selectedIds = $event" />
+```
+
+With store integration and action visibility control:
+
+```vue
+<CnIndexPage
+  title="Tasks"
+  :objects="tasks"
+  :schema="schema"
+  :store="objectStore"
+  object-type="tasks-task"
+  :show-view-action="true"
+  :show-edit-action="true"
+  :show-copy-action="false"
+  :show-delete-action="true"
+  :show-add="true"
+  :add-disabled="false"
+  :refreshing="refreshing"
+  :refresh-disabled="false"
+  @refresh="loadTasks" />
+```
+
+With mass-action customisation:
+
+```vue
+<CnIndexPage
+  title="Invoices"
+  :objects="invoices"
+  :schema="schema"
+  mass-action-name-field="invoiceNumber"
+  :name-formatter="row => row.invoiceNumber + ' — ' + row.client"
+  :show-mass-import="true"
+  :show-mass-copy="true"
+  :export-formats="[{ id: 'pdf', label: 'PDF' }, { id: 'csv', label: 'CSV' }]"
+  :import-options="[{ id: 'merge', label: 'Merge with existing' }]">
+  <template #mass-actions="{ count, selectedIds }">
+    <NcButton @click="sendInvoices(selectedIds)">Send {{ count }} invoices</NcButton>
+  </template>
+</CnIndexPage>
+```
+
+With form dialog control:
+
+```vue
+<CnIndexPage
+  title="Products"
+  :objects="products"
+  :schema="schema"
+  :show-form-dialog="true"
+  :use-advanced-form-dialog="false"
+  :exclude-fields="['internalCode']"
+  :include-fields="['title','price','category']"
+  :field-overrides="{ price: { label: 'Unit price (€)' } }" />
+```
+
+With overridable header slot and below-header slot:
+
+```vue
+<CnIndexPage
+  title="Reports"
+  :objects="reports"
+  :schema="schema">
+  <template #header="{ title, description, icon, showTitle }">
+    <MyCustomHeader :title="title" :icon="icon" />
+  </template>
+  <template #below-header>
+    <NcNoteCard type="info">These reports refresh nightly.</NcNoteCard>
+  </template>
+</CnIndexPage>
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `description` | String | `''` | Optional description shown below the title in the page header |
+| `showTitle` | Boolean | `false` | Whether to show the inline page header (title, icon, description) |
+| `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
+| `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
+| `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
+| `selectedIds` | Array | `[]` | Currently selected row IDs (controlled) |
+| `sortKey` | String | `null` | Current sort key |
+| `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |
+| `rowKey` | String | `'id'` | Property name used as the unique row identifier |
+| `excludeColumns` | Array | `[]` | Column keys to hide in schema mode |
+| `includeColumns` | Array | `null` | Column keys to show (whitelist); `null` means all |
+| `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |
+| `emptyText` | String | `'No items found'` | Text shown in the empty state |
+| `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
+| `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
+| `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
+| `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
+| `massActionNameField` | String | `'title'` | Property name used to display item names in dialogs |
+| `nameFormatter` | Function | `null` | Custom formatter for item names in dialogs; overrides `massActionNameField` |
+| `exportFormats` | Array | `[Excel, CSV]` | Available export formats for the export dialog |
+| `importOptions` | Array | `[]` | Import option definitions for the import dialog |
+| `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
+| `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
+| `showViewAction` | Boolean | `true` | Whether to add a View row action |
+| `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
+| `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
+| `showDeleteAction` | Boolean | `true` | Whether to add a Delete row action |
+| `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |
+| `includeFields` | Array | `null` | Field keys to include in the form dialog (whitelist) |
+| `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
+| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
+| `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
+| `refreshDisabled` | Boolean | `false` | Whether the refresh button is disabled |
+| `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
+| `showAdd` | Boolean | `true` | Whether to show the Add button |
+| `store` | Object | `null` | Store instance for automatic save integration |
+| `objectType` | String | `''` | Object type slug for store integration (e.g. `registerId-schemaId`) |
+
+## Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `header` | `{ title, description, icon, showTitle }` | Replace the entire page header |
+| `below-header` | — | Content between the header and the actions bar |
+| `mass-actions` | `{ count, selectedIds }` | Extra mass action buttons shown when items are selected |
+| `action-items` | — | Extra buttons in the action bar |
+| `actions` | — | Extra action bar buttons (alias) |
+| `delete-dialog` | `{ item, close }` | Replace the single-item delete dialog |
+| `copy-dialog` | `{ item, close }` | Replace the single-item copy dialog |
+| `form-dialog` | `{ item, schema, close }` | Replace the create/edit form dialog |
+| `form-fields` | `{ fields, formData, errors, updateField }` | Replace form content inside the built-in `CnFormDialog` |
+| `import-fields` | `{ file }` | Extra fields in the import dialog |
+| `empty` | — | Custom empty state content |
+| `card` | `{ object, selected }` | Custom card template for card view |
+| `row-actions` | `{ row }` | Custom row actions |
+| `column-{key}` | `{ row, value }` | Custom cell renderer for a specific column |

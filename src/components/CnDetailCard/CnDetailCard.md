@@ -10,11 +10,15 @@ Basic — card with title and content:
 </CnDetailCard>
 ```
 
-With actions slot:
+With icon and actions slot:
 
 ```vue
 <template>
-  <CnDetailCard title="API configuration">
+  <CnDetailCard title="API configuration" :icon="DatabaseIcon">
+    <template #icon>
+      <!-- Custom icon override via the icon slot -->
+      <DatabaseIcon :size="20" />
+    </template>
     <template #actions>
       <NcButton type="secondary" @click="editing = !editing">
         {{ editing ? 'Cancel' : 'Edit' }}
@@ -64,3 +68,25 @@ Flush — removes padding so tables/lists go edge-to-edge:
   </div>
 </CnDetailCard>
 ```
+
+With footer slot:
+
+```vue
+<CnDetailCard title="Summary">
+  <p>Main content goes here.</p>
+  <template #footer>
+    <NcButton size="small" @click="viewAll">View all</NcButton>
+  </template>
+</CnDetailCard>
+```
+
+## Additional props and slots
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `icon` | Object\|Function | `null` | Optional MDI icon component rendered in the card header |
+
+| Slot | Description |
+|------|-------------|
+| `icon` | Override the header icon (replaces the `icon` prop rendering) |
+| `footer` | Footer content rendered below the card body (with a top border) |

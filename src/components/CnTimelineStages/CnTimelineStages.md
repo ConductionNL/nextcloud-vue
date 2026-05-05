@@ -71,3 +71,30 @@ Small size:
   ]"
   current-stage-id="in-progress" />
 ```
+
+Custom aria label and custom indicator slot:
+
+```vue
+<CnTimelineStages
+  aria-label="Case progress stages"
+  :stages="[
+    { id: 'new', label: 'New' },
+    { id: 'open', label: 'Open' },
+    { id: 'closed', label: 'Closed' },
+  ]"
+  current-stage-id="open">
+  <template #indicator="{ stage, index, state }">
+    <span :title="state">{{ index + 1 }}</span>
+  </template>
+</CnTimelineStages>
+```
+
+## Additional props and slots
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `ariaLabel` | String | `'Progress stages'` | Accessible label for the timeline container (`aria-label` on the root element) |
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `indicator` | `{ stage, index, state }` | Override the stage indicator (checkmark/dot). `state` is `'completed'`, `'current'`, or `'upcoming'` |

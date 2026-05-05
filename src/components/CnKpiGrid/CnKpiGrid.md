@@ -27,3 +27,12 @@
   <CnStatsBlock title="Registers" :count="3" variant="info" />
 </CnKpiGrid>
 ```
+
+Custom grid class — use `gridClass` to add an extra CSS class to the grid wrapper for additional spacing or layout tweaks:
+
+```vue
+<CnKpiGrid :columns="2" grid-class="my-custom-kpi-grid">
+  <CnStatsBlock title="Open" :count="15" variant="primary" />
+  <CnStatsBlock title="Closed" :count="284" variant="success" />
+</CnKpiGrid>
+```

@@ -1,5 +1,7 @@
 CnWidgetRenderer renders Nextcloud Dashboard API widgets (v1/v2) with auto-refresh. It requires a real Nextcloud environment for the widget data APIs to function. In the styleguide it shows the component structure.
 
+The `unavailableText` prop (default `"Widget not available"`) controls the message shown in the fallback empty-content state when the widget type cannot be determined. Pass a translated string to localise it.
+
 Simulated empty state — no widget definition loaded yet:
 
 ```vue

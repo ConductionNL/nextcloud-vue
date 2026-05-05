@@ -35,3 +35,26 @@ export default {
 }
 </script>
 ```
+
+## Additional props
+
+### Functional props
+
+| Prop | Default | Description |
+|---|---|---|
+| `dialogTitle` | `'Export objects'` | Dialog title shown in the header. |
+| `description` | `''` | Optional description text shown above the format selector (e.g., `'Export 42 objects from Cases'`). |
+| `formats` | `[{ id: 'excel', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }]` | Available export format options. Each entry must have `id` and `label`. |
+| `defaultFormat` | `'excel'` | The `id` of the format that is pre-selected when the dialog opens. |
+
+### Label customization
+
+All user-visible strings have props so they can be pre-translated by the consumer app.
+
+| Prop | Default (English) | Description |
+|---|---|---|
+| `successText` | `'Export completed successfully.'` | Message shown in the success note card. |
+| `formatLabel` | `'Export format'` | Label above the format dropdown. |
+| `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
+| `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
+| `confirmLabel` | `'Export'` | Label for the confirm/export button. |

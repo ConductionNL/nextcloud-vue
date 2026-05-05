@@ -42,6 +42,35 @@ export default {
 </script>
 ```
 
+Primary trigger and named menu — use `primary` to apply primary button styling to the trigger, and `menuName` to add a visible label next to the trigger icon:
+
+```vue
+<template>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <CnRowActions
+      :actions="actions"
+      :row="row"
+      :primary="true"
+      menu-name="Actions" />
+  </div>
+</template>
+<script>
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+export default {
+  data() {
+    return {
+      row: { id: 1, title: 'Sample item' },
+      actions: [
+        { label: 'Edit', icon: Pencil, handler: () => {} },
+        { label: 'Delete', icon: TrashCanOutline, destructive: true, handler: () => {} },
+      ],
+    }
+  },
+}
+</script>
+```
+
 Conditional visibility — hide actions based on row state:
 
 ```vue

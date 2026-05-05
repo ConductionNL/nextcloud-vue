@@ -82,3 +82,52 @@ export default {
 }
 </script>
 ```
+
+Disabled controls and custom add icon — `addDisabled`, `refreshDisabled`, `addIcon`, `showAdd`, and `selectable`:
+
+```vue
+<CnActionsBar
+  :pagination="{ total: 10 }"
+  :object-count="10"
+  add-label="Add schema"
+  add-icon="DatabasePlus"
+  :add-disabled="true"
+  :refresh-disabled="false"
+  :show-add="true"
+  :selectable="false"
+  :show-view-toggle="false"
+  :show-mass-import="false"
+  :show-mass-export="false"
+  :show-mass-copy="false"
+  :show-mass-delete="false"
+  @add="() => {}"
+  @refresh="() => {}" />
+```
+
+Controlling the inline action button count — `inlineActionCount` sets how many custom actions are shown inline (the rest go to the overflow dropdown):
+
+```vue
+<CnActionsBar
+  :pagination="{ total: 50 }"
+  :object-count="10"
+  add-label="Add"
+  :inline-action-count="3"
+  :show-view-toggle="false"
+  @add="() => {}"
+  @refresh="() => {}">
+  <template #action-items>
+    <!-- NcActionButton items placed here respect inlineActionCount -->
+  </template>
+</CnActionsBar>
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `selectable` | `Boolean` | `true` | Whether rows/cards can be selected (controls whether mass-action state is meaningful) |
+| `addIcon` | `String` | `''` | MDI icon name for the Add button (e.g. `'AccountGroup'`). Falls back to a Plus icon when empty |
+| `inlineActionCount` | `Number` | `2` | How many custom `#action-items` buttons to show inline before moving them to the overflow dropdown |
+| `refreshDisabled` | `Boolean` | `false` | Disable the Refresh action (e.g. while a required selection is missing) |
+| `addDisabled` | `Boolean` | `false` | Disable the Add button (e.g. while a required selection is missing) |
+| `showAdd` | `Boolean` | `true` | Whether to render the Add button at all |

@@ -31,6 +31,19 @@ export default {
 </script>
 ```
 
+Custom dialog title and name formatter:
+
+```vue
+<CnCopyDialog
+  v-if="show"
+  ref="copyDialog"
+  :item="item"
+  dialog-title="Duplicate contact"
+  :name-formatter="item => `${item.firstName} ${item.lastName}`"
+  @confirm="onConfirm"
+  @close="show = false" />
+```
+
 Custom patterns — override the naming options shown in the dropdown:
 
 ```vue
@@ -68,3 +81,17 @@ export default {
 }
 </script>
 ```
+
+## Label customization
+
+All user-visible strings have props so they can be pre-translated by the consumer app.
+
+| Prop | Default (English) | Description |
+|---|---|---|
+| `nameFormatter` | `null` | Optional function `(item) => string` to format the displayed item name. Overrides `nameField` when provided. |
+| `dialogTitle` | `'Copy item'` | Dialog title shown in the header. |
+| `patternLabel` | `'Naming pattern'` | Label above the naming pattern dropdown. |
+| `successText` | `'Item successfully copied.'` | Message shown in the success note card after copying. |
+| `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
+| `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
+| `confirmLabel` | `'Copy'` | Label for the confirm/copy button. |

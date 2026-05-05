@@ -42,7 +42,7 @@ export default {
 </script>
 ```
 
-Small result set — hides pagination when fewer items than threshold:
+Small result set — hides pagination when fewer items than threshold (`minItemsToShow`, default 10):
 
 ```vue
 <CnPagination
@@ -70,3 +70,33 @@ Custom page size options:
     @page-size-changed="() => {}" />
 </template>
 ```
+
+Custom page info format and navigation labels (useful for translated apps or custom wording):
+
+```vue
+<CnPagination
+  :current-page="3"
+  :total-pages="10"
+  :total-items="200"
+  :current-page-size="20"
+  page-info-format="Pagina {current} van {total}"
+  first-label="Eerste"
+  previous-label="Vorige"
+  next-label="Volgende"
+  last-label="Laatste"
+  items-per-page-label="Items per pagina:"
+  @page-changed="() => {}"
+  @page-size-changed="() => {}" />
+```
+
+## Additional props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `minItemsToShow` | `Number` | `10` | Hide the pagination bar when `totalItems` is at or below this threshold |
+| `firstLabel` | `String` | `'First'` | Label for the First page button |
+| `previousLabel` | `String` | `'Previous'` | Label for the Previous page button |
+| `nextLabel` | `String` | `'Next'` | Label for the Next page button |
+| `lastLabel` | `String` | `'Last'` | Label for the Last page button |
+| `itemsPerPageLabel` | `String` | `'Items per page:'` | Label for the page-size selector |
+| `pageInfoFormat` | `String` | `'Page {current} of {total}'` | Format string for the page info text; use `{current}` and `{total}` as placeholders |
