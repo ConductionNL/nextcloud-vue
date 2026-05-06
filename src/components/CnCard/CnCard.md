@@ -64,10 +64,12 @@ With actions slot:
 <div style="max-width: 280px;">
   <CnCard title="My pipeline" description="Sales automation">
     <template #actions>
-      <NcActions>
-        <NcActionButton @click="() => {}">Edit</NcActionButton>
-        <NcActionButton @click="() => {}">Delete</NcActionButton>
-      </NcActions>
+      <CnRowActions
+        :actions="[
+          { label: 'Edit', handler: () => {} },
+          { label: 'Delete', handler: () => {} },
+        ]"
+        :row="{}" />
     </template>
   </CnCard>
 </div>

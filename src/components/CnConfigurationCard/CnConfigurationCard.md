@@ -3,7 +3,7 @@ Basic — card with status badge, content, and footer action. The `icon` slot re
 ```vue
 <CnConfigurationCard title="Object storage">
   <template #icon>
-    <DatabaseOutline :size="20" />
+    <CnIcon name="DatabaseOutline" :size="20" />
   </template>
   <template #status>
     <CnStatusBadge label="Connected" variant="success" />
@@ -43,10 +43,12 @@ With actions:
 <template>
   <CnConfigurationCard title="API integration">
     <template #actions>
-      <NcActions>
-        <NcActionButton @click="test">Test connection</NcActionButton>
-        <NcActionButton @click="edit">Edit</NcActionButton>
-      </NcActions>
+      <CnRowActions
+        :actions="[
+          { label: 'Test connection', handler: test },
+          { label: 'Edit', handler: edit },
+        ]"
+        :row="{}" />
     </template>
     <template #status>
       <CnStatusBadge :label="status" :color-map="{ active: 'success', error: 'error', testing: 'warning' }" />

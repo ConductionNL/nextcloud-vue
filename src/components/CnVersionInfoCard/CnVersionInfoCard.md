@@ -55,7 +55,7 @@ With additional items and extra actions:
     { label: 'License', value: 'AGPL-3.0' },
   ]">
   <template #actions>
-    <NcButton type="secondary" @click="() => {}">Clear cache</NcButton>
+    <button class="button button-vue" @click="() => {}">Clear cache</button>
   </template>
 </CnVersionInfoCard>
 ```

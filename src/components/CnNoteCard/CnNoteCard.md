@@ -49,20 +49,12 @@ Custom content via default slot:
 Custom icon via `icon` slot — replace the built-in MDI icon with any content:
 
 ```vue
-<template>
-  <CnNoteCard type="info">
-    <template #icon>
-      <LockOutline :size="20" style="color: var(--color-info-text);" />
-    </template>
-    This resource is read-only for your account.
-  </CnNoteCard>
-</template>
-<script>
-import LockOutline from 'vue-material-design-icons/LockOutline.vue'
-export default {
-  data() { return { LockOutline } }
-}
-</script>
+<CnNoteCard type="info">
+  <template #icon>
+    <CnIcon name="LockOutline" :size="20" style="color: var(--color-info-text);" />
+  </template>
+  This resource is read-only for your account.
+</CnNoteCard>
 ```
 
 ## Additional props

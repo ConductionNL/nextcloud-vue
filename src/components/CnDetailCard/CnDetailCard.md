@@ -14,15 +14,14 @@ With icon and actions slot:
 
 ```vue
 <template>
-  <CnDetailCard title="API configuration" :icon="DatabaseIcon">
+  <CnDetailCard title="API configuration">
     <template #icon>
-      <!-- Custom icon override via the icon slot -->
-      <DatabaseIcon :size="20" />
+      <CnIcon name="Database" :size="20" />
     </template>
     <template #actions>
-      <NcButton type="secondary" @click="editing = !editing">
+      <button class="button button-vue" @click="editing = !editing">
         {{ editing ? 'Cancel' : 'Edit' }}
-      </NcButton>
+      </button>
     </template>
     <CnDetailGrid :items="[
       { label: 'Endpoint', value: 'https://api.example.com/v1' },
@@ -75,7 +74,7 @@ With footer slot:
 <CnDetailCard title="Summary">
   <p>Main content goes here.</p>
   <template #footer>
-    <NcButton size="small" @click="viewAll">View all</NcButton>
+    <button class="button button-vue" @click="() => {}">View all</button>
   </template>
 </CnDetailCard>
 ```
