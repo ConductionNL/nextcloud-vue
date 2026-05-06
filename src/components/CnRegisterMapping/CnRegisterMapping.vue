@@ -68,6 +68,7 @@
 						:value="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
+						:input-label="labels.register"
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
@@ -120,6 +121,7 @@
 									:value="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
+									:input-label="labels.schema"
 									label="label"
 									track-by="value"
 									@input="handleSchemaChange(groupIdx, type, $event)" />

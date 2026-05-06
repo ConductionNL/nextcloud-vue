@@ -10,6 +10,7 @@
 				<NcButton
 					v-if="editingTaskId"
 					type="tertiary"
+					:aria-label="cancelLabel"
 					@click="cancelEdit">
 					<template #icon>
 						<Close :size="20" />
@@ -17,6 +18,7 @@
 				</NcButton>
 				<NcButton
 					type="primary"
+					:aria-label="editingTaskId ? saveLabel : addTaskPlaceholder"
 					:disabled="!newTaskSummary.trim() || saving"
 					@click="editingTaskId ? saveEdit() : addTask()">
 					<template #icon>
@@ -119,7 +121,7 @@
 			<template v-if="loadingMore" #icon>
 				<NcLoadingIcon :size="20" />
 			</template>
-			{{ loadingMore ? '' : loadMoreLabel }}
+			{{ loadMoreLabel }}
 		</NcButton>
 	</div>
 </template>

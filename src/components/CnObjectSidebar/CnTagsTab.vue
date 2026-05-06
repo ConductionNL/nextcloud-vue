@@ -11,6 +11,7 @@
 					@focus="showSuggestions = true" />
 				<NcButton
 					type="primary"
+					:aria-label="addTagPlaceholder"
 					:disabled="!newTagName.trim() || saving"
 					@click="addTag">
 					<template #icon>

@@ -67,7 +67,7 @@
 			<template v-if="loadingMore" #icon>
 				<NcLoadingIcon :size="20" />
 			</template>
-			{{ loadingMore ? '' : loadMoreLabel }}
+			{{ loadMoreLabel }}
 		</NcButton>
 	</div>
 </template>

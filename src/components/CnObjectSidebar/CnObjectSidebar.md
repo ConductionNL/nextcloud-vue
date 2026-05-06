@@ -49,16 +49,34 @@ Custom tab content via slot:
 With custom tab labels:
 
 ```vue
-<CnObjectSidebar
-  :open="true"
-  :object-id="caseId"
-  object-type="procest-case"
-  files-label="Bijlagen"
-  notes-label="Notities"
-  tags-label="Labels"
-  tasks-label="Taken"
-  audit-trail-label="Geschiedenis"
-  @update:open="open = $event" />
+<template>
+  <div style="height: 450px; width: 360px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+    <CnObjectSidebar
+      :open="open"
+      :object-id="caseId"
+      object-type="procest-case"
+      :register="'procest'"
+      :schema="'case'"
+      sidebar-title="Case 001"
+      files-label="Bijlagen"
+      notes-label="Notities"
+      tags-label="Labels"
+      tasks-label="Taken"
+      audit-trail-label="Geschiedenis"
+      api-base="/index.php/apps/openregister/api"
+      @update:open="open = $event" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: true,
+      caseId: 'case-001',
+    }
+  },
+}
+</script>
 ```
 
 ## Additional props

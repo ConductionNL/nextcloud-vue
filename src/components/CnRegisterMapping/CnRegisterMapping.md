@@ -2,7 +2,7 @@ CnRegisterMapping is a settings component for mapping application entity types t
 
 It is normally placed on an admin settings page:
 
-```vue
+```vue {static}
 <template>
   <CnRegisterMapping
     name="Data mapping"
@@ -48,7 +48,7 @@ export default {
 
 With `docUrl`, `configuration`, `saving`, `showReimportButton`, `reimporting`, `saveButtonText`, `reimportButtonText`, `autoMatch`, and `labels`:
 
-```vue
+```vue {static}
 <template>
   <CnRegisterMapping
     name="Register configuration"
