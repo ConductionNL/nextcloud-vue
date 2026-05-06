@@ -27,7 +27,7 @@ Custom icon via slot:
 <script>
 import DatabaseOutline from 'vue-material-design-icons/DatabaseOutline.vue'
 export default {
-  data() { return { DatabaseOutline } }
+  components: { DatabaseOutline },
 }
 </script>
 ```

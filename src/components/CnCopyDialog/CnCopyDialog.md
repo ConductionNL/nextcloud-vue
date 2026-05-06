@@ -34,14 +34,35 @@ export default {
 Custom dialog title and name formatter:
 
 ```vue
-<CnCopyDialog
-  v-if="show"
-  ref="copyDialog"
-  :item="item"
-  dialog-title="Duplicate contact"
-  :name-formatter="item => `${item.firstName} ${item.lastName}`"
-  @confirm="onConfirm"
-  @close="show = false" />
+<template>
+  <div>
+    <NcButton @click="show = true">Duplicate Jane Smith</NcButton>
+    <CnCopyDialog
+      v-if="show"
+      ref="copyDialog"
+      :item="item"
+      dialog-title="Duplicate contact"
+      :name-formatter="item => `${item.firstName} ${item.lastName}`"
+      @confirm="onConfirm"
+      @close="show = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      show: false,
+      item: { id: 7, firstName: 'Jane', lastName: 'Smith' },
+    }
+  },
+  methods: {
+    async onConfirm({ id, newName }) {
+      await new Promise(resolve => setTimeout(resolve, 600))
+      this.$refs.copyDialog.setResult({ success: true })
+    },
+  },
+}
+</script>
 ```
 
 Custom patterns — override the naming options shown in the dropdown:

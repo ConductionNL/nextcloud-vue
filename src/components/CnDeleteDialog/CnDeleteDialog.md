@@ -36,13 +36,34 @@ export default {
 Custom name formatter — override how the item name is resolved:
 
 ```vue
-<CnDeleteDialog
-  v-if="show"
-  ref="deleteDialog"
-  :item="item"
-  :name-formatter="item => `${item.firstName} ${item.lastName}`"
-  @confirm="onConfirm"
-  @close="show = false" />
+<template>
+  <div>
+    <NcButton type="error" @click="show = true">Delete Jane Smith</NcButton>
+    <CnDeleteDialog
+      v-if="show"
+      ref="deleteDialog"
+      :item="item"
+      :name-formatter="item => `${item.firstName} ${item.lastName}`"
+      @confirm="onConfirm"
+      @close="show = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      show: false,
+      item: { id: 2, firstName: 'Jane', lastName: 'Smith' },
+    }
+  },
+  methods: {
+    async onConfirm() {
+      await new Promise(resolve => setTimeout(resolve, 600))
+      this.$refs.deleteDialog.setResult({ success: true })
+    },
+  },
+}
+</script>
 ```
 
 Error result — call `setResult({ error: '...' })` on failure:
