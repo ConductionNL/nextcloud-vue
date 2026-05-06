@@ -20,14 +20,14 @@ With selection and status badges via custom cell slot:
 ```vue
 <template>
   <div>
-    <p style="font-size: 13px; margin-bottom: 8px;">Selected: {{ selected.map(r => r.name).join(', ') || 'none' }}</p>
+    <p style="font-size: 13px; margin-bottom: 8px;">Selected IDs: {{ selectedIds.join(', ') || 'none' }}</p>
     <CnDataTable
       :columns="columns"
       :rows="rows"
       :selectable="true"
-      :selected-rows="selected"
+      :selected-ids="selectedIds"
       row-key="id"
-      @selection-change="selected = $event">
+      @select="selectedIds = $event">
       <template #column-status="{ value }">
         <CnStatusBadge :label="value" :color-map="{ open: 'primary', paid: 'success', overdue: 'error' }" />
       </template>
@@ -38,7 +38,7 @@ With selection and status badges via custom cell slot:
 export default {
   data() {
     return {
-      selected: [],
+      selectedIds: [],
       columns: [
         { key: 'name', label: 'Name', sortable: true },
         { key: 'status', label: 'Status' },
@@ -153,7 +153,9 @@ Sorted table — controlled `sortKey` / `sortOrder`, `selectedIds`, `rowClass`, 
   </CnDataTable>
 </template>
 <script>
+import { NcButton } from '@nextcloud/vue'
 export default {
+  components: { NcButton },
   data() {
     return {
       sortKey: 'name',

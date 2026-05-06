@@ -94,7 +94,7 @@ export default {
 		/** Schema definition — reads facetable properties */
 		schema: {
 			type: Object,
-			required: true,
+			default: null,
 		},
 		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
 		facetData: {

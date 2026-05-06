@@ -31,7 +31,7 @@ Grid layout — KPI grid inside a section:
       columns: 2,
       items: [
         { title: 'Schemas', count: 12, variant: 'primary' },
-        { title: 'Registers', count: 3, variant: 'info' },
+        { title: 'Registers', count: 3, variant: 'default' },
         { title: 'Users', count: 28, variant: 'success' },
         { title: 'API calls', count: 15240, variant: 'default' },
       ],
@@ -92,12 +92,15 @@ With `header` slot — add a register selector or date picker above the sections
       <NcSelect
         v-model="selectedRegister"
         :options="registerOptions"
+        input-label="Register"
         placeholder="Select register" />
     </template>
   </CnStatsPanel>
 </template>
 <script>
+import { NcSelect } from '@nextcloud/vue'
 export default {
+  components: { NcSelect },
   data() {
     return {
       selectedRegister: null,

@@ -65,18 +65,27 @@ export default {
 Custom icon slot — prepend an icon inside the badge before the label text:
 
 ```vue
-<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-  <CnStatusBadge label="Verified" variant="success">
-    <template #icon>
-      <CheckCircle :size="14" style="vertical-align: middle; margin-right: 2px;" />
-    </template>
-  </CnStatusBadge>
-  <CnStatusBadge label="Blocked" variant="error">
-    <template #icon>
-      <AlertCircle :size="14" style="vertical-align: middle; margin-right: 2px;" />
-    </template>
-  </CnStatusBadge>
-</div>
+<template>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+    <CnStatusBadge label="Verified" variant="success">
+      <template #icon>
+        <CheckCircle :size="14" style="vertical-align: middle; margin-right: 2px;" />
+      </template>
+    </CnStatusBadge>
+    <CnStatusBadge label="Blocked" variant="error">
+      <template #icon>
+        <AlertCircle :size="14" style="vertical-align: middle; margin-right: 2px;" />
+      </template>
+    </CnStatusBadge>
+  </div>
+</template>
+<script>
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
+export default {
+  components: { CheckCircle, AlertCircle },
+}
+</script>
 ```
 
 The `icon` slot renders inside the default slot, before the label text. Use it to prepend a small icon to the badge.

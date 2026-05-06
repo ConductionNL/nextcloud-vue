@@ -90,16 +90,24 @@ Loading / empty states — `loadingLabel` and `emptyLabel` control the fallback 
 Route-based navigation — renders as `<router-link>` when `route` is set; `iconSize` adjusts the icon diameter:
 
 ```vue
-<div style="display: flex; flex-direction: column; gap: 8px; max-width: 300px;">
-  <CnStatsBlock
-    title="Open Cases"
-    :count="42"
-    :icon="BriefcaseOutline"
-    :icon-size="32"
-    variant="primary"
-    horizontal
-    :route="{ name: 'cases', query: { status: 'open' } }" />
-</div>
+<template>
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 300px;">
+    <CnStatsBlock
+      title="Open Cases"
+      :count="42"
+      :icon="BriefcaseOutline"
+      :icon-size="32"
+      variant="primary"
+      horizontal
+      :route="{ name: 'cases', query: { status: 'open' } }" />
+  </div>
+</template>
+<script>
+import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
+export default {
+  data() { return { BriefcaseOutline } }
+}
+</script>
 ```
 
 ## Additional props

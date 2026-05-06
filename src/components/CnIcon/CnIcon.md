@@ -40,13 +40,13 @@ Registered icons — call `registerIcons()` in `main.js` before mounting Vue, th
   </div>
 </template>
 <script>
-import { registerIcons } from '@conduction/nextcloud-vue'
-import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
-import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Home from 'vue-material-design-icons/Home.vue'
-import Magnify from 'vue-material-design-icons/Magnify.vue'
-registerIcons({ AccountGroup, FileDocumentOutline, Cog, Home, Magnify })
-export default {}
+import { registerIcons } from "@conduction/nextcloud-vue";
+import AccountGroup from "vue-material-design-icons/AccountGroup.vue";
+import FileDocumentOutline from "vue-material-design-icons/FileDocumentOutline.vue";
+import Cog from "vue-material-design-icons/Cog.vue";
+import Home from "vue-material-design-icons/Home.vue";
+import Magnify from "vue-material-design-icons/Magnify.vue";
+registerIcons({ AccountGroup, FileDocumentOutline, Cog, Home, Magnify });
+export default {};
 </script>
 ```

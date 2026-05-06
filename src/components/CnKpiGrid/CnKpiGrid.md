@@ -24,7 +24,7 @@
 <CnKpiGrid :columns="3">
   <CnStatsBlock title="Schemas" :count="12" variant="primary" />
   <CnStatsBlock title="Objects" :count="4821" variant="success" />
-  <CnStatsBlock title="Registers" :count="3" variant="info" />
+  <CnStatsBlock title="Registers" :count="3" variant="default" />
 </CnKpiGrid>
 ```
 

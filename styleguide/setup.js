@@ -5,7 +5,36 @@ import '../src/css/index.css'
 // @nextcloud/vue components access $route/$router internally. Stub them so
 // components that call this.$route.query etc. don't crash in the styleguide.
 Vue.prototype.$route = { query: {}, params: {}, path: '/', name: null, hash: '', matched: [], fullPath: '/', meta: {} }
-Vue.prototype.$router = { push: () => Promise.resolve(), replace: () => Promise.resolve(), go: () => {}, back: () => {}, forward: () => {}, resolve: () => ({ href: '/' }) }
+Vue.prototype.$router = {
+	currentRoute: { query: {}, params: {}, path: '/', name: null, hash: '', matched: [], fullPath: '/', meta: {} },
+	push: () => Promise.resolve(),
+	replace: () => Promise.resolve(),
+	go: () => {},
+	back: () => {},
+	forward: () => {},
+	resolve: () => ({ href: '/' }),
+}
+
+// Register a no-op v-tooltip directive stub so @nextcloud/vue components that
+// use v-tooltip internally don't log "Failed to resolve directive: tooltip".
+Vue.directive('tooltip', { bind() {}, update() {}, unbind() {} })
+
+// Register a no-op <router-link> stub so examples using the `route` prop
+// (which renders as <router-link>) don't crash with "Unknown custom element".
+Vue.component('RouterLink', {
+	functional: true,
+	props: { to: [String, Object] },
+	render(h, ctx) {
+		return h('a', { attrs: { href: '#' } }, ctx.children)
+	},
+})
+Vue.component('router-link', {
+	functional: true,
+	props: { to: [String, Object] },
+	render(h, ctx) {
+		return h('a', { attrs: { href: '#' } }, ctx.children)
+	},
+})
 
 // Pinia is required by store-backed components (CnObjectDataWidget, CnIndexPage, etc.)
 Vue.use(PiniaVuePlugin)

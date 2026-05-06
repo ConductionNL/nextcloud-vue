@@ -59,6 +59,10 @@ module.exports = {
 
 	// Webpack overrides
 	webpackConfig: {
+		devServer: {
+			// Serve static files (favicon.ico, etc.) from this directory
+			contentBase: path.join(__dirname),
+		},
 		module: {
 			rules: [
 				{
@@ -133,13 +137,19 @@ module.exports = {
 			alias: {
 				// Pin vue to a single instance so vue-styleguidist and the
 				// components share the same Vue runtime.
-				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.runtime.common.js'),
+				// Use the full build (compiler + runtime) so examples that omit
+				// an explicit <template> wrapper can be compiled on the fly.
+				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.common.js'),
 				// Allow docs examples to import from the library by package name.
 				'@conduction/nextcloud-vue': path.resolve(ROOT, 'src/index.js'),
 				'@nextcloud/sharing/public': path.resolve(__dirname, 'mocks/empty.js'),
 				// webpack 4 cannot resolve "exports" subpath maps; and the real impl crashes without
 				// Nextcloud globals. Stub returns original strings untranslated.
 				'@nextcloud/l10n/gettext': path.resolve(__dirname, 'mocks/l10n-gettext.js'),
+				// Stub the full l10n package — the real impl reads Nextcloud globals
+				// (document.documentElement.dataset.locale etc.) that don't exist in the
+				// styleguide and causes crashes when first loaded by Data Display components.
+				'@nextcloud/l10n': path.resolve(__dirname, 'mocks/l10n.js'),
 				'@nextcloud/dialogs': path.resolve(__dirname, 'mocks/empty.js'),
 				// p-queue 7+ only ships an "exports" map with no "main" field;
 				// webpack 4 doesn't understand "exports", so we point it directly.
