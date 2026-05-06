@@ -1,4 +1,37 @@
 module.exports = {
+	Button: {
+		button: {
+			// &&& repeats the class 3× → specificity 0,3,0 which beats the
+			// Nextcloud button reset: button:not(.button-vue,[class^=vs__]) = 0,2,1
+			'&&&': {
+				padding: '8px 0',
+				fontSize: 'var(--default-font-size)',
+				color: 'var(--color-text-maxcontrast)',
+				background: 'transparent',
+				textTransform: 'uppercase',
+				transition: 'color 750ms ease-out',
+				border: 'none',
+				borderRadius: 0,
+				fontWeight: 'normal',
+				width: 'auto',
+				minHeight: 'auto',
+				cursor: 'pointer',
+				margin: 0,
+			},
+			'&&&:hover': {
+				outline: 'none',
+				color: 'var(--color-primary)',
+				background: 'transparent',
+				transition: 'color 150ms ease-in',
+			},
+			'&&&:focus': {
+				outline: 'none',
+				color: 'var(--color-primary)',
+				background: 'transparent',
+				transition: 'color 150ms ease-in',
+			},
+		},
+	},
 	Link: {
 		link: {
 			color: '#0082c9',

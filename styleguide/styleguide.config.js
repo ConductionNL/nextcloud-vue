@@ -52,6 +52,7 @@ module.exports = {
 	require: [
 		path.join(__dirname, 'setup.js'),
 		path.join(__dirname, 'nextcloud-tokens.css'),
+		path.join(__dirname, 'nextcloud-globals.css'),
 		path.join(__dirname, 'theme.css'),
 	],
 
