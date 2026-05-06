@@ -64,67 +64,115 @@ export default {
 With icon, subtitle, and stats table:
 
 ```vue
-<CnDetailPage
-  title="Register Overview"
-  description="Statistics and schema details"
-  icon="DatabaseOutline"
-  :icon-size="32"
-  :stats-title="'Register statistics'"
-  :stats-columns="[
-    { key: 'type', label: 'Type' },
-    { key: 'total', label: 'Total' },
-    { key: 'size', label: 'Size' },
-  ]"
-  :stats-rows="[
-    { type: 'Objects', total: 150, size: '2.4 MB' },
-    { type: 'Files', total: 42, size: '1.1 MB' },
-  ]"
-  :max-width="'960px'"
-  :loading="isLoading">
-  <ChartGrid :data="chartData" />
-</CnDetailPage>
+<template>
+  <div style="height: 400px; overflow: auto; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px;">
+    <CnDetailPage
+      title="Register Overview"
+      description="Statistics and schema details"
+      icon="DatabaseOutline"
+      :icon-size="32"
+      :stats-title="'Register statistics'"
+      :stats-columns="[
+        { key: 'type', label: 'Type' },
+        { key: 'total', label: 'Total' },
+        { key: 'size', label: 'Size' },
+      ]"
+      :stats-rows="[
+        { type: 'Objects', total: 150, size: '2.4 MB' },
+        { type: 'Files', total: 42, size: '1.1 MB' },
+      ]"
+      :max-width="'960px'"
+      :loading="isLoading">
+      <div style="padding: 16px; color: var(--color-text-light);">Chart placeholder</div>
+    </CnDetailPage>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return { isLoading: false }
+  },
+}
+</script>
 ```
 
 With error state and retry:
 
 ```vue
-<CnDetailPage
-  title="Schema details"
-  :error="hasError"
-  error-message="Failed to load schema"
-  :on-retry="loadSchema"
-  retry-label="Try again">
-  <template #error>
-    <div>Custom error layout</div>
-  </template>
-  <template #actions>
-    <NcButton @click="editSchema">Edit</NcButton>
-  </template>
-</CnDetailPage>
+<template>
+  <div style="height: 300px; overflow: auto; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px;">
+    <CnDetailPage
+      title="Schema details"
+      :error="hasError"
+      error-message="Failed to load schema"
+      :on-retry="loadSchema"
+      retry-label="Try again">
+      <template #error>
+        <div>Custom error layout</div>
+      </template>
+      <template #actions>
+        <NcButton @click="editSchema">Edit</NcButton>
+      </template>
+    </CnDetailPage>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return { hasError: true }
+  },
+  methods: {
+    loadSchema() { this.hasError = false },
+    editSchema() {},
+  },
+}
+</script>
 ```
 
 With empty state and loading label:
 
 ```vue
-<CnDetailPage
-  title="Audit log"
-  :empty="noData"
-  empty-label="No audit entries yet"
-  loading-label="Fetching audit log..."
-  :loading="fetching" />
+<template>
+  <div style="height: 300px; overflow: auto; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px;">
+    <CnDetailPage
+      title="Audit log"
+      :empty="noData"
+      empty-label="No audit entries yet"
+      loading-label="Fetching audit log..."
+      :loading="fetching" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return { noData: true, fetching: false }
+  },
+}
+</script>
 ```
 
 With sidebar integration:
 
 ```vue
-<CnDetailPage
-  title="Lead detail"
-  :sidebar="true"
-  :sidebar-open="true"
-  object-type="pipelinq-lead"
-  :object-id="lead.id"
-  subtitle="Assigned to Jane"
-  :sidebar-props="{ register: 'leads', schema: 'lead', hiddenTabs: ['tasks'] }" />
+<template>
+  <div style="height: 300px; overflow: auto; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px;">
+    <CnDetailPage
+      title="Lead detail"
+      :sidebar="true"
+      :sidebar-open="true"
+      object-type="pipelinq-lead"
+      :object-id="lead.id"
+      subtitle="Assigned to Jane"
+      :sidebar-props="{ register: 'leads', schema: 'lead', hiddenTabs: ['tasks'] }" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return { lead: { id: 42 } }
+  },
+}
+</script>
 ```
 
 ## Additional props

@@ -249,6 +249,8 @@ export default {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
 	},
+
+	methods: { t },
 }
 </script>
 
