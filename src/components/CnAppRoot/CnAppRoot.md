@@ -10,7 +10,9 @@ Minimal conceptual shell (illustrative, not fully runnable in the styleguide):
     <template #menu>
       <!-- CnAppNav is injected automatically; override here for custom nav -->
     </template>
-    <router-view />
+    <div style="padding: 1rem; color: var(--color-text-light);">
+      <!-- router-view renders page content here in a real app -->
+    </div>
   </CnAppRoot>
 </template>
 <script>
@@ -33,7 +35,7 @@ export default {
 
 With loading state, custom components, translate, permissions, and custom page types:
 
-```vue
+```vue {static}
 <template>
   <CnAppRoot
     app-id="myapp"
@@ -75,6 +77,7 @@ With loading state, custom components, translate, permissions, and custom page t
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| *(default)* | — | Page content inside `NcAppContent`. Pass `<router-view />` here in a real app. |
 | `loading` | — | Shown during the loading phase (replaces `CnAppLoading`) |
 | `dependency-missing` | `{ dependencies }` | Shown when required apps are missing (replaces `CnDependencyMissing`) |
 | `menu` | — | Navigation area (replaces `CnAppNav`) |

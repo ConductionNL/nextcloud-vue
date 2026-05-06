@@ -2,7 +2,7 @@ CnAppNav renders the Nextcloud app sidebar navigation from a manifest's `menu[]`
 
 Standalone usage with a manifest prop (for use without CnAppRoot):
 
-```vue
+```vue {static}
 <template>
   <div style="height: 400px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
     <CnAppNav
@@ -30,7 +30,7 @@ export default {
 
 Permission filtering — pass a `permissions` array to hide menu items the user does not hold. Items with a `permission` field only render when their permission string appears in the `permissions` prop. When `permissions` is omitted or empty, all items are shown regardless:
 
-```vue
+```vue {static}
 <template>
   <div style="height: 300px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
     <CnAppNav

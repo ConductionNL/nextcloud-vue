@@ -23,7 +23,7 @@ The manifest's `pages[]` array drives which component renders for each route:
 
 Standalone usage outside of CnAppRoot — pass props explicitly instead of relying on inject:
 
-```vue
+```vue {static}
 <template>
   <CnPageRenderer
     :manifest="manifest"
