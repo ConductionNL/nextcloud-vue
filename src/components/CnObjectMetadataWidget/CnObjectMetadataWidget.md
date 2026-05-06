@@ -75,29 +75,46 @@ Collapsible:
 With `icon`, `columns`, `labelWidth`, `exclude`, `emptyLabel`, and the `actions` slot:
 
 ```vue
-<div style="max-width: 500px;">
-  <CnObjectMetadataWidget
-    title="Technical details"
-    :icon="infoIcon"
-    :columns="2"
-    :label-width="120"
-    :exclude="['folder', 'textRepresentation', 'locked']"
-    empty-label="No system metadata found"
-    :object-data="{
-      id: 5,
-      uuid: 'd4e5f6a7-b8c9-0123-defa-012345678901',
-      register: 'publications',
-      schema: 'article',
-      created: '2024-01-20T10:00:00Z',
-      updated: '2024-04-01T08:45:00Z',
-      owner: 'editor',
-      version: '2',
-    }">
-    <template #actions>
-      <NcButton type="tertiary" @click="copyUuid">Copy UUID</NcButton>
-    </template>
-  </CnObjectMetadataWidget>
-</div>
+<template>
+  <div style="max-width: 500px;">
+    <CnObjectMetadataWidget
+      title="Technical details"
+      :icon="infoIcon"
+      :columns="2"
+      :label-width="120"
+      :exclude="['folder', 'textRepresentation', 'locked']"
+      empty-label="No system metadata found"
+      :object-data="{
+        id: 5,
+        uuid: 'd4e5f6a7-b8c9-0123-defa-012345678901',
+        register: 'publications',
+        schema: 'article',
+        created: '2024-01-20T10:00:00Z',
+        updated: '2024-04-01T08:45:00Z',
+        owner: 'editor',
+        version: '2',
+      }">
+      <template #actions>
+        <NcButton type="tertiary" @click="copyUuid">Copy UUID</NcButton>
+      </template>
+    </CnObjectMetadataWidget>
+  </div>
+</template>
+<script>
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+export default {
+  data() {
+    return {
+      infoIcon: InformationOutline,
+    }
+  },
+  methods: {
+    copyUuid() {
+      navigator.clipboard.writeText('d4e5f6a7-b8c9-0123-defa-012345678901')
+    },
+  },
+}
+</script>
 ```
 
 ## Additional props
