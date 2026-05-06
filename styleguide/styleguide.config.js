@@ -302,12 +302,12 @@ module.exports = {
 		spaceFactor: 20,
 		borderRadius: 8,
 		color: {
-			link: 'var(--color-primary)',
-			linkHover: 'var(--color-primary-hover)',
-			sidebarBackground: 'var(--color-background-dark)',
+			link: '#0082c9',
+			linkHover: '#0082c9',
+			sidebarBackground: '#ffffff',
 			ribbonBackground: 'var(--color-primary)',
 			errorBackground: 'var(--color-element-error)',
-			border: 'var(--color-border)',
+			border: '#e8e8e8',
 		},
 		fontFamily: {
 			base: 'var(--font-face)',

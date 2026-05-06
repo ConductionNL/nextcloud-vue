@@ -51,12 +51,12 @@ div[data-preview] * {
 
 /* -------------------------------------------------------
    Sidebar logo
+   The theme has no properties for logo heading size/weight,
+   so these cannot be expressed via the theme object.
    ------------------------------------------------------- */
 [class*="rsg--logo"] h1 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #222222;
+  font-size: 18px;
+  font-weight: normal;
+  color: #333333;
   margin: 0;
-  padding: 12px 16px;
-  letter-spacing: 0.01em;
 }

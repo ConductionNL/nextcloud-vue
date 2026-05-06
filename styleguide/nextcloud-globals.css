@@ -523,3 +523,25 @@ input[type='reset']::-moz-focus-inner {
 	color: var(--color-text-maxcontrast);
 	font-size: var(--default-font-size);
 }
+
+
+/* ==========================================================================
+   Skip navigation links  (header.scss)
+   Hidden off-screen by default; revealed only on keyboard focus.
+   ========================================================================== */
+
+#skip-actions {
+	position: absolute;
+	overflow: hidden;
+	z-index: 9999;
+	top: -999px;
+	left: 3px;
+	padding: 11px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 11px;
+}
+
+#skip-actions:focus-within {
+	top: var(--header-height);
+}
