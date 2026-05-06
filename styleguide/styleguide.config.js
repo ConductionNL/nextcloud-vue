@@ -44,6 +44,7 @@ module.exports = {
 
 	usageMode: 'collapse',
 	exampleMode: 'collapse',
+	pagePerSection: true,
 
 	// Build output — relative to this styleguide/ directory
 	styleguideDir: 'build',
@@ -297,7 +298,7 @@ module.exports = {
 
 	// Theming — references the Nextcloud CSS variables defined in nextcloud-tokens.css
 	theme: {
-		maxWidth: '100%',
+		maxWidth: 900,
 		sidebarWidth: 280,
 		spaceFactor: 20,
 		borderRadius: 8,
