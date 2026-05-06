@@ -51,6 +51,7 @@ module.exports = {
 	// Run the setup script before every example sandbox
 	require: [
 		path.join(__dirname, 'setup.js'),
+		path.join(__dirname, 'nextcloud-tokens.css'),
 		path.join(__dirname, 'theme.css'),
 	],
 
@@ -289,22 +290,26 @@ module.exports = {
 		},
 	],
 
-	// Theming — Conduction brand blue
+	// Component-level style overrides — feeds into the same CSS-in-JS pipeline
+	// so styleguidist applies generated class names to elements (thead, th, td).
+	styles: require('./styles'),
+
+	// Theming — references the Nextcloud CSS variables defined in nextcloud-tokens.css
 	theme: {
 		maxWidth: '100%',
 		sidebarWidth: 280,
 		spaceFactor: 20,
 		borderRadius: 8,
 		color: {
-			link: '#0082c9',
-			linkHover: '#006ea0',
-			sidebarBackground: '#f5f7f9',
-			ribbonBackground: '#0082c9',
-			errorBackground: '#e22d44',
-			border: '#ededed',
+			link: 'var(--color-primary)',
+			linkHover: 'var(--color-primary-hover)',
+			sidebarBackground: 'var(--color-background-dark)',
+			ribbonBackground: 'var(--color-primary)',
+			errorBackground: 'var(--color-element-error)',
+			border: 'var(--color-border)',
 		},
 		fontFamily: {
-			base: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+			base: 'var(--font-face)',
 		},
 	},
 
