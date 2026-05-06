@@ -51,36 +51,76 @@ export default {
 With icon, visible columns, and column groups:
 
 ```vue
-<CnIndexSidebar
-  icon="AccountGroup"
-  :schema="schema"
-  :visible-columns="visibleCols"
-  :column-groups="[
-    { id: 'meta', label: 'Metadata', columns: [{ key: 'created', label: 'Created' }, { key: 'updated', label: 'Updated' }] },
-  ]"
-  :show-metadata="true"
-  properties-group-label="Contact properties"
-  @columns-change="visibleCols = $event" />
+<template>
+  <CnIndexSidebar
+    icon="AccountGroup"
+    :schema="schema"
+    :visible-columns="visibleCols"
+    :column-groups="[
+      { id: 'meta', label: 'Metadata', columns: [{ key: 'created', label: 'Created' }, { key: 'updated', label: 'Updated' }] },
+    ]"
+    :show-metadata="true"
+    properties-group-label="Contact properties"
+    @columns-change="visibleCols = $event" />
+</template>
+<script>
+export default {
+  data() {
+    return {
+      visibleCols: null,
+      schema: {
+        title: 'Contacts',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          email: { type: 'string', title: 'Email' },
+        },
+      },
+    }
+  },
+}
+</script>
 ```
 
 With live facet data from the API:
 
 ```vue
-<CnIndexSidebar
-  :schema="schema"
-  :facet-data="{
-    status: { values: [{ value: 'open', count: 14 }, { value: 'closed', count: 7 }] },
-    priority: { values: [{ value: 'high', count: 3 }] },
-  }"
-  :active-filters="filters"
-  @filter-change="onFilter" />
+<template>
+  <CnIndexSidebar
+    :schema="schema"
+    :facet-data="{
+      status: { values: [{ value: 'open', count: 14 }, { value: 'closed', count: 7 }] },
+      priority: { values: [{ value: 'high', count: 3 }] },
+    }"
+    :active-filters="filters"
+    @filter-change="onFilter" />
+</template>
+<script>
+export default {
+  data() {
+    return {
+      filters: {},
+      schema: {
+        properties: {
+          status: { type: 'string', title: 'Status', enum: ['open', 'closed'], facetable: true },
+          priority: { type: 'string', title: 'Priority', enum: ['high', 'medium', 'low'], facetable: true },
+        },
+      },
+    }
+  },
+  methods: {
+    onFilter({ key, value }) {
+      this.filters = { ...this.filters, [key]: value }
+    },
+  },
+}
+</script>
 ```
 
 With custom tab labels and default tab:
 
 ```vue
 <CnIndexSidebar
-  :schema="schema"
+  :schema="{ properties: { status: { type: 'string', title: 'Status', enum: ['open', 'closed'], facetable: true } } }"
   search-placeholder="Zoek..."
   search-tab-label="Zoeken"
   columns-tab-label="Kolommen"
@@ -95,9 +135,9 @@ With admin-only filter control:
 
 ```vue
 <CnIndexSidebar
-  :schema="schema"
-  :user-is-admin="currentUser.isAdmin"
-  @filter-change="onFilter" />
+  :schema="{ properties: { status: { type: 'string', title: 'Status', adminOnly: true, enum: ['open', 'closed'], facetable: true } } }"
+  :user-is-admin="false"
+  @filter-change="() => {}" />
 ```
 
 ## Additional props

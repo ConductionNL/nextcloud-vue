@@ -19,7 +19,9 @@ CnMassActionBar is only visible when `count > 0`. It renders as a single dropdow
   </div>
 </template>
 <script>
+import { NcButton } from '@nextcloud/vue'
 export default {
+  components: { NcButton },
   data() { return { count: 3, last: '' } }
 }
 </script>
@@ -52,9 +54,11 @@ With custom mass actions via slot:
   <p style="font-size: 13px; margin-top: 8px;">{{ last || '—' }}</p>
 </template>
 <script>
+import { NcActionButton } from '@nextcloud/vue'
 import CloudUploadOutline from 'vue-material-design-icons/CloudUploadOutline.vue'
 import ArchiveArrowDown from 'vue-material-design-icons/ArchiveArrowDown.vue'
 export default {
+  components: { NcActionButton },
   data() {
     return {
       last: '',
