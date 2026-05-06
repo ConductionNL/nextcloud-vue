@@ -51,37 +51,45 @@ Borderless — for widgets embedded in a grid that supplies its own border:
 With `flush`, `iconUrl`, `iconClass`, `titleIconPosition`, `titleIconColor`, `styleConfig`, `title-icon`, and `actions` slots:
 
 ```vue
-<div style="width: 360px; height: 240px; overflow: hidden;">
-  <CnWidgetWrapper
-    title="My cases"
-    icon-url="https://nextcloud.example.com/apps/files/img/folder.svg"
-    icon-class=""
-    :flush="true"
-    title-icon-position="left"
-    title-icon-color="var(--color-primary-element)"
-    :style-config="{
-      backgroundColor: 'var(--color-background-hover)',
-      borderStyle: 'solid',
-      borderWidth: 1,
-      borderColor: 'var(--color-border)',
-      borderRadius: 8,
-    }">
-    <template #title-icon>
-      <!-- Custom icon rendered left of the title -->
-      <span style="font-size: 18px;">🗂</span>
-    </template>
-    <template #actions>
-      <NcButton type="tertiary" aria-label="Refresh" @click="refresh">
-        <template #icon><span>↻</span></template>
-      </NcButton>
-    </template>
-    <ul style="margin: 0; padding: 0; list-style: none;">
-      <li style="padding: 10px 16px; border-bottom: 1px solid var(--color-border);">Case A — open</li>
-      <li style="padding: 10px 16px; border-bottom: 1px solid var(--color-border);">Case B — pending</li>
-      <li style="padding: 10px 16px;">Case C — closed</li>
-    </ul>
-  </CnWidgetWrapper>
-</div>
+<template>
+  <div style="width: 360px; height: 240px; overflow: hidden;">
+    <CnWidgetWrapper
+      title="My cases"
+      icon-url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E"
+      icon-class=""
+      :flush="true"
+      title-icon-position="left"
+      title-icon-color="var(--color-primary-element)"
+      :style-config="{
+        backgroundColor: 'var(--color-background-hover)',
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: 'var(--color-border)',
+        borderRadius: 8,
+      }">
+      <template #title-icon>
+        <span style="font-size: 18px;">🗂</span>
+      </template>
+      <template #actions>
+        <NcButton type="tertiary" aria-label="Refresh" @click="refresh">
+          <template #icon><span>↻</span></template>
+        </NcButton>
+      </template>
+      <ul style="margin: 0; padding: 0; list-style: none;">
+        <li style="padding: 10px 16px; border-bottom: 1px solid var(--color-border);">Case A — open</li>
+        <li style="padding: 10px 16px; border-bottom: 1px solid var(--color-border);">Case B — pending</li>
+        <li style="padding: 10px 16px;">Case C — closed</li>
+      </ul>
+    </CnWidgetWrapper>
+  </div>
+</template>
+<script>
+export default {
+  methods: {
+    refresh() {},
+  },
+}
+</script>
 ```
 
 ## Additional props

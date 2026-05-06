@@ -17,7 +17,7 @@ Full dashboard page with custom widgets — each widget gets a scoped slot:
         <CnKpiGrid :columns="4" style="margin: 0;">
           <CnStatsBlock title="Objects" :count="4821" variant="primary" />
           <CnStatsBlock title="Schemas" :count="12" variant="success" />
-          <CnStatsBlock title="Registers" :count="3" variant="info" />
+          <CnStatsBlock title="Registers" :count="3" variant="warning" />
           <CnStatsBlock title="Users" :count="28" variant="default" />
         </CnKpiGrid>
       </template>
