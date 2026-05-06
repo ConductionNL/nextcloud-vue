@@ -9,11 +9,8 @@ It renders within the Nextcloud app layout. In the styleguide, it appears in a c
       :open="true"
       :object-id="'obj-001'"
       object-type="contacts-contact"
-      :register="'contacts'"
-      :schema="'contact'"
       sidebar-title="Jane Smith"
       sidebar-subtitle="Contact"
-      api-base="/index.php/apps/openregister/api"
       :hidden-tabs="['tasks', 'audit']"
       @update:open="() => {}" />
   </div>
@@ -29,11 +26,8 @@ Custom tab content via slot:
       :open="true"
       :object-id="'obj-002'"
       object-type="projects-project"
-      :register="'projects'"
-      :schema="'project'"
       sidebar-title="Project Alpha"
       sidebar-subtitle="Project"
-      api-base="/index.php/apps/openregister/api"
       :hidden-tabs="['tags', 'tasks', 'audit']"
       @update:open="() => {}">
       <template #tab-notes="{ objectId }">
@@ -55,15 +49,12 @@ With custom tab labels:
       :open="open"
       :object-id="caseId"
       object-type="procest-case"
-      :register="'procest'"
-      :schema="'case'"
       sidebar-title="Case 001"
       files-label="Bijlagen"
       notes-label="Notities"
       tags-label="Labels"
       tasks-label="Taken"
       audit-trail-label="Geschiedenis"
-      api-base="/index.php/apps/openregister/api"
       @update:open="open = $event" />
   </div>
 </template>

@@ -260,6 +260,7 @@ export default {
 		},
 
 		async fetchUsers() {
+			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
 					headers: buildHeaders(),

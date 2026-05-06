@@ -122,6 +122,7 @@ export default {
 		},
 
 		async fetchAvailableTags() {
+			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
 				if (response.ok) {
