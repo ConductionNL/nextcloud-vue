@@ -70,12 +70,20 @@ export default {
 </script>
 ```
 
-## Additional props
+## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `objectType` | String | Required | The entity type slug (e.g. `'pipelinq_lead'`, `'procest_case'`). Used as the sidebar title fallback |
+| `objectId` | String | Required | The UUID of the object to display |
+| `register` | String | `''` | OpenRegister register ID passed to each tab for API calls |
+| `schema` | String | `''` | OpenRegister schema ID passed to each tab for API calls |
+| `apiBase` | String | `'/apps/openregister/api'` | Base API URL for OpenRegister tab endpoints |
+| `open` | Boolean | `true` | Whether the sidebar is visible |
+| `title` | String | `''` | Sidebar header title (defaults to `objectType`) |
+| `subtitle` | String | `''` | Sidebar header subtitle |
 | `subtitleProp` | String | `''` | Deprecated alias for `subtitle`. Use `subtitle` instead |
+| `hiddenTabs` | Array | `[]` | Tab IDs to hide: `'files'`, `'notes'`, `'tags'`, `'tasks'`, `'auditTrail'` |
 | `filesLabel` | String | `'Files'` | Pre-translated label for the Files tab |
 | `notesLabel` | String | `'Notes'` | Pre-translated label for the Notes tab |
 | `tagsLabel` | String | `'Tags'` | Pre-translated label for the Tags tab |

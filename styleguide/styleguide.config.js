@@ -172,6 +172,10 @@ module.exports = {
 	// Component sections — matches the taxonomy in CLAUDE.md
 	sections: [
 		{
+			name: 'Introduction',
+			content: path.join(__dirname, 'Introduction.md'),
+		},
+		{
 			name: 'UI Atoms',
 			description: 'Small building blocks used throughout the library.',
 			components: [
