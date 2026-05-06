@@ -121,6 +121,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
  * columns when needed.
  *
  * Manual columns (backwards compatible)
+ * ```vue
  * <CnDataTable
  *   :columns="[
  *     { key: 'name', label: 'Name', sortable: true },
@@ -128,11 +129,15 @@ import { columnsFromSchema } from '../../utils/schema.js'
  *   ]"
  *   :rows="clients"
  *   @row-click="openClient" />
+ * ```
  *
  * Schema-driven (auto columns)
+ * ```vue
  * <CnDataTable :schema="schema" :rows="objects" />
+ * ```
  *
  * Schema with overrides and custom cell
+ * ```vue
  * <CnDataTable
  *   :schema="schema"
  *   :exclude-columns="['description']"
@@ -142,6 +147,7 @@ import { columnsFromSchema } from '../../utils/schema.js'
  *     <QuickStatusDropdown :case-obj="row" />
  *   </template>
  * </CnDataTable>
+ * ```
  */
 export default {
 	name: 'CnDataTable',

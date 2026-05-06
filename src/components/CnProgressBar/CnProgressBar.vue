@@ -50,22 +50,28 @@
  * status distribution).
  *
  * Basic usage
+ * ```vue
  * <CnProgressBar :items="[
  *   { key: 'simple', label: 'Simple', count: 50, variant: 'success' },
  *   { key: 'medium', label: 'Medium', count: 30, variant: 'warning' },
  *   { key: 'complex', label: 'Complex', count: 20, variant: 'error' },
  * ]" />
+ * ```
  *
  * With explicit percentages
+ * ```vue
  * <CnProgressBar :items="[
  *   { key: 'cpu', label: 'CPU', percentage: 72, variant: 'warning' },
  *   { key: 'mem', label: 'Memory', percentage: 45, variant: 'success' },
  * ]" show-percentage />
+ * ```
  *
  * With tooltips
+ * ```vue
  * <CnProgressBar :items="[
  *   { key: 'simple', label: 'Simple', count: 50, variant: 'success', tooltip: 'Basic text searches' },
  * ]" />
+ * ```
  */
 export default {
 	name: 'CnProgressBar',

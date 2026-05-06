@@ -105,17 +105,21 @@ import { buildHeaders } from '../../utils/index.js'
  * Highlights overdue tasks and integrates CnUserActionMenu on assignees.
  *
  * Basic usage
+ * ```vue
  * <CnTasksCard
  *   register-id="uuid-register"
  *   schema-id="uuid-schema"
  *   object-id="uuid-object" />
+ * ```
  *
  * With sidebar sync
+ * ```vue
  * <CnTasksCard
  *   register-id="reg"
  *   schema-id="schema"
  *   object-id="obj"
  *   @show-all="openSidebarTasksTab" />
+ * ```
  */
 export default {
 	name: 'CnTasksCard',

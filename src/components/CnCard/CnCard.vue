@@ -85,6 +85,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  * for known, fixed-structure entities.
  *
  * Basic usage
+ * ```vue
  * <CnCard
  *   title="My Source"
  *   description="A PostgreSQL data source"
@@ -94,8 +95,10 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  *     <NcActions><NcActionButton @click="edit">Edit</NcActionButton></NcActions>
  *   </template>
  * </CnCard>
+ * ```
  *
  * With labels and active state
+ * ```vue
  * <CnCard
  *   title="My Organisation"
  *   :icon="OfficeBuilding"
@@ -109,6 +112,7 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
  *     { label: 'Members', value: 12 },
  *     { label: 'Owner', value: 'Admin' },
  *   ]" />
+ * ```
  */
 export default {
 	name: 'CnCard',

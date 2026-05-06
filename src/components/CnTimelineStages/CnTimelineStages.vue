@@ -77,6 +77,7 @@ import { translate as t } from '@nextcloud/l10n'
  * small and medium sizes, clickable stages, keyboard navigation, and ARIA roles.
  *
  * Basic horizontal timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="[
  *     { id: 'new', label: 'New' },
@@ -84,14 +85,17 @@ import { translate as t } from '@nextcloud/l10n'
  *     { id: 'done', label: 'Done' },
  *   ]"
  *   currentStage="review" />
+ * ```
  *
  * Vertical clickable timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="pipelineStages"
  *   :currentStage="deal.stage"
  *   orientation="vertical"
  *   :clickable="true"
  *   v-on:stage-click="onStageClick" />
+ * ```
  */
 export default {
 	name: 'CnTimelineStages',

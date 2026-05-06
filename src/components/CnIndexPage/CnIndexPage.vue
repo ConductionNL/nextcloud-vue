@@ -308,6 +308,7 @@ import { useContextMenu } from '../../composables/index.js'
  * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
  *
  * Minimal usage (auto-generated dialogs from schema)
+ * ```vue
  * <CnIndexPage
  *   title="Clients"
  *   :schema="schema"
@@ -320,13 +321,16 @@ import { useContextMenu } from '../../composables/index.js'
  *   @refresh="fetchClients"
  *   @row-click="openClient"
  *   @page-changed="onPage" />
+ * ```
  *
  * With custom form dialog
+ * ```vue
  * <CnIndexPage ...>
  *   <template #form-dialog="{ item, schema, close }">
  *     <MyCustomFormDialog :item="item" @close="close" />
  *   </template>
  * </CnIndexPage>
+ * ```
  *
  * @event {void} add — Add button clicked (backward compat, only if listener attached)
  * @event {object} create — Form dialog create confirmed. Payload: formData object

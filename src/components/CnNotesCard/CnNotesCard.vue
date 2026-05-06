@@ -100,12 +100,15 @@ import { buildHeaders } from '../../utils/index.js'
  * Integrates CnUserActionMenu on author names for quick communication.
  *
  * Basic usage
+ * ```vue
  * <CnNotesCard
  *   register-id="uuid-register"
  *   schema-id="uuid-schema"
  *   object-id="uuid-object" />
+ * ```
  *
  * With sidebar sync
+ * ```vue
  * <CnNotesCard
  *   register-id="reg"
  *   schema-id="schema"
@@ -113,6 +116,7 @@ import { buildHeaders } from '../../utils/index.js'
  *   @note-added="refreshNotes"
  *   @note-deleted="refreshNotes"
  *   @show-all="openSidebarNotesTab" />
+ * ```
  */
 export default {
 	name: 'CnNotesCard',

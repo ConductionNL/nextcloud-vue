@@ -39,6 +39,7 @@ import VueApexCharts from 'vue-apexcharts'
  * Wraps ApexCharts with sensible defaults for Nextcloud theming.
  * Apps must install `apexcharts` and `vue-apexcharts` as dependencies.
  * Basic area chart
+ * ```vue
  * <CnChartWidget
  *   type="area"
  *   :series="[{ name: 'Searches', data: [10, 41, 35, 51] }]"
@@ -54,6 +55,7 @@ import VueApexCharts from 'vue-apexcharts'
  *   type="bar"
  *   :series="barSeries"
  *   :options="{ plotOptions: { bar: { horizontal: true } } }" />
+ * ```
  */
 export default {
 	name: 'CnChartWidget',

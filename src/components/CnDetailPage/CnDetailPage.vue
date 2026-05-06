@@ -193,6 +193,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  * states, a statistics table, and flexible content slots.
  *
  * Basic usage with stats table and content
+ * ```vue
  * <CnDetailPage
  *   title="Register Overview"
  *   description="Statistics and schema details"
@@ -211,8 +212,10 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <ChartGrid :data="chartData" />
  *   <SchemaCards :schemas="schemas" />
  * </CnDetailPage>
+ * ```
  *
  * Grid layout mode
+ * ```vue
  * <CnDetailPage
  *   title="Character Detail"
  *   :layout="[
@@ -229,8 +232,10 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <template #widget-stats="{ item, widget }">
  *     <StatsCard :stats="character.stats" />
  *   </template>
+ * ```
  *
  * With header actions and error handling
+ * ```vue
  * <CnDetailPage
  *   title="Schema Details"
  *   :error="hasError"
@@ -241,6 +246,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   </template>
  *   <DetailContent :schema="schema" />
  * </CnDetailPage>
+ * ```
  */
 export default {
 	name: 'CnDetailPage',

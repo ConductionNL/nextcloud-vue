@@ -42,14 +42,17 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * handles the NcActions template boilerplate.
  *
  * Dynamic actions (CnIndexPage pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   :actions="mergedActions"
  *   :target-item="contextMenuRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
+ * ```
  *
  * Custom buttons via slot (Doriath pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   @close="closeContextMenu">
@@ -58,6 +61,7 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  *     Rename
  *   </NcActionButton>
  * </CnContextMenu>
+ * ```
  */
 export default {
 	name: 'CnContextMenu',

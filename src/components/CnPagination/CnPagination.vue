@@ -77,6 +77,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  * NL Design tokens used:
  * - Inherits from cn-pagination CSS class (see css/pagination.css)
  *
+ * ```vue
  * <CnPagination
  *   :current-page="page"
  *   :total-pages="totalPages"
@@ -84,6 +85,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
  *   :current-page-size="limit"
  *   @page-changed="onPageChange"
  *   @page-size-changed="onPageSizeChange" />
+ * ```
  */
 export default {
 	name: 'CnPagination',

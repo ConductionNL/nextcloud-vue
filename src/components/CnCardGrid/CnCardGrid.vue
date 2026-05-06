@@ -59,6 +59,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  * Displays objects in a responsive CSS grid layout using schema-driven cards.
  * Supports selection, loading/empty states, and custom card rendering via slots.
  *
+ * ```vue
  * <CnCardGrid
  *   :objects="publications"
  *   :schema="pubSchema"
@@ -70,6 +71,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  *     <NcActions><NcActionButton>Edit</NcActionButton></NcActions>
  *   </template>
  * </CnCardGrid>
+ * ```
  */
 export default {
 	name: 'CnCardGrid',

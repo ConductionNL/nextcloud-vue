@@ -168,6 +168,7 @@ import { buildHeaders } from '../../utils/headers.js'
  * type rows for manual schema override.
  *
  * Single register (Pipelinq)
+ * ```vue
  * <CnRegisterMapping
  *   name="Register Configuration"
  *   :groups="[{
@@ -181,8 +182,10 @@ import { buildHeaders } from '../../utils/headers.js'
  *   :show-reimport-button="true"
  *   @save="saveConfig"
  *   @reimport="reimport" />
+ * ```
  *
  * Multi-register (SoftwareCatalog)
+ * ```vue
  * <CnRegisterMapping
  *   :groups="[
  *     { name: 'Voorzieningen', registerConfigKey: 'voorzieningen_register', types: [...] },
@@ -190,6 +193,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *   ]"
  *   :configuration="config"
  *   @save="saveConfig" />
+ * ```
  */
 export default {
 	name: 'CnRegisterMapping',

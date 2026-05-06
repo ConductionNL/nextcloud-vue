@@ -76,14 +76,17 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  * Conduction Nextcloud apps.
  *
  * Basic usage
+ * ```vue
  * <CnSettingsSection name="Cache Management" description="Manage application caches">
  *   <template #actions>
  *     <NcButton @click="clearCache">Clear Cache</NcButton>
  *   </template>
  *   <p>Cache hit rate: 94%</p>
  * </CnSettingsSection>
+ * ```
  *
  * With loading and error states
+ * ```vue
  * <CnSettingsSection
  *   name="Statistics"
  *   :loading="isLoading"
@@ -93,11 +96,14 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  *   :on-retry="loadStats">
  *   <StatsTable :data="stats" />
  * </CnSettingsSection>
+ * ```
  *
  * With empty state
+ * ```vue
  * <CnSettingsSection name="API Tokens" :empty="tokens.length === 0" empty-message="No tokens configured">
  *   <TokenList :tokens="tokens" />
  * </CnSettingsSection>
+ * ```
  */
 export default {
 	name: 'CnSettingsSection',

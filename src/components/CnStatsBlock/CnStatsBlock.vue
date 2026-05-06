@@ -59,9 +59,12 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  * and clickable state. Use in a CnKpiGrid for responsive dashboard layouts.
  *
  * Basic vertical (default)
+ * ```vue
  * <CnStatsBlock title="Cases" :count="42" count-label="open cases" />
+ * ```
  *
  * Horizontal with icon and variant
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
@@ -70,27 +73,34 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   horizontal
  *   clickable
  *   @click="goToCases" />
+ * ```
  *
  * With route-based navigation (renders as <router-link>)
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
  *   :icon="BriefcaseOutline"
  *   variant="primary"
  *   :route="{ name: 'Cases', query: { status: 'open' } }" />
+ * ```
  *
  * With breakdown
+ * ```vue
  * <CnStatsBlock
  *   title="Cases"
  *   :count="42"
  *   :breakdown="{ total: 100, invalid: 3, deleted: 5, published: 92 }" />
+ * ```
  *
  * Custom icon slot
+ * ```vue
  * <CnStatsBlock title="Files" :count="128">
  *   <template #icon>
  *     <FileDocumentOutline :size="24" />
  *   </template>
  * </CnStatsBlock>
+ * ```
  */
 export default {
 	name: 'CnStatsBlock',

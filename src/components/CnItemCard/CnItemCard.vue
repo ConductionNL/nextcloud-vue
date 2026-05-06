@@ -31,11 +31,14 @@
  * schema listings, source listings, etc.
  *
  * Basic usage
+ * ```vue
  * <CnItemCard title="My Schema" :icon="FileCodeOutline">
  *   <p>Schema content here</p>
  * </CnItemCard>
+ * ```
  *
  * With actions and stats
+ * ```vue
  * <CnItemCard title="My Schema" :icon="FileCodeOutline" subtitle="v1.0">
  *   <template #actions>
  *     <NcActions>
@@ -47,6 +50,7 @@
  *     <CnStatsBlock title="Size" :count="0" :breakdown="{ size: '1.2 MB' }" />
  *   </CnKpiGrid>
  * </CnItemCard>
+ * ```
  */
 export default {
 	name: 'CnItemCard',

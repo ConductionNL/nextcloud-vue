@@ -79,12 +79,14 @@ import Close from 'vue-material-design-icons/Close.vue'
  * with the item IDs. The parent component performs the actual API call and
  * calls `setResult()` via a ref.
  *
+ * ```vue
  * <CnMassDeleteDialog
  *   v-if="showDeleteDialog"
  *   :items="selectedObjects"
  *   :name-field="'title'"
  *   @confirm="onDeleteConfirm"
  *   @close="showDeleteDialog = false" />
+ * ```
  *
  * // In methods:
  * async onDeleteConfirm(ids) {

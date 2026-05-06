@@ -30,13 +30,17 @@
  * CnInfoWidget — Renders label-value pairs in a responsive CSS grid.
  *
  * Manual fields
+ * ```vue
  * <CnInfoWidget :fields="[
  *   { label: 'Email', value: 'test@example.com' },
  *   { label: 'Phone', value: '+31 6 12345678' },
  * ]" :columns="2" />
+ * ```
  *
  * Auto-generated from schema
+ * ```vue
  * <CnInfoWidget :object="myObject" :schema="mySchema" :columns="3" />
+ * ```
  */
 export default {
 	name: 'CnInfoWidget',

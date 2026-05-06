@@ -159,6 +159,7 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  * or any panel that displays statistics.
  *
  * Stats stack (vertical)
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'totals',
@@ -169,8 +170,10 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { title: 'Files', count: 128, countLabel: 'files', icon: FileIcon },
  *   ],
  * }]" />
+ * ```
  *
  * Stats grid (2-column)
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'stats',
  *   id: 'operations',
@@ -182,8 +185,10 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { title: 'Delete', count: 3, countLabel: 'ops', variant: 'error', icon: DeleteIcon },
  *   ],
  * }]" />
+ * ```
  *
  * List section
+ * ```vue
  * <CnStatsPanel :sections="[{
  *   type: 'list',
  *   id: 'topObjects',
@@ -192,13 +197,16 @@ import { CnProgressBar } from '../CnProgressBar/index.js'
  *     { key: '1', name: 'Object A', subname: '42 entries', icon: CogIcon },
  *   ],
  * }]" />
+ * ```
  *
  * With header slot for filters
+ * ```vue
  * <CnStatsPanel :sections="sections">
  *   <template #header>
  *     <NcSelect v-bind="registerOptions" />
  *   </template>
  * </CnStatsPanel>
+ * ```
  */
 export default {
 	name: 'CnStatsPanel',

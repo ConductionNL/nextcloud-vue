@@ -50,16 +50,24 @@ import { getTheme } from '../../utils/getTheme.js'
  * Use `readOnly` for display-only mode.
  *
  * Read-only JSON display (default)
+ * ```vue
  * <CnJsonViewer :value="jsonString" :read-only="true" />
+ * ```
  *
  * Auto-detect language from content
+ * ```vue
  * <CnJsonViewer :value="responseBody" :read-only="true" language="auto" />
+ * ```
  *
  * Explicit XML mode
+ * ```vue
  * <CnJsonViewer :value="xmlString" :read-only="true" language="xml" />
+ * ```
  *
  * Editable JSON with custom height
+ * ```vue
  * <CnJsonViewer :value="jsonString" height="500px" @update:value="onUpdate" />
+ * ```
  */
 export default {
 	name: 'CnJsonViewer',

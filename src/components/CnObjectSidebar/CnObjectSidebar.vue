@@ -132,24 +132,30 @@ import CnAuditTrailTab from './CnAuditTrailTab.vue'
  * Nextcloud-native APIs. Each tab is a self-contained component.
  *
  * Basic usage
+ * ```vue
  * <CnObjectSidebar
  *   object-type="pipelinq_lead"
  *   :object-id="leadId"
  *   :register="registerConfig.register"
  *   :schema="registerConfig.schema" />
+ * ```
  *
  * Hide specific tabs
+ * ```vue
  * <CnObjectSidebar
  *   object-type="pipelinq_lead"
  *   :object-id="leadId"
  *   :hidden-tabs="['tasks', 'tags']" />
+ * ```
  *
  * Override a tab
+ * ```vue
  * <CnObjectSidebar object-type="pipelinq_lead" :object-id="leadId">
  *   <template #tab-notes="{ objectId }">
  *     <MyCustomNotesComponent :id="objectId" />
  *   </template>
  * </CnObjectSidebar>
+ * ```
  */
 export default {
 	name: 'CnObjectSidebar',

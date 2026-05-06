@@ -52,7 +52,9 @@ export const ICON_MAP = _registry
  * Looks up the name in the shared registry. If not found, renders
  * the fallback icon (HelpCircleOutline by default).
  *
+ * ```vue
  * <CnIcon name="AccountGroup" :size="24" />
+ * ```
  *
  * @see https://pictogrammers.com/library/mdi/
  */

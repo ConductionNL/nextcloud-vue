@@ -89,6 +89,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  * ```
  *
  * Basic usage
+ * ```vue
  * <CnMassActionBar
  *   :selected-ids="selectedIds"
  *   :count="selectedIds.length"
@@ -96,6 +97,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  *   @mass-delete="openDeleteDialog"
  *   @mass-import="openImportDialog"
  *   @mass-export="openExportDialog" />
+ * ```
  */
 export default {
 	name: 'CnMassActionBar',

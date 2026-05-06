@@ -118,9 +118,11 @@ let _capabilitiesPromise = null
  * Uses @nextcloud/capabilities when available, falls back to OCS API.
  *
  * Usage in notes/tasks cards
+ * ```vue
  * <CnUserActionMenu
  *   :user-id="note.actorId || note.author"
  *   :display-name="note.actorDisplayName || note.author || 'Unknown'" />
+ * ```
  */
 export default {
 	name: 'CnUserActionMenu',

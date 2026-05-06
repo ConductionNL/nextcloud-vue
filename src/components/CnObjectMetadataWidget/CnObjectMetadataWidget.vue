@@ -60,9 +60,12 @@ const METADATA_FIELDS = [
  * objects with a `@self` metadata block.
  *
  * Basic usage
+ * ```vue
  * <CnObjectMetadataWidget :object-data="publication" />
+ * ```
  *
  * With extra items
+ * ```vue
  * <CnObjectMetadataWidget
  *   title="System Info"
  *   :object-data="entity"
@@ -70,11 +73,14 @@ const METADATA_FIELDS = [
  *     { label: 'Source', value: entity.source },
  *     { label: 'Catalog', value: entity.catalog },
  *   ]" />
+ * ```
  *
  * Selective display
+ * ```vue
  * <CnObjectMetadataWidget
  *   :object-data="entity"
  *   :include="['id', 'uuid', 'created', 'updated', 'owner']" />
+ * ```
  */
 export default {
 	name: 'CnObjectMetadataWidget',

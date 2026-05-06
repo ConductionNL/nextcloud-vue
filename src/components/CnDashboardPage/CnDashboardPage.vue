@@ -150,6 +150,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  * 3. **Tile** — Items with `type: 'tile'` render as quick-access tiles
  *
  * Basic usage with custom widgets
+ * ```vue
  * <CnDashboardPage
  *   title="Dashboard"
  *   :widgets="widgetDefs"
@@ -162,13 +163,16 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  *     <MyWorkList :items="workItems" />
  *   </template>
  * </CnDashboardPage>
+ * ```
  *
  * With NC Dashboard API widgets
+ * ```vue
  * <CnDashboardPage
  *   title="Dashboard"
  *   :widgets="[...appWidgets, ...ncWidgets]"
  *   :layout="layout"
  *   @layout-change="saveLayout" />
+ * ```
  */
 export default {
 	name: 'CnDashboardPage',

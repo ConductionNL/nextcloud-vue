@@ -72,11 +72,14 @@ import { translate as t } from '@nextcloud/l10n'
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
  *
+ * ```vue
  * <CnWidgetWrapper title="My Cases" :icon-url="casesIconUrl">
  *   <MyCasesChart :data="chartData" />
  * </CnWidgetWrapper>
+ * ```
  *
  * With NC widget object
+ * ```vue
  * <CnWidgetWrapper
  *   :title="widget.title"
  *   :icon-url="widget.iconUrl"
@@ -84,6 +87,7 @@ import { translate as t } from '@nextcloud/l10n'
  *   :buttons="widget.buttons">
  *   <CnWidgetRenderer :widget="widget" />
  * </CnWidgetWrapper>
+ * ```
  */
 export default {
 	name: 'CnWidgetWrapper',
