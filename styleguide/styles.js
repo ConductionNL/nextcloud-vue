@@ -16,7 +16,7 @@ module.exports = {
 			marginBottom: 48,
 		},
 		tableHead: {
-			borderBottom: '1px solid #ededed',
+			borderBottom: '1px solid var(--color-border)',
 		},
 		cellHeading: {
 			paddingRight: 16,
@@ -32,11 +32,11 @@ module.exports = {
 			paddingBottom: 8,
 			verticalAlign: 'top',
 			fontSize: 13,
-			borderBottom: '1px solid #ededed',
+			borderBottom: '1px solid var(--color-border)',
 		},
-		row: {
+		dataRow: {
 			'&:hover': {
-				backgroundColor: 'var(--color-background-dark, rgb(251, 251, 251))',
+				backgroundColor: 'var(--color-background-dark)',
 			},
 		},
 	},
