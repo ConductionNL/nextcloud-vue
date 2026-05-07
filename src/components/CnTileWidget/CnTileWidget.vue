@@ -41,7 +41,7 @@ import { generateUrl } from '@nextcloud/router'
 /**
  * CnTileWidget — Quick-access tile with icon and link.
  *
- * @example
+ * ```vue
  * <CnTileWidget :tile="{
  *   title: 'Files',
  *   icon: 'M12,2C6.48,...',
@@ -51,6 +51,7 @@ import { generateUrl } from '@nextcloud/router'
  *   linkType: 'app',
  *   linkValue: 'files',
  * }" />
+ * ```
  */
 export default {
 	name: 'CnTileWidget',
@@ -58,7 +59,7 @@ export default {
 	props: {
 		/**
 		 * Tile configuration object.
-		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor?: string, textColor?: string, linkType: 'app'|'url', linkValue: string }}
+		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url', linkValue: string }}
 		 */
 		tile: {
 			type: Object,

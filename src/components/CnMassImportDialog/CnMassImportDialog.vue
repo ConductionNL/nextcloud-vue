@@ -180,7 +180,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  * with the file and options. The parent handles the API call and calls
  * `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassImportDialog
  *   v-if="showImportDialog"
  *   ref="importDialog"
@@ -191,6 +191,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
  *   </template>
  * </CnMassImportDialog>
+ * ```
  *
  * // In data:
  * importOptions: [

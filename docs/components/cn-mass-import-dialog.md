@@ -54,9 +54,35 @@ File upload dialog with options and results summary. Supports importing data fro
 |--------|-------------|
 | `setResult(\{ success?, error?, imported?, skipped? \})` | Set import result |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Import</button>
+    <CnMassImportDialog
+      v-if="open"
+      ref="dlg"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassImportDialog
   accepted-types=".json,.csv,.xlsx"
   @confirm="onImport"

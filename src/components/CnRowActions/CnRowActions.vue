@@ -25,13 +25,14 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * Wraps NcActions + NcActionButton for consistent row/card action menus.
  * Actions are defined as an array of objects with label, icon, handler, etc.
  *
- * @example
+ * ```vue
  * <CnRowActions
  *   :actions="[
  *     { label: 'Edit', icon: PencilIcon, handler: (row) => editRow(row) },
  *     { label: 'Delete', icon: TrashIcon, handler: (row) => deleteRow(row), destructive: true },
  *   ]"
  *   :row="row" />
+ * ```
  */
 export default {
 	name: 'CnRowActions',
@@ -53,8 +54,7 @@ export default {
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
-		 *
-		 * @type {Array<{label: string, icon?: object, handler: Function, disabled?: boolean | Function, visible?: boolean | Function, title?: string | Function, destructive?: boolean}>}
+		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,

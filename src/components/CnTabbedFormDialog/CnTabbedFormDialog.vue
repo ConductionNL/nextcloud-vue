@@ -137,8 +137,7 @@ export default {
 		 * Array of tab definitions. Each tab must have at least an `id` and `title`.
 		 * The optional `icon` field should be a Vue component reference (e.g. an imported MDI icon).
 		 * The optional `disabled` field prevents tab selection.
-		 *
-		 * @type {Array<{ id: string, title: string, icon?: object, disabled?: boolean }>}
+		 * @type {Array<{ id: string, title: string, icon: object, disabled: boolean }>}
 		 */
 		tabs: {
 			type: Array,
@@ -276,8 +275,7 @@ export default {
 			/**
 			 * Result of the last operation.
 			 * null = form phase, { success: true } = success, { error: 'msg' } = error
-			 *
-			 * @type {{ success?: boolean, error?: string }|null}
+			 * @type {{ success: boolean, error: string }|null}
 			 */
 			result: null,
 			/** @type {number|null} Timeout ID for auto-close after success */

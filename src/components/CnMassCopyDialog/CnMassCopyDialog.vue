@@ -88,7 +88,7 @@ import Close from 'vue-material-design-icons/Close.vue'
  * with the items and naming function. The parent performs the actual API
  * call and calls `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassCopyDialog
  *   v-if="showCopyDialog"
  *   ref="copyDialog"
@@ -96,6 +96,7 @@ import Close from 'vue-material-design-icons/Close.vue'
  *   :name-field="'title'"
  *   @confirm="onCopyConfirm"
  *   @close="showCopyDialog = false" />
+ * ```
  *
  * // In methods:
  * async onCopyConfirm({ ids, getName }) {

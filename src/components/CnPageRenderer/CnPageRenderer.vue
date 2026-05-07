@@ -236,11 +236,11 @@ export default {
 		// for the lifetime of this instance.
 		if (this.currentPage) {
 			this.$options.name = `CnPageRenderer:${this.currentPage.id}`
-		} else {
-			// Warn once at mount time when no page matches the current route.
+		} else if (this.$route) {
+			// Router is present but no page matches — warn so developers notice misconfigured routes.
 			// eslint-disable-next-line no-console
 			console.warn(
-				`[CnPageRenderer] No page found for $route.name = "${this.$route?.name}". The renderer will mount nothing.`,
+				`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`,
 			)
 		}
 	},

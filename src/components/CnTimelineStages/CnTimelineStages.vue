@@ -76,7 +76,8 @@ import { translate as t } from '@nextcloud/l10n'
  * connected by a track line. Supports horizontal and vertical layout,
  * small and medium sizes, clickable stages, keyboard navigation, and ARIA roles.
  *
- * @example Basic horizontal timeline
+ * Basic horizontal timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="[
  *     { id: 'new', label: 'New' },
@@ -84,14 +85,17 @@ import { translate as t } from '@nextcloud/l10n'
  *     { id: 'done', label: 'Done' },
  *   ]"
  *   currentStage="review" />
+ * ```
  *
- * @example Vertical clickable timeline
+ * Vertical clickable timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="pipelineStages"
  *   :currentStage="deal.stage"
  *   orientation="vertical"
  *   :clickable="true"
  *   v-on:stage-click="onStageClick" />
+ * ```
  */
 export default {
 	name: 'CnTimelineStages',
@@ -100,7 +104,7 @@ export default {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
 		 * Optional `subtitle` for secondary text below the label.
-		 * @type {{ id: string, label: string, subtitle?: string }[]}
+		 * @type {{ id: string, label: string, subtitle: string }[]}
 		 */
 		stages: {
 			type: Array,

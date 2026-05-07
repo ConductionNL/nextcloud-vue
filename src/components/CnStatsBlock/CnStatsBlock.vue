@@ -58,10 +58,13 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  * Supports vertical (default) and horizontal layouts, color variants, icons,
  * and clickable state. Use in a CnKpiGrid for responsive dashboard layouts.
  *
- * @example Basic vertical (default)
+ * Basic vertical (default)
+ * ```vue
  * <CnStatsBlock title="Cases" :count="42" count-label="open cases" />
+ * ```
  *
- * @example Horizontal with icon and variant
+ * Horizontal with icon and variant
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
@@ -70,27 +73,34 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   horizontal
  *   clickable
  *   @click="goToCases" />
+ * ```
  *
- * @example With route-based navigation (renders as <router-link>)
+ * With route-based navigation (renders as <router-link>)
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
  *   :icon="BriefcaseOutline"
  *   variant="primary"
  *   :route="{ name: 'Cases', query: { status: 'open' } }" />
+ * ```
  *
- * @example With breakdown
+ * With breakdown
+ * ```vue
  * <CnStatsBlock
  *   title="Cases"
  *   :count="42"
  *   :breakdown="{ total: 100, invalid: 3, deleted: 5, published: 92 }" />
+ * ```
  *
- * @example Custom icon slot
+ * Custom icon slot
+ * ```vue
  * <CnStatsBlock title="Files" :count="128">
  *   <template #icon>
  *     <FileDocumentOutline :size="24" />
  *   </template>
  * </CnStatsBlock>
+ * ```
  */
 export default {
 	name: 'CnStatsBlock',
@@ -169,8 +179,8 @@ export default {
 		/**
 		 * Vue Router location object for declarative navigation.
 		 * When set, the card renders as a <router-link> and clickable styles are implied.
-		 * @example { name: 'Cases', query: { status: 'open' } }
-		 * @example { path: '/catalogi' }
+		 * { name: 'Cases', query: { status: 'open' } }
+		 * { path: '/catalogi' }
 		 */
 		route: {
 			type: Object,

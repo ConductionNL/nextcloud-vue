@@ -1,0 +1,40 @@
+name: Documentation (Beta)
+
+on:
+  push:
+    branches:
+      - beta
+
+jobs:
+  deploy-beta:
+    name: Deploy Beta Styleguide
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and build component styleguide
+        timeout-minutes: 10
+        run: |
+          cd styleguide
+          npm ci
+          npm run build
+
+      - name: Deploy styleguide to /beta/ on GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./styleguide/build
+          publish_branch: gh-pages
+          destination_dir: beta/styleguide
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          keep_files: true

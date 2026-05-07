@@ -185,14 +185,15 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  * 2. **Grid layout:** When `layout` and `widgets` props are provided, content renders in a
  *    12-column CSS grid with `#widget-{widgetId}` scoped slots. Same API as CnDashboardPage.
  *
- * @example Basic usage (vertical stacking)
+ * Basic usage (vertical stacking)
  *
  * A simpler alternative to CnIndexPage for pages that display detail info,
  * statistics, charts, or card grids — without multi-object tables or CRUD
  * dialogs. Provides a consistent layout with header, loading/error/empty
  * states, a statistics table, and flexible content slots.
  *
- * @example Basic usage with stats table and content
+ * Basic usage with stats table and content
+ * ```vue
  * <CnDetailPage
  *   title="Register Overview"
  *   description="Statistics and schema details"
@@ -211,8 +212,10 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <ChartGrid :data="chartData" />
  *   <SchemaCards :schemas="schemas" />
  * </CnDetailPage>
+ * ```
  *
- * @example Grid layout mode
+ * Grid layout mode
+ * ```vue
  * <CnDetailPage
  *   title="Character Detail"
  *   :layout="[
@@ -229,8 +232,10 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   <template #widget-stats="{ item, widget }">
  *     <StatsCard :stats="character.stats" />
  *   </template>
+ * ```
  *
- * @example With header actions and error handling
+ * With header actions and error handling
+ * ```vue
  * <CnDetailPage
  *   title="Schema Details"
  *   :error="hasError"
@@ -241,6 +246,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
  *   </template>
  *   <DetailContent :schema="schema" />
  * </CnDetailPage>
+ * ```
  */
 export default {
 	name: 'CnDetailPage',
@@ -360,8 +366,7 @@ export default {
 		/**
 		 * Column definitions for the statistics table.
 		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
-		 *
-		 * @type {Array<{ key: string, label: string, align?: string }>}
+		 * @type {Array<{ key: string, label: string, align: string }>}
 		 */
 		statsColumns: {
 			type: Array,

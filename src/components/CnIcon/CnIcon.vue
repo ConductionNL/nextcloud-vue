@@ -12,7 +12,6 @@ import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
  * Apps extend this at boot via registerIcons() — import only the
  * icons you need, keeping bundles small.
  *
- * @example
  * import { registerIcons } from '@conduction/nextcloud-vue'
  * import Sword from 'vue-material-design-icons/Sword.vue'
  * registerIcons({ Sword })
@@ -30,7 +29,6 @@ const _registry = {
  *
  * @param {Record<string, import('vue').Component>} icons - Map of PascalCase icon names to Vue components
  *
- * @example
  * import { registerIcons } from '@conduction/nextcloud-vue'
  * import Sword from 'vue-material-design-icons/Sword.vue'
  * import MagicStaff from 'vue-material-design-icons/MagicStaff.vue'
@@ -54,8 +52,9 @@ export const ICON_MAP = _registry
  * Looks up the name in the shared registry. If not found, renders
  * the fallback icon (HelpCircleOutline by default).
  *
- * @example
+ * ```vue
  * <CnIcon name="AccountGroup" :size="24" />
+ * ```
  *
  * @see https://pictogrammers.com/library/mdi/
  */

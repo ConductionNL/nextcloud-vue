@@ -39,9 +39,36 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 |--------|-------------|
 | `setResult(\{ success?, error?, results? \})` | Set result per item |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Delete selected (2)</button>
+    <CnMassDeleteDialog
+      v-if="open"
+      ref="dlg"
+      :items="[{ id: 1, title: 'Report A' }, { id: 2, title: 'Report B' }]"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(ids) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassDeleteDialog
   ref="massDeleteDialog"
   :items="selectedItems"
@@ -53,7 +80,7 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 
 Use `nameFormatter` when items don't have a simple name field:
 
-```vue
+```vue {static}
 <CnMassDeleteDialog
   :items="selectedAuditTrails"
   :name-formatter="(item) => t('myapp', 'Audit Trail #{id}', { id: item.id })"

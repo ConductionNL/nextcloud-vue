@@ -85,10 +85,13 @@ import Update from 'vue-material-design-icons/Update.vue'
  * Every Conduction Nextcloud app should show this as the first section on its
  * admin settings page.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnVersionInfoCard app-name="Open Register" app-version="0.2.3" />
+ * ```
  *
- * @example With update button
+ * With update button
+ * ```vue
  * <CnVersionInfoCard
  *   app-name="Open Register"
  *   app-version="0.2.3"
@@ -97,8 +100,10 @@ import Update from 'vue-material-design-icons/Update.vue'
  *   :show-update-button="true"
  *   :updating="isUpdating"
  *   @update="runUpdate" />
+ * ```
  *
- * @example With additional items and actions
+ * With additional items and actions
+ * ```vue
  * <CnVersionInfoCard
  *   app-name="Pipelinq"
  *   app-version="0.1.7"
@@ -107,6 +112,7 @@ import Update from 'vue-material-design-icons/Update.vue'
  *     <NcButton @click="clearCache">Clear App Store Cache</NcButton>
  *   </template>
  * </CnVersionInfoCard>
+ * ```
  */
 export default {
 	name: 'CnVersionInfoCard',

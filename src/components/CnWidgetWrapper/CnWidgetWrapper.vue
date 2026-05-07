@@ -72,12 +72,14 @@ import { translate as t } from '@nextcloud/l10n'
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
  *
- * @example
+ * ```vue
  * <CnWidgetWrapper title="My Cases" :icon-url="casesIconUrl">
  *   <MyCasesChart :data="chartData" />
  * </CnWidgetWrapper>
+ * ```
  *
- * @example With NC widget object
+ * With NC widget object
+ * ```vue
  * <CnWidgetWrapper
  *   :title="widget.title"
  *   :icon-url="widget.iconUrl"
@@ -85,6 +87,7 @@ import { translate as t } from '@nextcloud/l10n'
  *   :buttons="widget.buttons">
  *   <CnWidgetRenderer :widget="widget" />
  * </CnWidgetWrapper>
+ * ```
  */
 export default {
 	name: 'CnWidgetWrapper',
@@ -147,7 +150,7 @@ export default {
 		},
 		/**
 		 * Style configuration for the wrapper.
-		 * @type {{ backgroundColor?: string, borderStyle?: string, borderWidth?: number, borderColor?: string, borderRadius?: number, padding?: { top: number, right: number, bottom: number, left: number } }}
+		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {
 			type: Object,

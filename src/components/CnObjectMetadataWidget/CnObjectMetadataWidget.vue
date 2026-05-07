@@ -59,10 +59,13 @@ const METADATA_FIELDS = [
  * Understands both flat objects (where metadata is at the top level) and
  * objects with a `@self` metadata block.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnObjectMetadataWidget :object-data="publication" />
+ * ```
  *
- * @example With extra items
+ * With extra items
+ * ```vue
  * <CnObjectMetadataWidget
  *   title="System Info"
  *   :object-data="entity"
@@ -70,11 +73,14 @@ const METADATA_FIELDS = [
  *     { label: 'Source', value: entity.source },
  *     { label: 'Catalog', value: entity.catalog },
  *   ]" />
+ * ```
  *
- * @example Selective display
+ * Selective display
+ * ```vue
  * <CnObjectMetadataWidget
  *   :object-data="entity"
  *   :include="['id', 'uuid', 'created', 'updated', 'owner']" />
+ * ```
  */
 export default {
 	name: 'CnObjectMetadataWidget',

@@ -39,8 +39,9 @@ import CheckBold from 'vue-material-design-icons/CheckBold.vue'
  * Booleans render as icons, enums as status badges, dates as formatted strings,
  * and everything else as truncated text via `formatValue()`.
  *
- * @example
+ * ```vue
  * <CnCellRenderer :value="row.status" :property="schema.properties.status" />
+ * ```
  */
 export default {
 	name: 'CnCellRenderer',

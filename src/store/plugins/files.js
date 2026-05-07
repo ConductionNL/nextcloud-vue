@@ -260,7 +260,7 @@ export function filesPlugin(options = {}) {
 			 * @param {string} objectId The parent object ID
 			 * @param {('publish'|'depublish'|'delete'|'label')} action The batch action to apply
 			 * @param {(string|number)[]} fileIds File IDs to act on (max 100, validated server-side)
-			 * @param {object} [params={}] Action-specific parameters (e.g. labels for the 'label' action)
+			 * @param {object} [params] Action-specific parameters (e.g. labels for the 'label' action)
 			 * @return {Promise<object|null>} Response body `{ results, summary }`, or null on transport error
 			 */
 			async batchFiles(type, objectId, action, fileIds, params = {}) {

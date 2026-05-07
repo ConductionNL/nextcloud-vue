@@ -54,8 +54,9 @@ import { generateOcsUrl } from '@nextcloud/router'
  * Fetches widget items from the OCS Dashboard API and displays them
  * using the standard NcDashboardWidget component.
  *
- * @example
+ * ```vue
  * <CnWidgetRenderer :widget="ncWidget" />
+ * ```
  */
 export default {
 	name: 'CnWidgetRenderer',
@@ -70,7 +71,7 @@ export default {
 	props: {
 		/**
 		 * Nextcloud widget object from the Dashboard API.
-		 * @type {{ id: string, title: string, iconClass?: string, iconUrl?: string, widgetUrl?: string, itemIconsRound?: boolean, itemApiVersions?: number[], reloadInterval?: number, buttons?: Array }}
+		 * @type {{ id: string, title: string, iconClass: string, iconUrl: string, widgetUrl: string, itemIconsRound: boolean, itemApiVersions: number[], reloadInterval: number, buttons: Array }}
 		 */
 		widget: {
 			type: Object,

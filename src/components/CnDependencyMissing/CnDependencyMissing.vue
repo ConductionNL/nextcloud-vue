@@ -50,8 +50,7 @@ export default {
 		 *   set; otherwise the default Nextcloud apps page is used
 		 * - `enabled` discriminates the link label: `false` means the
 		 *   app is installed but disabled; otherwise it's not installed
-		 *
-		 * @type {Array<{id: string, name?: string, installUrl?: string, enabled?: boolean}>}
+		 * @type {Array<{id: string, name: string, installUrl: string, enabled: boolean}>}
 		 */
 		dependencies: {
 			type: Array,

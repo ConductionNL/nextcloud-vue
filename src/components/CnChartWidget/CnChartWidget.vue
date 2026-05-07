@@ -38,25 +38,24 @@ import VueApexCharts from 'vue-apexcharts'
  *
  * Wraps ApexCharts with sensible defaults for Nextcloud theming.
  * Apps must install `apexcharts` and `vue-apexcharts` as dependencies.
- *
- * @example Basic area chart
+ * Basic area chart
+ * ```vue
  * <CnChartWidget
  *   type="area"
  *   :series="[{ name: 'Searches', data: [10, 41, 35, 51] }]"
  *   :categories="['Mon', 'Tue', 'Wed', 'Thu']"
  *   :height="250" />
- *
- * @example Pie chart
+ * Pie chart
  * <CnChartWidget
  *   type="pie"
  *   :series="[44, 55, 13]"
  *   :labels="['Active', 'Pending', 'Closed']" />
- *
- * @example With custom options
+ * With custom options
  * <CnChartWidget
  *   type="bar"
  *   :series="barSeries"
  *   :options="{ plotOptions: { bar: { horizontal: true } } }" />
+ * ```
  */
 export default {
 	name: 'CnChartWidget',

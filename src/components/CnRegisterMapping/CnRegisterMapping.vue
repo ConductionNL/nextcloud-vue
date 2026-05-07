@@ -68,6 +68,7 @@
 						:value="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
+						:input-label="labels.register"
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
@@ -120,6 +121,7 @@
 									:value="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
+									:input-label="labels.schema"
 									label="label"
 									track-by="value"
 									@input="handleSchemaChange(groupIdx, type, $event)" />
@@ -167,7 +169,8 @@ import { buildHeaders } from '../../utils/headers.js'
  * Supports multiple register groups (stacked sections) with expandable
  * type rows for manual schema override.
  *
- * @example Single register (Pipelinq)
+ * Single register (Pipelinq)
+ * ```vue
  * <CnRegisterMapping
  *   name="Register Configuration"
  *   :groups="[{
@@ -181,8 +184,10 @@ import { buildHeaders } from '../../utils/headers.js'
  *   :show-reimport-button="true"
  *   @save="saveConfig"
  *   @reimport="reimport" />
+ * ```
  *
- * @example Multi-register (SoftwareCatalog)
+ * Multi-register (SoftwareCatalog)
+ * ```vue
  * <CnRegisterMapping
  *   :groups="[
  *     { name: 'Voorzieningen', registerConfigKey: 'voorzieningen_register', types: [...] },
@@ -190,6 +195,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *   ]"
  *   :configuration="config"
  *   @save="saveConfig" />
+ * ```
  */
 export default {
 	name: 'CnRegisterMapping',
@@ -224,7 +230,7 @@ export default {
 		},
 		/**
 		 * Groups of object types that share a register.
-		 * @type {Array<{ name: string, description?: string, registerConfigKey?: string, types: Array<{ slug: string, label: string, description?: string, configKey?: string }> }>}
+		 * @type {Array<{ name: string, description: string, registerConfigKey: string, types: Array<{ slug: string, label: string, description: string, configKey: string }> }>}
 		 */
 		groups: {
 			type: Array,

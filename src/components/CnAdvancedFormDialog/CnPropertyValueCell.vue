@@ -178,11 +178,11 @@ import {
 	NcSelect,
 	NcButton,
 	NcDateTimePicker,
+	Tooltip,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Close from 'vue-material-design-icons/Close.vue'
-import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip.js'
 import { formatValue, validateValue } from '../../utils/schema.js'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'

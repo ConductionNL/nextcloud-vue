@@ -573,10 +573,24 @@ const detailFailures = []
 
 for (const name of componentExports) {
 	const kebab = toKebab(name)
-	const docPath = path.join(DOCS_DIR, 'components', `${kebab}.md`)
-	const issues = checkComponentDetail(name, docPath)
-	if (issues.length > 0) {
-		detailFailures.push({ name, issues })
+	const fileIssues = []
+
+	// docs/components/ reference doc (formal props/slots tables)
+	const docsPath = path.join(DOCS_DIR, 'components', `${kebab}.md`)
+	const docsIssues = checkComponentDetail(name, docsPath)
+	if (docsIssues.length > 0) {
+		fileIssues.push({ file: `docs/components/${kebab}.md`, issues: docsIssues })
+	}
+
+	// co-located styleguide example (takes priority in the styleguide renderer)
+	const colocatedPath = path.join(ROOT, 'src', 'components', name, `${name}.md`)
+	const colocatedIssues = checkComponentDetail(name, colocatedPath)
+	if (colocatedIssues.length > 0) {
+		fileIssues.push({ file: `src/components/${name}/${name}.md`, issues: colocatedIssues })
+	}
+
+	if (fileIssues.length > 0) {
+		detailFailures.push({ name, fileIssues })
 	}
 }
 
@@ -588,11 +602,13 @@ if (detailFailed === 0) {
 } else {
 	console.log(`  ✓ ${detailChecked - detailFailed}/${detailChecked} component docs cover their props and slots.`)
 	console.error(`\n✗ ${detailFailed} component doc(s) are missing prop or slot coverage:\n`)
-	for (const { name, issues } of detailFailures) {
-		const kebab = toKebab(name)
-		console.error(`${name}  (docs/components/${kebab}.md):`)
-		for (const issue of issues) {
-			console.error(`  - ${issue}`)
+	for (const { name, fileIssues } of detailFailures) {
+		console.error(`${name}:`)
+		for (const { file, issues } of fileIssues) {
+			console.error(`  ${file}:`)
+			for (const issue of issues) {
+				console.error(`    - ${issue}`)
+			}
 		}
 		console.error('')
 	}

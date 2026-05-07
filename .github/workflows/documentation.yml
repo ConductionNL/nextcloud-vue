@@ -26,6 +26,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install and build component styleguide
+        timeout-minutes: 10
+        run: |
+          cd styleguide
+          npm ci
+          npm run build
+
       - name: Clear build cache and install dependencies
         timeout-minutes: 3
         run: |
@@ -43,6 +50,12 @@ jobs:
             exit 1
           fi
 
+      - name: Copy styleguide into Docusaurus build
+        run: |
+          mkdir -p docusaurus/build/styleguide
+          cp -r styleguide/build/. docusaurus/build/styleguide/
+
+
       - name: Create .nojekyll file
         run: |
           cd docusaurus/build
@@ -58,7 +71,7 @@ jobs:
           user_email: 'github-actions[bot]@users.noreply.github.com'
           force_orphan: false
           allow_empty_commit: true
-          keep_files: false
+          keep_files: true
 
       - name: Verify deployment
         run: |

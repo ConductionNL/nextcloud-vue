@@ -41,15 +41,18 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * cursor positioning). The composable handles the DOM attributes; this component
  * handles the NcActions template boilerplate.
  *
- * @example Dynamic actions (CnIndexPage pattern)
+ * Dynamic actions (CnIndexPage pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   :actions="mergedActions"
  *   :target-item="contextMenuRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
+ * ```
  *
- * @example Custom buttons via slot (Doriath pattern)
+ * Custom buttons via slot (Doriath pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   @close="closeContextMenu">
@@ -58,6 +61,7 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  *     Rename
  *   </NcActionButton>
  * </CnContextMenu>
+ * ```
  */
 export default {
 	name: 'CnContextMenu',
@@ -84,7 +88,7 @@ export default {
 		 * a native tooltip — useful for explaining why an entry is disabled.
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, visible?: boolean | Function, title?: string | Function, destructive?: boolean}>}
+		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
