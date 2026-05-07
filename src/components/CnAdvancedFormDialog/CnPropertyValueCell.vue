@@ -178,7 +178,7 @@ import {
 	NcSelect,
 	NcButton,
 	NcDateTimePicker,
-	Tooltip
+	Tooltip,
 } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'

@@ -47,7 +47,7 @@
 				<CnAppNav :permissions="permissions" />
 			</slot>
 			<NcAppContent>
-				<slot />
+				<router-view />
 				<slot name="header-actions" />
 				<slot name="footer" />
 			</NcAppContent>
