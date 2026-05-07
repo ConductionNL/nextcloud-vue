@@ -80,19 +80,44 @@ export default {
 </script>
 ```
 
-Auto-detect mode — sniffs JSON, XML/HTML, or falls back to plain text:
+Auto-detect mode — sniffs JSON, HTML, XML, or falls back to plain text. The component emits `detected-language` with the resolved language whenever it changes (and once on mount):
 
 ```vue
 <template>
   <div style="display: flex; flex-direction: column; gap: 12px;">
-    <div>
-      <p style="font-size: 12px; margin-bottom: 4px; color: var(--color-text-maxcontrast);">JSON (auto-detected)</p>
-      <CnJsonViewer language="auto" :read-only="true" height="80px" value='{"detected": "json"}' />
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <label style="font-size: 13px;">Sample:</label>
+      <select v-model="sample" style="padding: 4px;">
+        <option value="json">JSON</option>
+        <option value="html">HTML</option>
+        <option value="xml">XML</option>
+        <option value="text">Plain text</option>
+      </select>
+      <span style="font-size: 13px; color: var(--color-text-maxcontrast);">
+        Detected: <strong>{{ detected || '—' }}</strong>
+      </span>
     </div>
-    <div>
-      <p style="font-size: 12px; margin-bottom: 4px; color: var(--color-text-maxcontrast);">Plain text (fallback)</p>
-      <CnJsonViewer language="auto" :read-only="true" height="60px" value="Just plain text, no markup." />
-    </div>
+    <CnJsonViewer
+      language="auto"
+      height="140px"
+      :value="samples[sample]"
+      @detected-language="detected = $event" />
   </div>
 </template>
+<script>
+export default {
+  data() {
+    return {
+      sample: 'json',
+      detected: '',
+      samples: {
+        json: '{\n  "detected": "json",\n  "count": 42\n}',
+        html: '<!DOCTYPE html>\n<html>\n  <body>\n    <h1>Hello</h1>\n  </body>\n</html>',
+        xml: '<?xml version="1.0"?>\n<note>\n  <to>Tove</to>\n  <body>Hi!</body>\n</note>',
+        text: 'Just plain text, no markup.',
+      },
+    }
+  },
+}
+</script>
 ```
