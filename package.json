@@ -1,10 +1,10 @@
 {
 	"name": "@conduction/nextcloud-vue",
-	"version": "0.1.0-beta.18",
+	"version": "1.0.0-beta.1",
 	"description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
 	"license": "EUPL-1.2",
 	"author": "Conduction B.V. <info@conduction.nl>",
-"main": "dist/nextcloud-vue.cjs.js",
+	"main": "dist/nextcloud-vue.cjs.js",
 	"module": "dist/nextcloud-vue.esm.js",
 	"style": "dist/nextcloud-vue.css",
 	"types": "src/types/index.d.ts",
