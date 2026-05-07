@@ -39,6 +39,16 @@ XML mode:
   :value="`<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>\n<person>\n  <name>Jane Smith</name>\n  <email>jane@example.com</email>\n  <role>admin</role>\n</person>`" />
 ```
 
+HTML mode — showcases highlighting across markup, inline `<style>`, and inline `<script>`:
+
+```vue
+<CnJsonViewer
+  language="html"
+  :read-only="true"
+  height="320px"
+  :value="`<!DOCTYPE html>\n<html lang=&quot;en&quot;>\n  <head>\n    <title>Hello</title>\n    <style>\n      body { font-family: system-ui, sans-serif; padding: 16px; }\n      .greeting { color: #0082c9; font-weight: 600; }\n      .greeting:hover { text-decoration: underline; }\n    </style>\n  </head>\n  <body>\n    <h1 class=&quot;greeting&quot;>Hello, world!</h1>\n    <p>Welcome to <a href=&quot;https://example.com&quot;>example.com</a>.</p>\n    <button id=&quot;wave&quot; type=&quot;button&quot;>Wave</button>\n    <script>\n      const btn = document.getElementById('wave')\n      btn.addEventListener('click', () => {\n        const greeting = document.querySelector('.greeting')\n        greeting.textContent = greeting.textContent === 'Hello, world!'\n          ? 'Hello again!'\n          : 'Hello, world!'\n      })\n    <\/script>\n  </body>\n</html>`" />
+```
+
 Custom error text — use `errorText` to replace the built-in "Invalid JSON format" banner with a caller-controlled message. The banner shows when `errorText` is a non-empty string and hides when it is empty:
 
 ```vue
