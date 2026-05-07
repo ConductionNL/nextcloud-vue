@@ -12,6 +12,8 @@ const config = {
   projectName: 'nextcloud-vue',
   trailingSlash: false,
 
+  favicon: 'img/favicon.ico',
+
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
 
