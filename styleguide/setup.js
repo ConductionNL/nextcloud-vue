@@ -1,14 +1,31 @@
 import Vue from 'vue'
 import { PiniaVuePlugin, createPinia } from 'pinia'
 import { NcButton } from '@nextcloud/vue'
-import { translate, translatePlural } from '@nextcloud/l10n'
+import { translate, translatePlural, setLanguage } from '@nextcloud/l10n'
 import '../src/css/index.css'
+import { registerTranslations } from '../src'
 
-// Nextcloud sets window.t and window.n as globals in real apps; components
-// call t() / n() in templates expecting this. Register the mocked versions so
-// Vue's `with(this)` template scope can fall through to the global object.
+// --- Translations -----------------------------------------------------------
+
+// window.t / window.n are read by Vue templates compiled by @nextcloud/vue
+// (their `with(this)` scope falls through to globals). Because translate()
+// from our mocked @nextcloud/l10n is reactive (see mocks/l10n.js),
+// switching language at runtime auto-rerenders dependent components.
 window.t = translate
 window.n = translatePlural
+
+const initialLang = navigator.language?.split(/[-_]/)[0] || 'en'
+setLanguage(initialLang)
+registerTranslations()
+window.__nclLang = initialLang
+
+window.switchLanguage = (lang) => {
+    setLanguage(lang)
+    registerTranslations()
+	window.__nclLang = lang
+}
+
+// --- Component globals ------------------------------------------------------
 
 // NcButton is used in almost every component example to trigger dialogs or
 // demonstrate interactions. Register it globally to avoid per-example imports.

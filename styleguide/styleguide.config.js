@@ -12,6 +12,10 @@ module.exports = {
 
 	components: `${ROOT}/src/components/**/*.vue`,
 
+	styleguideComponents: {
+		Logo: path.join(__dirname, 'components/LogoRenderer.js'),
+	},
+
 	getExampleFilename(componentPath) {
 		const name = path.basename(componentPath, '.vue')
 		const kebab = name.replace(/([A-Z])/g, (_, l, offset) => (offset > 0 ? '-' : '') + l.toLowerCase())
