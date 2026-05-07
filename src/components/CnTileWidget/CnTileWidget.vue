@@ -59,7 +59,6 @@ export default {
 	props: {
 		/**
 		 * Tile configuration object.
-		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor?: string, textColor?: string, linkType: 'app'|'url', linkValue: string }}
 		 */
 		tile: {
 			type: Object,

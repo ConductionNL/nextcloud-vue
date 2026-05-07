@@ -46,6 +46,14 @@ module.exports = {
 	exampleMode: 'collapse',
 	pagePerSection: true,
 
+	// Buble (live-example transpiler) config: pass async/await and object spread through natively.
+	compilerConfig: {
+		objectAssign: 'Object.assign',
+		transforms: {
+			asyncAwait: false,
+		},
+	},
+
 	// Build output — relative to this styleguide/ directory
 	styleguideDir: 'build',
 

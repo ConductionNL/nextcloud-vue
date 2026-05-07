@@ -367,7 +367,6 @@ export default {
 		 * Column definitions for the statistics table.
 		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
 		 *
-		 * @type {Array<{ key: string, label: string, align?: string }>}
 		 */
 		statsColumns: {
 			type: Array,

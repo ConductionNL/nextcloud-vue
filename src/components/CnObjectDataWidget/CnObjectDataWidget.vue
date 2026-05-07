@@ -331,7 +331,6 @@ export default {
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
 		 *
-		 * @type {{ [key: string]: { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string } }}
 		 */
 		overrides: {
 			type: Object,

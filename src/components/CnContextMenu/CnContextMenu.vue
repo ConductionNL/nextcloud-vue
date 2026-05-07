@@ -88,7 +88,6 @@ export default {
 		 * a native tooltip — useful for explaining why an entry is disabled.
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
-		 * @type {Array<{label: string, icon?: object, handler?: Function, disabled?: boolean | Function, visible?: boolean | Function, title?: string | Function, destructive?: boolean}>}
 		 */
 		actions: {
 			type: Array,
