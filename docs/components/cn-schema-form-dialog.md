@@ -31,7 +31,7 @@ It follows the same **two-phase confirm → result pattern** as CnFormDialog and
 
 - **Properties tab**: Sortable table of schema properties with click-to-edit rows. Each property supports type selection, format, required flag, `$ref` references to other schemas, enum values, default values, validation constraints (`minLength`, `maxLength`, `minimum`, `maximum`, `pattern`, `minItems`, `maxItems`), and nested object/array configuration. Properties can be reordered, added, and deleted.
 - **Configuration tab**: Schema description, slug, version, allOf/oneOf/anyOf composition selectors, object field mappings (name, description, image, summary), file upload settings, allowed tags, hard validation toggle, and searchable toggle.
-- **Security tab**: RBAC permissions table with per-group Create/Read/Update/Delete toggles. Includes built-in rows for `public` (anonymous), `user` (authenticated), and `admin` (always full access, disabled). Custom user groups are shown alphabetically between `user` and `admin`. Property-level permissions can also be configured per property via the action menu.
+- **Security tab**: RBAC permissions table with per-group Create/Read/Update/Delete toggles. Includes built-in rows for `public` (anonymous), `authenticated` (all logged-in users), and `admin` (always full access, disabled). Custom user groups are shown alphabetically between `authenticated` and `admin`. An **Advanced** accordion (collapsed by default) exposes conditional access rules (property-value-based runtime rules) and the inherit-from-public toggle. Property-level permissions can also be configured per property via the action menu.
 - **Optional action buttons**: Extend Schema, Analyze Properties, Validate Objects, Delete Objects, Publish Objects, and Delete. Each is toggled via a boolean prop and emits an event — the parent handles the actual logic.
 - **External data via props**: All data dependencies (schemas, registers, user groups, tags) are passed as props. When a data source is unavailable (empty array), dependent fields are automatically disabled or show empty options.
 
@@ -207,9 +207,11 @@ The Security tab provides a Role-Based Access Control (RBAC) table and an advanc
   - "Open access" (success) when no permissions are set
   - "Restrictive schema" (warning) when permissions restrict access to specific groups
 
-**Advanced: Conditional access rules** (accordion, collapsed by default):
+**Advanced: Conditional access rules and inheritance** (accordion, collapsed by default):
 
-Grant access based on object property values evaluated at runtime. Conditions are per-action (create/read/update/delete). Multiple rules per action are OR'd — any matching rule grants access.
+The accordion contains two subsections:
+
+**Conditional access rules** — Grant access based on object property values evaluated at runtime. Conditions are per-action (create/read/update/delete). Multiple rules per action are OR'd — any matching rule grants access.
 
 Each rule has:
 - A **group** (public, authenticated, or a named user group)
@@ -218,6 +220,10 @@ Each rule has:
 Supported operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`
 
 Special value variables: `$now` (current date/time), `$userId` (current user ID), `$organisation` (current organisation)
+
+**Inheritance** — Controls whether authenticated users inherit the permissions of the `public` group.
+
+- **Authenticated users inherit `public` group rights** toggle (default: on). When enabled, logged-in users qualify for any rule that targets the `public` group. Disable to make authenticated access strictly gated by explicit group memberships — anonymous users are unaffected either way. This setting is placed at the bottom of the accordion because it rarely needs to be changed and changing it has significant RBAC implications.
 
 ---
 
