@@ -1,5 +1,21 @@
 name: Release
 
+# Auto-publish @conduction/nextcloud-vue to npm via semantic-release.
+#
+# Authentication: npm Trusted Publisher (OIDC). The runner mints a
+# short-lived ID token via `id-token: write`, the npm plugin exchanges it
+# at the registry for a one-shot publish credential, and provenance is
+# attested via NPM_CONFIG_PROVENANCE=true. There is no NPM_TOKEN secret
+# to rotate.
+#
+# Trust config on npmjs.com expects this workflow at the path
+# `.github/workflows/release.yml` in `ConductionNL/nextcloud-vue`. If you
+# rename or move this file, update the npm Trusted Publisher config.
+#
+# Node 24 is the floor: semantic-release@24 requires Node ^22.14 || ≥24.10
+# and the Trusted Publisher publish path uses npm CLI's own OIDC support,
+# which lands in npm 11.x (bundled with Node 24).
+
 on:
   push:
     branches: [main, beta]
@@ -17,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
@@ -27,6 +43,13 @@ jobs:
     name: Release
     needs: quality
     runs-on: ubuntu-latest
+    permissions:
+      contents: write       # @semantic-release/git pushes the chore(release) bump back to beta/main
+      issues: write
+      pull-requests: write
+      id-token: write       # npm Trusted Publisher (OIDC) + provenance attestation
+    env:
+      NPM_CONFIG_PROVENANCE: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,13 +58,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
