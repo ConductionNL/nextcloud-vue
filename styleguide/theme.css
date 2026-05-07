@@ -50,6 +50,31 @@ div[data-preview] * {
 }
 
 /* -------------------------------------------------------
+   App Shell preview — contain NcContent inside preview box
+   NcContent renders .content as position:fixed (viewport-
+   relative) in a real Nextcloud app. In the styleguide the
+   preview is a small embedded container, so fixed positioning
+   makes the shell escape and overlay the whole page.
+   Override to relative so the shell stays inside its box.
+   NcAppNavigation switches to position:absolute below 1024px
+   (the typical styleguide width), which causes it to float
+   over the content. Override to relative so it stays in the
+   flexbox flow alongside NcAppContent.
+   ------------------------------------------------------- */
+[data-preview="CnAppRoot"] .content {
+  position: relative !important;
+  height: 480px !important;
+  margin: 0 !important;
+  width: 100% !important;
+  top: auto !important;
+  border-radius: 0 !important;
+}
+
+[data-preview="CnAppRoot"] .app-navigation {
+  position: relative !important;
+}
+
+/* -------------------------------------------------------
    Sidebar logo
    The theme has no properties for logo heading size/weight,
    so these cannot be expressed via the theme object.
