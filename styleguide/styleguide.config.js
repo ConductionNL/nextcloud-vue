@@ -78,7 +78,7 @@ module.exports = {
 				},
 				{
 					test: /\.(js|mjs|cjs)$/,
-					exclude: /node_modules\/(?!(@nextcloud|unified|vfile|lowlight|mdast-util|hast-util|unist-util|remark|rehype|micromark|decode-named-character-reference|bail|is-plain-obj|trim|trough|vfile-message|property-information))/,
+					exclude: /node_modules\/(?!(@nextcloud|unified|vfile|lowlight|mdast-util|hast-util|unist-util|remark|rehype|micromark|decode-named-character-reference|bail|is-plain-obj|trim|trough|vfile-message|property-information|vue-codemirror6|codemirror|@codemirror|@lezer|gridstack|axios))/,
 					use: {
 						loader: 'babel-loader',
 						options: {
