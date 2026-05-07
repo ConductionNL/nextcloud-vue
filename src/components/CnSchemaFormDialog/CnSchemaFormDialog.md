@@ -1,5 +1,10 @@
 CnSchemaFormDialog is the full-featured JSON Schema editor with Properties, Configuration, and Security tabs.
 
+The **Security tab** has a group permissions table and an **Advanced: Conditional access rules and inheritance** accordion (collapsed by default). The accordion has two sections:
+
+- **Conditional access rules** — property-value-based runtime grants per action (create/read/update/delete)
+- **Inheritance** — "Authenticated users inherit `public` group rights" toggle (default: on). Placed at the bottom because it rarely needs changing; accidental changes would alter RBAC behaviour significantly.
+
 Basic — create a new schema:
 
 ```vue

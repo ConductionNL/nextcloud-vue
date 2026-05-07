@@ -93,7 +93,7 @@
 				@click="showAdvanced = !showAdvanced">
 				<ChevronDown v-if="showAdvanced" :size="20" class="cn-schema-form__cond-chevron" />
 				<ChevronRight v-else :size="20" class="cn-schema-form__cond-chevron" />
-				<span>{{ t('nextcloud-vue', 'Advanced: Conditional access rulesand inheritance ') }}</span>
+				<span>{{ t('nextcloud-vue', 'Advanced: Conditional access rules and inheritance') }}</span>
 				<span v-if="totalConditionalRules > 0" class="cn-schema-form__cond-count-badge">
 					{{ totalConditionalRules }}
 				</span>
