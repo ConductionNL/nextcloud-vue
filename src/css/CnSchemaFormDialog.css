@@ -402,6 +402,20 @@
   margin-top: 20px;
 }
 
+.cn-schema-form__inherit-from-public {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: var(--color-background-hover);
+  border-radius: var(--border-radius);
+}
+
+.cn-schema-form__inherit-from-public-description {
+  margin-top: 4px;
+  margin-left: 28px;
+  font-size: 0.85rem;
+  color: var(--color-text-maxcontrast);
+}
+
 /* Property-level RBAC Styling - Action Menu Based */
 .cn-schema-form__property-permission-text {
   font-family: monospace;

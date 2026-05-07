@@ -80,6 +80,18 @@
 					<p><strong>{{ t('nextcloud-vue', 'Restrictive schema:') }}</strong> {{ t('nextcloud-vue', 'Access is limited to specified groups only.') }}</p>
 				</CnNoteCard>
 			</div>
+
+			<!-- Inherit-from-public toggle -->
+			<div class="cn-schema-form__inherit-from-public">
+				<NcCheckboxRadioSwitch
+					:checked="inheritFromPublic"
+					@update:checked="setInheritFromPublic">
+					{{ t('nextcloud-vue', 'Authenticated users inherit `public` group rights') }}
+				</NcCheckboxRadioSwitch>
+				<p class="cn-schema-form__inherit-from-public-description">
+					{{ t('nextcloud-vue', 'When on (default), logged-in users qualify for any rule that targets the `public` group. Disable to make authenticated access strictly gated by explicit group memberships — anonymous users are unaffected either way.') }}
+				</p>
+			</div>
 		</div>
 
 		<!-- Advanced: Conditional Access Rules (accordion) -->
@@ -397,10 +409,45 @@ export default {
 				return total + this.getConditionalRules(action).length
 			}, 0)
 		},
+
+		/**
+		 * Resolved schema-level value of `inheritFromPublic`.
+		 *
+		 * The cascade (register / tenant default) lives on the backend; here we
+		 * just surface the schema's explicit value, defaulting to `true` (the
+		 * pre-change behaviour) when unset.
+		 *
+		 * @return {boolean}
+		 */
+		inheritFromPublic() {
+			const auth = this.schemaItem.authorization || {}
+			if (auth.inheritFromPublic === undefined || auth.inheritFromPublic === null) {
+				return true
+			}
+			return Boolean(auth.inheritFromPublic)
+		},
 	},
 	methods: {
 		t,
 		capitalize: _.capitalize,
+
+		/**
+		 * Set the schema-level `inheritFromPublic` flag.
+		 *
+		 * Mutates schemaItem.authorization directly (matches the existing
+		 * permission-table pattern). Storing `true` explicitly (rather than
+		 * deleting the key) keeps the user's choice visible in the JSON view —
+		 * the cascade still treats omitted/null as "unset" if a future operator
+		 * removes it manually.
+		 *
+		 * @param {boolean} value New value for the flag.
+		 */
+		setInheritFromPublic(value) {
+			if (!this.schemaItem.authorization) {
+				this.$set(this.schemaItem, 'authorization', {})
+			}
+			this.$set(this.schemaItem.authorization, 'inheritFromPublic', Boolean(value))
+		},
 
 		availablePropertyOptions(action, ruleIdx) {
 			const rules = this.getConditionalRules(action)
