@@ -41,15 +41,18 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  * cursor positioning). The composable handles the DOM attributes; this component
  * handles the NcActions template boilerplate.
  *
- * @example Dynamic actions (CnIndexPage pattern)
+ * Dynamic actions (CnIndexPage pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   :actions="mergedActions"
  *   :target-item="contextMenuRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
+ * ```
  *
- * @example Custom buttons via slot (Doriath pattern)
+ * Custom buttons via slot (Doriath pattern)
+ * ```vue
  * <CnContextMenu
  *   :open.sync="contextMenuOpen"
  *   @close="closeContextMenu">
@@ -58,6 +61,7 @@ import { NcActions, NcActionButton } from '@nextcloud/vue'
  *     Rename
  *   </NcActionButton>
  * </CnContextMenu>
+ * ```
  */
 export default {
 	name: 'CnContextMenu',

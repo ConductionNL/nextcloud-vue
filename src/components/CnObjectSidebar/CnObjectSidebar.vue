@@ -131,25 +131,31 @@ import CnAuditTrailTab from './CnAuditTrailTab.vue'
  * Tasks, Audit Trail) that integrate with OpenRegister API endpoints bridging to
  * Nextcloud-native APIs. Each tab is a self-contained component.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnObjectSidebar
  *   object-type="pipelinq_lead"
  *   :object-id="leadId"
  *   :register="registerConfig.register"
  *   :schema="registerConfig.schema" />
+ * ```
  *
- * @example Hide specific tabs
+ * Hide specific tabs
+ * ```vue
  * <CnObjectSidebar
  *   object-type="pipelinq_lead"
  *   :object-id="leadId"
  *   :hidden-tabs="['tasks', 'tags']" />
+ * ```
  *
- * @example Override a tab
+ * Override a tab
+ * ```vue
  * <CnObjectSidebar object-type="pipelinq_lead" :object-id="leadId">
  *   <template #tab-notes="{ objectId }">
  *     <MyCustomNotesComponent :id="objectId" />
  *   </template>
  * </CnObjectSidebar>
+ * ```
  */
 export default {
 	name: 'CnObjectSidebar',

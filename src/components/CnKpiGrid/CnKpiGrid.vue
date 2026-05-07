@@ -11,19 +11,26 @@
  * Wraps CnStatsBlock components in a responsive CSS grid. Supports
  * 2, 3, or 4 column layouts that adapt to screen size.
  *
- * @example 4-column dashboard (default)
+ * 4-column dashboard (default)
+ *
+ * ```vue
  * <CnKpiGrid>
  *   <CnStatsBlock title="Cases" :count="42" :icon="BriefcaseOutline" variant="primary" />
  *   <CnStatsBlock title="Contacts" :count="128" :icon="AccountGroup" variant="success" />
  *   <CnStatsBlock title="Tasks" :count="7" :icon="ClipboardCheck" variant="warning" />
  *   <CnStatsBlock title="Overdue" :count="3" :icon="AlertCircle" variant="error" />
  * </CnKpiGrid>
+ * ```
  *
- * @example 2-column layout
+ *
+ * 2-column layout
+ * ```vue
  * <CnKpiGrid :columns="2">
  *   <CnStatsBlock title="Open" :count="15" />
  *   <CnStatsBlock title="Closed" :count="42" />
  * </CnKpiGrid>
+ * ```
+ *
  */
 export default {
 	name: 'CnKpiGrid',

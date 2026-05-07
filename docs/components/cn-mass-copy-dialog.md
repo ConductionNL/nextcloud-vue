@@ -40,9 +40,36 @@ Two-phase mass copy dialog with naming pattern. Allows users to define a naming 
 |--------|-------------|
 | `setResult(\{ success?, error?, results? \})` | Set result per item |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Copy selected (2)</button>
+    <CnMassCopyDialog
+      v-if="open"
+      ref="dlg"
+      :items="[{ id: 1, title: 'Report A' }, { id: 2, title: 'Report B' }]"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassCopyDialog
   ref="massCopyDialog"
   :items="selectedItems"

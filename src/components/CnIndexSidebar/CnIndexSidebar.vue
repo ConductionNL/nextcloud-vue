@@ -185,14 +185,15 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
  * Must be rendered at the App.vue level as a sibling of NcAppContent.
  * Use provide/inject to connect it to page components.
  *
- * @example
  * <!-- Minimal usage — schema drives everything -->
+ * ```vue
  * <CnIndexSidebar
  *   :schema="schema"
  *   :visible-columns="visibleCols"
  *   :search-value="search"
  *   @search="onSearch"
  *   @columns-change="onColumnsChange" />
+ * ```
  *
  * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
  * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).

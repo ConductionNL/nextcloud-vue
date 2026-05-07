@@ -12,13 +12,13 @@ CnAppRoot is the full-shell convenience for the JSON manifest renderer. Apps tha
 |-------|------|-------------------|---------------|
 | `loading` | While `isLoading` is `true` | `<CnAppLoading />` | `#loading` |
 | `dependency-missing` | After loading; any entry in `manifest.dependencies` is not installed/enabled | `<CnDependencyMissing />` | `#dependency-missing` |
-| `shell` | Manifest loaded + dependencies satisfied | `<CnAppNav />` + `<router-view />` | `#menu`, `#header-actions`, `#sidebar`, `#footer` |
+| `shell` | Manifest loaded + dependencies satisfied | `<CnAppNav />` + default slot content | `#menu`, default slot, `#header-actions`, `#sidebar`, `#footer` |
 
 Dependency status is resolved by [`useAppStatus`](../utilities/composables/use-app-status.md) — one call per id in `manifest.dependencies`, cached for the page lifetime.
 
 ## Usage
 
-```vue
+```vue {static}
 <template>
   <CnAppRoot
     :manifest="manifest"
@@ -85,12 +85,13 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 
 | Slot | Scope | Default | Description |
 |------|-------|---------|-------------|
+| *(default)* | — | — | Page content area inside `NcAppContent`. In real apps, pass `<router-view />` here. |
 | `loading` | — | `<CnAppLoading />` | Shown during the loading phase |
 | `dependency-missing` | `{ dependencies }` | `<CnDependencyMissing :dependencies />` | Shown when any dependency is missing or disabled |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
-| `header-actions` | — | — | Mounted inside `NcAppContent`, alongside `<router-view />` |
+| `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | — | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`) |
-| `footer` | — | — | Mounted inside `NcAppContent`, after `<router-view />` |
+| `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
 
 ## Related
 

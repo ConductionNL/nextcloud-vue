@@ -39,7 +39,7 @@ import 'gridstack/dist/gridstack.min.css'
  * changes. Does NOT handle widget rendering — that's done by the parent
  * via the `#widget` scoped slot.
  *
- * @example
+ * ```vue
  * <CnDashboardGrid
  *   :layout="placements"
  *   :editable="isEditing"
@@ -48,6 +48,7 @@ import 'gridstack/dist/gridstack.min.css'
  *     <MyWidget :config="item" />
  *   </template>
  * </CnDashboardGrid>
+ * ```
  */
 export default {
 	name: 'CnDashboardGrid',

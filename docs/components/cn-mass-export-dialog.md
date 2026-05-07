@@ -37,9 +37,35 @@ Export format selection dialog. Lets users pick a format and triggers export for
 |--------|-------------|
 | `setResult(\{ success?, error?, data? \})` | Set export result |
 
-## Usage
+## Live demo
 
 ```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Export</button>
+    <CnMassExportDialog
+      v-if="open"
+      ref="dlg"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
+## Usage
+
+```vue {static}
 <CnMassExportDialog
   :items="selectedItems"
   :formats="['json', 'csv', 'xlsx']"

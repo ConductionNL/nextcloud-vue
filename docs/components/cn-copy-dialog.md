@@ -44,3 +44,30 @@ Two-phase single-item copy dialog with naming pattern selector. User picks a nam
 | Method | Description |
 |--------|-------------|
 | `setResult(\{ success?, error? \})` | Set operation result |
+
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Copy item</button>
+    <CnCopyDialog
+      v-if="open"
+      ref="dlg"
+      :item="{ id: 1, title: 'Annual Report 2024' }"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() { return { open: false } },
+  methods: {
+    async onConfirm({ id, newName }) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```

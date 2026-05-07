@@ -58,19 +58,23 @@ import CnDataTable from '../CnDataTable/CnDataTable.vue'
 /**
  * CnTableWidget — Data table widget with card wrapper and dual data sourcing.
  *
- * @example External data mode
+ * External data mode
+ * ```vue
  * <CnTableWidget
  *   title="Related Skills"
  *   :rows="skillRows"
  *   :columns="skillColumns"
  *   :view-all-route="{ name: 'Skills' }" />
+ * ```
  *
- * @example Self-fetch mode
+ * Self-fetch mode
+ * ```vue
  * <CnTableWidget
  *   title="Documents"
  *   register="9"
  *   schema-id="42"
  *   :limit="5" />
+ * ```
  */
 export default {
 	name: 'CnTableWidget',

@@ -11,6 +11,7 @@
 					@focus="showSuggestions = true" />
 				<NcButton
 					type="primary"
+					:aria-label="addTagPlaceholder"
 					:disabled="!newTagName.trim() || saving"
 					@click="addTag">
 					<template #icon>
@@ -121,6 +122,7 @@ export default {
 		},
 
 		async fetchAvailableTags() {
+			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(`${this.apiBase}/tags`, { headers: buildHeaders() })
 				if (response.ok) {

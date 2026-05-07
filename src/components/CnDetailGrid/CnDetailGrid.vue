@@ -57,14 +57,17 @@ import { translate as t } from '@nextcloud/l10n'
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
  *
- * @example Simple data-driven grid
+ * Simple data-driven grid
+ * ```vue
  * <CnDetailGrid :items="[
  *   { label: 'ID', value: '12345' },
  *   { label: 'Status', value: 'Active' },
  *   { label: 'Created', value: '2024-01-15' },
  * ]" />
+ * ```
  *
- * @example Grid with custom slot content
+ * Grid with custom slot content
+ * ```vue
  * <CnDetailGrid :items="[
  *   { label: 'ID', value: item.id },
  *   { label: 'Action' },
@@ -73,9 +76,12 @@ import { translate as t } from '@nextcloud/l10n'
  *     <CnStatusBadge :label="item.action" />
  *   </template>
  * </CnDetailGrid>
+ * ```
  *
- * @example Horizontal row layout
+ * Horizontal row layout
+ * ```vue
  * <CnDetailGrid layout="horizontal" :items="fields" />
+ * ```
  */
 export default {
 	name: 'CnDetailGrid',

@@ -99,13 +99,16 @@ import { buildHeaders } from '../../utils/index.js'
  * Shows up to 5 recent notes with add/delete functionality.
  * Integrates CnUserActionMenu on author names for quick communication.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnNotesCard
  *   register-id="uuid-register"
  *   schema-id="uuid-schema"
  *   object-id="uuid-object" />
+ * ```
  *
- * @example With sidebar sync
+ * With sidebar sync
+ * ```vue
  * <CnNotesCard
  *   register-id="reg"
  *   schema-id="schema"
@@ -113,6 +116,7 @@ import { buildHeaders } from '../../utils/index.js'
  *   @note-added="refreshNotes"
  *   @note-deleted="refreshNotes"
  *   @show-all="openSidebarNotesTab" />
+ * ```
  */
 export default {
 	name: 'CnNotesCard',

@@ -104,18 +104,22 @@ import { buildHeaders } from '../../utils/index.js'
  * Shows up to 5 tasks sorted by due date with status indicators.
  * Highlights overdue tasks and integrates CnUserActionMenu on assignees.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnTasksCard
  *   register-id="uuid-register"
  *   schema-id="uuid-schema"
  *   object-id="uuid-object" />
+ * ```
  *
- * @example With sidebar sync
+ * With sidebar sync
+ * ```vue
  * <CnTasksCard
  *   register-id="reg"
  *   schema-id="schema"
  *   object-id="obj"
  *   @show-all="openSidebarTasksTab" />
+ * ```
  */
 export default {
 	name: 'CnTasksCard',

@@ -35,7 +35,7 @@
  * props and slots — no store dependencies. Consumer wraps this and handles
  * navigation/store logic.
  *
- * @example
+ * ```vue
  * <CnConfigurationCard title="Database Configuration">
  *   <template #actions>
  *     <NcActions><NcActionButton @click="edit">Edit</NcActionButton></NcActions>
@@ -45,6 +45,7 @@
  *   </template>
  *   <p>PostgreSQL 15.2 on localhost:5432</p>
  * </CnConfigurationCard>
+ * ```
  */
 export default {
 	name: 'CnConfigurationCard',

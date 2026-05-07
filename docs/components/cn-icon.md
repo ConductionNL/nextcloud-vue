@@ -18,7 +18,7 @@ Renders an MDI (Material Design Icons) icon by PascalCase name from an extensibl
 
 ## How It Works
 
-CnIcon maintains an internal `_registry` map of `\{ PascalCaseName: VueComponent \}`. Only `HelpCircleOutline` is pre-registered as the fallback. Apps add their own icons at boot time using `registerIcons()`.
+CnIcon maintains an internal `_registry` map of `{ PascalCaseName: VueComponent }`. Only `HelpCircleOutline` is pre-registered as the fallback. Apps add their own icons at boot time using `registerIcons()`.
 
 ## Registering Icons
 
@@ -37,7 +37,7 @@ registerIcons({ AccountGroupOutline, FileDocumentOutline, Cog })
 
 ### Finding Icon Names
 
-Browse the full MDI icon set at [materialdesignicons.com](https://materialdesignicons.com/). Convert kebab-case to PascalCase:
+Browse the full MDI icon set at [pictogrammers.com/library/mdi/](https://pictogrammers.com/library/mdi/). Convert kebab-case to PascalCase:
 
 | MDI Name | Import Path | Registry Key |
 |----------|-------------|--------------|

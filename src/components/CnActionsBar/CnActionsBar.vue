@@ -122,7 +122,7 @@ import Export from 'vue-material-design-icons/Export.vue'
 /**
  * CnActionsBar — Reusable actions toolbar with count, mass actions, and primary actions.
  *
- * @example
+ * ```vue
  * <CnActionsBar
  *   :pagination="pagination"
  *   :object-count="items.length"
@@ -130,6 +130,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  *   add-icon="AccountGroup"
  *   @add="createNew"
  *   @refresh="reload" />
+ * ```
  */
 export default {
 	name: 'CnActionsBar',
@@ -248,6 +249,8 @@ export default {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
 	},
+
+	methods: { t },
 }
 </script>
 
