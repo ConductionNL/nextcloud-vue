@@ -330,7 +330,7 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
-		 *
+		 * @type {object}
 		 */
 		overrides: {
 			type: Object,

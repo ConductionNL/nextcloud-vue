@@ -230,6 +230,7 @@ export default {
 		},
 		/**
 		 * Groups of object types that share a register.
+		 * @type {Array<{ name: string, description: string, registerConfigKey: string, types: Array<{ slug: string, label: string, description: string, configKey: string }> }>}
 		 */
 		groups: {
 			type: Array,

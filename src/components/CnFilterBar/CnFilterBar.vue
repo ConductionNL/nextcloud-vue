@@ -102,6 +102,7 @@ export default {
 		/**
 		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
 		 * optional `options` (for select), and optional `value`.
+		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,

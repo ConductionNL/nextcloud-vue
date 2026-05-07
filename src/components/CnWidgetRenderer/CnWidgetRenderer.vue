@@ -71,6 +71,7 @@ export default {
 	props: {
 		/**
 		 * Nextcloud widget object from the Dashboard API.
+		 * @type {{ id: string, title: string, iconClass: string, iconUrl: string, widgetUrl: string, itemIconsRound: boolean, itemApiVersions: number[], reloadInterval: number, buttons: Array }}
 		 */
 		widget: {
 			type: Object,

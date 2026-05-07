@@ -207,7 +207,7 @@ export default {
 		 * Custom widgets: `{ id: 'my-widget', title: 'My Widget', type: 'custom' }`
 		 * NC API widgets: `{ id: 'calendar', title: 'Calendar', itemApiVersions: [1,2], ... }`
 		 * Tile widgets: `{ id: 'tile-files', type: 'tile', title: 'Files', icon: 'M12...', iconType: 'svg', backgroundColor: '#0082c9', textColor: '#fff', linkType: 'app', linkValue: 'files' }`
-		 *
+		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number }>}
 		 */
 		widgets: {
 			type: Array,
@@ -219,7 +219,7 @@ export default {
 		 * Each item: `{ id: 'unique-id', widgetId: 'my-widget', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }`
 		 *
 		 * Additional properties (showTitle, styleConfig, tile config) are passed through.
-		 *
+		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
 			type: Array,
