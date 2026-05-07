@@ -8,7 +8,7 @@ Horizontal timeline — shows progress through sequential stages:
     { id: 'approval', label: 'Approval' },
     { id: 'closing', label: 'Closing' },
   ]"
-  current-stage-id="review" />
+  current-stage="review" />
 ```
 
 Vertical orientation:
@@ -22,7 +22,7 @@ Vertical orientation:
     { id: 'approved', label: 'Approved' },
     { id: 'completed', label: 'Completed' },
   ]"
-  current-stage-id="processing" />
+  current-stage="processing" />
 ```
 
 Clickable — navigate between stages:
@@ -32,9 +32,9 @@ Clickable — navigate between stages:
   <div>
     <CnTimelineStages
       :stages="stages"
-      :current-stage-id="current"
+      :current-stage="current"
       :clickable="true"
-      @stage-click="current = $event.id" />
+      @stage-click="current = $event.stage.id" />
     <p style="margin-top: 12px; font-size: 13px; color: var(--color-text-maxcontrast);">
       Current: {{ current }}
     </p>
@@ -69,7 +69,7 @@ Small size:
     { id: 'review', label: 'Review' },
     { id: 'done', label: 'Done' },
   ]"
-  current-stage-id="in-progress" />
+  current-stage="in-progress" />
 ```
 
 Custom aria label and custom indicator slot:
@@ -82,7 +82,7 @@ Custom aria label and custom indicator slot:
     { id: 'open', label: 'Open' },
     { id: 'closed', label: 'Closed' },
   ]"
-  current-stage-id="open">
+  current-stage="open">
   <template #indicator="{ stage, index, state }">
     <span :title="state">{{ index + 1 }}</span>
   </template>
@@ -97,4 +97,4 @@ Custom aria label and custom indicator slot:
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `indicator` | `{ stage, index, state }` | Override the stage indicator (checkmark/dot). `state` is `'completed'`, `'current'`, or `'upcoming'` |
+| `indicator` | `{ stage, index, state }` | Override the indicator's inner content (checkmark/dot). The 32px (or 20px for `size="small"`) circular wrapper is preserved, so custom content inherits sizing and stays aligned with the track line. `state` is `'completed'`, `'current'`, or `'upcoming'` |

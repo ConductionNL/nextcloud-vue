@@ -24,13 +24,14 @@
 			:tabindex="clickable ? (focusedIndex === index ? 0 : -1) : undefined"
 			@click="onStageClick(stage, index)"
 			@keydown="onKeydown($event, stage, index)">
-			<!-- Indicator -->
-			<slot
-				name="indicator"
-				:stage="stage"
-				:index="index"
-				:state="stageStates[index]">
-				<span class="cn-timeline-stages__indicator">
+			<!-- Indicator: wrapper provides consistent 32px (or 20px for small) circle.
+			     Slot replaces only the inner content, so custom indicators inherit sizing. -->
+			<span class="cn-timeline-stages__indicator">
+				<slot
+					name="indicator"
+					:stage="stage"
+					:index="index"
+					:state="stageStates[index]">
 					<!-- Completed: checkmark SVG -->
 					<svg
 						v-if="stageStates[index] === 'completed'"
@@ -45,8 +46,8 @@
 					<span
 						v-else-if="stageStates[index] === 'current'"
 						class="cn-timeline-stages__dot" />
-				</span>
-			</slot>
+				</slot>
+			</span>
 			<!-- Label + Subtitle -->
 			<slot
 				name="label"
