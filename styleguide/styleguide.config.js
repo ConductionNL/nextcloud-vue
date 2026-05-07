@@ -42,6 +42,15 @@ module.exports = {
 		return findInDir(docsRoot) || inComponents
 	},
 
+	template: {
+        head: {
+            raw: `<script>
+                window.OC = { config: { version: '30.0.0' } };
+                window.appName = 'nextcloud-vue-styleguide';
+            </script>`,
+        },
+    },
+
 	usageMode: 'collapse',
 	exampleMode: 'collapse',
 	pagePerSection: true,
