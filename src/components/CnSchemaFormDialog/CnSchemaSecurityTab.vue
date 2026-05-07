@@ -80,21 +80,9 @@
 					<p><strong>{{ t('nextcloud-vue', 'Restrictive schema:') }}</strong> {{ t('nextcloud-vue', 'Access is limited to specified groups only.') }}</p>
 				</CnNoteCard>
 			</div>
-
-			<!-- Inherit-from-public toggle -->
-			<div class="cn-schema-form__inherit-from-public">
-				<NcCheckboxRadioSwitch
-					:checked="inheritFromPublic"
-					@update:checked="setInheritFromPublic">
-					{{ t('nextcloud-vue', 'Authenticated users inherit `public` group rights') }}
-				</NcCheckboxRadioSwitch>
-				<p class="cn-schema-form__inherit-from-public-description">
-					{{ t('nextcloud-vue', 'When on (default), logged-in users qualify for any rule that targets the `public` group. Disable to make authenticated access strictly gated by explicit group memberships — anonymous users are unaffected either way.') }}
-				</p>
-			</div>
 		</div>
 
-		<!-- Advanced: Conditional Access Rules (accordion) -->
+		<!-- Advanced: Conditional Access Rules & Inheritance(accordion) -->
 		<div class="cn-schema-form__conditional-section">
 			<!--
 				type="button" prevents browser from treating this as a form submit button,
@@ -105,13 +93,14 @@
 				@click="showAdvanced = !showAdvanced">
 				<ChevronDown v-if="showAdvanced" :size="20" class="cn-schema-form__cond-chevron" />
 				<ChevronRight v-else :size="20" class="cn-schema-form__cond-chevron" />
-				<span>{{ t('nextcloud-vue', 'Advanced: Conditional access rules') }}</span>
+				<span>{{ t('nextcloud-vue', 'Advanced: Conditional access rulesand inheritance ') }}</span>
 				<span v-if="totalConditionalRules > 0" class="cn-schema-form__cond-count-badge">
 					{{ totalConditionalRules }}
 				</span>
 			</button>
 
 			<div v-show="showAdvanced" class="cn-schema-form__cond-accordion-body">
+				<h3>{{ t('nextcloud-vue', 'Conditional access rules') }}</h3>
 				<CnNoteCard type="info">
 					<p>{{ t('nextcloud-vue', "Grant access based on object property values evaluated at runtime. Multiple rules per action are OR'd — any matching rule grants access.") }}</p>
 					<p>
@@ -269,6 +258,19 @@
 							{{ t('nextcloud-vue', 'Add condition') }}
 						</NcButton>
 					</div>
+				</div>
+
+				<h3>{{ t('nextcloud-vue', 'Inheritance') }}</h3>
+				<!-- Inherit-from-public toggle -->
+				<div class="cn-schema-form__inherit-from-public">
+					<NcCheckboxRadioSwitch
+						:checked="inheritFromPublic"
+						@update:checked="setInheritFromPublic">
+						{{ t('nextcloud-vue', 'Authenticated users inherit `public` group rights') }}
+					</NcCheckboxRadioSwitch>
+					<p class="cn-schema-form__inherit-from-public-description">
+						{{ t('nextcloud-vue', 'When on (default), logged-in users qualify for any rule that targets the `public` group. Disable to make authenticated access strictly gated by explicit group memberships — anonymous users are unaffected either way.') }}
+					</p>
 				</div>
 			</div>
 		</div>
