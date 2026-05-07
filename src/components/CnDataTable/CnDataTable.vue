@@ -162,7 +162,7 @@ export default {
 		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
-		 * @type {Array<{key: string, label: string, sortable?: boolean, width?: string, class?: string, cellClass?: string}>}
+		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}>}
 		 */
 		columns: {
 			type: Array,

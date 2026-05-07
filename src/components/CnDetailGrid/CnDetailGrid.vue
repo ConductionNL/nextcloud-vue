@@ -89,7 +89,7 @@ export default {
 	props: {
 		/**
 		 * Array of detail items to render.
-		 * @type {Array<{ label: string, value?: string|number }>}
+		 * @type {Array<{ label: string, value: string|number }>}
 		 */
 		items: {
 			type: Array,

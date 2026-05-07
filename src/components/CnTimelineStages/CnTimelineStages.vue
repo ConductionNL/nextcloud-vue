@@ -104,7 +104,7 @@ export default {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
 		 * Optional `subtitle` for secondary text below the label.
-		 * @type {{ id: string, label: string, subtitle?: string }[]}
+		 * @type {{ id: string, label: string, subtitle: string }[]}
 		 */
 		stages: {
 			type: Array,

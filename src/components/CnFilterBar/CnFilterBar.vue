@@ -100,8 +100,9 @@ export default {
 
 	props: {
 		/**
-		 * Filter definitions.
-		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options?: Array, value?: *}>}
+		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
+		 * optional `options` (for select), and optional `value`.
+		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,
@@ -145,7 +146,7 @@ export default {
 		onFilterChange(key, value) {
 			/**
 			 * @event filter-change Emitted when any filter changes.
-			 * @type {{ key: string, value: * }}
+			 * @type {{ key: string, value: any }}
 			 */
 			this.$emit('filter-change', { key, value })
 		},

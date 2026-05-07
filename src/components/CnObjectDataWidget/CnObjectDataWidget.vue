@@ -330,8 +330,7 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
-		 *
-		 * @type {{ [key: string]: { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string } }}
+		 * @type {object}
 		 */
 		overrides: {
 			type: Object,

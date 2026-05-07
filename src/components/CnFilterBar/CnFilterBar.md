@@ -70,7 +70,7 @@ export default {
   methods: {
     onFilterChange({ key, value }) {
       if (key === 'status') {
-        this.activeStatus = value?.value || null
+        this.activeStatus = (value && value.value) || null
         this.filters[0].value = value
       }
       if (key === 'active') {

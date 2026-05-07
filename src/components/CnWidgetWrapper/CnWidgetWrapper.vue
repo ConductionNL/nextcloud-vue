@@ -150,7 +150,7 @@ export default {
 		},
 		/**
 		 * Style configuration for the wrapper.
-		 * @type {{ backgroundColor?: string, borderStyle?: string, borderWidth?: number, borderColor?: string, borderRadius?: number, padding?: { top: number, right: number, bottom: number, left: number } }}
+		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {
 			type: Object,

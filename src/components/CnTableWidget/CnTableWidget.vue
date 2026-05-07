@@ -101,8 +101,7 @@ export default {
 		},
 		/**
 		 * Column definitions for CnDataTable.
-		 *
-		 * @type {{ key: string, label: string, sortable?: boolean }[]}
+		 * @type {{ key: string, label: string, sortable: boolean }[]}
 		 */
 		columns: {
 			type: Array,
