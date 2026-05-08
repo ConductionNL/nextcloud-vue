@@ -31,6 +31,8 @@ export const NcContent = createStub('NcContent')
 export const NcEmptyContent = createStub('NcEmptyContent')
 export const NcActions = createStub('NcActions')
 export const NcActionButton = createStub('NcActionButton')
+export const NcSelect = createStub('NcSelect')
+export const NcSettingsSection = createStub('NcSettingsSection')
 
 export default {
 	NcDialog,
@@ -45,4 +47,6 @@ export default {
 	NcEmptyContent,
 	NcActions,
 	NcActionButton,
+	NcSelect,
+	NcSettingsSection,
 }

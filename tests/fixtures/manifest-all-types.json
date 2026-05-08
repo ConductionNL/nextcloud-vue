@@ -1,0 +1,98 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.1.0",
+	"dependencies": ["openregister"],
+	"menu": [
+		{ "id": "decisions", "label": "myapp.menu.decisions", "icon": "icon-checkmark", "route": "decisions-index", "order": 10 },
+		{ "id": "decisions-detail", "label": "myapp.menu.detail", "route": "decisions-detail", "order": 11 },
+		{ "id": "overview", "label": "myapp.menu.overview", "route": "overview", "order": 20 },
+		{ "id": "logs", "label": "myapp.menu.logs", "route": "audit-logs", "order": 30 },
+		{ "id": "settings-menu", "label": "myapp.menu.settings", "route": "app-settings", "order": 90, "section": "settings" },
+		{ "id": "chat-menu", "label": "myapp.menu.chat", "route": "chat-thread", "order": 40 },
+		{ "id": "files-menu", "label": "myapp.menu.files", "route": "files-browser", "order": 50 },
+		{ "id": "custom-menu", "label": "myapp.menu.custom", "route": "custom-page", "order": 99 }
+	],
+	"pages": [
+		{
+			"id": "decisions-index",
+			"route": "/decisions",
+			"type": "index",
+			"title": "myapp.decisions.title",
+			"config": {
+				"register": "decisions",
+				"schema": "decision",
+				"columns": ["title", "status", "deadline"]
+			}
+		},
+		{
+			"id": "decisions-detail",
+			"route": "/decisions/:id",
+			"type": "detail",
+			"title": "myapp.decisions.detail",
+			"config": { "register": "decisions", "schema": "decision" }
+		},
+		{
+			"id": "overview",
+			"route": "/",
+			"type": "dashboard",
+			"title": "myapp.overview.title",
+			"config": {
+				"widgets": [{ "id": "kpis", "title": "KPIs", "type": "custom" }],
+				"layout": []
+			}
+		},
+		{
+			"id": "audit-logs",
+			"route": "/logs",
+			"type": "logs",
+			"title": "myapp.logs.title",
+			"config": {
+				"register": "audit-trail-immutable",
+				"schema": "audit-event"
+			}
+		},
+		{
+			"id": "app-settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "myapp.settings.title",
+			"config": {
+				"sections": [
+					{
+						"title": "myapp.settings.general",
+						"fields": [
+							{ "key": "feature_x_enabled", "type": "boolean", "label": "myapp.settings.feature_x" }
+						]
+					}
+				],
+				"saveEndpoint": "/index.php/apps/myapp/api/settings"
+			}
+		},
+		{
+			"id": "chat-thread",
+			"route": "/chat/:id",
+			"type": "chat",
+			"title": "myapp.chat.title",
+			"config": {
+				"conversationSource": "/index.php/apps/spreed/embed/abc123"
+			}
+		},
+		{
+			"id": "files-browser",
+			"route": "/files",
+			"type": "files",
+			"title": "myapp.files.title",
+			"config": {
+				"folder": "/myapp/uploads",
+				"allowedTypes": ["application/pdf", "image/*"]
+			}
+		},
+		{
+			"id": "custom-page",
+			"route": "/custom",
+			"type": "custom",
+			"title": "myapp.custom.title",
+			"component": "MyCustomPage"
+		}
+	]
+}

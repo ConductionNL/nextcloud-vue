@@ -13,6 +13,8 @@
  *  - Required fields on menu items and pages are present.
  *  - `dependencies` (when present) is an array of strings.
  *  - `pages[].component` is required when `type` is "custom".
+ *  - Per-type `config` shape rules for the built-in types `logs`,
+ *    `settings`, `chat`, `files` (REQ from manifest-page-type-extensions).
  *
  * The richer schema constraints (`additionalProperties: false`, `format`
  * URI, etc.) are enforced by the BE / hydra CI validators that consume
@@ -90,6 +92,12 @@ export function validateManifest(manifest, options = {}) {
 			if (page.type === 'custom' && typeof page.component !== 'string') {
 				errors.push(`/pages/${index}/component is required when type is "custom"`)
 			}
+
+			// Per-type config-shape validation for built-in extended types.
+			// Each rule pushes a single, actionable error pointing at the
+			// JSON-path of the missing/invalid field. See REQ from
+			// `manifest-page-type-extensions` spec.
+			validateTypeConfig(page, index, errors)
 		})
 	}
 
@@ -110,4 +118,81 @@ export function validateManifest(manifest, options = {}) {
 
 function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * Validate a page's `config` object against per-type rules for the
+ * built-in extended types: `logs`, `settings`, `chat`, `files`.
+ *
+ * Skips silently for any other type (including the original
+ * `index | detail | dashboard | custom`) — those have free-form
+ * `config` and are validated by their target component at runtime.
+ *
+ * Errors include both the JSON-path style (`/pages/N/config/...`) and
+ * the bracket-style hint (`pages[N].config: ...`) from the
+ * manifest-page-type-extensions spec scenarios so consumers searching
+ * for either form find the message.
+ *
+ * @param {object} page The page entry being validated.
+ * @param {number} index The page's index in `pages[]`.
+ * @param {string[]} errors The error array to push to (mutated).
+ */
+function validateTypeConfig(page, index, errors) {
+	if (!page || typeof page.type !== 'string') return
+	const cfg = isPlainObject(page.config) ? page.config : null
+	const pathBracket = `pages[${index}].config`
+	const pathSlash = `/pages/${index}/config`
+
+	switch (page.type) {
+	case 'logs': {
+		const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
+		const hasSource = cfg && typeof cfg.source === 'string'
+		if (!hasRegisterSchema && !hasSource) {
+			errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
+		}
+		break
+	}
+	case 'settings': {
+		if (!cfg || !Array.isArray(cfg.sections)) {
+			errors.push(`${pathSlash}/sections: ${pathBracket}.sections: required, must be an array`)
+			break
+		}
+		if (cfg.sections.length === 0) {
+			errors.push(`${pathSlash}/sections: ${pathBracket}.sections: must contain at least 1 section`)
+			break
+		}
+		cfg.sections.forEach((section, sIndex) => {
+			if (!isPlainObject(section)) {
+				errors.push(`${pathSlash}/sections/${sIndex}: must be an object`)
+				return
+			}
+			if (typeof section.title !== 'string') {
+				errors.push(`${pathSlash}/sections/${sIndex}/title: required, must be a string`)
+			}
+			if (!Array.isArray(section.fields)) {
+				errors.push(`${pathSlash}/sections/${sIndex}/fields: required, must be an array`)
+			}
+		})
+		break
+	}
+	case 'chat': {
+		const hasConversationSource = cfg && typeof cfg.conversationSource === 'string'
+		const hasPostUrl = cfg && typeof cfg.postUrl === 'string'
+		if (!hasConversationSource && !hasPostUrl) {
+			errors.push(`${pathSlash}: ${pathBracket}: must declare conversationSource or postUrl`)
+		}
+		break
+	}
+	case 'files': {
+		if (!cfg || typeof cfg.folder !== 'string' || cfg.folder.length === 0) {
+			errors.push(`${pathSlash}/folder: ${pathBracket}.folder: required`)
+		}
+		break
+	}
+	default:
+		// No per-type rules for index/detail/dashboard/custom or
+		// consumer-defined types; their `config` shape is enforced
+		// by the target component at runtime (or by a future spec).
+		break
+	}
 }

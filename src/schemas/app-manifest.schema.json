@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema.",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -119,7 +119,7 @@
 				},
 				"type": {
 					"type": "string",
-					"description": "Page type. Must match a key in the renderer's `pageTypes` registry (library defaults: \"index\", \"detail\", \"dashboard\") OR be \"custom\" — in which case `component` resolves against the customComponents registry. Library extensions add their built-in types to `defaultPageTypes`; consumer apps pass a merged map via the `pageTypes` prop on CnAppRoot / CnPageRenderer."
+					"description": "Page type. Must match a key in the renderer's `pageTypes` registry (library defaults: \"index\", \"detail\", \"dashboard\", \"logs\", \"settings\", \"chat\", \"files\") OR be \"custom\" — in which case `component` resolves against the customComponents registry. Library extensions add their built-in types to `defaultPageTypes`; consumer apps pass a merged map via the `pageTypes` prop on CnAppRoot / CnPageRenderer."
 				},
 				"title": {
 					"type": "string",
@@ -127,7 +127,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions }. For type='detail': { register, schema, tabs }. For type='dashboard': { widgets, layout }. For type='custom': any shape the custom component expects.",
+					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions }. For type='detail': { register, schema, tabs }. For type='dashboard': { widgets, layout }. For type='logs': { register?, schema?, source?, columns? } — one of register+schema OR source MUST be set. For type='settings': { sections: array<{ title, fields[] }>, saveEndpoint? }. For type='chat': { conversationSource?, postUrl?, schema? } — one of conversationSource OR postUrl MUST be set. For type='files': { folder, allowedTypes? }. For type='custom': any shape the custom component expects.",
 					"additionalProperties": true
 				},
 				"component": {

@@ -161,9 +161,131 @@ Key fields:
 - **`version`** — semver of the manifest content. Bump when meaningful changes land.
 - **`dependencies`** — Nextcloud app ids that must be installed and enabled. CnAppRoot's dependency-check phase blocks the shell when any are missing.
 - **`menu[]`** — top-level nav entries. `id`, `label` (i18n key), optional `icon`, `route` (vue-router route name = page.id), `order`, `permission`, one level of `children[]`.
-- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
+- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | logs | settings | chat | files | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
 
 The closed `type` enum is the main defense against DSL creep. Anything bespoke goes in a `type: "custom"` page that resolves a component name from the registry you pass to `CnAppRoot`.
+
+## Type-selection guide
+
+When a consumer faces a new page, the choice tree is:
+
+1. **Is it primarily a list of objects from a known register/schema?** → `index`.
+2. **Is it the editor for a single object?** → `detail`.
+3. **Is it a dashboard of widgets?** → `dashboard`.
+4. **Is it a read-only audit-trail / activity-log view?** → `logs`.
+5. **Is it admin / system config?** → `settings`.
+6. **Is it a conversation thread?** → `chat`.
+7. **Is it a file browser?** → `files`.
+8. **None of the above** → `custom` + a registry component.
+
+The criterion separating built-in from custom is: **does the page have a declarative data shape?** Built-ins do; customs don't. Reach for a built-in whenever your page's data shape fits one — the manifest stays declarative, and the App Builder admin UI can reason about the page automatically. Pick `custom` only when none of the seven shapes fit.
+
+## Migrating from `type: "custom"` to a built-in
+
+Every app's first manifest pass ends up with more `type: "custom"` pages than the team would like. Most settings / admin pages, audit trails, file browsers, and embedded chat threads should move to a built-in once the manifest schema supports them. Here's how each migration looks:
+
+### `custom` → `logs`
+
+Before — bespoke audit-trail page in the consumer:
+```jsonc
+{ "id": "audit", "type": "custom", "component": "AuditPage", "config": {} }
+```
+
+After — manifest-only:
+```jsonc
+{
+  "id": "audit",
+  "type": "logs",
+  "title": "myapp.audit.title",
+  "config": {
+    "register": "audit-trail-immutable",
+    "schema": "audit-event"
+  }
+}
+```
+
+Drop the `AuditPage.vue` component from the registry. The default `CnLogsPage` renders the same five-column timeline. If the consumer's existing page had bespoke filtering, expose it via a custom `actionsComponent` instead.
+
+### `custom` → `settings`
+
+Before — every app's `views/SettingsPage.vue`:
+```jsonc
+{ "id": "settings", "type": "custom", "component": "SettingsPage" }
+```
+
+After — declared sections:
+```jsonc
+{
+  "id": "settings",
+  "type": "settings",
+  "title": "myapp.settings.title",
+  "config": {
+    "sections": [
+      {
+        "title": "myapp.settings.general",
+        "fields": [
+          { "key": "feature_x", "type": "boolean", "label": "myapp.settings.feature_x" }
+        ]
+      }
+    ],
+    "saveEndpoint": "/index.php/apps/myapp/api/settings"
+  }
+}
+```
+
+Migrate field-by-field. For complex inputs (JSON editors, color pickers), keep `type: "settings"` and fill the `#field-<key>` slot with the bespoke input — you don't have to fall back to `custom` just because one field is non-trivial.
+
+### `custom` → `chat`
+
+Before — a Talk-embed page:
+```jsonc
+{ "id": "chat", "type": "custom", "component": "TalkEmbed", "config": { "url": "..." } }
+```
+
+After:
+```jsonc
+{
+  "id": "chat",
+  "type": "chat",
+  "title": "myapp.chat.title",
+  "config": { "conversationSource": "/index.php/apps/spreed/embed/abc123" }
+}
+```
+
+Native thread renderers (no iframe) still need `type: "chat"` plus a `#conversation` slot fill — that stays inside the manifest convention while letting you bring your own UI.
+
+### `custom` → `files`
+
+Before — an in-app file browser:
+```jsonc
+{ "id": "uploads", "type": "custom", "component": "UploadsPage" }
+```
+
+After:
+```jsonc
+{
+  "id": "uploads",
+  "type": "files",
+  "title": "myapp.uploads.title",
+  "config": {
+    "folder": "/myapp/uploads",
+    "allowedTypes": ["application/pdf"]
+  }
+}
+```
+
+The default listing is read-only. If you need upload / rename / delete, fill the `#files-view` slot with your existing file-picker — the slot scope (`{ folder, allowedTypes, files, loading, error, refresh }`) gives you everything the manifest declared without re-reading it.
+
+### When to stick with `custom`
+
+Some shapes don't fit any built-in:
+
+- **Drag-and-drop kanban / pipeline editors** (Pipelinq) — defer to a future `kanban` type.
+- **Org-tree / org-chart views** — no built-in today.
+- **Map views** (geographic data) — no built-in today.
+- **Multi-step wizards** — keep custom; wizards are too app-specific for a closed shape.
+
+`type: "custom"` will always exist as the escape hatch. The goal of the manifest convention is to keep its share under ~30% across the fleet.
 
 ## Custom-component registry
 
