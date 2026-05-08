@@ -97,3 +97,152 @@ describe('validateManifest (FE)', () => {
 		expect(result).toEqual({ valid: false, errors: ['manifest must be an object'] })
 	})
 })
+
+describe('validateManifest — manifest-abstract-sidebar additions', () => {
+	const baseManifest = (page) => ({
+		version: '1.0.1',
+		menu: [],
+		pages: [page],
+	})
+
+	describe('index page sidebar config', () => {
+		it('accepts a valid sidebar object', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { enabled: true, columnGroups: [], facets: {}, showMetadata: true, search: {} } },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects sidebar that is not an object', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: 'enabled' },
+			}))
+			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar') && e.includes('must be an object'))).toBe(true)
+		})
+
+		it('rejects sidebar.enabled that is not boolean', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { enabled: 'yes' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/sidebar/enabled'))).toBe(true)
+		})
+
+		it('rejects sidebar.columnGroups that is not an array', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { columnGroups: 'extra' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/sidebar/columnGroups'))).toBe(true)
+		})
+
+		it('rejects sidebar.facets that is not an object', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { facets: ['x'] } },
+			}))
+			expect(result.errors.some((e) => e.includes('/sidebar/facets'))).toBe(true)
+		})
+
+		it('does NOT validate sidebar fields on non-index pages', () => {
+			// A detail page with a `sidebar` field is treated as opaque — no
+			// type-specific sidebar-config validation. Sidebar tabs go via
+			// sidebarProps.tabs instead.
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: 'opaque-stuff' },
+			}))
+			// no error about /pages/0/config/sidebar
+			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar'))).toBe(false)
+		})
+	})
+
+	describe('detail page sidebarProps.tabs config', () => {
+		it('accepts a valid tabs array', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: {
+					sidebarProps: {
+						tabs: [
+							{ id: 'a', label: 'A', widgets: [{ type: 'data' }] },
+							{ id: 'b', label: 'B', component: 'X' },
+						],
+					},
+				},
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects tabs that is not an array', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebarProps: { tabs: 'oops' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/sidebarProps/tabs') && e.includes('must be an array'))).toBe(true)
+		})
+
+		it('rejects a tab missing id', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebarProps: { tabs: [{ label: 'A', component: 'X' }] } },
+			}))
+			expect(result.errors.some((e) => e.includes('/tabs/0/id'))).toBe(true)
+		})
+
+		it('rejects a tab missing label', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebarProps: { tabs: [{ id: 'a', component: 'X' }] } },
+			}))
+			expect(result.errors.some((e) => e.includes('/tabs/0/label'))).toBe(true)
+		})
+
+		it('rejects duplicate tab ids', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: {
+					sidebarProps: {
+						tabs: [
+							{ id: 'same', label: 'A', component: 'X' },
+							{ id: 'same', label: 'B', component: 'Y' },
+						],
+					},
+				},
+			}))
+			expect(result.errors.some((e) => e.includes('/tabs/1/id') && e.includes('unique'))).toBe(true)
+		})
+
+		it('rejects a tab declaring both widgets and component', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: {
+					sidebarProps: {
+						tabs: [{ id: 'a', label: 'A', widgets: [{ type: 'data' }], component: 'X' }],
+					},
+				},
+			}))
+			expect(result.errors.some((e) => e.includes('/tabs/0') && e.includes('widgets OR component'))).toBe(true)
+		})
+
+		it('does NOT validate tabs on non-detail pages', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebarProps: { tabs: 'oops-but-not-checked' } },
+			}))
+			// No error about pages[0].config.sidebarProps.tabs because the page is not type=detail.
+			expect(result.errors.some((e) => e.includes('/sidebarProps/tabs'))).toBe(false)
+		})
+	})
+
+	describe('schema metadata bump', () => {
+		it('bumps the schema version field to 1.0.1', () => {
+			expect(schema.version).toBe('1.0.1')
+		})
+
+		it("page.config description references the new 'sidebar' field", () => {
+			expect(schema.$defs.page.properties.config.description).toContain('sidebar')
+		})
+	})
+})

@@ -90,6 +90,10 @@ export function validateManifest(manifest, options = {}) {
 			if (page.type === 'custom' && typeof page.component !== 'string') {
 				errors.push(`/pages/${index}/component is required when type is "custom"`)
 			}
+
+			// Manifest-driven sidebar config — additive validation introduced
+			// by the manifest-abstract-sidebar change.
+			validateSidebarConfig(page, index, errors)
 		})
 	}
 
@@ -110,4 +114,101 @@ export function validateManifest(manifest, options = {}) {
 
 function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * Validate the type-specific sidebar config introduced by the
+ * manifest-abstract-sidebar change.
+ *
+ * - For `type: "index"` pages with `config.sidebar`:
+ *   `sidebar` MUST be a plain object. When `enabled` is set it MUST be
+ *   a boolean. When `columnGroups` is set it MUST be an array. When
+ *   `facets` is set it MUST be an object. Unknown sub-fields are
+ *   tolerated for forward-compat with future CnIndexSidebar props.
+ *
+ * - For `type: "detail"` pages with `config.sidebarProps.tabs`:
+ *   `tabs` MUST be an array. Each entry MUST have a string `id` and a
+ *   string `label`. Each entry MUST have either `widgets` (array) OR
+ *   `component` (string), not both. Tab `id`s MUST be unique within
+ *   the array.
+ *
+ * Errors push JSON-pointer-shaped paths so the consumer can locate the
+ * offending field without consulting the schema source.
+ *
+ * @param {object} page Page definition under validation
+ * @param {number} pageIndex Index of the page in `manifest.pages`
+ * @param {string[]} errors Accumulator for error messages
+ */
+function validateSidebarConfig(page, pageIndex, errors) {
+	const config = page.config
+	if (!isPlainObject(config)) return
+
+	// --- Index sidebar ---
+	if (page.type === 'index' && config.sidebar !== undefined) {
+		const path = `/pages/${pageIndex}/config/sidebar`
+		if (!isPlainObject(config.sidebar)) {
+			errors.push(`${path} must be an object`)
+		} else {
+			if (config.sidebar.enabled !== undefined && typeof config.sidebar.enabled !== 'boolean') {
+				errors.push(`${path}/enabled must be a boolean`)
+			}
+			if (config.sidebar.columnGroups !== undefined && !Array.isArray(config.sidebar.columnGroups)) {
+				errors.push(`${path}/columnGroups must be an array`)
+			}
+			if (config.sidebar.facets !== undefined && !isPlainObject(config.sidebar.facets)) {
+				errors.push(`${path}/facets must be an object`)
+			}
+			if (config.sidebar.showMetadata !== undefined && typeof config.sidebar.showMetadata !== 'boolean') {
+				errors.push(`${path}/showMetadata must be a boolean`)
+			}
+			if (config.sidebar.search !== undefined && !isPlainObject(config.sidebar.search)) {
+				errors.push(`${path}/search must be an object`)
+			}
+		}
+	}
+
+	// --- Detail sidebar tabs ---
+	if (page.type === 'detail' && isPlainObject(config.sidebarProps) && config.sidebarProps.tabs !== undefined) {
+		const tabsPath = `/pages/${pageIndex}/config/sidebarProps/tabs`
+		const tabs = config.sidebarProps.tabs
+		if (!Array.isArray(tabs)) {
+			errors.push(`${tabsPath} must be an array`)
+		} else {
+			const seenIds = new Set()
+			tabs.forEach((tab, tabIndex) => {
+				const tabPath = `${tabsPath}/${tabIndex}`
+				if (!isPlainObject(tab)) {
+					errors.push(`${tabPath} must be an object`)
+					return
+				}
+				if (typeof tab.id !== 'string' || tab.id.length === 0) {
+					errors.push(`${tabPath}/id must be a non-empty string`)
+				} else if (seenIds.has(tab.id)) {
+					errors.push(`${tabPath}/id "${tab.id}" must be unique within tabs[]`)
+				} else {
+					seenIds.add(tab.id)
+				}
+				if (typeof tab.label !== 'string' || tab.label.length === 0) {
+					errors.push(`${tabPath}/label must be a non-empty string`)
+				}
+				const hasWidgets = Array.isArray(tab.widgets) && tab.widgets.length > 0
+				const hasComponent = typeof tab.component === 'string' && tab.component.length > 0
+				if (hasWidgets && hasComponent) {
+					errors.push(`${tabPath} must declare widgets OR component, not both`)
+				}
+				if (tab.widgets !== undefined && !Array.isArray(tab.widgets)) {
+					errors.push(`${tabPath}/widgets must be an array when set`)
+				}
+				if (tab.component !== undefined && typeof tab.component !== 'string') {
+					errors.push(`${tabPath}/component must be a string when set`)
+				}
+				if (tab.icon !== undefined && typeof tab.icon !== 'string') {
+					errors.push(`${tabPath}/icon must be a string when set`)
+				}
+				if (tab.order !== undefined && typeof tab.order !== 'number') {
+					errors.push(`${tabPath}/order must be a number when set`)
+				}
+			})
+		}
+	}
 }

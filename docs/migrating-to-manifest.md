@@ -179,6 +179,64 @@ const customComponents = {
 
 Pass it to `CnAppRoot` (Tier 4) or to `CnPageRenderer` (Tier 2/3). The library statically imports nothing app-specific — your registry is the audit point for "what custom code does this app actually have?".
 
+## Sidebar (manifest-driven)
+
+Both index and detail pages can drive their sidebar entirely from `manifest.json` — no consumer-side wiring required for the common shapes.
+
+### Index sidebar
+
+Set `pages[].config.sidebar` on a `type: "index"` page to auto-mount `CnIndexSidebar` inside `CnIndexPage`:
+
+```jsonc
+{
+  "id": "decisions",
+  "route": "/decisions",
+  "type": "index",
+  "title": "myapp.decisions.title",
+  "config": {
+    "register": "decisions",
+    "schema": "decision",
+    "sidebar": {
+      "enabled": true,
+      "showMetadata": true,
+      "search": { "searchPlaceholder": "myapp.decisions.search" }
+    }
+  }
+}
+```
+
+Shape: `{ enabled, columnGroups?, facets?, showMetadata?, search? }`. Forward search/filter/columns events at the page level (`@search`, `@columns-change`, `@filter-change` on `CnIndexPage`).
+
+### Detail sidebar tabs
+
+Set `pages[].config.sidebarProps.tabs` on a `type: "detail"` page to drive `CnObjectSidebar`'s tabs from the manifest. Each tab declares either a `widgets` list (`type: 'data' | 'metadata' | <registry-name>`) or a `component` registry name:
+
+```jsonc
+{
+  "id": "decision",
+  "route": "/decisions/:id",
+  "type": "detail",
+  "title": "myapp.decisions.detail",
+  "config": {
+    "register": "decisions",
+    "schema": "decision",
+    "sidebar": true,
+    "sidebarProps": {
+      "tabs": [
+        { "id": "overview", "label": "myapp.tabs.overview",
+          "widgets": [{ "type": "data" }, { "type": "metadata" }] },
+        { "id": "related", "label": "myapp.tabs.related",
+          "component": "MyRelatedTab" }
+      ]
+    }
+  }
+}
+```
+
+The `tabs` array flows through the existing `objectSidebarState` provide/inject channel that `CnDetailPage` already populates with `objectId` / `register` / `schema` / `hiddenTabs`. The host app's mounted `CnObjectSidebar` reads it and replaces the hard-coded built-in tab set (Files / Notes / Tags / Tasks / Audit Trail) with the manifest's array. When unset, the built-in tabs render as today.
+
+Custom tab `component` names resolve against the same `customComponents` registry that powers `type: "custom"` pages and `headerComponent` / `actionsComponent` overrides, so one registry covers every consumer-injected component.
+
 ## i18n
 
 The manifest stores translation keys only — `decidesk.menu.decisions`, never inline strings. Pass a `translate` function (`(key) => string`) to `CnAppRoot` / `CnAppNav` / `CnPageRenderer`. Typically a closure over `@nextcloud/l10n`'s `translate(appId, key)`. The library never imports `t()` from a specific app.
