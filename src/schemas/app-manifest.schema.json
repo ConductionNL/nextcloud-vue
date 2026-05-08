@@ -148,6 +148,274 @@
 					"additionalProperties": { "type": "string" }
 				}
 			}
+		},
+		"column": {
+			"type": "object",
+			"required": ["key", "label"],
+			"additionalProperties": false,
+			"description": "A table column definition consumed by CnDataTable / CnIndexPage. Mirrors the manifest-driven subset of `columnsFromSchema()`'s output and CnDataTable's manual-mode column shape. NOT YET REFERENCED from any `pages[].config.columns[]` block in this schema version — the $def lands first; the $ref tightening is a follow-up after the parallel manifest-page-type-extensions and manifest-abstract-sidebar changes merge.",
+			"properties": {
+				"key": {
+					"type": "string",
+					"description": "Object property to render in this column (e.g. \"title\", \"@self.created\")."
+				},
+				"label": {
+					"type": "string",
+					"description": "Column header text. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"sortable": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether the column header is clickable to sort. Defaults to true."
+				},
+				"width": {
+					"type": "string",
+					"description": "Optional CSS width (e.g. \"200px\", \"15%\"). When omitted CnDataTable falls back to its built-in default-width heuristic by type+format."
+				},
+				"align": {
+					"type": "string",
+					"enum": ["left", "center", "right"],
+					"description": "Cell text alignment. Closed enum."
+				},
+				"formatter": {
+					"type": "string",
+					"description": "Optional cell-formatter id (e.g. \"date\", \"currency\"). Resolves against the consuming app's formatter registry; left as a free-form string because formatter sets vary per app."
+				},
+				"widget": {
+					"type": "string",
+					"description": "Optional cell-widget hint (e.g. \"badge\", \"link\"). Resolves against the consuming app's cell-widget registry; free-form for the same reason as `formatter`."
+				},
+				"hidden": {
+					"type": "boolean",
+					"default": false,
+					"description": "When true the column is hidden by default; users can re-enable it from the columns sidebar tab."
+				}
+			}
+		},
+		"action": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "A row or bulk action definition consumed by CnRowActions / CnActionsBar. The runtime API on CnRowActions accepts function-typed `handler`, `disabled`, `visible` predicates; those cannot be expressed in JSON. The manifest representation substitutes an `id` (the action key the consumer's component dispatches on) plus a `permission` gate. NOT YET REFERENCED from any `pages[].config.actions[]` block.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Stable action identifier. Dispatched as the action key when the user clicks the entry; the consumer wires the side-effect."
+				},
+				"label": {
+					"type": "string",
+					"description": "Action display text. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"icon": {
+					"type": "string",
+					"description": "Optional icon name. May be an MDI component name (e.g. \"Pencil\") OR a registry id resolved via the consuming app's icon registry. Free-form because the disambiguation is consumer-specific."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Optional permission key. When set the action only renders for users that hold this permission; the consuming app's permissions list is the source of truth."
+				},
+				"primary": {
+					"type": "boolean",
+					"default": false,
+					"description": "When true the action renders as a primary button outside the actions menu. Defaults to false (the action lives inside the overflow menu)."
+				},
+				"confirm": {
+					"type": "boolean",
+					"default": false,
+					"description": "When true the consumer SHOULD show a confirmation dialog before invoking the action. Useful for destructive actions; defaults to false."
+				}
+			}
+		},
+		"widgetDef": {
+			"type": "object",
+			"required": ["id", "title", "type"],
+			"additionalProperties": false,
+			"description": "A dashboard widget definition consumed by CnDashboardPage. The manifest-friendly subset of the widget shape CnDashboardPage / useDashboardView accept; runtime-only fields like `buttons` (NcAction-shaped objects) and `reloadInterval` (computed by the consumer) are intentionally omitted. NOT YET REFERENCED from any `pages[].config.widgets[]` block.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Stable widget identifier. Used by `layoutItem.widgetId` to position the widget in the grid, and by the consumer's `#widget-{id}` slot to render custom content."
+				},
+				"title": {
+					"type": "string",
+					"description": "Widget title. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"type": {
+					"type": "string",
+					"description": "Widget type. Conventional values: \"custom\" (consumer renders via the `#widget-{id}` slot), \"tile\" (renders as a CnTileWidget), or any Nextcloud Dashboard API widget id (e.g. \"calendar\", \"talk\"). Left as a free-form string to keep NC widget interop open."
+				},
+				"iconUrl": {
+					"type": "string",
+					"description": "Optional URL of an icon image (SVG or raster). Mutually informative with `iconClass`; consumers prefer iconUrl when both are set."
+				},
+				"iconClass": {
+					"type": "string",
+					"description": "Optional CSS class for the icon (e.g. \"icon-graph\")."
+				},
+				"itemApiVersions": {
+					"type": "array",
+					"items": { "type": "integer" },
+					"description": "NC Dashboard API versions this widget supports. Presence of this field signals to CnDashboardPage that the widget renders via CnWidgetRenderer rather than the custom slot."
+				},
+				"props": {
+					"type": "object",
+					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type; not constrained here.",
+					"additionalProperties": true
+				}
+			}
+		},
+		"layoutItem": {
+			"type": "object",
+			"required": ["id", "widgetId", "gridX", "gridY", "gridWidth", "gridHeight"],
+			"additionalProperties": false,
+			"description": "A grid layout entry consumed by CnDashboardPage / CnDashboardGrid. Pairs a widget (by id) with its position and size in the grid. Free-form runtime fields like `styleConfig` are intentionally omitted from this $def — they're consumer-piped pass-throughs that don't benefit from a contract. NOT YET REFERENCED from any `pages[].config.layout[]` block.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this layout entry. Distinct from `widgetId` so the same widget definition can appear multiple times in a layout (rare but supported by CnDashboardGrid)."
+				},
+				"widgetId": {
+					"type": "string",
+					"description": "References a `widgetDef.id` from the same dashboard's widget array."
+				},
+				"gridX": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Column position (0-indexed) of the widget's top-left corner."
+				},
+				"gridY": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Row position (0-indexed) of the widget's top-left corner."
+				},
+				"gridWidth": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "Width of the widget in grid columns. CnDashboardPage defaults the grid to 12 columns."
+				},
+				"gridHeight": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "Height of the widget in grid rows. CnDashboardPage's default cell height is 80px."
+				},
+				"showTitle": {
+					"type": "boolean",
+					"default": true,
+					"description": "When false the widget renders without its title bar (and without the surrounding card chrome). Defaults to true."
+				}
+			}
+		},
+		"formField": {
+			"type": "object",
+			"required": ["key", "label", "type"],
+			"additionalProperties": false,
+			"description": "A schema-driven form field consumed by manifest-driven settings / form pages. The manifest-relevant subset of `fieldsFromSchema()`'s output; the runtime `validation` block (min/max/pattern) and `items` (array element schema) are deferred to a follow-up tightening change because they belong on a richer `validation` $def of their own. NOT YET REFERENCED from any `pages[].config.sections[].fields[]` block.",
+			"properties": {
+				"key": {
+					"type": "string",
+					"description": "IAppConfig key (or schema property name) the field reads/writes."
+				},
+				"label": {
+					"type": "string",
+					"description": "Field label. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["boolean", "number", "string", "enum", "password", "json"],
+					"description": "Field value type. Closed enum: \"boolean\" (checkbox), \"number\" (NcTextField type=number), \"string\" (NcTextField), \"enum\" (NcSelect), \"password\" (NcPasswordField), \"json\" (CnJsonViewer)."
+				},
+				"required": {
+					"type": "boolean",
+					"default": false,
+					"description": "When true the field MUST have a value before save. Defaults to false."
+				},
+				"default": {
+					"description": "Default value for the field when no IAppConfig value is set. Type matches `type`; not constrained at the schema level (JSON Schema \"any\")."
+				},
+				"enum": {
+					"type": "array",
+					"description": "When `type === \"enum\"`, the list of allowed values. Each entry can be a string OR an `{ value, label }` object; not constrained at the schema level here."
+				},
+				"widget": {
+					"type": "string",
+					"description": "Optional widget hint that overrides the default widget for the type (e.g. \"textarea\" instead of \"string\"'s default NcTextField). Resolves against the consuming app's widget registry."
+				},
+				"help": {
+					"type": "string",
+					"description": "Optional help / tooltip text shown next to the field. i18n key resolved at render time."
+				}
+			}
+		},
+		"sidebarSection": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "An index-sidebar config group consumed by CnIndexSidebar (manifest-side equivalent of its `columnGroups` prop). Used to declare collapsible groups of fields a user can toggle column visibility on. NOT YET REFERENCED from any `pages[].config.sidebar.columnGroups[]` block.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this sidebar group. Used as the React-style key when rendering."
+				},
+				"label": {
+					"type": "string",
+					"description": "Group heading. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"icon": {
+					"type": "string",
+					"description": "Optional MDI component name (e.g. \"Information\") for the group's leading icon."
+				},
+				"fields": {
+					"type": "array",
+					"description": "Fields contained in this group. Each item declares a column key/label pair (the column visibility toggle).",
+					"items": {
+						"type": "object",
+						"required": ["key", "label"],
+						"additionalProperties": false,
+						"properties": {
+							"key": {
+								"type": "string",
+								"description": "Column key the toggle controls (matches `column.key`)."
+							},
+							"label": {
+								"type": "string",
+								"description": "Display text for the toggle. i18n key resolved at render time."
+							}
+						}
+					}
+				}
+			}
+		},
+		"sidebarTab": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"description": "A detail-sidebar tab consumed by CnObjectSidebar after the parallel manifest-abstract-sidebar change opened the previously-closed tab registry. A tab declares its content via either a `widgets` list (Conduction widget renderers) OR a `component` registry name — the mutual exclusion is enforced at runtime by `validateManifest`'s sidebar-tab rules; this $def keeps both fields optional so consumers can mix per-tab. NOT YET REFERENCED from any `pages[].config.sidebarProps.tabs[]` block.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique tab identifier. Used as the active-tab key and the slot name (`#tab-{id}`) for content overrides."
+				},
+				"label": {
+					"type": "string",
+					"description": "Tab label. i18n key resolved by the consuming app's t() function at render time."
+				},
+				"icon": {
+					"type": "string",
+					"description": "Optional MDI component name (e.g. \"Information\") for the tab's icon."
+				},
+				"widgets": {
+					"type": "array",
+					"description": "Optional list of widget references. Each item is `{ type: 'data' | 'metadata' | <registry> }`. Mutually exclusive with `component` at runtime. Sidebar widgets are NOT the same shape as dashboard widgetDef entries; a richer `sidebarWidget` $def can land in a follow-up.",
+					"items": {
+						"type": "object",
+						"additionalProperties": true
+					}
+				},
+				"component": {
+					"type": "string",
+					"description": "Optional registry component name. When set the tab body renders the resolved component. Mutually exclusive with `widgets` at runtime."
+				}
+			}
 		}
 	}
 }

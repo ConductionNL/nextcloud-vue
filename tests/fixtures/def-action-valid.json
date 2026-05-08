@@ -1,0 +1,7 @@
+{
+	"id": "edit",
+	"label": "myapp.action.edit",
+	"icon": "Pencil",
+	"primary": true,
+	"confirm": false
+}

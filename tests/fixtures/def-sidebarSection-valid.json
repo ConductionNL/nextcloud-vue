@@ -1,0 +1,9 @@
+{
+	"id": "metadata",
+	"label": "myapp.sidebar.metadata",
+	"icon": "Information",
+	"fields": [
+		{ "key": "owner", "label": "myapp.metadata.owner" },
+		{ "key": "created", "label": "myapp.metadata.created" }
+	]
+}
