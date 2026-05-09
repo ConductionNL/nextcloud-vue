@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDashboardPage.md'
+
 # CnDashboardPage
 
 Top-level dashboard page component — the dashboard equivalent of `CnIndexPage`. Assembles a complete dashboard from a `widgets` definition array and a `layout` array. Supports custom widgets via scoped slots, Nextcloud Dashboard API widgets, tile widgets, and an optional drag-and-drop edit mode.
 
 **Wraps**: CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget
+
+## Try it
+
+<Playground component="CnDashboardPage" />
 
 ## Widget types
 
@@ -133,3 +140,9 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `widget-{widgetId}-actions` | `{ item, widget }` | Header action buttons for a specific widget |
 | `widget-{widgetId}-title-icon` | `{ item, widget }` | Extra icon in the widget header; position and color controlled by `titleIconPosition` / `titleIconColor` on the widget definition |
 | `empty` | — | Custom empty state when no layout items exist |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardPage/CnDashboardPage.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
