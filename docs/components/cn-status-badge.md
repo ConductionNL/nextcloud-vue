@@ -2,9 +2,16 @@
 sidebar_position: 9
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnStatusBadge.md'
+
 # CnStatusBadge
 
 Color-coded pill badge for status, priority, or category display. Supports automatic variant resolution via colorMap.
+
+## Try it
+
+<Playground component="CnStatusBadge" />
 
 ## Props
 
@@ -44,3 +51,9 @@ Color-coded pill badge for status, priority, or category display. Supports autom
     prospect: 'info',
   }" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatusBadge.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnStatusBadge/CnStatusBadge.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
