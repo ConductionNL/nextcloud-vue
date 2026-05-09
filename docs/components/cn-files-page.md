@@ -19,8 +19,8 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 | `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
 | `icon` | String | `''` | MDI icon name |
 | `folder` | String | **required** | Folder path within the user's Nextcloud filesystem |
-| `allowedTypes` | Array<String> | `[]` | MIME-type filter. Literal (`'application/pdf'`) or wildcard (`'image/*'`). |
-| `files` | Array<Object> | `[]` | Pre-loaded file listing from the consumer (each: `{ name, path, size, mtime, mime }`) |
+| `allowedTypes` | `Array<String>` | `[]` | MIME-type filter. Literal (`'application/pdf'`) or wildcard (`'image/*'`). |
+| `files` | `Array<Object>` | `[]` | Pre-loaded file listing from the consumer (each: `{ name, path, size, mtime, mime }`) |
 | `loading` | Boolean | `false` | Whether a fetch is in progress |
 | `error` | Error\|String\|Object | `null` | Truthy → error state |
 | `emptyText` | String | `'No files in this folder'` | Empty-state text |

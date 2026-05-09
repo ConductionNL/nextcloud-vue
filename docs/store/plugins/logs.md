@@ -58,7 +58,7 @@ store.clearLogs()
 
 ## Notes
 
-- **URL construction** is `this._options.baseApiUrl + '/' + path`, so the plugin inherits whatever base URL the parent store resolves (including any `/index.php` prefix from [`prefixUrl`](../../utilities/prefix-url.md)).
+- **URL construction** is `this._options.baseApiUrl + '/' + path`, so the plugin inherits whatever base URL the parent store resolves (including any `/index.php` prefix from `prefixUrl`).
 - **Per-store loading**: `logsLoading` is scoped to each store instance. Components that previously read a shared `logsLoading` flag from a global log store should read the store's own `logsLoading` / `isLogsLoading` instead.
 - **Opt-in auto-refresh**: `autoRefreshOnItemChange` is off by default because many stores fetch logs on demand (e.g. tab open) rather than on every item change.
 - **Overriding**: `extend.actions` runs *after* plugins, so you can still override `refreshLogs` in `extend` if the default behavior doesn't fit. Auto-refresh is wired via `$onAction`, so it keeps firing even when `extend.actions.setItem` replaces the base `setItem` — the subscriber observes whatever action ends up in the `setItem` slot.
