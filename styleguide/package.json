@@ -10,9 +10,14 @@
   "dependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.0",
+    "@codemirror/commands": "^6.6.0",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-xml": "^6.1.0",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.28.0",
+    "apexcharts": "^3.45.0",
+    "codemirror": "^6.0.1",
     "@nextcloud/axios": "^2.5.0",
     "@nextcloud/capabilities": "^1.2.1",
     "@nextcloud/dialogs": "^7.3.0",
@@ -31,13 +36,15 @@
     "url": "^0.11.4",
     "vue": "^2.7.16",
     "vue-apexcharts": "^1.7.0",
+    "vue-codemirror6": "^1.4.3",
     "vue-demi": "^0.14.10",
     "vue-frag": "^1.4.3",
     "vue-loader": "^15.11.1",
-    "vue-codemirror6": "^1.4.3",
     "vue-material-design-icons": "^5.2.0",
     "vue-styleguidist": "^4.72.4",
-    "vue-template-compiler": "^2.7.16"
+    "vue-template-compiler": "^2.7.16",
+    "webpack": "^4.47.0",
+    "webpack-dev-server": "^3.11.3"
   },
   "devDependencies": {
     "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
