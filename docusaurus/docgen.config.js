@@ -18,9 +18,18 @@ const path = require('path')
 const REPO_ROOT = path.resolve(__dirname, '..')
 
 /**
- * Backslash-escape `{` and `}` outside inline-code spans. MDX 3 treats
- * unescaped curly braces as JSX expression delimiters and throws
- * `ReferenceError: <name> is not defined` at build time.
+ * Make a JSDoc string safe inside MDX 3 markdown outside inline-code spans:
+ *
+ *   - `{` / `}` are escaped with a backslash so MDX doesn't read them as
+ *     JSX expression delimiters (would throw `ReferenceError: <name> is
+ *     not defined`).
+ *   - `<` / `>` are HTML-entity-encoded so MDX doesn't read them as the
+ *     start of a JSX element (would throw `Unexpected character` when a
+ *     TS-style generic like `Array<{key, label}>` appears in a JSDoc
+ *     description).
+ *
+ * Inside backticks (single inline-code spans) the content is left as-is —
+ * MDX treats it as code and skips JSX/expression parsing.
  */
 function escapeMdxBraces(text) {
   if (!text) return text
@@ -33,6 +42,10 @@ function escapeMdxBraces(text) {
       out += c
     } else if (!inCode && (c === '{' || c === '}')) {
       out += '\\' + c
+    } else if (!inCode && c === '<') {
+      out += '&lt;'
+    } else if (!inCode && c === '>') {
+      out += '&gt;'
     } else {
       out += c
     }
@@ -42,8 +55,11 @@ function escapeMdxBraces(text) {
 
 module.exports = {
   componentsRoot: path.join(REPO_ROOT, 'src/components'),
-  // Phase 1 spike: CnDataTable only. Phase 3 expands to 'Cn*/Cn*.vue'.
-  components: 'CnDataTable/CnDataTable.vue',
+  // Phase 3: walk every Cn*/Cn*.vue. The CI freshness gate (`git diff
+  // --exit-code docs/components/_generated/`) treats this as the
+  // authoritative set, so any new Cn* component will land its own
+  // partial in the same PR.
+  components: 'Cn*/Cn*.vue',
   outDir: path.join(REPO_ROOT, 'docs/components/_generated'),
 
   // Each component gets its own .md file.
