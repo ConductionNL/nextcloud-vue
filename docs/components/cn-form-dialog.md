@@ -2,9 +2,16 @@
 sidebar_position: 18
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnFormDialog.md'
+
 # CnFormDialog
 
 Schema-driven create/edit form dialog. Auto-generates form fields from a schema, supports multiple widget types, and follows the two-phase confirm/result pattern.
+
+## Try it
+
+<Playground component="CnFormDialog" />
 
 **Wraps**: NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch
 
@@ -304,3 +311,9 @@ const fields = [
   },
 ]
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
