@@ -2,11 +2,17 @@
 sidebar_position: 5
 ---
 
+import Playground from '@site/src/components/Playground'
+
 # CnDataTable
 
 Sortable data table with row selection, loading states, and schema-driven column generation. Supports dot notation for nested values (e.g., `address.city`).
 
 **Wraps**: NcLoadingIcon, NcCheckboxRadioSwitch, CnCellRenderer
+
+## Try it
+
+<Playground component="CnDataTable" />
 
 ![CnDataTable showing sortable columns, checkboxes, and row action buttons](/img/screenshots/cn-data-table.png)
 
