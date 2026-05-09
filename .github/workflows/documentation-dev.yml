@@ -4,11 +4,10 @@ on:
   push:
     branches:
       - development
+  workflow_dispatch:
 
-# Same concurrency group as documentation.yml + documentation-beta.yml so
-# deploys serialize against the gh-pages branch.
 concurrency:
-  group: gh-pages-deploy
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 jobs:

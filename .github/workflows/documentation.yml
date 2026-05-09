@@ -14,14 +14,22 @@ on:
     branches:
       - main
       - beta
+  # Allow manual deploy from the Actions UI or `gh workflow run`. Useful
+  # when a previous run was cancelled by GitHub's pending-cancel logic.
+  workflow_dispatch:
 
-# Serialize deploys against the gh-pages branch. Without this, parallel
-# documentation.yml + documentation-beta.yml + documentation-dev.yml runs
-# all push to gh-pages and race; the loser retries internally but can fail
-# in extreme cases. cancel-in-progress: false so a queued deploy waits
-# rather than getting cancelled.
+# Serialize against same-workflow runs only. The previous version used a
+# shared `gh-pages-deploy` group across documentation.yml +
+# documentation-beta.yml + documentation-dev.yml — that turned out to be
+# wrong: when multiple events queue simultaneously (e.g. a push event on
+# the merge commit + a pull_request event for an open PR against beta),
+# GitHub's "any previously pending job or workflow in the concurrency
+# group will be cancelled" rule cancels the push run. Now each workflow
+# only serializes with itself; the parallel beta+main+dev jobs may race
+# the gh-pages branch but `peaceiris/actions-gh-pages@v3` with
+# `keep_files: true` force-pushes, and the latest push wins.
 concurrency:
-  group: gh-pages-deploy
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 jobs:
