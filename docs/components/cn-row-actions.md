@@ -2,11 +2,18 @@
 sidebar_position: 14
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnRowActions.md'
+
 # CnRowActions
 
 Per-row action menu for tables and cards. Renders as a `⋯` button that opens a dropdown with the configured actions. Automatically marks destructive actions (e.g., Delete) with a danger style.
 
 **Wraps**: NcActions, NcActionButton
+
+## Try it
+
+<Playground component="CnRowActions" />
 
 ![CnRowActions dropdown showing View, Edit, Copy, and Delete options for the focused row](/img/screenshots/cn-row-actions.png)
 
@@ -93,3 +100,9 @@ function onAction({ action, row }) {
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `action` | `{ action, row }` | Emitted when an action item is clicked; `action` is the full action definition object, `row` is the value of the `row` prop |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRowActions.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnRowActions/CnRowActions.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
