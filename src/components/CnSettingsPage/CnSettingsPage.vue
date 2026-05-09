@@ -85,13 +85,13 @@
 								v-else-if="field.type === 'number'"
 								:label="resolveLabel(field.label)"
 								type="number"
-								:value="String(formData[field.key] ?? '')"
+								:value="String(fieldValue(field.key, ''))"
 								@update:value="updateField(field.key, $event === '' ? null : Number($event))" />
 							<NcTextField
 								v-else-if="field.type === 'password'"
 								:label="resolveLabel(field.label)"
 								type="password"
-								:value="formData[field.key] ?? ''"
+								:value="fieldValue(field.key, '')"
 								@update:value="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
@@ -102,7 +102,7 @@
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
-								:value="formData[field.key] ?? ''"
+								:value="fieldValue(field.key, '')"
 								@update:value="updateField(field.key, $event)" />
 						</slot>
 						<small
@@ -433,6 +433,14 @@ export default {
 	},
 
 	methods: {
+		// Coalesce a field value to a fallback when null / undefined.
+		// Used in template bindings instead of `formData[key] ?? ''` because
+		// vue-template-es2015-compiler (the Rollup VuePlugin's parser) does
+		// not accept ES2020 nullish-coalescing inside template expressions.
+		fieldValue(key, fallback) {
+			const v = this.formData[key]
+			return (v === null || v === undefined) ? fallback : v
+		},
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
 			// Pre-populate any field with a `default` if no value is set yet.
