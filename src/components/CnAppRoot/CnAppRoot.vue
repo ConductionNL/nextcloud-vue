@@ -51,7 +51,17 @@
 				<slot name="header-actions" />
 				<slot name="footer" />
 			</NcAppContent>
-			<slot name="sidebar" />
+			<!--
+			  Sidebar slot — gated by the `cnPageSidebarVisible` inject
+			  provided by `CnPageRenderer`. When the current manifest
+			  page declares `sidebar.show: false` (sibling of `config`),
+			  the renderer flips the holder's `.value` to `false` and
+			  the slot stops rendering. The default holder value (used
+			  when no `CnPageRenderer` ancestor exists) is `true`, so
+			  apps that mount their own page components without the
+			  renderer keep rendering the slot exactly as today.
+			-->
+			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar" />
 		</template>
 	</NcContent>
 </template>
@@ -81,6 +91,21 @@ export default {
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
 		}
+	},
+
+	/**
+	 * Inject the current page's sidebar-visibility flag. The provider
+	 * is `CnPageRenderer` (a typical descendant via `<router-view>`).
+	 * The default — used when no `CnPageRenderer` ancestor exists
+	 * (e.g. apps mounting their own page components without the
+	 * renderer) — is `{ value: true }` so the `#sidebar` slot
+	 * renders unchanged.
+	 *
+	 * The shape `{ value: boolean }` is a hand-rolled reactive holder
+	 * (Vue 2 options API) — see `CnPageRenderer.data().pageSidebarVisible`.
+	 */
+	inject: {
+		cnPageSidebarVisible: { default: () => ({ value: true }) },
 	},
 
 	props: {

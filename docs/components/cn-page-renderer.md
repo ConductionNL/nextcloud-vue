@@ -88,8 +88,50 @@ const routes = manifest.pages.map((page) => ({
 | `page.slots` | `{ slotName: registryName }` map — each entry resolves a `customComponents` entry and mounts it inside the corresponding scoped slot |
 | `page.headerComponent` | Sugar for `slots.header` (sugar wins when both are set) |
 | `page.actionsComponent` | Sugar for `slots.actions` (sugar wins when both are set) |
+| `page.sidebar` | `{ show?: boolean }` object — sibling of `config`. Drives a reactive `cnPageSidebarVisible` provide and a CSS hook class. See [Per-page sidebar visibility](#per-page-sidebar-visibility) below. |
 
 When `page.type` (or a registered `customComponents` name) is missing, the renderer logs `console.warn` once and mounts nothing rather than crashing.
+
+## Per-page sidebar visibility
+
+Each page entry MAY declare a top-level `sidebar` object (sibling of `config`) that gates the host App's `#sidebar` slot for the lifetime of that page mount. Currently `sidebar` exposes one field:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sidebar.show` | Boolean | `true` | Whether the host App's `#sidebar` slot renders for this page. Set to `false` to hide the sidebar declaratively. Works on every page type — including `type:"custom"` where `config` is opaque. |
+
+When `sidebar.show` is `false`:
+
+1. The renderer applies CSS class `cn-page-renderer--no-sidebar` on its wrapper element (consumer-styled hook for layout-driven sidebars).
+2. The renderer flips a reactive `cnPageSidebarVisible` value from `true` to `false` and `provide`s it under that inject key.
+
+[`CnAppRoot`](./cn-app-root.md) injects `cnPageSidebarVisible` and gates `<slot name="sidebar" />` accordingly. The default — used when no `CnPageRenderer` ancestor is present (e.g. apps that mount their own page components directly) — resolves to a value-true holder so the slot keeps rendering.
+
+```json
+{
+  "id": "wide-canvas",
+  "type": "custom",
+  "title": "Wide canvas",
+  "component": "WideCanvasPage",
+  "sidebar": { "show": false }
+}
+```
+
+If your app wires its own sidebar without `CnAppRoot`, inject `cnPageSidebarVisible` directly:
+
+```vue
+<script>
+export default {
+  inject: { cnPageSidebarVisible: { default: () => ({ value: true }) } },
+}
+</script>
+<template>
+  <div>
+    <router-view />
+    <CnObjectSidebar v-if="cnPageSidebarVisible.value !== false" />
+  </div>
+</template>
+```
 
 ## Slot-override forwarding
 

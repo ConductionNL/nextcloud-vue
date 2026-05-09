@@ -214,16 +214,23 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 			expect(result.errors.some((e) => e.includes('/sidebar/facets'))).toBe(true)
 		})
 
-		it('does NOT validate sidebar fields on non-index pages', () => {
-			// A detail page with a `sidebar` field is treated as opaque — no
-			// type-specific sidebar-config validation. Sidebar tabs go via
-			// sidebarProps.tabs instead.
+		it('does NOT validate index-shape sub-fields on non-index pages', () => {
+			// A detail page with a `sidebar` Boolean is the legacy
+			// shape — accepted as-is, no `enabled/columnGroups/...`
+			// sub-field rules apply (those are index-only).
+			//
+			// Note: the post-`manifest-detail-sidebar-config` contract
+			// requires detail `config.sidebar` to be Boolean OR Object;
+			// strings are rejected. The previous behaviour (string
+			// silently accepted) is INTENTIONALLY tightened here so
+			// the new Object form is unambiguous.
 			const result = validateManifest(baseManifest({
 				id: 'd', route: '/d/:id', type: 'detail', title: 't',
-				config: { sidebar: 'opaque-stuff' },
+				config: { sidebar: true },
 			}))
-			// no error about /pages/0/config/sidebar
-			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar'))).toBe(false)
+			expect(result.valid).toBe(true)
+			// And no index-only sub-field errors fired against the boolean.
+			expect(result.errors.some((e) => e.includes('/sidebar/columnGroups'))).toBe(false)
 		})
 	})
 
@@ -311,6 +318,205 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it("page.config description references the new 'sidebar' field", () => {
 			expect(schema.$defs.page.properties.config.description).toContain('sidebar')
+		})
+	})
+})
+
+// REQ-MDSC-7 / REQ-MDSC-8 — manifest-detail-sidebar-config.
+//
+// Adds:
+//   - Per-page top-level `sidebar` field (sibling of `config`,
+//     applies to every page type including `type:"custom"`).
+//   - Object form for `config.sidebar` on detail pages.
+//   - `config.sidebar.show` boolean on index pages.
+describe('validateManifest — manifest-detail-sidebar-config additions', () => {
+	const baseManifest = (page) => ({
+		version: '1.1.0',
+		menu: [],
+		pages: [page],
+	})
+
+	describe('per-page top-level sidebar field', () => {
+		it('accepts sidebar.show: false on an index page', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				sidebar: { show: false },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('accepts sidebar.show: false on a detail page', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				sidebar: { show: false },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('accepts sidebar.show: false on a custom page', () => {
+			const result = validateManifest(baseManifest({
+				id: 'c', route: '/c', type: 'custom', title: 't',
+				component: 'X',
+				sidebar: { show: false },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects non-object top-level sidebar', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				sidebar: 'no',
+			}))
+			expect(result.errors.some((e) => e.includes('/pages/0/sidebar') && e.includes('must be an object'))).toBe(true)
+		})
+
+		it('rejects non-boolean sidebar.show', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				sidebar: { show: 'maybe' },
+			}))
+			expect(result.errors.some((e) => e.includes('/pages/0/sidebar/show'))).toBe(true)
+		})
+
+		it('tolerates unknown sub-fields for forward-compat', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				sidebar: { show: false, position: 'left' },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('schema declares the page.sidebar property', () => {
+			expect(schema.$defs.page.properties.sidebar).toBeDefined()
+			expect(schema.$defs.page.properties.sidebar.properties.show.type).toBe('boolean')
+		})
+	})
+
+	describe('config.sidebar.show on index pages', () => {
+		it('accepts show: false on the index sidebar config', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { enabled: true, show: false } },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects show as a string', () => {
+			const result = validateManifest(baseManifest({
+				id: 'i', route: '/', type: 'index', title: 't',
+				config: { sidebar: { enabled: true, show: 'no' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar/show'))).toBe(true)
+		})
+	})
+
+	describe('config.sidebar Object form on detail pages', () => {
+		it('accepts the legacy Boolean form (back-compat)', () => {
+			const trueResult = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: true },
+			}))
+			expect(trueResult.valid).toBe(true)
+			const falseResult = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: false },
+			}))
+			expect(falseResult.valid).toBe(true)
+		})
+
+		it('accepts a full Object form', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: {
+					sidebar: {
+						show: false,
+						enabled: true,
+						register: 'leads',
+						schema: 'lead',
+						title: 'Override',
+						subtitle: 'Sub',
+						hiddenTabs: ['notes'],
+						tabs: [{ id: 'a', label: 'A', component: 'X' }],
+					},
+				},
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects a non-Boolean / non-Object value', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: 'opaque' },
+			}))
+			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar') && e.includes('boolean'))).toBe(true)
+		})
+
+		it('rejects a non-boolean show', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { show: 'maybe' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar/show'))).toBe(true)
+		})
+
+		it('rejects non-string register / schema / title / subtitle', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { register: 1, schema: 2, title: 3, subtitle: 4 } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar/register'))).toBe(true)
+			expect(result.errors.some((e) => e.includes('/config/sidebar/schema'))).toBe(true)
+			expect(result.errors.some((e) => e.includes('/config/sidebar/title'))).toBe(true)
+			expect(result.errors.some((e) => e.includes('/config/sidebar/subtitle'))).toBe(true)
+		})
+
+		it('rejects non-array hiddenTabs', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { hiddenTabs: 'notes' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar/hiddenTabs'))).toBe(true)
+		})
+
+		it('validates tabs declared inside config.sidebar.tabs (new path)', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { tabs: [{ id: 'a', component: 'X' }] } },
+			}))
+			// Missing label → error.
+			expect(result.errors.some((e) => e.includes('/config/sidebar/tabs/0/label'))).toBe(true)
+		})
+	})
+
+	describe('schema metadata stability', () => {
+		it('does not bump the schema version (additions are non-breaking)', () => {
+			// Strategy A: legacy boolean form keeps validating, so the
+			// schema version stays at 1.1.0 (the last bump from
+			// manifest-abstract-sidebar). A future change can promote the
+			// number when a breaking change actually lands.
+			expect(schema.version).toBe('1.1.0')
+		})
+
+		it('mentions config.sidebar.show in the page.config description', () => {
+			expect(schema.$defs.page.properties.config.description).toContain('config.sidebar.show')
+		})
+	})
+
+	describe('manifest-sidebar-show.json fixture', () => {
+		// eslint-disable-next-line global-require
+		const fixture = require('../fixtures/manifest-sidebar-show.json')
+
+		it('passes validateManifest end-to-end', () => {
+			const result = validateManifest(fixture)
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
+		})
+
+		it('exercises sidebar.show on all three page types', () => {
+			const types = fixture.pages.map((p) => p.type)
+			expect(types).toEqual(expect.arrayContaining(['index', 'detail', 'custom']))
+			const customPage = fixture.pages.find((p) => p.type === 'custom')
+			expect(customPage.sidebar.show).toBe(false)
 		})
 	})
 })

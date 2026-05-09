@@ -28,7 +28,7 @@
 	<div
 		v-if="currentPage"
 		:data-page-id="currentPage.id"
-		class="cn-page-renderer">
+		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<component
 			:is="resolvedComponent"
 			v-if="resolvedComponent"
@@ -56,6 +56,25 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 		cnTranslate: { default: () => (key) => key },
 		cnPageTypes: { default: null },
+	},
+
+	/**
+	 * Expose the current page's sidebar-visibility state to
+	 * descendants (notably `CnAppRoot` which gates its `#sidebar`
+	 * slot on this value). The provider is a reactive holder
+	 * `{ value: boolean }` so consumers can `inject` once and read
+	 * `.value` whenever they render — Vue 2 reactivity tracks the
+	 * mutation site (the watcher in `data()` below).
+	 *
+	 * Default holder value is `true`, so when `pages[].sidebar.show`
+	 * is unset / `true`, behaviour matches today (slot renders).
+	 * When the page entry sets `sidebar.show: false`, the watcher
+	 * flips `.value` and `CnAppRoot` re-evaluates its `v-if`.
+	 */
+	provide() {
+		return {
+			cnPageSidebarVisible: this.pageSidebarVisible,
+		}
 	},
 
 	props: {
@@ -112,7 +131,26 @@ export default {
 		},
 	},
 
+	data() {
+		// Reactive holder for the per-page sidebar-visibility flag.
+		// Lives on data() so Vue 2 reactivity tracks `.value` mutations
+		// in the watcher below; `provide()` returns the same reference
+		// so descendant injects observe each update.
+		return {
+			pageSidebarVisible: { value: true },
+		}
+	},
+
 	computed: {
+		/**
+		 * Convenience accessor on the reactive holder so the template
+		 * `v-bind:class` reads a primitive boolean. Vue 2 templates
+		 * unwrap `data` references but not arbitrary `{value}`
+		 * holders, so this stays explicit.
+		 */
+		pageSidebarVisibleValue() {
+			return this.pageSidebarVisible.value !== false
+		},
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
@@ -215,6 +253,20 @@ export default {
 			return entries
 		},
 		/**
+		 * Per-page sidebar visibility flag derived from the page
+		 * entry's top-level `sidebar.show` field (sibling of `config`).
+		 * Defaults to `true` when unset. Watched below to push the
+		 * value into the reactive `pageSidebarVisible` holder shared
+		 * via provide/inject with `CnAppRoot`.
+		 */
+		currentPageSidebarVisible() {
+			const page = this.currentPage
+			if (!page || !page.sidebar || typeof page.sidebar !== 'object') {
+				return true
+			}
+			return page.sidebar.show !== false
+		},
+		/**
 		 * @deprecated Use `resolvedSlotEntries` for general slot
 		 * resolution. Retained for compatibility with code that read the
 		 * computed directly.
@@ -227,6 +279,17 @@ export default {
 		 */
 		actionsOverride() {
 			return this.resolvedSlotEntries.find((e) => e.name === 'actions')?.component ?? null
+		},
+	},
+
+	watch: {
+		currentPageSidebarVisible: {
+			immediate: true,
+			handler(visible) {
+				// Mutate the shared holder's `.value` so descendant
+				// injects (notably CnAppRoot) re-render the slot gate.
+				this.pageSidebarVisible.value = visible
+			},
 		},
 	},
 
@@ -274,5 +337,19 @@ export default {
 <style>
 .cn-page-renderer {
 	display: contents;
+}
+
+/*
+ * Hook class applied when the current page's manifest entry has
+ * `sidebar.show: false`. The library does not ship visual rules
+ * here — consumer apps with style-driven sidebar layouts (e.g. CSS
+ * grid where the host shell sibling sidebar is a grid track) can
+ * target this class to collapse / hide the sibling element.
+ *
+ * The programmatic counterpart is the `cnPageSidebarVisible`
+ * inject — `CnAppRoot` reads it to gate `<slot name="sidebar" />`.
+ */
+.cn-page-renderer--no-sidebar {
+	/* intentionally empty — consumer-styled */
 }
 </style>

@@ -327,7 +327,7 @@ Set `pages[].config.sidebar` on a `type: "index"` page to auto-mount `CnIndexSid
 }
 ```
 
-Shape: `{ enabled, columnGroups?, facets?, showMetadata?, search? }`. Forward search/filter/columns events at the page level (`@search`, `@columns-change`, `@filter-change` on `CnIndexPage`).
+Shape: `{ enabled, show?, columnGroups?, facets?, showMetadata?, search? }`. `show` (default `true`) is a separate visibility gate — set `false` to hide the embedded sidebar without removing the rest of the config. Forward search/filter/columns events at the page level (`@search`, `@columns-change`, `@filter-change` on `CnIndexPage`).
 
 ### Detail sidebar tabs
 
@@ -358,6 +358,54 @@ Set `pages[].config.sidebarProps.tabs` on a `type: "detail"` page to drive `CnOb
 The `tabs` array flows through the existing `objectSidebarState` provide/inject channel that `CnDetailPage` already populates with `objectId` / `register` / `schema` / `hiddenTabs`. The host app's mounted `CnObjectSidebar` reads it and replaces the hard-coded built-in tab set (Files / Notes / Tags / Tasks / Audit Trail) with the manifest's array. When unset, the built-in tabs render as today.
 
 Custom tab `component` names resolve against the same `customComponents` registry that powers `type: "custom"` pages and `headerComponent` / `actionsComponent` overrides, so one registry covers every consumer-injected component.
+
+### Detail sidebar Object form (preferred)
+
+`config.sidebar` on a detail page now ALSO accepts an Object that mirrors the index sidebar shape. The Object form folds register / schema / hiddenTabs / title / subtitle / tabs into a single config block — no more split between `sidebar` (Boolean) and `sidebarProps` (Object):
+
+```jsonc
+{
+  "id": "decision",
+  "route": "/decisions/:id",
+  "type": "detail",
+  "title": "myapp.decisions.detail",
+  "config": {
+    "register": "decisions",
+    "schema": "decision",
+    "sidebar": {
+      "show": true,
+      "register": "decisions",
+      "schema": "decision",
+      "hiddenTabs": ["notes"],
+      "tabs": [
+        { "id": "overview", "label": "myapp.tabs.overview",
+          "widgets": [{ "type": "data" }, { "type": "metadata" }] },
+        { "id": "related", "label": "myapp.tabs.related",
+          "component": "MyRelatedTab" }
+      ]
+    }
+  }
+}
+```
+
+The Boolean form (`"sidebar": true`) and the legacy `sidebarProps` field continue to work for backwards compatibility. Migrate at your own pace — the library logs a one-shot `console.warn` per `CnDetailPage` instance the first time it observes the Boolean form.
+
+### Hiding the sidebar per page (`pages[].sidebar.show`)
+
+Every page entry MAY declare a top-level `sidebar` field (sibling of `config`) with one sub-property — `show: boolean`. When `false`, the host App's `#sidebar` slot stops rendering for that page, and `CnPageRenderer` applies the CSS hook class `cn-page-renderer--no-sidebar` on its wrapper. Works on **every** page type, including `type: "custom"`:
+
+```jsonc
+{
+  "id": "wide-canvas",
+  "route": "/wide",
+  "type": "custom",
+  "title": "myapp.wide",
+  "component": "WideCanvasPage",
+  "sidebar": { "show": false }
+}
+```
+
+This avoids the older "drop into `type: 'custom'` and re-implement the shell just to hide a sidebar" workaround. Apps shelling via `CnAppRoot` get this for free — `CnAppRoot` already gates `<slot name="sidebar" />` on the `cnPageSidebarVisible` inject. Apps that mount their own sidebar without `CnAppRoot` need to inject `cnPageSidebarVisible` themselves and gate accordingly (one inject + a `v-if`).
 
 ## i18n
 

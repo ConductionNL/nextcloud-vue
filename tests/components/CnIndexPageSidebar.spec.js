@@ -123,4 +123,41 @@ describe('CnIndexPage — sidebar prop', () => {
 			expect(wrapper.emitted('filter-change')).toEqual([[{ key: 'status', values: ['open'] }]])
 		})
 	})
+
+	// REQ-MDSC-4 — `sidebar.show` visibility gate (manifest-detail-sidebar-config).
+	// `enabled` (existence gate) and `show` (visibility gate) are
+	// distinct: `enabled` controls whether the auto-mount path runs at
+	// all; `show` lets manifest authors hide the configured sidebar
+	// without removing the rest of the config (e.g. for a responsive
+	// layout watcher).
+	describe('sidebar.show flag', () => {
+		it('show defaults to true — embedded sidebar renders', () => {
+			const wrapper = mountIndexPage({ sidebar: { enabled: true } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(true)
+		})
+
+		it('show: true explicitly — embedded sidebar renders', () => {
+			const wrapper = mountIndexPage({ sidebar: { enabled: true, show: true } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(true)
+		})
+
+		it('show: false suppresses the embedded sidebar even when enabled', () => {
+			const wrapper = mountIndexPage({ sidebar: { enabled: true, show: false } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(false)
+		})
+
+		it('enabled: false short-circuits regardless of show', () => {
+			const wrapper = mountIndexPage({ sidebar: { enabled: false, show: true } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(false)
+		})
+
+		it('toggles when show prop changes reactively', async () => {
+			const wrapper = mountIndexPage({ sidebar: { enabled: true, show: true } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(true)
+			await wrapper.setProps({ sidebar: { enabled: true, show: false } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(false)
+			await wrapper.setProps({ sidebar: { enabled: true, show: true } })
+			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(true)
+		})
+	})
 })

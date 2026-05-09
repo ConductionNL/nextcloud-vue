@@ -265,12 +265,15 @@
 			</div>
 		</div>
 
-		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled.
-		     The legacy slot-based pattern (consumer wires their own
-		     CnIndexSidebar at App.vue level) is preserved when the
-		     `sidebar` prop is null / has enabled:false. -->
+		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
+		     AND sidebar.show !== false. The legacy slot-based pattern
+		     (consumer wires their own CnIndexSidebar at App.vue level)
+		     is preserved when the `sidebar` prop is null / has
+		     enabled:false. The `show` flag is the visibility gate —
+		     `enabled` is the existence gate; both default to true
+		     so existing consumers see no behaviour change. -->
 		<CnIndexSidebar
-			v-if="resolvedSidebar.enabled"
+			v-if="resolvedSidebar.enabled && resolvedSidebar.show !== false"
 			:schema="schema"
 			:title="title"
 			:icon="resolvedIcon"
@@ -672,13 +675,24 @@ export default {
 		 * mount their own CnIndexSidebar at the App.vue level.
 		 *
 		 * Shape:
-		 * - `enabled` (boolean) — whether to mount the embedded sidebar.
+		 * - `enabled` (boolean) — **existence gate**. Whether the
+		 *   page configures an embedded sidebar at all. When `false`
+		 *   or unset, the auto-mount path is bypassed (no
+		 *   `<CnIndexSidebar>` rendered) and the consumer's slot
+		 *   pattern stays active.
+		 * - `show` (boolean, default `true`) — **visibility gate**.
+		 *   Even when `enabled: true`, `show: false` SUPPRESSES
+		 *   rendering for this page so manifest authors can hide
+		 *   the sidebar declaratively without removing the config.
+		 *   Distinct from `enabled` so config can be retained
+		 *   (e.g. for a watcher / responsive layout) while the
+		 *   visible surface is hidden.
 		 * - `columnGroups` (array) — extra column groups beyond schema + Metadata.
 		 * - `facets` (object) — live facet data { fieldName: { values: [...] } }.
 		 * - `showMetadata` (boolean) — include the built-in Metadata column group (defaults true).
 		 * - `search` (object) — search-related label overrides forwarded to CnIndexSidebar.
 		 *
-		 * @type {{ enabled: boolean, columnGroups?: Array, facets?: object, showMetadata?: boolean, search?: object }|null}
+		 * @type {{ enabled: boolean, show?: boolean, columnGroups?: Array, facets?: object, showMetadata?: boolean, search?: object }|null}
 		 */
 		sidebar: {
 			type: Object,
