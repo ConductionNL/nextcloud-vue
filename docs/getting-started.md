@@ -272,9 +272,23 @@ export default {
 
 That's it — you have a working list page with sorting, pagination, faceted filtering, and CRUD dialogs, all driven by your OpenRegister schema.
 
+## Design principles
+
+The four ideas every `Cn*` component is built on:
+
+- **Nextcloud-native** — components consume Nextcloud CSS variables (`var(--color-primary-element)`, `var(--color-border)`, etc.) and integrate with the Nextcloud shell without any custom theming. No `--cn-*` tokens, no hardcoded colors. See [Design tokens](./design-tokens/) for the full variable reference.
+- **Slot-first** — every component exposes named slots. Dialogs in particular support three override levels: full replacement (`#form`), form-content override (`#form-fields`), and per-field override (`#field-{key}`).
+- **Backwards compatible** — props, events, and slots are deprecated with a `console.warn` and at least one minor release before removal. Minor bumps never break existing consumers.
+- **Schema-driven** — `columnsFromSchema`, `filtersFromSchema`, and `fieldsFromSchema` generate UI directly from JSON Schema so you describe your data model once and reuse it for tables, filters, and forms.
+
+## Consumer apps
+
+`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **MyDash**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
+
 ## Next Steps
 
 - [Layouts](./layouts/) — how the List, Detail, and Settings page layouts work
 - [Component Reference](./components/) — browse all Cn* components
+- [Design tokens](./design-tokens/) — Nextcloud CSS variables every component consumes
 - [OpenRegister Integration](./integrations/openregister.md) — deep dive into the backend connection
 - [Architecture Overview](./architecture/overview.md) — understand the three-layer design
