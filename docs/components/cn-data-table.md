@@ -3,6 +3,7 @@ sidebar_position: 5
 ---
 
 import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDataTable.md'
 
 # CnDataTable
 
@@ -104,8 +105,6 @@ Sortable data table with row selection, loading states, and schema-driven column
 
 ## Reference (auto-generated)
 
-import GeneratedRef from './_generated/CnDataTable.md'
-
-The section below is generated from the SFC source by `vue-docgen-cli`. Phase 1 spike — present here for comparison with the hand-written tables above. Once the JSDoc on each `Cn*` component is complete enough to replace the hand-written tables, Phase 3 deletes the redundant prose and keeps only the auto-generated section.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
