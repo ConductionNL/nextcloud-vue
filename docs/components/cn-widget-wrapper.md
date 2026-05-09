@@ -1,6 +1,13 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnWidgetWrapper.md'
+
 # CnWidgetWrapper
 
 Container shell around a dashboard widget. Provides a header with icon and title, a scrollable content area, and an optional footer with action links. Accepts a `styleConfig` object for runtime style overrides (background, border, padding). Used internally by `CnDashboardPage` for all non-tile widgets.
+
+## Try it
+
+<Playground component="CnWidgetWrapper" />
 
 ## Usage
 
@@ -59,3 +66,9 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `actions` | Buttons or controls placed in the right side of the header |
 | `title-icon` | Extra icon element rendered in the header at the position controlled by `titleIconPosition` (left of title or right of actions) |
 | `footer` | Custom footer content (replaces the `buttons` prop rendering) |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnWidgetWrapper.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnWidgetWrapper/CnWidgetWrapper.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
