@@ -378,3 +378,25 @@ if (!result.valid) {
 ```
 
 The same validator runs at runtime inside `useAppManifest` against any backend-merged result; failures fall back to the bundled manifest with a console.warn.
+
+## Schema-validated config shapes
+
+The manifest schema ships seven `$defs` documenting recurring `config` sub-shapes:
+
+| `$def` | Purpose | Used inside |
+|---|---|---|
+| `column` | Table column definition | `pages[].config.columns[]` |
+| `action` | Row / bulk action | `pages[].config.actions[]` |
+| `widgetDef` | Dashboard widget definition | `pages[].config.widgets[]` |
+| `layoutItem` | Dashboard grid layout entry | `pages[].config.layout[]` |
+| `formField` | Schema-driven form field | `pages[].config.sections[].fields[]` |
+| `sidebarSection` | Index sidebar config group | `pages[].config.sidebar.columnGroups[]` |
+| `sidebarTab` | Detail sidebar tab | `pages[].config.sidebarProps.tabs[]` |
+
+Today the `$defs` are reachable by JSON-Pointer (`#/$defs/column`, etc.) but the `pages[].config` block still has `additionalProperties: true` — the `$ref`s into config blocks are deferred to a follow-up after parallel schema-touching changes land. Until then the `$defs` are useful for:
+
+- **IDE autocomplete** — JSON Schema-aware editors can navigate to a `$def` and surface its properties.
+- **Ad-hoc validation** — Ajv consumers can validate a fragment directly: `ajv.compile({$ref: '#/$defs/column'})`.
+- **Documentation cross-links** — see [docs/utilities/manifest-defs.md](utilities/manifest-defs.md) for one-line examples per `$def`.
+
+The component-level shapes are still the source of truth at runtime; the `$defs` are the JSON-side contract.
