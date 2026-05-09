@@ -99,6 +99,7 @@ export {
 	relationsPlugin,
 	filesPlugin,
 	lifecyclePlugin,
+	liveUpdatesPlugin,
 	logsPlugin,
 	registerMappingPlugin,
 	selectionPlugin,
