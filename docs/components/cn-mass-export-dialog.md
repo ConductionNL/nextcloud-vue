@@ -2,9 +2,16 @@
 sidebar_position: 21
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassExportDialog.md'
+
 # CnMassExportDialog
 
 Export format selection dialog. Lets users pick a format and triggers export for selected items.
+
+## Try it
+
+<Playground component="CnMassExportDialog" />
 
 **Wraps**: NcDialog, NcButton, NcSelect
 
@@ -72,3 +79,9 @@ export default {
   @confirm="onExport"
   @close="showExport = false" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassExportDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassExportDialog/CnMassExportDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

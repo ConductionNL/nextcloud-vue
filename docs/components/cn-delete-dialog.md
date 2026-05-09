@@ -2,9 +2,16 @@
 sidebar_position: 16
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDeleteDialog.md'
+
 # CnDeleteDialog
 
 Two-phase single-item delete confirmation dialog. Shows a warning, waits for API response, then shows success or error.
+
+## Try it
+
+<Playground component="CnDeleteDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard, NcLoadingIcon
 
@@ -105,3 +112,9 @@ export default {
 }
 </script>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDeleteDialog/CnDeleteDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

@@ -2,9 +2,16 @@
 sidebar_position: 17
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnCopyDialog.md'
+
 # CnCopyDialog
 
 Two-phase single-item copy dialog with naming pattern selector. User picks a naming pattern, confirms, then sees success or error.
+
+## Try it
+
+<Playground component="CnCopyDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard, NcSelect
 
@@ -71,3 +78,9 @@ export default {
 }
 </script>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCopyDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCopyDialog/CnCopyDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
