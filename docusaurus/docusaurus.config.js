@@ -4,8 +4,8 @@
 const config = {
   title: '@conduction/nextcloud-vue',
   tagline: 'Schema-driven Vue components for Nextcloud apps built on OpenRegister',
-  url: 'https://conductionnl.github.io',
-  baseUrl: '/nextcloud-vue/',
+  url: 'https://nextcloud-vue.conduction.nl',
+  baseUrl: '/',
 
   // GitHub pages deployment config
   organizationName: 'ConductionNL',
@@ -34,8 +34,8 @@ const config = {
         docs: {
           path: '../docs',
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl:
-            'https://github.com/ConductionNL/nextcloud-vue/tree/main/docusaurus/',
+          editUrl: ({ docPath }) =>
+            `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}`,
         },
         blog: false,
         theme: {

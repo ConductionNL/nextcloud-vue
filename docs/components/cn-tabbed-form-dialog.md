@@ -15,7 +15,7 @@ A generic tabbed dialog for create/edit forms. Provides the standard dialog shel
 | `tabs` | `Array<{ id, title, icon?, disabled? }>` | required | Tab definitions. `icon` is a Vue component reference |
 | `item` | `Object\|null` | `null` | Existing item = edit mode; `null` = create mode |
 | `dialogTitle` | `String` | `''` | Custom title (overrides auto-generated) |
-| `entityName` | `String` | `'Item'` | Used in auto-titles: "Create {name}" / "Edit {name}" |
+| `entityName` | `String` | `'Item'` | Used in auto-titles: `"Create \{name\}"` / `"Edit \{name\}"` |
 | `size` | `String` | `'large'` | NcDialog size |
 | `showCreateAnother` | `Boolean` | `false` | Show "Create Another" checkbox in create mode |
 | `disableSave` | `Boolean` | `false` | Disable primary button (parent controls validation) |
