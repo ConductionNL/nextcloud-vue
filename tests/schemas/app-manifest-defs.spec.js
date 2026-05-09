@@ -236,10 +236,11 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('does not bump the schema version', () => {
-		// The two parallel schema-touching changes are the ones that bump
-		// version. This change is additive only.
-		expect(schema.version).toBe('1.0.0')
+	it('does not bump the schema version on top of the merged base', () => {
+		// The page-type-extensions and abstract-sidebar changes are the ones
+		// that bump the schema version (to 1.1.0 in feature/manifest-v1).
+		// This change is additive only — it does not bump version further.
+		expect(schema.version).toBe('1.1.0')
 	})
 
 	it('leaves pages[].config additionalProperties as true (no $ref tightening yet)', () => {
