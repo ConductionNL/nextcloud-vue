@@ -21,6 +21,8 @@ describe('useObjectStore', () => {
 			expect(store.objectTypeRegistry.client).toEqual({
 				schema: '28',
 				register: '5',
+				registerSlug: null,
+				schemaSlug: null,
 			})
 			expect(store.collections.client).toEqual([])
 			expect(store.objects.client).toEqual({})
