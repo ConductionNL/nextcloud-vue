@@ -378,6 +378,10 @@ export default {
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `store` | Object | `null` | Store instance for automatic save integration |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `registerId-schemaId`) |
+| `sidebar` | Object | `null` | Manifest-driven sidebar config `{ enabled, columnGroups?, facets?, showMetadata?, search? }`. When `enabled: true`, auto-mounts an embedded `CnIndexSidebar`. Unset keeps the legacy slot-based pattern. |
+| `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar. |
+| `activeFilters` | Object | `{}` | Currently active facet filters forwarded to the embedded sidebar. |
 
 ## Slots
 

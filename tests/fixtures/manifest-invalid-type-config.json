@@ -1,0 +1,36 @@
+{
+	"version": "1.1.0",
+	"menu": [],
+	"pages": [
+		{
+			"id": "logs-empty",
+			"route": "/logs",
+			"type": "logs",
+			"title": "logs without source",
+			"config": {}
+		},
+		{
+			"id": "settings-empty",
+			"route": "/settings",
+			"type": "settings",
+			"title": "settings without sections",
+			"config": {
+				"sections": []
+			}
+		},
+		{
+			"id": "chat-empty",
+			"route": "/chat",
+			"type": "chat",
+			"title": "chat with neither URL",
+			"config": {}
+		},
+		{
+			"id": "files-empty",
+			"route": "/files",
+			"type": "files",
+			"title": "files without folder",
+			"config": {}
+		}
+	]
+}

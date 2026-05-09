@@ -90,7 +90,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `dependency-missing` | `{ dependencies }` | `<CnDependencyMissing :dependencies />` | Shown when any dependency is missing or disabled |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
-| `sidebar` | — | — | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`) |
+| `sidebar` | — | — | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
 
 ## Related

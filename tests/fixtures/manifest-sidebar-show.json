@@ -1,0 +1,48 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.1.0",
+	"menu": [
+		{ "id": "items", "label": "menu.items", "route": "items" },
+		{ "id": "wide", "label": "menu.wide", "route": "wide" },
+		{ "id": "lead", "label": "menu.lead", "route": "lead-detail" }
+	],
+	"pages": [
+		{
+			"id": "items",
+			"route": "/items",
+			"type": "index",
+			"title": "page.items",
+			"sidebar": { "show": true },
+			"config": {
+				"register": "core",
+				"schema": "item",
+				"sidebar": { "enabled": true, "show": false, "showMetadata": true }
+			}
+		},
+		{
+			"id": "lead-detail",
+			"route": "/leads/:id",
+			"type": "detail",
+			"title": "page.lead",
+			"config": {
+				"sidebar": {
+					"show": false,
+					"register": "leads",
+					"schema": "lead",
+					"hiddenTabs": ["notes"],
+					"tabs": [
+						{ "id": "overview", "label": "lead.overview", "widgets": [{ "type": "data" }, { "type": "metadata" }] }
+					]
+				}
+			}
+		},
+		{
+			"id": "wide",
+			"route": "/wide",
+			"type": "custom",
+			"title": "page.wide",
+			"component": "WideCanvasPage",
+			"sidebar": { "show": false }
+		}
+	]
+}

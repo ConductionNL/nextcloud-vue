@@ -34,4 +34,8 @@ export const defaultPageTypes = {
 	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue')),
 	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue')),
 	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue')),
+	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue')),
+	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue')),
+	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue')),
+	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue')),
 }

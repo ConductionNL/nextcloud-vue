@@ -264,6 +264,29 @@
 					@page-size-changed="$emit('page-size-changed', $event)" />
 			</div>
 		</div>
+
+		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
+		     AND sidebar.show !== false. The legacy slot-based pattern
+		     (consumer wires their own CnIndexSidebar at App.vue level)
+		     is preserved when the `sidebar` prop is null / has
+		     enabled:false. The `show` flag is the visibility gate —
+		     `enabled` is the existence gate; both default to true
+		     so existing consumers see no behaviour change. -->
+		<CnIndexSidebar
+			v-if="resolvedSidebar.enabled && resolvedSidebar.show !== false"
+			:schema="schema"
+			:title="title"
+			:icon="resolvedIcon"
+			:search-value="searchValue"
+			:visible-columns="visibleColumns"
+			:active-filters="activeFilters"
+			:column-groups="resolvedSidebar.columnGroups || []"
+			:facet-data="resolvedSidebar.facets || {}"
+			:show-metadata="resolvedSidebar.showMetadata !== false"
+			v-bind="sidebarSearchProps"
+			@search="$emit('search', $event)"
+			@columns-change="$emit('columns-change', $event)"
+			@filter-change="$emit('filter-change', $event)" />
 	</div>
 </template>
 
@@ -290,6 +313,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
+import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { useContextMenu } from '../../composables/index.js'
 
 /**
@@ -348,6 +372,9 @@ import { useContextMenu } from '../../composables/index.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -385,6 +412,7 @@ export default {
 		CnFormDialog,
 		CnAdvancedFormDialog,
 		CnContextMenu,
+		CnIndexSidebar,
 	},
 
 	props: {
@@ -638,6 +666,53 @@ export default {
 		 * Required when store is set — a console warning is emitted if missing.
 		 */
 		objectType: { type: String, default: '' },
+		/**
+		 * Manifest-driven sidebar configuration. When set with
+		 * `enabled: true`, CnIndexPage auto-mounts an embedded
+		 * CnIndexSidebar wired to the page's schema, search, columns,
+		 * and facet props. When unset or `enabled: false`, the
+		 * legacy slot-based interface is preserved — consumers
+		 * mount their own CnIndexSidebar at the App.vue level.
+		 *
+		 * Shape:
+		 * - `enabled` (boolean) — **existence gate**. Whether the
+		 *   page configures an embedded sidebar at all. When `false`
+		 *   or unset, the auto-mount path is bypassed (no
+		 *   `<CnIndexSidebar>` rendered) and the consumer's slot
+		 *   pattern stays active.
+		 * - `show` (boolean, default `true`) — **visibility gate**.
+		 *   Even when `enabled: true`, `show: false` SUPPRESSES
+		 *   rendering for this page so manifest authors can hide
+		 *   the sidebar declaratively without removing the config.
+		 *   Distinct from `enabled` so config can be retained
+		 *   (e.g. for a watcher / responsive layout) while the
+		 *   visible surface is hidden.
+		 * - `columnGroups` (array) — extra column groups beyond schema + Metadata.
+		 * - `facets` (object) — live facet data { fieldName: { values: [...] } }.
+		 * - `showMetadata` (boolean) — include the built-in Metadata column group (defaults true).
+		 * - `search` (object) — search-related label overrides forwarded to CnIndexSidebar.
+		 *
+		 * @type {{ enabled: boolean, show?: boolean, columnGroups?: Array, facets?: object, showMetadata?: boolean, search?: object }|null}
+		 */
+		sidebar: {
+			type: Object,
+			default: null,
+		},
+		/** Current search term (forwarded to the embedded sidebar when sidebar.enabled). */
+		searchValue: {
+			type: String,
+			default: '',
+		},
+		/** Currently visible column keys (forwarded to the embedded sidebar). */
+		visibleColumns: {
+			type: Array,
+			default: null,
+		},
+		/** Currently active facet filters: { fieldName: [values] } (forwarded to the embedded sidebar). */
+		activeFilters: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	setup() {
@@ -767,6 +842,23 @@ export default {
 		resolvedAddLabel() {
 			if (this.addLabel) return this.addLabel
 			return 'Add ' + (this.schema?.title || 'Item')
+		},
+
+		/**
+		 * Effective sidebar configuration. Returns the sidebar config object
+		 * when `sidebar.enabled === true`, otherwise an `{ enabled: false }`
+		 * stub so the embedded CnIndexSidebar is not mounted.
+		 */
+		resolvedSidebar() {
+			if (this.sidebar && this.sidebar.enabled !== false) {
+				return this.sidebar
+			}
+			return { enabled: false }
+		},
+
+		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
+		sidebarSearchProps() {
+			return (this.sidebar && this.sidebar.search) || {}
 		},
 	},
 

@@ -89,3 +89,5 @@ export default {
 | `tagsLabel` | String | `'Tags'` | Pre-translated label for the Tags tab |
 | `tasksLabel` | String | `'Tasks'` | Pre-translated label for the Tasks tab |
 | `auditTrailLabel` | String | `'Audit trail'` | Pre-translated label for the Audit Trail tab |
+| `tabs` | Array | `null` | Open-enum tab definitions `[{ id, label, icon?, widgets?, component?, order? }]`. When set with at least one entry, REPLACES the hard-coded built-in tab set (Files / Notes / Tags / Tasks / Audit Trail). Each tab declares either a `widgets` list (built-in `data` → `CnObjectDataWidget`, `metadata` → `CnObjectMetadataWidget`; other types resolve via `customComponents`) OR a `component` registry name. When unset, the built-in tabs render as today. |
+| `customComponents` | Object | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
