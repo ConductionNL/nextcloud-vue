@@ -286,6 +286,61 @@ npm run check:docs      # exits 0 when every export is covered, 1 otherwise
 
 Output is a per-category coverage summary followed by a list of missing exports with the exact file path the script expects, so the fix is always to either create that file or rename an existing one.
 
+## Documenting components (enforced)
+
+The library's docs site auto-generates per-component reference tables (props / events / slots) from JSDoc on the SFCs via `vue-docgen-cli`. **Components update → docs update automatically** — but only when the JSDoc is rich enough to be useful. Two CI gates enforce this:
+
+1. **Freshness** — `cd docusaurus && npm run prebuild:docs` is run in CI; if it produces a diff against `docs/components/_generated/`, the build fails. Solution: run the same command locally and commit the diff.
+2. **Completeness ratchet** — `npm run check:jsdoc` scores each `Cn*` on prop / event / slot JSDoc coverage and compares against the per-component baseline at [scripts/.jsdoc-baselines.json](scripts/.jsdoc-baselines.json). CI fails on any regression. New components require 100% coverage from day one. Improving coverage is a normal PR — bump the baseline with `npm run jsdoc-baselines:update`.
+
+### Three canonical JSDoc shapes
+
+**Prop:** leading `/** ... */` block. For non-trivial union or generic types, an `@type {...}` tag (vue-docgen-cli infers simple types from the `type:` field).
+
+```vue
+<script>
+export default {
+  props: {
+    /**
+     * Column definitions (manual mode). Not required when `schema` is provided.
+     * @type {Array<{key: string, label: string, sortable: boolean, width: string}>}
+     */
+    columns: { type: Array, default: () => [] },
+  },
+}
+</script>
+```
+
+**Event:** JSDoc above the `$emit` site. The `@event` tag preserves the event's name across vue-docgen-api's parser; payload shape goes in `@type`.
+
+```vue
+/**
+ * @event sort Emitted when a sortable column header is clicked.
+ * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+ */
+this.$emit('sort', { key: newKey, order })
+```
+
+**Named slot:** template comment immediately above the `<slot>` declaration. Scoped slots add `@binding` per scope key.
+
+```vue
+<template>
+  <!-- @slot row-actions Per-row action menu cell. Receives the row object. -->
+  <!-- @binding {object} row The row data passed to slot consumers. -->
+  <slot name="row-actions" :row="row" />
+</template>
+```
+
+### Workflow when adding or modifying a component
+
+1. Edit the SFC. Add / update JSDoc as you touch each prop, event, or slot.
+2. Run `cd docusaurus && npm run prebuild:docs` to regenerate the partial.
+3. Commit the SFC AND the regenerated `docs/components/_generated/<name>.md` together.
+4. Run `npm run check:jsdoc` locally to confirm no regression.
+5. If you intentionally improved coverage, `npm run jsdoc-baselines:update` and commit the bumped baseline.
+
+The CI failure messages cite the component name, the missing items by `kind:name`, and the file path — so the fix is always "open the SFC, add the JSDoc, commit."
+
 ## Project Structure
 
 ```

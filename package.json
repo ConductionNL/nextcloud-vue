@@ -32,6 +32,8 @@
 		"lint-fix": "npm run lint -- --fix",
 		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
 		"check:docs": "node scripts/check-docs.js",
+		"check:jsdoc": "node scripts/check-jsdoc.js",
+		"jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
 		"prepublishOnly": "npm run build",
 		"styleguide": "cd styleguide && npm run server",
 		"styleguide:build": "cd styleguide && npm run build"
