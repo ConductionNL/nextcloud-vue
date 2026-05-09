@@ -2,24 +2,44 @@ name: Release
 
 # Auto-publish @conduction/nextcloud-vue to npm via semantic-release.
 #
-# Authentication: NPM_TOKEN (org-level secret) for the actual publish +
-# OIDC provenance attestation (NPM_CONFIG_PROVENANCE=true) for supply-chain
-# verification. The Trusted-Publisher-only design did not work because
-# @semantic-release/npm's verifyConditions step calls `npm whoami` before
-# publish, which fails without a token even when OIDC publish would
-# subsequently succeed. NPM_TOKEN satisfies the verify step; the publish
-# itself is still attested via OIDC provenance.
+# Authentication: npm Trusted Publisher (OIDC) — no NPM_TOKEN secret to
+# rotate. The runner mints a short-lived ID token via `id-token: write`,
+# npm validates the {repo, workflow} claim against its trust config, and
+# issues a one-shot publish credential. Provenance attestations are
+# signed automatically (NPM_CONFIG_PROVENANCE=true).
 #
-# To rotate: regenerate the NPM_TOKEN repo/org secret on npmjs.com and
-# update it under repo Settings → Secrets → Actions.
+# Why @semantic-release/exec instead of @semantic-release/npm publishing
+# directly: as of v12.x, @semantic-release/npm has no OIDC awareness and
+# its `verify-auth` step refuses to run without an NPM_TOKEN. We set
+# `npmPublish: false` on that plugin (which only does the in-place
+# version bump in package.json) and run the OIDC publish via
+# @semantic-release/exec in the same publish lifecycle. The plugin
+# invokes `npx -y npm@latest` because Node 24's bundled npm 11.x is
+# usually OIDC-capable but the npx form is hardened against version
+# regressions.
+#
+# Trust config on npmjs.com expects this workflow at the path
+# `.github/workflows/release.yml` in `ConductionNL/nextcloud-vue`. If
+# you rename or move this file, update the npm Trusted Publisher config.
 #
 # Node 24 is the floor: semantic-release@24 requires Node ^22.14 || ≥24.10
-# and the publish path uses npm CLI's provenance support, which lands in
+# and the publish path uses npm CLI's OIDC support, which lands in
 # npm 11.x (bundled with Node 24).
+#
+# Pattern mirrored from `ConductionNL/design-system`'s
+# `publish-packages.yml` for `@conduction/docusaurus-preset` — the only
+# Conduction package currently shipping cleanly via semantic-release +
+# OIDC.
 
 on:
   push:
     branches: [main, beta]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run semantic-release --dry-run only (no publish, no tag, no release)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -68,5 +88,9 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            npx semantic-release --dry-run
+          else
+            npx semantic-release
+          fi
