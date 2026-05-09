@@ -151,12 +151,30 @@ function validateTypeConfig(page, index, errors) {
 	const pathSlash = `/pages/${index}/config`
 
 	switch (page.type) {
+	case 'index': {
+		// `manifest-config-refs` REQ-MCR — surface column / action shape
+		// errors with sharp messages so consumers can locate the offending
+		// field. Both arrays are OPTIONAL; only validated when present.
+		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
+		validateActionsArray(cfg, pathSlash, pathBracket, errors)
+		break
+	}
 	case 'logs': {
 		const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
 		const hasSource = cfg && typeof cfg.source === 'string'
 		if (!hasRegisterSchema && !hasSource) {
 			errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
 		}
+		// Same column shorthand support as index.
+		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
+		break
+	}
+	case 'dashboard': {
+		// `manifest-config-refs` REQ-MCR — surface widgetDef / layoutItem
+		// shape errors. Both arrays are OPTIONAL; only validated when
+		// present.
+		validateWidgetsArray(cfg, pathSlash, pathBracket, errors)
+		validateLayoutArray(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'settings': {
@@ -212,6 +230,12 @@ function validateTypeConfig(page, index, errors) {
 						errors.push(`${pathSlash}/sections/${sIndex}/widgets/${wIndex}/type: must be a non-empty string`)
 					}
 				})
+			}
+
+			// `manifest-config-refs` REQ-MCR — when fields[] body is
+			// used, each entry must match the formField $def shape.
+			if (hasFields) {
+				validateFieldsArray(section.fields, `${pathSlash}/sections/${sIndex}/fields`, errors)
 			}
 		})
 		break
@@ -430,4 +454,190 @@ function validatePageSidebar(page, pageIndex, errors) {
 	if (page.sidebar.show !== undefined && typeof page.sidebar.show !== 'boolean') {
 		errors.push(`${path}/show must be a boolean`)
 	}
+}
+
+/**
+ * Validate `config.columns[]` for index / logs page types
+ * (`manifest-config-refs` REQ-MCR).
+ *
+ * Each item is EITHER a string (legacy shorthand: just the property
+ * key) OR an object matching the `column` $def — i.e. with at least
+ * `key` and `label` non-empty strings. The schema admits the same
+ * `oneOf` shape; this validator produces sharper messages when the
+ * Object form is malformed.
+ *
+ * Skipped silently when `cfg` or `cfg.columns` is missing.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateColumnsArray(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.columns === undefined) return
+	if (!Array.isArray(cfg.columns)) {
+		errors.push(`${pathSlash}/columns: ${pathBracket}.columns: must be an array when set`)
+		return
+	}
+	cfg.columns.forEach((col, cIndex) => {
+		const colPath = `${pathSlash}/columns/${cIndex}`
+		if (typeof col === 'string') {
+			// Legacy shorthand — accepted as-is.
+			return
+		}
+		if (!isPlainObject(col)) {
+			errors.push(`${colPath}: must be a string (legacy shorthand) or object`)
+			return
+		}
+		if (typeof col.key !== 'string' || col.key.length === 0) {
+			errors.push(`${colPath}/key: must be a non-empty string`)
+		}
+		if (typeof col.label !== 'string' || col.label.length === 0) {
+			errors.push(`${colPath}/label: must be a non-empty string`)
+		}
+	})
+}
+
+/**
+ * Validate `config.actions[]` for index page type
+ * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
+ * non-empty `id` and `label` strings — matches the `action` $def's
+ * `required: ["id","label"]`.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.actions === undefined) return
+	if (!Array.isArray(cfg.actions)) {
+		errors.push(`${pathSlash}/actions: ${pathBracket}.actions: must be an array when set`)
+		return
+	}
+	cfg.actions.forEach((action, aIndex) => {
+		const actionPath = `${pathSlash}/actions/${aIndex}`
+		if (!isPlainObject(action)) {
+			errors.push(`${actionPath}: must be an object`)
+			return
+		}
+		if (typeof action.id !== 'string' || action.id.length === 0) {
+			errors.push(`${actionPath}/id: must be a non-empty string`)
+		}
+		if (typeof action.label !== 'string' || action.label.length === 0) {
+			errors.push(`${actionPath}/label: must be a non-empty string`)
+		}
+	})
+}
+
+/**
+ * Validate `config.widgets[]` for dashboard page type
+ * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
+ * non-empty `id`, `title`, `type` strings — matches the `widgetDef`
+ * $def's `required: ["id","title","type"]`.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateWidgetsArray(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.widgets === undefined) return
+	if (!Array.isArray(cfg.widgets)) {
+		errors.push(`${pathSlash}/widgets: ${pathBracket}.widgets: must be an array when set`)
+		return
+	}
+	cfg.widgets.forEach((widget, wIndex) => {
+		const widgetPath = `${pathSlash}/widgets/${wIndex}`
+		if (!isPlainObject(widget)) {
+			errors.push(`${widgetPath}: must be an object`)
+			return
+		}
+		if (typeof widget.id !== 'string' || widget.id.length === 0) {
+			errors.push(`${widgetPath}/id: must be a non-empty string`)
+		}
+		if (typeof widget.title !== 'string' || widget.title.length === 0) {
+			errors.push(`${widgetPath}/title: must be a non-empty string`)
+		}
+		if (typeof widget.type !== 'string' || widget.type.length === 0) {
+			errors.push(`${widgetPath}/type: must be a non-empty string`)
+		}
+	})
+}
+
+/**
+ * Validate `config.layout[]` for dashboard page type
+ * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
+ * non-empty `id`, `widgetId` strings, and integer `gridX`/`gridY` >= 0,
+ * `gridWidth`/`gridHeight` >= 1 — matches the `layoutItem` $def.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.layout === undefined) return
+	if (!Array.isArray(cfg.layout)) {
+		errors.push(`${pathSlash}/layout: ${pathBracket}.layout: must be an array when set`)
+		return
+	}
+	cfg.layout.forEach((item, lIndex) => {
+		const layoutPath = `${pathSlash}/layout/${lIndex}`
+		if (!isPlainObject(item)) {
+			errors.push(`${layoutPath}: must be an object`)
+			return
+		}
+		if (typeof item.id !== 'string' || item.id.length === 0) {
+			errors.push(`${layoutPath}/id: must be a non-empty string`)
+		}
+		if (typeof item.widgetId !== 'string' || item.widgetId.length === 0) {
+			errors.push(`${layoutPath}/widgetId: must be a non-empty string`)
+		}
+		const checkInt = (key, min) => {
+			if (typeof item[key] !== 'number' || !Number.isInteger(item[key])) {
+				errors.push(`${layoutPath}/${key}: must be an integer`)
+			} else if (item[key] < min) {
+				errors.push(`${layoutPath}/${key}: must be >= ${min}`)
+			}
+		}
+		checkInt('gridX', 0)
+		checkInt('gridY', 0)
+		checkInt('gridWidth', 1)
+		checkInt('gridHeight', 1)
+	})
+}
+
+/**
+ * Validate `config.sections[].fields[]` for settings page type
+ * (`manifest-config-refs` REQ-MCR). Each field MUST be an object with
+ * non-empty `key`, `label` strings and `type` ∈ the closed enum
+ * `boolean | number | string | enum | password | json` — matches the
+ * `formField` $def.
+ *
+ * @param {*} fields The candidate fields value
+ * @param {string} fieldsPath JSON-pointer-style path prefix for errors
+ * @param {string[]} errors Accumulator
+ */
+const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
+function validateFieldsArray(fields, fieldsPath, errors) {
+	if (!Array.isArray(fields)) return
+	fields.forEach((field, fIndex) => {
+		const fieldPath = `${fieldsPath}/${fIndex}`
+		if (!isPlainObject(field)) {
+			errors.push(`${fieldPath}: must be an object`)
+			return
+		}
+		if (typeof field.key !== 'string' || field.key.length === 0) {
+			errors.push(`${fieldPath}/key: must be a non-empty string`)
+		}
+		if (typeof field.label !== 'string' || field.label.length === 0) {
+			errors.push(`${fieldPath}/label: must be a non-empty string`)
+		}
+		if (typeof field.type !== 'string' || field.type.length === 0) {
+			errors.push(`${fieldPath}/type: must be a non-empty string`)
+		} else if (!FORM_FIELD_TYPES.includes(field.type)) {
+			errors.push(`${fieldPath}/type: must be one of ${FORM_FIELD_TYPES.join(', ')}`)
+		}
+	})
 }

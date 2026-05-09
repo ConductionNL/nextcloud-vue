@@ -521,22 +521,43 @@ The same validator runs at runtime inside `useAppManifest` against any backend-m
 
 ## Schema-validated config shapes
 
-The manifest schema ships seven `$defs` documenting recurring `config` sub-shapes:
+As of schema **version 1.2.0** (the `manifest-config-refs` change), the manifest schema's seven `$defs` are referenced from the recurring `pages[].config` sub-properties they describe. Editor autocomplete, build-time Ajv validation, and CI lint surface schema-level enforcement against the typed shapes.
 
 | `$def` | Purpose | Used inside |
 |---|---|---|
-| `column` | Table column definition | `pages[].config.columns[]` |
-| `action` | Row / bulk action | `pages[].config.actions[]` |
-| `widgetDef` | Dashboard widget definition | `pages[].config.widgets[]` |
-| `layoutItem` | Dashboard grid layout entry | `pages[].config.layout[]` |
-| `formField` | Schema-driven form field | `pages[].config.sections[].fields[]` |
-| `sidebarSection` | Index sidebar config group | `pages[].config.sidebar.columnGroups[]` |
-| `sidebarTab` | Detail sidebar tab | `pages[].config.sidebarProps.tabs[]` |
+| `column` | Table column definition | `pages[].config.columns[]` (`index`, `logs`) — admits string-shorthand via `oneOf` |
+| `action` | Row / bulk action | `pages[].config.actions[]` (`index`) |
+| `widgetDef` | Dashboard widget definition | `pages[].config.widgets[]` (`dashboard`) |
+| `layoutItem` | Dashboard grid layout entry | `pages[].config.layout[]` (`dashboard`) |
+| `formField` | Schema-driven form field | `pages[].config.sections[].fields[]` (`settings`) |
+| `sidebarSection` | Index sidebar config group | `pages[].config.sidebar.columnGroups[]` (`index`) |
+| `sidebarTab` | Detail sidebar tab | `pages[].config.sidebar.tabs[]` (preferred) and `pages[].config.sidebarProps.tabs[]` (legacy) (`detail`) |
 
-Today the `$defs` are reachable by JSON-Pointer (`#/$defs/column`, etc.) but the `pages[].config` block still has `additionalProperties: true` — the `$ref`s into config blocks are deferred to a follow-up after parallel schema-touching changes land. Until then the `$defs` are useful for:
+The OUTER `pages[].config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, `conversationSource`, `postUrl`, `allowedTypes`) and consumer-app extension keys remain free-form. The detail `config.sidebar` is a `oneOf [boolean, object]` — the legacy boolean form keeps validating; the Object form's `tabs[]` is typed but the rest of the object stays open.
 
-- **IDE autocomplete** — JSON Schema-aware editors can navigate to a `$def` and surface its properties.
-- **Ad-hoc validation** — Ajv consumers can validate a fragment directly: `ajv.compile({$ref: '#/$defs/column'})`.
-- **Documentation cross-links** — see [docs/utilities/manifest-defs.md](utilities/manifest-defs.md) for one-line examples per `$def`.
+### What error messages look like
 
-The component-level shapes are still the source of truth at runtime; the `$defs` are the JSON-side contract.
+The `validateManifest` FE helper mirrors the schema's strictness with JSON-pointer-shaped error messages:
+
+```js
+import { validateManifest } from '@conduction/nextcloud-vue'
+
+const result = validateManifest(myManifest)
+if (!result.valid) {
+  console.error(result.errors)
+  // [
+  //   '/pages/0/config/widgets/0/type: must be a non-empty string',
+  //   '/pages/2/config/actions/0/label: must be a non-empty string',
+  //   '/pages/3/config/sections/0/fields/0/type: must be one of boolean, number, string, enum, password, json',
+  //   '/pages/4/config/layout/0/gridWidth: must be >= 1',
+  // ]
+}
+```
+
+JSON Schema-aware editors (VSCode + the JSON / YAML schema extension) surface inline shape violations against the same `$ref`s.
+
+### Legacy shorthand kept for back-compat
+
+Existing v1.0 / v1.1 manifests with `columns: ["title", "status", "deadline"]` (array of strings) keep validating — the `oneOf` admits both the shorthand string form and the typed object form. Detail `config.sidebar: true` / `false` (boolean) likewise keeps validating.
+
+The component-level shapes remain the source of truth at runtime; the `$defs` are the JSON-side contract. See [docs/utilities/manifest-defs.md](utilities/manifest-defs.md) for one-line examples per `$def` plus the full custom-fallback list.

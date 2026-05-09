@@ -2,7 +2,53 @@
 
 Reusable JSON-Schema definitions exposed by `src/schemas/app-manifest.schema.json` for the recurring `pages[].config` sub-shapes. The `$defs` are reachable by JSON-Pointer (`#/$defs/<name>`).
 
-These definitions are **additive documentation** today — the manifest schema ships them, but `pages[].config` keeps `additionalProperties: true`. A follow-up change wires `$ref`s from config sub-properties into the `$defs` after the parallel `manifest-page-type-extensions` and `manifest-abstract-sidebar` schema changes merge. See `openspec/changes/manifest-config-defs/design.md` for the rationale.
+As of schema **version 1.2.0** (the `manifest-config-refs` change), the seven `$defs` are referenced from the `pages[].config` sub-properties they describe. Editor autocomplete, build-time Ajv validation, and CI lint all flag shape violations against the typed `$defs`. The OUTER `pages[].config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, …) and consumer-app extension keys remain free-form.
+
+## References from `pages[].config`
+
+The schema wires `$ref`s as follows:
+
+| Path | Refs |
+|---|---|
+| `index.config.columns[]` | `oneOf: [string, $ref column]` (string = legacy shorthand) |
+| `index.config.actions[]` | `$ref action` |
+| `index.config.sidebar.columnGroups[]` | `$ref sidebarSection` |
+| `detail.config.sidebar` | `oneOf: [boolean, object{tabs[] $ref sidebarTab, …additional}]` |
+| `detail.config.sidebarProps.tabs[]` | `$ref sidebarTab` |
+| `dashboard.config.widgets[]` | `$ref widgetDef` |
+| `dashboard.config.layout[]` | `$ref layoutItem` |
+| `settings.config.sections[].fields[]` | `$ref formField` |
+| `logs.config.columns[]` | `oneOf: [string, $ref column]` (same shorthand as index) |
+
+The detail `config.sidebar` Object branch keeps `additionalProperties: true` so flat scalars (`register`, `schema`, `title`, `subtitle`, `hiddenTabs`, `show`, `enabled`) stay open for the FE validator to type-check. Settings widgets (`sections[].widgets[]`) use a thinner shape `{ type, props? }` and are NOT typed by the `widgetDef` ref — that's a deliberate boundary.
+
+## Example error messages
+
+The FE validator (`validateManifest`) mirrors the schema's strictness for the recurring sub-shapes and produces JSON-pointer-shaped messages.
+
+Dashboard widget missing `type`:
+
+```
+/pages/0/config/widgets/0/type: must be a non-empty string
+```
+
+Index action missing `label`:
+
+```
+/pages/0/config/actions/0/label: must be a non-empty string
+```
+
+Settings field with closed-enum violation:
+
+```
+/pages/0/config/sections/0/fields/0/type: must be one of boolean, number, string, enum, password, json
+```
+
+LayoutItem with `gridWidth: 0`:
+
+```
+/pages/0/config/layout/0/gridWidth: must be >= 1
+```
 
 ## column
 
@@ -165,6 +211,11 @@ Detail-sidebar tab consumed by `CnObjectSidebar` after the parallel `manifest-ab
 
 Several real-world fields fell back to `additionalProperties: true` or to free-form strings because a closed shape would over-constrain consumers:
 
+- `pages[].config` OUTER block — `additionalProperties: true`. Per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, `conversationSource`, `postUrl`, `allowedTypes`) plus consumer-app extension keys land here.
+- `detail.config.sidebar` Object branch outer — `additionalProperties: true`. `register / schema / title / subtitle / hiddenTabs / show / enabled` stay free-form; only `tabs[]` is typed.
+- `index.config.sidebar` outer — `additionalProperties: true`. Flat scalars (`enabled / show / facets / search / showMetadata`) stay free-form; only `columnGroups[]` is typed.
+- `settings.config.sections[]` outer — `additionalProperties: true`. The body kind exactly-one rule is FE-validated; only `fields[]` is typed.
+- `settings.config.sections[].widgets[]` — thinner shape `{ type, props? }` than the `widgetDef` ref; NOT typed by this schema. Future `settingsWidget` `$def` could tighten.
 - `column.formatter`, `column.widget` — open registry strings.
 - `action.icon` — open string (MDI name OR registry id).
 - `widgetDef.type` — open string (custom/tile + any NC widget id).
@@ -172,5 +223,13 @@ Several real-world fields fell back to `additionalProperties: true` or to free-f
 - `layoutItem.styleConfig` — deliberately omitted.
 - `formField.validation`, `formField.items` — deferred to a richer `validation` `$def`.
 - `sidebarTab.widgets[]` — left as `array<object>`; a future `sidebarWidget` `$def` would tighten this.
+- `index.config.columns[]` / `logs.config.columns[]` — accepts a string-shorthand legacy form alongside the typed `column` $ref via `oneOf`.
 - Recursive shapes (nested tabs, nested widgets) — defer until a third consumer surfaces a need.
 - `action.handler / disabled / visible` predicates — function-typed; not representable in JSON.
+
+Cross-array uniqueness and mutual-exclusion rules stay enforced by the FE validator (`validateManifest`) — JSON Schema can express some of these but the readability cost outweighs the benefit:
+
+- `pages[].id` uniqueness across the array.
+- `config.sidebar.tabs[].id` and `config.sidebarProps.tabs[].id` uniqueness within tabs[].
+- Tab `widgets` OR `component` mutual exclusion.
+- Settings section `fields | component | widgets` exactly-one rule.

@@ -236,14 +236,21 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('does not bump the schema version on top of the merged base', () => {
-		// The page-type-extensions and abstract-sidebar changes are the ones
-		// that bump the schema version (to 1.1.0 in feature/manifest-v1).
-		// This change is additive only — it does not bump version further.
-		expect(schema.version).toBe('1.1.0')
+	it('schema version reflects manifest-config-refs follow-up bump (1.2.0)', () => {
+		// The page-type-extensions and abstract-sidebar changes bumped the
+		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
+		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
+		// This file's defs are still present and reachable; the assertion
+		// just keeps in sync with the latest base.
+		expect(schema.version).toBe('1.2.0')
 	})
 
-	it('leaves pages[].config additionalProperties as true (no $ref tightening yet)', () => {
+	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {
+		// manifest-config-refs adds typed $refs on the inner array items
+		// (columns/actions/widgets/layout/sections.fields/sidebar.tabs/etc.)
+		// but the outer config block intentionally stays open so that
+		// per-type scalars (register, schema, source, folder, …) and
+		// consumer-app extension keys keep validating.
 		expect(schema.$defs.page.properties.config.additionalProperties).toBe(true)
 	})
 
