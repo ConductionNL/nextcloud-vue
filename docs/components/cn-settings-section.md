@@ -2,11 +2,18 @@
 sidebar_position: 24
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnSettingsSection.md'
+
 # CnSettingsSection
 
 Admin settings section with loading and error states. Wraps NcSettingsSection with async data fetching patterns.
 
 **Wraps**: NcSettingsSection, NcLoadingIcon, NcButton, NcNoteCard
+
+## Try it
+
+<Playground component="CnSettingsSection" />
 
 ![CnSettingsSection showing admin settings with Version and Register Configuration sections](/img/screenshots/cn-settings-section.png)
 
@@ -53,3 +60,9 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
   <NcTextField label="API Key" v-model="apiKey" type="password" />
 </CnSettingsSection>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsSection.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsSection/CnSettingsSection.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
