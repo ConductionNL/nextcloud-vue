@@ -5,6 +5,12 @@ on:
     branches:
       - development
 
+# Same concurrency group as documentation.yml + documentation-beta.yml so
+# deploys serialize against the gh-pages branch.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy-dev:
     name: Deploy Dev Styleguide
@@ -16,16 +22,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install and build component styleguide
         timeout-minutes: 10
         run: |
           cd styleguide
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Deploy styleguide to /dev/ on GitHub Pages
