@@ -1,1 +1,4 @@
-export { default as CnCellRenderer } from './CnCellRenderer.vue'
+import CnCellRenderer from './CnCellRenderer.vue'
+
+export default CnCellRenderer
+export { CnCellRenderer }

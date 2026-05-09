@@ -1,1 +1,4 @@
-export { default as CnColorPicker } from './CnColorPicker.vue'
+import CnColorPicker from './CnColorPicker.vue'
+
+export default CnColorPicker
+export { CnColorPicker }

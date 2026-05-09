@@ -1,1 +1,4 @@
-export { default as CnTimelineStages } from './CnTimelineStages.vue'
+import CnTimelineStages from './CnTimelineStages.vue'
+
+export default CnTimelineStages
+export { CnTimelineStages }

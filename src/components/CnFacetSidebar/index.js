@@ -1,1 +1,4 @@
-export { default as CnFacetSidebar } from './CnFacetSidebar.vue'
+import CnFacetSidebar from './CnFacetSidebar.vue'
+
+export default CnFacetSidebar
+export { CnFacetSidebar }

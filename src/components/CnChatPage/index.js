@@ -1,1 +1,4 @@
-export { default as CnChatPage } from './CnChatPage.vue'
+import CnChatPage from './CnChatPage.vue'
+
+export default CnChatPage
+export { CnChatPage }

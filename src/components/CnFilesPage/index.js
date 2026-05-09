@@ -1,1 +1,4 @@
-export { default as CnFilesPage } from './CnFilesPage.vue'
+import CnFilesPage from './CnFilesPage.vue'
+
+export default CnFilesPage
+export { CnFilesPage }

@@ -1,1 +1,4 @@
-export { default as CnDashboardGrid } from './CnDashboardGrid.vue'
+import CnDashboardGrid from './CnDashboardGrid.vue'
+
+export default CnDashboardGrid
+export { CnDashboardGrid }

@@ -1,4 +1,7 @@
-export { default as CnAdvancedFormDialog } from './CnAdvancedFormDialog.vue'
-export { default as CnPropertiesTab } from './CnPropertiesTab.vue'
-export { default as CnMetadataTab } from './CnMetadataTab.vue'
-export { default as CnPropertyValueCell } from './CnPropertyValueCell.vue'
+import CnAdvancedFormDialog from './CnAdvancedFormDialog.vue'
+import CnPropertiesTab from './CnPropertiesTab.vue'
+import CnMetadataTab from './CnMetadataTab.vue'
+import CnPropertyValueCell from './CnPropertyValueCell.vue'
+
+export default CnAdvancedFormDialog
+export { CnAdvancedFormDialog, CnPropertiesTab, CnMetadataTab, CnPropertyValueCell }

@@ -1,1 +1,4 @@
-export { default as CnObjectCard } from './CnObjectCard.vue'
+import CnObjectCard from './CnObjectCard.vue'
+
+export default CnObjectCard
+export { CnObjectCard }

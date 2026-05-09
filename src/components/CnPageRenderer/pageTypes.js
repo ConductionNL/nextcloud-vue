@@ -8,9 +8,24 @@ import { defineAsyncComponent } from 'vue'
  * library extensions can add their own by passing a merged map to
  * `CnAppRoot` (or `CnPageRenderer`) via the `pageTypes` prop.
  *
- * Each entry is wrapped in `defineAsyncComponent` so that apps using
- * only a subset of types do not pay the bundle cost for the others
- * (notably `dashboard` which depends on GridStack).
+ * Each entry uses `defineAsyncComponent` with an explicit
+ * `.then(m => m.default)` unwrap. The unwrap is load-bearing: rollup's
+ * `inlineDynamicImports: true` flattens every `import()` call into a
+ * `Promise.resolve().then(() => namespace)` where `namespace` is a
+ * frozen `Object.freeze({__proto__: null, default: <component>})`.
+ * Vue 2's async-component resolution against that frozen wrapper trips
+ * `Cannot add property _Ctor, object is not extensible` when downstream
+ * `Vue.extend()` (e.g. via Vue Router or `<component :is>`) tries to
+ * attach its internal `_Ctor` cache. Pre-unwrapping the `default`
+ * property yields the raw, extensible component options object —
+ * which Vue can then mutate freely.
+ *
+ * Keeping `defineAsyncComponent` (rather than collapsing to static
+ * imports) preserves the test-environment hack of NOT loading
+ * `CnDashboardPage` → `CnDashboardGrid` → `gridstack` at module-load
+ * time; gridstack ships ESM that Jest's default transform refuses
+ * unless explicitly allowlisted. Async imports keep that load
+ * deferred to actual render.
  *
  * The special `custom` type is NOT registered here — CnPageRenderer
  * handles it inline, resolving `page.component` against the
@@ -31,11 +46,11 @@ import { defineAsyncComponent } from 'vue'
  *   `src/components/index.js` barrel. No change to CnPageRenderer.vue.
  */
 export const defaultPageTypes = {
-	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue')),
-	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue')),
-	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue')),
-	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue')),
-	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue')),
-	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue')),
-	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue')),
+	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue').then(m => m.default)),
+	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue').then(m => m.default)),
+	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then(m => m.default)),
+	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue').then(m => m.default)),
+	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then(m => m.default)),
+	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then(m => m.default)),
+	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then(m => m.default)),
 }

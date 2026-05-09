@@ -1,1 +1,4 @@
-export { default as CnLogsPage } from './CnLogsPage.vue'
+import CnLogsPage from './CnLogsPage.vue'
+
+export default CnLogsPage
+export { CnLogsPage }

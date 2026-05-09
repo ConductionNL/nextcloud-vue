@@ -1,1 +1,4 @@
-export { default as CnDetailPage } from './CnDetailPage.vue'
+import CnDetailPage from './CnDetailPage.vue'
+
+export default CnDetailPage
+export { CnDetailPage }
