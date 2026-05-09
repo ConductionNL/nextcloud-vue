@@ -95,10 +95,10 @@
 								@update:value="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:value="formData[field.key]"
+								:value="selectedOption(field)"
 								:options="field.options"
 								:input-label="resolveLabel(field.label)"
-								@input="updateField(field.key, $event)" />
+								@input="updateField(field.key, optionValue($event))" />
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
@@ -440,6 +440,38 @@ export default {
 		fieldValue(key, fallback) {
 			const v = this.formData[key]
 			return (v === null || v === undefined) ? fallback : v
+		},
+		// Resolve the currently-selected option for an enum field.
+		// `field.options` may be an array of strings/numbers OR an array
+		// of `{ label, value }`-shaped objects. NcSelect needs the actual
+		// option entry (not the bare value) to render the selection
+		// correctly, so this resolver looks up the matching object form
+		// when a primitive value is stored. Returns `null` when nothing
+		// is selected so NcSelect renders the empty state instead of
+		// emitting a Vue warning about an undefined `value` prop.
+		selectedOption(field) {
+			const v = this.formData[field.key]
+			if (v === null || v === undefined) return null
+			if (!Array.isArray(field.options)) return v
+			for (const opt of field.options) {
+				if (opt && typeof opt === 'object') {
+					if (opt.value === v) return opt
+				} else if (opt === v) {
+					return opt
+				}
+			}
+			return v
+		},
+		// Inverse of `selectedOption` — extract the storable value from
+		// whatever NcSelect emits. NcSelect emits the full option entry
+		// when options are objects, the primitive when options are
+		// primitives, or `null` on clear.
+		optionValue(emitted) {
+			if (emitted === null || emitted === undefined) return null
+			if (typeof emitted === 'object' && 'value' in emitted) {
+				return emitted.value
+			}
+			return emitted
 		},
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
