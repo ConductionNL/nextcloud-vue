@@ -19,6 +19,8 @@ The library is also moving fast (1.0.0-beta.1 just shipped, manifest renderer la
 - Hand-written narrative (purpose, when to use, design rationale, examples) at the top — the part Styleguidist can't do well today.
 - Auto-generated props / events / slots tables at the bottom, produced by `vue-docgen-cli` from the SFC source as a build-time prebuild step. Lives in `docs/components/_generated/<name>.md` partials, included via MDX import.
 
+**Auto-update guarantee — components update, docs update with them.** Auto-generation is only useful if the JSDoc it reads stays rich and current. Three CI gates work together to make this self-perpetuating: (G1) the committed generated partial must match what the generator currently produces, (G2) each component's JSDoc completeness score must not regress below a per-component baseline, (G3) a scaffolder + CLAUDE.md convention reference make the discipline discoverable to authors before the first PR. Existing components get backfilled gradually; new components ship at 100% from day one. Detail in `design.md` Decision 5 and `tasks.md` Phase 2.5.
+
 **Live playground via embedded iframe.** A new `<Playground component="CnDataTable" />` MDX component renders an iframe pointed at `/styleguide/#!/CnDataTable`. Visitors stay on the Docusaurus page; the iframe gives them the Styleguidist sandbox without leaving. Single visible URL, two builds under the hood.
 
 **Spec drift cleanup.** The existing [docs-site-infrastructure spec](../../../specs/docs-site-infrastructure/spec.md) hard-codes `url: 'https://conductionnl.github.io'` + `baseUrl: '/nextcloud-vue/'`, which is what made the root broken in the first place. The CNAME-driven custom-domain config from #135 becomes the spec.

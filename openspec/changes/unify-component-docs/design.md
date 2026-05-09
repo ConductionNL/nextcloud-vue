@@ -92,6 +92,31 @@ This is what [#135](https://github.com/ConductionNL/nextcloud-vue/pull/135) make
 
 **Why not flat-rebrand to docs.conduction.nl or similar:** breaks every existing inbound link. The CNAME is established.
 
+## Decision 5 — Auto-update via JSDoc completeness ratchet (not a one-time pass)
+
+The proposal promises "components update → docs update automatically." A naive read of that is "we'll just run vue-docgen-cli on every build." But that only works if the JSDoc the generator reads stays complete. A description-less prop produces a description-less doc row — auto-gen captures whatever's in the source, including its gaps.
+
+So the auto-update guarantee has three layers, not one:
+
+**G1 — Freshness (cheapest, lands first).** CI fails any PR where regenerating the partial produces a diff against the committed file. Forces the regeneration to be part of every prop-changing commit. Already in tasks.md Phase 1; tightened in Phase 2.5.
+
+**G2 — Completeness (the real lift).** A `scripts/check-jsdoc.js` step scores each Cn* component on prop / event / slot JSDoc coverage and compares against a per-component baseline at `scripts/.jsdoc-baselines.json`. CI fails if any score regresses below baseline. New components (no baseline entry) require 100%.
+
+The ratchet lets us start where the codebase is today (most components are at 50–80% coverage) and improve incrementally, one PR per component or category, without ever blocking the fleet on a flag-day flip. This mirrors how TypeScript projects roll out strict mode.
+
+**G3 — Discoverability.** Authors learn the convention before their first PR via:
+- A `scripts/new-component.js` scaffolder that emits a 100%-compliant skeleton.
+- A short CLAUDE.md "Documenting components" reference with three canonical JSDoc shapes (prop, event, slot).
+- Failure messages from `check-jsdoc.js` that cite component / item / line numbers — clickable in Cursor / VS Code.
+
+**Why not a one-time JSDoc fillout pass?** Two reasons:
+1. The drift returns the moment someone adds a prop without rich JSDoc. The fix is structural (a CI gate), not procedural (a docs day).
+2. JSDoc fillout for ~32 components is large enough that batching it as one PR creates merge conflicts with every concurrent feature change. Splitting per-component (each PR bumps its own baseline) is cleaner.
+
+**Why not run jsdoc-completeness as warnings, not errors?** Because warnings get ignored. The ratchet pattern means the bar starts at the current score, so existing PRs aren't blocked — only regressions are. That's the same political cost as a warning but with real teeth.
+
+**Convenience layer (G3.5).** Optional pre-commit hook (husky / simple-git-hooks) that runs `prebuild:docs` and stages the regenerated partial when a Cn* SFC is in the staged set. CI is the load-bearing enforcement; the hook is ergonomics.
+
 ## Decision 4 — Sequence: code-fix first, then content migration
 
 The unification is content-heavy (32 component pages × 2 sections each + 6 design-token pages + sidebar restructure). It can't be one PR. Phasing:

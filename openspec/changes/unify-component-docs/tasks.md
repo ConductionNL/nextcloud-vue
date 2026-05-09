@@ -25,6 +25,62 @@
 - [ ] Theme the Styleguidist build to load `nextcloud-tokens.css` from the library so visual density matches the parent Docusaurus page. (Spike: if the visual gap is small, defer.)
 - [ ] Use the Playground in `cn-data-table.md` as the first real consumer. Verify in `npm start` (dev) and `npm run build` (production iframe URL).
 
+## Phase 2.5 — JSDoc completeness ratchet (the "auto-update" guarantee)
+
+The unification's core promise is **components update → docs update automatically**. That requires more than just generating a partial: the JSDoc on each SFC has to be rich enough that the generated partial is actually useful. This phase builds the CI machinery that makes the discipline self-perpetuating, so Phase 3 doesn't degenerate into "pretty pages with thin auto-gen tables that everyone ignores."
+
+See `specs/component-reference/spec.md` "Requirement: JSDoc completeness ratchet" for the full requirement set (G1 freshness, G2 completeness, G3 discoverability).
+
+### G1 — Freshness check (cheapest, lands first)
+
+- [ ] Add `Frontend Quality` CI step: `cd docusaurus && npm run prebuild:docs && git diff --exit-code docs/components/_generated/`. Any PR that touches a `Cn*.vue` without committing the regenerated partial fails.
+- [ ] Document the failure-resolution recipe in CONTRIBUTING.md: "If this fails, run `cd docusaurus && npm run prebuild:docs` and commit the diff."
+
+### G2 — Completeness ratchet
+
+- [ ] Write `scripts/check-jsdoc.js`. Reuse `vue-docgen-api` (already a transitive dep via `vue-docgen-cli`). For each `src/components/Cn*/Cn*.vue`:
+  - Walk every prop. Score 1 if the parsed prop has a `description` AND a `type` (either inferred or `@type`-tagged).
+  - Walk every event from the parsed doc + the template `$emit` calls. Score 1 if there's an `@event` JSDoc with a description AND `@type` for the payload (or marked as no-payload).
+  - Walk every named slot in the template. Score 1 if there's a `@slot` block with a description; for scoped slots, additionally score each `@binding`.
+  - Emit a per-component object: `{ component, score, missing: [{kind, name, line}] }`.
+- [ ] Add `scripts/.jsdoc-baselines.json` — keyed by component name, value is the current score (so the script compiles its own initial baseline at first run).
+- [ ] Add `npm run jsdoc-baselines:update` (lib root) — regenerates the baseline file. Authors run this when they intentionally improve coverage.
+- [ ] Add `Frontend Quality` CI step that runs `node scripts/check-jsdoc.js` and fails if any component's score is below its baseline OR if any new component (no baseline entry) scores below 100%.
+- [ ] Failure message MUST cite component name, missing items, and SFC line numbers (actionable jumps).
+
+### G3 — Discoverability
+
+- [ ] Update `CLAUDE.md` with a "Documenting components" section showing the three canonical JSDoc shapes:
+  ```vue
+  /** Description text. @type {Array<MenuItem>} */
+  fields: { type: Array, default: () => [] },
+
+  /**
+   * @event sort Emitted when a sortable column header is clicked.
+   * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+   */
+  this.$emit('sort', { key: newKey, order })
+
+  <!-- @slot row-actions Per-row action menu cell. -->
+  <!-- @binding {object} row The row data for this row. -->
+  <slot name="row-actions" :row="row" />
+  ```
+- [ ] Write `scripts/new-component.js` — scaffolds a fresh `Cn*` directory with `Cn*.vue`, `Cn*.md`, and `index.js`. The SFC includes prop / event / slot JSDoc placeholders so a new component starts at 100% completeness.
+- [ ] Add `npm run new-component <Name>` to the lib root.
+
+### G3.5 — Auto-regeneration on commit (convenience layer)
+
+- [ ] Add `husky` or `simple-git-hooks` as a devdep in the lib root.
+- [ ] Pre-commit hook: when staged files include `src/components/Cn*/Cn*.vue`, run `cd docusaurus && npm run prebuild:docs` and `git add docs/components/_generated/`. Idempotent — running prebuild:docs manually first is a no-op.
+- [ ] Skip the hook in CI (it's redundant there; CI enforces via diff-check).
+
+### Acceptance
+
+- [ ] A developer adds a prop to `CnDataTable.vue` without JSDoc → CI fails with a line-numbered message → they add a `/** description */` → CI passes.
+- [ ] A developer adds a brand-new `Cn*` component → CI requires 100% JSDoc score on the new component to pass.
+- [ ] A developer who's never seen the convention runs `npm run new-component CnFoo` and gets a working scaffold that scores 100%.
+- [ ] Improving JSDoc on existing components is one PR per component (or batch by category) bumping baselines incrementally — no cliff.
+
 ## Phase 3 — Per-component content port
 
 For each existing Cn* component page (~32), in order of category complexity:
