@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunknextcloud_vue_docs=globalThis.webpackChunknextcloud_vue_docs||[]).push([[4732],{54732(e,c,s){s.d(c,{createTreemapServices:()=>u.d});var u=s(68562);s(808)}}]);

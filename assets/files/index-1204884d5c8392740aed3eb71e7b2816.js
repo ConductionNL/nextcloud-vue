@@ -1,0 +1,1 @@
+import{getLanguage,register}from"@nextcloud/l10n";import en from"../../l10n/en.json";import nl from"../../l10n/nl.json";const BUNDLES={en:en,nl:nl},APP_NAME="nextcloud-vue";export function registerTranslations(){const n=(getLanguage()||"en").split(/[-_]/)[0];register(APP_NAME,(BUNDLES[n]??BUNDLES.en).translations)}
