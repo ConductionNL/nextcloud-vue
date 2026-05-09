@@ -2,11 +2,18 @@
 sidebar_position: 3
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDetailPage.md'
+
 # CnDetailPage
 
 A generic detail/overview page component. The simpler counterpart to CnIndexPage — designed for pages that display statistics, charts, card grids, or other detail content without multi-object tables or CRUD dialogs.
 
 **Wraps**: NcEmptyContent, NcLoadingIcon, NcButton (from @nextcloud/vue), CnIcon
+
+## Try it
+
+<Playground component="CnDetailPage" />
 
 ## Props
 
@@ -18,11 +25,11 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingLabel` | String | `'Loading...'` | Message shown during loading |
-| `sidebar` | Boolean | `false` | Whether to activate the external `CnObjectSidebar` via the `objectSidebarState` inject |
-| `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is `true`) |
+| `sidebar` | Boolean \| Object | `false` | Sidebar configuration. Accepts EITHER the legacy Boolean form (deprecated) OR the new Object form mirroring `CnIndexPage.sidebar`. See [Sidebar config object](#sidebar-config-object) below. |
+| `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is active) |
 | `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`) |
 | `objectId` | String\|Number | `''` | Object ID passed to the sidebar |
-| `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
+| `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`, `tabs`). Set `sidebarProps.tabs` to an open-enum tab array to drive the host app's mounted `CnObjectSidebar` from `manifest.json` — see [CnObjectSidebar custom tabs](./cn-object-sidebar.md#custom-tabs). The array flows through the existing `objectSidebarState` provide/inject channel. **Note:** when both `sidebar` (Object) AND `sidebarProps` set the same field, the Object form wins and a `console.warn` lists the conflicting fields once per component instance. |
 | `error` | Boolean | `false` | Error state |
 | `errorMessage` | String | `'An error occurred'` | Message shown in error state |
 | `onRetry` | Function | `null` | Callback for retry button in error state. If null, no retry button shown. |
@@ -49,6 +56,63 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `#default` | — | Main content below the stats table |
 | `#sections` | — | Additional content below the default slot |
 | `#footer` | — | Footer content (separated by a border) |
+
+## Sidebar config object
+
+`CnDetailPage.sidebar` accepts EITHER form:
+
+- **Boolean (legacy, deprecated)** — `:sidebar="true"` activates
+  the external `CnObjectSidebar` via the `objectSidebarState`
+  inject; `false` deactivates. The first time this form is
+  observed per component instance a one-shot `console.warn` fires
+  pointing at the migration path.
+- **Object (preferred)** — mirrors `CnIndexPage.sidebar` plus
+  detail-specific fields:
+
+  ```js
+  sidebar: {
+    show: true,         // default true; false suppresses the sidebar
+    enabled: true,      // default true; false bypasses the external sidebar
+    register: 'leads',  // forwarded via objectSidebarState
+    schema: 'lead',
+    hiddenTabs: ['notes'],
+    title: 'Lead detail',
+    subtitle: '...',
+    tabs: [             // see manifest-abstract-sidebar
+      { id: 'overview', label: 'lead.overview', widgets: [{ type: 'data' }] },
+    ],
+  }
+  ```
+
+  Use `show: false` to hide the sidebar declaratively without
+  removing the rest of the config (e.g. behind a feature flag or
+  a responsive layout watcher).
+
+### Migrating from boolean
+
+Replace:
+
+```vue
+<CnDetailPage
+  :sidebar="true"
+  :sidebar-props="{ register: 'leads', schema: 'lead', tabs: [...] }"
+  object-type="lead"
+  :object-id="id" />
+```
+
+With:
+
+```vue
+<CnDetailPage
+  :sidebar="{ register: 'leads', schema: 'lead', tabs: [...] }"
+  object-type="lead"
+  :object-id="id" />
+```
+
+`sidebarProps` continues to work for backwards compatibility — when
+both `sidebar` (Object) and `sidebarProps` are set with overlapping
+fields, the Object form wins and a `console.warn` fires once per
+component instance listing the conflicting fields.
 
 ## Usage
 
@@ -140,3 +204,9 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 | **CnDetailPage** | Displaying detail info, stats tables, charts, card overviews — no multi-object CRUD |
 | **CnIndexPage** | Listing objects with table/cards, pagination, search, mass actions, CRUD dialogs |
 | **CnDashboardPage** | Building a widget-based dashboard with drag-and-drop grid layout |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

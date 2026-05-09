@@ -2,11 +2,18 @@
 sidebar_position: 6
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnCellRenderer.md'
+
 # CnCellRenderer
 
 Type-aware cell renderer for schema-driven tables. Automatically formats values based on the schema property type.
 
 **Wraps**: CnStatusBadge, CheckBold icon
+
+## Try it
+
+<Playground component="CnCellRenderer" />
 
 ![CnCellRenderer showing various cell types in a data table](/img/screenshots/cn-cell-renderer.png)
 
@@ -39,3 +46,9 @@ CnCellRenderer is used internally by CnDataTable. You typically don't use it dir
   :value="row.status"
   :property="schema.properties.status" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCellRenderer.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCellRenderer/CnCellRenderer.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

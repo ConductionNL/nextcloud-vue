@@ -2,9 +2,16 @@
 sidebar_position: 22
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassImportDialog.md'
+
 # CnMassImportDialog
 
 File upload dialog with options and results summary. Supports importing data from files into OpenRegister.
+
+## Try it
+
+<Playground component="CnMassImportDialog" />
 
 **Wraps**: NcDialog, NcButton
 
@@ -94,3 +101,9 @@ export default {
   </template>
 </CnMassImportDialog>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassImportDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassImportDialog/CnMassImportDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

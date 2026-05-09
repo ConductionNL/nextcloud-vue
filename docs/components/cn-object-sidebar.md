@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnObjectSidebar.md'
+
 # CnObjectSidebar
 
 Right sidebar for entity detail pages. Provides standardized tabs — Files, Notes, Tags, Tasks, and Audit Trail — that integrate with OpenRegister API endpoints bridging to Nextcloud-native APIs. Each tab is optional and independently overridable via slots.
 
 **Wraps**: NcAppSidebar, NcAppSidebarTab
+
+## Try it
+
+<Playground component="CnObjectSidebar" />
 
 ## Tabs
 
@@ -67,6 +74,8 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `tagsLabel` | String | | `'Tags'` | Tags tab label |
 | `tasksLabel` | String | | `'Tasks'` | Tasks tab label |
 | `auditTrailLabel` | String | | `'Audit Trail'` | Audit Trail tab label |
+| `tabs` | Array | | `null` | Open-enum tab definitions `[\{ id, label, icon?, widgets?, component?, order? \}]`. When set with at least one entry, REPLACES the hard-coded built-in tab set. See [Custom tabs](#custom-tabs) below. |
+| `customComponents` | Object | | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
 
 ### Events
 
@@ -84,3 +93,57 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `tab-tasks` | `{ objectId, objectType }` | Override the Tasks tab content |
 | `tab-audit-trail` | `{ objectId, objectType }` | Override the Audit Trail tab content |
 | `extra-tabs` | — | Additional `NcAppSidebarTab` elements appended after the built-in tabs |
+
+## Custom tabs
+
+The `tabs` prop opens up the closed-enum tab set so apps can drive `CnObjectSidebar` directly from `manifest.json` (`pages[].config.sidebarProps.tabs`). When `tabs` is set with at least one entry, the built-in tabs (Files / Notes / Tags / Tasks / Audit Trail) do NOT render — the consumer-supplied array drives the UI.
+
+```vue
+<CnObjectSidebar
+  object-type="decision"
+  :object-id="decisionId"
+  :tabs="[
+    { id: 'overview', label: 'Overview', icon: 'eye',
+      widgets: [
+        { type: 'data',     props: { schema, objectData } },
+        { type: 'metadata', props: { objectData } },
+      ] },
+    { id: 'related', label: 'Related', icon: 'link',
+      component: 'MyRelatedTab' },
+  ]"
+  :custom-components="{ MyRelatedTab }" />
+```
+
+### Tab definition shape
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | String | Required. Unique within the array; used for active-tab tracking. |
+| `label` | String | Required. Display label (i18n key already resolved by the consumer). |
+| `icon` | String | Optional MDI icon name; rendered via `CnIcon`. |
+| `widgets` | Array | Optional. List of `\{ type, props? \}` widget specs (see below). |
+| `component` | String | Optional. Registry name resolved against `customComponents`. Mutually exclusive with `widgets` — when both are set, `component` wins and a `console.warn` is logged. |
+| `order` | Number | Optional. Defaults to array index + 1. |
+
+### Built-in widget types
+
+| Widget `type` | Resolved component | Required props |
+|---------------|--------------------|---------------|
+| `data` | [`CnObjectDataWidget`](./cn-object-data-widget.md) | `schema`, `objectData` (forward via per-widget `props`) |
+| `metadata` | [`CnObjectMetadataWidget`](./cn-object-metadata-widget.md) | `objectData` |
+
+Any other `type` value resolves against the `customComponents` registry — the explicit `customComponents` prop wins over the injected `cnCustomComponents` (mirroring `CnPageRenderer`'s pattern).
+
+### Shared object context
+
+Every widget and component mounted inside a custom tab receives the parent `CnObjectSidebar`'s `objectId` / `objectType` / `register` / `schema` / `apiBase` as default props (matching the context the built-in tabs receive). Per-widget `props` win on conflict, so a tab can override `objectData`, `apiBase`, etc. without losing the rest of the context.
+
+### Backwards compatibility
+
+Apps satisfied with the default tab set make NO changes — leave `tabs` unset and the hard-coded built-in tabs render exactly as today, including the `#tab-files` / `#tab-notes` / `#tab-tags` / `#tab-tasks` / `#tab-audit-trail` / `#extra-tabs` slot overrides. The `tabs` prop is purely additive.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

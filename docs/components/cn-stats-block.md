@@ -2,11 +2,18 @@
 sidebar_position: 11
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnStatsBlock.md'
+
 # CnStatsBlock
 
 Statistics display card with icon, count, and optional breakdown. Used inside CnKpiGrid.
 
 **Wraps**: NcLoadingIcon
+
+## Try it
+
+<Playground component="CnStatsBlock" />
 
 ![CnStatsBlock showing pipeline statistics](/img/screenshots/cn-stats-block.png)
 
@@ -54,3 +61,9 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
   :clickable="true"
   @click="navigateToContacts" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatsBlock.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnStatsBlock/CnStatsBlock.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

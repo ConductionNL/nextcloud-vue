@@ -174,14 +174,31 @@ const baseActions = {
 	/**
 	 * Register an object type for CRUD operations.
 	 *
+	 * The optional fourth argument allows callers to supply canonical OR slugs
+	 * at registration time, avoiding a lazy fetch on first `subscribe()` call.
+	 * Omitting it is fully back-compatible — slugs default to `null` and are
+	 * lazily resolved by liveUpdatesPlugin when needed.
+	 *
 	 * @param {string} slug Short name for the type (e.g. 'client', 'case')
 	 * @param {string} schemaId OpenRegister schema ID
 	 * @param {string} registerId OpenRegister register ID
+	 * @param {object} [slugs] Optional slug hints for live-updates transport
+	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
+	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
 	 */
-	registerObjectType(slug, schemaId, registerId) {
+	registerObjectType(slug, schemaId, registerId, slugs = {}) {
+		const { registerSlug = null, schemaSlug = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
-		this.objectTypeRegistry = { ...this.objectTypeRegistry, [slug]: { schema: schemaId, register: registerId } }
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[slug]: {
+				schema: schemaId,
+				register: registerId,
+				registerSlug,
+				schemaSlug,
+			},
+		}
 		this.collections = { ...this.collections, [slug]: [] }
 		this.objects = { ...this.objects, [slug]: {} }
 		this.loading = { ...this.loading, [slug]: false }

@@ -34,7 +34,12 @@ if (!global.fetch) {
 // require('vue-demi') because Jest resolves both to the same absolute path.
 const path = require('path')
 const Vue2 = require('vue').default || require('vue')
-const vueDemi = require(path.resolve(__dirname, '../node_modules/pinia/node_modules/vue-demi'))
+// vue-demi may be hoisted to root node_modules (modern npm) or nested under
+// pinia (older npm); resolve from either location.
+const vueDemiNested = path.resolve(__dirname, '../node_modules/pinia/node_modules/vue-demi')
+const vueDemiHoisted = path.resolve(__dirname, '../node_modules/vue-demi')
+const fs = require('fs')
+const vueDemi = require(fs.existsSync(vueDemiNested) ? vueDemiNested : vueDemiHoisted)
 if (!vueDemi.hasInjectionContext) {
 	// Vue 3.3+ API missing in vue-demi for Vue 2; returning false is correct
 	// because inject() only works inside component setup in Vue 2.

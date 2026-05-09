@@ -2,11 +2,18 @@
 sidebar_position: 5
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDataTable.md'
+
 # CnDataTable
 
 Sortable data table with row selection, loading states, and schema-driven column generation. Supports dot notation for nested values (e.g., `address.city`).
 
 **Wraps**: NcLoadingIcon, NcCheckboxRadioSwitch, CnCellRenderer
+
+## Try it
+
+<Playground component="CnDataTable" />
 
 ![CnDataTable showing sortable columns, checkboxes, and row action buttons](/img/screenshots/cn-data-table.png)
 
@@ -95,3 +102,9 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

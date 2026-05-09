@@ -4,8 +4,8 @@
 const config = {
   title: '@conduction/nextcloud-vue',
   tagline: 'Schema-driven Vue components for Nextcloud apps built on OpenRegister',
-  url: 'https://conductionnl.github.io',
-  baseUrl: '/nextcloud-vue/',
+  url: 'https://nextcloud-vue.conduction.nl',
+  baseUrl: '/',
 
   // GitHub pages deployment config
   organizationName: 'ConductionNL',
@@ -34,8 +34,8 @@ const config = {
         docs: {
           path: '../docs',
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl:
-            'https://github.com/ConductionNL/nextcloud-vue/tree/main/docusaurus/',
+          editUrl: ({ docPath }) =>
+            `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}`,
         },
         blog: false,
         theme: {
@@ -48,6 +48,14 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      // Read by `src/components/Playground.js`. In production deploys the
+      // Vue Styleguidist build is at `/styleguide/` (same origin via the
+      // `documentation.yml` workflow's copy step). For local `npm start`,
+      // override via env or run the styleguide on its own dev server and
+      // point this at e.g. `http://localhost:6060`.
+      playground: {
+        styleguideUrl: process.env.STYLEGUIDE_URL || '/styleguide',
+      },
       navbar: {
         title: '@conduction/nextcloud-vue',
         logo: {

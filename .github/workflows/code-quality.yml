@@ -18,14 +18,41 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
+
+      - name: Install docusaurus dependencies (needed by check:jsdoc + prebuild:docs)
+        run: cd docusaurus && npm ci --legacy-peer-deps
 
       - name: Documentation coverage
         run: npm run check:docs
+
+      # G2 — Phase 2.5 of the unify-component-docs change.
+      # Fails the build if any Cn* component's JSDoc completeness score
+      # has regressed below the per-component baseline at
+      # scripts/.jsdoc-baselines.json. New components must score 100%.
+      - name: JSDoc completeness ratchet
+        run: npm run check:jsdoc
+
+      # G1 — Phase 2.5 of the unify-component-docs change.
+      # Fails the build if a SFC change wasn't accompanied by regenerating
+      # the auto-doc partial via vue-docgen-cli. Run docusaurus's prebuild
+      # hook then verify the generated tree is unchanged.
+      - name: Auto-doc partials are fresh
+        run: |
+          cd docusaurus
+          npm run prebuild:docs
+          cd ..
+          if ! git diff --exit-code docs/components/_generated/; then
+            echo ""
+            echo "::error::docs/components/_generated/ is stale. Run:"
+            echo "::error::  cd docusaurus && npm run prebuild:docs"
+            echo "::error::and commit the diff."
+            exit 1
+          fi
 
       - name: ESLint
         run: npm run lint

@@ -1,6 +1,13 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnChartWidget.md'
+
 # CnChartWidget
 
 ApexCharts wrapper for dashboard and detail page widgets. Supports area, line, bar, pie, donut, and radialBar chart types with Nextcloud-themed defaults. The chart library is a peer dependency — consuming apps must install `apexcharts` and `vue-apexcharts`.
+
+## Try it
+
+<Playground component="CnChartWidget" />
 
 ## Usage
 
@@ -56,3 +63,9 @@ When ApexCharts is not available a fallback slot or `unavailableLabel` is shown:
 | Slot | Description |
 |------|-------------|
 | `fallback` | Content rendered when ApexCharts is not available |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnChartWidget.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnChartWidget/CnChartWidget.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

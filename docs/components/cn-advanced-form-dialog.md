@@ -2,9 +2,16 @@
 sidebar_position: 19
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnAdvancedFormDialog.md'
+
 # CnAdvancedFormDialog
 
 Create/edit dialog with a **properties table** (click-to-edit), **Data (JSON)** tab with CodeMirror, and optional **Metadata** tab. Suited for power users and complex objects. When `item` is `null` the dialog runs in create mode; when `item` is provided it runs in edit mode.
+
+## Try it
+
+<Playground component="CnAdvancedFormDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcCheckboxRadioSwitch, CodeMirror (vue-codemirror6)
 
@@ -249,3 +256,9 @@ async onConfirm(payload) {
 | Best for | Simple create/edit forms | Complex objects, power users, JSON editing |
 
 Both support the same two-phase confirm/result pattern and `setResult()`.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnAdvancedFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

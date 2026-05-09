@@ -2,9 +2,16 @@
 sidebar_position: 19
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassDeleteDialog.md'
+
 # CnMassDeleteDialog
 
 Two-phase mass delete confirmation dialog. Shows list of items to delete, requires confirmation, and displays results.
+
+## Try it
+
+<Playground component="CnMassDeleteDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard
 
@@ -87,3 +94,9 @@ Use `nameFormatter` when items don't have a simple name field:
   @confirm="onMassDelete"
   @close="showMassDelete = false" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

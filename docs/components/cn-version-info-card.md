@@ -2,9 +2,16 @@
 sidebar_position: 26
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnVersionInfoCard.md'
+
 # CnVersionInfoCard
 
 Displays application version information in admin settings pages. Shows the app name, installed version, optional configured version, and an update status indicator with an optional update button.
+
+## Try it
+
+<Playground component="CnVersionInfoCard" />
 
 ## Props
 
@@ -53,3 +60,9 @@ Displays application version information in admin settings pages. Shows the app 
   :updating="updating"
   @update="runUpdate" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnVersionInfoCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnVersionInfoCard/CnVersionInfoCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

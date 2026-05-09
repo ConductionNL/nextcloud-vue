@@ -2,11 +2,18 @@
 sidebar_position: 12
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnFilterBar.md'
+
 # CnFilterBar
 
 Search and filter controls row for list views. Renders a text search input, zero or more typed filter controls (select, text, checkbox), and an optional "Clear filters" button.
 
 **Wraps**: NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch
+
+## Try it
+
+<Playground component="CnFilterBar" />
 
 ## Anatomy
 
@@ -56,3 +63,9 @@ Search and filter controls row for list views. Renders a text search input, zero
 | `search` | `term` | Emitted when the search input value changes |
 | `filter-change` | `{ key, value }` | Emitted when any filter value changes; includes the filter key and new value |
 | `clear-all` | — | Emitted when the clear-all button is clicked |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFilterBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFilterBar/CnFilterBar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

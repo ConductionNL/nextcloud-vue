@@ -2,9 +2,16 @@
 sidebar_position: 20
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnMassCopyDialog.md'
+
 # CnMassCopyDialog
 
 Two-phase mass copy dialog with naming pattern. Allows users to define a naming pattern for copied items.
+
+## Try it
+
+<Playground component="CnMassCopyDialog" />
 
 **Wraps**: NcDialog, NcButton, NcTextField
 
@@ -76,3 +83,9 @@ export default {
   @confirm="onMassCopy"
   @close="showMassCopy = false" />
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassCopyDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassCopyDialog/CnMassCopyDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

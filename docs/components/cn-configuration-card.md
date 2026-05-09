@@ -2,10 +2,16 @@
 sidebar_position: 25
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnConfigurationCard.md'
+
 # CnConfigurationCard
 
 Configuration card with title, actions, and status indicator. Used for feature toggles and service configurations.
 
+## Try it
+
+<Playground component="CnConfigurationCard" />
 
 ![CnConfigurationCard showing register and schema mapping configuration](/img/screenshots/cn-configuration-card.png)
 
@@ -39,3 +45,9 @@ Configuration card with title, actions, and status indicator. Used for feature t
   </template>
 </CnConfigurationCard>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnConfigurationCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnConfigurationCard/CnConfigurationCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

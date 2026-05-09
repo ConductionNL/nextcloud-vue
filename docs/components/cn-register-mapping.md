@@ -2,11 +2,18 @@
 sidebar_position: 27
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnRegisterMapping.md'
+
 # CnRegisterMapping
 
 OpenRegister register/schema configuration panel. Lets admin users map app object types to OpenRegister registers and schemas. Groups related object types together, shows a register dropdown (with auto-schema-matching), and a save/reimport action area.
 
 **Wraps**: NcSelect, NcNoteCard, NcButton, NcLoadingIcon (via CnSettingsSection)
+
+## Try it
+
+<Playground component="CnRegisterMapping" />
 
 ![CnRegisterMapping showing register and schema dropdowns for each entity type](/img/screenshots/cn-register-mapping.png)
 
@@ -65,3 +72,9 @@ OpenRegister register/schema configuration panel. Lets admin users map app objec
 ```
 
 This component is typically used in the admin settings page of an app to let administrators configure which OpenRegister registers and schemas map to each entity type.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRegisterMapping.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnRegisterMapping/CnRegisterMapping.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
