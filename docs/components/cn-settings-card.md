@@ -2,9 +2,16 @@
 sidebar_position: 23
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnSettingsCard.md'
+
 # CnSettingsCard
 
 Collapsible card for organizing settings into sections. Used in admin settings pages.
+
+## Try it
+
+<Playground component="CnSettingsCard" />
 
 ## Props
 
@@ -38,3 +45,9 @@ Collapsible card for organizing settings into sections. Used in admin settings p
   <NcSelect label="Default Language" v-model="language" :options="languages" />
 </CnSettingsCard>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsCard/CnSettingsCard.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
