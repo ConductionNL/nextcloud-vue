@@ -1,0 +1,9 @@
+{
+	"id": "details",
+	"label": "myapp.sidebar.details",
+	"icon": "Information",
+	"widgets": [
+		{ "type": "data" },
+		{ "type": "metadata" }
+	]
+}

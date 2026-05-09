@@ -175,6 +175,36 @@ describe('CnAppRoot', () => {
 		})
 	})
 
+	describe('cnPageSidebarVisible inject (REQ-MDSC-6)', () => {
+		// Helper: provide an inject value via Vue's parent component
+		// pattern (mount() takes a `parentComponent` only in v3 — for v2
+		// we mount with a `provide` option on the test mount call).
+		function mountRootWithInject(visible, slots = {}) {
+			return mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp' },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+				provide: { cnPageSidebarVisible: { value: visible } },
+				slots,
+			})
+		}
+
+		it('renders the #sidebar slot when no inject is provided (default true)', () => {
+			const wrapper = mountRoot({ slots: { sidebar: '<div class="sb-default" />' } })
+			expect(wrapper.find('.sb-default').exists()).toBe(true)
+		})
+
+		it('renders the #sidebar slot when inject is { value: true }', () => {
+			const wrapper = mountRootWithInject(true, { sidebar: '<div class="sb-true" />' })
+			expect(wrapper.find('.sb-true').exists()).toBe(true)
+		})
+
+		it('hides the #sidebar slot when inject is { value: false }', () => {
+			const wrapper = mountRootWithInject(false, { sidebar: '<div class="sb-false" />' })
+			expect(wrapper.find('.sb-false').exists()).toBe(false)
+		})
+	})
+
 	describe('multiple dependencies', () => {
 		it('treats the manifest as resolved only when every dependency is installed', () => {
 			getCapabilities.mockReturnValue({ openregister: {} }) // missing opencatalogi

@@ -298,9 +298,38 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
 		},
-		/** Whether to activate the external sidebar (via objectSidebarState inject) */
+		/**
+		 * Sidebar configuration. Accepts EITHER form:
+		 *
+		 *   - **Boolean (legacy, deprecated):** `true` activates the
+		 *     external sidebar, `false` deactivates. The first time this
+		 *     form is observed per component instance a one-shot
+		 *     `console.warn` is logged pointing at the migration path.
+		 *     Continues to work in v1.x for back-compat.
+		 *
+		 *   - **Object (preferred):** mirrors `CnIndexPage.sidebar` plus
+		 *     the detail-specific fields previously on `sidebarProps`:
+		 *     ```ts
+		 *     {
+		 *       show?: boolean,        // default true; false suppresses sidebar
+		 *       enabled?: boolean,     // default true; false bypasses external sidebar
+		 *       register?: string,
+		 *       schema?: string,
+		 *       hiddenTabs?: string[],
+		 *       title?: string,
+		 *       subtitle?: string,
+		 *       tabs?: Array<TabDef>,  // see manifest-abstract-sidebar
+		 *     }
+		 *     ```
+		 *     When BOTH `sidebar` (Object) and `sidebarProps` are set
+		 *     with overlapping fields, the Object form wins and a
+		 *     `console.warn` lists the conflicting fields once per
+		 *     component instance.
+		 *
+		 * @type {Boolean|Object}
+		 */
 		sidebar: {
-			type: Boolean,
+			type: [Boolean, Object],
 			default: false,
 		},
 		/** Whether the sidebar is open (expanded) */
@@ -398,6 +427,41 @@ export default {
 		hasExternalSidebar() {
 			return !!this.objectSidebarState
 		},
+		/**
+		 * Normalised sidebar config object regardless of input shape.
+		 *
+		 *   - Boolean `true`  → `{ show: true, enabled: true }`
+		 *   - Boolean `false` → `{ show: false, enabled: false }`
+		 *   - Object          → fields passed through; `show` and
+		 *     `enabled` default to `true` when omitted.
+		 *
+		 * Centralising the normalisation here keeps `syncSidebarState`
+		 * and the deprecation/conflict-warning logic single-sourced.
+		 */
+		resolvedSidebar() {
+			const cfg = this.sidebar
+			if (typeof cfg === 'boolean') {
+				return { show: cfg, enabled: cfg }
+			}
+			if (cfg && typeof cfg === 'object') {
+				return {
+					show: cfg.show !== false,
+					enabled: cfg.enabled !== false,
+					...cfg,
+				}
+			}
+			return { show: false, enabled: false }
+		},
+		/**
+		 * True when the sidebar should be wired into the external
+		 * `objectSidebarState` channel. Both `show` and `enabled`
+		 * must be non-`false` (defaults are `true`); either can
+		 * suppress the sidebar declaratively.
+		 */
+		sidebarActive() {
+			const r = this.resolvedSidebar
+			return r.show !== false && r.enabled !== false
+		},
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
@@ -425,21 +489,94 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Pushes the resolved sidebar config into the
+		 * `objectSidebarState` provide/inject channel for the host
+		 * App's mounted `<CnObjectSidebar>` to consume.
+		 *
+		 * Object form fields take precedence over `sidebarProps` for
+		 * any field they declare; `sidebarProps` continues to fill
+		 * fields the Object form omits, preserving back-compat.
+		 *
+		 * Suppression (`show: false` or `enabled: false`) clears
+		 * `tabs` so a hidden detail page does not leak prior tab
+		 * state to the next mount.
+		 */
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
-			if (this.sidebar && this.objectType && this.objectId) {
+			this.warnIfDeprecatedSidebarShape()
+			const r = this.resolvedSidebar
+			if (this.sidebarActive && this.objectType && this.objectId) {
+				const merged = this.mergeSidebarSources(r)
 				this.objectSidebarState.active = true
 				this.objectSidebarState.open = this.sidebarOpen
 				this.objectSidebarState.objectType = this.objectType
 				this.objectSidebarState.objectId = this.objectId
-				this.objectSidebarState.title = this.sidebarProps.title || this.title || ''
-				this.objectSidebarState.subtitle = this.sidebarProps.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = this.sidebarProps.register || ''
-				this.objectSidebarState.schema = this.sidebarProps.schema || ''
-				this.objectSidebarState.hiddenTabs = this.sidebarProps.hiddenTabs || []
+				this.objectSidebarState.title = merged.title || this.title || ''
+				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
+				this.objectSidebarState.register = merged.register || ''
+				this.objectSidebarState.schema = merged.schema || ''
+				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
+				// Manifest-driven open-enum tabs (forwarded to the host
+				// app's mounted CnObjectSidebar via inject). Undefined when
+				// not set so the consumer's CnObjectSidebar falls back to
+				// the built-in tab set.
+				this.objectSidebarState.tabs = merged.tabs
 			} else {
 				this.objectSidebarState.active = false
+				this.objectSidebarState.tabs = undefined
 			}
+		},
+		/**
+		 * Merge the Object-form `sidebar` fields with the legacy
+		 * `sidebarProps` fields. Object form wins on conflict; first
+		 * conflict per instance fires a one-shot console.warn naming
+		 * the conflicting fields.
+		 *
+		 * @param {object} resolved Pre-normalised sidebar config object.
+		 * @return {object} Merged config — Object form fields override
+		 *   sidebarProps fields where both are set.
+		 */
+		mergeSidebarSources(resolved) {
+			const objectForm = (this.sidebar && typeof this.sidebar === 'object') ? this.sidebar : null
+			const props = this.sidebarProps || {}
+			const merged = {
+				title: objectForm?.title ?? props.title,
+				subtitle: objectForm?.subtitle ?? props.subtitle,
+				register: objectForm?.register ?? props.register,
+				schema: objectForm?.schema ?? props.schema,
+				hiddenTabs: objectForm?.hiddenTabs ?? props.hiddenTabs,
+				tabs: objectForm?.tabs ?? props.tabs,
+			}
+			if (objectForm && !this.__sidebarConflictWarned) {
+				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
+					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
+				if (overlap.length > 0) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`,
+					)
+					this.__sidebarConflictWarned = true
+				}
+			}
+			// Re-anchor `resolved` for the contract — callers expect
+			// the returned object to reflect the normalised shape.
+			return { ...resolved, ...merged }
+		},
+		/**
+		 * Log a one-shot deprecation warning when the legacy Boolean
+		 * form of the `sidebar` prop is observed. Tracked via a
+		 * non-reactive instance flag so subsequent renders/toggles
+		 * don't spam the console.
+		 */
+		warnIfDeprecatedSidebarShape() {
+			if (typeof this.sidebar !== 'boolean') return
+			if (this.__sidebarBooleanWarned) return
+			this.__sidebarBooleanWarned = true
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.',
+			)
 		},
 	},
 }

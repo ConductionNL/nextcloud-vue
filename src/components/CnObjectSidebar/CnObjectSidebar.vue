@@ -13,98 +13,142 @@
 		:active.sync="activeTab"
 		@update:open="$emit('update:open', $event)"
 		@close="$emit('update:open', false)">
-		<!-- Files Tab -->
-		<NcAppSidebarTab
-			v-if="!isTabHidden('files')"
-			id="files"
-			:name="filesLabel"
-			:order="1">
-			<template #icon>
-				<Paperclip :size="20" />
-			</template>
-			<slot name="tab-files" :object-id="objectId" :object-type="objectType">
-				<CnFilesTab
-					:object-id="objectId"
-					:register="register"
-					:schema="schema"
-					:api-base="apiBase" />
-			</slot>
-		</NcAppSidebarTab>
+		<!-- BACKWARDS-COMPATIBLE BRANCH: hard-coded built-in tabs.
+		     Used when no custom `tabs` prop is provided. The slot
+		     overrides (#tab-files etc.) and `hiddenTabs` filtering
+		     remain unchanged. -->
+		<template v-if="!hasCustomTabs">
+			<!-- Files Tab -->
+			<NcAppSidebarTab
+				v-if="!isTabHidden('files')"
+				id="files"
+				:name="filesLabel"
+				:order="1">
+				<template #icon>
+					<Paperclip :size="20" />
+				</template>
+				<slot name="tab-files" :object-id="objectId" :object-type="objectType">
+					<CnFilesTab
+						:object-id="objectId"
+						:register="register"
+						:schema="schema"
+						:api-base="apiBase" />
+				</slot>
+			</NcAppSidebarTab>
 
-		<!-- Notes Tab -->
-		<NcAppSidebarTab
-			v-if="!isTabHidden('notes')"
-			id="notes"
-			:name="notesLabel"
-			:order="2">
-			<template #icon>
-				<CommentTextOutline :size="20" />
-			</template>
-			<slot name="tab-notes" :object-id="objectId" :object-type="objectType">
-				<CnNotesTab
-					:object-id="objectId"
-					:register="register"
-					:schema="schema"
-					:api-base="apiBase" />
-			</slot>
-		</NcAppSidebarTab>
+			<!-- Notes Tab -->
+			<NcAppSidebarTab
+				v-if="!isTabHidden('notes')"
+				id="notes"
+				:name="notesLabel"
+				:order="2">
+				<template #icon>
+					<CommentTextOutline :size="20" />
+				</template>
+				<slot name="tab-notes" :object-id="objectId" :object-type="objectType">
+					<CnNotesTab
+						:object-id="objectId"
+						:register="register"
+						:schema="schema"
+						:api-base="apiBase" />
+				</slot>
+			</NcAppSidebarTab>
 
-		<!-- Tags Tab -->
-		<NcAppSidebarTab
-			v-if="!isTabHidden('tags')"
-			id="tags"
-			:name="tagsLabel"
-			:order="3">
-			<template #icon>
-				<TagOutline :size="20" />
-			</template>
-			<slot name="tab-tags" :object-id="objectId" :object-type="objectType">
-				<CnTagsTab
-					:object-id="objectId"
-					:register="register"
-					:schema="schema"
-					:api-base="apiBase" />
-			</slot>
-		</NcAppSidebarTab>
+			<!-- Tags Tab -->
+			<NcAppSidebarTab
+				v-if="!isTabHidden('tags')"
+				id="tags"
+				:name="tagsLabel"
+				:order="3">
+				<template #icon>
+					<TagOutline :size="20" />
+				</template>
+				<slot name="tab-tags" :object-id="objectId" :object-type="objectType">
+					<CnTagsTab
+						:object-id="objectId"
+						:register="register"
+						:schema="schema"
+						:api-base="apiBase" />
+				</slot>
+			</NcAppSidebarTab>
 
-		<!-- Tasks Tab -->
-		<NcAppSidebarTab
-			v-if="!isTabHidden('tasks')"
-			id="tasks"
-			:name="tasksLabel"
-			:order="4">
-			<template #icon>
-				<CheckboxMarkedOutline :size="20" />
-			</template>
-			<slot name="tab-tasks" :object-id="objectId" :object-type="objectType">
-				<CnTasksTab
-					:object-id="objectId"
-					:register="register"
-					:schema="schema"
-					:api-base="apiBase" />
-			</slot>
-		</NcAppSidebarTab>
+			<!-- Tasks Tab -->
+			<NcAppSidebarTab
+				v-if="!isTabHidden('tasks')"
+				id="tasks"
+				:name="tasksLabel"
+				:order="4">
+				<template #icon>
+					<CheckboxMarkedOutline :size="20" />
+				</template>
+				<slot name="tab-tasks" :object-id="objectId" :object-type="objectType">
+					<CnTasksTab
+						:object-id="objectId"
+						:register="register"
+						:schema="schema"
+						:api-base="apiBase" />
+				</slot>
+			</NcAppSidebarTab>
 
-		<!-- Audit Trail Tab -->
-		<NcAppSidebarTab
-			v-if="!isTabHidden('auditTrail')"
-			id="auditTrail"
-			:name="auditTrailLabel"
-			:order="5">
-			<template #icon>
-				<History :size="20" />
-			</template>
-			<slot name="tab-audit-trail" :object-id="objectId" :object-type="objectType">
-				<CnAuditTrailTab
-					:object-id="objectId"
-					:register="register"
-					:schema="schema"
-					:api-base="apiBase" />
-			</slot>
-		</NcAppSidebarTab>
+			<!-- Audit Trail Tab -->
+			<NcAppSidebarTab
+				v-if="!isTabHidden('auditTrail')"
+				id="auditTrail"
+				:name="auditTrailLabel"
+				:order="5">
+				<template #icon>
+					<History :size="20" />
+				</template>
+				<slot name="tab-audit-trail" :object-id="objectId" :object-type="objectType">
+					<CnAuditTrailTab
+						:object-id="objectId"
+						:register="register"
+						:schema="schema"
+						:api-base="apiBase" />
+				</slot>
+			</NcAppSidebarTab>
 
-		<!-- Custom tabs slot -->
-		<slot name="extra-tabs" />
+			<!-- Custom tabs slot (only relevant in legacy mode) -->
+			<slot name="extra-tabs" />
+		</template>
+
+		<!-- OPEN-ENUM BRANCH: render the consumer-supplied `tabs` array.
+		     Each tab declares its content via `widgets` (resolved against
+		     the built-in widget registry — `data` → CnObjectDataWidget,
+		     `metadata` → CnObjectMetadataWidget — with the customComponents
+		     registry as the escape hatch) OR `component` (resolved against
+		     the customComponents registry directly). -->
+		<template v-else>
+			<NcAppSidebarTab
+				v-for="(tab, idx) in tabs"
+				:id="tab.id"
+				:key="tab.id"
+				:name="tab.label"
+				:order="tab.order != null ? tab.order : idx + 1">
+				<template v-if="tab.icon" #icon>
+					<CnIcon :name="tab.icon" :size="20" />
+				</template>
+
+				<!-- Component-registry escape hatch wins when `component` is set
+				     (with a console.warn at mount time when widgets is also set). -->
+				<component
+					:is="resolveTabComponent(tab)"
+					v-if="tab.component"
+					v-bind="sharedTabProps" />
+
+				<!-- Widget array path. Each widget receives the shared object
+				     context plus its own `props`; per-widget props win on overlap. -->
+				<div v-else class="cn-object-sidebar__tab-widgets">
+					<template v-for="(w, wIdx) in tab.widgets || []">
+						<component
+							:is="resolveWidgetComponent(w.type)"
+							v-if="resolveWidgetComponent(w.type)"
+							:key="wIdx"
+							v-bind="{ ...sharedTabProps, ...(w.props || {}) }" />
+					</template>
+				</div>
+			</NcAppSidebarTab>
+		</template>
 	</NcAppSidebar>
 </template>
 
@@ -123,6 +167,23 @@ import CnNotesTab from './CnNotesTab.vue'
 import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
 import CnAuditTrailTab from './CnAuditTrailTab.vue'
+
+import { CnIcon } from '../CnIcon/index.js'
+import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
+import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
+
+/**
+ * Built-in widget registry used by the open-enum `tabs` prop.
+ * - `data`     → CnObjectDataWidget (schema-driven editable grid)
+ * - `metadata` → CnObjectMetadataWidget (read-only system metadata)
+ *
+ * Any `widgets[].type` value not in this map falls back to the
+ * customComponents registry (prop, then injected `cnCustomComponents`).
+ */
+const BUILTIN_WIDGETS = {
+	data: CnObjectDataWidget,
+	metadata: CnObjectMetadataWidget,
+}
 
 /**
  * CnObjectSidebar — Right sidebar for entity detail pages.
@@ -173,6 +234,11 @@ export default {
 		CnTagsTab,
 		CnTasksTab,
 		CnAuditTrailTab,
+		CnIcon,
+	},
+
+	inject: {
+		cnCustomComponents: { default: () => ({}) },
 	},
 
 	props: {
@@ -233,13 +299,52 @@ export default {
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
+
+		/**
+		 * Open-enum tab definitions. When provided with at least one
+		 * entry, REPLACES the hard-coded built-in tabs (Files, Notes,
+		 * Tags, Tasks, Audit Trail). When unset (the default), the
+		 * built-in tabs render as today.
+		 *
+		 * Each entry shape:
+		 * - `id` (string, required) — unique tab id, used for active-tab tracking.
+		 * - `label` (string, required) — tab display label (caller-resolved i18n).
+		 * - `icon` (string, optional) — MDI icon name resolved via CnIcon.
+		 * - `widgets` (array, optional) — list of widget specs `{ type, props? }`
+		 *   to render inside the tab. Built-in types: `data` → CnObjectDataWidget,
+		 *   `metadata` → CnObjectMetadataWidget. Any other `type` resolves
+		 *   against the customComponents registry.
+		 * - `component` (string, optional) — name resolved against the
+		 *   customComponents registry. Mutually exclusive with `widgets`
+		 *   (when both are set, `component` wins and a console.warn is logged).
+		 * - `order` (number, optional) — explicit order; defaults to array index + 1.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, widgets?: Array<{ type: string, props?: object }>, component?: string, order?: number }>|null}
+		 */
+		tabs: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Custom-component registry. Keys are names referenced by
+		 * `tabs[].component` and unknown `tabs[].widgets[].type` values.
+		 * Falls back to the injected `cnCustomComponents` from a
+		 * CnAppRoot ancestor when omitted.
+		 *
+		 * @type {object|null}
+		 */
+		customComponents: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['update:open'],
 
 	data() {
 		return {
-			activeTab: 'files',
+			activeTab: this.computeInitialActiveTab(),
 		}
 	},
 
@@ -250,11 +355,100 @@ export default {
 		sidebarSubtitle() {
 			return this.subtitle || this.subtitleProp || ''
 		},
+		/** Whether the consumer has supplied a custom `tabs` array. */
+		hasCustomTabs() {
+			return Array.isArray(this.tabs) && this.tabs.length > 0
+		},
+		/** Effective customComponents registry: prop wins, inject fallback. */
+		effectiveCustomComponents() {
+			return this.customComponents || this.cnCustomComponents || {}
+		},
+		/**
+		 * Shared object context forwarded to every widget / component
+		 * mounted inside a custom tab — same context the built-in tabs
+		 * receive today.
+		 */
+		sharedTabProps() {
+			return {
+				objectId: this.objectId,
+				objectType: this.objectType,
+				register: this.register,
+				schema: this.schema,
+				apiBase: this.apiBase,
+			}
+		},
+	},
+
+	watch: {
+		tabs: {
+			immediate: false,
+			handler() {
+				// Re-anchor activeTab when the tab set changes so the
+				// active id stays valid (otherwise NcAppSidebar shows no
+				// active tab when the consumer swaps in a fresh array).
+				this.activeTab = this.computeInitialActiveTab()
+			},
+		},
 	},
 
 	methods: {
 		isTabHidden(tabId) {
 			return this.hiddenTabs.includes(tabId)
+		},
+
+		/**
+		 * Pick a sensible default active tab on mount and on tabs[]
+		 * changes. When custom tabs are present, the first entry wins.
+		 * When unset, the built-in `files` tab is the default (matches
+		 * the legacy behavior).
+		 */
+		computeInitialActiveTab() {
+			if (Array.isArray(this.tabs) && this.tabs.length > 0) {
+				return this.tabs[0].id
+			}
+			return 'files'
+		},
+
+		/**
+		 * Resolve a widget type to a component. Built-in types
+		 * (`data`, `metadata`) map to CnObjectDataWidget /
+		 * CnObjectMetadataWidget. Any other type falls back to the
+		 * customComponents registry. Logs a console.warn and returns
+		 * null when nothing resolves.
+		 *
+		 * @param {string} type Widget type identifier
+		 * @return {object|null} Vue component, or null when unresolved
+		 */
+		resolveWidgetComponent(type) {
+			if (BUILTIN_WIDGETS[type]) return BUILTIN_WIDGETS[type]
+			const reg = this.effectiveCustomComponents
+			if (reg && reg[type]) return reg[type]
+			// eslint-disable-next-line no-console
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata) and not in customComponents registry.`)
+			return null
+		},
+
+		/**
+		 * Resolve a tab's `component` registry name. Logs a
+		 * console.warn when both `widgets` and `component` are set
+		 * (component wins) or when the registry name is missing.
+		 *
+		 * @param {object} tab Tab definition
+		 * @return {object|null} Vue component, or null when unresolved
+		 */
+		resolveTabComponent(tab) {
+			if (tab.widgets && tab.widgets.length > 0) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnObjectSidebar] Tab "${tab.id}" declares both widgets[] and component — component wins, widgets are ignored.`)
+			}
+			const reg = this.effectiveCustomComponents
+			const resolved = reg && reg[tab.component]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnObjectSidebar] Tab "${tab.id}" component "${tab.component}" not found in customComponents registry.`)
+				return null
+			}
+			return resolved
 		},
 	},
 }

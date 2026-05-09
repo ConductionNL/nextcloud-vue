@@ -287,12 +287,18 @@ describe('CnPageRenderer', () => {
 		it('falls back to defaultPageTypes when no pageTypes prop or inject is given', () => {
 			const wrapper = mountRenderer('home')
 			// effectivePageTypes defaults to defaultPageTypes which contains
-			// index/detail/dashboard. The resolved component for type:"index"
-			// is therefore the defineAsyncComponent wrapper of CnIndexPage.
+			// the seven built-ins: index, detail, dashboard, logs, settings,
+			// chat, files. The resolved component for type:"index" is
+			// therefore the defineAsyncComponent wrapper of CnIndexPage.
 			expect(wrapper.vm.effectivePageTypes).toBeDefined()
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.index)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.detail)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.dashboard)
+			// Phase-3 additions from manifest-page-type-extensions:
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.logs)
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.settings)
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.chat)
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.files)
 		})
 	})
 
