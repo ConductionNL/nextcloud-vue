@@ -2,11 +2,18 @@
 sidebar_position: 13
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnPagination.md'
+
 # CnPagination
 
 Full pagination bar with page navigation, ellipsis for large page counts, and a page-size selector. Automatically hidden when all items fit on one page.
 
 **Wraps**: NcButton, NcSelect
+
+## Try it
+
+<Playground component="CnPagination" />
 
 ![CnPagination showing "Page 1 of 2" with First/Previous/page numbers/Next/Last buttons and Items per page selector](/img/screenshots/cn-pagination.png)
 
@@ -64,3 +71,9 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 |-------|---------|-------------|
 | `page-changed` | `pageNum` | Emitted when the user navigates to a different page; payload is the new 1-based page number |
 | `page-size-changed` | `size` | Emitted when the user selects a different page size |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPagination.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPagination/CnPagination.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
