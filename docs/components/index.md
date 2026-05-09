@@ -6,6 +6,10 @@ sidebar_position: 3
 
 All components exported by `@conduction/nextcloud-vue`, organized by category.
 
+:::tip Standalone playground
+Every component page below embeds a live demo via `<Playground />` — that's the canonical way to preview a component. If you want the full Vue Styleguidist UI on its own (no narrative, just the interactive sandbox), it's still available at [**/styleguide/**](/styleguide/) — same component set, deep-link via `/styleguide/#!/CnDataTable`.
+:::
+
 ## Page Layout
 
 | Component | Description |
