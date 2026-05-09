@@ -100,6 +100,11 @@ export function validateManifest(manifest, options = {}) {
 			// Manifest-driven sidebar config — additive validation
 			// (`manifest-abstract-sidebar` spec — covers index sidebar + detail sidebar tabs).
 			validateSidebarConfig(page, index, errors)
+
+			// Per-page top-level sidebar visibility flag — additive validation
+			// (`manifest-detail-sidebar-config` spec — sibling of config,
+			// applies to every page type).
+			validatePageSidebar(page, index, errors)
 		})
 	}
 
@@ -235,19 +240,25 @@ function validateTypeConfig(page, index, errors) {
 
 /**
  * Validate the type-specific sidebar config introduced by the
- * manifest-abstract-sidebar change.
+ * `manifest-abstract-sidebar` change and extended by
+ * `manifest-detail-sidebar-config`.
  *
  * - For `type: "index"` pages with `config.sidebar`:
- *   `sidebar` MUST be a plain object. When `enabled` is set it MUST be
- *   a boolean. When `columnGroups` is set it MUST be an array. When
- *   `facets` is set it MUST be an object. Unknown sub-fields are
- *   tolerated for forward-compat with future CnIndexSidebar props.
+ *   `sidebar` MUST be a plain object. When `enabled` / `show` is set
+ *   it MUST be a boolean. When `columnGroups` is set it MUST be an
+ *   array. When `facets` is set it MUST be an object. Unknown
+ *   sub-fields are tolerated for forward-compat with future
+ *   CnIndexSidebar props.
  *
- * - For `type: "detail"` pages with `config.sidebarProps.tabs`:
- *   `tabs` MUST be an array. Each entry MUST have a string `id` and a
- *   string `label`. Each entry MUST have either `widgets` (array) OR
- *   `component` (string), not both. Tab `id`s MUST be unique within
- *   the array.
+ * - For `type: "detail"` pages with `config.sidebar`:
+ *   `sidebar` MUST be either a Boolean (legacy) OR a plain object.
+ *   When an object: `show` / `enabled` MUST be boolean when set;
+ *   `register` / `schema` / `title` / `subtitle` MUST be string when
+ *   set; `hiddenTabs` MUST be an array of strings when set; `tabs`
+ *   follows the existing tabs-array rules.
+ *
+ * - For `type: "detail"` pages with `config.sidebarProps.tabs`
+ *   (legacy path): same tab rules as above.
  *
  * Errors push JSON-pointer-shaped paths so the consumer can locate the
  * offending field without consulting the schema source.
@@ -269,6 +280,10 @@ function validateSidebarConfig(page, pageIndex, errors) {
 			if (config.sidebar.enabled !== undefined && typeof config.sidebar.enabled !== 'boolean') {
 				errors.push(`${path}/enabled must be a boolean`)
 			}
+			// Visibility gate added by manifest-detail-sidebar-config.
+			if (config.sidebar.show !== undefined && typeof config.sidebar.show !== 'boolean') {
+				errors.push(`${path}/show must be a boolean`)
+			}
 			if (config.sidebar.columnGroups !== undefined && !Array.isArray(config.sidebar.columnGroups)) {
 				errors.push(`${path}/columnGroups must be an array`)
 			}
@@ -284,48 +299,135 @@ function validateSidebarConfig(page, pageIndex, errors) {
 		}
 	}
 
-	// --- Detail sidebar tabs ---
+	// --- Detail sidebar (Object form) ---
+	// `manifest-detail-sidebar-config` promotes config.sidebar from a
+	// pure boolean to a Boolean-OR-Object. Boolean form passes through
+	// unchanged for v1.x back-compat. Object form mirrors index +
+	// adds detail-specific fields.
+	if (page.type === 'detail' && config.sidebar !== undefined) {
+		const path = `/pages/${pageIndex}/config/sidebar`
+		const sb = config.sidebar
+		const isBool = typeof sb === 'boolean'
+		const isObj = isPlainObject(sb)
+		if (!isBool && !isObj) {
+			errors.push(`${path} must be a boolean (legacy) or object`)
+		} else if (isObj) {
+			if (sb.show !== undefined && typeof sb.show !== 'boolean') {
+				errors.push(`${path}/show must be a boolean`)
+			}
+			if (sb.enabled !== undefined && typeof sb.enabled !== 'boolean') {
+				errors.push(`${path}/enabled must be a boolean`)
+			}
+			if (sb.register !== undefined && typeof sb.register !== 'string') {
+				errors.push(`${path}/register must be a string`)
+			}
+			if (sb.schema !== undefined && typeof sb.schema !== 'string') {
+				errors.push(`${path}/schema must be a string`)
+			}
+			if (sb.title !== undefined && typeof sb.title !== 'string') {
+				errors.push(`${path}/title must be a string`)
+			}
+			if (sb.subtitle !== undefined && typeof sb.subtitle !== 'string') {
+				errors.push(`${path}/subtitle must be a string`)
+			}
+			if (sb.hiddenTabs !== undefined) {
+				if (!Array.isArray(sb.hiddenTabs)) {
+					errors.push(`${path}/hiddenTabs must be an array of strings`)
+				} else {
+					sb.hiddenTabs.forEach((t, i) => {
+						if (typeof t !== 'string') {
+							errors.push(`${path}/hiddenTabs/${i} must be a string`)
+						}
+					})
+				}
+			}
+			if (sb.tabs !== undefined) {
+				validateDetailTabsArray(sb.tabs, `${path}/tabs`, errors)
+			}
+		}
+	}
+
+	// --- Detail sidebar tabs (legacy sidebarProps.tabs path) ---
 	if (page.type === 'detail' && isPlainObject(config.sidebarProps) && config.sidebarProps.tabs !== undefined) {
 		const tabsPath = `/pages/${pageIndex}/config/sidebarProps/tabs`
-		const tabs = config.sidebarProps.tabs
-		if (!Array.isArray(tabs)) {
-			errors.push(`${tabsPath} must be an array`)
-		} else {
-			const seenIds = new Set()
-			tabs.forEach((tab, tabIndex) => {
-				const tabPath = `${tabsPath}/${tabIndex}`
-				if (!isPlainObject(tab)) {
-					errors.push(`${tabPath} must be an object`)
-					return
-				}
-				if (typeof tab.id !== 'string' || tab.id.length === 0) {
-					errors.push(`${tabPath}/id must be a non-empty string`)
-				} else if (seenIds.has(tab.id)) {
-					errors.push(`${tabPath}/id "${tab.id}" must be unique within tabs[]`)
-				} else {
-					seenIds.add(tab.id)
-				}
-				if (typeof tab.label !== 'string' || tab.label.length === 0) {
-					errors.push(`${tabPath}/label must be a non-empty string`)
-				}
-				const hasWidgets = Array.isArray(tab.widgets) && tab.widgets.length > 0
-				const hasComponent = typeof tab.component === 'string' && tab.component.length > 0
-				if (hasWidgets && hasComponent) {
-					errors.push(`${tabPath} must declare widgets OR component, not both`)
-				}
-				if (tab.widgets !== undefined && !Array.isArray(tab.widgets)) {
-					errors.push(`${tabPath}/widgets must be an array when set`)
-				}
-				if (tab.component !== undefined && typeof tab.component !== 'string') {
-					errors.push(`${tabPath}/component must be a string when set`)
-				}
-				if (tab.icon !== undefined && typeof tab.icon !== 'string') {
-					errors.push(`${tabPath}/icon must be a string when set`)
-				}
-				if (tab.order !== undefined && typeof tab.order !== 'number') {
-					errors.push(`${tabPath}/order must be a number when set`)
-				}
-			})
+		validateDetailTabsArray(config.sidebarProps.tabs, tabsPath, errors)
+	}
+}
+
+/**
+ * Validate the manifest-abstract-sidebar tabs array. Hoisted so both
+ * the legacy `config.sidebarProps.tabs` path and the new
+ * `config.sidebar.tabs` path (manifest-detail-sidebar-config) reuse
+ * the same rules.
+ *
+ * @param {*} tabs The candidate tabs value (expected: array of tab defs)
+ * @param {string} tabsPath JSON-pointer-shaped path prefix for errors
+ * @param {string[]} errors Accumulator
+ */
+function validateDetailTabsArray(tabs, tabsPath, errors) {
+	if (!Array.isArray(tabs)) {
+		errors.push(`${tabsPath} must be an array`)
+		return
+	}
+	const seenIds = new Set()
+	tabs.forEach((tab, tabIndex) => {
+		const tabPath = `${tabsPath}/${tabIndex}`
+		if (!isPlainObject(tab)) {
+			errors.push(`${tabPath} must be an object`)
+			return
 		}
+		if (typeof tab.id !== 'string' || tab.id.length === 0) {
+			errors.push(`${tabPath}/id must be a non-empty string`)
+		} else if (seenIds.has(tab.id)) {
+			errors.push(`${tabPath}/id "${tab.id}" must be unique within tabs[]`)
+		} else {
+			seenIds.add(tab.id)
+		}
+		if (typeof tab.label !== 'string' || tab.label.length === 0) {
+			errors.push(`${tabPath}/label must be a non-empty string`)
+		}
+		const hasWidgets = Array.isArray(tab.widgets) && tab.widgets.length > 0
+		const hasComponent = typeof tab.component === 'string' && tab.component.length > 0
+		if (hasWidgets && hasComponent) {
+			errors.push(`${tabPath} must declare widgets OR component, not both`)
+		}
+		if (tab.widgets !== undefined && !Array.isArray(tab.widgets)) {
+			errors.push(`${tabPath}/widgets must be an array when set`)
+		}
+		if (tab.component !== undefined && typeof tab.component !== 'string') {
+			errors.push(`${tabPath}/component must be a string when set`)
+		}
+		if (tab.icon !== undefined && typeof tab.icon !== 'string') {
+			errors.push(`${tabPath}/icon must be a string when set`)
+		}
+		if (tab.order !== undefined && typeof tab.order !== 'number') {
+			errors.push(`${tabPath}/order must be a number when set`)
+		}
+	})
+}
+
+/**
+ * Validate the per-page top-level `sidebar` field (sibling of `config`)
+ * introduced by `manifest-detail-sidebar-config`.
+ *
+ * Applies to EVERY page type (including type='custom'). Currently the
+ * only declared sub-field is `show: boolean` (visibility gate consumed
+ * by CnAppRoot via the `cnPageSidebarVisible` inject). Unknown
+ * sub-fields are tolerated for forward-compat with future fields
+ * (e.g. position, width).
+ *
+ * @param {object} page Page entry
+ * @param {number} pageIndex Index in `manifest.pages`
+ * @param {string[]} errors Accumulator
+ */
+function validatePageSidebar(page, pageIndex, errors) {
+	if (page.sidebar === undefined) return
+	const path = `/pages/${pageIndex}/sidebar`
+	if (!isPlainObject(page.sidebar)) {
+		errors.push(`${path} must be an object`)
+		return
+	}
+	if (page.sidebar.show !== undefined && typeof page.sidebar.show !== 'boolean') {
+		errors.push(`${path}/show must be a boolean`)
 	}
 }
