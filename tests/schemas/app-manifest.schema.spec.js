@@ -15,6 +15,8 @@
 import schema from '../../src/schemas/app-manifest.schema.json'
 import valid from '../fixtures/manifest-valid.json'
 import invalid from '../fixtures/manifest-invalid.json'
+import allTypes from '../fixtures/manifest-all-types.json'
+import invalidTypeConfig from '../fixtures/manifest-invalid-type-config.json'
 import { validateManifest } from '../../src/utils/validateManifest.js'
 
 describe('app-manifest.schema.json (metadata)', () => {
@@ -95,5 +97,71 @@ describe('validateManifest (FE)', () => {
 	it('returns a single error when manifest is not an object', () => {
 		const result = validateManifest('not an object')
 		expect(result).toEqual({ valid: false, errors: ['manifest must be an object'] })
+	})
+})
+
+describe('validateManifest — extended page types (manifest-page-type-extensions)', () => {
+	it('passes a fixture covering all 8 built-in page types', () => {
+		const result = validateManifest(allTypes)
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('still validates v1.0 manifests against the bumped schema (backwards-compat)', () => {
+		// `valid` fixture uses the original four types only.
+		const result = validateManifest(valid)
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a logs page missing register+schema or source', () => {
+		const result = validateManifest(invalidTypeConfig)
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('pages[0].config') && e.includes('register+schema or source'))).toBe(true)
+	})
+
+	it('rejects a settings page with empty sections', () => {
+		const result = validateManifest(invalidTypeConfig)
+		expect(result.errors.some((e) => e.includes('pages[1].config.sections') && e.includes('at least 1 section'))).toBe(true)
+	})
+
+	it('rejects a chat page missing both URL fields', () => {
+		const result = validateManifest(invalidTypeConfig)
+		expect(result.errors.some((e) => e.includes('pages[2].config') && e.includes('conversationSource or postUrl'))).toBe(true)
+	})
+
+	it('rejects a files page missing folder', () => {
+		const result = validateManifest(invalidTypeConfig)
+		expect(result.errors.some((e) => e.includes('pages[3].config.folder') && e.includes('required'))).toBe(true)
+	})
+
+	it('accepts a logs page with only `source` set', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{ id: 'l', route: '/l', type: 'logs', title: 't', config: { source: '/api/my-logs' } }],
+		})
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts a chat page with only `postUrl` set', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{ id: 'c', route: '/c', type: 'chat', title: 't', config: { postUrl: '/api/post' } }],
+		})
+		expect(result.valid).toBe(true)
+	})
+
+	it('error path uses the JSON-path style for all four new types', () => {
+		const result = validateManifest(invalidTypeConfig)
+		// Each type reports a /pages/N/... style path so consumers can find the offending field.
+		expect(result.errors.some((e) => e.startsWith('/pages/0/config'))).toBe(true)
+		expect(result.errors.some((e) => e.startsWith('/pages/1/config/sections'))).toBe(true)
+		expect(result.errors.some((e) => e.startsWith('/pages/2/config'))).toBe(true)
+		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
+	})
+
+	it('schema declares its version as 1.1', () => {
+		expect(schema.version).toBe('1.1.0')
 	})
 })

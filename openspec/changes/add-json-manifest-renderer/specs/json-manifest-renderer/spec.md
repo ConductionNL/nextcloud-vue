@@ -45,11 +45,11 @@ The schema MUST define the following top-level structure:
 
 Menu items MUST include: `id` (string, required), `label` (string, required — i18n key), `icon` (string, optional), `route` (string, optional), `order` (integer, optional), `permission` (string, optional), `children` (array of menu items, optional, max one level deep).
 
-Page items MUST include: `id` (string, required — also serves as the vue-router route name for this page), `route` (string, required — the path pattern, e.g. `/decisions` or `/decisions/:id`; used by consuming apps to build their vue-router config), `type` (enum: `"index" | "detail" | "dashboard" | "custom"`, required), `title` (string, required — i18n key), `config` (object, optional), `component` (string, optional — for `type: "custom"`), `headerComponent` (string, optional), `actionsComponent` (string, optional).
+Page items MUST include: `id` (string, required — also serves as the vue-router route name for this page), `route` (string, required — the path pattern, e.g. `/decisions` or `/decisions/:id`; used by consuming apps to build their vue-router config), `type` (enum: `"index" | "detail" | "dashboard" | "logs" | "settings" | "chat" | "files" | "custom"`, required), `title` (string, required — i18n key), `config` (object, optional), `component` (string, optional — for `type: "custom"`), `headerComponent` (string, optional), `actionsComponent` (string, optional).
 
 `pages[].id` MUST be unique within the manifest. `CnPageRenderer` uses `$route.name === page.id` for matching — no path matching.
 
-The `type` field MUST be a closed enum. Adding new types requires a library schema release.
+The `type` field MUST be a closed enum. Adding new types requires a library schema release. Subsequent extensions: `manifest-page-type-extensions` (schema v1.1) added `logs`, `settings`, `chat`, `files` to the enum and shipped matching default components — see `nextcloud-vue/openspec/changes/manifest-page-type-extensions/specs/manifest-page-type-extensions/spec.md`.
 
 #### Scenario: Schema validates a minimal valid manifest
 
