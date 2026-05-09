@@ -77,15 +77,23 @@
 
 ## Phase 6 — Cross-app coordination
 
-- [ ] Reference this change from `hydra/openspec/architecture/adr-024-app-manifest.md`
+- [x] Reference this change from `hydra/openspec/architecture/adr-024-app-manifest.md`
       under "Schema evolution" — the closed enum extends safely;
       apps using v1.0 keep working.
-- [ ] Update `hydra/openspec/changes/adopt-app-manifest/specs/adopt-app-manifest/spec.md`
+      Done in `hydra` branch `feature/adr-024-manifest-crosslinks`
+      (commit `0552774`): added a Schema evolution table covering 1.0 → 1.2
+      and a See-also list of every nextcloud-vue manifest change.
+- [x] Update `hydra/openspec/changes/adopt-app-manifest/specs/adopt-app-manifest/spec.md`
       to note that the recommended migration order may surface more
       `type:"custom"` pages on early adopters; later apps benefit from
       the extended enum.
+      Done in same hydra branch (commit `5758513`): added migration-order
+      asymmetry paragraph + scenario codifying the rule.
 - [ ] Open per-app follow-up issues for migrating existing
       `type:"custom"` pages to the new built-ins where applicable.
       Initial candidates: openregister-adopt-app-manifest (17 custom
       pages — most can move), decidesk-manifest-v1 (16 custom pages
       flagged for refactor — ~12 likely move to the new types).
+      DEFERRED: per project convention, GitHub issue creation is Hydra
+      coordination work, not opsx-tasks scope. Issues will be opened by
+      the human at PR-merge time.
