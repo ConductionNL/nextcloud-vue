@@ -162,6 +162,13 @@ module.exports = {
 				// p-queue 7+ only ships an "exports" map with no "main" field;
 				// webpack 4 doesn't understand "exports", so we point it directly.
 				'p-queue': path.resolve(__dirname, 'node_modules/p-queue/dist/index.js'),
+				// @nextcloud/notify_push@1.x ships only `exports.import` (no `main` /
+				// `module`); webpack 4 can't resolve it. Live updates aren't
+				// functional in the styleguide sandbox anyway (no Nextcloud server
+				// to connect to), so point it at the package's dist file directly
+				// — components that bundle the live-updates plugin still build, and
+				// the listen() call no-ops harmlessly when there's no server.
+				'@nextcloud/notify_push': path.resolve(__dirname, 'node_modules/@nextcloud/notify_push/dist/index.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
