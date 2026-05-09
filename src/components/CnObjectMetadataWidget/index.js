@@ -1,1 +1,4 @@
-export { default as CnObjectMetadataWidget } from './CnObjectMetadataWidget.vue'
+import CnObjectMetadataWidget from './CnObjectMetadataWidget.vue'
+
+export default CnObjectMetadataWidget
+export { CnObjectMetadataWidget }

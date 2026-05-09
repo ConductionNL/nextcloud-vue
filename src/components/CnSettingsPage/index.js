@@ -1,1 +1,4 @@
-export { default as CnSettingsPage } from './CnSettingsPage.vue'
+import CnSettingsPage from './CnSettingsPage.vue'
+
+export default CnSettingsPage
+export { CnSettingsPage }

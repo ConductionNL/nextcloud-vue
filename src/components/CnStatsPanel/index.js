@@ -1,1 +1,4 @@
-export { default as CnStatsPanel } from './CnStatsPanel.vue'
+import CnStatsPanel from './CnStatsPanel.vue'
+
+export default CnStatsPanel
+export { CnStatsPanel }

@@ -1,1 +1,4 @@
-export { default as CnMassExportDialog } from './CnMassExportDialog.vue'
+import CnMassExportDialog from './CnMassExportDialog.vue'
+
+export default CnMassExportDialog
+export { CnMassExportDialog }

@@ -1,1 +1,4 @@
-export { default as CnJsonViewer } from './CnJsonViewer.vue'
+import CnJsonViewer from './CnJsonViewer.vue'
+
+export default CnJsonViewer
+export { CnJsonViewer }

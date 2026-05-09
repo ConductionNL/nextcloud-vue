@@ -1,1 +1,4 @@
-export { default as CnMassActionBar } from './CnMassActionBar.vue'
+import CnMassActionBar from './CnMassActionBar.vue'
+
+export default CnMassActionBar
+export { CnMassActionBar }

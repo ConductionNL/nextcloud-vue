@@ -1,1 +1,4 @@
-export { default as CnFilterBar } from './CnFilterBar.vue'
+import CnFilterBar from './CnFilterBar.vue'
+
+export default CnFilterBar
+export { CnFilterBar }
