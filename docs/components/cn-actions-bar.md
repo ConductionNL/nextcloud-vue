@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnActionsBar.md'
+
 # CnActionsBar
 
 Toolbar that combines an item count display, a primary Add button, a view-mode toggle (Cards / Table), and an overflow actions menu containing Refresh, Import, Export, Copy-selected, and Delete-selected. All built-in mass actions are individually toggle-able.
 
 **Wraps**: NcButton, NcActions, NcCheckboxRadioSwitch
+
+## Try it
+
+<Playground component="CnActionsBar" />
 
 ## Usage
 
@@ -76,3 +83,9 @@ Custom action items can be injected into the overflow menu:
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

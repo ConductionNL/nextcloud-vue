@@ -2,11 +2,18 @@
 sidebar_position: 2
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnIndexPage.md'
+
 # CnIndexPage
 
 The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, CRUD dialogs, and a right-click context menu into a single schema-driven page.
 
 **Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue), CnContextMenu
+
+## Try it
+
+<Playground component="CnIndexPage" />
 
 ![CnIndexPage showing the full list page with filter bar, data table, and right sidebar](/img/screenshots/cn-index-page.png)
 
@@ -326,3 +333,9 @@ export default {
 }
 </script>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexPage/CnIndexPage.vue) — props, events, and named slots — and update automatically whenever the component changes (see [CLAUDE.md "Documenting components"](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced)).
+
+<GeneratedRef />

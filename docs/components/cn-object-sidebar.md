@@ -1,8 +1,15 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnObjectSidebar.md'
+
 # CnObjectSidebar
 
 Right sidebar for entity detail pages. Provides standardized tabs — Files, Notes, Tags, Tasks, and Audit Trail — that integrate with OpenRegister API endpoints bridging to Nextcloud-native APIs. Each tab is optional and independently overridable via slots.
 
 **Wraps**: NcAppSidebar, NcAppSidebarTab
+
+## Try it
+
+<Playground component="CnObjectSidebar" />
 
 ## Tabs
 
@@ -134,3 +141,9 @@ Every widget and component mounted inside a custom tab receives the parent `CnOb
 ### Backwards compatibility
 
 Apps satisfied with the default tab set make NO changes — leave `tabs` unset and the hard-coded built-in tabs render exactly as today, including the `#tab-files` / `#tab-notes` / `#tab-tags` / `#tab-tasks` / `#tab-audit-trail` / `#extra-tabs` slot overrides. The `tabs` prop is purely additive.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

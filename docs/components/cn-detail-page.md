@@ -2,11 +2,18 @@
 sidebar_position: 3
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDetailPage.md'
+
 # CnDetailPage
 
 A generic detail/overview page component. The simpler counterpart to CnIndexPage — designed for pages that display statistics, charts, card grids, or other detail content without multi-object tables or CRUD dialogs.
 
 **Wraps**: NcEmptyContent, NcLoadingIcon, NcButton (from @nextcloud/vue), CnIcon
+
+## Try it
+
+<Playground component="CnDetailPage" />
 
 ## Props
 
@@ -197,3 +204,9 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 | **CnDetailPage** | Displaying detail info, stats tables, charts, card overviews — no multi-object CRUD |
 | **CnIndexPage** | Listing objects with table/cards, pagination, search, mass actions, CRUD dialogs |
 | **CnDashboardPage** | Building a widget-based dashboard with drag-and-drop grid layout |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
