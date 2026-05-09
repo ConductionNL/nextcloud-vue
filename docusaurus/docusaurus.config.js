@@ -25,7 +25,9 @@ const config = createConfig({
   tagline: 'Schema-driven Vue components for Nextcloud apps built on OpenRegister',
   url: 'https://nextcloud-vue.conduction.nl',
   baseUrl: '/',
-  trailingSlash: false,
+  // trailingSlash inherits from the preset (true). Relative folder links
+  // in markdown (`./layouts/`, `./components/`) need to be absolute or
+  // .md-suffixed under this setting; see fix in docs/getting-started.md.
 
   organizationName: 'ConductionNL',
   projectName: 'nextcloud-vue',
@@ -132,6 +134,11 @@ const config = createConfig({
     ],
     // copyright: omitted -> brand KvK/BTW/IBAN inherits from the preset
   },
+
+  /* Drop the canal-footer's boat-sinking + kade-cyclist mini-games on
+     this docs page. The static skyline + canal decoration are kept;
+     the interactive layer goes away. Same pattern as procest. */
+  minigames: false,
 
   /* themeConfig is shallow-merged into the preset's defaults. Site-
      specific entries: prism themes for code blocks, mermaid theme
