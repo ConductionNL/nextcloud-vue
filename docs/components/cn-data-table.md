@@ -95,3 +95,11 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `#row-actions` | `{ row }` | Content for the last (actions) cell of each row — typically `CnRowActions` |
 | `#actions-header` | - | Content for the header above the actions cell — typically a button |
 | `#empty` | — | Custom empty-state content shown when `rows` is empty |
+
+## Reference (auto-generated)
+
+import GeneratedRef from './_generated/CnDataTable.md'
+
+The section below is generated from the SFC source by `vue-docgen-cli`. Phase 1 spike — present here for comparison with the hand-written tables above. Once the JSDoc on each `Cn*` component is complete enough to replace the hand-written tables, Phase 3 deletes the redundant prose and keeps only the auto-generated section.
+
+<GeneratedRef />
