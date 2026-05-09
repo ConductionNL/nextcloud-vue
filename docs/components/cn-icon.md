@@ -2,9 +2,16 @@
 sidebar_position: 30
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnIcon.md'
+
 # CnIcon
 
 Renders an MDI (Material Design Icons) icon by PascalCase name from an extensible registry. Apps register only the icons they need — avoiding bundling all 7000+ MDI icons.
+
+## Try it
+
+<Playground component="CnIcon" />
 
 ## Props
 
@@ -65,3 +72,9 @@ OpenRegister schemas reference icons by PascalCase name in their `icon` property
 | `CnIcon` | Component | The icon renderer component |
 | `ICON_MAP` | Object | Reference to the mutable registry |
 | `registerIcons` | Function | `(icons: Record<string, Component>) => void` — adds icons to registry |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIcon.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIcon/CnIcon.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />
