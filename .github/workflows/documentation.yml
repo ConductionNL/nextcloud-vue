@@ -1,12 +1,28 @@
 name: Documentation
 
+# Deploys the full Docusaurus + Styleguidist site to gh-pages root.
+# Triggers on push to BOTH `main` and `beta` so the new site can ship
+# without waiting for a beta -> main release. `main` and `beta` push to
+# the same gh-pages root; the most recent push wins (idempotent for
+# identical sources, and Docusaurus is built fresh each time).
 on:
   push:
     branches:
       - main
+      - beta
   pull_request:
     branches:
       - main
+      - beta
+
+# Serialize deploys against the gh-pages branch. Without this, parallel
+# documentation.yml + documentation-beta.yml + documentation-dev.yml runs
+# all push to gh-pages and race; the loser retries internally but can fail
+# in extreme cases. cancel-in-progress: false so a queued deploy waits
+# rather than getting cancelled.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -21,16 +37,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install and build component styleguide
         timeout-minutes: 10
         run: |
           cd styleguide
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Clear build cache and install dependencies
