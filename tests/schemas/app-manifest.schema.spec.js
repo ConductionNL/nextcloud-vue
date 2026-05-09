@@ -161,8 +161,8 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-	it('schema declares its version as 1.1', () => {
-		expect(schema.version).toBe('1.1.0')
+	it('schema declares its version as 1.2.0', () => {
+		expect(schema.version).toBe('1.2.0')
 	})
 })
 
@@ -348,8 +348,8 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-		it('bumps the schema version field to 1.1.0', () => {
-			expect(schema.version).toBe('1.1.0')
+		it('bumps the schema version field to 1.2.0', () => {
+			expect(schema.version).toBe('1.2.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -461,8 +461,8 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field is unchanged (still 1.1.0)', () => {
-		expect(schema.version).toBe('1.1.0')
+	it('REQ-MSRS-6: schema top-level version field bumps to 1.2.0 (manifest-config-refs)', () => {
+		expect(schema.version).toBe('1.2.0')
 	})
 })
 
@@ -633,12 +633,13 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('does not bump the schema version (additions are non-breaking)', () => {
-			// Strategy A: legacy boolean form keeps validating, so the
-			// schema version stays at 1.1.0 (the last bump from
-			// manifest-abstract-sidebar). A future change can promote the
-			// number when a breaking change actually lands.
-			expect(schema.version).toBe('1.1.0')
+		it('schema version bumps to 1.2.0 with the manifest-config-refs tightening', () => {
+			// `manifest-detail-sidebar-config` itself was non-breaking and
+			// kept the version at 1.1.0. The successor `manifest-config-refs`
+			// change wires up $refs on the recurring config sub-shapes —
+			// non-breaking on documented manifests but a meaningful surface
+			// change worth a minor version bump to 1.2.0.
+			expect(schema.version).toBe('1.2.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
