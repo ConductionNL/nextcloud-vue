@@ -171,8 +171,42 @@ function validateTypeConfig(page, index, errors) {
 			if (typeof section.title !== 'string') {
 				errors.push(`${pathSlash}/sections/${sIndex}/title: required, must be a string`)
 			}
-			if (!Array.isArray(section.fields)) {
-				errors.push(`${pathSlash}/sections/${sIndex}/fields: required, must be an array`)
+
+			// `manifest-settings-rich-sections` REQ-MSRS-1: each
+			// section MUST declare exactly one of fields | component
+			// | widgets. Mixed bodies confuse the renderer + duplicate
+			// the section chrome; empty bodies render nothing so they
+			// are a manifest-author bug.
+			const hasFields = Array.isArray(section.fields)
+			const hasComponent = typeof section.component === 'string' && section.component.length > 0
+			const hasWidgets = Array.isArray(section.widgets) && section.widgets.length > 0
+			const bodyCount = (hasFields ? 1 : 0) + (hasComponent ? 1 : 0) + (hasWidgets ? 1 : 0)
+
+			if (bodyCount !== 1) {
+				errors.push(`${pathSlash}/sections/${sIndex}: ${pathBracket}.sections[${sIndex}]: must declare exactly one of fields | component | widgets`)
+			}
+
+			// `widgets` set but not an array (string / object / etc.)
+			if (section.widgets !== undefined && !Array.isArray(section.widgets)) {
+				errors.push(`${pathSlash}/sections/${sIndex}/widgets: must be an array when set`)
+			}
+
+			// `component` set but not a string.
+			if (section.component !== undefined && typeof section.component !== 'string') {
+				errors.push(`${pathSlash}/sections/${sIndex}/component: must be a string when set`)
+			}
+
+			// Per-widget shape rules.
+			if (hasWidgets) {
+				section.widgets.forEach((widget, wIndex) => {
+					if (!isPlainObject(widget)) {
+						errors.push(`${pathSlash}/sections/${sIndex}/widgets/${wIndex}: must be an object`)
+						return
+					}
+					if (typeof widget.type !== 'string' || widget.type.length === 0) {
+						errors.push(`${pathSlash}/sections/${sIndex}/widgets/${wIndex}/type: must be a non-empty string`)
+					}
+				})
 			}
 		})
 		break

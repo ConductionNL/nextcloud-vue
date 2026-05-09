@@ -176,7 +176,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	describe('index page sidebar config', () => {
 		it('accepts a valid sidebar object', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { enabled: true, columnGroups: [], facets: {}, showMetadata: true, search: {} } },
 			}))
 			expect(result.valid).toBe(true)
@@ -184,7 +187,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects sidebar that is not an object', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: 'enabled' },
 			}))
 			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar') && e.includes('must be an object'))).toBe(true)
@@ -192,7 +198,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects sidebar.enabled that is not boolean', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { enabled: 'yes' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/sidebar/enabled'))).toBe(true)
@@ -200,7 +209,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects sidebar.columnGroups that is not an array', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { columnGroups: 'extra' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/sidebar/columnGroups'))).toBe(true)
@@ -208,7 +220,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects sidebar.facets that is not an object', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { facets: ['x'] } },
 			}))
 			expect(result.errors.some((e) => e.includes('/sidebar/facets'))).toBe(true)
@@ -219,7 +234,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 			// type-specific sidebar-config validation. Sidebar tabs go via
 			// sidebarProps.tabs instead.
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: 'opaque-stuff' },
 			}))
 			// no error about /pages/0/config/sidebar
@@ -230,7 +248,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	describe('detail page sidebarProps.tabs config', () => {
 		it('accepts a valid tabs array', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: {
 					sidebarProps: {
 						tabs: [
@@ -245,7 +266,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects tabs that is not an array', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebarProps: { tabs: 'oops' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/sidebarProps/tabs') && e.includes('must be an array'))).toBe(true)
@@ -253,7 +277,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects a tab missing id', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebarProps: { tabs: [{ label: 'A', component: 'X' }] } },
 			}))
 			expect(result.errors.some((e) => e.includes('/tabs/0/id'))).toBe(true)
@@ -261,7 +288,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects a tab missing label', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebarProps: { tabs: [{ id: 'a', component: 'X' }] } },
 			}))
 			expect(result.errors.some((e) => e.includes('/tabs/0/label'))).toBe(true)
@@ -269,7 +299,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects duplicate tab ids', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: {
 					sidebarProps: {
 						tabs: [
@@ -284,7 +317,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('rejects a tab declaring both widgets and component', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: {
 					sidebarProps: {
 						tabs: [{ id: 'a', label: 'A', widgets: [{ type: 'data' }], component: 'X' }],
@@ -296,7 +332,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 		it('does NOT validate tabs on non-detail pages', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebarProps: { tabs: 'oops-but-not-checked' } },
 			}))
 			// No error about pages[0].config.sidebarProps.tabs because the page is not type=detail.
@@ -312,5 +351,113 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 		it("page.config description references the new 'sidebar' field", () => {
 			expect(schema.$defs.page.properties.config.description).toContain('sidebar')
 		})
+	})
+})
+
+// `manifest-settings-rich-sections` — extending the settings section
+// shape with `component` and `widgets[]` body kinds (REQ-MSRS-1..6).
+describe('validateManifest — settings rich sections (manifest-settings-rich-sections)', () => {
+	const richFixture = require('../fixtures/manifest-settings-rich.json')
+
+	const settingsPage = (sections) => ({
+		version: '1.1.0',
+		menu: [],
+		pages: [{
+			id: 'app-settings',
+			route: '/settings',
+			type: 'settings',
+			title: 'myapp.settings.title',
+			config: { saveEndpoint: '/api/x', sections },
+		}],
+	})
+
+	it('REQ-MSRS-1: bare-fields section keeps validating (back-compat)', () => {
+		const result = validateManifest(settingsPage([
+			{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+		]))
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSRS-1: component-only section is valid', () => {
+		const result = validateManifest(settingsPage([
+			{ title: 'g', component: 'MyPanel', props: { foo: 1 } },
+		]))
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSRS-1: widgets-only section is valid', () => {
+		const result = validateManifest(settingsPage([
+			{
+				title: 'g',
+				widgets: [{ type: 'version-info', props: { appName: 'X', appVersion: '1' } }],
+			},
+		]))
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSRS-1: section declaring fields + widgets is rejected (mixed body)', () => {
+		const result = validateManifest(settingsPage([
+			{
+				title: 'g',
+				fields: [{ key: 'x', type: 'boolean', label: 'X' }],
+				widgets: [{ type: 'version-info', props: { appName: 'X', appVersion: '1' } }],
+			},
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('must declare exactly one of fields | component | widgets'))).toBe(true)
+	})
+
+	it('REQ-MSRS-1: section declaring component + widgets is rejected (mixed body)', () => {
+		const result = validateManifest(settingsPage([
+			{
+				title: 'g',
+				component: 'MyPanel',
+				widgets: [{ type: 'version-info', props: { appName: 'X', appVersion: '1' } }],
+			},
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('must declare exactly one of fields | component | widgets'))).toBe(true)
+	})
+
+	it('REQ-MSRS-1: empty-body section is rejected', () => {
+		const result = validateManifest(settingsPage([
+			{ title: 'g' },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('must declare exactly one of fields | component | widgets'))).toBe(true)
+	})
+
+	it('REQ-MSRS-2: widgets[] entry without `type` is rejected', () => {
+		const result = validateManifest(settingsPage([
+			{ title: 'g', widgets: [{ props: { foo: 1 } }] },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/widgets/0/type'))).toBe(true)
+	})
+
+	it('REQ-MSRS-2: widgets[] entry with empty-string `type` is rejected', () => {
+		const result = validateManifest(settingsPage([
+			{ title: 'g', widgets: [{ type: '' }] },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/widgets/0/type'))).toBe(true)
+	})
+
+	it('REQ-MSRS-5: rich fixture validates with errors=[] (covers all flavors)', () => {
+		const result = validateManifest(richFixture)
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSRS-6: schema description names the new section keys + built-in widget types', () => {
+		const description = schema.$defs.page.properties.config.description
+		expect(description).toContain('component')
+		expect(description).toContain('widgets')
+		expect(description).toContain('version-info')
+		expect(description).toContain('register-mapping')
+	})
+
+	it('REQ-MSRS-6: schema top-level version field is unchanged (still 1.1.0)', () => {
+		expect(schema.version).toBe('1.1.0')
 	})
 })

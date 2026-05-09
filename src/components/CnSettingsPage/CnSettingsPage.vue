@@ -2,10 +2,22 @@
   CnSettingsPage — Admin / config surface.
 
   Renders manifest-driven config sections. Each section in
-  `config.sections[]` is a CnSettingsCard wrapping a CnSettingsSection
-  with one form field per `section.fields[]` entry. Saves via
-  `axios.put(saveEndpoint, formData)` with the consumer's settings
-  controller URL.
+  `config.sections[]` is a CnSettingsCard wrapping a CnSettingsSection.
+  A section MUST declare exactly one of three body kinds:
+
+    1. `fields[]`   — flat form fields (back-compat, default)
+    2. `component`  — registry-resolved component as the section body
+    3. `widgets[]`  — ordered list of widgets (built-in + customComponents)
+
+  Built-in widget types (resolved BEFORE the customComponents registry):
+    - `version-info`     → CnVersionInfoCard
+    - `register-mapping` → CnRegisterMapping
+
+  Saves via `axios.put(saveEndpoint, formData)` with the consumer's
+  settings controller URL. Widget events bubble up through
+  `@widget-event` so consumers wire one page-level handler that
+  dispatches by `widgetType` + event `name` (the manifest can't carry
+  inline JS).
 
   Supports the same `headerComponent` / `actionsComponent` / generic
   `slots` overrides that the other built-in page types do — the
@@ -34,12 +46,21 @@
 
 		<!-- Sections -->
 		<CnSettingsCard
-			v-for="(section, index) in sections"
-			:key="`section-${index}`"
+			v-for="(section, sectionIndex) in sections"
+			:key="`section-${sectionIndex}`"
 			:title="resolveLabel(section.title)"
 			:icon="section.icon || ''"
 			:collapsible="section.collapsible || false">
+			<!--
+				Body resolution — see `sectionBodyKind(section)` in the
+				script: returns 'fields' (default + back-compat),
+				'component', or 'widgets'.
+			-->
+
+			<!-- Body: bare fields[] (back-compat). Wrapped in a
+				 CnSettingsSection mirroring the pre-rich-sections layout. -->
 			<CnSettingsSection
+				v-if="sectionBodyKind(section) === 'fields'"
 				:name="resolveLabel(section.title)"
 				:description="resolveLabel(section.description)"
 				:doc-url="section.docUrl || ''">
@@ -92,6 +113,43 @@
 					</div>
 				</div>
 			</CnSettingsSection>
+
+			<!-- Body: a single registry-resolved component. The
+				 component is responsible for its own chrome — we do
+				 NOT wrap it in CnSettingsSection because the existing
+				 widget shape (CnVersionInfoCard, CnRegisterMapping)
+				 already wraps itself. Custom components are expected
+				 to do the same OR opt in by adding their own section
+				 wrapper.
+
+				 Wrapped in CnSettingsWidgetMount so the child's $emit
+				 is intercepted and re-emitted as @widget-event on this
+				 page (manifests can't carry inline JS). -->
+			<CnSettingsWidgetMount
+				v-else-if="sectionBodyKind(section) === 'component' && resolveSectionComponent(section)"
+				:component="resolveSectionComponent(section)"
+				:component-props="section.props || {}"
+				:widget-type="section.component"
+				:section-index="sectionIndex"
+				:widget-index="0"
+				@widget-event="onWidgetEvent" />
+
+			<!-- Body: ordered list of widgets. Each widget is its own
+				 mounted component with v-bind props + bubbled events
+				 via CnSettingsWidgetMount. Built-ins (version-info,
+				 register-mapping) wrap themselves in CnSettingsSection;
+				 custom widgets are expected to do the same. -->
+			<template v-else-if="sectionBodyKind(section) === 'widgets'">
+				<CnSettingsWidgetMount
+					v-for="entry in resolvedWidgetEntries(section, sectionIndex)"
+					:key="entry.key"
+					:component="entry.component"
+					:component-props="entry.props"
+					:widget-type="entry.widgetType"
+					:section-index="sectionIndex"
+					:widget-index="entry.widgetIndex"
+					@widget-event="onWidgetEvent" />
+			</template>
 		</CnSettingsCard>
 
 		<!-- Save bar -->
@@ -136,23 +194,60 @@ import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
+import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
+import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
+
+/**
+ * Built-in widget registry. Used by `CnSettingsPage` to resolve
+ * `widgets[].type` to a component BEFORE consulting the
+ * consumer-provided customComponents registry.
+ *
+ * The order matters — built-ins win on collision so consumers can't
+ * accidentally shadow `version-info` with their own component. If a
+ * consumer needs to truly replace one of these, they can render their
+ * own component via `section.component` instead of `widgets[]`.
+ *
+ * Spec: REQ-MSRS-2 (manifest-settings-rich-sections).
+ */
+const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
+	'version-info': CnVersionInfoCard,
+	'register-mapping': CnRegisterMapping,
+})
 
 /**
  * CnSettingsPage — Manifest-driven settings page.
  *
- * Reads `sections[]` (each a `{ title, description?, fields[] }`) from
- * `pages[].config` and renders a CnSettingsCard + CnSettingsSection
- * per section. Each field's `type` controls which input renders:
+ * Reads `sections[]` from `pages[].config` and renders one
+ * `CnSettingsCard` per section. Each section declares EXACTLY ONE of
+ * three body kinds:
  *
- *  - `boolean` → NcCheckboxRadioSwitch
- *  - `number` → NcTextField (type=number)
- *  - `string` → NcTextField (default)
- *  - `password` → NcTextField (type=password)
- *  - `enum` → NcSelect (requires `options: string[]`)
+ *  - `fields[]`    — flat form fields (back-compat default).
+ *    Each field's `type` controls which input renders:
+ *      - `boolean` → NcCheckboxRadioSwitch
+ *      - `number` → NcTextField (type=number)
+ *      - `string` → NcTextField (default)
+ *      - `password` → NcTextField (type=password)
+ *      - `enum` → NcSelect (requires `options: string[]`)
+ *    Per-field `#field-<key>` slots are exposed so consumers can drop
+ *    in their own widget.
  *
- * Per-field `#field-<key>` slots are exposed so consumers can drop in
- * their own widget (e.g. a CnJsonViewer for `json`-typed fields). The
- * scope passed in is `{ field, value, onInput }`.
+ *  - `component`   — registry-resolved component as the section body.
+ *    `section.props` is v-bind'd to it. Useful when a whole section
+ *    is one bespoke widget the library doesn't know about.
+ *
+ *  - `widgets[]`   — ordered list of widgets. Each entry has a `type`
+ *    string and optional `props`. Built-in widget types resolve
+ *    first (`version-info` → `CnVersionInfoCard`, `register-mapping`
+ *    → `CnRegisterMapping`); unknown types fall back to the
+ *    `customComponents` registry.
+ *
+ * Widget events (e.g. CnRegisterMapping's `@save`, CnVersionInfoCard's
+ * `@update`) bubble up as a single `@widget-event` event on the page,
+ * with payload `{ widgetType, widgetIndex, sectionIndex, name, args }`.
+ * Consumers wire one handler at the CnAppRoot level and dispatch by
+ * `widgetType` / `name` — the manifest can't carry inline JS, so this
+ * is the documented event-wiring escape hatch.
  *
  * Saves via `axios.put(saveEndpoint, formData)`. The `saveEndpoint`
  * default is `/index.php/apps/{appId}/api/settings` — consumers should
@@ -164,13 +259,16 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
  *  - `#header` — Replaces the CnPageHeader.
  *  - `#actions` — Right-aligned actions area (the renderer fills this
  *    via `pages[].actionsComponent`).
- *  - `#field-<key>` — Replaces the input for a specific field. Scope:
- *    `{ field, value, onInput }`.
+ *  - `#field-<key>` — Replaces the input for a specific field within
+ *    a `fields[]` section. Scope: `{ field, value, onInput }`.
  *
  * Events:
  *  - `@save` — Emitted on successful save. Payload: the form data.
  *  - `@error` — Emitted when save fails. Payload: the error.
  *  - `@input` — Emitted on every field change. Payload: `{ key, value }`.
+ *  - `@widget-event` — Emitted when a widget mounted via `widgets[]`
+ *    or `component` re-emits one of its own events. Payload:
+ *    `{ widgetType, widgetIndex, sectionIndex, name, args }`.
  */
 export default {
 	name: 'CnSettingsPage',
@@ -185,6 +283,19 @@ export default {
 		CnSettingsCard,
 		CnSettingsSection,
 		CnPageHeader,
+		CnSettingsWidgetMount,
+	},
+
+	inject: {
+		/**
+		 * Custom-component registry injected from CnAppRoot. Used to
+		 * resolve `section.component` and to fall back when a
+		 * `widgets[].type` isn't in the built-in widget map. Defaults
+		 * to an empty object when the page is mounted standalone.
+		 *
+		 * @type {object}
+		 */
+		cnCustomComponents: { default: () => ({}) },
 	},
 
 	props: {
@@ -209,8 +320,12 @@ export default {
 			default: '',
 		},
 		/**
-		 * Section definitions. Each section: `{ title, description?, icon?,
-		 * collapsible?, fields: [{ key, label, type, options?, help?, default? }] }`.
+		 * Section definitions. Each section MUST declare EXACTLY ONE of:
+		 *  - `fields: Array<Field>` (back-compat flat-field body)
+		 *  - `component: <registry-name>` + optional `props`
+		 *  - `widgets: Array<{ type, props? }>`
+		 *
+		 * Common keys: `{ title, description?, icon?, collapsible?, docUrl? }`.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -265,7 +380,21 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * Optional explicit custom-component registry. When set, takes
+		 * precedence over the injected `cnCustomComponents`. Use this
+		 * when mounting CnSettingsPage outside a CnAppRoot tree (or
+		 * when test-mounting with a stub registry).
+		 *
+		 * @type {object|null}
+		 */
+		customComponents: {
+			type: Object,
+			default: null,
+		},
 	},
+
+	emits: ['save', 'error', 'input', 'widget-event'],
 
 	data() {
 		return {
@@ -280,6 +409,16 @@ export default {
 		/** Whether any field has changed since load. */
 		dirty() {
 			return JSON.stringify(this.formData) !== JSON.stringify(this.originalData)
+		},
+		/**
+		 * Effective custom-component registry. Explicit prop wins over
+		 * the injected value (mirrors CnPageRenderer's resolution
+		 * order).
+		 *
+		 * @return {object}
+		 */
+		effectiveCustomComponents() {
+			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
 	},
 
@@ -297,8 +436,11 @@ export default {
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
 			// Pre-populate any field with a `default` if no value is set yet.
+			// Only flat-field sections contribute defaults; component and
+			// widgets sections own their own state.
 			for (const section of this.sections || []) {
-				for (const field of section.fields || []) {
+				if (!Array.isArray(section.fields)) continue
+				for (const field of section.fields) {
 					if (field.default !== undefined && merged[field.key] === undefined) {
 						merged[field.key] = field.default
 					}
@@ -316,6 +458,121 @@ export default {
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
 			this.$emit('input', { key, value })
+		},
+
+		/**
+		 * Determine which body kind a section declares. Returns
+		 * `'fields'` (default + back-compat), `'component'`, or
+		 * `'widgets'`. The validator (`validateManifest`) enforces
+		 * exactly-one at parse time; this method is the runtime
+		 * equivalent and is permissive when one of the keys is set
+		 * (last-defined wins in the rare case of an unvalidated
+		 * manifest).
+		 *
+		 * @param {object} section A section entry from `sections[]`.
+		 * @return {'fields' | 'component' | 'widgets'}
+		 */
+		sectionBodyKind(section) {
+			if (Array.isArray(section.widgets) && section.widgets.length > 0) {
+				return 'widgets'
+			}
+			if (typeof section.component === 'string' && section.component.length > 0) {
+				return 'component'
+			}
+			return 'fields'
+		},
+
+		/**
+		 * Resolve a `section.component` registry name to a Vue
+		 * component via `effectiveCustomComponents`. Returns `null`
+		 * (and warns) when the registry has no entry.
+		 *
+		 * @param {object} section A section entry.
+		 * @return {object|null} Vue component or null.
+		 */
+		resolveSectionComponent(section) {
+			const name = section.component
+			if (!name) return null
+			const resolved = this.effectiveCustomComponents[name]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnSettingsPage] Section component "${name}" not found in customComponents registry. Section body will be empty.`,
+				)
+				return null
+			}
+			return resolved
+		},
+
+		/**
+		 * Resolve a `widgets[].type` string to a Vue component. Lookup
+		 * order:
+		 *
+		 *   1. Built-in widget map (`version-info`, `register-mapping`).
+		 *   2. `effectiveCustomComponents` registry.
+		 *
+		 * Returns `null` (and warns) when neither resolves. Built-ins
+		 * win on collision so consumers can't accidentally shadow them
+		 * (REQ-MSRS-2).
+		 *
+		 * @param {string} type The widget type string.
+		 * @return {object|null} Vue component or null.
+		 */
+		resolveWidgetComponent(type) {
+			if (Object.prototype.hasOwnProperty.call(BUILTIN_SETTINGS_WIDGETS, type)) {
+				return BUILTIN_SETTINGS_WIDGETS[type]
+			}
+			const resolved = this.effectiveCustomComponents[type]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnSettingsPage] Widget type "${type}" not found in built-in widgets or customComponents registry. Widget will be skipped.`,
+				)
+				return null
+			}
+			return resolved
+		},
+
+		/**
+		 * Build the list of widget mount entries for a `widgets[]`
+		 * section. Filters out entries whose `widget.type` doesn't
+		 * resolve (built-in OR customComponents) — `resolveWidgetComponent`
+		 * has already logged a warn. The filter happens here so the
+		 * template can use a clean `v-for` without nested `v-if`.
+		 *
+		 * @param {object} section A section entry with `widgets[]`.
+		 * @param {number} sectionIndex Index in `sections[]`.
+		 * @return {Array<{key: string, component: object, props: object, widgetType: string, widgetIndex: number}>}
+		 */
+		resolvedWidgetEntries(section, sectionIndex) {
+			const entries = []
+			const widgets = Array.isArray(section.widgets) ? section.widgets : []
+			for (let widgetIndex = 0; widgetIndex < widgets.length; widgetIndex++) {
+				const widget = widgets[widgetIndex] || {}
+				const component = this.resolveWidgetComponent(widget.type)
+				if (!component) continue
+				entries.push({
+					key: `widget-${sectionIndex}-${widgetIndex}`,
+					component,
+					props: widget.props || {},
+					widgetType: widget.type,
+					widgetIndex,
+				})
+			}
+			return entries
+		},
+
+		/**
+		 * Re-emit a widget's `widget-event` (caught by the local
+		 * CnSettingsWidgetMount helper) as a top-level `widget-event`
+		 * on this page. Consumers wire one `@widget-event` handler at
+		 * the CnAppRoot mount point and dispatch by `widgetType` /
+		 * `name`.
+		 *
+		 * @param {object} payload `{ widgetType, widgetIndex, sectionIndex, name, args }`
+		 */
+		onWidgetEvent(payload) {
+			this.$emit('widget-event', payload)
 		},
 
 		reset() {
@@ -340,8 +597,6 @@ export default {
 			}
 		},
 	},
-
-	emits: ['save', 'error', 'input'],
 }
 </script>
 

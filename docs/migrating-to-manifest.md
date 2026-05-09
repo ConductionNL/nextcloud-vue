@@ -235,6 +235,98 @@ After — declared sections:
 
 Migrate field-by-field. For complex inputs (JSON editors, color pickers), keep `type: "settings"` and fill the `#field-<key>` slot with the bespoke input — you don't have to fall back to `custom` just because one field is non-trivial.
 
+### Rich settings sections
+
+The bare `fields[]` shape works for flat IAppConfig keys, but most app settings pages mix in richer widgets (a version-info card, a register/schema mapper, a bespoke configuration panel). `pages[].config.sections[]` accepts two more body kinds alongside `fields[]` — `component` and `widgets[]`. A section MUST declare exactly one of the three.
+
+```jsonc
+{
+  "id": "settings",
+  "type": "settings",
+  "title": "myapp.settings.title",
+  "config": {
+    "saveEndpoint": "/index.php/apps/myapp/api/settings",
+    "sections": [
+      {
+        "title": "myapp.settings.section.version",
+        "widgets": [
+          {
+            "type": "version-info",
+            "props": { "appName": "MyApp", "appVersion": "0.1.0", "showUpdateButton": true }
+          }
+        ]
+      },
+      {
+        "title": "myapp.settings.section.registers",
+        "widgets": [
+          {
+            "type": "register-mapping",
+            "props": {
+              "groups": [
+                { "name": "Core", "types": [{ "slug": "thing", "label": "Thing" }] }
+              ],
+              "showReimportButton": true
+            }
+          }
+        ]
+      },
+      {
+        "title": "myapp.settings.section.advanced",
+        "component": "MyAdvancedPanel",
+        "props": { "foo": "bar" }
+      },
+      {
+        "title": "myapp.settings.section.flags",
+        "fields": [
+          { "key": "feature_x_enabled", "type": "boolean", "label": "myapp.settings.feature_x" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Built-in widget types (resolved before the customComponents registry):
+
+| `widget.type` | Component |
+|---------------|-----------|
+| `version-info` | `CnVersionInfoCard` |
+| `register-mapping` | `CnRegisterMapping` |
+
+Anything else falls back to the consumer's `customComponents` registry (the same registry `type: "custom"` pages use).
+
+#### Wiring widget events
+
+Built-in widgets emit events (`CnVersionInfoCard` emits `@update`; `CnRegisterMapping` emits `@save`, `@reimport`, `@update:configuration`). The manifest can't carry inline JS, so `CnSettingsPage` re-emits every widget event as `@widget-event` on itself with payload `{ widgetType, widgetIndex, sectionIndex, name, args }`. Wire one handler at the CnAppRoot mount point and dispatch by `widgetType` / `name`:
+
+```vue
+<CnAppRoot
+  :manifest="manifest"
+  :customComponents="customComponents"
+  @widget-event="onWidgetEvent" />
+```
+
+```js
+methods: {
+  onWidgetEvent({ widgetType, name, args }) {
+    if (widgetType === 'register-mapping' && name === 'save') {
+      this.settingsStore.saveSettings(args[0])
+    }
+    if (widgetType === 'register-mapping' && name === 'reimport') {
+      this.reimportRegister()
+    }
+  },
+}
+```
+
+#### Decision tree — which body kind?
+
+1. **Several flat IAppConfig keys?** → `fields: [...]`.
+2. **One whole-section pre-built library widget (version, register-mapping)?** → `widgets: [{ type }]`.
+3. **Several whole-section widgets stacked?** → `widgets: [...]` with multiple entries.
+4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props`.
+5. **Mostly flat fields with one bespoke input?** → `fields: [...]` plus a `#field-<key>` slot override.
+
 ### `custom` → `chat`
 
 Before — a Talk-embed page:
