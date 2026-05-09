@@ -33,6 +33,9 @@ export const NcActions = createStub('NcActions')
 export const NcActionButton = createStub('NcActionButton')
 export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
+export const NcAppSidebar = createStub('NcAppSidebar')
+export const NcAppSidebarTab = createStub('NcAppSidebarTab')
+export const NcPopover = createStub('NcPopover')
 
 export default {
 	NcDialog,
@@ -49,4 +52,7 @@ export default {
 	NcActionButton,
 	NcSelect,
 	NcSettingsSection,
+	NcAppSidebar,
+	NcAppSidebarTab,
+	NcPopover,
 }

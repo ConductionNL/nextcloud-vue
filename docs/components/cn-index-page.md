@@ -62,6 +62,10 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
+| `sidebar` | Object | `null` | Manifest-driven sidebar configuration. When set with `enabled: true`, CnIndexPage auto-mounts an embedded `CnIndexSidebar` and forwards its props. Shape: `\{ enabled, columnGroups?, facets?, showMetadata?, search? \}`. When unset (the default), the legacy slot-based pattern is preserved — consumers wire their own `CnIndexSidebar` at the App.vue level. See [Manifest-driven sidebar](#manifest-driven-sidebar) below. |
+| `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 
 ## Events
 
@@ -84,6 +88,9 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
 | `action` | `\{ action, row \}` | Custom row action triggered |
+| `search` | `term` | Search input changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
 
 ## Slots
 
@@ -233,6 +240,42 @@ Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContex
 - Destructive actions are styled with `--color-error`
 - The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
 - Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
+
+## Manifest-driven sidebar
+
+Set the `sidebar` prop to an object to auto-mount an embedded `CnIndexSidebar`. This keeps the sidebar reachable from `manifest.json` (`pages[].config.sidebar`) without consumer apps wiring it manually.
+
+```vue
+<CnIndexPage
+  title="Decisions"
+  :schema="schema"
+  :objects="decisions"
+  :sidebar="{
+    enabled: true,
+    columnGroups: extraColumnGroups,
+    facets: facetData,
+    showMetadata: true,
+    search: { searchPlaceholder: 'Find decisions...', filtersLabel: 'Refine' },
+  }"
+  :search-value="searchTerm"
+  :visible-columns="visibleColumns"
+  :active-filters="activeFilters"
+  @search="onSearch"
+  @columns-change="onColumnsChange"
+  @filter-change="onFilterChange" />
+```
+
+| `sidebar` field | Forwarded to `CnIndexSidebar` as | Notes |
+|------------------|----------------------------------|-------|
+| `enabled` | (gates rendering) | When `false` (or missing), the embedded sidebar is NOT mounted — the legacy slot-based pattern still works. |
+| `columnGroups` | `columnGroups` | Extra column groups beyond schema properties + Metadata. |
+| `facets` | `facetData` | Live facet data `\{ fieldName: \{ values: [\{value, count\}] \} \}`. |
+| `showMetadata` | `showMetadata` | Defaults to `true`. |
+| `search` | (spread via `v-bind`) | Sub-fields like `searchPlaceholder`, `searchTabLabel`, `searchLabel`, `filtersLabel` map 1:1 onto matching `CnIndexSidebar` props. |
+
+`@search`, `@columns-change`, and `@filter-change` from the embedded sidebar re-emit on `CnIndexPage`, so consumer event handling stays at the page level.
+
+If you prefer to mount your own `CnIndexSidebar` (e.g. at the App.vue level for cross-page state), simply leave `sidebar` unset — the legacy slot-based pattern is unchanged.
 
 ## Two-Phase Pattern
 

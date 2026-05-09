@@ -437,8 +437,14 @@ export default {
 				this.objectSidebarState.register = this.sidebarProps.register || ''
 				this.objectSidebarState.schema = this.sidebarProps.schema || ''
 				this.objectSidebarState.hiddenTabs = this.sidebarProps.hiddenTabs || []
+				// Manifest-driven open-enum tabs (forwarded to the host
+				// app's mounted CnObjectSidebar via inject). Undefined when
+				// not set so the consumer's CnObjectSidebar falls back to
+				// the built-in tab set.
+				this.objectSidebarState.tabs = this.sidebarProps.tabs
 			} else {
 				this.objectSidebarState.active = false
+				this.objectSidebarState.tabs = undefined
 			}
 		},
 	},
