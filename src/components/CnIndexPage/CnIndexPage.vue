@@ -284,14 +284,20 @@
 		</div>
 
 		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
-		     AND sidebar.show !== false. The legacy slot-based pattern
-		     (consumer wires their own CnIndexSidebar at App.vue level)
-		     is preserved when the `sidebar` prop is null / has
-		     enabled:false. The `show` flag is the visibility gate —
-		     `enabled` is the existence gate; both default to true
-		     so existing consumers see no behaviour change. -->
+		     AND sidebar.show !== false.
+
+		     When CnAppRoot is the host, the sidebar config is
+		     PUBLISHED to the `cnIndexSidebarConfig` provide (see
+		     mounted/beforeDestroy), and CnAppRoot mounts the
+		     CnIndexSidebar at NcContent level — the only place where
+		     Nextcloud's NcAppSidebar slides correctly from the right.
+
+		     When no CnAppRoot ancestor exists (legacy apps mounting
+		     CnIndexPage standalone), the inject default is the no-op
+		     `{ value: null }` and we fall back to inline rendering
+		     here so the legacy contract still works. -->
 		<CnIndexSidebar
-			v-if="resolvedSidebar.enabled && resolvedSidebar.show !== false"
+			v-if="shouldRenderInlineSidebar"
 			:schema="schema"
 			:title="title"
 			:icon="resolvedIcon"
@@ -448,6 +454,23 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Reactive holder provided by CnAppRoot for hoisting the
+		 * embedded CnIndexSidebar to NcContent level. The default
+		 * `{ value: null }` is what we get when no CnAppRoot
+		 * ancestor exists; in that case we fall back to inline
+		 * rendering inside the cn-index-page wrapper. See
+		 * `shouldRenderInlineSidebar` and the mounted/beforeDestroy
+		 * hooks below.
+		 */
+		cnIndexSidebarConfig: { default: () => ({ value: null }) },
+		/**
+		 * Sentinel set to `true` when a CnAppRoot ancestor exists.
+		 * The default `false` is used for legacy apps that mount
+		 * CnIndexPage standalone — those keep the inline sidebar
+		 * render. See `shouldRenderInlineSidebar` for the gate.
+		 */
+		cnHostsIndexSidebar: { default: false },
 	},
 
 	props: {
@@ -996,6 +1019,43 @@ export default {
 		},
 
 		/**
+		 * Whether the embedded sidebar should render inline inside the
+		 * cn-index-page wrapper. False when CnAppRoot has provided a
+		 * real `cnIndexSidebarConfig` holder — in that case CnAppRoot
+		 * mounts the sidebar at NcContent level (correct NcAppSidebar
+		 * parent). True when no CnAppRoot ancestor exists (legacy
+		 * apps), so the embedded sidebar still renders even though
+		 * its visual position is sub-optimal.
+		 */
+		shouldRenderInlineSidebar() {
+			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
+				return false
+			}
+			// CnAppRoot ancestor present → hoist takes over.
+			return !this.cnHostsIndexSidebar
+		},
+
+		/**
+		 * Snapshot of every prop the hoisted CnIndexSidebar needs.
+		 * Reactive — the sidebar in CnAppRoot re-renders whenever
+		 * any of these change.
+		 */
+		hoistedSidebarProps() {
+			return {
+				schema: this.schema,
+				title: this.title,
+				icon: this.resolvedIcon,
+				searchValue: this.searchValue,
+				visibleColumns: this.visibleColumns,
+				activeFilters: this.activeFilters,
+				columnGroups: this.resolvedSidebar.columnGroups || [],
+				facetData: this.resolvedSidebar.facets || {},
+				showMetadata: this.resolvedSidebar.showMetadata !== false,
+				...this.sidebarSearchProps,
+			}
+		},
+
+		/**
 		 * Resolved card component for card-grid view mode. Returns
 		 * `null` when `cardComponent` is empty OR when the name is not
 		 * in the registry (the latter also logs `console.warn`).
@@ -1028,9 +1088,63 @@ export default {
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
+		/**
+		 * Keep the hoisted sidebar in sync with reactive props.
+		 * The watcher fires whenever any of the props snapshot
+		 * (`hoistedSidebarProps`) changes; we re-write the entire
+		 * config so Vue's NcAppSidebar in CnAppRoot picks up the
+		 * new values. Cheap because it's just an object swap.
+		 */
+		hoistedSidebarProps: {
+			handler() {
+				this.publishHoistedSidebar()
+			},
+			deep: false,
+		},
+		shouldRenderInlineSidebar() {
+			// When the gate flips (e.g. sidebar.show toggled), keep
+			// the hoist in sync.
+			this.publishHoistedSidebar()
+		},
+	},
+
+	mounted() {
+		this.publishHoistedSidebar()
+	},
+
+	beforeDestroy() {
+		// Clear the holder so the hoisted sidebar disappears when
+		// the user navigates away from the index page.
+		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
+			this.cnIndexSidebarConfig.value = null
+		}
 	},
 
 	methods: {
+		/**
+		 * Publish (or clear) the embedded CnIndexSidebar config to
+		 * the `cnIndexSidebarConfig` holder so CnAppRoot can mount
+		 * it at NcContent level. No-op when no CnAppRoot ancestor
+		 * exists — in that case `shouldRenderInlineSidebar` keeps
+		 * the inline render alive.
+		 */
+		publishHoistedSidebar() {
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) return
+			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
+				this.cnIndexSidebarConfig.value = null
+				return
+			}
+			this.cnIndexSidebarConfig.value = {
+				component: CnIndexSidebar,
+				props: this.hoistedSidebarProps,
+				listeners: {
+					search: (event) => this.$emit('search', event),
+					'columns-change': (event) => this.$emit('columns-change', event),
+					'filter-change': (event) => this.$emit('filter-change', event),
+				},
+			}
+		},
+
 		/**
 		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
 		 * (manifest-actions-dispatch) — Resolve a manifest-declared
