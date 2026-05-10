@@ -189,6 +189,39 @@ Key fields:
 
 The closed `type` enum is the main defense against DSL creep. Anything bespoke goes in a `type: "custom"` page that resolves a component name from the registry you pass to `CnAppRoot`.
 
+## Per-tenant config slugs — the `@resolve:` sentinel
+
+Most apps have one or two `pages[].config.register` / `config.schema` values that vary per tenant — `theme_register`, `listing_schema`, `voorzieningen_register`, etc. — typically configured by the admin via `IAppConfig`. Hardcoding the slug in `manifest.json` defeats per-tenant configurability; reading the slug at component-mount time defeats the manifest's static-validation property.
+
+The canonical solution is the `@resolve:<key>` sentinel: a load-time-resolved string that the manifest renderer substitutes via `IAppConfig` before validation runs.
+
+```json
+{
+  "pages": [
+    {
+      "id": "voorzieningen-index",
+      "route": "/voorzieningen",
+      "type": "index",
+      "title": "softwarecatalog.voorzieningen.title",
+      "config": {
+        "register": "@resolve:voorzieningen_register",
+        "schema": "voorziening"
+      }
+    }
+  ]
+}
+```
+
+When `useAppManifest('softwarecatalog', bundled)` runs, `pages[0].config.register` is replaced with the value of `IAppConfig::getValue('softwarecatalog', 'voorzieningen_register')` — typically `"voorzieningen"` after the admin has run the install wizard. **Softwarecatalog's 12-page manifest is the canonical reference consumer**: every register slug is a sentinel so the same bundle ships to every tenant.
+
+Rules of thumb:
+
+- **Use `@resolve:` whenever a `pages[].config.*` value would otherwise be a per-tenant string.** Most often `config.register`, `config.schema`, occasionally `config.source` for `type: "logs"`.
+- **DO NOT use `@resolve:` outside `pages[].config`.** The validator rejects sentinels in `pages[].id`, `pages[].route`, `pages[].component`, `menu[].route`, `version`, `dependencies[]`, etc. Those are router invariants or registry keys; a dynamic value would break vue-router or the customComponents registry.
+- **Surface `unresolvedSentinels` to your admin UI.** When a tenant has not yet set the IAppConfig key, the sentinel resolves to `null`. The composable returns the unresolved key list so you can render a "n settings unconfigured — visit Admin → My App" banner.
+
+See [`resolveManifestSentinels`](./utilities/resolve-manifest-sentinels.md) for the resolution source chain (initial-state → runtime fetch → null) and [`useAppManifest`](./utilities/composables/use-app-manifest.md) for the integrated four-phase load flow.
+
 ## Type-selection guide
 
 When a consumer faces a new page, the choice tree is:
