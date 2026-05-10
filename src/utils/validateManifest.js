@@ -254,6 +254,42 @@ function validateTypeConfig(page, index, errors) {
 		}
 		break
 	}
+	case 'form': {
+		// `manifest-form-page-type` REQ-MFPT-* — runtime form pages
+		// MUST declare a non-empty fields[] array and exactly one of
+		// submitHandler | submitEndpoint as the dispatch destination.
+		// Optional submitMethod and mode are constrained to closed
+		// enums so manifest typos surface at validate time.
+		const hasFields = cfg && Array.isArray(cfg.fields) && cfg.fields.length > 0
+		if (!hasFields) {
+			errors.push(`${pathSlash}/fields: ${pathBracket}: form pages must declare a non-empty fields[] array`)
+		} else {
+			validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors)
+		}
+
+		const hasHandler = cfg && typeof cfg.submitHandler === 'string' && cfg.submitHandler.length > 0
+		const hasEndpoint = cfg && typeof cfg.submitEndpoint === 'string' && cfg.submitEndpoint.length > 0
+		const dispatchCount = (hasHandler ? 1 : 0) + (hasEndpoint ? 1 : 0)
+		if (dispatchCount !== 1) {
+			errors.push(`${pathSlash}: ${pathBracket}: form pages must declare exactly one of submitHandler | submitEndpoint`)
+		}
+
+		if (cfg && cfg.submitMethod !== undefined) {
+			const allowed = ['POST', 'PUT', 'PATCH']
+			const upper = typeof cfg.submitMethod === 'string' ? cfg.submitMethod.toUpperCase() : null
+			if (!upper || !allowed.includes(upper)) {
+				errors.push(`${pathSlash}/submitMethod: ${pathBracket}.submitMethod: must be one of POST | PUT | PATCH`)
+			}
+		}
+
+		if (cfg && cfg.mode !== undefined) {
+			const allowedModes = ['edit', 'create', 'public']
+			if (typeof cfg.mode !== 'string' || !allowedModes.includes(cfg.mode)) {
+				errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of edit | create | public`)
+			}
+		}
+		break
+	}
 	default:
 		// No per-type rules for index/detail/dashboard/custom or
 		// consumer-defined types; their `config` shape is enforced

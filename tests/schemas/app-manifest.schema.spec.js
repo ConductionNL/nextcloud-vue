@@ -712,3 +712,94 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 		})
 	})
 })
+
+describe('validateManifest — manifest-form-page-type', () => {
+	const baseField = { key: 'name', label: 'i18n.name', type: 'string' }
+
+	const wrap = (page) => ({
+		version: '1.0.0',
+		menu: [],
+		pages: [page],
+	})
+
+	it('accepts a type=form page with handler-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a type=form page with endpoint-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api/forms', submitMethod: 'POST', mode: 'public' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a type=form page missing fields', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with empty fields[]', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with both submitHandler and submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', submitEndpoint: '/api' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with neither submitHandler nor submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed submitMethod', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api', submitMethod: 'GET' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('POST | PUT | PATCH'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed mode', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', mode: 'review' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('edit | create | public'))).toBe(true)
+	})
+
+	it('validates each form field against the formField $def shape', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [{ key: 'x' /* missing label + type */ }], submitHandler: 'h' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
+	})
+})
