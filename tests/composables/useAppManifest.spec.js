@@ -172,6 +172,142 @@ describe('useAppManifest', () => {
 		warnSpy.mockRestore()
 	})
 
+	// `manifest-resolve-sentinel` integration scenarios — the loader
+	// substitutes sentinels under `pages[].config` with IAppConfig
+	// values BEFORE the validator runs. The validator MUST never
+	// observe an unresolved sentinel at runtime (the resolved value
+	// is what gets validated).
+	it('substitutes @resolve: sentinels under pages[].config before validation', async () => {
+		axios.get.mockResolvedValue({
+			status: 200,
+			data: {
+				version: '1.0.0',
+				menu: validBundled.menu,
+				pages: [
+					{
+						id: 'home',
+						route: '/',
+						type: 'index',
+						title: 'app.home',
+						config: { register: '@resolve:theme_register', schema: '@resolve:listing_schema' },
+					},
+				],
+			},
+		})
+		const { manifest, isLoading, validationErrors, unresolvedSentinels } = useAppManifest(
+			'myapp',
+			validBundled,
+			{
+				getAppConfigValue: async (_, key) => ({
+					theme_register: 'theme-2026',
+					listing_schema: 'listing-v3',
+				})[key],
+			},
+		)
+		await flush()
+		expect(manifest.value.pages[0].config.register).toBe('theme-2026')
+		expect(manifest.value.pages[0].config.schema).toBe('listing-v3')
+		expect(unresolvedSentinels.value).toEqual([])
+		expect(validationErrors.value).toBeNull()
+		expect(isLoading.value).toBe(false)
+	})
+
+	it('exposes unresolved sentinel keys when an IAppConfig key is unset', async () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		axios.get.mockResolvedValue({
+			status: 200,
+			data: {
+				version: '1.0.0',
+				menu: validBundled.menu,
+				pages: [
+					{
+						id: 'home',
+						route: '/',
+						type: 'index',
+						title: 'app.home',
+						config: {
+							register: '@resolve:set_key',
+							schema: '@resolve:unset_key',
+						},
+					},
+				],
+			},
+		})
+		const { manifest, unresolvedSentinels } = useAppManifest(
+			'myapp',
+			validBundled,
+			{
+				getAppConfigValue: async (_, key) => (key === 'set_key' ? 'value-set' : null),
+			},
+		)
+		await flush()
+		expect(manifest.value.pages[0].config.register).toBe('value-set')
+		expect(manifest.value.pages[0].config.schema).toBeNull()
+		expect(unresolvedSentinels.value).toEqual(['unset_key'])
+		warnSpy.mockRestore()
+	})
+
+	it('surface a softwarecatalog-style fixture with @resolve:voorzieningen_register', async () => {
+		axios.get.mockResolvedValue({
+			status: 200,
+			data: {
+				version: '1.2.0',
+				menu: [{ id: 'voorzieningen', label: 'app.voorzieningen' }],
+				pages: [
+					{
+						id: 'voorzieningen-index',
+						route: '/voorzieningen',
+						type: 'index',
+						title: 'app.voorzieningen.title',
+						config: { register: '@resolve:voorzieningen_register', schema: 'voorziening' },
+					},
+					{
+						id: 'voorzieningen-detail',
+						route: '/voorzieningen/:id',
+						type: 'detail',
+						title: 'app.voorzieningen.detail',
+						config: { register: '@resolve:voorzieningen_register', schema: 'voorziening' },
+					},
+				],
+			},
+		})
+		const { manifest, validationErrors, unresolvedSentinels } = useAppManifest(
+			'softwarecatalog',
+			validBundled,
+			{
+				getAppConfigValue: async (_, key) => (key === 'voorzieningen_register' ? 'voorzieningen' : null),
+			},
+		)
+		await flush()
+		expect(manifest.value.pages[0].config.register).toBe('voorzieningen')
+		expect(manifest.value.pages[1].config.register).toBe('voorzieningen')
+		expect(unresolvedSentinels.value).toEqual([])
+		expect(validationErrors.value).toBeNull()
+	})
+
+	it('resolves shared keys with a single getAppConfigValue call', async () => {
+		const calls = []
+		axios.get.mockResolvedValue({
+			status: 200,
+			data: {
+				version: '1.0.0',
+				menu: validBundled.menu,
+				pages: [
+					{ id: 'a', route: '/a', type: 'index', title: 'a', config: { register: '@resolve:shared' } },
+					{ id: 'b', route: '/b', type: 'index', title: 'b', config: { register: '@resolve:shared' } },
+				],
+			},
+		})
+		useAppManifest('myapp', validBundled, {
+			getAppConfigValue: async (appId, key) => {
+				calls.push([appId, key])
+				return 'shared-value'
+			},
+		})
+		await flush()
+		expect(calls).toEqual([['myapp', 'shared']])
+	})
+
 	// -----------------------------------------------------------------
 	// manifest-dynamic-menu — backend-populated `menu[]` contract
 	// -----------------------------------------------------------------
