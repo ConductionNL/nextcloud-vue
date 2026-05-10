@@ -166,6 +166,93 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 	})
 })
 
+describe('validateManifest — manifest-wiki-page-type', () => {
+	it('accepts a wiki page with register + schema', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{
+				id: 'kb',
+				route: '/kb/:id',
+				type: 'wiki',
+				title: 't',
+				config: { register: 'pipelinq', schema: 'article' },
+			}],
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a wiki page with optional sidebar fields', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{
+				id: 'kb',
+				route: '/kb/:id',
+				type: 'wiki',
+				title: 't',
+				config: {
+					register: 'pipelinq',
+					schema: 'article',
+					contentField: 'markdown',
+					sidebarSchema: 'category',
+					treeField: 'children',
+				},
+			}],
+		})
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a wiki page missing register', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{
+				id: 'kb',
+				route: '/kb/:id',
+				type: 'wiki',
+				title: 't',
+				config: { schema: 'article' },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('pages[0].config') && e.includes('wiki pages must declare register and schema'))).toBe(true)
+	})
+
+	it('rejects a wiki page missing schema', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{
+				id: 'kb',
+				route: '/kb/:id',
+				type: 'wiki',
+				title: 't',
+				config: { register: 'pipelinq' },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('wiki pages must declare register and schema'))).toBe(true)
+	})
+
+	it('rejects a wiki page with empty register / schema strings', () => {
+		const result = validateManifest({
+			version: '1.1.0',
+			menu: [],
+			pages: [{
+				id: 'kb',
+				route: '/kb/:id',
+				type: 'wiki',
+				title: 't',
+				config: { register: '', schema: '' },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('wiki pages must declare register and schema'))).toBe(true)
+	})
+})
+
 describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	const baseManifest = (page) => ({
 		version: '1.1.0',
