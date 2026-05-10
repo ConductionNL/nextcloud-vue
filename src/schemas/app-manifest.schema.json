@@ -315,6 +315,15 @@
 					"type": "boolean",
 					"default": false,
 					"description": "When true the consumer SHOULD show a confirmation dialog before invoking the action. Useful for destructive actions; defaults to false."
+				},
+				"handler": {
+					"type": "string",
+					"description": "Optional dispatch target for the action. Either (a) one of the reserved keywords \"navigate\" / \"emit\" / \"none\", or (b) a registry name resolving to a function in the customComponents map passed to CnAppRoot. When the registry name resolves to a function, CnIndexPage / CnDetailPage call it with `{ actionId, item }` on row-action click. The reserved keywords short-circuit the registry lookup: \"navigate\" calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`; \"emit\" emits `@action` only (semantic-explicit no-op); \"none\" disables the click entirely. When unset (the default), the action only emits `@action` and the page-level listener decides the side-effect — preserves v1.2 behaviour. Added in schema 1.3.0.",
+					"pattern": "^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$"
+				},
+				"route": {
+					"type": "string",
+					"description": "Vue-router route name dispatched when `handler === \"navigate\"`. Required for the navigate keyword; ignored for other handler values. CnIndexPage uses it as `$router.push({ name: action.route, params: { id: row[rowKey] } })`. Added in schema 1.3.0."
 				}
 			}
 		},

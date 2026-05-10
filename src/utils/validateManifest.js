@@ -563,8 +563,33 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 		if (typeof action.label !== 'string' || action.label.length === 0) {
 			errors.push(`${actionPath}/label: must be a non-empty string`)
 		}
+		// REQ-MAD-1 / REQ-MAD-2 — `handler` (string, registry name OR
+		// reserved keyword `navigate`/`emit`/`none`) and the matching
+		// `navigate` requirement on `route`. Schema 1.3.0+.
+		if (action.handler !== undefined) {
+			if (typeof action.handler !== 'string') {
+				errors.push(`${actionPath}/handler: must be a string when set`)
+			} else if (!HANDLER_PATTERN.test(action.handler)) {
+				errors.push(
+					`${actionPath}/handler: "${action.handler}" must match `
+					+ '"navigate" | "emit" | "none" | [A-Za-z][A-Za-z0-9_]*',
+				)
+			}
+			if (action.handler === 'navigate'
+				&& (typeof action.route !== 'string' || action.route.length === 0)) {
+				errors.push(`${actionPath}/route: required when handler is "navigate"`)
+			}
+		}
 	})
 }
+
+/**
+ * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
+ * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
+ * registry name (alphanumeric + underscore, leading letter). Mirrors
+ * the schema's `pattern` on the `handler` property.
+ */
+const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.widgets[]` for dashboard page type

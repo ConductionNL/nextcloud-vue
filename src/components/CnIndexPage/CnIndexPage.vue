@@ -215,7 +215,7 @@
 							<CnRowActions
 								:actions="mergedActions"
 								:row="row"
-								@action="$emit('action', $event)" />
+								@action="onRowAction" />
 						</slot>
 					</template>
 				</CnDataTable>
@@ -257,7 +257,7 @@
 							<CnRowActions
 								:actions="mergedActions"
 								:row="object"
-								@action="$emit('action', $event)" />
+								@action="onRowAction" />
 						</slot>
 					</template>
 				</CnCardGrid>
@@ -267,7 +267,7 @@
 					:open.sync="contextMenuOpen"
 					:actions="mergedActions"
 					:target-item="contextMenuRow"
-					@action="$emit('action', $event)"
+					@action="onRowAction"
 					@close="closeContextMenu" />
 
 				<!-- Pagination -->
@@ -433,14 +433,20 @@ export default {
 		CnIndexSidebar,
 	},
 
+	/**
+	 * Inject the customComponents registry from a CnAppRoot ancestor.
+	 * Used by:
+	 * - REQ-MAD-3 / REQ-MAD-8 (manifest-actions-dispatch): resolves
+	 *   `actions[].handler` registry names to functions called on
+	 *   row-action click.
+	 * - The cardComponent + form-dialog override paths: when set, the
+	 *   prop-level `customComponents` wins, but the inject is the
+	 *   default. See `effectiveCustomComponents`.
+	 *
+	 * Falls back to an empty object so `CnIndexPage` works standalone
+	 * (unit tests, isolated mount) without `CnAppRoot`.
+	 */
 	inject: {
-		/**
-		 * Custom-component registry provided by `CnAppRoot`. Falls back
-		 * to an empty object so `CnIndexPage` works when mounted
-		 * without `CnAppRoot` (e.g. in unit tests). The explicit
-		 * `customComponents` prop wins when set — see
-		 * `effectiveCustomComponents`.
-		 */
 		cnCustomComponents: { default: () => ({}) },
 	},
 
@@ -783,6 +789,11 @@ export default {
 		 * `cnCustomComponents`. Provided primarily so unit tests can
 		 * pass a registry without mounting `CnAppRoot`.
 		 *
+		 * Used by:
+		 * - `cardComponent` resolution (REQ-MCI from manifest-card-index)
+		 * - `actions[].handler` registry name resolution (REQ-MAD-3 from
+		 *   manifest-actions-dispatch — handler funcs called on row-action click)
+		 *
 		 * @type {object|null}
 		 */
 		customComponents: {
@@ -887,9 +898,56 @@ export default {
 			return builtIn
 		},
 
-		/** Merged actions: app-provided first, then built-in defaults */
+		/**
+		 * Effective customComponents registry — explicit prop wins over
+		 * the injected ancestor registry. Used to:
+		 * - Resolve `actions[].handler` registry names (REQ-MAD-3,
+		 *   manifest-actions-dispatch).
+		 * - Resolve the `cardComponent` name for card-grid view (REQ-MCI,
+		 *   manifest-card-index).
+		 *
+		 * @return {object}
+		 */
+		effectiveCustomComponents() {
+			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+
+		/**
+		 * Merged actions: app-provided first, then built-in defaults.
+		 *
+		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
+		 * (manifest-actions-dispatch) — for any action whose `handler`
+		 * is a string, resolve it through `resolveHandler()` so
+		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
+		 * for built-in defaults. Function-typed handlers (the existing
+		 * runtime path) pass through untouched.
+		 */
 		mergedActions() {
-			return [...this.actions, ...this.defaultActions]
+			const dispatched = this.actions.map((action) => {
+				if (typeof action.handler === 'function') {
+					// Back-compat: programmatic function handler — keep as-is.
+					return action
+				}
+				if (typeof action.handler !== 'string' || action.handler.length === 0) {
+					// No handler → emit-only path (existing default).
+					return action
+				}
+				const isNone = action.handler === 'none'
+				const resolved = this.resolveHandler(action)
+				if (resolved) {
+					// `none` returns a sentinel no-op handler AND must
+					// suppress the `@action` emit; flag it so onRowAction
+					// can drop the bubbled event.
+					return isNone
+						? { ...action, handler: resolved, _dispatchSuppress: true }
+						: { ...action, handler: resolved }
+				}
+				// Either reserved keyword "emit" / unknown name / non-function
+				// registry entry → page emits @action only; no handler call.
+				const { handler, ...rest } = action
+				return rest
+			})
+			return [...dispatched, ...this.defaultActions]
 		},
 
 		hasRowActions() {
@@ -938,17 +996,6 @@ export default {
 		},
 
 		/**
-		 * Effective customComponents registry used to resolve the
-		 * `cardComponent` name. Explicit prop wins, inject falls back,
-		 * empty object is the last resort.
-		 *
-		 * @return {object}
-		 */
-		effectiveCustomComponents() {
-			return this.customComponents ?? this.cnCustomComponents ?? {}
-		},
-
-		/**
 		 * Resolved card component for card-grid view mode. Returns
 		 * `null` when `cardComponent` is empty OR when the name is not
 		 * in the registry (the latter also logs `console.warn`).
@@ -984,6 +1031,89 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
+		 * (manifest-actions-dispatch) — Resolve a manifest-declared
+		 * action's `handler` string into a `(row) => void` invocation
+		 * function. Returns null when the action should fall back to
+		 * the page's `@action`-event-only path.
+		 *
+		 *   - Reserved keyword `"navigate"` → push the configured route
+		 *     with `params: { id: row[rowKey] }`.
+		 *   - Reserved keyword `"emit"` → null (page still bubbles
+		 *     `@action`; explicit no-op).
+		 *   - Reserved keyword `"none"` → returns a no-op function that
+		 *     suppresses both the handler and the `@action` emit. The
+		 *     suppression happens via the special `_dispatchSuppress`
+		 *     flag on the cloned action; see mergedActions for the
+		 *     detail.
+		 *   - Registry name → look up in `effectiveCustomComponents`;
+		 *     when it's a function, wrap as
+		 *     `(row) => fn({ actionId: action.id, item: row })`. When
+		 *     it's a non-function, console.warn and return null.
+		 *   - Unknown registry name → silent fall-through (null).
+		 *
+		 * @param {object} action The manifest-shaped action object.
+		 * @return {Function|null}
+		 */
+		resolveHandler(action) {
+			const name = action.handler
+			if (typeof name !== 'string' || name.length === 0) return null
+			if (name === 'navigate') {
+				const route = action.route
+				if (typeof route !== 'string' || route.length === 0) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @action-only.',
+					)
+					return null
+				}
+				return (row) => {
+					this.$router.push({
+						name: route,
+						params: { id: row[this.rowKey] },
+					})
+				}
+			}
+			if (name === 'emit') return null
+			if (name === 'none') {
+				// Returns a sentinel that CnRowActions will treat as a
+				// no-op; we additionally short-circuit @action emit in
+				// `onRowAction` via the action's id.
+				return () => {}
+			}
+			const fn = this.effectiveCustomComponents[name]
+			if (typeof fn === 'function') {
+				return (row) => fn({ actionId: action.id, item: row })
+			}
+			if (fn !== undefined) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
+					+ 'customComponents — components belong to slot overrides; falling '
+					+ 'back to @action-only.',
+				)
+			}
+			return null
+		},
+
+		/**
+		 * REQ-MAD-6 (manifest-actions-dispatch) — `handler: "none"`
+		 * blocks the `@action` emit entirely. CnRowActions emits
+		 * `@action` with `{ action: action.label, row }` and the page
+		 * forwards via `@action="$emit('action', $event)"`. This handler
+		 * intercepts so the `none`-flagged action is dropped before
+		 * re-emit.
+		 *
+		 * @param {{action: string, row: object}} payload The CnRowActions emit.
+		 */
+		onRowAction(payload) {
+			const matched = this.mergedActions.find((a) => a.label === payload.action)
+			if (matched && matched._dispatchSuppress) return
+			this.$emit('action', payload)
+		},
+
 		/**
 		 * Handle row click — emits row-click event for the parent to handle navigation.
 		 * @param {object} row The clicked row object

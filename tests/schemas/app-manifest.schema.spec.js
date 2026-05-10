@@ -461,7 +461,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component supersedes the 1.2.0 bump)', () => {
+	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
 		expect(schema.version).toBe('1.3.0')
 	})
 })
@@ -637,10 +637,8 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			// `manifest-detail-sidebar-config` itself was non-breaking and
 			// kept the version at 1.1.0. The successor `manifest-config-refs`
 			// change wires up $refs on the recurring config sub-shapes and
-			// bumped to 1.2.0. `manifest-card-index-component` is a further
-			// additive bump to 1.3.0 — documents the new optional
-			// `cardComponent` field on `type:'index'` config without
-			// breaking older manifests.
+			// bumped to 1.2.0. `manifest-card-index-component` and
+			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
 			expect(schema.version).toBe('1.3.0')
 		})
 
