@@ -900,9 +900,13 @@ export default {
 
 		/**
 		 * Effective customComponents registry — explicit prop wins over
-		 * the injected ancestor registry. Used to resolve
-		 * `actions[].handler` registry names (REQ-MAD-3,
-		 * manifest-actions-dispatch).
+		 * the injected ancestor registry. Used to:
+		 * - Resolve `actions[].handler` registry names (REQ-MAD-3,
+		 *   manifest-actions-dispatch).
+		 * - Resolve the `cardComponent` name for card-grid view (REQ-MCI,
+		 *   manifest-card-index).
+		 *
+		 * @return {object}
 		 */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
@@ -989,17 +993,6 @@ export default {
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
-		},
-
-		/**
-		 * Effective customComponents registry used to resolve the
-		 * `cardComponent` name. Explicit prop wins, inject falls back,
-		 * empty object is the last resort.
-		 *
-		 * @return {object}
-		 */
-		effectiveCustomComponents() {
-			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
 
 		/**
