@@ -253,6 +253,116 @@ describe('validateManifest — manifest-wiki-page-type', () => {
 	})
 })
 
+describe('validateManifest — manifest-map-widget', () => {
+	const baseMap = (config) => ({
+		version: '1.1.0',
+		menu: [],
+		pages: [{ id: 'm', route: '/m', type: 'map', title: 't', config }],
+	})
+
+	it('accepts a minimal map page', () => {
+		const result = validateManifest(baseMap({ center: [52.13, 5.29] }))
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts a map page with tile + wms layers and a marker dataSource.url', () => {
+		const result = validateManifest(baseMap({
+			center: [52.13, 5.29],
+			zoom: 7,
+			layers: [
+				{ type: 'tile', url: 'https://x/{z}/{x}/{y}.png' },
+				{ type: 'wms', url: 'https://x/wms', options: { layers: 'pand' } },
+			],
+			markers: {
+				dataSource: { url: '/api/markers' },
+				latField: 'lat',
+				lngField: 'lng',
+			},
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a map page missing center', () => {
+		const result = validateManifest(baseMap({ zoom: 7 }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/center') && e.includes('length-2 array of finite numbers'))).toBe(true)
+	})
+
+	it('rejects a map page with non-finite center', () => {
+		const result = validateManifest(baseMap({ center: [Number.NaN, 5.29] }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/center') && e.includes('finite'))).toBe(true)
+	})
+
+	it('rejects a map page with wrong-length center', () => {
+		const result = validateManifest(baseMap({ center: [52.13] }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/center'))).toBe(true)
+	})
+
+	it('rejects a map page with non-finite zoom', () => {
+		const result = validateManifest(baseMap({ center: [52, 5], zoom: 'far' }))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/zoom') && e.includes('finite'))).toBe(true)
+	})
+
+	it('rejects a layer with an invalid type', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			layers: [{ type: 'kml', url: 'https://x/layer.kml' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('layers[0]/type') && e.includes('tile | wms | wfs | geojson'))).toBe(true)
+	})
+
+	it('rejects a layer missing url (and not inline geojson)', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			layers: [{ type: 'tile' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('layers[0]/url'))).toBe(true)
+	})
+
+	it('accepts an inline geojson layer with `data` instead of `url`', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			layers: [{ type: 'geojson', data: { type: 'FeatureCollection', features: [] } }],
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('rejects a markers.dataSource that sets both url and register', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			markers: { dataSource: { url: '/x', register: 'r', schema: 's' } },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('markers/dataSource') && e.includes('exactly one'))).toBe(true)
+	})
+
+	it('accepts a markers.dataSource with register+schema (resolver deferred but spec round-trips)', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			markers: { dataSource: { register: 'procest', schema: 'case' } },
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts inline markers.features[] without dataSource', () => {
+		const result = validateManifest(baseMap({
+			center: [52, 5],
+			markers: { features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [5, 52] }, properties: {} }] },
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('schema description enumerates map among built-in types', () => {
+		expect(schema.$defs.page.properties.type.description).toContain('map')
+	})
+})
+
 describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	const baseManifest = (page) => ({
 		version: '1.1.0',

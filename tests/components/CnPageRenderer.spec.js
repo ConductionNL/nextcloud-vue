@@ -27,6 +27,13 @@ const sampleManifest = {
 		{ id: 'home', route: '/', type: 'index', title: 'app.home', config: { schema: { name: 's1' }, columns: [] } },
 		{ id: 'home-detail', route: '/items/:id', type: 'detail', title: 'app.detail' },
 		{ id: 'overview', route: '/overview', type: 'dashboard', title: 'app.overview' },
+		{
+			id: 'cases-map',
+			route: '/map',
+			type: 'map',
+			title: 'app.map',
+			config: { center: [52.13, 5.29], zoom: 7, layers: [] },
+		},
 		{ id: 'settings', route: '/settings', type: 'custom', title: 'app.settings', component: 'SettingsPage' },
 		{ id: 'broken', route: '/broken', type: 'custom', title: 'app.broken', component: 'NonExistent' },
 		{
@@ -182,6 +189,13 @@ describe('CnPageRenderer', () => {
 				submitHandler: 'submitSurvey',
 				mode: 'public',
 			})
+		})
+
+		it('returns an async component wrapper for type=map', () => {
+			// REQ-MMW-* — manifest-map-widget — type=map resolves to CnMapPage
+			const wrapper = mountRenderer('cases-map')
+			expect(wrapper.vm.resolvedComponent).not.toBeNull()
+			expect(['function', 'object']).toContain(typeof wrapper.vm.resolvedComponent)
 		})
 
 		it('renders the resolved custom component synchronously', () => {

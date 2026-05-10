@@ -55,4 +55,5 @@ export const defaultPageTypes = {
 	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then(m => m.default)),
 	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then(m => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
+	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
 }
