@@ -41,7 +41,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
 | `columnOverrides` | Object | `\{\}` | Per-column overrides |
-| `actions` | Array | `[]` | Custom row action definitions |
+| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through `customComponents` — see "Action handlers" below. |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). |
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `rowClass` | Function | `null` | CSS class provider for rows |
 | `addLabel` | String | `''` | Add button label |
@@ -304,6 +305,72 @@ and hidden on `narrow` ones. Keep `enabled: true, columnGroups: [...]`
 static and toggle `show` from a layout watcher — the
 `columnGroups` / `facets` / `search` config is retained across
 flips.
+
+## Action handlers (manifest-actions-dispatch)
+
+`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler` that resolves through the `customComponents` registry passed to `CnAppRoot` / `CnPageRenderer`. The same registry already used to resolve `headerComponent` / `actionsComponent` / slot overrides.
+
+### Registry-name handler
+
+Manifest declaration:
+
+```jsonc
+{
+  "id": "Queues",
+  "route": "/queues",
+  "type": "index",
+  "title": "Queues",
+  "config": {
+    "register": "pipelinq",
+    "schema": "queue",
+    "actions": [
+      { "id": "process", "label": "Process queue", "handler": "queueProcessHandler" }
+    ]
+  }
+}
+```
+
+Registry entry (e.g. `src/customComponents.js`):
+
+```js
+export function queueProcessHandler({ actionId, item }) {
+  // open the right modal, dispatch a store action, etc.
+  store.processQueue(item.id)
+}
+
+export default {
+  // …existing component entries…
+  queueProcessHandler,
+}
+```
+
+When the user clicks "Process queue" on a row, CnIndexPage looks up `queueProcessHandler` in the registry, sees a function, and calls it with `{ actionId: "process", item: row }`. The page's `@action` event still fires for any external listeners.
+
+### Reserved keywords
+
+Three keywords short-circuit the registry lookup:
+
+- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. The `route` field is required when this keyword is set.
+- `"emit"` — explicit no-op handler that just bubbles `@action`. Identical to leaving `handler` unset, but makes intent visible in the manifest.
+- `"none"` — disables the action click entirely (no handler call, no `@action` emit).
+
+Example:
+
+```jsonc
+{
+  "actions": [
+    { "id": "view", "label": "Open", "handler": "navigate", "route": "QueueDetail" },
+    { "id": "z",    "label": "Z",    "handler": "emit" },
+    { "id": "x",    "label": "X",    "handler": "none" }
+  ]
+}
+```
+
+### Fallback semantics
+
+- Missing handler name in the registry → silent fall-through to `@action`-only (no warning; preserves v1.2 manifests).
+- Non-function entry in the registry (e.g. a Vue component) → console.warn + fall-through to `@action`-only.
+- Function-typed `handler` (passed via the runtime prop, NOT through the manifest) keeps working unchanged — used by the built-in `view` / `edit` / `copy` / `delete` actions.
 
 ## Two-Phase Pattern
 
