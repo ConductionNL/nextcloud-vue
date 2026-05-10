@@ -73,6 +73,9 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
+| `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
 ## Events
 
@@ -304,6 +307,59 @@ and hidden on `narrow` ones. Keep `enabled: true, columnGroups: [...]`
 static and toggle `show` from a layout watcher — the
 `columnGroups` / `facets` / `search` config is retained across
 flips.
+
+## Bespoke card-grid via `cardComponent`
+
+The default card-grid view renders `CnObjectCard` for each row using
+the page's schema. When that's not enough — e.g. softwarecatalog's
+`Organisaties` page needs a profile-style card with a logo,
+contactpersoon block, and a CTA button — point the manifest at a
+consumer-provided card component:
+
+```js
+// src/customComponents.js
+import OrganisatieCard from './components/cards/OrganisatieCard.vue'
+export const customComponents = \{ OrganisatieCard \}
+```
+
+```vue
+<!-- App.vue -->
+<CnAppRoot
+  :manifest="manifest"
+  app-id="softwarecatalog"
+  :custom-components="customComponents">
+  <router-view />
+</CnAppRoot>
+```
+
+```jsonc
+// src/manifest.json — pages[]
+\{
+  "id": "organisaties",
+  "route": "/organisaties",
+  "type": "index",
+  "title": "Organisaties",
+  "config": \{
+    "register": "softwarecatalog",
+    "schema": "organisation",
+    "cardComponent": "OrganisatieCard"
+  \}
+\}
+```
+
+The resolved card component receives `\{ item, object, schema, register, selected \}`
+props and emits `click` (forwarded as `row-click` on the page) and
+`select` (forwarded as `select` on the page). `item` and `object` are
+aliases of each other; pick whichever feels natural.
+
+Resolution priority (highest first):
+
+1. `#card` scoped slot — App.vue overrides always win.
+2. `cardComponent` registry entry — manifest-driven dispatch.
+3. `CnObjectCard` — the schema-driven library default.
+
+Unknown `cardComponent` names log `console.warn` once and fall back
+to the default so a misconfigured manifest never blanks the grid.
 
 ## Two-Phase Pattern
 

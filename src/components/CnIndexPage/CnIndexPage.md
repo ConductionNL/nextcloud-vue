@@ -382,6 +382,49 @@ export default {
 | `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar. |
 | `activeFilters` | Object | `{}` | Currently active facet filters forwarded to the embedded sidebar. |
+| `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
+| `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
+
+## Bespoke card-grid via `cardComponent`
+
+When the schema-driven `CnObjectCard` is not enough — e.g. the
+softwarecatalog `Organisaties` page needs a profile-style card with
+logo, contactpersoon block, and a CTA button — register the card
+component on `CnAppRoot` and reference it by name in the manifest:
+
+```js
+// src/customComponents.js
+import OrganisatieCard from './components/cards/OrganisatieCard.vue'
+export const customComponents = { OrganisatieCard }
+```
+
+```vue
+<!-- App.vue -->
+<CnAppRoot :manifest="manifest" app-id="softwarecatalog" :custom-components="customComponents">
+    <router-view />
+</CnAppRoot>
+```
+
+```jsonc
+// src/manifest.json — pages[]
+{
+    "id": "organisaties",
+    "route": "/organisaties",
+    "type": "index",
+    "title": "Organisaties",
+    "config": {
+        "register": "softwarecatalog",
+        "schema": "organisation",
+        "cardComponent": "OrganisatieCard"
+    }
+}
+```
+
+The resolved card component receives `{ item, object, schema, register, selected }`
+props and emits `click` (forwarded as `row-click` on the page) and
+`select` (forwarded as `select` on the page). `item` and `object` are
+aliases — pick whichever feels natural.
 
 ## Slots
 
