@@ -265,7 +265,6 @@ export default {
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
 	},
 
-
 	props: {
 		/**
 		 * Reactive manifest object (from useAppManifest). The renderer
