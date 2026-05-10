@@ -19,6 +19,8 @@ module.exports = {
 		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
 		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
 		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',
+		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
+		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},
 	testMatch: [
 		'<rootDir>/tests/**/*.spec.js',

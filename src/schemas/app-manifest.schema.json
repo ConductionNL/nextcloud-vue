@@ -127,7 +127,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions, sidebar?, cardComponent? }. The optional `cardComponent` is a string referencing a key in the consuming app's `customComponents` registry (the same registry that powers `type:'custom'` pages). When set AND the page is in card-grid view mode AND the parent has not provided a `#card` scoped slot, CnIndexPage mounts the registry-resolved component for each row instead of the schema-driven CnObjectCard, passing `{ item, object, schema, register, selected }` props and forwarding `click` + `select` events. An unknown name logs a console warning and falls back to CnObjectCard so a misconfigured manifest never blanks the grid. The optional `sidebar` is an object `{ enabled: boolean, show?: boolean, columnGroups?: array, facets?: object, showMetadata?: boolean, search?: object }` that, when `enabled`, makes CnIndexPage auto-mount its embedded CnIndexSidebar. `show` (default true) suppresses the embedded sidebar without removing config when set false. For type='detail': { register, schema, sidebar?, sidebarProps? }. The `sidebar` field accepts EITHER a Boolean (legacy: true/false toggles the external CnObjectSidebar) OR an Object mirroring the index shape plus detail-specific fields `{ show?: boolean, enabled?: boolean, register?, schema?, hiddenTabs?, title?, subtitle?, tabs? }`. `config.sidebar.show: false` suppresses the embedded sidebar on either index or detail pages. The optional `sidebarProps.tabs` is an open-enum array of tab definitions `{ id, label, icon?, widgets?, component?, order? }` that overrides CnObjectSidebar's hard-coded built-in tab set; each tab declares either a list of widgets (`type: 'data' | 'metadata' | <registry-name>`) or a registry component name. For type='dashboard': { widgets, layout }. For type='logs': { register?, schema?, source?, columns? } — one of register+schema OR source MUST be set. For type='settings': { sections: array<Section>, saveEndpoint? } where each Section declares EXACTLY ONE of `fields[]` (back-compat flat-field body), `component: <registry-name>` + optional `props` (mounts a customComponents-resolved component as the section body), OR `widgets: array<{ type, props? }>` (mounts one or more widgets in sequence; built-in widget types `version-info` → CnVersionInfoCard and `register-mapping` → CnRegisterMapping resolve first, falling back to the customComponents registry). Widget events bubble through CnSettingsPage's `@widget-event` so consumers wire one page-level handler (see manifest-settings-rich-sections spec). For type='chat': { conversationSource?, postUrl?, schema? } — one of conversationSource OR postUrl MUST be set. For type='files': { folder, allowedTypes? }. For type='form': { fields: array<formField>, submitHandler? OR submitEndpoint?, submitMethod?, mode?, submitLabel?, successMessage?, initialValue? }. Exactly one of `submitHandler` (registry name resolved against customComponents) OR `submitEndpoint` (URL string; `:paramName` segments resolve against `$route.params`) MUST be set. `submitMethod` (default POST) MUST be one of POST | PUT | PATCH when set. `mode` (default public) MUST be one of edit | create | public when set. The `fields[]` array `$ref`s the same `formField` $def `pages[].config.sections[].fields[]` consumes for type='settings'. See manifest-form-page-type spec. For type='custom': any shape the custom component expects. As of schema version 1.2.0, the recurring sub-shapes (`columns[]`, `actions[]`, `widgets[]`, `layout[]`, `sections[].fields[]`, `sidebar.columnGroups[]`, `sidebar.tabs[]`, `sidebarProps.tabs[]`) `$ref` the seven `$defs` (`column`, `action`, `widgetDef`, `layoutItem`, `formField`, `sidebarSection`, `sidebarTab`). The OUTER `config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, …) and consumer-app extension keys remain free-form.",
+					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions, sidebar?, cardComponent? }. The optional `cardComponent` is a string referencing a key in the consuming app's `customComponents` registry (the same registry that powers `type:'custom'` pages). When set AND the page is in card-grid view mode AND the parent has not provided a `#card` scoped slot, CnIndexPage mounts the registry-resolved component for each row instead of the schema-driven CnObjectCard, passing `{ item, object, schema, register, selected }` props and forwarding `click` + `select` events. An unknown name logs a console warning and falls back to CnObjectCard so a misconfigured manifest never blanks the grid. The optional `sidebar` is an object `{ enabled: boolean, show?: boolean, columnGroups?: array, facets?: object, showMetadata?: boolean, search?: object }` that, when `enabled`, makes CnIndexPage auto-mount its embedded CnIndexSidebar. `show` (default true) suppresses the embedded sidebar without removing config when set false. For type='detail': { register, schema, sidebar?, sidebarProps? }. The `sidebar` field accepts EITHER a Boolean (legacy: true/false toggles the external CnObjectSidebar) OR an Object mirroring the index shape plus detail-specific fields `{ show?: boolean, enabled?: boolean, register?, schema?, hiddenTabs?, title?, subtitle?, tabs? }`. `config.sidebar.show: false` suppresses the embedded sidebar on either index or detail pages. The optional `sidebarProps.tabs` is an open-enum array of tab definitions `{ id, label, icon?, widgets?, component?, order? }` that overrides CnObjectSidebar's hard-coded built-in tab set; each tab declares either a list of widgets (`type: 'data' | 'metadata' | <registry-name>`) or a registry component name. For type='dashboard': { widgets, layout }. For type='logs': { register?, schema?, source?, columns? } — one of register+schema OR source MUST be set. For type='settings': { sections?: array<Section>, tabs?: array<Tab>, saveEndpoint? } where EXACTLY ONE of `sections` or `tabs` MUST be set (XOR — see manifest-settings-orchestration spec). Each Section declares EXACTLY ONE of `fields[]` (back-compat flat-field body), `component: <registry-name>` + optional `props` (mounts a customComponents-resolved component as the section body), OR `widgets: array<{ type, props?, componentName? }>` (mounts one or more widgets in sequence; built-in widget types `version-info` → CnVersionInfoCard, `register-mapping` → CnRegisterMapping, and `component` (with `componentName: <registry-name>`) → customComponents-resolved component). Each Tab is `{ id, label, icon?, sections: array<Section> }` and CnSettingsPage renders a tab strip switching between them. Widget events bubble through CnSettingsPage's `@widget-event` so consumers wire one page-level handler (see manifest-settings-rich-sections spec). For type='chat': { conversationSource?, postUrl?, schema? } — one of conversationSource OR postUrl MUST be set. For type='files': { folder, allowedTypes? }. For type='form': { fields: array<formField>, submitHandler? OR submitEndpoint?, submitMethod?, mode?, submitLabel?, successMessage?, initialValue? }. Exactly one of `submitHandler` (registry name resolved against customComponents) OR `submitEndpoint` (URL string; `:paramName` segments resolve against `$route.params`) MUST be set. `submitMethod` (default POST) MUST be one of POST | PUT | PATCH when set. `mode` (default public) MUST be one of edit | create | public when set. The `fields[]` array `$ref`s the same `formField` $def `pages[].config.sections[].fields[]` consumes for type='settings'. See manifest-form-page-type spec. For type='custom': any shape the custom component expects. As of schema version 1.2.0, the recurring sub-shapes (`columns[]`, `actions[]`, `widgets[]`, `layout[]`, `sections[].fields[]`, `sidebar.columnGroups[]`, `sidebar.tabs[]`, `sidebarProps.tabs[]`) `$ref` the seven `$defs` (`column`, `action`, `widgetDef`, `layoutItem`, `formField`, `sidebarSection`, `sidebarTab`). The OUTER `config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, …) and consumer-app extension keys remain free-form.",
 					"additionalProperties": true,
 					"properties": {
 						"columns": {
@@ -162,7 +162,7 @@
 						},
 						"sections": {
 							"type": "array",
-							"description": "Settings sections consumed by CnSettingsPage (for type='settings'). Each section declares EXACTLY ONE of `fields[]` / `component` / `widgets[]` (FE-validated mutual exclusion). The outer section object keeps `additionalProperties: true`; only `fields[]` is typed via $ref formField. Settings widgets use a thinner shape `{ type, props? }` (NOT the same as dashboard widgetDef) and are NOT typed by this schema.",
+							"description": "Settings sections consumed by CnSettingsPage (for type='settings'). Each section declares EXACTLY ONE of `fields[]` / `component` / `widgets[]` (FE-validated mutual exclusion). The outer section object keeps `additionalProperties: true`; only `fields[]` is typed via $ref formField. Settings widgets use a thinner shape `{ type, props?, componentName? }` (NOT the same as dashboard widgetDef) and are NOT typed by this schema. Mutually exclusive with `tabs[]` at the page level — see manifest-settings-orchestration.",
 							"items": {
 								"type": "object",
 								"additionalProperties": true,
@@ -171,6 +171,44 @@
 										"type": "array",
 										"description": "Flat field-body for this section. Each item references the `formField` $def.",
 										"items": { "$ref": "#/$defs/formField" }
+									}
+								}
+							}
+						},
+						"tabs": {
+							"type": "array",
+							"description": "Settings tabs consumed by CnSettingsPage (for type='settings'). When set, CnSettingsPage renders a tab strip and the active tab's `sections[]` flow into the same renderer used by the flat shape. Mutually exclusive with `sections[]` at the page level (XOR). Each tab is `{ id: string, label: string, icon?: string, sections: array<Section> }`. See manifest-settings-orchestration spec.",
+							"items": {
+								"type": "object",
+								"additionalProperties": true,
+								"required": ["id", "label", "sections"],
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "Tab identifier — addressable by `initialTab` and emitted in `@tab-change`. MUST be non-empty and unique within the page."
+									},
+									"label": {
+										"type": "string",
+										"description": "Tab button label (i18n translation key — passed through `translate()` if a translate prop is wired on CnSettingsPage)."
+									},
+									"icon": {
+										"type": "string",
+										"description": "Optional MDI component name prepended to the tab button (e.g. \"Cog\")."
+									},
+									"sections": {
+										"type": "array",
+										"description": "Sections rendered when this tab is active. Same shape and rules as the flat `sections[]` case.",
+										"items": {
+											"type": "object",
+											"additionalProperties": true,
+											"properties": {
+												"fields": {
+													"type": "array",
+													"description": "Flat field-body for this section. Each item references the `formField` $def.",
+													"items": { "$ref": "#/$defs/formField" }
+												}
+											}
+										}
 									}
 								}
 							}

@@ -349,8 +349,58 @@ methods: {
 1. **Several flat IAppConfig keys?** → `fields: [...]`.
 2. **One whole-section pre-built library widget (version, register-mapping)?** → `widgets: [{ type }]`.
 3. **Several whole-section widgets stacked?** → `widgets: [...]` with multiple entries.
-4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props`.
+4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props` (whole-section body) OR `widgets: [{ type: "component", componentName: <registry-name>, props }]` (one of several widgets in a section).
 5. **Mostly flat fields with one bespoke input?** → `fields: [...]` plus a `#field-<key>` slot override.
+
+### Multi-tab admin pages (`tabs[]` orchestration)
+
+When a settings page has more than ~4 logical groups (think softwarecatalog's `General`, `Catalogue`, `Sync`, `Connections`, `Mappings`, `Notifications`, `Branding`, `Advanced`), a flat `sections[]` stack becomes a long scroll. Use `tabs[]` to group sections under tab buttons:
+
+```jsonc
+{
+  "id": "Settings",
+  "type": "settings",
+  "title": "myapp.settings.title",
+  "config": {
+    "saveEndpoint": "/index.php/apps/myapp/api/settings",
+    "tabs": [
+      { "id": "general",  "label": "myapp.settings.tab.general",  "sections": [ /* same shape as the flat case */ ] },
+      { "id": "about",    "label": "myapp.settings.tab.about",    "sections": [
+        { "title": "myapp.settings.section.about", "widgets": [
+          { "type": "version-info", "props": { "appName": "MyApp", "appVersion": "0.1.0" } }
+        ] }
+      ] },
+      { "id": "advanced", "label": "myapp.settings.tab.advanced", "sections": [ /* … */ ] }
+    ]
+  }
+}
+```
+
+Rules:
+
+- `sections[]` and `tabs[]` are XOR — a page declares one or the other. The validator rejects manifests with both at the page-`config` level.
+- Each tab MUST have non-empty `id` and `label`, plus a non-empty `sections: [...]`. Tab IDs MUST be unique within the page.
+- The first tab is active by default. Override via the `initialTab` prop on `CnSettingsPage` (typically wired through `CnPageRenderer.pageTypeProps`).
+- The page emits `@tab-change` with `{ tabId, tabIndex }` when the user clicks a different tab — wire it to your preference store or URL hash if you want the active tab to survive a reload.
+
+### Custom component widgets (`{ type: "component", componentName }`)
+
+When a settings section needs to host a bespoke consumer Vue component as one of several widgets in the section, use the explicit `component` discriminator with `componentName`:
+
+```jsonc
+{
+  "title": "myapp.settings.section.workflow",
+  "widgets": [
+    {
+      "type": "component",
+      "componentName": "WorkflowEditor",
+      "props": { "schemaSlug": "workflow" }
+    }
+  ]
+}
+```
+
+`componentName` resolves against the customComponents registry passed to `CnAppRoot`. The legacy `widget.type === <registry-name>` fallback path is kept for back-compat with `manifest-settings-rich-sections` consumers, but is JSDoc-deprecated — `{ type: "component", componentName }` is the recommended way going forward because it makes the manifest reader aware that the widget body is NOT a built-in.
 
 ### `custom` → `chat`
 
