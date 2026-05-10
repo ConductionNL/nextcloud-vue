@@ -42,6 +42,26 @@ When ApexCharts is not available a fallback slot or `unavailableLabel` is shown:
 </CnChartWidget>
 ```
 
+## Manifest usage (recommended)
+
+When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mounts CnChartWidget automatically. Manifest authors do NOT mount this component themselves — declare a chart widget in `pages[].config.widgets[]` instead:
+
+```json
+{
+  "id": "sla-trend",
+  "title": "myapp.sla_trend",
+  "type": "chart",
+  "props": {
+    "chartKind": "line",
+    "series": [{ "name": "SLA %", "data": [82, 88, 91, 93] }],
+    "categories": ["Q1", "Q2", "Q3", "Q4"],
+    "options": { "stroke": { "width": 3 } }
+  }
+}
+```
+
+The dispatcher forwards `props.chartKind` as the apex `type` and passes through `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
+
 ### Props
 
 | Prop | Type | Default | Description |

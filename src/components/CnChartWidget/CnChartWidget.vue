@@ -56,6 +56,15 @@ import VueApexCharts from 'vue-apexcharts'
  *   :series="barSeries"
  *   :options="{ plotOptions: { bar: { horizontal: true } } }" />
  * ```
+ *
+ * Manifest usage — when CnDashboardPage's widget dispatcher sees
+ * `widgetDef.type === 'chart'` it mounts CnChartWidget automatically,
+ * forwarding `widgetDef.props.chartKind` as the `type` prop and
+ * `series` / `categories` / `labels` / `options` / `colors` / `toolbar` /
+ * `legend` / `height` / `width` / `unavailableLabel` directly. Manifest
+ * authors do NOT mount this component themselves — declare a chart
+ * widget in `pages[].config.widgets[]` instead. See CnDashboardPage's
+ * leading docblock for the manifest example.
  */
 export default {
 	name: 'CnChartWidget',

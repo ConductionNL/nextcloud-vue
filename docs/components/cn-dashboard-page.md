@@ -15,9 +15,34 @@ Top-level dashboard page component — the dashboard equivalent of `CnIndexPage`
 
 | Type | How to use |
 |------|-----------|
-| **Custom** | Provide a `#widget-{widgetId}` scoped slot |
-| **NC Dashboard API** | Widget def has `itemApiVersions` — auto-rendered via `CnWidgetRenderer` |
 | **Tile** | Widget def has `type: 'tile'` — renders as a quick-access link tile |
+| **Custom** | Provide a `#widget-{widgetId}` scoped slot (escape hatch — beats every built-in branch when a slot exists) |
+| **Chart** | Widget def has `type: 'chart'` — declarative apexcharts mount via `CnChartWidget`; chart inputs ride `widgetDef.props` |
+| **NC Dashboard API** | Widget def has `itemApiVersions` — auto-rendered via `CnWidgetRenderer` |
+
+The dispatcher resolves widgets in that order. The custom-slot branch beats the chart branch so apps that need bespoke apexcharts behaviour outside the manifest contract can fall back to `#widget-{id}` without losing the rest of the manifest.
+
+### Chart widget
+
+```js
+const WIDGETS = [{
+  id: 'sla-trend',
+  title: 'SLA trend',
+  type: 'chart',
+  props: {
+    chartKind: 'line',                   // line | bar | donut | area | pie | radialBar
+    series: [{ name: 'SLA %', data: [82, 88, 91, 93] }],
+    categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+    options: { stroke: { width: 3 } },   // deep-merged with CnChartWidget defaults
+    height: 280,
+    // Reserved for a future cycle — not read at render time today:
+    // dataSource: { url: '/index.php/apps/myapp/api/charts/sla' }
+    // dataSource: { register: 'cases', schema: 'case', groupBy: 'caseType', aggregate: 'count' }
+  },
+}]
+```
+
+Forwarded `props` keys (everything else is ignored): `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`.
 
 ## Usage
 
@@ -102,7 +127,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |-------|------|-------------|
 | `id` | String | Unique widget identifier |
 | `title` | String | Widget title shown in the wrapper header |
-| `type` | String | `'custom'` (default) or `'tile'` |
+| `type` | String | `'custom'` (default), `'tile'`, or `'chart'`. `'chart'` mounts CnChartWidget; chart inputs ride `props` |
+| `props` | Object | Free-form widget-specific props. For chart widgets: `{ chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, unavailableLabel, dataSource? }` |
 | `iconUrl` | String | Header icon image URL |
 | `iconClass` | String | Header icon CSS class |
 | `titleIconPosition` | String | Position of the `widget-{id}-title-icon` slot: `'left'` (before title) or `'right'` (after actions, default) |
