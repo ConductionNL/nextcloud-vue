@@ -246,7 +246,7 @@ function readInitialState(appId, key) {
 		// may not provision the slot at all. We resolve via require so
 		// jest mocks the import; bundle-side, the package is treeshaken
 		// when no caller pulls it in.
-		// eslint-disable-next-line global-require, import/no-unresolved
+		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
 		const mod = require('@nextcloud/initial-state')
 		if (typeof mod.loadState === 'function') {
 			return mod.loadState(appId, key, undefined)
