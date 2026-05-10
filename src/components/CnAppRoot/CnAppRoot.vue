@@ -265,17 +265,6 @@ export default {
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
 	},
 
-	data() {
-		return {
-			/**
-			 * Reactive holder that descendants write into to mount
-			 * their embedded index sidebar at NcContent level. Shared
-			 * via provide(); see the `cnIndexSidebarConfig` provide
-			 * docs for the contract.
-			 */
-			cnIndexSidebarConfig: { value: null },
-		}
-	},
 
 	props: {
 		/**
@@ -419,6 +408,13 @@ export default {
 			capabilitiesLoading: willCheck,
 			missingApps: [],
 			guardError: null,
+			/**
+			 * Reactive holder that descendants write into to mount
+			 * their embedded index sidebar at NcContent level. Shared
+			 * via provide(); see the `cnIndexSidebarConfig` provide
+			 * docs for the contract.
+			 */
+			cnIndexSidebarConfig: { value: null },
 		}
 	},
 
