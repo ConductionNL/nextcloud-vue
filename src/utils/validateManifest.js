@@ -197,7 +197,7 @@ function isPlainObject(value) {
 
 /**
  * Validate a page's `config` object against per-type rules for the
- * built-in extended types: `logs`, `settings`, `chat`, `files`.
+ * built-in extended types: `logs`, `settings`, `chat`, `files`, `wiki`.
  *
  * Skips silently for any other type (including the original
  * `index | detail | dashboard | custom`) — those have free-form
@@ -374,6 +374,21 @@ function validateTypeConfig(page, index, errors) {
 			if (typeof cfg.mode !== 'string' || !allowedModes.includes(cfg.mode)) {
 				errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of edit | create | public`)
 			}
+		}
+		break
+	}
+	case 'wiki': {
+		// `manifest-wiki-page-type` REQ-MWPT — wiki pages render a
+		// markdown article sourced from a register/schema property.
+		// Both register and schema MUST be non-empty strings; the
+		// optional fields (contentField, titleField, idParam, sidebar*)
+		// are NOT validated for type — runtime defaults take over and
+		// over-validation here would break consumer manifests with
+		// custom field names.
+		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
+		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
+		if (!hasRegister || !hasSchema) {
+			errors.push(`${pathSlash}: ${pathBracket}: wiki pages must declare register and schema`)
 		}
 		break
 	}

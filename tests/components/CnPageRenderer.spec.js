@@ -322,6 +322,8 @@ describe('CnPageRenderer', () => {
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.settings)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.chat)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.files)
+			// manifest-wiki-page-type addition:
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.wiki)
 		})
 	})
 
