@@ -68,7 +68,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | `manifest` | Object | Yes | — | Reactive manifest object from `useAppManifest`. Provides `manifest.dependencies`, `manifest.menu`, and is propagated via provide/inject |
 | `appId` | String | Yes | — | Nextcloud app id. Forwarded to `NcContent` and `CnDependencyMissing` |
 | `isLoading` | Boolean | No | `false` | Whether the manifest is still loading; drives the loading phase |
-| `customComponents` | Object | No | `{}` | Custom-component registry for `type: "custom"` pages and slot overrides in `CnPageRenderer` |
+| `customComponents` | Object | No | `{}` | Custom-component registry. Resolved by name across the library: (1) `type: "custom"` pages and slot overrides in `CnPageRenderer`, (2) `pages[].config.cardComponent` for bespoke card-grid views in `CnIndexPage`, (3) `pages[].config.sidebar.tabs[].component` and tab widgets in `CnObjectSidebar`, (4) settings sections and widgets in `CnSettingsPage`. Provided to descendants as `cnCustomComponents`. |
 | `translate` | Function | No | `key => key` | Translate function from the consuming app, typically `(key) => t(appId, key)`. Provided to descendants as `cnTranslate` |
 | `permissions` | Array | No | `[]` | Permission strings for the current user; forwarded to `CnAppNav` for menu filtering |
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
