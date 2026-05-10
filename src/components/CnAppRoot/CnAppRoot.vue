@@ -163,6 +163,22 @@
 					:is="cnPageSidebarComponent.value"
 					v-if="cnPageSidebarComponent.value" />
 			</slot>
+			<!--
+			  Hoisted index-page sidebar. CnIndexPage publishes its
+			  embedded CnIndexSidebar config (component + props +
+			  listeners) into the `cnIndexSidebarConfig` holder so it
+			  mounts at NcContent level — the only place where Nextcloud's
+			  NcAppSidebar slides correctly from the right. Rendering
+			  alongside the consumer's `#sidebar` slot is safe because
+			  the embedded sidebar only sets the holder when the page is
+			  an index AND `sidebar.enabled !== false`; detail-page
+			  sidebars (CnObjectSidebar) keep owning the slot.
+			-->
+			<component
+				v-if="cnIndexSidebarConfig.value"
+				:is="cnIndexSidebarConfig.value.component"
+				v-bind="cnIndexSidebarConfig.value.props"
+				v-on="cnIndexSidebarConfig.value.listeners" />
 		</template>
 	</NcContent>
 </template>
@@ -204,6 +220,24 @@ export default {
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
+			/**
+			 * Reactive holder that descendants — specifically
+			 * CnIndexPage — write to in order to mount their embedded
+			 * sidebar at NcContent level. The Vue 2 reactive idiom is
+			 * `{ value }` so descendants assign `holder.value = config`.
+			 * `config` is `{ component, props, listeners }`.
+			 *
+			 * Default null. CnIndexPage clears it on unmount so the
+			 * hoisted sidebar disappears when the user navigates away.
+			 */
+			cnIndexSidebarConfig: this.cnIndexSidebarConfig,
+			/**
+			 * Sentinel that CnIndexPage checks to decide whether to
+			 * publish its embedded sidebar to the hoist (true) or
+			 * render it inline (false, default for non-CnAppRoot
+			 * hosts).
+			 */
+			cnHostsIndexSidebar: true,
 		}
 	},
 
@@ -229,6 +263,18 @@ export default {
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
+	},
+
+	data() {
+		return {
+			/**
+			 * Reactive holder that descendants write into to mount
+			 * their embedded index sidebar at NcContent level. Shared
+			 * via provide(); see the `cnIndexSidebarConfig` provide
+			 * docs for the contract.
+			 */
+			cnIndexSidebarConfig: { value: null },
+		}
 	},
 
 	props: {

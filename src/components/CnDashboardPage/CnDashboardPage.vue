@@ -111,7 +111,27 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)">
-						<CnChartWidget v-bind="getChartProps(item)" />
+						<CnChartWidget
+							v-bind="getChartProps(item)"
+							:data-source="getWidgetDataSource(item)" />
+					</CnWidgetWrapper>
+				</template>
+
+				<!-- Stats-block widget — manifest-driven CnStatsBlock with
+				     a GraphQL-resolved count via `dataSource`. -->
+				<template v-else-if="isStatsBlock(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}">
+						<CnStatsBlockWidget
+							v-bind="getStatsBlockProps(item)"
+							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
 
@@ -155,6 +175,7 @@ import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 
 /**
  * Subset of `widgetDef.props` keys that the chart widget dispatcher
@@ -190,9 +211,15 @@ const CHART_PROP_KEYS = [
  * 2. **Custom slot** — App provides rendering via `#widget-{widgetId}`
  *    (escape hatch — beats every built-in branch when a slot exists)
  * 3. **Chart** — Items with `type: 'chart'` mount CnChartWidget; chart
- *    inputs (chartKind, series, options, …) ride `widgetDef.props`
- * 4. **NC Dashboard API** — Widgets with `itemApiVersions` auto-rendered
- * 5. **Unknown fallback** — `unavailableLabel` text inside a wrapper
+ *    inputs (chartKind, series, options, …) ride `widgetDef.props`,
+ *    plus an optional `dataSource` block resolves `series` /
+ *    `categories` from a GraphQL query.
+ * 4. **Stats-block** — Items with `type: 'stats-block'` mount
+ *    CnStatsBlockWidget; the count comes from `widgetDef.dataSource`
+ *    (shorthand `{ register, schema, filter?, aggregate: 'count' }`
+ *    or raw GraphQL `{ graphql: { query, variables?, selectors } }`).
+ * 5. **NC Dashboard API** — Widgets with `itemApiVersions` auto-rendered
+ * 6. **Unknown fallback** — `unavailableLabel` text inside a wrapper
  *
  * Basic usage with custom widgets
  * ```vue
@@ -254,6 +281,7 @@ export default {
 		CnWidgetRenderer,
 		CnTileWidget,
 		CnChartWidget,
+		CnStatsBlockWidget,
 	},
 
 	props: {
@@ -442,6 +470,54 @@ export default {
 		isChart(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.type === 'chart'
+		},
+
+		/**
+		 * Whether this layout item resolves to a stats-block widget
+		 * definition. Mirrors `isChart`. Used by the dispatcher
+		 * template to mount CnStatsBlockWidget.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef.type is 'stats-block'
+		 */
+		isStatsBlock(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'stats-block'
+		},
+
+		/**
+		 * Read the manifest `dataSource` block from a widget
+		 * definition. Returns `null` when none is set so the child
+		 * components can render their fallback (or stay loading).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The dataSource block or null
+		 */
+		getWidgetDataSource(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.dataSource || null
+		},
+
+		/**
+		 * Build the v-bind payload for CnStatsBlockWidget from a
+		 * stats-block widget definition. Forwards `props.countLabel`,
+		 * `props.variant`, `props.showZeroCount`, `props.horizontal`,
+		 * and `props.route` plus the widgetDef's `title`. The
+		 * `dataSource` is bound separately by the template (see
+		 * `getWidgetDataSource`) so the prop appears clearly in
+		 * the template even when it lives on the widgetDef root.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} v-bind payload for CnStatsBlockWidget
+		 */
+		getStatsBlockProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const props = def?.props || {}
+			const out = { title: def?.title || item.widgetId }
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route']) {
+				if (props[key] !== undefined) out[key] = props[key]
+			}
+			return out
 		},
 
 		/**

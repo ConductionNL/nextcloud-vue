@@ -405,6 +405,53 @@
 					"type": "object",
 					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type; not constrained here.",
 					"additionalProperties": true
+				},
+				"dataSource": {
+					"type": "object",
+					"description": "Optional data binding for widgets that fetch via OpenRegister's GraphQL endpoint. Two forms: (a) shorthand `{ register, schema, filter?, aggregate: 'count' }` — the lib builds `{ <schemaSlug>(filter: …) { totalCount } }` and resolves to `{ count }`. (b) raw `{ graphql: { query, variables?, selectors } }` — the lib issues `query` + `variables` and runs each value of `selectors` (a dot-path with optional `[]` array hops, e.g. `data.foo[].count`) against the response, building a result map keyed by the selector keys. Consumed by `type: 'stats-block'` (uses `count`) and `type: 'chart'` (uses `series`/`categories`/`labels`).",
+					"additionalProperties": true,
+					"properties": {
+						"register": {
+							"type": "string",
+							"description": "Shorthand: register slug. Decorative — included for symmetry with index/detail pages; the GraphQL field name is the schema slug."
+						},
+						"schema": {
+							"type": "string",
+							"description": "Shorthand: schema slug. Used as the connection field name in the generated GraphQL query."
+						},
+						"filter": {
+							"type": "object",
+							"description": "Shorthand: filter map inlined into the generated `filter:` arg.",
+							"additionalProperties": true
+						},
+						"aggregate": {
+							"type": "string",
+							"enum": ["count"],
+							"description": "Shorthand aggregation. Currently only `count` is supported; richer aggregates land with OpenRegister #1455."
+						},
+						"graphql": {
+							"type": "object",
+							"description": "Raw GraphQL form. Use when the shorthand is too narrow.",
+							"additionalProperties": false,
+							"required": ["query", "selectors"],
+							"properties": {
+								"query": {
+									"type": "string",
+									"description": "GraphQL query document."
+								},
+								"variables": {
+									"type": "object",
+									"description": "Variables map passed alongside `query`.",
+									"additionalProperties": true
+								},
+								"selectors": {
+									"type": "object",
+									"description": "Map of result-prop name → dot-path selector. `[]` segments flat-map across arrays, e.g. `data.foo[].count`.",
+									"additionalProperties": { "type": "string" }
+								}
+							}
+						}
+					}
 				}
 			}
 		},

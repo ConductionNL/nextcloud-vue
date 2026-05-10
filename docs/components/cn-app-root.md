@@ -95,6 +95,14 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
 
+## Hoisted index sidebar
+
+`CnAppRoot` provides a reactive holder, `cnIndexSidebarConfig`, that descendants — specifically [`CnIndexPage`](./cn-index-page.md) — write to in order to mount their embedded `CnIndexSidebar` at NcContent level. NcAppSidebar **must** be a direct child of NcContent to render as the proper right-side overlay; nested anywhere deeper it falls back to in-flow layout, which is why the lib hoists.
+
+The hoist is automatic — apps using `CnAppRoot` get correct positioning the moment they pass a `sidebar: { enabled: true }` config on a `type: 'index'` manifest page. No consumer template changes required. The hoisted sidebar mounts as a sibling of the consumer's `#sidebar` slot, so existing `#sidebar` content (e.g. `CnObjectSidebar` for detail pages) keeps working unchanged.
+
+Apps mounting `CnIndexPage` standalone (without `CnAppRoot`) keep the legacy inline rendering — the `cnHostsIndexSidebar` sentinel defaults to `false` in that case, so `CnIndexPage` renders the sidebar in-tree as before.
+
 ## Related
 
 - [useAppManifest](../utilities/composables/use-app-manifest.md) — Loads/validates the manifest passed in.
