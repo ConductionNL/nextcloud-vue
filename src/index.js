@@ -66,6 +66,7 @@ export {
 	CnDetailGrid,
 	CnProgressBar,
 	CnChartWidget,
+	CnStatsBlockWidget,
 	CnObjectSidebar,
 	CnInfoWidget,
 	CnTableWidget,
@@ -111,7 +112,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, cnRenderMarkdown } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, cnRenderMarkdown } from './composables/index.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'

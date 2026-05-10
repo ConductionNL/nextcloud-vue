@@ -18,7 +18,7 @@
 			:height="computedHeight"
 			:width="computedWidth"
 			:options="mergedOptions"
-			:series="series" />
+			:series="resolvedSeries" />
 		<div v-else class="cn-chart-widget__fallback">
 			<slot name="fallback">
 				<p class="cn-chart-widget__error">
@@ -32,6 +32,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import VueApexCharts from 'vue-apexcharts'
+import { useDataSource } from '../../composables/useDataSource.js'
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -161,6 +162,35 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
+		/**
+		 * Manifest dataSource block. When set, `series` /
+		 * `categories` / `labels` are resolved from the GraphQL
+		 * response via the dataSource selectors and override the
+		 * static props of the same names. Static props remain the
+		 * fallback while the query is loading or when no
+		 * dataSource is configured.
+		 *
+		 * @type {{
+		 *   register?: string,
+		 *   schema?: string,
+		 *   filter?: object,
+		 *   aggregate?: 'count',
+		 *   graphql?: { query: string, variables?: object, selectors: object }
+		 * }|null}
+		 */
+		dataSource: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	setup(props) {
+		// useDataSource is a no-op when `dataSource` is null/undefined
+		// — it never fires a request and always resolves `data.value`
+		// to null, so the static `series`/`categories`/`labels` props
+		// remain the source of truth in that case.
+		const { data } = useDataSource(() => props.dataSource)
+		return { dsData: data }
 	},
 
 	data() {
@@ -175,6 +205,25 @@ export default {
 		},
 		computedWidth() {
 			return this.width
+		},
+		/**
+		 * Series shown to ApexCharts. Pulls from `dsData.series`
+		 * when a `dataSource` is configured AND has resolved a
+		 * non-undefined value; otherwise falls back to the static
+		 * `series` prop. Same fallback rule applies to `categories`
+		 * and `labels`.
+		 */
+		resolvedSeries() {
+			const fromDs = this.dsData?.series
+			return fromDs !== undefined ? fromDs : this.series
+		},
+		resolvedCategories() {
+			const fromDs = this.dsData?.categories
+			return fromDs !== undefined ? fromDs : this.categories
+		},
+		resolvedLabels() {
+			const fromDs = this.dsData?.labels
+			return fromDs !== undefined ? fromDs : this.labels
 		},
 		defaultColors() {
 			if (this.colors.length > 0) return this.colors
@@ -236,9 +285,9 @@ export default {
 			}
 
 			// Add categories for cartesian charts
-			if (!isPieType && this.categories.length > 0) {
+			if (!isPieType && this.resolvedCategories.length > 0) {
 				defaults.xaxis = {
-					categories: this.categories,
+					categories: this.resolvedCategories,
 					labels: {
 						style: {
 							colors: 'var(--color-text-maxcontrast, #767676)',
@@ -255,8 +304,8 @@ export default {
 			}
 
 			// Add labels for pie/donut
-			if (isPieType && this.labels.length > 0) {
-				defaults.labels = this.labels
+			if (isPieType && this.resolvedLabels.length > 0) {
+				defaults.labels = this.resolvedLabels
 			}
 
 			// Bar-specific defaults
