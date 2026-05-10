@@ -1,5 +1,25 @@
 CnChartWidget wraps ApexCharts for use inside dashboard widget slots. Consuming apps must install `apexcharts` and `vue-apexcharts` as dependencies. The styleguide environment includes these packages, so examples render live.
 
+## Manifest usage (recommended)
+
+When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mounts CnChartWidget automatically and forwards `props.chartKind` as the apex `type`. Manifest authors do NOT need to mount this component themselves:
+
+```json
+{
+  "id": "sla-trend",
+  "title": "myapp.sla_trend",
+  "type": "chart",
+  "props": {
+    "chartKind": "line",
+    "series": [{ "name": "SLA %", "data": [82, 88, 91, 93] }],
+    "categories": ["Q1", "Q2", "Q3", "Q4"],
+    "options": { "stroke": { "width": 3 } }
+  }
+}
+```
+
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
+
 Area chart — time series data:
 
 ```vue

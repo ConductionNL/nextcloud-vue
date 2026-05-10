@@ -231,8 +231,26 @@
 					:empty-text="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
+					<!--
+						Card slot resolution priority (highest first):
+						1. Parent-provided `#card` scoped slot — App.vue overrides win.
+						2. `cardComponent` prop (or manifest `pages[].config.cardComponent`)
+						   resolved against the customComponents registry.
+						3. CnCardGrid's default CnObjectCard.
+					-->
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
+					</template>
+					<template v-else-if="resolvedCardComponent" #card="{ object, selected }">
+						<component
+							:is="resolvedCardComponent"
+							:item="object"
+							:object="object"
+							:schema="schema"
+							:register="register"
+							:selected="selected"
+							@click="onRowClick(object)"
+							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
@@ -416,11 +434,17 @@ export default {
 	},
 
 	/**
-	 * Inject the customComponents registry from a CnAppRoot ancestor
-	 * (REQ-MAD-3 / REQ-MAD-8 — manifest-actions-dispatch). The
-	 * registry resolves `actions[].handler` registry names to functions
-	 * called on row-action click. Falls back to an empty object so the
-	 * page works standalone without CnAppRoot.
+	 * Inject the customComponents registry from a CnAppRoot ancestor.
+	 * Used by:
+	 * - REQ-MAD-3 / REQ-MAD-8 (manifest-actions-dispatch): resolves
+	 *   `actions[].handler` registry names to functions called on
+	 *   row-action click.
+	 * - The cardComponent + form-dialog override paths: when set, the
+	 *   prop-level `customComponents` wins, but the inject is the
+	 *   default. See `effectiveCustomComponents`.
+	 *
+	 * Falls back to an empty object so `CnIndexPage` works standalone
+	 * (unit tests, isolated mount) without `CnAppRoot`.
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
@@ -725,10 +749,50 @@ export default {
 			default: () => ({}),
 		},
 		/**
-		 * Custom-component / handler registry. When provided, takes
-		 * precedence over the injected `cnCustomComponents` for
-		 * resolving `actions[].handler` registry names
-		 * (REQ-MAD-3, manifest-actions-dispatch).
+		 * Effective register slug for the page. Forwarded as a prop to
+		 * the resolved card component (when `cardComponent` is set) so
+		 * bespoke card UIs can match the schema → register pair.
+		 *
+		 * Manifest-driven path: `pages[].config.register` flows in via
+		 * CnPageRenderer's `v-bind="resolvedProps"` spread.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional name of a consumer-provided card component (registered
+		 * in the `customComponents` registry on `CnAppRoot`) to render in
+		 * place of the default `CnObjectCard` when the page is in
+		 * card-grid view mode.
+		 *
+		 * Resolution priority (highest first):
+		 *   1. The parent's `#card` scoped slot (always wins).
+		 *   2. The component resolved from `cardComponent` against the
+		 *      effective customComponents registry.
+		 *   3. The library default (`CnObjectCard`).
+		 *
+		 * Unknown names log `console.warn` once and fall back to the
+		 * default so a misconfigured manifest never blanks the grid.
+		 *
+		 * @type {string}
+		 */
+		cardComponent: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional explicit customComponents registry. When set, this
+		 * overrides the registry injected from `CnAppRoot` via
+		 * `cnCustomComponents`. Provided primarily so unit tests can
+		 * pass a registry without mounting `CnAppRoot`.
+		 *
+		 * Used by:
+		 * - `cardComponent` resolution (REQ-MCI from manifest-card-index)
+		 * - `actions[].handler` registry name resolution (REQ-MAD-3 from
+		 *   manifest-actions-dispatch — handler funcs called on row-action click)
 		 *
 		 * @type {object|null}
 		 */
@@ -925,6 +989,42 @@ export default {
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
+		},
+
+		/**
+		 * Effective customComponents registry used to resolve the
+		 * `cardComponent` name. Explicit prop wins, inject falls back,
+		 * empty object is the last resort.
+		 *
+		 * @return {object}
+		 */
+		effectiveCustomComponents() {
+			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+
+		/**
+		 * Resolved card component for card-grid view mode. Returns
+		 * `null` when `cardComponent` is empty OR when the name is not
+		 * in the registry (the latter also logs `console.warn`).
+		 *
+		 * `null` makes the template fall through to `CnCardGrid`'s
+		 * default `CnObjectCard` rendering — exactly the legacy path.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCardComponent() {
+			if (!this.cardComponent) {
+				return null
+			}
+			const resolved = this.effectiveCustomComponents[this.cardComponent]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`,
+				)
+				return null
+			}
+			return resolved
 		},
 	},
 
@@ -1248,6 +1348,23 @@ export default {
 		openDeleteDialog(item) {
 			this.actionTargetItem = item
 			this.showSingleDeleteDialog = true
+		},
+
+		/**
+		 * Pure helper used by the cardComponent dispatch path to toggle
+		 * an id in the selected-ids array. Kept inline rather than
+		 * pulled into a util because the only call site is the
+		 * cardComponent `@select` listener template above.
+		 *
+		 * @param {Array} ids Current selection
+		 * @param {string|number} id The id to toggle
+		 * @return {Array} New array with `id` toggled in/out
+		 */
+		toggleIdInArray(ids, id) {
+			if (ids.includes(id)) {
+				return ids.filter((existing) => existing !== id)
+			}
+			return [...ids, id]
 		},
 	},
 }

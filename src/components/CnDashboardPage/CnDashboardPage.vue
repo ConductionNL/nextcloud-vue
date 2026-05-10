@@ -98,6 +98,23 @@
 					</CnWidgetWrapper>
 				</template>
 
+				<!-- Chart widget — manifest-driven apexcharts mount -->
+				<template v-else-if="isChart(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)">
+						<CnChartWidget v-bind="getChartProps(item)" />
+					</CnWidgetWrapper>
+				</template>
+
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
@@ -137,6 +154,30 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
+import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+
+/**
+ * Subset of `widgetDef.props` keys that the chart widget dispatcher
+ * forwards to CnChartWidget. Unknown keys on `props` are ignored so
+ * the manifest stays forward-compatible (e.g. `dataSource` is
+ * round-tripped through manifest validators but not yet read here).
+ *
+ * `chartKind` is renamed to `type` because apexcharts' own component
+ * prop is also called `type`, and `widgetDef.type` already means
+ * "dispatcher selector" in this file.
+ */
+const CHART_PROP_KEYS = [
+	'series',
+	'categories',
+	'labels',
+	'options',
+	'colors',
+	'toolbar',
+	'legend',
+	'height',
+	'width',
+	'unavailableLabel',
+]
 
 /**
  * CnDashboardPage — Top-level dashboard page component.
@@ -144,10 +185,14 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  * The dashboard equivalent of CnIndexPage. Renders a configurable grid
  * of widgets from a `widgets` definition array and a `layout` array.
  *
- * Widget types:
- * 1. **Custom** — App provides rendering via `#widget-{widgetId}` slot
- * 2. **NC Dashboard API** — Widgets with `itemApiVersions` are auto-rendered
- * 3. **Tile** — Items with `type: 'tile'` render as quick-access tiles
+ * Widget types (priority order, first match wins):
+ * 1. **Tile** — Items with `type: 'tile'` render as quick-access tiles
+ * 2. **Custom slot** — App provides rendering via `#widget-{widgetId}`
+ *    (escape hatch — beats every built-in branch when a slot exists)
+ * 3. **Chart** — Items with `type: 'chart'` mount CnChartWidget; chart
+ *    inputs (chartKind, series, options, …) ride `widgetDef.props`
+ * 4. **NC Dashboard API** — Widgets with `itemApiVersions` auto-rendered
+ * 5. **Unknown fallback** — `unavailableLabel` text inside a wrapper
  *
  * Basic usage with custom widgets
  * ```vue
@@ -173,6 +218,26 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  *   :layout="layout"
  *   @layout-change="saveLayout" />
  * ```
+ *
+ * With manifest-driven chart widgets (no consumer code required)
+ * ```js
+ * const widgets = [{
+ *   id: 'sla-trend',
+ *   title: 'SLA trend',
+ *   type: 'chart',
+ *   props: {
+ *     chartKind: 'line',                 // line|bar|donut|area|pie|radialBar
+ *     series: [{ name: 'SLA %', data: [82, 85, 88, 91] }],
+ *     categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+ *     options: { stroke: { width: 3 } }, // deep-merged with defaults
+ *     // dataSource is reserved for a future cycle — round-tripped
+ *     // through manifest validators but not yet read at render time:
+ *     // dataSource: { url: '/index.php/apps/myapp/api/charts/sla' }
+ *     // dataSource: { register: 'cases', schema: 'case',
+ *     //               groupBy: 'caseType', aggregate: 'count' }
+ *   },
+ * }]
+ * ```
  */
 export default {
 	name: 'CnDashboardPage',
@@ -188,6 +253,7 @@ export default {
 		CnWidgetWrapper,
 		CnWidgetRenderer,
 		CnTileWidget,
+		CnChartWidget,
 	},
 
 	props: {
@@ -207,7 +273,10 @@ export default {
 		 * Custom widgets: `{ id: 'my-widget', title: 'My Widget', type: 'custom' }`
 		 * NC API widgets: `{ id: 'calendar', title: 'Calendar', itemApiVersions: [1,2], ... }`
 		 * Tile widgets: `{ id: 'tile-files', type: 'tile', title: 'Files', icon: 'M12...', iconType: 'svg', backgroundColor: '#0082c9', textColor: '#fff', linkType: 'app', linkValue: 'files' }`
-		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number }>}
+		 * Chart widgets: `{ id: 'sla', type: 'chart', title: 'SLA trend',
+		 *   props: { chartKind: 'line', series: [{ name: 'SLA %', data: [82, 88, 91] }],
+		 *            categories: ['Q1', 'Q2', 'Q3'], options: { stroke: { width: 3 } } } }`
+		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number, props: object }>}
 		 */
 		widgets: {
 			type: Array,
@@ -360,6 +429,46 @@ export default {
 		isNcWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.itemApiVersions && def.itemApiVersions.length > 0
+		},
+
+		/**
+		 * Whether this layout item resolves to a chart-typed widget
+		 * definition. Mirrors `isTile` and `isNcWidget`. Used by the
+		 * dispatcher template to mount CnChartWidget.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef.type is 'chart'
+		 */
+		isChart(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'chart'
+		},
+
+		/**
+		 * Build the v-bind payload for CnChartWidget from a chart-typed
+		 * widget definition. Translates `props.chartKind` → `type` (so
+		 * the manifest's free-form `chartKind` does not collide with
+		 * apexcharts' own reserved `type` prop) and forwards the
+		 * supported subset (`series`, `categories`, `labels`, `options`,
+		 * `colors`, `toolbar`, `legend`, `height`, `width`,
+		 * `unavailableLabel`).
+		 *
+		 * Unknown keys on `props` (including the reserved `dataSource`
+		 * union) are ignored at render time so manifest authors can ship
+		 * forward-compatible declarations.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} v-bind payload for CnChartWidget
+		 */
+		getChartProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const props = def?.props || {}
+			const out = {}
+			if (props.chartKind) out.type = props.chartKind
+			for (const key of CHART_PROP_KEYS) {
+				if (props[key] !== undefined) out[key] = props[key]
+			}
+			return out
 		},
 
 		hasWidgetSlot(widgetId) {
