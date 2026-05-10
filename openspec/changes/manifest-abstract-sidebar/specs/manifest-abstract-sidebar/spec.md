@@ -230,8 +230,7 @@ id at index 0 of the tabs array on page 2).
 
 ### Requirement: All additions MUST be backwards compatible
 
-Every prop, event, slot, and config field added by this change
-MUST be optional with a non-breaking default. A consumer using the
+Every prop, event, slot, and config field added by this change MUST be optional with a non-breaking default. A consumer using the
 existing slot-based `CnIndexPage` sidebar pattern, the hard-coded
 `CnObjectSidebar` tab set, or a manifest written against the
 schema's previous version MUST continue working without changes.

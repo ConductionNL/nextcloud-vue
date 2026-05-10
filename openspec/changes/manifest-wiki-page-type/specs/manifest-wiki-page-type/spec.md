@@ -112,8 +112,7 @@ the typography.
 
 ### Requirement: CnWikiPage MUST render an optional sidebar tree when `tree` is non-empty
 
-When the `tree` prop is a non-empty array AND `sidebarSchema` is
-declared in the manifest config, `CnWikiPage` MUST render a
+When the `tree` prop is a non-empty array AND `sidebarSchema` is declared in the manifest config, `CnWikiPage` MUST render a
 `<nav class="cn-wiki-page__sidebar">` containing a tree component
 that mounts each tree node. Empty-tree or missing-`sidebarSchema`
 MUST omit the sidebar entirely.

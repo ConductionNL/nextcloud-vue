@@ -14,7 +14,7 @@ Defines the manifest shape, loading composable, renderer components, and JSON Sc
 
 ---
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: REQ-JMR-001 — Manifest JSON Schema
 
@@ -626,13 +626,9 @@ All slots are independently overridable by the consuming app.
 
 ---
 
-## MODIFIED Requirements
+## Notes — Non-delta sections
 
-None — this capability is entirely new. No existing spec requirements are changed. Note: `CnIndexPage` and `CnDetailPage` gain additive `#header` and `#actions` slots (see task 3.4); no existing consumers are affected.
-
-## REMOVED Requirements
-
-None.
+This capability is entirely new — no existing spec requirements are MODIFIED or REMOVED. The lib's `CnIndexPage` and `CnDetailPage` gain additive `#header` and `#actions` slots (see task 3.4) but those land via their own ADDED Requirements in this change; no existing consumers are affected.
 
 ---
 

@@ -19,8 +19,7 @@ back to `type: "custom"` or `#field-<key>` slot abuse.
 
 ### Requirement: REQ-MSRS-1 — A settings section MUST accept exactly one of `fields | component | widgets`
 
-Each entry in `pages[].config.sections[]` for a `type: "settings"`
-page MUST declare exactly one of: a `fields: array` (back-compat,
+Each entry in `pages[].config.sections[]` for a `type: "settings"` page MUST declare exactly one of: a `fields: array` (back-compat,
 unchanged from `manifest-page-type-extensions`), a `component: string`
 naming a customComponents registry entry, or a `widgets: array` of
 widget references. Sections declaring two or more of these keys MUST
@@ -113,8 +112,7 @@ when present.
 
 ### Requirement: REQ-MSRS-4 — Widget events MUST surface through `@widget-event` on `CnSettingsPage`
 
-When a widget mounted inside a `widgets[]` section emits an event,
-`CnSettingsPage` MUST re-emit it as a `@widget-event` event with
+When a widget mounted inside a `widgets[]` section emits an event, `CnSettingsPage` MUST re-emit it as a `@widget-event` event with
 payload `{ widgetType, widgetIndex, sectionIndex, name, args }`.
 Consumers wire a single page-level handler that dispatches by
 `widgetType` + `name`.
@@ -126,8 +124,7 @@ Consumers wire a single page-level handler that dispatches by
 
 ### Requirement: REQ-MSRS-5 — Bare-fields settings sections MUST keep working unchanged (back-compat)
 
-Every existing manifest with `pages[].config.sections[].fields[]` and
-no `component` or `widgets` keys MUST render and validate identically
+Every existing manifest with `pages[].config.sections[].fields[]` and no `component` or `widgets` keys MUST render and validate identically
 to its behaviour before this change. The new section flavors are
 strictly additive; no existing test in `CnSettingsPage.spec.js` or
 `app-manifest.schema.spec.js` MUST require modification.

@@ -126,9 +126,7 @@ MUST NOT render even if `cnPageSidebarComponent.value` is non-null.
 
 ### Requirement: `sidebarComponent` and `sidebar.show` MUST compose deterministically
 
-When BOTH `pages[].sidebar.show: false` AND
-`pages[].sidebarComponent` are set on the same page, visibility
-MUST win — the slot does not render at all and the resolved
+When BOTH `pages[].sidebar.show: false` AND `pages[].sidebarComponent` are set on the same page, visibility MUST win — the slot does not render at all and the resolved
 component is suppressed. `CnPageRenderer` MUST log a
 `console.warn` noting the dead `sidebarComponent` config so
 manifest authors notice the misconfiguration. The resolved
@@ -146,8 +144,7 @@ directly if needed).
 
 ### Requirement: All additions MUST be backwards compatible
 
-Every field, prop, provide channel, and inject added by this
-change MUST be optional with a non-breaking default. Manifests
+Every field, prop, provide channel, and inject added by this change MUST be optional with a non-breaking default. Manifests
 that do not declare `pages[].sidebarComponent` MUST validate
 unchanged. Apps that do not provide a `customComponents` registry
 entry for `sidebarComponent` MUST still function — the warning
