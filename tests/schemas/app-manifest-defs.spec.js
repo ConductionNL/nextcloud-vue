@@ -240,16 +240,11 @@ describe('manifest-config-defs additivity', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
-<<<<<<< HEAD
-		// The manifest-actions-dispatch change adds `handler` + `route` to
-		// the `action` $def and bumps to 1.3.0. This file's defs are still
-		// present and reachable; the assertion just keeps in sync with
-		// the latest base.
-=======
-		// `manifest-card-index-component` adds the optional `cardComponent`
-		// field on `type:'index'` config (additive — existing $defs unchanged)
-		// and bumps to 1.3.0.
->>>>>>> origin/beta
+		// 1.3.0 reflects two additive changes that landed in the same wave:
+		// - `manifest-card-index-component` adds the optional `cardComponent`
+		//   field on `type:'index'` config.
+		// - `manifest-actions-dispatch` adds `handler` + `route` to the `action`
+		//   $def. Existing $defs unchanged either way.
 		expect(schema.version).toBe('1.3.0')
 	})
 
