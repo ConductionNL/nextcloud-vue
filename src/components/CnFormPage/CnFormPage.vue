@@ -38,7 +38,11 @@
 -->
 <template>
 	<div class="cn-form-page" :data-mode="mode">
-		<!-- Header — overridable via #header slot -->
+		<!--
+			@slot header
+			@description Replaces the default `CnPageHeader`. Receives `{ title, description }` as scoped props
+			so a custom header can mirror the manifest-supplied labels.
+		-->
 		<slot
 			name="header"
 			:title="title"
@@ -49,8 +53,8 @@
 				:description="description" />
 		</slot>
 
-		<!-- Actions slot -->
 		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-form-page__actions">
+			<!-- Optional slot for action buttons (back, cancel, etc.) rendered above the form. -->
 			<slot name="actions" />
 		</div>
 
@@ -69,7 +73,11 @@
 				:key="field.key"
 				class="cn-form-page__field"
 				:data-field-key="field.key">
-				<!-- Per-field slot lets a consumer override the input entirely. -->
+				<!--
+					@slot field-${field.key}
+					@description Per-field override slot. Replaces the auto-rendered input for one specific field.
+					Scoped props: `{ field, value, onInput }` — `onInput(v)` updates the field via `updateField`.
+				-->
 				<slot
 					:name="`field-${field.key}`"
 					:field="field"
@@ -99,8 +107,8 @@
 				{{ lastError }}
 			</p>
 
-			<!-- Submit -->
 			<div class="cn-form-page__submit">
+				<!-- Replaces the default submit button. Scoped props: `{ submitting, dirty, submit }`. -->
 				<slot
 					name="submit"
 					:submitting="submitting"
@@ -150,6 +158,16 @@ function resolveParams(url, params) {
 	})
 }
 
+/**
+ * @event submit Fired after a successful submit. Payload: `{ formData, response? }` — `response` is present in endpoint mode, omitted in handler mode.
+ * @event error Fired when submit fails. Payload: `{ error, formData }`.
+ * @event input Fired on every field-level update; payload is the full current `formData` object.
+ *
+ * @slot header Replaces the default `CnPageHeader`. Scoped props: `{ title, description }`.
+ * @slot actions Optional slot for action buttons rendered above the form. Hidden when empty.
+ * @slot field-${field.key} Per-field override slot. Replaces the auto-rendered input for one specific field. Scoped props: `{ field, value, onInput }`.
+ * @slot submit Replaces the default submit button. Scoped props: `{ submitting, dirty, submit }`.
+ */
 export default {
 	name: 'CnFormPage',
 
@@ -260,6 +278,20 @@ export default {
 		},
 	},
 
+	/**
+	 * Events:
+	 * @event submit
+	 * @description Fired after a successful submit (handler returned, or endpoint POST/PUT/PATCH succeeded).
+	 *   Payload is `{ formData, response? }` — `response` is present in endpoint mode, omitted in handler mode.
+	 *
+	 * @event error
+	 * @description Fired when submit fails (handler threw, or endpoint returned a non-2xx response).
+	 *   Payload is `{ error, formData }`.
+	 *
+	 * @event input
+	 * @description Fired on every field-level update; payload is the full current `formData` object.
+	 *   Useful for parent-side reactive previews / autosave hooks.
+	 */
 	emits: ['submit', 'error', 'input'],
 
 	data() {
@@ -331,6 +363,12 @@ export default {
 
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
+			/**
+			 * Field-level update event.
+			 *
+			 * @event input
+			 * @type {{key: string, value: any}}
+			 */
 			this.$emit('input', { key, value })
 		},
 
@@ -353,9 +391,21 @@ export default {
 					throw new Error('CnFormPage: no submit destination configured (set submitHandler or submitEndpoint)')
 				}
 				this.submitted = true
+				/**
+				 * Successful submit event. Payload is the full formData object.
+				 *
+				 * @event submit
+				 * @type {object}
+				 */
 				this.$emit('submit', this.formData)
 			} catch (err) {
 				this.lastError = err && err.message ? err.message : String(err)
+				/**
+				 * Submit failure event. Payload is the thrown error / rejected reason.
+				 *
+				 * @event error
+				 * @type {Error}
+				 */
 				this.$emit('error', err)
 			} finally {
 				this.submitting = false
