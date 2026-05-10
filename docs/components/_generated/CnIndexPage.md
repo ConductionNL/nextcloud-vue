@@ -55,6 +55,7 @@
 | `searchValue`           | `string`                                                                                                              |          | `''`                                                                                           | Current search term (forwarded to the embedded sidebar when sidebar.enabled).                                                                                                                                                                                                                                            |
 | `visibleColumns`        | `array`                                                                                                               |          | `null`                                                                                         | Currently visible column keys (forwarded to the embedded sidebar).                                                                                                                                                                                                                                                       |
 | `activeFilters`         | `object`                                                                                                              |          | `\{\}`                                                                                         | Currently active facet filters: \{ fieldName: [values] \} (forwarded to the embedded sidebar).                                                                                                                                                                                                                           |
+| `customComponents`      | `union`                                                                                                               |          | `null`                                                                                         | Custom-component / handler registry. When provided, takes precedence over the injected `cnCustomComponents` for resolving `actions[].handler` registry names (REQ-MAD-3, manifest-actions-dispatch).                                                                                                                     |
 
 ### Events
 
@@ -62,12 +63,12 @@
 | ------------------- | ------- | ----------- |
 | `refresh`           | —       |             |
 | `sort`              | —       |             |
-| `action`            | —       |             |
 | `page-changed`      | —       |             |
 | `page-size-changed` | —       |             |
 | `search`            | —       |             |
 | `columns-change`    | —       |             |
 | `filter-change`     | —       |             |
+| `action`            | —       |             |
 | `row-click`         | —       |             |
 | `view`              | —       |             |
 | `add`               | —       |             |
