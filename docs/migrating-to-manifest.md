@@ -174,6 +174,47 @@ Override the `#menu` slot:
 
 `CnAppRoot` also exposes `#loading`, `#dependency-missing`, `#header-actions`, `#sidebar`, and `#footer` — each independently overridable.
 
+### App-availability guard
+
+`CnAppRoot` ships with an always-on guard that checks the Nextcloud capabilities API on mount and renders an empty-state when a required app is missing. By default the guard checks for **OpenRegister** — every fleet app stores its data there, so the convention is encoded in the library rather than duplicated per app.
+
+```vue
+<!-- Default: guard is on, requires OpenRegister automatically -->
+<CnAppRoot :manifest="manifest" app-id="myapp" :translate="t" />
+
+<!-- Multi-app future-proofing: require both OR and openconnector -->
+<CnAppRoot
+  :manifest="manifest"
+  app-id="docudesk"
+  :translate="t"
+  :requires-apps="['openregister', 'openconnector']" />
+
+<!-- Opt out: docs site, styleguide, or any utility app that doesn't need OR -->
+<CnAppRoot :manifest="manifest" app-id="docs" :translate="t" :requires-apps="[]" />
+```
+
+When the guard fires, the default surface is an `<NcEmptyContent>` with the OpenRegister database icon, an i18n title and description, and a primary action linking to the Nextcloud integration page (`/index.php/settings/apps/integration/openregister`). The translation keys used:
+
+- `app-availability.title` — fallback "OpenRegister is required"
+- `app-availability.description` — fallback "This app stores its data in OpenRegister. Install or enable OpenRegister from the Nextcloud app store to continue."
+- `app-availability.action` — fallback "Open app store"
+
+Apps that want a fully custom empty-state replace it via the `#or-missing` scoped slot, which receives `{ missingApps }`:
+
+```vue
+<CnAppRoot :manifest="manifest" app-id="myapp" :translate="t">
+  <template #or-missing="{ missingApps }">
+    <MyCustomMissingState :missing-apps="missingApps" />
+  </template>
+</CnAppRoot>
+```
+
+While the capabilities check is in flight, `CnAppRoot` renders a centered `<NcLoadingIcon :size="32" />` so slow connections don't flash the renderer briefly before the empty state replaces it.
+
+If `getCapabilities()` rejects (admin-restricted, offline, CORS), the guard falls through to the renderer and a `console.warn` is logged — the data layer surfaces the actual problem if OpenRegister is genuinely missing. The guard never blocks the app on a transient capabilities-API failure.
+
+This guard is independent of `manifest.dependencies`, which continues to power the per-app dependency declarations in your manifest. The two coexist: `requiresApps` is the prop-level "this app cannot function without these capabilities" check, while `manifest.dependencies` covers app-level dependency declarations resolved through `useAppStatus`.
+
 ---
 
 ## What goes in `manifest.json`

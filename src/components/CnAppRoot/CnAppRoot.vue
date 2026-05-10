@@ -3,36 +3,96 @@
 
   Provides the manifest, custom-component registry, and translate
   function to descendants via Vue's `provide`/`inject`. Orchestrates
-  three rendering phases:
+  four rendering phases:
 
-    1. Loading        — while useAppManifest.isLoading is true.
-                        Default: <CnAppLoading />. Override: #loading slot.
-    2. Dependency     — after loading; when any entry in
-                        manifest.dependencies is not installed/enabled.
-                        Default: <CnDependencyMissing />. Override:
-                        #dependency-missing slot.
-    3. Shell          — manifest loaded + dependencies satisfied.
-                        Renders #menu (default <CnAppNav />) + the
-                        consuming app's <router-view>, plus optional
-                        #header-actions, #sidebar, and #footer slots.
+    0. Capabilities  — checks the Nextcloud capabilities API for any
+                       app id listed in `requiresApps` (default
+                       `['openregister']`). When a required app is
+                       missing, default content is <NcEmptyContent>
+                       with an OR-store action; consumers may replace
+                       the surface entirely via the #or-missing slot.
+                       Apps that do not need the guard pass
+                       `:requires-apps="[]"`.
+    1. Loading       — while useAppManifest.isLoading is true.
+                       Default: <CnAppLoading />. Override: #loading slot.
+    2. Dependency    — after loading; when any entry in
+                       manifest.dependencies is not installed/enabled.
+                       Default: <CnDependencyMissing />. Override:
+                       #dependency-missing slot.
+    3. Shell         — manifest loaded + dependencies satisfied.
+                       Renders #menu (default <CnAppNav />) + the
+                       consuming app's <router-view>, plus optional
+                       #header-actions, #sidebar, and #footer slots.
 
   Consuming apps that want manifest-driven pages but their own root
   layout can skip CnAppRoot entirely and use CnPageRenderer / CnAppNav
   with explicit props (the props-vs-inject fallback). CnAppRoot is the
   full-shell convenience.
 
-  See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec.
+  See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec,
+  and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
 	<NcContent :app-name="appId">
-		<!-- Loading phase -->
-		<template v-if="phase === 'loading'">
+		<!-- Phase 0a: capabilities check in flight -->
+		<template v-if="capabilitiesLoading">
+			<div class="cn-app-root__capabilities-loading">
+				<NcLoadingIcon :size="32" />
+			</div>
+		</template>
+
+		<!--
+		  @slot or-missing
+		  @description Custom missing-app screen used when one or more
+		  entries in `requiresApps` are absent from the Nextcloud
+		  capabilities payload. Receives `{ missingApps: string[] }`.
+		  Default content: an `<NcEmptyContent>` with the OpenRegister
+		  database icon, i18n title/description, and a primary action
+		  linking to the OpenRegister integration page. Override when
+		  the consumer needs a custom CTA (e.g. softwarecatalog linking
+		  to its public landing page). See REQ-OR-4.
+		-->
+		<template v-else-if="missingApps.length > 0">
+			<slot name="or-missing" :missing-apps="missingApps">
+				<div class="cn-app-root__or-missing">
+					<NcEmptyContent
+						:name="translate('app-availability.title')"
+						:description="translate('app-availability.description')">
+						<template #icon>
+							<DatabaseSearchOutline :size="64" />
+						</template>
+						<template #action>
+							<a
+								class="cn-app-root__or-missing-action"
+								:href="orStoreLink">
+								{{ translate('app-availability.action') }}
+							</a>
+						</template>
+					</NcEmptyContent>
+				</div>
+			</slot>
+		</template>
+
+		<!--
+		  @slot loading
+		  @description Loading screen rendered while the manifest
+		  fetch is in flight (REQ-JMR-013). Default content is a
+		  `<CnAppLoading />` brand spinner. Override when the consumer
+		  needs a custom skeleton or branded loader.
+		-->
+		<template v-else-if="phase === 'loading'">
 			<slot name="loading">
 				<CnAppLoading />
 			</slot>
 		</template>
 
-		<!-- Dependency-check phase -->
+		<!--
+		  @slot dependency-missing
+		  @description Empty-state surface rendered when one or more
+		  entries in `manifest.dependencies` are not installed/enabled.
+		  Receives `{ dependencies }` (the unresolved list). Default:
+		  `<CnDependencyMissing>`. See REQ-JMR-011.
+		-->
 		<template v-else-if="phase === 'dependency-missing'">
 			<slot name="dependency-missing" :dependencies="unresolvedDependencies">
 				<CnDependencyMissing
@@ -41,14 +101,32 @@
 			</slot>
 		</template>
 
-		<!-- Shell phase -->
+		<!-- Phase 3: shell -->
 		<template v-else>
+			<!--
+			  @slot menu
+			  @description Left-rail navigation surface. Default:
+			  `<CnAppNav>` reading `manifest.menu` and filtering by
+			  `permissions`. Override to ship a hand-rolled menu while
+			  keeping the rest of CnAppRoot's shell.
+			-->
 			<slot name="menu">
 				<CnAppNav :permissions="permissions" />
 			</slot>
 			<NcAppContent>
 				<router-view />
+				<!--
+				  @slot header-actions
+				  @description Optional action buttons rendered in the
+				  page header alongside the router-view. Empty by
+				  default; consumer apps fill it with toolbar buttons.
+				-->
 				<slot name="header-actions" />
+				<!--
+				  @slot footer
+				  @description Optional footer surface rendered below the
+				  router-view inside `NcAppContent`. Empty by default.
+				-->
 				<slot name="footer" />
 			</NcAppContent>
 			<!--
@@ -69,6 +147,17 @@
 			  standard slot mechanic; the resolved component is the
 			  fallback. See manifest-named-view-sidebar spec.
 			-->
+			<!--
+			  @slot sidebar
+			  @description Right-rail sidebar surface. Gated by the
+			  `cnPageSidebarVisible` inject (provided by `CnPageRenderer`)
+			  so manifest pages can suppress the sidebar via
+			  `pages[].sidebar.show: false`. Default content: when
+			  `cnPageSidebarComponent.value` is set (provided by
+			  `CnPageRenderer` for `pages[].sidebarComponent`), that
+			  component renders here; otherwise empty. Consumer-supplied
+			  slot content always wins over the resolved component.
+			-->
 			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
 				<component
 					:is="cnPageSidebarComponent.value"
@@ -79,11 +168,21 @@
 </template>
 
 <script>
-import { NcAppContent, NcContent } from '@nextcloud/vue'
+import { NcAppContent, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCapabilities } from '@nextcloud/capabilities'
+import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+
+/**
+ * Default URL for the OpenRegister integration page. The empty-state
+ * action links here so users can install / enable OpenRegister with one
+ * click. Override per-environment by replacing the default empty-state
+ * via the `#or-missing` slot.
+ */
+const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
 
 export default {
 	name: 'CnAppRoot',
@@ -91,6 +190,9 @@ export default {
 	components: {
 		NcAppContent,
 		NcContent,
+		NcEmptyContent,
+		NcLoadingIcon,
+		DatabaseSearchOutline,
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
@@ -217,6 +319,90 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Required Nextcloud apps for this Conduction app to function.
+		 * Default `['openregister']` — every fleet app stores its data
+		 * in OpenRegister, so the guard is on by default. Consumer apps
+		 * that don't need OpenRegister (the styleguide, the docs site,
+		 * future utility apps) opt out via `:requires-apps="[]"`.
+		 *
+		 * On `mounted()`, CnAppRoot calls `getCapabilities()` from
+		 * `@nextcloud/capabilities` exactly once and compares the
+		 * returned capability keys against this list. When ANY entry
+		 * is missing, CnAppRoot renders an `<NcEmptyContent>` (the
+		 * default) or the consumer's `#or-missing` slot.
+		 *
+		 * Multi-app future-proofing free: a future docudesk-derived app
+		 * needing both can declare
+		 * `:requires-apps="['openregister', 'openconnector']"`.
+		 *
+		 * Network failure on `getCapabilities()` (admin-restricted,
+		 * offline, CORS) falls through to the renderer rather than
+		 * blocking the app on a flaky check — the data layer surfaces
+		 * the actual failure when API calls hit OpenRegister.
+		 *
+		 * See REQ-OR-1..REQ-OR-7 of cnapproot-app-availability-guard.
+		 *
+		 * @type {Array<string>}
+		 */
+		requiresApps: {
+			type: Array,
+			default: () => ['openregister'],
+		},
+	},
+
+	/**
+	 * Component-instance state for the capabilities guard.
+	 *
+	 * - `capabilitiesLoading`: `true` only when the prop says we need
+	 *   to check (i.e. `requiresApps.length > 0`). Apps that opt out
+	 *   via `:requires-apps="[]"` see this initialise to `false`, so
+	 *   no spinner flashes and the renderer mounts on the first
+	 *   render. Apps that need the guard see `true` initially; the
+	 *   `mounted()` hook runs the check and flips to `false`.
+	 * - `missingApps`: the list of `requiresApps` entries NOT
+	 *   present in the capabilities payload. When empty, the
+	 *   renderer mounts; when non-empty, the empty-state renders.
+	 * - `guardError`: stores the caught error so consumers
+	 *   inspecting the component instance can introspect failures.
+	 *   The error path falls through to the renderer regardless.
+	 */
+	data() {
+		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
+		return {
+			capabilitiesLoading: willCheck,
+			missingApps: [],
+			guardError: null,
+		}
+	},
+
+	mounted() {
+		// Opt-out fast-path: empty `requiresApps` already initialised
+		// `capabilitiesLoading` to `false` in data(); skip the check.
+		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			return
+		}
+
+		try {
+			const capabilities = getCapabilities()
+			const keys = (capabilities && typeof capabilities === 'object')
+				? Object.keys(capabilities)
+				: []
+			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
+		} catch (err) {
+			// Capabilities API failure — log and fall through to the
+			// renderer. The data layer will surface the actual problem
+			// if OR is genuinely missing.
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
+				err,
+			)
+			this.guardError = err
+			this.missingApps = []
+		} finally {
+			this.capabilitiesLoading = false
+		}
 	},
 
 	computed: {
@@ -242,6 +428,51 @@ export default {
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
 			return 'shell'
 		},
+		/**
+		 * Default link surfaced by the missing-app empty-state action.
+		 * Points at the OpenRegister integration page in the Nextcloud
+		 * app store. Replaceable per consumer via the `#or-missing`
+		 * slot.
+		 */
+		orStoreLink() {
+			return OR_STORE_LINK
+		},
 	},
 }
 </script>
+
+<style>
+.cn-app-root__capabilities-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 100vh;
+	background: var(--color-main-background);
+}
+
+.cn-app-root__or-missing {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 100vh;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-app-root__or-missing-action {
+	display: inline-block;
+	padding: calc(1.5 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+	border-radius: var(--border-radius);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	text-decoration: none;
+}
+
+.cn-app-root__or-missing-action:hover,
+.cn-app-root__or-missing-action:focus {
+	background: var(--color-primary-element-hover);
+	text-decoration: underline;
+}
+</style>
