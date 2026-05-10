@@ -72,6 +72,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | `translate` | Function | No | `key => key` | Translate function from the consuming app, typically `(key) => t(appId, key)`. Provided to descendants as `cnTranslate` |
 | `permissions` | Array | No | `[]` | Permission strings for the current user; forwarded to `CnAppNav` for menu filtering |
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
+| `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
 
 ## Slots
 
@@ -80,6 +81,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | *(default)* | — | Page content inside `NcAppContent`. Pass `<router-view />` here in a real app. |
 | `loading` | — | Shown during the loading phase (replaces `CnAppLoading`) |
 | `dependency-missing` | `{ dependencies }` | Shown when required apps are missing (replaces `CnDependencyMissing`) |
+| `or-missing` | `{ missingApps }` | Shown when any app in `requiresApps` is missing per the OCS capabilities check. Default body is an `NcEmptyContent` linking to the OpenRegister app-store integration page; override to fully replace it. |
 | `menu` | — | Navigation area (replaces `CnAppNav`) |
 | `header-actions` | — | Extra buttons rendered in the app header |
 | `sidebar` | — | Sidebar area rendered alongside `NcAppContent` |

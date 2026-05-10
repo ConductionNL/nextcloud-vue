@@ -69,6 +69,7 @@ export default {
 | `pageTypes` | `Object \| null` | `null` | Map of `pages[].type` → Vue component. Provided to descendant renderers as `cnPageTypes`. When omitted, the renderer falls back to `defaultPageTypes`. |
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
+| `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
 
 ## Provided values
 
@@ -88,6 +89,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | *(default)* | — | — | Page content area inside `NcAppContent`. In real apps, pass `<router-view />` here. |
 | `loading` | — | `<CnAppLoading />` | Shown during the loading phase |
 | `dependency-missing` | `{ dependencies }` | `<CnDependencyMissing :dependencies />` | Shown when any dependency is missing or disabled |
+| `or-missing` | `{ missingApps }` | Default `<NcEmptyContent>` linking to the OpenRegister app-store integration page | Shown when any app in `requiresApps` is missing per the OCS capabilities check. Override to fully replace the empty state. |
 | `menu` | — | `<CnAppNav :permissions />` | Replaces the default app navigation |
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
