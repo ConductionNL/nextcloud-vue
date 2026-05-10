@@ -93,6 +93,30 @@ export default {
 
 **Custom menu instead?** Skip `CnAppNav` entirely. Either keep your existing menu component, or use `CnAppRoot` (tier 4) and override the `#menu` slot — see below.
 
+### Dynamic per-tenant menu entries
+
+Apps whose top-level navigation depends on runtime data (catalogues, organisations, registers) populate the `menu[]` array from their backend `/api/manifest` endpoint. The bundled manifest declares a static placeholder; the backend resolves per-tenant data and returns the fully-populated list; `useAppManifest`'s deep-merge replaces the bundled `menu[]` with the resolved one (arrays are replaced, not concatenated).
+
+For example, an app like opencatalogi that previously rendered one nav entry per catalogue with `v-for="catalogus in catalogs"` keeps a single placeholder in `src/manifest.json` and lets the backend ship the resolved list:
+
+```json
+// src/manifest.json (bundled)
+{ "menu": [{ "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index" }] }
+
+// /index.php/apps/opencatalogi/api/manifest (backend response)
+{
+  "menu": [{
+    "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index",
+    "children": [
+      { "id": "catalog-tax", "label": "menu.catalog.tax", "route": "catalog-detail" },
+      { "id": "catalog-housing", "label": "menu.catalog.housing", "route": "catalog-detail" }
+    ]
+  }]
+}
+```
+
+The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour — lives in the [`useAppManifest` reference docs](./utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
+
 ---
 
 ## Tier 4 — `+ CnAppRoot`
