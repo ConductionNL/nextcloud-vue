@@ -603,6 +603,84 @@ Every page entry MAY declare a top-level `sidebar` field (sibling of `config`) w
 
 This avoids the older "drop into `type: 'custom'` and re-implement the shell just to hide a sidebar" workaround. Apps shelling via `CnAppRoot` get this for free — `CnAppRoot` already gates `<slot name="sidebar" />` on the `cnPageSidebarVisible` inject. Apps that mount their own sidebar without `CnAppRoot` need to inject `cnPageSidebarVisible` themselves and gate accordingly (one inject + a `v-if`).
 
+### Per-route sidebar swap (`pages[].sidebarComponent`)
+
+Some routes need a **completely different** sidebar component than the rest of the app — typically a search filter pane, a chat reading pane, a map's layer panel, etc. In Vue Router this is the named-view pattern (`<router-view name="sidebar">`), where each route declares co-mounted components and the host renders sibling `<router-view>` and `<router-view name="sidebar">` elements.
+
+The manifest expresses the same idea declaratively via `pages[].sidebarComponent` — a string referencing a key in the `customComponents` registry. When set, `CnPageRenderer` resolves the name and `CnAppRoot` mounts the resolved component as the **default content** of its `#sidebar` slot for that page only:
+
+```jsonc
+{
+  "id": "search",
+  "route": "/search",
+  "type": "custom",
+  "title": "menu.search",
+  "component": "SearchPage",
+  "sidebarComponent": "SearchSideBar"
+}
+```
+
+```js
+// customComponents passed to CnAppRoot
+import SearchPage from './views/search/SearchIndex.vue'
+import SearchSideBar from './sidebars/search/SearchSideBar.vue'
+
+createApp({ /* ... */ }).provide('customComponents', { SearchPage, SearchSideBar })
+```
+
+Every other page renders the host's default sidebar (whatever the consumer wired into the `#sidebar` slot — typically a sibling `CnIndexSidebar` / `CnObjectSidebar` pair). The consumer's slot override (when supplied) wins over the resolved component via Vue's slot mechanic — apps can adopt incrementally.
+
+Composes deterministically with `sidebar.show`:
+
+- `sidebar.show: false` ALWAYS wins. The slot does not render at all and the resolved component is suppressed.
+- A page declaring both `sidebar.show: false` AND `sidebarComponent` triggers a one-line `console.warn` so manifest authors notice the dead config.
+
+#### When to use which sidebar field
+
+| Goal | Field |
+|------|-------|
+| Hide the sidebar entirely on this page | `pages[].sidebar.show: false` |
+| Per-tab content on the built-in `CnObjectSidebar` (Files / Notes / Tags / Tasks / Audit Trail + custom tabs) | `pages[].config.sidebar.tabs[]` (detail) or `pages[].config.sidebarProps.tabs[]` (legacy) |
+| Per-page **full-sidebar swap** (this page renders a completely different sidebar component) | `pages[].sidebarComponent` |
+| Index-page columns / facets / search panel | `pages[].config.sidebar` (Object form, `enabled: true`) |
+
+#### Migrating from `<router-view name="sidebar">`
+
+Before:
+
+```js
+// router/index.js — named-view binding
+{ path: '/search', name: 'Search', components: { default: SearchPage, sidebar: SearchSideBar } }
+```
+
+```vue
+<!-- App.vue — sibling render slot -->
+<router-view />
+<router-view name="sidebar" />
+```
+
+After:
+
+```js
+// router/index.js — back to a single component per route
+{ path: '/search', name: 'Search', component: SearchPage }
+```
+
+```jsonc
+// manifest.json — sidebar declared at the page level
+{ "id": "Search", "route": "/search", "type": "custom",
+  "component": "SearchPage", "sidebarComponent": "SearchSideBar" }
+```
+
+```vue
+<!-- App.vue — CnAppRoot's #sidebar slot handles the rendering -->
+<CnAppRoot ...>
+  <template #default><router-view /></template>
+</CnAppRoot>
+```
+
+Apps that already wire sibling sidebars (`CnObjectSidebar` + `CnIndexSidebar` next to `<router-view>` in App.vue) can adopt this incrementally — the slot override wins over the resolved component until the consumer is ready to remove the override.
+
 ## i18n
 
 The manifest stores translation keys only — `decidesk.menu.decisions`, never inline strings. Pass a `translate` function (`(key) => string`) to `CnAppRoot` / `CnAppNav` / `CnPageRenderer`. Typically a closure over `@nextcloud/l10n`'s `translate(appId, key)`. The library never imports `t()` from a specific app.

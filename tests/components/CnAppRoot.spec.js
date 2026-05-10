@@ -205,6 +205,77 @@ describe('CnAppRoot', () => {
 		})
 	})
 
+	describe('cnPageSidebarComponent inject (REQ-MNVS-3)', () => {
+		// Mount with both injects so we can drive visibility AND the
+		// resolved-component holder independently. The default holder
+		// (when an inject is omitted) is `{ value: null }` for the
+		// component channel and `{ value: true }` for visibility.
+		function mountWithSidebarInject({ visible = true, component = null, slots = {} } = {}) {
+			return mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp' },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+				provide: {
+					cnPageSidebarVisible: { value: visible },
+					cnPageSidebarComponent: { value: component },
+				},
+				slots,
+			})
+		}
+
+		// Use render() rather than template:'' — the test runs against
+		// the Vue 2 runtime build which doesn't include the template
+		// compiler at runtime.
+		const NamedSidebar = {
+			name: 'NamedSidebar',
+			render(h) { return h('div', { class: 'named-sidebar' }, 'named') },
+		}
+		const ConsumerSidebar = {
+			name: 'ConsumerSidebar',
+			render(h) { return h('div', { class: 'consumer-sidebar' }, 'consumer') },
+		}
+
+		it('mounts the resolved component as the slot default content when no #sidebar override', () => {
+			const wrapper = mountWithSidebarInject({ component: NamedSidebar })
+			expect(wrapper.find('.named-sidebar').exists()).toBe(true)
+		})
+
+		it('renders nothing in the sidebar slot when the holder is null and no override', () => {
+			const wrapper = mountWithSidebarInject({ component: null })
+			expect(wrapper.find('.named-sidebar').exists()).toBe(false)
+		})
+
+		it('consumer #sidebar slot override wins over the resolved component', () => {
+			const wrapper = mountWithSidebarInject({
+				component: NamedSidebar,
+				slots: { sidebar: ConsumerSidebar },
+			})
+			expect(wrapper.find('.consumer-sidebar').exists()).toBe(true)
+			expect(wrapper.find('.named-sidebar').exists()).toBe(false)
+		})
+
+		it('visibility=false suppresses the slot even when the holder carries a component', () => {
+			const wrapper = mountWithSidebarInject({
+				visible: false,
+				component: NamedSidebar,
+			})
+			expect(wrapper.find('.named-sidebar').exists()).toBe(false)
+		})
+
+		it('default inject (no provider) leaves the holder null — slot fallback unchanged', () => {
+			const wrapper = mount(CnAppRoot, {
+				propsData: { manifest: baseManifest, appId: 'myapp' },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': true },
+				slots: { sidebar: '<div class="legacy-sidebar" />' },
+			})
+			// Without a CnPageRenderer ancestor the inject default
+			// `{ value: null }` resolves; the consumer's slot override
+			// renders unchanged.
+			expect(wrapper.find('.legacy-sidebar').exists()).toBe(true)
+		})
+	})
+
 	describe('multiple dependencies', () => {
 		it('treats the manifest as resolved only when every dependency is installed', () => {
 			getCapabilities.mockReturnValue({ openregister: {} }) // missing opencatalogi

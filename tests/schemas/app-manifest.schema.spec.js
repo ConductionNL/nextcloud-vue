@@ -760,6 +760,80 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			expect(customPage.sidebar.show).toBe(false)
 		})
 	})
+
+	describe('manifest-named-view-sidebar additions (REQ-MNVS)', () => {
+		it('documents sidebarComponent on the page $def', () => {
+			expect(schema.$defs.page.properties.sidebarComponent).toBeDefined()
+			expect(schema.$defs.page.properties.sidebarComponent.type).toBe('string')
+			expect(schema.$defs.page.properties.sidebarComponent.minLength).toBe(1)
+		})
+
+		it('validates a page with sidebarComponent set', () => {
+			const result = validateManifest({
+				version: '1.3.0',
+				menu: [],
+				pages: [{
+					id: 'search',
+					route: '/search',
+					type: 'custom',
+					title: 'Search',
+					component: 'SearchPage',
+					sidebarComponent: 'SearchSideBar',
+				}],
+			})
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
+		})
+
+		it('still validates a page WITHOUT sidebarComponent (backwards compat)', () => {
+			const result = validateManifest({
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'home',
+					route: '/',
+					type: 'index',
+					title: 'home',
+				}],
+			})
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
+		})
+
+		it('rejects a non-string sidebarComponent', () => {
+			const result = validateManifest({
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'search',
+					route: '/search',
+					type: 'custom',
+					title: 'Search',
+					component: 'SearchPage',
+					sidebarComponent: 42,
+				}],
+			})
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/pages/0/sidebarComponent') && e.includes('non-empty string'))).toBe(true)
+		})
+
+		it('rejects an empty sidebarComponent', () => {
+			const result = validateManifest({
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'search',
+					route: '/search',
+					type: 'custom',
+					title: 'Search',
+					component: 'SearchPage',
+					sidebarComponent: '',
+				}],
+			})
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/pages/0/sidebarComponent'))).toBe(true)
+		})
+	})
 })
 
 // `manifest-settings-orchestration` — adds tabs[] orchestration shape
