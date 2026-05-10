@@ -393,13 +393,13 @@ softwarecatalog `Organisaties` page needs a profile-style card with
 logo, contactpersoon block, and a CTA button — register the card
 component on `CnAppRoot` and reference it by name in the manifest:
 
-```js
+```js {static}
 // src/customComponents.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
 export const customComponents = { OrganisatieCard }
 ```
 
-```vue
+```vue {static}
 <!-- App.vue -->
 <CnAppRoot :manifest="manifest" app-id="softwarecatalog" :custom-components="customComponents">
     <router-view />
