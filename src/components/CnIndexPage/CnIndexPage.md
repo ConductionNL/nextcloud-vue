@@ -371,6 +371,7 @@ export default {
 | `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |
 | `includeFields` | Array | `null` | Field keys to include in the form dialog (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the refresh button is disabled |
@@ -393,13 +394,13 @@ softwarecatalog `Organisaties` page needs a profile-style card with
 logo, contactpersoon block, and a CTA button — register the card
 component on `CnAppRoot` and reference it by name in the manifest:
 
-```js
+```js {static}
 // src/customComponents.js
 import OrganisatieCard from './components/cards/OrganisatieCard.vue'
 export const customComponents = { OrganisatieCard }
 ```
 
-```vue
+```vue {static}
 <!-- App.vue -->
 <CnAppRoot :manifest="manifest" app-id="softwarecatalog" :custom-components="customComponents">
     <router-view />
