@@ -142,6 +142,17 @@ Every widget and component mounted inside a custom tab receives the parent `CnOb
 
 Apps satisfied with the default tab set make NO changes — leave `tabs` unset and the hard-coded built-in tabs render exactly as today, including the `#tab-files` / `#tab-notes` / `#tab-tags` / `#tab-tasks` / `#tab-audit-trail` / `#extra-tabs` slot overrides. The `tabs` prop is purely additive.
 
+## Live updates (collaborative editing)
+
+`CnObjectSidebar` auto-subscribes to live updates for the active object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the sidebar lifecycle so the cached object stays fresh as remote users edit, and downstream tabs (`CnObjectDataWidget`, `CnAuditTrailTab`, etc.) re-render reactively without polling.
+
+| Prop | Default | Behaviour |
+|------|---------|-----------|
+| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive surfaces). |
+| `objectStore` | `null` | Pinia store instance. When omitted, the auto-subscribe is skipped. |
+
+The locked-banner UX lives on [`CnDetailPage`](./cn-detail-page.md) for v1 — sidebars host so many editor surfaces (each tab) that the banner would compete with tab content. Consumers needing lock UX inside a sidebar tab should consume [`useObjectLock`](../utilities/composables/use-object-lock.md) directly inside the tab component.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.

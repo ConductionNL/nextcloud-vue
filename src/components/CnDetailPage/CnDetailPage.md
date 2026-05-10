@@ -197,6 +197,8 @@ export default {
 | `statsColumns` | Array | `[]` | Column definitions for the stats table: `{ key, label, align? }` |
 | `statsRows` | Array | `[]` | Row data for the stats table; set `indent: true` for sub-row styling |
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content area |
+| `subscribe` | Boolean | `true` | When `true` and `objectStore` is provided, auto-subscribes to live updates for `objectType` + `objectId` via `useObjectSubscription`, and renders `CnLockedBanner` when a remote pessimistic lock is active. |
+| `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
 
 ## Slots
 

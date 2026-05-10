@@ -205,6 +205,21 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 | **CnIndexPage** | Listing objects with table/cards, pagination, search, mass actions, CRUD dialogs |
 | **CnDashboardPage** | Building a widget-based dashboard with drag-and-drop grid layout |
 
+## Collaborative editing defaults
+
+`CnDetailPage` auto-subscribes to live updates for the current object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks.
+
+When the cached `@self.locked` block indicates another user holds the lock, `CnDetailPage` mounts [`CnLockedBanner`](./cn-locked-banner.md) above the content. The banner renders only when `lockedByMe === false`.
+
+Two opt-out props:
+
+| Prop | Default | Behaviour |
+|------|---------|-----------|
+| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). |
+| `objectStore` | `null` | Pinia store instance. When omitted, both subscribe and lock-state are skipped. Pass the result of `useObjectStore()` from your app. |
+
+See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock state contract; the lib does not yet auto-acquire on edit-mode toggle (planned for a follow-up cycle that wires the form dialogs).
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.

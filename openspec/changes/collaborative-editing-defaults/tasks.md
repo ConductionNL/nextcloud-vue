@@ -1,5 +1,15 @@
 # Tasks: collaborative-editing-defaults
 
+> **Phasing:** v1 ships the composables (`useObjectSubscription`,
+> `useObjectLock`) as public APIs, the `CnLockedBanner`
+> presentation component, and **auto-subscribe defaults** on
+> `CnDetailPage` / `CnObjectSidebar`. The lock acquire/release
+> integration into the inline editors (`CnAdvancedFormDialog` /
+> `CnFormDialog`'s `@open` and `@close` hooks) lands as a v2
+> follow-up tracked by [openregister GitHub issue link in PR](#).
+> v1 alone delivers the live-update piece end-to-end and exposes
+> the lock primitives for early adopters.
+
 ## 1. Composables
 
 ### Task 1.1: Create useObjectSubscription
