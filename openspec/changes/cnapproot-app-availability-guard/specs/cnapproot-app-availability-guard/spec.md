@@ -66,8 +66,7 @@ module-level cache, no second request per route change.
 
 ### Requirement: REQ-OR-3 — Empty state rendered when any required app is missing
 
-When `missingApps.length > 0` after the capabilities check,
-`CnAppRoot` MUST render an empty-state surface containing:
+When `missingApps.length > 0` after the capabilities check, `CnAppRoot` MUST render an empty-state surface containing:
 
 - The OpenRegister app icon (or an equivalent missing-app icon).
 - A title sourced from `translate('app-availability.title')`.
@@ -126,11 +125,7 @@ short-circuit the entire guard:
 
 ### Requirement: REQ-OR-6 — Loading state during the check
 
-While the capabilities check is in flight (after `mounted()` has
-fired but before the promise / synchronous return resolves),
-`CnAppRoot` MUST render a thin spinner surface so the renderer
-does not flash before being replaced by the empty-state on slow
-connections.
+While the capabilities check is in flight (after `mounted()` has fired but before the promise / synchronous return resolves), `CnAppRoot` MUST render a thin spinner surface so the renderer does not flash before being replaced by the empty-state on slow connections.
 
 The default loading affordance MUST be a centered
 `<NcLoadingIcon :size="32" />` inside the `NcContent` wrapper.
@@ -146,8 +141,7 @@ The default loading affordance MUST be a centered
 
 ### Requirement: REQ-OR-7 — Network failure falls through
 
-When `getCapabilities()` throws or returns a value that cannot
-be inspected, `CnAppRoot` MUST:
+When `getCapabilities()` throws or returns a value that cannot be inspected, `CnAppRoot` MUST:
 
 - Log the error via `console.warn`.
 - Set `missingApps` to the empty array.

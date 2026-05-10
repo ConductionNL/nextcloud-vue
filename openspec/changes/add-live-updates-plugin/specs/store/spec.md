@@ -82,7 +82,7 @@ A single transport connection MUST exist per browser tab regardless of how many 
 
 ### Requirement: REQ-ST-LU-002 — `store.subscribe(type, id?)` action
 
-`store.subscribe(type, id?)` subscribes to live updates for an object type and optional ID. When `id` is provided, the subscription targets `or-object-{id}` (per-object events). When omitted, the subscription targets `or-collection-{registerSlug}-{schemaSlug}` derived from `objectTypeRegistry[type]`. The method returns an opaque handle that the caller passes to `unsubscribe()`. When called inside a Vue component lifecycle (setup or Options API `mounted`), `tryOnScopeDispose` auto-registers cleanup so the subscription is torn down when the component unmounts.
+The store MUST expose a `subscribe(type, id?)` action that subscribes to live updates for an object type and optional ID. When `id` is provided, the subscription MUST target `or-object-{id}` (per-object events). When omitted, the subscription MUST target `or-collection-{registerSlug}-{schemaSlug}` derived from `objectTypeRegistry[type]`. The method MUST return an opaque handle that the caller passes to `unsubscribe()`. When called inside a Vue component lifecycle (setup or Options API `mounted`), `tryOnScopeDispose` MUST auto-register cleanup so the subscription is torn down when the component unmounts.
 
 #### Scenario: Object subscription with ID
 
@@ -116,7 +116,7 @@ A single transport connection MUST exist per browser tab regardless of how many 
 
 ### Requirement: REQ-ST-LU-003 — Refcounted listener fan-in
 
-Multiple components subscribing to the same event key share one underlying transport listener. An internal `Map<eventKey, Set<callback>>` tracks all callbacks per key. When the last `unsubscribe()` for a key fires, the underlying transport listener for that key is torn down. Other event keys remain active.
+Multiple components subscribing to the same event key MUST share one underlying transport listener. The plugin MUST maintain an internal `Map<eventKey, Set<callback>>` that tracks all callbacks per key. When the last `unsubscribe()` for a key fires, the underlying transport listener for that key MUST be torn down. Other event keys MUST remain active.
 
 #### Scenario: Multiple subscribers share one transport listener
 

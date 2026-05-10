@@ -18,7 +18,7 @@ hatch for apexcharts features outside the manifest contract.
 
 ---
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: chart widget detection
 

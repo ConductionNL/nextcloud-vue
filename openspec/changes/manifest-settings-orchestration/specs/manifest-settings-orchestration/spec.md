@@ -117,8 +117,7 @@ between the flat `sections[]` path and the tab-nested
 
 ### Requirement: REQ-MSO-5 — `CnSettingsPage` MUST render a tab strip when `tabs[]` is set
 
-When `CnSettingsPage` is mounted with a non-empty `tabs` prop, it
-MUST render:
+When `CnSettingsPage` is mounted with a non-empty `tabs` prop, it MUST render:
 
 - A horizontal tab strip above the section area, with one button per
   tab (labelled by `tab.label`, optionally prefixed with `tab.icon`).
@@ -157,8 +156,7 @@ MUST render:
 
 ### Requirement: REQ-MSO-6 — `widgets[]` MUST accept a `{ type: "component", componentName }` discriminator
 
-Each entry in a section's `widgets[]` array MAY use the new
-`type: "component"` discriminator. When set, `componentName` MUST be
+Each entry in a section's `widgets[]` array MAY use the new `type: "component"` discriminator. When set, `componentName` MUST be
 a non-empty string; the renderer resolves it against the effective
 customComponents registry (`customComponents` prop > injected
 `cnCustomComponents`). A miss produces a `console.warn` and the
@@ -203,8 +201,7 @@ JSDoc as deprecated; manifest authors are encouraged to migrate to
 
 ### Requirement: REQ-MSO-7 — Existing flat `sections[]` and rich-sections behavior MUST keep working unchanged
 
-Every existing manifest with `pages[].config.sections[]` (whether
-bare-fields, component-only, or widgets-only) MUST render and
+Every existing manifest with `pages[].config.sections[]` (whether bare-fields, component-only, or widgets-only) MUST render and
 validate identically to its behavior before this change. The
 orchestration shape is strictly additive; no existing test in
 `CnSettingsPage.spec.js`, `CnSettingsPageRichSections.spec.js`, or
@@ -228,8 +225,7 @@ orchestration shape is strictly additive; no existing test in
 
 ### Requirement: REQ-MSO-8 — The schema description MUST document the new shapes
 
-`src/schemas/app-manifest.schema.json`'s `pages[].config` description
-MUST mention:
+`src/schemas/app-manifest.schema.json`'s `pages[].config` description MUST mention:
 
 - That `tabs: array<{ id, label, sections }>` is an alternative to
   `sections[]` (XOR).

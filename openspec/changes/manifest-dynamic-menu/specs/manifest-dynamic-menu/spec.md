@@ -35,7 +35,7 @@ The backend manifest endpoint (`GET /index.php/apps/{appId}/api/manifest`) MAY r
 
 ### Requirement: Backend-supplied menu items MUST validate against the same `menuItem` / `menuItemLeaf` `$defs` as bundled items
 
-The schema's `menuItem` / `menuItemLeaf` definitions are the canonical contract for both bundled and backend-supplied entries. Backend responses are not granted any schema relaxation. Validation runs on the merged manifest, so a backend response carrying a malformed `menu[]` triggers the existing fallback path (REQ-JMR-002 silent-fallback on validation failure: bundled manifest stays in place, `validationErrors` is set, `console.warn` is logged).
+The schema's `menuItem` / `menuItemLeaf` definitions are the canonical contract for both bundled and backend-supplied entries; backend responses MUST NOT be granted any schema relaxation. Validation runs on the merged manifest, so a backend response carrying a malformed `menu[]` triggers the existing fallback path (REQ-JMR-002 silent-fallback on validation failure: bundled manifest stays in place, `validationErrors` is set, `console.warn` is logged).
 
 #### Scenario: Backend menu item missing `id` triggers fallback
 
@@ -55,7 +55,7 @@ The schema's `menuItem` / `menuItemLeaf` definitions are the canonical contract 
 
 ### Requirement: Bundled manifest SHOULD include a placeholder menu entry to validate without the backend
 
-To preserve the bundled-only Tier-1 path (REQ-JMR-002 silent-fallback for apps that have not yet implemented `/api/manifest`), the bundled `manifest.json` SHOULD include the static placeholder menu entries that the backend later replaces. A bundled manifest with `menu: []` is permitted by the schema but discouraged; an empty menu renders an empty `CnAppNav`, which is a degraded but functional state.
+To preserve the bundled-only Tier-1 path (REQ-JMR-002 silent-fallback for apps that have not yet implemented `/api/manifest`), the bundled `manifest.json` SHOULD include the static placeholder menu entries that the backend later replaces. The library MUST treat absence of bundled entries as a valid but degraded state: a manifest with `menu: []` is permitted by the schema (and renders an empty `CnAppNav`) but is discouraged.
 
 #### Scenario: Bundled placeholder survives when backend returns 404
 

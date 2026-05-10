@@ -75,8 +75,7 @@ as `null` (falling back to the default `CnObjectCard`). When
 
 ### Requirement: Card-grid view MUST mount the resolved component for each row, passing `{item, object, schema, register, selected}` and emitting `click` + `select`
 
-When `resolvedCardComponent` is non-null AND the parent has not
-provided a `#card` scoped slot, the card-grid view MUST mount the
+When `resolvedCardComponent` is non-null AND the parent has not provided a `#card` scoped slot, the card-grid view MUST mount the
 resolved component for each row inside the `CnCardGrid`'s `#card`
 slot. The component MUST receive the props `item` (the row), `object`
 (an alias for `item`), `schema` (the index page's schema), `register`
@@ -100,8 +99,7 @@ It MUST emit `click` (forwarded to the page's `row-click` event) and
 
 ### Requirement: `#card` scoped slot MUST take precedence over `cardComponent`
 
-When the parent provides a `#card` scoped slot AND `cardComponent` is
-also set, the slot MUST win. This preserves existing App.vue
+When the parent provides a `#card` scoped slot AND `cardComponent` is also set, the slot MUST win. This preserves existing App.vue
 overrides during incremental migration.
 
 #### Scenario: Slot wins over cardComponent
