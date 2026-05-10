@@ -130,14 +130,16 @@ import CnWikiTreeNode from './CnWikiTreeNode.vue'
  * `titleField`, `sidebarSchema`, …) so the validator stays
  * meaningful even though the lib does not own the fetch.
  *
- * @example Basic usage
+ * Basic usage:
+ *
  *   <CnWikiPage
  *     :article="article"
  *     :register="'pipelinq'"
  *     :schema="'article'"
  *     :content-field="'body'" />
  *
- * @example With sidebar tree
+ * With sidebar tree:
+ *
  *   <CnWikiPage
  *     :article="article"
  *     :tree="categoryTree"
