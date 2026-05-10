@@ -83,6 +83,30 @@ Putting the schema in OpenRegister instead of in the consumer app's source code 
 2. **Cross-app reuse.** The same `client` schema can be referenced by multiple apps. The Sales app and the Support app both render their lists from the one canonical client record.
 3. **Migrations are a schema change.** Versioning a schema (`schema_v2`) is the migration. OpenRegister's time-travel keeps historical records readable through the old shape; new records use the new shape.
 
+## App-availability guard (opt-out)
+
+Every fleet app depends on **OpenRegister** as its data store — no schema, no register, no app. To keep that contract explicit and uniform across the fleet, `CnAppRoot` ships an always-on guard: on mount it consults the Nextcloud capabilities API and, when OpenRegister is missing, renders a default empty-state with a one-click action linking to the OpenRegister integration page.
+
+The guard is configured via the `requiresApps` prop:
+
+```vue
+<!-- Default: guard is on; checks for `openregister` capability key -->
+<CnAppRoot :manifest="manifest" app-id="myapp" :translate="t" />
+
+<!-- Opt out: docs site, styleguide, or future utility apps -->
+<CnAppRoot :manifest="manifest" app-id="docs" :translate="t" :requires-apps="[]" />
+```
+
+Why this lives in the library rather than in each consumer app:
+
+- **One write path.** Every fleet app would otherwise hand-roll the same wrapper — different copy, different App Store URLs, different icons. Centralising the guard means one canonical place to evolve the contract.
+- **The library already knows about OpenRegister.** Schemas, registers, the object-store composable, the file picker — they all assume OR is present. The guard is the natural counterpart.
+- **New apps inherit the guard automatically.** The default reaches the entire fleet without the consumer remembering to import a wrapper.
+
+Consumer apps that need a custom empty-state replace it via the `#or-missing` scoped slot. Apps that need additional Nextcloud apps (e.g. `openconnector` for push) extend the array: `:requires-apps="['openregister', 'openconnector']"`. See [Migrating to the JSON manifest → App-availability guard](../migrating-to-manifest.md#app-availability-guard) for the full prop and slot reference.
+
+The guard is independent of `manifest.dependencies`. The two coexist: `requiresApps` checks the capabilities-API bootstrap once on mount; `manifest.dependencies` covers per-app declarations resolved through `useAppStatus` (which reads `OC.appswebroots` first and falls back to capabilities). On a Conduction host, OpenRegister always advertises a capability key — the guard's empty-state activates only when OR is genuinely missing or its capability is admin-restricted for the current user.
+
 ## Where to next
 
 - **[App design principles](./app-design-principles.md)** — the chassis the schema-driven views render into.
