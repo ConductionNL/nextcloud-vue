@@ -171,7 +171,8 @@ export function validateManifest(manifest, options = {}) {
 			}
 
 			// Per-type config-shape validation for built-in extended types.
-			// (`manifest-page-type-extensions` spec — covers logs/settings/chat/files.)
+			// (`manifest-page-type-extensions` spec — covers logs/settings/chat/files;
+			//  `manifest-map-widget` spec adds `map`.)
 			validateTypeConfig(page, index, errors)
 
 			// Manifest-driven sidebar config — additive validation
@@ -208,7 +209,7 @@ function isPlainObject(value) {
 
 /**
  * Validate a page's `config` object against per-type rules for the
- * built-in extended types: `logs`, `settings`, `chat`, `files`, `wiki`.
+ * built-in extended types: `logs`, `settings`, `chat`, `files`, `wiki`, `map`.
  *
  * Skips silently for any other type (including the original
  * `index | detail | dashboard | custom`) — those have free-form
@@ -400,6 +401,58 @@ function validateTypeConfig(page, index, errors) {
 		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
 		if (!hasRegister || !hasSchema) {
 			errors.push(`${pathSlash}: ${pathBracket}: wiki pages must declare register and schema`)
+		}
+		break
+	}
+	case 'map': {
+		// `manifest-map-widget` REQ-MMW-* — Leaflet map pages MUST
+		// declare a length-2 finite-number `center`; `layers[]`
+		// entries MUST have a closed-enum `type` and (except inline
+		// geojson) a non-empty `url`; `markers.dataSource` MUST
+		// declare exactly one of `url` OR `register + schema`.
+		const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
+		const center = cfg && cfg.center
+		const validCenter = Array.isArray(center)
+			&& center.length === 2
+			&& center.every((n) => typeof n === 'number' && Number.isFinite(n))
+		if (!validCenter) {
+			errors.push(`${pathSlash}/center: ${pathBracket}.center: must be a length-2 array of finite numbers`)
+		}
+		if (cfg && cfg.zoom !== undefined && (typeof cfg.zoom !== 'number' || !Number.isFinite(cfg.zoom))) {
+			errors.push(`${pathSlash}/zoom: ${pathBracket}.zoom: must be a finite number`)
+		}
+		if (cfg && cfg.layers !== undefined) {
+			if (!Array.isArray(cfg.layers)) {
+				errors.push(`${pathSlash}/layers: ${pathBracket}.layers: must be an array`)
+			} else {
+				cfg.layers.forEach((layer, lIdx) => {
+					const lPath = `${pathSlash}/layers[${lIdx}]`
+					if (!layer || typeof layer !== 'object') {
+						errors.push(`${lPath}: must be an object`)
+						return
+					}
+					if (!allowedLayerTypes.includes(layer.type)) {
+						errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
+					}
+					const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
+					const hasInlineGeojson = layer.type === 'geojson'
+						&& layer.data
+						&& typeof layer.data === 'object'
+					if (!hasUrl && !hasInlineGeojson) {
+						errors.push(`${lPath}/url: must be a non-empty string`)
+					}
+				})
+			}
+		}
+		if (cfg && cfg.markers && typeof cfg.markers === 'object' && cfg.markers.dataSource) {
+			const ds = cfg.markers.dataSource
+			const hasUrl = typeof ds.url === 'string' && ds.url.length > 0
+			const hasReg = typeof ds.register === 'string' && ds.register.length > 0
+				&& typeof ds.schema === 'string' && ds.schema.length > 0
+			const count = (hasUrl ? 1 : 0) + (hasReg ? 1 : 0)
+			if (count !== 1) {
+				errors.push(`${pathSlash}/markers/dataSource: ${pathBracket}.markers.dataSource: must declare exactly one of url | (register + schema)`)
+			}
 		}
 		break
 	}
