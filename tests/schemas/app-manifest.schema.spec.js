@@ -161,11 +161,7 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-<<<<<<< HEAD
-	it('schema declares its version as 1.2.0', () => {
-=======
 	it('schema declares its version as 1.3.0', () => {
->>>>>>> origin/beta
 		expect(schema.version).toBe('1.3.0')
 	})
 })
@@ -352,11 +348,7 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-<<<<<<< HEAD
-		it('bumps the schema version field to 1.2.0', () => {
-=======
 		it('bumps the schema version field to 1.3.0', () => {
->>>>>>> origin/beta
 			expect(schema.version).toBe('1.3.0')
 		})
 
@@ -469,11 +461,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-<<<<<<< HEAD
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.2.0 (manifest-config-refs)', () => {
-=======
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component supersedes the 1.2.0 bump)', () => {
->>>>>>> origin/beta
+	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
 		expect(schema.version).toBe('1.3.0')
 	})
 })
@@ -648,17 +636,9 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 		it('schema version reaches 1.3.0 with the manifest-card-index-component additive change', () => {
 			// `manifest-detail-sidebar-config` itself was non-breaking and
 			// kept the version at 1.1.0. The successor `manifest-config-refs`
-<<<<<<< HEAD
-			// change wires up $refs on the recurring config sub-shapes —
-			// non-breaking on documented manifests but a meaningful surface
-			// change worth a minor version bump to 1.2.0.
-=======
 			// change wires up $refs on the recurring config sub-shapes and
-			// bumped to 1.2.0. `manifest-card-index-component` is a further
-			// additive bump to 1.3.0 — documents the new optional
-			// `cardComponent` field on `type:'index'` config without
-			// breaking older manifests.
->>>>>>> origin/beta
+			// bumped to 1.2.0. `manifest-card-index-component` and
+			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
 			expect(schema.version).toBe('1.3.0')
 		})
 
