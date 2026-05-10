@@ -3,7 +3,7 @@ title: App design principles
 sidebar_position: 1
 ---
 
-import { AppMock } from '@conduction/docusaurus-preset/components'
+import { AppMock, AtomZones } from '@conduction/docusaurus-preset/components'
 
 # App design principles
 
@@ -25,15 +25,19 @@ Three different apps. Same shape: topbar with the user menu, left nav with the a
 
 ## Five atoms, one chassis
 
-Inside the chassis sit five recurring building blocks. Every page in every app composes some subset of these — they are the atoms of the design system.
+Inside the chassis sit five recurring building blocks. Every page in every app composes some subset of these — they are the atoms of the design system. Each card below focuses on one atom: the focused zone is at full opacity with a KNVB-orange outline, the rest fades to 25% so you see *where* the atom sits, not just what it is.
 
-| Atom | Where it lives | What it does |
+<AtomZones />
+
+Mapped to the library's components:
+
+| Atom | Library component | Notes |
 |---|---|---|
-| **Topbar** | Top edge, full-width | App switcher, search affordance, user menu, breadcrumb. Provided by Nextcloud's `NcAppHeader`; the library doesn't own this atom — it inherits it. |
-| **Left navigation** | Left rail, full-height | Primary section navigation, driven by `manifest.menu[]`. One level of nesting, permission-filtered, sortable via `order`. Rendered by `CnAppNav`. |
-| **Main column** | Centre, fluid | The page body. Whatever the active route renders — usually a `Cn*Page` ([CnIndexPage](../components/cn-index-page.md), [CnDetailPage](../components/cn-detail-page.md), [CnDashboardPage](../components/cn-dashboard-page.md)). |
-| **Page header** | Top of the main column | Title + description + icon + per-page action buttons. Rendered by `CnPageHeader`. Uniform across pages so the user always knows what page they're on. |
-| **Sidebar** | Right edge, fixed-width | Per-object detail context: search/filter on index pages ([CnIndexSidebar](../components/cn-index-sidebar.md)), object metadata on detail pages ([CnObjectSidebar](../components/cn-object-sidebar.md)). Toggleable, never required. |
+| **Topbar** | Inherited from Nextcloud's `NcAppHeader` | The library doesn't own this atom — it inherits the cross-app shelf, search, and user menu from the workspace. |
+| **Left navigation** | `CnAppNav` | Driven by `manifest.menu[]`. One level of nesting, permission-filtered, sortable via `order`. |
+| **Main column** | A stacked view ([CnIndexPage](../components/cn-index-page.md), [CnDetailPage](../components/cn-detail-page.md), [CnDashboardPage](../components/cn-dashboard-page.md), [CnSettingsPage](../components/cn-settings-page.md)) | Whatever the active route renders. |
+| **Page header** | `CnPageHeader` | Title + description + icon + per-page action buttons. Uniform across Index and Detail pages. |
+| **Sidebar** | [CnIndexSidebar](../components/cn-index-sidebar.md) on Index, [CnObjectSidebar](../components/cn-object-sidebar.md) on Detail | Toggleable, never required. |
 
 These five atoms cover almost every screen Conduction ships. New apps don't invent new atoms — they compose the existing ones in the right shape.
 
