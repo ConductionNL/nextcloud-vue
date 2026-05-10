@@ -2,19 +2,26 @@ import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { validateManifest } from '../utils/validateManifest.js'
+import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 
 /**
- * Composable that loads and validates a Conduction app manifest.
+ * Composable that loads, resolves, and validates a Conduction app manifest.
  *
- * The composable implements the three-phase flow specified in
- * REQ-JMR-002 of the json-manifest-renderer capability:
+ * The composable implements the four-phase flow specified in
+ * REQ-JMR-002 of the json-manifest-renderer capability + the
+ * substitution step from the `manifest-resolve-sentinel` capability:
  *
  *  1. Synchronous bundled load — `bundledManifest` is the immediate value.
  *  2. Async backend merge — fetches `/index.php/apps/{appId}/api/manifest`
  *     and deep-merges any 200 response over the bundled manifest. 4xx /
  *     5xx / network errors are silently ignored so apps work without a
  *     backend endpoint.
- *  3. Validation — the merged result is validated against
+ *  3. Sentinel resolution — `@resolve:<key>` strings under
+ *     `pages[].config` are substituted with `IAppConfig` values via the
+ *     `resolveManifestSentinels` utility (see its module docs for the
+ *     resolution source chain). Unresolved keys surface on the
+ *     returned `unresolvedSentinels` ref.
+ *  4. Validation — the resolved result is validated against
  *     `app-manifest.schema.json`. On failure, the bundled manifest is
  *     kept and a `console.warn` is emitted with the error list.
  *
@@ -22,7 +29,8 @@ import { validateManifest } from '../utils/validateManifest.js'
  * can hot-swap the manifest without a page reload.
  *
  * @param {string} appId Nextcloud app ID. Used to build the default
- *   backend endpoint URL via `@nextcloud/router`.
+ *   backend endpoint URL via `@nextcloud/router` and to scope
+ *   IAppConfig lookups for `@resolve:<key>` sentinels.
  * @param {object} bundledManifest The manifest shipped with the app (the
  *   default value, available synchronously).
  * @param {object} [options] Configuration options.
@@ -32,7 +40,10 @@ import { validateManifest } from '../utils/validateManifest.js'
  *   return a promise resolving to `{ status: number, data: object }`.
  *   Defaults to `axios.get` from `@nextcloud/axios` (which inherits the
  *   Nextcloud CSRF token automatically).
- * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null> }}
+ * @param {Function} [options.getAppConfigValue] Override the
+ *   IAppConfig resolver consumed by `resolveManifestSentinels`. Useful
+ *   for tests that want to mount a fixture-driven config map.
+ * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
  *
  * @example Basic usage (Composition API)
  * const { manifest, isLoading } = useAppManifest('decidesk', bundled)
@@ -49,11 +60,17 @@ import { validateManifest } from '../utils/validateManifest.js'
  *   endpoint: '/custom/manifest/url',
  *   fetcher: (url) => Promise.resolve({ status: 200, data: { ... } }),
  * })
+ *
+ * @example With sentinel resolution + admin warning surface
+ * const { manifest, unresolvedSentinels } = useAppManifest('softwarecatalog', bundled)
+ * // unresolvedSentinels.value is e.g. ['voorzieningen_register']
+ * // when that IAppConfig key is unset on the tenant.
  */
 export function useAppManifest(appId, bundledManifest, options = {}) {
 	const manifest = ref(bundledManifest)
 	const isLoading = ref(true)
 	const validationErrors = ref(null)
+	const unresolvedSentinels = ref([])
 
 	const endpoint = options.endpoint ?? generateUrl(`/apps/${appId}/api/manifest`)
 	const fetcher = options.fetcher ?? ((url) => axios.get(url))
@@ -65,7 +82,18 @@ export function useAppManifest(appId, bundledManifest, options = {}) {
 				return
 			}
 			const merged = deepMerge(bundledManifest, response.data)
-			const result = validateManifest(merged)
+
+			// Sentinel resolution runs BEFORE validation per
+			// REQ-MRS-002: the validator MUST NEVER observe an
+			// unresolved sentinel at runtime. Resolution failures
+			// (unset IAppConfig keys) substitute null and accumulate
+			// on `unresolvedSentinels`; they do NOT block validation.
+			const { manifest: resolved, unresolved } = await resolveManifestSentinels(merged, appId, {
+				getAppConfigValue: options.getAppConfigValue,
+			})
+			unresolvedSentinels.value = unresolved
+
+			const result = validateManifest(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors
 				// eslint-disable-next-line no-console
@@ -75,7 +103,7 @@ export function useAppManifest(appId, bundledManifest, options = {}) {
 				)
 				return
 			}
-			manifest.value = merged
+			manifest.value = resolved
 		} catch (err) {
 			// Silent fallback on 404, network errors, non-200 responses.
 			// Apps without a backend endpoint should keep working.
@@ -84,7 +112,7 @@ export function useAppManifest(appId, bundledManifest, options = {}) {
 		}
 	})()
 
-	return { manifest, isLoading, validationErrors }
+	return { manifest, isLoading, validationErrors, unresolvedSentinels }
 }
 
 /**
