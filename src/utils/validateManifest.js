@@ -1,4 +1,27 @@
 /**
+ * Pattern matching the `manifest-resolve-sentinel` capability's
+ * sentinel — `@resolve:<key>` where `<key>` is lowercase alphanumeric
+ * with `_` / `-` separators. The full string IS the sentinel; partial
+ * substitution like `prefix-@resolve:foo` is NOT supported and is left
+ * as a plain string for downstream renderers.
+ *
+ * Build-time validation accepts this pattern as a valid `string` for
+ * any `string`-typed field UNDER `pages[].config`, regardless of any
+ * narrower per-field constraint. Other paths reject it explicitly.
+ */
+const SENTINEL_PATTERN = /^@resolve:[a-z][a-z0-9_-]*$/
+
+/**
+ * Test whether a string is a manifest `@resolve:` sentinel.
+ *
+ * @param {*} value Candidate value.
+ * @return {boolean} True when the value is a fully-matched sentinel.
+ */
+function isSentinel(value) {
+	return typeof value === 'string' && SENTINEL_PATTERN.test(value)
+}
+
+/**
  * Validate a manifest object against the manifest JSON Schema.
  *
  * Hand-rolled minimal validator covering the rules required by
@@ -15,6 +38,13 @@
  *  - `pages[].component` is required when `type` is "custom".
  *  - Per-type `config` shape rules for the built-in types `logs`,
  *    `settings`, `chat`, `files` (REQ from manifest-page-type-extensions).
+ *  - The `manifest-resolve-sentinel` sentinel `@resolve:<key>` is
+ *    permissively accepted under `pages[].config.*` and explicitly
+ *    REJECTED in `version`, `dependencies[]`, `menu[].route`,
+ *    `menu[].id`, `pages[].id`, `pages[].route`, `pages[].component`,
+ *    `pages[].headerComponent`, `pages[].actionsComponent`,
+ *    `pages[].slots.*` — those are router invariants or registry
+ *    keys.
  *
  * The richer schema constraints (`additionalProperties: false`, `format`
  * URI, etc.) are enforced by the BE / hydra CI validators that consume
@@ -42,6 +72,10 @@ export function validateManifest(manifest, options = {}) {
 
 	if (typeof manifest.version !== 'string') {
 		errors.push('/version must be a string')
+	} else if (isSentinel(manifest.version)) {
+		// `manifest-resolve-sentinel` REQ-MRS-004: sentinel is a router /
+		// registry invariant violation when used here.
+		errors.push(`/version "${manifest.version}" must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 	} else if (!versionPattern.test(manifest.version)) {
 		errors.push(`/version "${manifest.version}" must match semver pattern`)
 	}
@@ -54,8 +88,15 @@ export function validateManifest(manifest, options = {}) {
 				errors.push(`/menu/${index} must be an object`)
 				return
 			}
-			if (typeof item.id !== 'string') errors.push(`/menu/${index}/id must be a string`)
+			if (typeof item.id !== 'string') {
+				errors.push(`/menu/${index}/id must be a string`)
+			} else if (isSentinel(item.id)) {
+				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
 			if (typeof item.label !== 'string') errors.push(`/menu/${index}/label must be a string`)
+			if (item.route !== undefined && isSentinel(item.route)) {
+				errors.push(`/menu/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
 			if (item.children !== undefined && !Array.isArray(item.children)) {
 				errors.push(`/menu/${index}/children must be an array`)
 			}
@@ -77,12 +118,18 @@ export function validateManifest(manifest, options = {}) {
 			}
 			if (typeof page.id !== 'string') {
 				errors.push(`/pages/${index}/id must be a string`)
+			} else if (isSentinel(page.id)) {
+				errors.push(`/pages/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 			} else if (seenIds.has(page.id)) {
 				errors.push(`/pages/${index}/id "${page.id}" must be unique within pages[]`)
 			} else {
 				seenIds.add(page.id)
 			}
-			if (typeof page.route !== 'string') errors.push(`/pages/${index}/route must be a string`)
+			if (typeof page.route !== 'string') {
+				errors.push(`/pages/${index}/route must be a string`)
+			} else if (isSentinel(page.route)) {
+				errors.push(`/pages/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
 			if (typeof page.title !== 'string') errors.push(`/pages/${index}/title must be a string`)
 			if (typeof page.type !== 'string' || page.type.length === 0) {
 				errors.push(`/pages/${index}/type must be a non-empty string`)
@@ -91,6 +138,25 @@ export function validateManifest(manifest, options = {}) {
 			}
 			if (page.type === 'custom' && typeof page.component !== 'string') {
 				errors.push(`/pages/${index}/component is required when type is "custom"`)
+			}
+			// `manifest-resolve-sentinel` REQ-MRS-004: registry-key
+			// fields cannot be dynamic — they resolve at module-load
+			// time against `customComponents`, before the loader runs.
+			if (page.component !== undefined && isSentinel(page.component)) {
+				errors.push(`/pages/${index}/component must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (page.headerComponent !== undefined && isSentinel(page.headerComponent)) {
+				errors.push(`/pages/${index}/headerComponent must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (page.actionsComponent !== undefined && isSentinel(page.actionsComponent)) {
+				errors.push(`/pages/${index}/actionsComponent must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (isPlainObject(page.slots)) {
+				for (const [slotName, slotValue] of Object.entries(page.slots)) {
+					if (isSentinel(slotValue)) {
+						errors.push(`/pages/${index}/slots/${slotName} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+				}
 			}
 
 			// Per-type config-shape validation for built-in extended types.
@@ -115,6 +181,8 @@ export function validateManifest(manifest, options = {}) {
 			manifest.dependencies.forEach((dep, index) => {
 				if (typeof dep !== 'string') {
 					errors.push(`/dependencies/${index} must be a string`)
+				} else if (isSentinel(dep)) {
+					errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
 				}
 			})
 		}
