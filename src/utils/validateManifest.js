@@ -178,7 +178,70 @@ function validateTypeConfig(page, index, errors) {
 		break
 	}
 	case 'settings': {
-		if (!cfg || !Array.isArray(cfg.sections)) {
+		// `manifest-settings-orchestration` REQ-MSO-1: a settings page
+		// MUST declare EXACTLY ONE of `sections` | `tabs`. When both
+		// are set, emit the orchestration mutex error. When neither is
+		// set, fall through to the legacy `sections required` error
+		// (back-compat — REQ-MSO-7 / REQ-MSO-1 last scenario).
+		const hasSections = cfg && Array.isArray(cfg.sections)
+		const hasTabs = cfg && Array.isArray(cfg.tabs)
+
+		if (hasSections && hasTabs) {
+			errors.push(`${pathSlash}: ${pathBracket}: must declare exactly one of sections | tabs`)
+			break
+		}
+
+		if (hasTabs) {
+			// `manifest-settings-orchestration` REQ-MSO-2..4: validate
+			// the `tabs[]` orchestration shape.
+			if (cfg.tabs.length === 0) {
+				errors.push(`${pathSlash}/tabs: ${pathBracket}.tabs: must contain at least 1 tab`)
+				break
+			}
+			const seenTabIds = Object.create(null)
+			cfg.tabs.forEach((tab, tIndex) => {
+				if (!isPlainObject(tab)) {
+					errors.push(`${pathSlash}/tabs/${tIndex}: must be an object`)
+					return
+				}
+				if (typeof tab.id !== 'string' || tab.id.length === 0) {
+					errors.push(`${pathSlash}/tabs/${tIndex}/id: required, must be a non-empty string`)
+				}
+				if (typeof tab.label !== 'string' || tab.label.length === 0) {
+					errors.push(`${pathSlash}/tabs/${tIndex}/label: required, must be a non-empty string`)
+				}
+				// REQ-MSO-3: tab IDs must be unique within a page.
+				if (typeof tab.id === 'string' && tab.id.length > 0) {
+					if (seenTabIds[tab.id]) {
+						errors.push(`${pathSlash}/tabs/${tIndex}/id: ${pathBracket}.tabs[${tIndex}].id: duplicate id "${tab.id}" — tab IDs must be unique within a page`)
+					}
+					seenTabIds[tab.id] = true
+				}
+				// `tab.sections` MUST be a non-empty array.
+				if (!Array.isArray(tab.sections)) {
+					errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: required, must be an array`)
+					return
+				}
+				if (tab.sections.length === 0) {
+					errors.push(`${pathSlash}/tabs/${tIndex}/sections: ${pathBracket}.tabs[${tIndex}].sections: must contain at least 1 section`)
+					return
+				}
+				// REQ-MSO-4: each tab's sections follow the same rules
+				// as the flat case — share the per-section validator.
+				tab.sections.forEach((section, sIndex) => {
+					validateSettingsSection(
+						section,
+						`${pathSlash}/tabs/${tIndex}/sections/${sIndex}`,
+						`${pathBracket}.tabs[${tIndex}].sections[${sIndex}]`,
+						errors,
+					)
+				})
+			})
+			break
+		}
+
+		// Flat `sections[]` (existing path — REQ-MSRS-* + back-compat).
+		if (!hasSections) {
 			errors.push(`${pathSlash}/sections: ${pathBracket}.sections: required, must be an array`)
 			break
 		}
@@ -187,56 +250,12 @@ function validateTypeConfig(page, index, errors) {
 			break
 		}
 		cfg.sections.forEach((section, sIndex) => {
-			if (!isPlainObject(section)) {
-				errors.push(`${pathSlash}/sections/${sIndex}: must be an object`)
-				return
-			}
-			if (typeof section.title !== 'string') {
-				errors.push(`${pathSlash}/sections/${sIndex}/title: required, must be a string`)
-			}
-
-			// `manifest-settings-rich-sections` REQ-MSRS-1: each
-			// section MUST declare exactly one of fields | component
-			// | widgets. Mixed bodies confuse the renderer + duplicate
-			// the section chrome; empty bodies render nothing so they
-			// are a manifest-author bug.
-			const hasFields = Array.isArray(section.fields)
-			const hasComponent = typeof section.component === 'string' && section.component.length > 0
-			const hasWidgets = Array.isArray(section.widgets) && section.widgets.length > 0
-			const bodyCount = (hasFields ? 1 : 0) + (hasComponent ? 1 : 0) + (hasWidgets ? 1 : 0)
-
-			if (bodyCount !== 1) {
-				errors.push(`${pathSlash}/sections/${sIndex}: ${pathBracket}.sections[${sIndex}]: must declare exactly one of fields | component | widgets`)
-			}
-
-			// `widgets` set but not an array (string / object / etc.)
-			if (section.widgets !== undefined && !Array.isArray(section.widgets)) {
-				errors.push(`${pathSlash}/sections/${sIndex}/widgets: must be an array when set`)
-			}
-
-			// `component` set but not a string.
-			if (section.component !== undefined && typeof section.component !== 'string') {
-				errors.push(`${pathSlash}/sections/${sIndex}/component: must be a string when set`)
-			}
-
-			// Per-widget shape rules.
-			if (hasWidgets) {
-				section.widgets.forEach((widget, wIndex) => {
-					if (!isPlainObject(widget)) {
-						errors.push(`${pathSlash}/sections/${sIndex}/widgets/${wIndex}: must be an object`)
-						return
-					}
-					if (typeof widget.type !== 'string' || widget.type.length === 0) {
-						errors.push(`${pathSlash}/sections/${sIndex}/widgets/${wIndex}/type: must be a non-empty string`)
-					}
-				})
-			}
-
-			// `manifest-config-refs` REQ-MCR — when fields[] body is
-			// used, each entry must match the formField $def shape.
-			if (hasFields) {
-				validateFieldsArray(section.fields, `${pathSlash}/sections/${sIndex}/fields`, errors)
-			}
+			validateSettingsSection(
+				section,
+				`${pathSlash}/sections/${sIndex}`,
+				`${pathBracket}.sections[${sIndex}]`,
+				errors,
+			)
 		})
 		break
 	}
@@ -251,6 +270,42 @@ function validateTypeConfig(page, index, errors) {
 	case 'files': {
 		if (!cfg || typeof cfg.folder !== 'string' || cfg.folder.length === 0) {
 			errors.push(`${pathSlash}/folder: ${pathBracket}.folder: required`)
+		}
+		break
+	}
+	case 'form': {
+		// `manifest-form-page-type` REQ-MFPT-* — runtime form pages
+		// MUST declare a non-empty fields[] array and exactly one of
+		// submitHandler | submitEndpoint as the dispatch destination.
+		// Optional submitMethod and mode are constrained to closed
+		// enums so manifest typos surface at validate time.
+		const hasFields = cfg && Array.isArray(cfg.fields) && cfg.fields.length > 0
+		if (!hasFields) {
+			errors.push(`${pathSlash}/fields: ${pathBracket}: form pages must declare a non-empty fields[] array`)
+		} else {
+			validateFieldsArray(cfg.fields, `${pathSlash}/fields`, errors)
+		}
+
+		const hasHandler = cfg && typeof cfg.submitHandler === 'string' && cfg.submitHandler.length > 0
+		const hasEndpoint = cfg && typeof cfg.submitEndpoint === 'string' && cfg.submitEndpoint.length > 0
+		const dispatchCount = (hasHandler ? 1 : 0) + (hasEndpoint ? 1 : 0)
+		if (dispatchCount !== 1) {
+			errors.push(`${pathSlash}: ${pathBracket}: form pages must declare exactly one of submitHandler | submitEndpoint`)
+		}
+
+		if (cfg && cfg.submitMethod !== undefined) {
+			const allowed = ['POST', 'PUT', 'PATCH']
+			const upper = typeof cfg.submitMethod === 'string' ? cfg.submitMethod.toUpperCase() : null
+			if (!upper || !allowed.includes(upper)) {
+				errors.push(`${pathSlash}/submitMethod: ${pathBracket}.submitMethod: must be one of POST | PUT | PATCH`)
+			}
+		}
+
+		if (cfg && cfg.mode !== undefined) {
+			const allowedModes = ['edit', 'create', 'public']
+			if (typeof cfg.mode !== 'string' || !allowedModes.includes(cfg.mode)) {
+				errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of edit | create | public`)
+			}
 		}
 		break
 	}
@@ -542,8 +597,33 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 		if (typeof action.label !== 'string' || action.label.length === 0) {
 			errors.push(`${actionPath}/label: must be a non-empty string`)
 		}
+		// REQ-MAD-1 / REQ-MAD-2 — `handler` (string, registry name OR
+		// reserved keyword `navigate`/`emit`/`none`) and the matching
+		// `navigate` requirement on `route`. Schema 1.3.0+.
+		if (action.handler !== undefined) {
+			if (typeof action.handler !== 'string') {
+				errors.push(`${actionPath}/handler: must be a string when set`)
+			} else if (!HANDLER_PATTERN.test(action.handler)) {
+				errors.push(
+					`${actionPath}/handler: "${action.handler}" must match `
+					+ '"navigate" | "emit" | "none" | [A-Za-z][A-Za-z0-9_]*',
+				)
+			}
+			if (action.handler === 'navigate'
+				&& (typeof action.route !== 'string' || action.route.length === 0)) {
+				errors.push(`${actionPath}/route: required when handler is "navigate"`)
+			}
+		}
 	})
 }
+
+/**
+ * REQ-MAD-1 — Allowed shapes for `actions[].handler`. Either a
+ * reserved keyword (`navigate` | `emit` | `none`) or a JS-identifier
+ * registry name (alphanumeric + underscore, leading letter). Mirrors
+ * the schema's `pattern` on the `handler` property.
+ */
+const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
  * Validate `config.widgets[]` for dashboard page type
@@ -621,6 +701,82 @@ function validateLayoutArray(cfg, pathSlash, pathBracket, errors) {
 		checkInt('gridWidth', 1)
 		checkInt('gridHeight', 1)
 	})
+}
+
+/**
+ * Validate a single `sections[]` entry for `type:"settings"` pages.
+ * Shared between the flat `pages[].config.sections[]` path AND the
+ * tab-nested `pages[].config.tabs[].sections[]` path
+ * (`manifest-settings-orchestration` REQ-MSO-4).
+ *
+ * Enforces the rich-sections REQ-MSRS-1 mutex (`fields | component |
+ * widgets` exactly-one-of) plus per-widget shape rules. The new
+ * `widget.type === "component"` discriminator (REQ-MSO-6) requires
+ * `componentName: <non-empty string>`.
+ *
+ * @param {*} section The section under validation
+ * @param {string} pathSlash JSON-pointer-style path prefix for errors
+ * @param {string} pathBracket Human-readable bracket-path for errors
+ * @param {string[]} errors Accumulator
+ */
+function validateSettingsSection(section, pathSlash, pathBracket, errors) {
+	if (!isPlainObject(section)) {
+		errors.push(`${pathSlash}: must be an object`)
+		return
+	}
+	if (typeof section.title !== 'string') {
+		errors.push(`${pathSlash}/title: required, must be a string`)
+	}
+
+	// `manifest-settings-rich-sections` REQ-MSRS-1: exactly one of
+	// fields | component | widgets.
+	const hasFields = Array.isArray(section.fields)
+	const hasComponent = typeof section.component === 'string' && section.component.length > 0
+	const hasWidgets = Array.isArray(section.widgets) && section.widgets.length > 0
+	const bodyCount = (hasFields ? 1 : 0) + (hasComponent ? 1 : 0) + (hasWidgets ? 1 : 0)
+
+	if (bodyCount !== 1) {
+		errors.push(`${pathSlash}: ${pathBracket}: must declare exactly one of fields | component | widgets`)
+	}
+
+	// `widgets` set but not an array (string / object / etc.)
+	if (section.widgets !== undefined && !Array.isArray(section.widgets)) {
+		errors.push(`${pathSlash}/widgets: must be an array when set`)
+	}
+
+	// `component` set but not a string.
+	if (section.component !== undefined && typeof section.component !== 'string') {
+		errors.push(`${pathSlash}/component: must be a string when set`)
+	}
+
+	// Per-widget shape rules.
+	if (hasWidgets) {
+		section.widgets.forEach((widget, wIndex) => {
+			if (!isPlainObject(widget)) {
+				errors.push(`${pathSlash}/widgets/${wIndex}: must be an object`)
+				return
+			}
+			if (typeof widget.type !== 'string' || widget.type.length === 0) {
+				errors.push(`${pathSlash}/widgets/${wIndex}/type: must be a non-empty string`)
+				return
+			}
+			// `manifest-settings-orchestration` REQ-MSO-6: when the
+			// discriminator is "component", `componentName` MUST be a
+			// non-empty string. Other widget types ignore
+			// `componentName`.
+			if (widget.type === 'component') {
+				if (typeof widget.componentName !== 'string' || widget.componentName.length === 0) {
+					errors.push(`${pathSlash}/widgets/${wIndex}/componentName: required when type is "component", must be a non-empty string`)
+				}
+			}
+		})
+	}
+
+	// `manifest-config-refs` REQ-MCR — when fields[] body is used,
+	// each entry must match the formField $def shape.
+	if (hasFields) {
+		validateFieldsArray(section.fields, `${pathSlash}/fields`, errors)
+	}
 }
 
 /**

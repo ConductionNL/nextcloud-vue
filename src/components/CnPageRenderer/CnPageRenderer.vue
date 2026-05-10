@@ -219,13 +219,28 @@ export default {
 			return component
 		},
 		/**
-		 * Props forwarded to the dispatched page component. Spreads the
-		 * page's `config` object so manifest authors can supply whatever
-		 * shape the target page expects. Intentionally generic — per-type
-		 * prop validation lives on the target components themselves.
+		 * Props forwarded to the dispatched page component. Merges:
+		 *
+		 *   1. The page's static `config` object — manifest-authored data
+		 *      shared across every visit to this route.
+		 *   2. The router's `$route.params` — dynamic placeholders captured
+		 *      from the URL (e.g. `/meetings/:id/live` → `{ id: '...' }`).
+		 *      Without this merge, children that declare a route-derived
+		 *      prop (`props: { id: { type: String, required: true } }`)
+		 *      receive `undefined` even when the URL clearly contains the
+		 *      value, because the generated route definition's `props: true`
+		 *      only binds params to `CnPageRenderer` itself, not the
+		 *      dispatched child component. Params take precedence over
+		 *      `config` collisions so URL truth wins; config keeps acting
+		 *      as a default-overrides layer.
+		 *
+		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			return this.currentPage?.config ?? {}
+			return {
+				...(this.currentPage?.config ?? {}),
+				...(this.$route?.params ?? {}),
+			}
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.

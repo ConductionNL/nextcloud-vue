@@ -327,7 +327,10 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 			// silently accepted) is INTENTIONALLY tightened here so
 			// the new Object form is unambiguous.
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: true },
 			}))
 			expect(result.valid).toBe(true)
@@ -548,7 +551,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component supersedes the 1.2.0 bump)', () => {
+	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
 		expect(schema.version).toBe('1.3.0')
 	})
 })
@@ -570,7 +573,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	describe('per-page top-level sidebar field', () => {
 		it('accepts sidebar.show: false on an index page', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				sidebar: { show: false },
 			}))
 			expect(result.valid).toBe(true)
@@ -578,7 +584,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('accepts sidebar.show: false on a detail page', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				sidebar: { show: false },
 			}))
 			expect(result.valid).toBe(true)
@@ -586,7 +595,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('accepts sidebar.show: false on a custom page', () => {
 			const result = validateManifest(baseManifest({
-				id: 'c', route: '/c', type: 'custom', title: 't',
+				id: 'c',
+				route: '/c',
+				type: 'custom',
+				title: 't',
 				component: 'X',
 				sidebar: { show: false },
 			}))
@@ -595,7 +607,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects non-object top-level sidebar', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				sidebar: 'no',
 			}))
 			expect(result.errors.some((e) => e.includes('/pages/0/sidebar') && e.includes('must be an object'))).toBe(true)
@@ -603,7 +618,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects non-boolean sidebar.show', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				sidebar: { show: 'maybe' },
 			}))
 			expect(result.errors.some((e) => e.includes('/pages/0/sidebar/show'))).toBe(true)
@@ -611,7 +629,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('tolerates unknown sub-fields for forward-compat', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				sidebar: { show: false, position: 'left' },
 			}))
 			expect(result.valid).toBe(true)
@@ -626,7 +647,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	describe('config.sidebar.show on index pages', () => {
 		it('accepts show: false on the index sidebar config', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { enabled: true, show: false } },
 			}))
 			expect(result.valid).toBe(true)
@@ -634,7 +658,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects show as a string', () => {
 			const result = validateManifest(baseManifest({
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: { sidebar: { enabled: true, show: 'no' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/config/sidebar/show'))).toBe(true)
@@ -644,12 +671,18 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	describe('config.sidebar Object form on detail pages', () => {
 		it('accepts the legacy Boolean form (back-compat)', () => {
 			const trueResult = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: true },
 			}))
 			expect(trueResult.valid).toBe(true)
 			const falseResult = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: false },
 			}))
 			expect(falseResult.valid).toBe(true)
@@ -657,7 +690,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('accepts a full Object form', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: {
 					sidebar: {
 						show: false,
@@ -676,7 +712,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects a non-Boolean / non-Object value', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: 'opaque' },
 			}))
 			expect(result.errors.some((e) => e.includes('/pages/0/config/sidebar') && e.includes('boolean'))).toBe(true)
@@ -684,7 +723,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects a non-boolean show', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: { show: 'maybe' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/config/sidebar/show'))).toBe(true)
@@ -692,7 +734,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects non-string register / schema / title / subtitle', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: { register: 1, schema: 2, title: 3, subtitle: 4 } },
 			}))
 			expect(result.errors.some((e) => e.includes('/config/sidebar/register'))).toBe(true)
@@ -703,7 +748,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('rejects non-array hiddenTabs', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: { hiddenTabs: 'notes' } },
 			}))
 			expect(result.errors.some((e) => e.includes('/config/sidebar/hiddenTabs'))).toBe(true)
@@ -711,7 +759,10 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 
 		it('validates tabs declared inside config.sidebar.tabs (new path)', () => {
 			const result = validateManifest(baseManifest({
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { sidebar: { tabs: [{ id: 'a', component: 'X' }] } },
 			}))
 			// Missing label → error.
@@ -724,10 +775,8 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			// `manifest-detail-sidebar-config` itself was non-breaking and
 			// kept the version at 1.1.0. The successor `manifest-config-refs`
 			// change wires up $refs on the recurring config sub-shapes and
-			// bumped to 1.2.0. `manifest-card-index-component` is a further
-			// additive bump to 1.3.0 — documents the new optional
-			// `cardComponent` field on `type:'index'` config without
-			// breaking older manifests.
+			// bumped to 1.2.0. `manifest-card-index-component` and
+			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
 			expect(schema.version).toBe('1.3.0')
 		})
 
@@ -797,5 +846,313 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			const customPage = fixture.pages.find((p) => p.type === 'custom')
 			expect(customPage.sidebar.show).toBe(false)
 		})
+	})
+})
+
+// `manifest-settings-orchestration` — adds tabs[] orchestration shape
+// (REQ-MSO-1..5, 7-8) and the `widgets[].type === "component"`
+// discriminator with `componentName` (REQ-MSO-6).
+describe('validateManifest — settings orchestration (manifest-settings-orchestration)', () => {
+	const tabsFixture = require('../fixtures/manifest-settings-tabs.json')
+
+	const settingsPage = (config) => ({
+		version: '1.2.0',
+		menu: [],
+		pages: [{
+			id: 'app-settings',
+			route: '/settings',
+			type: 'settings',
+			title: 'myapp.settings.title',
+			config,
+		}],
+	})
+
+	it('REQ-MSO-1: tabs-only manifest is valid', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [
+				{
+					id: 'general',
+					label: 'General',
+					sections: [
+						{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+					],
+				},
+			],
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSO-1: declaring both sections[] and tabs[] is rejected', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] }],
+			tabs: [{
+				id: 'general',
+				label: 'General',
+				sections: [
+					{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+				],
+			}],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('must declare exactly one of sections | tabs'))).toBe(true)
+	})
+
+	it('REQ-MSO-1: empty config keeps the existing `sections required` error (back-compat)', () => {
+		const result = validateManifest(settingsPage({}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('.sections: required'))).toBe(true)
+		// MUST NOT additionally emit the new orchestration-mutex error.
+		expect(result.errors.some((e) => e.includes('must declare exactly one of sections | tabs'))).toBe(false)
+	})
+
+	it('REQ-MSO-2: tab with empty id is rejected', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [{
+				id: '',
+				label: 'General',
+				sections: [
+					{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+				],
+			}],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/tabs/0/id'))).toBe(true)
+	})
+
+	it('REQ-MSO-2: tab with empty label is rejected', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [{
+				id: 'general',
+				label: '',
+				sections: [
+					{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+				],
+			}],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/tabs/0/label'))).toBe(true)
+	})
+
+	it('REQ-MSO-2: tab with empty sections[] is rejected', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [{ id: 'general', label: 'General', sections: [] }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/tabs/0/sections'))).toBe(true)
+	})
+
+	it('REQ-MSO-2: tab missing sections array is rejected', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [{ id: 'general', label: 'General' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/tabs/0/sections'))).toBe(true)
+	})
+
+	it('REQ-MSO-3: duplicate tab IDs are rejected (later index gets the error)', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [
+				{
+					id: 'a',
+					label: 'A',
+					sections: [
+						{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] },
+					],
+				},
+				{
+					id: 'b',
+					label: 'B',
+					sections: [
+						{ title: 'g', fields: [{ key: 'y', type: 'boolean', label: 'Y' }] },
+					],
+				},
+				{
+					id: 'a',
+					label: 'A2',
+					sections: [
+						{ title: 'g', fields: [{ key: 'z', type: 'boolean', label: 'Z' }] },
+					],
+				},
+			],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/tabs/2/id') && e.includes('duplicate id "a"'))).toBe(true)
+	})
+
+	it('REQ-MSO-4: tab with mixed-body section is rejected (shared section validator)', () => {
+		const result = validateManifest(settingsPage({
+			tabs: [{
+				id: 'general',
+				label: 'General',
+				sections: [{
+					title: 'g',
+					fields: [{ key: 'x', type: 'boolean', label: 'X' }],
+					widgets: [{ type: 'version-info', props: { appName: 'X', appVersion: '1' } }],
+				}],
+			}],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('must declare exactly one of fields | component | widgets'))).toBe(true)
+		expect(result.errors.some((e) => e.includes('/tabs/0/sections/0'))).toBe(true)
+	})
+
+	it('REQ-MSO-6: widget {type:"component"} without componentName is rejected', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{ title: 'g', widgets: [{ type: 'component' }] }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/widgets/0/componentName'))).toBe(true)
+	})
+
+	it('REQ-MSO-6: widget {type:"component", componentName:"X"} is valid', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{ title: 'g', widgets: [{ type: 'component', componentName: 'WorkflowEditor' }] }],
+		}))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSO-6: widget with type:"component" and empty componentName is rejected', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{ title: 'g', widgets: [{ type: 'component', componentName: '' }] }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/widgets/0/componentName'))).toBe(true)
+	})
+
+	it('REQ-MSO-7: existing flat-fields manifest still validates (back-compat)', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{ title: 'g', fields: [{ key: 'x', type: 'boolean', label: 'X' }] }],
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSO-7: existing rich-sections manifest still validates (back-compat)', () => {
+		const result = validateManifest(settingsPage({
+			sections: [{
+				title: 'g',
+				widgets: [{ type: 'version-info', props: { appName: 'X', appVersion: '1' } }],
+			}],
+		}))
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSO-7: tabs fixture validates with errors=[] (covers every flavor)', () => {
+		const result = validateManifest(tabsFixture)
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('REQ-MSO-8: schema description names the new tabs[] and componentName keys', () => {
+		const description = schema.$defs.page.properties.config.description
+		expect(description).toContain('tabs')
+		expect(description).toContain('componentName')
+	})
+
+	it('REQ-MSO-8: schema declares the tabs[] property under config', () => {
+		const config = schema.$defs.page.properties.config
+		expect(config.properties.tabs).toBeDefined()
+		expect(config.properties.tabs.type).toBe('array')
+		expect(config.properties.tabs.items.required).toEqual(
+			expect.arrayContaining(['id', 'label', 'sections']),
+		)
+	})
+
+	it('REQ-MSO-8: schema top-level version field is at the current schema version', () => {
+		expect(schema.version).toBe('1.3.0')
+	})
+})
+
+// `manifest-form-page-type` — adds the `type:'form'` page type with
+// handler-mode + endpoint-mode submit dispatch.
+describe('validateManifest — manifest-form-page-type', () => {
+	const baseField = { key: 'name', label: 'i18n.name', type: 'string' }
+
+	const wrap = (page) => ({
+		version: '1.0.0',
+		menu: [],
+		pages: [page],
+	})
+
+	it('accepts a type=form page with handler-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a type=form page with endpoint-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api/forms', submitMethod: 'POST', mode: 'public' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a type=form page missing fields', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with empty fields[]', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with both submitHandler and submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', submitEndpoint: '/api' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with neither submitHandler nor submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed submitMethod', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api', submitMethod: 'GET' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('POST | PUT | PATCH'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed mode', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', mode: 'review' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('edit | create | public'))).toBe(true)
+	})
+
+	it('validates each form field against the formField $def shape', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [{ key: 'x' /* missing label + type */ }], submitHandler: 'h' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
 	})
 })

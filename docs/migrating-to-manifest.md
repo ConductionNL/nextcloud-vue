@@ -93,6 +93,30 @@ export default {
 
 **Custom menu instead?** Skip `CnAppNav` entirely. Either keep your existing menu component, or use `CnAppRoot` (tier 4) and override the `#menu` slot — see below.
 
+### Dynamic per-tenant menu entries
+
+Apps whose top-level navigation depends on runtime data (catalogues, organisations, registers) populate the `menu[]` array from their backend `/api/manifest` endpoint. The bundled manifest declares a static placeholder; the backend resolves per-tenant data and returns the fully-populated list; `useAppManifest`'s deep-merge replaces the bundled `menu[]` with the resolved one (arrays are replaced, not concatenated).
+
+For example, an app like opencatalogi that previously rendered one nav entry per catalogue with `v-for="catalogus in catalogs"` keeps a single placeholder in `src/manifest.json` and lets the backend ship the resolved list:
+
+```json
+// src/manifest.json (bundled)
+{ "menu": [{ "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index" }] }
+
+// /index.php/apps/opencatalogi/api/manifest (backend response)
+{
+  "menu": [{
+    "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index",
+    "children": [
+      { "id": "catalog-tax", "label": "menu.catalog.tax", "route": "catalog-detail" },
+      { "id": "catalog-housing", "label": "menu.catalog.housing", "route": "catalog-detail" }
+    ]
+  }]
+}
+```
+
+The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour — lives in the [`useAppManifest` reference docs](./utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
+
 ---
 
 ## Tier 4 — `+ CnAppRoot`
@@ -161,7 +185,7 @@ Key fields:
 - **`version`** — semver of the manifest content. Bump when meaningful changes land.
 - **`dependencies`** — Nextcloud app ids that must be installed and enabled. CnAppRoot's dependency-check phase blocks the shell when any are missing.
 - **`menu[]`** — top-level nav entries. `id`, `label` (i18n key), optional `icon`, `route` (vue-router route name = page.id), `order`, `permission`, one level of `children[]`.
-- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | logs | settings | chat | files | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
+- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | logs | settings | chat | files | form | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
 
 The closed `type` enum is the main defense against DSL creep. Anything bespoke goes in a `type: "custom"` page that resolves a component name from the registry you pass to `CnAppRoot`.
 
@@ -176,7 +200,8 @@ When a consumer faces a new page, the choice tree is:
 5. **Is it admin / system config?** → `settings`.
 6. **Is it a conversation thread?** → `chat`.
 7. **Is it a file browser?** → `files`.
-8. **None of the above** → `custom` + a registry component.
+8. **Is it an end-user runtime form (single submit, declarable fields)?** → `form`.
+9. **None of the above** → `custom` + a registry component.
 
 The criterion separating built-in from custom is: **does the page have a declarative data shape?** Built-ins do; customs don't. Reach for a built-in whenever your page's data shape fits one — the manifest stays declarative, and the App Builder admin UI can reason about the page automatically. Pick `custom` only when none of the seven shapes fit.
 
@@ -324,8 +349,58 @@ methods: {
 1. **Several flat IAppConfig keys?** → `fields: [...]`.
 2. **One whole-section pre-built library widget (version, register-mapping)?** → `widgets: [{ type }]`.
 3. **Several whole-section widgets stacked?** → `widgets: [...]` with multiple entries.
-4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props`.
+4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props` (whole-section body) OR `widgets: [{ type: "component", componentName: <registry-name>, props }]` (one of several widgets in a section).
 5. **Mostly flat fields with one bespoke input?** → `fields: [...]` plus a `#field-<key>` slot override.
+
+### Multi-tab admin pages (`tabs[]` orchestration)
+
+When a settings page has more than ~4 logical groups (think softwarecatalog's `General`, `Catalogue`, `Sync`, `Connections`, `Mappings`, `Notifications`, `Branding`, `Advanced`), a flat `sections[]` stack becomes a long scroll. Use `tabs[]` to group sections under tab buttons:
+
+```jsonc
+{
+  "id": "Settings",
+  "type": "settings",
+  "title": "myapp.settings.title",
+  "config": {
+    "saveEndpoint": "/index.php/apps/myapp/api/settings",
+    "tabs": [
+      { "id": "general",  "label": "myapp.settings.tab.general",  "sections": [ /* same shape as the flat case */ ] },
+      { "id": "about",    "label": "myapp.settings.tab.about",    "sections": [
+        { "title": "myapp.settings.section.about", "widgets": [
+          { "type": "version-info", "props": { "appName": "MyApp", "appVersion": "0.1.0" } }
+        ] }
+      ] },
+      { "id": "advanced", "label": "myapp.settings.tab.advanced", "sections": [ /* … */ ] }
+    ]
+  }
+}
+```
+
+Rules:
+
+- `sections[]` and `tabs[]` are XOR — a page declares one or the other. The validator rejects manifests with both at the page-`config` level.
+- Each tab MUST have non-empty `id` and `label`, plus a non-empty `sections: [...]`. Tab IDs MUST be unique within the page.
+- The first tab is active by default. Override via the `initialTab` prop on `CnSettingsPage` (typically wired through `CnPageRenderer.pageTypeProps`).
+- The page emits `@tab-change` with `{ tabId, tabIndex }` when the user clicks a different tab — wire it to your preference store or URL hash if you want the active tab to survive a reload.
+
+### Custom component widgets (`{ type: "component", componentName }`)
+
+When a settings section needs to host a bespoke consumer Vue component as one of several widgets in the section, use the explicit `component` discriminator with `componentName`:
+
+```jsonc
+{
+  "title": "myapp.settings.section.workflow",
+  "widgets": [
+    {
+      "type": "component",
+      "componentName": "WorkflowEditor",
+      "props": { "schemaSlug": "workflow" }
+    }
+  ]
+}
+```
+
+`componentName` resolves against the customComponents registry passed to `CnAppRoot`. The legacy `widget.type === <registry-name>` fallback path is kept for back-compat with `manifest-settings-rich-sections` consumers, but is JSDoc-deprecated — `{ type: "component", componentName }` is the recommended way going forward because it makes the manifest reader aware that the widget body is NOT a built-in.
 
 ### `custom` → `chat`
 
@@ -368,11 +443,40 @@ After:
 
 The default listing is read-only. If you need upload / rename / delete, fill the `#files-view` slot with your existing file-picker — the slot scope (`{ folder, allowedTypes, files, loading, error, refresh }`) gives you everything the manifest declared without re-reading it.
 
+### `custom` → `form` (runtime form rendering)
+
+`type: "form"` mounts `CnFormPage` and renders a flat `fields[]` array plus a submit button. Use it for **end-user runtime forms** — public surveys, "request a quote" pages, contact forms — where the entire route is "render this list of fields, send the result somewhere."
+
+```json
+{
+  "id": "PublicSurvey",
+  "route": "/public/survey/:token",
+  "type": "form",
+  "title": "Survey",
+  "config": {
+    "fields": [
+      { "key": "rating",  "label": "Rating",   "type": "number" },
+      { "key": "comment", "label": "Comments", "type": "string", "widget": "textarea" }
+    ],
+    "submitHandler": "submitPublicSurvey",
+    "mode": "public"
+  }
+}
+```
+
+Submit dispatch picks one of two paths based on which field is set in `config`:
+
+- `submitHandler: "<registryName>"` — looks the name up in your `customComponents` registry and calls it with `(formData, $route, $router)`. Use this when the submit needs auth, CSRF tokens, or non-trivial URL building.
+- `submitEndpoint: "<url>"` — the page calls `axios[method](url, formData)` directly. URL `:paramName` segments resolve from `$route.params` (so `/api/survey/:token` works automatically).
+
+Stay on `type: "custom"` when the route is a **form *builder*** (drag-drop questions, branching logic, per-field validation panel) — the manifest's declarative shape doesn't fit a builder UI. See `CnFormPage` docs for the full prop reference.
+
 ### When to stick with `custom`
 
 Some shapes don't fit any built-in:
 
 - **Drag-and-drop kanban / pipeline editors** (Pipelinq) — defer to a future `kanban` type.
+- **Form *builder* / authoring UIs** — drag-drop question ordering, branching logic editors, submission tables. The runtime *renderer* lives on `type: "form"`; the builder stays bespoke.
 - **Org-tree / org-chart views** — no built-in today.
 - **Map views** (geographic data) — no built-in today.
 - **Multi-step wizards** — keep custom; wizards are too app-specific for a closed shape.

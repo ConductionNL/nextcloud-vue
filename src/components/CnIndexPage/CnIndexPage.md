@@ -371,6 +371,7 @@ export default {
 | `excludeFields` | Array | `[]` | Field keys to exclude from the form dialog |
 | `includeFields` | Array | `null` | Field keys to include in the form dialog (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the refresh button is disabled |

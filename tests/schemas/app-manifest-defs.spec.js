@@ -236,13 +236,15 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('schema version reflects manifest-config-refs follow-up bump (1.2.0)', () => {
+	it('schema version reflects manifest-actions-dispatch follow-up bump (1.3.0)', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
-		// `manifest-card-index-component` adds the optional `cardComponent`
-		// field on `type:'index'` config (additive — existing $defs unchanged)
-		// and bumps to 1.3.0.
+		// 1.3.0 reflects two additive changes that landed in the same wave:
+		// - `manifest-card-index-component` adds the optional `cardComponent`
+		//   field on `type:'index'` config.
+		// - `manifest-actions-dispatch` adds `handler` + `route` to the `action`
+		//   $def. Existing $defs unchanged either way.
 		expect(schema.version).toBe('1.3.0')
 	})
 
