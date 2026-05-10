@@ -181,6 +181,15 @@ module.exports = {
 				// — components that bundle the live-updates plugin still build, and
 				// the listen() call no-ops harmlessly when there's no server.
 				'@nextcloud/notify_push': path.resolve(__dirname, 'node_modules/@nextcloud/notify_push/dist/index.js'),
+				// marked@15 uses optional-chaining (`cells.at(-1)?.trim()`)
+				// which webpack 4's parser doesn't recognise; node_modules
+				// isn't transpiled by babel-loader in this config. Markdown
+				// rendering only matters inside CnWikiPage at runtime in a
+				// real Nextcloud server — the styleguide demo just needs
+				// the component to mount, so a no-op stub keeps the build
+				// green. Sites consuming the lib pull marked from the lib
+				// root's package.json normally.
+				marked: path.resolve(__dirname, 'mocks/empty.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
