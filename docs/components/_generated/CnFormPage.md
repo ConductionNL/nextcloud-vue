@@ -19,17 +19,17 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `submit` | —       |             |
-| `error`  | —       |             |
-| `input`  | —       |             |
+| Name     | Payload | Description                                                          |
+| -------- | ------- | -------------------------------------------------------------------- |
+| `submit` | —       | Successful submit event. Payload is the full formData object.        |
+| `error`  | —       | Submit failure event. Payload is the thrown error / rejected reason. |
+| `input`  | —       | Field-level update event.                                            |
 
 ### Slots
 
-| Name                 | Bindings                             | Description |
-| -------------------- | ------------------------------------ | ----------- |
-| `header`             | `title`, `description`               |             |
-| `actions`            | —                                    |             |
-| `field-${field.key}` | `name`, `field`, `value`, `on-input` |             |
-| `submit`             | `submitting`, `dirty`, `submit`      |             |
+| Name                 | Bindings                             | Description          |
+| -------------------- | ------------------------------------ | -------------------- |
+| `header`             | `title`, `description`               | header               |
+| `actions`            | —                                    |                      |
+| `field-${field.key}` | `name`, `field`, `value`, `on-input` | field-$\{field.key\} |
+| `submit`             | `submitting`, `dirty`, `submit`      |                      |

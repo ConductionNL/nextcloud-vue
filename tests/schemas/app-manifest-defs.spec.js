@@ -240,9 +240,10 @@ describe('manifest-config-defs additivity', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
-		// This file's defs are still present and reachable; the assertion
-		// just keeps in sync with the latest base.
-		expect(schema.version).toBe('1.2.0')
+		// `manifest-card-index-component` adds the optional `cardComponent`
+		// field on `type:'index'` config (additive — existing $defs unchanged)
+		// and bumps to 1.3.0.
+		expect(schema.version).toBe('1.3.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {
