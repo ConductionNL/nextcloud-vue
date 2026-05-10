@@ -53,4 +53,5 @@ export const defaultPageTypes = {
 	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then(m => m.default)),
 	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then(m => m.default)),
 	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then(m => m.default)),
+	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
 }
