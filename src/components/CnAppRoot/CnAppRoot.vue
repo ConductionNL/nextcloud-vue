@@ -60,8 +60,20 @@
 			  when no `CnPageRenderer` ancestor exists) is `true`, so
 			  apps that mount their own page components without the
 			  renderer keep rendering the slot exactly as today.
+
+			  Default content: when `cnPageSidebarComponent.value` is a
+			  Vue component (set by the renderer when the current page
+			  declares a `sidebarComponent` registry name), it renders
+			  here as the slot's DEFAULT content. The consumer's
+			  `#sidebar` slot override (when supplied) wins via Vue's
+			  standard slot mechanic; the resolved component is the
+			  fallback. See manifest-named-view-sidebar spec.
 			-->
-			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar" />
+			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
+				<component
+					:is="cnPageSidebarComponent.value"
+					v-if="cnPageSidebarComponent.value" />
+			</slot>
 		</template>
 	</NcContent>
 </template>
@@ -94,18 +106,27 @@ export default {
 	},
 
 	/**
-	 * Inject the current page's sidebar-visibility flag. The provider
-	 * is `CnPageRenderer` (a typical descendant via `<router-view>`).
-	 * The default — used when no `CnPageRenderer` ancestor exists
-	 * (e.g. apps mounting their own page components without the
-	 * renderer) — is `{ value: true }` so the `#sidebar` slot
-	 * renders unchanged.
+	 * Inject the current page's sidebar-visibility flag and
+	 * sidebar-component override. The provider is `CnPageRenderer`
+	 * (a typical descendant via `<router-view>`).
 	 *
-	 * The shape `{ value: boolean }` is a hand-rolled reactive holder
-	 * (Vue 2 options API) — see `CnPageRenderer.data().pageSidebarVisible`.
+	 * `cnPageSidebarVisible` default — used when no `CnPageRenderer`
+	 * ancestor exists (e.g. apps mounting their own page components
+	 * without the renderer) — is `{ value: true }` so the `#sidebar`
+	 * slot renders unchanged.
+	 *
+	 * `cnPageSidebarComponent` default is `{ value: null }` so the
+	 * slot's default content stays empty unless the manifest
+	 * explicitly opts in via `pages[].sidebarComponent`. Apps that
+	 * already provide a `#sidebar` slot override see no behaviour
+	 * change either way — the override wins over the slot default.
+	 *
+	 * The shape `{ value: T }` is a hand-rolled reactive holder
+	 * (Vue 2 options API) — see `CnPageRenderer.data()`.
 	 */
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
+		cnPageSidebarComponent: { default: () => ({ value: null }) },
 	},
 
 	props: {

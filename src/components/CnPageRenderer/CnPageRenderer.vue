@@ -59,21 +59,29 @@ export default {
 	},
 
 	/**
-	 * Expose the current page's sidebar-visibility state to
-	 * descendants (notably `CnAppRoot` which gates its `#sidebar`
-	 * slot on this value). The provider is a reactive holder
-	 * `{ value: boolean }` so consumers can `inject` once and read
-	 * `.value` whenever they render — Vue 2 reactivity tracks the
-	 * mutation site (the watcher in `data()` below).
+	 * Expose the current page's sidebar-visibility state and
+	 * sidebar-component override to descendants (notably
+	 * `CnAppRoot` which gates its `#sidebar` slot on
+	 * `cnPageSidebarVisible.value` and renders
+	 * `cnPageSidebarComponent.value` as the slot's default content).
+	 * Each provider is a reactive holder so consumers can `inject`
+	 * once and read `.value` whenever they render — Vue 2 reactivity
+	 * tracks the mutation site (the watchers below in `data()`).
 	 *
-	 * Default holder value is `true`, so when `pages[].sidebar.show`
-	 * is unset / `true`, behaviour matches today (slot renders).
-	 * When the page entry sets `sidebar.show: false`, the watcher
-	 * flips `.value` and `CnAppRoot` re-evaluates its `v-if`.
+	 * `cnPageSidebarVisible` default holder value is `true`, so when
+	 * `pages[].sidebar.show` is unset / `true`, behaviour matches
+	 * today (slot renders).
+	 *
+	 * `cnPageSidebarComponent` default holder value is `null`, so
+	 * when `pages[].sidebarComponent` is unset, the host App's
+	 * `#sidebar` slot renders its consumer-supplied content (or
+	 * nothing) — no behaviour change for apps that don't adopt the
+	 * field.
 	 */
 	provide() {
 		return {
 			cnPageSidebarVisible: this.pageSidebarVisible,
+			cnPageSidebarComponent: this.pageSidebarComponent,
 		}
 	},
 
@@ -132,12 +140,14 @@ export default {
 	},
 
 	data() {
-		// Reactive holder for the per-page sidebar-visibility flag.
-		// Lives on data() so Vue 2 reactivity tracks `.value` mutations
-		// in the watcher below; `provide()` returns the same reference
-		// so descendant injects observe each update.
+		// Reactive holders for the per-page sidebar visibility flag and
+		// sidebar-component override. Both live on data() so Vue 2
+		// reactivity tracks `.value` mutations in the watchers below;
+		// `provide()` returns the same references so descendant injects
+		// observe each update.
 		return {
 			pageSidebarVisible: { value: true },
+			pageSidebarComponent: { value: null },
 		}
 	},
 
@@ -282,6 +292,37 @@ export default {
 			return page.sidebar.show !== false
 		},
 		/**
+		 * Per-page sidebar component derived from the page entry's
+		 * top-level `sidebarComponent` field (sibling of `config`).
+		 * The string is resolved against the effective
+		 * `customComponents` registry — same registry as
+		 * `headerComponent`, `actionsComponent`, `cardComponent`, and
+		 * `slots.*`. Returns `null` when the field is unset, the
+		 * registry name is missing, or resolution fails (a
+		 * `console.warn` is logged in the missing-name case so
+		 * manifest authors notice misconfiguration). Watched below to
+		 * push the value into the reactive `pageSidebarComponent`
+		 * holder shared via provide/inject with `CnAppRoot`.
+		 *
+		 * @return {object|null} The resolved Vue component, or null.
+		 */
+		currentPageSidebarComponent() {
+			const page = this.currentPage
+			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+				return null
+			}
+			const name = page.sidebarComponent
+			const resolved = this.effectiveCustomComponents[name]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in customComponents registry.`,
+				)
+				return null
+			}
+			return resolved
+		},
+		/**
 		 * @deprecated Use `resolvedSlotEntries` for general slot
 		 * resolution. Retained for compatibility with code that read the
 		 * computed directly.
@@ -304,6 +345,27 @@ export default {
 				// Mutate the shared holder's `.value` so descendant
 				// injects (notably CnAppRoot) re-render the slot gate.
 				this.pageSidebarVisible.value = visible
+				// When BOTH visibility is off AND a sidebar component
+				// was declared, the sidebarComponent is dead config.
+				// Log once at watcher flush time so manifest authors
+				// notice the misconfiguration. Visibility wins — the
+				// component holder still carries the resolved value
+				// for downstream consumers that inspect it directly.
+				if (visible === false && this.currentPage?.sidebarComponent) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnPageRenderer] Page id "${this.currentPage.id}" declares both sidebar.show: false and sidebarComponent "${this.currentPage.sidebarComponent}". Visibility wins; the sidebarComponent will not render.`,
+					)
+				}
+			},
+		},
+		currentPageSidebarComponent: {
+			immediate: true,
+			handler(component) {
+				// Mutate the shared holder's `.value` so descendant
+				// injects (notably CnAppRoot) re-render the slot
+				// default content with the resolved component.
+				this.pageSidebarComponent.value = component
 			},
 		},
 	},

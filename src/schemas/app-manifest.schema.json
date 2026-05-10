@@ -272,6 +272,11 @@
 					"type": "string",
 					"description": "Optional registry name for a component injected into the page's #actions slot. Enables partial bailout without going full type='custom'. Equivalent to `slots.actions`; takes precedence when both are set."
 				},
+				"sidebarComponent": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Optional registry name resolved against the consuming app's customComponents registry. When set, CnPageRenderer publishes the resolved component on the `cnPageSidebarComponent` reactive provide channel; CnAppRoot mounts it as the DEFAULT content of its `#sidebar` slot for the lifetime of this page mount. The consumer's `#sidebar` slot override (when supplied) wins over the resolved component via Vue's standard slot mechanic — apps that already wire a sibling `<CnObjectSidebar>` keep working unchanged. Composes with `sidebar.show`: when `show: false`, the slot does not render at all and the resolved component is suppressed (visibility wins; CnPageRenderer logs a console.warn about the dead config). Use this field for the per-page full-sidebar swap pattern (Vue Router named-view equivalent — e.g. opencatalogi's Search route swapping in a SearchSideBar). For per-tab content on the built-in CnObjectSidebar use `pages[].config.sidebar.tabs[]` instead. Unknown registry names log a console.warn and fall through to the consumer's slot content."
+				},
 				"slots": {
 					"type": "object",
 					"description": "Generic slot-override map. Each key is the name of a scoped slot exposed by the dispatched page component (e.g. 'create-dialog', 'form-fields', 'row-actions', 'empty'); each value is a registry component name resolved against the customComponents registry passed to CnAppRoot. CnPageRenderer creates a scoped-slot template for each entry and forwards all slot-scope props to the resolved component. Use this to preserve every slot override the underlying Cn*Page supports without writing a wrapper component.",

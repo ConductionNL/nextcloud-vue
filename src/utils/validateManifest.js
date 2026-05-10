@@ -159,6 +159,17 @@ export function validateManifest(manifest, options = {}) {
 				}
 			}
 
+			// `sidebarComponent` (per-page named-view sidebar swap) MUST
+			// be a non-empty string when set. Free-form otherwise — the
+			// registry-membership check is a runtime concern handled by
+			// CnPageRenderer (console.warn + fall-through). See
+			// manifest-named-view-sidebar spec REQ-MNVS-1.
+			if (page.sidebarComponent !== undefined) {
+				if (typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+					errors.push(`/pages/${index}/sidebarComponent must be a non-empty string`)
+				}
+			}
+
 			// Per-type config-shape validation for built-in extended types.
 			// (`manifest-page-type-extensions` spec — covers logs/settings/chat/files.)
 			validateTypeConfig(page, index, errors)
