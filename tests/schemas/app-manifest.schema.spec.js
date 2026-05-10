@@ -162,7 +162,7 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 	})
 
 	it('schema declares its version as 1.2.0', () => {
-		expect(schema.version).toBe('1.2.0')
+		expect(schema.version).toBe('1.3.0')
 	})
 })
 
@@ -349,7 +349,7 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 	describe('schema metadata bump', () => {
 		it('bumps the schema version field to 1.2.0', () => {
-			expect(schema.version).toBe('1.2.0')
+			expect(schema.version).toBe('1.3.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -462,7 +462,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 	})
 
 	it('REQ-MSRS-6: schema top-level version field bumps to 1.2.0 (manifest-config-refs)', () => {
-		expect(schema.version).toBe('1.2.0')
+		expect(schema.version).toBe('1.3.0')
 	})
 })
 
@@ -639,7 +639,7 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			// change wires up $refs on the recurring config sub-shapes —
 			// non-breaking on documented manifests but a meaningful surface
 			// change worth a minor version bump to 1.2.0.
-			expect(schema.version).toBe('1.2.0')
+			expect(schema.version).toBe('1.3.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
