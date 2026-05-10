@@ -75,6 +75,17 @@ const sampleManifest = {
 				'create-dialog': 'NonExistent',
 			},
 		},
+		{
+			id: 'public-survey',
+			route: '/public/survey/:token',
+			type: 'form',
+			title: 'app.survey',
+			config: {
+				fields: [{ key: 'rating', type: 'number', label: 'Rating' }],
+				submitHandler: 'submitSurvey',
+				mode: 'public',
+			},
+		},
 	],
 }
 
@@ -159,6 +170,18 @@ describe('CnPageRenderer', () => {
 		it('returns an async component wrapper for type=dashboard', () => {
 			const wrapper = mountRenderer('overview')
 			expect(wrapper.vm.resolvedComponent).not.toBeNull()
+		})
+
+		it('returns an async component wrapper for type=form (manifest-form-page-type)', () => {
+			const wrapper = mountRenderer('public-survey')
+			const component = wrapper.vm.resolvedComponent
+			expect(component).not.toBeNull()
+			expect(['function', 'object']).toContain(typeof component)
+			// Form pages get their config spread as props by the renderer
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				submitHandler: 'submitSurvey',
+				mode: 'public',
+			})
 		})
 
 		it('renders the resolved custom component synchronously', () => {

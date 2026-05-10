@@ -334,9 +334,10 @@ this.$emit('sort', { key: newKey, order })
 ### Workflow when adding or modifying a component
 
 1. Edit the SFC. Add / update JSDoc as you touch each prop, event, or slot.
-2. Run `cd docusaurus && npm run prebuild:docs` to regenerate the partial.
-3. Commit the SFC AND the regenerated `docs/components/_generated/<name>.md` together.
-4. Run `npm run check:jsdoc` locally to confirm no regression.
+2. `git add src/components/CnX/CnX.vue` then `git commit`.
+   The **husky pre-commit hook** (`.husky/pre-commit` → `scripts/precommit-regenerate-partials.sh`) detects the staged Cn* SFC, runs `npm run prebuild:docs` for you, and auto-stages the regenerated `docs/components/_generated/<name>.md`. The commit lands SFC + partial atomically.
+3. If the hook is skipped (e.g. `cd docusaurus && npm install --legacy-peer-deps` hasn't run yet — the script prints a one-line hint and exits 0), CI's freshness gate in `code-quality.yml` still catches the stale partial. Run `cd docusaurus && npm run prebuild:docs && git add docs/components/_generated/` manually before pushing.
+4. Run `npm run check:jsdoc` locally to confirm no regression below the baseline.
 5. If you intentionally improved coverage, `npm run jsdoc-baselines:update` and commit the bumped baseline.
 
 The CI failure messages cite the component name, the missing items by `kind:name`, and the file path — so the fix is always "open the SFC, add the JSDoc, commit."

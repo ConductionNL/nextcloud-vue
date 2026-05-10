@@ -46,11 +46,23 @@ module.exports = {
 	exampleMode: 'collapse',
 	pagePerSection: true,
 
-	// Buble (live-example transpiler) config: pass async/await and object spread through natively.
+	/* Buble (the live-example transpiler) config. Two transforms are
+	   left unimplemented (`asyncAwait`, `moduleExport`) so buble
+	   passes the source straight through without trying to translate
+	   modern syntax it doesn't fully support:
+	     - asyncAwait: false  — buble's translation drops generator
+	       semantics; modern browsers run async/await natively, no
+	       need to transpile.
+	     - moduleExport: false — buble fails any `<script>` block
+	       containing `export default { … }` with "Transforming export
+	       is not implemented". Component .md examples have used the
+	       `<script>export default {…}</script>` pattern since day
+	       one; webpack picks the export up downstream. */
 	compilerConfig: {
 		objectAssign: 'Object.assign',
 		transforms: {
 			asyncAwait: false,
+			moduleExport: false,
 		},
 	},
 

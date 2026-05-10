@@ -161,8 +161,8 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-	it('schema declares its version as 1.2.0', () => {
-		expect(schema.version).toBe('1.2.0')
+	it('schema declares its version as 1.3.0', () => {
+		expect(schema.version).toBe('1.3.0')
 	})
 })
 
@@ -351,8 +351,8 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-		it('bumps the schema version field to 1.2.0', () => {
-			expect(schema.version).toBe('1.2.0')
+		it('bumps the schema version field to 1.3.0', () => {
+			expect(schema.version).toBe('1.3.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -464,8 +464,8 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.2.0 (manifest-config-refs)', () => {
-		expect(schema.version).toBe('1.2.0')
+	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
+		expect(schema.version).toBe('1.3.0')
 	})
 })
 
@@ -684,17 +684,62 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version bumps to 1.2.0 with the manifest-config-refs tightening', () => {
+		it('schema version reaches 1.3.0 with the manifest-card-index-component additive change', () => {
 			// `manifest-detail-sidebar-config` itself was non-breaking and
 			// kept the version at 1.1.0. The successor `manifest-config-refs`
-			// change wires up $refs on the recurring config sub-shapes —
-			// non-breaking on documented manifests but a meaningful surface
-			// change worth a minor version bump to 1.2.0.
-			expect(schema.version).toBe('1.2.0')
+			// change wires up $refs on the recurring config sub-shapes and
+			// bumped to 1.2.0. `manifest-card-index-component` and
+			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
+			expect(schema.version).toBe('1.3.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
 			expect(schema.$defs.page.properties.config.description).toContain('config.sidebar.show')
+		})
+	})
+
+	describe('manifest-card-index-component additions', () => {
+		it('documents cardComponent in the page.config description', () => {
+			expect(schema.$defs.page.properties.config.description).toContain('cardComponent')
+		})
+
+		it('validates a type:"index" page with cardComponent set', () => {
+			const result = validateManifest({
+				version: '1.3.0',
+				menu: [],
+				pages: [{
+					id: 'orgs',
+					route: '/organisations',
+					type: 'index',
+					title: 'Organisations',
+					config: {
+						register: 'softwarecatalog',
+						schema: 'organisation',
+						cardComponent: 'OrganisatieCard',
+					},
+				}],
+			})
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
+		})
+
+		it('still validates a type:"index" page WITHOUT cardComponent (backwards compat)', () => {
+			const result = validateManifest({
+				version: '1.2.0',
+				menu: [],
+				pages: [{
+					id: 'orgs',
+					route: '/organisations',
+					type: 'index',
+					title: 'Organisations',
+					config: {
+						register: 'softwarecatalog',
+						schema: 'organisation',
+					},
+				}],
+			})
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
 		})
 	})
 
@@ -927,7 +972,100 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 		)
 	})
 
-	it('REQ-MSO-8: schema top-level version field stays at 1.2.0 (no bump)', () => {
-		expect(schema.version).toBe('1.2.0')
+	it('REQ-MSO-8: schema top-level version field is at the current schema version', () => {
+		expect(schema.version).toBe('1.3.0')
+	})
+})
+
+// `manifest-form-page-type` — adds the `type:'form'` page type with
+// handler-mode + endpoint-mode submit dispatch.
+describe('validateManifest — manifest-form-page-type', () => {
+	const baseField = { key: 'name', label: 'i18n.name', type: 'string' }
+
+	const wrap = (page) => ({
+		version: '1.0.0',
+		menu: [],
+		pages: [page],
+	})
+
+	it('accepts a type=form page with handler-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a type=form page with endpoint-mode dispatch', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api/forms', submitMethod: 'POST', mode: 'public' },
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a type=form page missing fields', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with empty fields[]', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [], submitHandler: 'submitSurvey' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('non-empty fields[] array'))).toBe(true)
+	})
+
+	it('rejects a type=form page with both submitHandler and submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', submitEndpoint: '/api' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with neither submitHandler nor submitEndpoint', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField] },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('exactly one of submitHandler | submitEndpoint'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed submitMethod', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitEndpoint: '/api', submitMethod: 'GET' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('POST | PUT | PATCH'))).toBe(true)
+	})
+
+	it('rejects a type=form page with disallowed mode', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [baseField], submitHandler: 'h', mode: 'review' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('edit | create | public'))).toBe(true)
+	})
+
+	it('validates each form field against the formField $def shape', () => {
+		const result = validateManifest(wrap({
+			id: 'survey', route: '/s', type: 'form', title: 'Survey',
+			config: { fields: [{ key: 'x' /* missing label + type */ }], submitHandler: 'h' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
 	})
 })

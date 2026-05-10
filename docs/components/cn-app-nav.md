@@ -70,7 +70,12 @@ Items split into two groups by `section`:
 - **External links** — `href` items return `null` for `:to`, intercept the click, call `preventDefault()`, then open the URL via `window.open(..., '_blank', 'noopener,noreferrer')`.
 - **Active icon colour** — `icon-*` background-image classes have a hardcoded dark fill, so the component injects `filter: brightness(0) invert(1)` to whiten them when active. `<template #icon>` MDI components inherit `currentColor` and don't need this.
 
+## Dynamic per-tenant menu entries
+
+The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue or organisation) populate the resolved list in their backend; CnAppNav renders whatever the merged manifest contains. See the [Dynamic per-tenant menu entries](../utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries) section for the contract.
+
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — Provides the `manifest` / `translate` / `permissions` values via inject.
+- [useAppManifest](../utilities/composables/use-app-manifest.md) — Loads, merges, and validates the manifest CnAppNav renders.
 - [migrating-to-manifest](../migrating-to-manifest.md) — Adoption guide.
