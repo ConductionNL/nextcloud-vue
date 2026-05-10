@@ -57,6 +57,14 @@
 			</div>
 		</div>
 
+		<!-- Locked-by-other banner. Renders only when an `_lockState`
+		     was wired by `setup()` AND a remote lock is active.
+		     Suppressed when the lock is held by the current user. -->
+		<CnLockedBanner
+			v-if="_lockState && _lockState.locked.value && !_lockState.lockedByMe.value"
+			:locked-by="_lockState.lockedBy.value"
+			:expires-at="_lockState.expiresAt.value" />
+
 		<!-- Loading state -->
 		<div v-if="loading" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
@@ -176,6 +184,9 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { useObjectLock } from '../../composables/useObjectLock.js'
+import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -259,12 +270,43 @@ export default {
 		AlertCircleOutline,
 		InformationOutline,
 		Refresh,
+		CnLockedBanner,
 	},
 
 	mixins: [gridLayout],
 
 	inject: {
 		objectSidebarState: { default: null },
+	},
+
+	setup(props) {
+		// Auto-subscribe + reactive lock state for the current object.
+		// Both are no-ops when objectStore is null (no Pinia active),
+		// when subscribe is false (read-only / archive views), or when
+		// objectType / objectId aren't yet known. Using composables in
+		// setup() keeps the lifecycle bound to the component scope —
+		// `tryOnScopeDispose` releases the subscription on unmount.
+		if (!props.objectStore || !props.subscribe) {
+			return { _lockState: null }
+		}
+		const subscription = useObjectSubscription(
+			props.objectStore,
+			() => props.objectType,
+			() => props.objectId,
+			{ enabled: () => Boolean(props.objectType && props.objectId) },
+		)
+		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || ''
+		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || ''
+		const lock = useObjectLock(
+			props.objectStore,
+			() => sidebarReg,
+			() => props.objectType || sidebarSchema,
+			() => props.objectId,
+		)
+		return {
+			_subscriptionStatus: subscription.status,
+			_lockState: lock,
+		}
 	},
 
 	props: {
@@ -415,6 +457,32 @@ export default {
 		maxWidth: {
 			type: String,
 			default: '1200px',
+		},
+		/**
+		 * Whether to auto-subscribe to live updates for this object.
+		 * Defaults to true. When `useObjectStore` and `objectType` +
+		 * `objectId` are both available, the page calls
+		 * `objectStore.subscribe(objectType, objectId)` on mount and
+		 * unsubscribes on unmount via `tryOnScopeDispose`. Set
+		 * `false` for read-only / archive views.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Optional explicit Pinia store instance to subscribe / lock
+		 * against. When omitted, the page resolves `useObjectStore()`
+		 * lazily so consumer apps that haven't activated Pinia yet
+		 * (e.g. tests) don't crash.
+		 *
+		 * @type {object|null}
+		 */
+		objectStore: {
+			type: Object,
+			default: null,
 		},
 	},
 

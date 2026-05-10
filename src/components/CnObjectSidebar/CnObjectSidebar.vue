@@ -161,6 +161,7 @@ import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 
 import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
@@ -241,6 +242,22 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 	},
 
+	setup(props) {
+		// Auto-subscribe to live updates for the active object. No-op
+		// when `objectStore` is null (no Pinia active) or when the
+		// consumer disabled it via `subscribe: false`. The
+		// composable's reactive `id` argument keeps the subscription
+		// in sync as the user navigates between sidebar objects.
+		if (!props.objectStore || !props.subscribe) return {}
+		useObjectSubscription(
+			props.objectStore,
+			() => props.objectType,
+			() => props.objectId,
+			{ enabled: () => Boolean(props.objectType && props.objectId) },
+		)
+		return {}
+	},
+
 	props: {
 		/** The entity type (e.g., "pipelinq_lead", "procest_case") */
 		objectType: {
@@ -291,6 +308,29 @@ export default {
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
+		},
+		/**
+		 * Whether to auto-subscribe to live updates for the
+		 * current object. Defaults to true. The sidebar calls
+		 * `objectStore.subscribe(objectType, objectId)` on mount and
+		 * unsubscribes on unmount via `tryOnScopeDispose`.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Optional explicit Pinia store instance. When omitted,
+		 * the sidebar skips auto-subscribe (Pinia not yet active
+		 * in the consumer context).
+		 *
+		 * @type {object|null}
+		 */
+		objectStore: {
+			type: Object,
+			default: null,
 		},
 
 		// --- Pre-translated labels ---
