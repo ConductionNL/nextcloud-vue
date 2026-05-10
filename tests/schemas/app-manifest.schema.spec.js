@@ -711,4 +711,105 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			expect(customPage.sidebar.show).toBe(false)
 		})
 	})
+
+	// `manifest-resolve-sentinel` capability: build-time validator
+	// must permissively accept @resolve:<key> in pages[].config.* and
+	// reject it everywhere else.
+	describe('@resolve: sentinel rules', () => {
+		const baseManifest = (overrides) => ({
+			version: '1.0.0',
+			menu: [{ id: 'home', label: 'app.home' }],
+			pages: [
+				{ id: 'home', route: '/', type: 'index', title: 't', config: { register: 'plain' } },
+			],
+			...overrides,
+		})
+
+		it('accepts a sentinel under pages[].config.register at build time', () => {
+			const result = validateManifest(baseManifest({
+				pages: [
+					{ id: 'home', route: '/', type: 'index', title: 't', config: { register: '@resolve:my_register' } },
+				],
+			}))
+			expect(result.valid).toBe(true)
+			expect(result.errors).toEqual([])
+		})
+
+		it('accepts a sentinel under nested pages[].config.sections[].saveEndpoint', () => {
+			const result = validateManifest(baseManifest({
+				pages: [
+					{
+						id: 'settings',
+						route: '/settings',
+						type: 'settings',
+						title: 't',
+						config: {
+							sections: [
+								{ title: 'x', component: 'CustomSection', saveEndpoint: '@resolve:settings_endpoint' },
+							],
+						},
+					},
+				],
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects a sentinel in pages[].route', () => {
+			const result = validateManifest(baseManifest({
+				pages: [
+					{ id: 'home', route: '@resolve:my_route', type: 'index', title: 't' },
+				],
+			}))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/pages/0/route') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in pages[].id', () => {
+			const result = validateManifest(baseManifest({
+				pages: [
+					{ id: '@resolve:my_id', route: '/', type: 'index', title: 't' },
+				],
+			}))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/pages/0/id') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in version', () => {
+			const result = validateManifest(baseManifest({ version: '@resolve:app_version' }))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/version') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in dependencies[]', () => {
+			const result = validateManifest(baseManifest({ dependencies: ['openregister', '@resolve:dep'] }))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/dependencies/1') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in menu[].route', () => {
+			const result = validateManifest(baseManifest({
+				menu: [{ id: 'home', label: 'l', route: '@resolve:home_route' }],
+			}))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/menu/0/route') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in menu[].id', () => {
+			const result = validateManifest(baseManifest({
+				menu: [{ id: '@resolve:home_id', label: 'l' }],
+			}))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/menu/0/id') && e.includes('@resolve:'))).toBe(true)
+		})
+
+		it('rejects a sentinel in pages[].component', () => {
+			const result = validateManifest(baseManifest({
+				pages: [
+					{ id: 'home', route: '/', type: 'custom', title: 't', component: '@resolve:my_component' },
+				],
+			}))
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/pages/0/component') && e.includes('@resolve:'))).toBe(true)
+		})
+	})
 })
