@@ -12,6 +12,10 @@ module.exports = {
 
 	components: `${ROOT}/src/components/**/*.vue`,
 
+	styleguideComponents: {
+		Logo: path.join(__dirname, 'components/LogoRenderer.js'),
+	},
+
 	getExampleFilename(componentPath) {
 		const name = path.basename(componentPath, '.vue')
 		const kebab = name.replace(/([A-Z])/g, (_, l, offset) => (offset > 0 ? '-' : '') + l.toLowerCase())
@@ -42,6 +46,15 @@ module.exports = {
 		return findInDir(docsRoot) || inComponents
 	},
 
+	template: {
+        head: {
+            raw: `<script>
+                window.OC = { config: { version: '30.0.0' } };
+                window.appName = 'nextcloud-vue-styleguide';
+            </script>`,
+        },
+    },
+
 	usageMode: 'collapse',
 	exampleMode: 'collapse',
 	pagePerSection: true,
@@ -61,6 +74,7 @@ module.exports = {
 	require: [
 		path.join(__dirname, 'setup.js'),
 		path.join(__dirname, 'nextcloud-tokens.css'),
+		path.join(__dirname, 'nextcloud-animations.css'),
 		path.join(__dirname, 'nextcloud-globals.css'),
 		path.join(__dirname, 'theme.css'),
 	],

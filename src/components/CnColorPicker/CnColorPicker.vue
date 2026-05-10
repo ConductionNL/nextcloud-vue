@@ -32,17 +32,37 @@ import { NcPopover } from '@nextcloud/vue'
 import { Chrome as ChromeColorPicker } from 'vue-color'
 
 /**
- * CnColorPicker — A swatch-button trigger that opens a themed `Chrome` color
- * picker (vue-color) inside a popover.
+ * A swatch-button trigger that opens a themed `Chrome` color picker
+ * ([vue-color](https://github.com/linx4200/vue-color)) inside a popover. The
+ * active color is shown as a square swatch with a checker pattern behind it,
+ * so alpha colors render correctly. Clicking the swatch toggles the popover.
  *
- * The active color is shown as a square swatch (with a checker pattern behind
- * it so alpha colors render correctly). Clicking the swatch toggles the
- * popover. All props and listeners except `value` and `disabled` are
- * forwarded to the underlying `Chrome` picker, so the full vue-color API
- * stays available (`disable-alpha`, `disable-fields`, `@input`, etc.).
+ * ### Prop forwarding
  *
- * The `value` prop accepts any of vue-color's color formats: a CSS color
+ * `CnColorPicker` declares only `value`, `disabled`, and `mode` itself. **All
+ * other props and listeners are forwarded** to the underlying `Chrome` picker
+ * via `v-bind="$attrs"` and `v-on="$listeners"`, so the full vue-color API
+ * stays available even though those props aren't listed in the auto-generated
+ * table above.
+ *
+ * Most commonly used forwarded props:
+ *
+ * | Forwarded prop   | Type      | Default | Effect                                                                                          |
+ * |------------------|-----------|---------|-------------------------------------------------------------------------------------------------|
+ * | `disable-alpha`  | `Boolean` | `false` | Hide the alpha slider and alpha numeric field.                                                  |
+ * | `disable-fields` | `Boolean` | `false` | Hide the hex/RGB/HSL numeric fields entirely — leaves only the saturation/hue/alpha controls.   |
+ *
+ * ### Value formats
+ *
+ * The `value` prop accepts any of vue-color's input formats: a CSS color
  * string (`'#abcdef'`, `'rgba(...)'`, ...) or a color object.
+ *
+ * ### Reading the result
+ *
+ * The `@input` event fires with a vue-color color object:
+ * `{ hex, hex8, rgba, hsl, hsv, a, source }`. Bind to `$event.hex8` (or
+ * `$event.rgba`, or the whole object) when you want alpha to round-trip —
+ * `$event.hex` is the 6-char form and silently strips transparency.
  *
  * @event input Forwarded from `Chrome`. Payload: vue-color color object
  *              `{ hex, hex8, rgba, hsl, hsv, a, source }`.
@@ -164,6 +184,12 @@ export default {
 	background-image: var(--cn-color-picker-checker);
 	background-size: 8px 8px;
 	background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+	/* Explicit background-color and override Nextcloud server's default
+	   `button:not(.button-vue, [class^="vs__"])` rules — those set a tinted
+	   background-color that bleeds through the transparent halves of the
+	   checker gradient and only "lifts" on :hover, making the checker
+	   appear/disappear depending on hover state. */
+	background-color: var(--color-main-background) !important;
 	overflow: hidden;
 	position: relative;
 }
@@ -174,8 +200,11 @@ export default {
 }
 
 .cn-color-picker__swatch--disabled {
-	cursor: not-allowed;
-	opacity: 0.6;
+	cursor: not-allowed !important;
+	/* Override Nextcloud server's global `button:not(.button-vue, [class^="vs__"]):disabled`
+	   rule which forces opacity: 0.5 — that distorts the previewed color. The cursor
+	   change above is enough of a disabled affordance. */
+	opacity: 1 !important;
 }
 
 /* Strip Chrome's hardcoded light-mode palette so it adopts the active theme.

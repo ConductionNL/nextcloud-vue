@@ -4,7 +4,7 @@ It renders within the Nextcloud app layout. In the styleguide, it appears in a c
 
 ```vue
 <template>
-  <div style="height: 450px; width: 360px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
     <CnObjectSidebar
       :open="true"
       :object-id="'obj-001'"
@@ -21,7 +21,7 @@ Custom tab content via slot:
 
 ```vue
 <template>
-  <div style="height: 450px; width: 360px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
     <CnObjectSidebar
       :open="true"
       :object-id="'obj-002'"
@@ -44,7 +44,7 @@ With custom tab labels:
 
 ```vue
 <template>
-  <div style="height: 450px; width: 360px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
+  <div style="height: 450px; width: fit-content; --app-sidebar-padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; position: relative;">
     <CnObjectSidebar
       :open="open"
       :object-id="caseId"

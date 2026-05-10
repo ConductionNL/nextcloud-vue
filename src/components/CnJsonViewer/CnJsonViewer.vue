@@ -108,17 +108,23 @@ export default {
 		errorText: { type: String, default: null },
 	},
 
+	emits: ['update:value', 'format', 'detected-language'],
+
 	data() {
 		return {
 			githubLight,
 			githubDark,
+			internalValue: this.value,
 		}
 	},
 
 	computed: {
 		localValue: {
-			get() { return this.value },
-			set(v) { this.$emit('update:value', v) },
+			get() { return this.internalValue },
+			set(v) {
+				this.internalValue = v
+				this.$emit('update:value', v)
+			},
 		},
 		isDark: {
 			get() { return getTheme() === 'dark' },
@@ -134,7 +140,7 @@ export default {
 			if (this.language !== 'auto') {
 				return this.language
 			}
-			const trimmed = (this.value || '').trim()
+			const trimmed = (this.internalValue || '').trim()
 			if (!trimmed) return 'text'
 			try {
 				JSON.parse(trimmed)
@@ -206,7 +212,21 @@ export default {
 			if (this.errorText !== null) return this.errorText !== ''
 			return !this.readOnly
 				&& this.resolvedLanguage === 'json'
-				&& !this.isValidJson(this.value)
+				&& !this.isValidJson(this.internalValue)
+		},
+	},
+
+	watch: {
+		value(v) {
+			if (v !== this.internalValue) {
+				this.internalValue = v
+			}
+		},
+		resolvedLanguage: {
+			immediate: true,
+			handler(lang) {
+				this.$emit('detected-language', lang)
+			},
 		},
 	},
 
@@ -217,9 +237,11 @@ export default {
 		 */
 		formatJson() {
 			try {
-				if (this.value) {
-					const parsed = JSON.parse(this.value)
-					this.$emit('update:value', JSON.stringify(parsed, null, 2))
+				if (this.internalValue) {
+					const parsed = JSON.parse(this.internalValue)
+					const formatted = JSON.stringify(parsed, null, 2)
+					this.internalValue = formatted
+					this.$emit('update:value', formatted)
 					this.$emit('format', parsed)
 				}
 			} catch {
