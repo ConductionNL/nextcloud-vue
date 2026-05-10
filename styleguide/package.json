@@ -30,6 +30,8 @@
     "babel-loader": "^8.4.1",
     "bootstrap-vue": "^2.23.1",
     "gridstack": "^10.3.1",
+    "leaflet": "^1.9.0",
+    "leaflet.markercluster": "^1.5.3",
     "lodash": "^4.17.21",
     "marked": "^15.0.0",
     "p-queue": "^7.4.1",
