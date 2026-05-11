@@ -43,7 +43,7 @@
 ## 7. Peer dependencies
 
 - [ ] 7.1 Add `marked` (semver `^12.0.0`) and `dompurify` (semver `^3.0.0`) to `peerDependencies` in `package.json`.
-- [ ] 7.2 Document in the README that consumer apps must install matching versions of `marked` and `dompurify`.
+- [x] 7.2 Document in the README that consumer apps must install matching versions of `marked` and `dompurify`.
 
 ## 8. Tests
 
@@ -70,7 +70,7 @@
 - [ ] 10.1 Run `npm run build` and confirm Rollup output includes the six new components + two composables + two constants in ESM + CJS bundles.
 - [ ] 10.2 Run `npm test` — all unit tests pass.
 - [ ] 10.3 Run `npm run check:docs` and `npm run check:jsdoc` — both exit 0.
-- [ ] 10.4 Bump `version` in `package.json` (minor — new exports, no breaking changes).
+- [x] 10.4 Bump `version` in `package.json` (minor — new exports, no breaking changes).
 
 ## Verification
 
