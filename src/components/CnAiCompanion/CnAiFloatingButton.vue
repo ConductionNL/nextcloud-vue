@@ -63,30 +63,39 @@ export default {
 
 <style>
 .cn-ai-floating-button {
-	position: fixed;
-	z-index: 9000;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 60px;
-	height: 60px;
-	padding: 0;
-	border: none;
-	background: transparent;
+	/* !important blocks defeat NC's default button styles + the older
+	   bundled CSS rule that webpack ships alongside this one. */
+	position: fixed !important;
+	z-index: 9000 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	/* 52:60 ≈ √3:2 — the exact ratio that makes every side of the
+	   pointy-top hexagon polygon below equal length. */
+	width: 52px !important;
+	height: 60px !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: none !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
 	color: #ffffff;
 	cursor: pointer;
 	transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-/* The hex shape itself — pointy-top point-up per Conduction brand rules. */
+/* The hex shape itself — equilateral pointy-top per Conduction brand rules.
+   All six sides equal length only when the parent's width:height is √3:2 (set above). */
 .cn-ai-floating-button__hex {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-	background: #4376fc; /* Conduction Cobalt — conduction.color.primary */
-	clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 100% !important;
+	height: 100% !important;
+	background: #4376fc !important; /* Conduction Cobalt — conduction.color.primary */
+	clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%) !important;
+	border-radius: 0 !important;
 	filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
 	transition: background 0.15s ease;
 }
