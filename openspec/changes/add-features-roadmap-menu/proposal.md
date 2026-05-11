@@ -18,11 +18,11 @@ OpenRegister now exposes `GET/POST /index.php/apps/openregister/api/github/issue
 ### In Scope
 
 - `CnFeaturesAndRoadmapLink.vue` — `NcAppNavigationItem` that navigates to the route configured by the host app
-- `FeaturesAndRoadmapView.vue` — route-level view with Features + Roadmap tabs + Suggest header button
-- `FeaturesTab.vue` — alphabetical list driven by a `features` prop (built-time JSON from `@conduction/openspec-manifest`)
-- `RoadmapTab.vue` — reaction-sorted list fetched from `/api/github/issues?labels=enhancement,feature`
-- `RoadmapItem.vue` — single roadmap card with sanitized markdown body + filtered label chips
-- `SuggestFeatureModal.vue` — title + body submission form with live markdown preview
+- `CnFeaturesAndRoadmapView.vue` — route-level view with Features + Roadmap tabs + Suggest header button
+- `CnFeaturesTab.vue` — alphabetical list driven by a `features` prop (built-time JSON from `@conduction/openspec-manifest`)
+- `CnRoadmapTab.vue` — reaction-sorted list fetched from `/api/github/issues?labels=enhancement,feature`
+- `CnRoadmapItem.vue` — single roadmap card with sanitized markdown body + filtered label chips
+- `CnSuggestFeatureModal.vue` — title + body submission form with live markdown preview
 - `useSpecRef()` composable — reads kebab-case slug from `$options.specRef` / route `meta.specRef`
 - `useSuggestFeatureAction()` helper — returns `NcActions` item for context-aware suggestion
 - `SAFE_MARKDOWN_DOMPURIFY_CONFIG` constant — strict allowlist reused by item + preview
@@ -50,7 +50,7 @@ Per ADR-004: Vue 2.7 Options API only. Per ADR-005: every API call URL-encodes p
 ## Cross-Project Dependencies
 
 - **Depends on (runtime):** `openregister`'s `github-issue-proxy` capability — the GET endpoint for roadmap reads + POST for submissions. Both ship under the openregister portion of this change. The components degrade gracefully if OR's API is absent (404 → "not configured", network error → retry).
-- **Depends on (build):** `@conduction/openspec-manifest` (section 3) emits `docs/features.json` consumed by `FeaturesTab`. Until that package ships, `FeaturesTab` accepts the features array as a prop and apps can hand-feed it.
+- **Depends on (build):** `@conduction/openspec-manifest` (section 3) emits `docs/features.json` consumed by `CnFeaturesTab`. Until that package ships, `CnFeaturesTab` accepts the features array as a prop and apps can hand-feed it.
 - **No build-time dependency on `openregister`** — this library ships independently; apps that don't have OpenRegister installed will see the "not configured" state on the Roadmap tab while the Features tab keeps working.
 
 ## Rollback Strategy

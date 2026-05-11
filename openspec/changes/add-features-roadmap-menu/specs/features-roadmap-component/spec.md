@@ -32,9 +32,9 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 - **WHEN** `disabled` is `true`
 - **THEN** the component renders no DOM (no menu entry visible)
 
-### Requirement: FeaturesAndRoadmapView
+### Requirement: CnFeaturesAndRoadmapView
 
-`FeaturesAndRoadmapView` SHALL render a route-level view with two tabs (Features / Roadmap), a header "Suggest feature" button that opens `SuggestFeatureModal`, and an "admin disabled" empty state when the `disabled` prop is `true`.
+`CnFeaturesAndRoadmapView` SHALL render a route-level view with two tabs (Features / Roadmap), a header "Suggest feature" button that opens `CnSuggestFeatureModal`, and an "admin disabled" empty state when the `disabled` prop is `true`.
 
 | Prop | Type | Required | Description |
 |---|---|---|---|
@@ -51,7 +51,7 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 #### Scenario: Suggest button opens modal
 
 - **WHEN** the user clicks the header "Suggest feature" button
-- **THEN** `SuggestFeatureModal` opens
+- **THEN** `CnSuggestFeatureModal` opens
 
 #### Scenario: Disabled state
 
@@ -59,9 +59,9 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 - **THEN** the view renders an `NcEmptyContent` with the localized "This feature has been disabled by your administrator" message
 - **AND** no tabs and no Suggest button are visible
 
-### Requirement: FeaturesTab
+### Requirement: CnFeaturesTab
 
-`FeaturesTab` SHALL render the `features` prop alphabetically by title, with each `docsUrl` link opening in a new tab via `target="_blank" rel="noopener noreferrer"`. When the array is empty it SHALL render a localized empty-state message.
+`CnFeaturesTab` SHALL render the `features` prop alphabetically by title, with each `docsUrl` link opening in a new tab via `target="_blank" rel="noopener noreferrer"`. When the array is empty it SHALL render a localized empty-state message.
 
 #### Scenario: Alphabetical sort
 
@@ -75,9 +75,9 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 - **WHEN** the tab renders
 - **THEN** the localized "No features documented yet" empty state is shown
 
-### Requirement: RoadmapTab
+### Requirement: CnRoadmapTab
 
-`RoadmapTab` SHALL fetch from `GET /index.php/apps/openregister/api/github/issues?repo={repo}&labels=enhancement,feature` on mount, render each item via `RoadmapItem`, sort by `reactions.total_count` descending, and handle the three documented degraded responses (PAT-not-configured hint, GitHub-rate-limited, network error) with distinct localized messages.
+`CnRoadmapTab` SHALL fetch from `GET /index.php/apps/openregister/api/github/issues?repo={repo}&labels=enhancement,feature` on mount, render each item via `CnRoadmapItem`, sort by `reactions.total_count` descending, and handle the three documented degraded responses (PAT-not-configured hint, GitHub-rate-limited, network error) with distinct localized messages.
 
 | Prop | Type | Required | Description |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 #### Scenario: Successful fetch renders items
 
 - **WHEN** the proxy returns `200 {items: [...]}` 
-- **THEN** each item renders as a `RoadmapItem`
+- **THEN** each item renders as a `CnRoadmapItem`
 - **AND** items are sorted by `reactions.total_count` descending
 
 #### Scenario: PAT-not-configured graceful degradation
@@ -105,9 +105,9 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 - **WHEN** the fetch rejects with a network error
 - **THEN** the localized generic error message renders with a retry button
 
-### Requirement: RoadmapItem
+### Requirement: CnRoadmapItem
 
-`RoadmapItem` SHALL render an issue's title, submitter avatar + login, reaction count, relative created time, body (markdown via `marked` + `DOMPurify` using `SAFE_MARKDOWN_DOMPURIFY_CONFIG`), and labels filtered through `ROADMAP_LABEL_BLOCKLIST`. The component MUST NOT use `v-html` on any raw GitHub-supplied value.
+`CnRoadmapItem` SHALL render an issue's title, submitter avatar + login, reaction count, relative created time, body (markdown via `marked` + `DOMPurify` using `SAFE_MARKDOWN_DOMPURIFY_CONFIG`), and labels filtered through `ROADMAP_LABEL_BLOCKLIST`. The component MUST NOT use `v-html` on any raw GitHub-supplied value.
 
 | Prop | Type | Required | Description |
 |---|---|---|---|
@@ -127,9 +127,9 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 - **THEN** the chip for `enhancement` is visible
 - **AND** the chips for `build:queued` and `ready-to-build` are NOT visible
 
-### Requirement: SuggestFeatureModal
+### Requirement: CnSuggestFeatureModal
 
-`SuggestFeatureModal` SHALL render a title field (3–200 chars, required), a body markdown textarea (≥ 10 chars, required), a live preview toggle reusing the same `marked` + `DOMPurify` pipeline, a hidden `specRef` field (pre-filled from `useSpecRef()` when launched from a context that declared one), and a Submit + Cancel pair. On Submit it SHALL POST `{repo, title, body, specRef?}` to `/api/github/issues` with the Nextcloud CSRF token, then close on `201` and emit a `submitted` event with the response payload.
+`CnSuggestFeatureModal` SHALL render a title field (3–200 chars, required), a body markdown textarea (≥ 10 chars, required), a live preview toggle reusing the same `marked` + `DOMPurify` pipeline, a hidden `specRef` field (pre-filled from `useSpecRef()` when launched from a context that declared one), and a Submit + Cancel pair. On Submit it SHALL POST `{repo, title, body, specRef?}` to `/api/github/issues` with the Nextcloud CSRF token, then close on `201` and emit a `submitted` event with the response payload.
 
 #### Scenario: Submit disabled until valid
 
@@ -179,7 +179,7 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 
 ### Requirement: useSuggestFeatureAction helper
 
-`useSuggestFeatureAction()` SHALL return an `NcActions` action descriptor (`{label, icon, action}`) for the "Suggest feature" action when `useSpecRef()` resolves a non-empty slug; otherwise it SHALL return `null`. The action's `action` callback SHALL open `SuggestFeatureModal` with the resolved slug pre-filled.
+`useSuggestFeatureAction()` SHALL return an `NcActions` action descriptor (`{label, icon, action}`) for the "Suggest feature" action when `useSpecRef()` resolves a non-empty slug; otherwise it SHALL return `null`. The action's `action` callback SHALL open `CnSuggestFeatureModal` with the resolved slug pre-filled.
 
 #### Scenario: Returns action when specRef present
 
@@ -195,7 +195,7 @@ Defines the behaviour of the six-component family + composable + helper + two ex
 
 ### Requirement: SAFE_MARKDOWN_DOMPURIFY_CONFIG
 
-The library SHALL export a frozen `SAFE_MARKDOWN_DOMPURIFY_CONFIG` constant (a `DOMPurify` config object) that disallows `<script>`, all `on*` attributes, `javascript:` URLs, `<iframe>`, and `<style>`. Both `RoadmapItem` and the live-preview pane of `SuggestFeatureModal` SHALL use this exported config — no inline override.
+The library SHALL export a frozen `SAFE_MARKDOWN_DOMPURIFY_CONFIG` constant (a `DOMPurify` config object) that disallows `<script>`, all `on*` attributes, `javascript:` URLs, `<iframe>`, and `<style>`. Both `CnRoadmapItem` and the live-preview pane of `CnSuggestFeatureModal` SHALL use this exported config — no inline override.
 
 #### Scenario: XSS vectors stripped
 
@@ -205,7 +205,7 @@ The library SHALL export a frozen `SAFE_MARKDOWN_DOMPURIFY_CONFIG` constant (a `
 
 ### Requirement: ROADMAP_LABEL_BLOCKLIST
 
-The library SHALL export a `ROADMAP_LABEL_BLOCKLIST` constant — an array of 20 `RegExp` patterns matching hydra pipeline / workflow labels (`^build:`, `^code-review:`, `^security-review:`, `^applier:`, `^retry:`, `^rebuild:`, `^fix:`, `^fix-iteration:`, `^build-retry:`, `^ready-`, `^needs-input$`, `^yolo$`, `^openspec$`, `^agent-maxed-out$`, `^pipeline-active$`, `^done$`, `:queued$`, `:running$`, `:pass$`, `:fail$`). `RoadmapItem` SHALL filter labels through this list before rendering.
+The library SHALL export a `ROADMAP_LABEL_BLOCKLIST` constant — an array of 20 `RegExp` patterns matching hydra pipeline / workflow labels (`^build:`, `^code-review:`, `^security-review:`, `^applier:`, `^retry:`, `^rebuild:`, `^fix:`, `^fix-iteration:`, `^build-retry:`, `^ready-`, `^needs-input$`, `^yolo$`, `^openspec$`, `^agent-maxed-out$`, `^pipeline-active$`, `^done$`, `:queued$`, `:running$`, `:pass$`, `:fail$`). `CnRoadmapItem` SHALL filter labels through this list before rendering.
 
 #### Scenario: All 20 patterns present
 

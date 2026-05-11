@@ -89,11 +89,11 @@ export {
 	CnDependencyMissing,
 	CnAppRoot,
 	CnFeaturesAndRoadmapLink,
-	FeaturesAndRoadmapView,
-	FeaturesTab,
-	RoadmapTab,
-	RoadmapItem,
-	SuggestFeatureModal,
+	CnFeaturesAndRoadmapView,
+	CnFeaturesTab,
+	CnRoadmapTab,
+	CnRoadmapItem,
+	CnSuggestFeatureModal,
 	registerIcons,
 } from './components/index.js'
 

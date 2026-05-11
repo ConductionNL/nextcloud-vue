@@ -9,11 +9,11 @@ Consuming app's <NcAppNavigationSettings>
   └── <CnFeaturesAndRoadmapLink/>                 (src/components/CnFeaturesAndRoadmapLink/)
         navigates to:
   /features-roadmap
-    └── <FeaturesAndRoadmapView/>                 (src/components/FeaturesAndRoadmapView/)
-          ├── <FeaturesTab/>                        (src/components/FeaturesTab/)
-          ├── <RoadmapTab/>                         (src/components/RoadmapTab/)
-          │     └── <RoadmapItem/>                    (src/components/RoadmapItem/)
-          └── <SuggestFeatureModal/>                  (src/components/SuggestFeatureModal/)
+    └── <CnFeaturesAndRoadmapView/>                 (src/components/CnFeaturesAndRoadmapView/)
+          ├── <CnFeaturesTab/>                        (src/components/CnFeaturesTab/)
+          ├── <CnRoadmapTab/>                         (src/components/CnRoadmapTab/)
+          │     └── <CnRoadmapItem/>                    (src/components/CnRoadmapItem/)
+          └── <CnSuggestFeatureModal/>                  (src/components/CnSuggestFeatureModal/)
 ```
 
 Exported support code:
@@ -38,7 +38,7 @@ All HTTP calls use `axios` (existing peer dep) with paths built via `@nextcloud/
 
 ### D4 — Plain markdown via marked + DOMPurify, never v-html on raw input
 
-`RoadmapItem.vue` and `SuggestFeatureModal.vue`'s preview pane both pipe markdown through `marked()` → `DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)` and then render via `v-html` on the sanitized HTML only. ADR-005 allows `v-html` on output that has been routed through a documented sanitizer.
+`CnRoadmapItem.vue` and `CnSuggestFeatureModal.vue`'s preview pane both pipe markdown through `marked()` → `DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)` and then render via `v-html` on the sanitized HTML only. ADR-005 allows `v-html` on output that has been routed through a documented sanitizer.
 
 ### D5 — Strict DOMPurify config exported as a frozen constant
 
@@ -46,7 +46,7 @@ One config object lives in `src/utils/safeMarkdownDompurifyConfig.js`, frozen vi
 
 ### D6 — Label blocklist as a regex array constant
 
-`ROADMAP_LABEL_BLOCKLIST` ships the 20 patterns from D16 in the openregister design. `RoadmapItem.vue` filters `item.labels` through `labels.filter(l => !ROADMAP_LABEL_BLOCKLIST.some(re => re.test(l.name)))` before rendering. Apps that want a different blocklist can fork the constant; the convention is shared.
+`ROADMAP_LABEL_BLOCKLIST` ships the 20 patterns from D16 in the openregister design. `CnRoadmapItem.vue` filters `item.labels` through `labels.filter(l => !ROADMAP_LABEL_BLOCKLIST.some(re => re.test(l.name)))` before rendering. Apps that want a different blocklist can fork the constant; the convention is shared.
 
 ### D7 — useSpecRef precedence: component option > route meta
 
@@ -64,20 +64,20 @@ src/
     CnFeaturesAndRoadmapLink/
       CnFeaturesAndRoadmapLink.vue
       index.js
-    FeaturesAndRoadmapView/
-      FeaturesAndRoadmapView.vue
+    CnFeaturesAndRoadmapView/
+      CnFeaturesAndRoadmapView.vue
       index.js
-    FeaturesTab/
-      FeaturesTab.vue
+    CnFeaturesTab/
+      CnFeaturesTab.vue
       index.js
-    RoadmapTab/
-      RoadmapTab.vue
+    CnRoadmapTab/
+      CnRoadmapTab.vue
       index.js
-    RoadmapItem/
-      RoadmapItem.vue
+    CnRoadmapItem/
+      CnRoadmapItem.vue
       index.js
-    SuggestFeatureModal/
-      SuggestFeatureModal.vue
+    CnSuggestFeatureModal/
+      CnSuggestFeatureModal.vue
       index.js
     index.js                         # add the six components
   composables/
@@ -97,11 +97,11 @@ l10n/
 tests/
   components/
     CnFeaturesAndRoadmapLink.spec.js
-    FeaturesAndRoadmapView.spec.js
-    FeaturesTab.spec.js
-    RoadmapTab.spec.js
-    RoadmapItem.spec.js
-    SuggestFeatureModal.spec.js
+    CnFeaturesAndRoadmapView.spec.js
+    CnFeaturesTab.spec.js
+    CnRoadmapTab.spec.js
+    CnRoadmapItem.spec.js
+    CnSuggestFeatureModal.spec.js
   composables/
     useSpecRef.spec.js
     useSuggestFeatureAction.spec.js
@@ -130,10 +130,10 @@ The components consume OpenRegister's API. Full contract: `openregister/openspec
 
 | Method | Path | Consumer |
 |---|---|---|
-| GET | `/index.php/apps/openregister/api/github/issues?repo=<owner/repo>&labels=enhancement,feature` | `RoadmapTab.vue` |
-| POST | `/index.php/apps/openregister/api/github/issues` | `SuggestFeatureModal.vue` |
+| GET | `/index.php/apps/openregister/api/github/issues?repo=<owner/repo>&labels=enhancement,feature` | `CnRoadmapTab.vue` |
+| POST | `/index.php/apps/openregister/api/github/issues` | `CnSuggestFeatureModal.vue` |
 
-`RoadmapTab` always sends `labels=enhancement,feature` (per D23 in openregister design). The `repo` parameter is passed in as a prop from the consuming app.
+`CnRoadmapTab` always sends `labels=enhancement,feature` (per D23 in openregister design). The `repo` parameter is passed in as a prop from the consuming app.
 
 ## Theming
 
@@ -143,7 +143,7 @@ All colors via Nextcloud CSS variables (`--color-primary`, `--color-text-light`,
 
 | Risk | Mitigation |
 |---|---|
-| OpenRegister not installed → API 404 | `RoadmapTab` renders localized "not configured" empty state |
+| OpenRegister not installed → API 404 | `CnRoadmapTab` renders localized "not configured" empty state |
 | API returns `hint: github_pat_not_configured` | Same empty state with admin-targeted message |
 | GitHub rate-limited | Localized "temporarily unavailable" with reset time |
 | Markdown XSS via issue body | Sanitized via `SAFE_MARKDOWN_DOMPURIFY_CONFIG`; Jest cases cover known vectors |

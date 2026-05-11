@@ -50,7 +50,7 @@ import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.v
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 
 export default {
-	name: 'FeaturesTab',
+	name: 'CnFeaturesTab',
 
 	components: { NcEmptyContent, FileDocumentOutline, OpenInNew },
 

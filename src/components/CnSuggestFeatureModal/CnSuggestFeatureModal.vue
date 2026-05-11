@@ -77,7 +77,7 @@ import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 export default {
-	name: 'SuggestFeatureModal',
+	name: 'CnSuggestFeatureModal',
 
 	components: {
 		NcDialog, NcButton, NcTextField, NcTextArea,

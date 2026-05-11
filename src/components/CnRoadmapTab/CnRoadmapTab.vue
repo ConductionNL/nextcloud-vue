@@ -35,7 +35,7 @@
 		</div>
 		<ul v-else class="cn-roadmap-tab__list">
 			<li v-for="item in sortedItems" :key="item.number">
-				<RoadmapItem :item="item" />
+				<CnRoadmapItem :item="item" />
 			</li>
 		</ul>
 	</div>
@@ -67,15 +67,15 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 
-import RoadmapItem from '../RoadmapItem/RoadmapItem.vue'
+import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
 
 export default {
-	name: 'RoadmapTab',
+	name: 'CnRoadmapTab',
 
 	components: {
 		AlertCircleOutline, ClockOutline, InformationOutline, KeyOutline, RoadVariant,
 		NcEmptyContent, NcLoadingIcon, NcButton,
-		RoadmapItem,
+		CnRoadmapItem,
 	},
 
 	props: {

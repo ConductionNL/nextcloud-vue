@@ -73,7 +73,7 @@ import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurif
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
 
 export default {
-	name: 'RoadmapItem',
+	name: 'CnRoadmapItem',
 
 	components: { NcAvatar, ThumbUpOutline },
 

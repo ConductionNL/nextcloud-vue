@@ -34,11 +34,11 @@
 			</div>
 
 			<div class="cn-features-and-roadmap-view__panel">
-				<FeaturesTab v-if="activeTab === 'features'" :features="features" />
-				<RoadmapTab v-else-if="activeTab === 'roadmap'" :repo="repo" />
+				<CnFeaturesTab v-if="activeTab === 'features'" :features="features" />
+				<CnRoadmapTab v-else-if="activeTab === 'roadmap'" :repo="repo" />
 			</div>
 
-			<SuggestFeatureModal
+			<CnSuggestFeatureModal
 				v-if="showSuggestModal"
 				:repo="repo"
 				:spec-ref="suggestModalSpecRef"
@@ -53,28 +53,28 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * FeaturesAndRoadmapView — route-level container hosting the Features tab,
+ * CnFeaturesAndRoadmapView — route-level container hosting the Features tab,
  * the Roadmap tab, and the Suggest-feature header button + modal. Renders
  * an admin-disabled empty state when the `disabled` prop is true.
  *
- * Spec: features-roadmap-component — Requirement "FeaturesAndRoadmapView".
+ * Spec: features-roadmap-component — Requirement "CnFeaturesAndRoadmapView".
  */
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
-import FeaturesTab from '../FeaturesTab/FeaturesTab.vue'
-import RoadmapTab from '../RoadmapTab/RoadmapTab.vue'
-import SuggestFeatureModal from '../SuggestFeatureModal/SuggestFeatureModal.vue'
+import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
+import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
+import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
 import { useSpecRef } from '../../composables/useSpecRef.js'
 
 export default {
-	name: 'FeaturesAndRoadmapView',
+	name: 'CnFeaturesAndRoadmapView',
 
 	components: {
 		NcButton, NcEmptyContent, LockOutline, Plus,
-		FeaturesTab, RoadmapTab, SuggestFeatureModal,
+		CnFeaturesTab, CnRoadmapTab, CnSuggestFeatureModal,
 	},
 
 	props: {
@@ -86,7 +86,7 @@ export default {
 			required: true,
 		},
 		/**
-		 * Build-time feature manifest (alphabetical list rendered by FeaturesTab).
+		 * Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).
 		 * @type {Array<{slug: string, title: string, summary: string, docsUrl: string}>}
 		 */
 		features: {

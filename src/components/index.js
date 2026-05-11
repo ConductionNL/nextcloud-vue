@@ -74,8 +74,8 @@ export { CnAppRoot } from './CnAppRoot/index.js'
 
 // Features & roadmap menu (add-features-roadmap-menu)
 export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
-export { FeaturesAndRoadmapView } from './FeaturesAndRoadmapView/index.js'
-export { FeaturesTab } from './FeaturesTab/index.js'
-export { RoadmapTab } from './RoadmapTab/index.js'
-export { RoadmapItem } from './RoadmapItem/index.js'
-export { SuggestFeatureModal } from './SuggestFeatureModal/index.js'
+export { CnFeaturesAndRoadmapView } from './CnFeaturesAndRoadmapView/index.js'
+export { CnFeaturesTab } from './CnFeaturesTab/index.js'
+export { CnRoadmapTab } from './CnRoadmapTab/index.js'
+export { CnRoadmapItem } from './CnRoadmapItem/index.js'
+export { CnSuggestFeatureModal } from './CnSuggestFeatureModal/index.js'
