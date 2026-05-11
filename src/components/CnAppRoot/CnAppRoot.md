@@ -86,3 +86,21 @@ With loading state, custom components, translate, permissions, and custom page t
 | `header-actions` | — | Extra buttons rendered in the app header |
 | `sidebar` | — | Sidebar area rendered alongside `NcAppContent` |
 | `footer` | — | Footer area rendered inside `NcAppContent` |
+
+## AI Chat Companion — Context push
+
+`CnAppRoot` is the origin of the `cnAiContext` reactive object. It:
+
+1. Creates `cnAiContext` via `Vue.observable({ appId, pageKind: 'custom', route: { path: window.location.pathname } })` in `data()`.
+2. Provides it to all descendants under the `cnAiContext` injection key.
+3. Mounts `<CnAiCompanion />` as a fixed-position child of the app shell — the companion renders a floating action button (FAB) and slide-out chat panel automatically whenever the OpenRegister health probe returns 2xx.
+
+No new props are required. The `appId` prop value is automatically forwarded to `cnAiContext.appId` on creation.
+
+| Field written | Value |
+|---|---|
+| `appId` | equals the `appId` prop |
+| `pageKind` | `'custom'` (initial; page components overwrite this) |
+| `route.path` | `window.location.pathname` at mount time |
+
+Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) overwrite `pageKind`, `registerSlug`, `schemaSlug`, and `objectUuid` on the same reactive object to give the AI companion per-page context.

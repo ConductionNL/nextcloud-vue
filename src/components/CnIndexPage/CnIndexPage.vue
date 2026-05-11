@@ -471,6 +471,14 @@ export default {
 		 * render. See `shouldRenderInlineSidebar` for the gate.
 		 */
 		cnHostsIndexSidebar: { default: false },
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. This page
+		 * component writes pageKind, registerSlug, schemaSlug in
+		 * created() and watches props for subsequent changes. On
+		 * beforeDestroy(), fields are reset to avoid stale context on
+		 * subsequent custom pages.
+		 */
+		cnAiContext: { default: null },
 	},
 
 	props: {
@@ -1106,10 +1114,18 @@ export default {
 			// the hoist in sync.
 			this.publishHoistedSidebar()
 		},
+		// Re-push AI context when relevant props change
+		register() { this.pushAiContext() },
+		schema() { this.pushAiContext() },
 	},
 
 	mounted() {
 		this.publishHoistedSidebar()
+		this.pushAiContext()
+	},
+
+	created() {
+		this.pushAiContext()
 	},
 
 	beforeDestroy() {
@@ -1118,9 +1134,30 @@ export default {
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
 			this.cnIndexSidebarConfig.value = null
 		}
+		// Reset AI context so the companion doesn't see stale index context
+		// when the user navigates to a custom page.
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+			this.cnAiContext.objectUuid = undefined
+		}
 	},
 
 	methods: {
+		/**
+		 * Push pageKind + register/schema context into the reactive cnAiContext
+		 * holder so the AI Chat Companion knows what the user is looking at.
+		 * Called from created(), mounted(), and via watchers when props change.
+		 */
+		pushAiContext() {
+			if (!this.cnAiContext) return
+			this.cnAiContext.pageKind = 'index'
+			this.cnAiContext.registerSlug = this.register || undefined
+			this.cnAiContext.schemaSlug = this.schema?.id || this.schema?.slug || undefined
+			this.cnAiContext.objectUuid = undefined
+		},
+
 		/**
 		 * Publish (or clear) the embedded CnIndexSidebar config to
 		 * the `cnIndexSidebarConfig` holder so CnAppRoot can mount
