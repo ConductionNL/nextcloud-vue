@@ -118,6 +118,13 @@ export function validateManifest(manifest, options = {}) {
 		})
 	}
 
+	// `runtime` is optional; when present it MUST be a plain object.
+	// The validator does not constrain its shape beyond that — the
+	// contract lives in the schema description and the OR backend.
+	if (manifest.runtime !== undefined && !isPlainObject(manifest.runtime)) {
+		errors.push('/runtime must be an object when set')
+	}
+
 	const allowedTypes = Array.isArray(options.allowedTypes)
 		? Array.from(new Set([...options.allowedTypes, 'custom']))
 		: null
@@ -930,13 +937,17 @@ function validateSettingsSection(section, pathSlash, pathBracket, errors) {
  * Validate a `visibleIf` block on a menu item or nested child.
  *
  * `visibleIf` is optional; when present it MUST be a plain object.
- * The only currently supported sub-key is `appInstalled` (a non-empty
- * string naming the Nextcloud app whose installation gates the entry).
- * Unknown sub-keys are rejected because the schema declares
- * `additionalProperties: false` — this avoids silently ignoring typos
- * like `appIsInstalled` that would leave an entry permanently visible.
+ * Supported sub-keys:
  *
- * @param {*} visibleIf The candidate value (may be undefined)
+ *   - `appInstalled` (reserved) — a non-empty string naming the Nextcloud
+ *     app whose installation gates the entry.
+ *   - Any other key is treated as a dot-separated context path into
+ *     `manifest.runtime` (e.g. `"user.primaryRole"`). Its value is a
+ *     predicate expression: a scalar (shorthand eq) or an operator object
+ *     (`{ eq }`, `{ in }`, `{ notIn }`, `{ gt }`, `{ gte }`, `{ lt }`,
+ *     `{ lte }`, `{ truthy }`).
+ *
+ * @param {object|undefined} visibleIf The candidate value (may be undefined)
  * @param {string} path JSON-pointer-style path prefix for error messages
  * @param {string[]} errors Accumulator
  */
@@ -946,17 +957,40 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 		errors.push(`${path} must be an object when set`)
 		return
 	}
+	// Validate the reserved `appInstalled` key.
 	if (visibleIf.appInstalled !== undefined) {
 		if (typeof visibleIf.appInstalled !== 'string' || visibleIf.appInstalled.length === 0) {
 			errors.push(`${path}/appInstalled must be a non-empty string`)
 		}
 	}
-	// Reject unknown keys — mirrors the schema's additionalProperties: false.
-	const known = new Set(['appInstalled'])
+	// Validate context-path predicate keys (any non-reserved key).
+	const RESERVED = new Set(['appInstalled'])
 	for (const key of Object.keys(visibleIf)) {
-		if (!known.has(key)) {
-			errors.push(`${path}/${key} is not a known visibleIf condition`)
+		if (RESERVED.has(key)) continue
+		// Context path key must be dot-separated with non-empty segments.
+		const segments = key.split('.')
+		if (segments.some((s) => s.length === 0) || key.length === 0) {
+			errors.push(`${path}/${key}: context path must be a non-empty dot-separated string with non-empty segments`)
+			continue
 		}
+		// Predicate value validation.
+		const predicate = visibleIf[key]
+		if (predicate !== null && typeof predicate === 'object') {
+			if (
+				Object.prototype.hasOwnProperty.call(predicate, 'in')
+				&& !Array.isArray(predicate.in)
+			) {
+				errors.push(`${path}/${key}/in: "in" operator value must be an array`)
+			}
+			if (
+				Object.prototype.hasOwnProperty.call(predicate, 'notIn')
+				&& !Array.isArray(predicate.notIn)
+			) {
+				errors.push(`${path}/${key}/notIn: "notIn" operator value must be an array`)
+			}
+			// Unknown operator keys are tolerated (forward-compat) — no error.
+		}
+		// Scalar predicates (string, number, boolean, null) are always valid.
 	}
 }
 

@@ -141,8 +141,8 @@ function isPlainObject(value) {
 const configProps = schema.$defs.page.properties.config.properties
 
 describe('app-manifest.schema.json — manifest-config-refs $ref wiring', () => {
-	it('schema version is 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('schema version is 1.4.0 (manifest-card-index-component + manifest-actions-dispatch; 1.4.0 adds runtime+visibleIf context predicates)', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties true (per-app keys remain free-form)', () => {

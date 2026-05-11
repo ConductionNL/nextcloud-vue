@@ -62,6 +62,7 @@
 <script>
 import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 export default {
 	name: 'CnAppNav',
@@ -168,8 +169,17 @@ export default {
 		 *  - `visibleIf.appInstalled` is set AND the named app is
 		 *    installed / enabled (checked via `OC.appswebroots` then the
 		 *    capabilities fallback, cached per page load by `isAppInstalled`).
+		 *  - Context-path predicates (any key that is a dot-separated path
+		 *    into `manifest.runtime`) all pass against the current runtime
+		 *    data. Predicates are evaluated by `passesContextPredicates`.
+		 *    Example: `{ "user.primaryRole": { "in": ["hr", "compliance"] } }`
+		 *    hides the entry unless `manifest.runtime.user.primaryRole` is
+		 *    `"hr"` or `"compliance"`. When the runtime block is absent the
+		 *    entry is hidden (fail-safe: never show role-gated items to
+		 *    unidentified users).
 		 *
-		 * Returns `false` (hidden) when any condition fails.
+		 * All conditions are combined with implicit AND — every condition
+		 * must pass for the item to render. Returns `false` when any fails.
 		 *
 		 * @param {object} item Menu item (or child) to evaluate.
 		 * @return {boolean} Whether the item should render.
@@ -177,9 +187,17 @@ export default {
 		passesVisibleIf(item) {
 			const condition = item.visibleIf
 			if (!condition || typeof condition !== 'object') return true
+
+			// Specialised condition: appInstalled.
 			if (condition.appInstalled) {
 				if (!isAppInstalled(condition.appInstalled)) return false
 			}
+
+			// Context-path predicates: any non-reserved key is a dot-path
+			// into manifest.runtime evaluated by passesContextPredicates.
+			const runtime = this.effectiveManifest?.runtime ?? null
+			if (!passesContextPredicates(condition, runtime)) return false
+
 			return true
 		},
 		visibleChildren(item) {

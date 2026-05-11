@@ -318,4 +318,156 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.passesVisibleIf({ id: 'x', label: 'x', visibleIf: {} })).toBe(true)
 		})
 	})
+
+	describe('visibleIf context-path predicates (user.* / runtime.*)', () => {
+		const runtimeManifest = (runtime, extraMenu = []) => ({
+			version: '1.0.0',
+			pages: [],
+			runtime,
+			menu: [
+				{ id: 'always', label: 'app.always', route: 'always', order: 1 },
+				...extraMenu,
+			],
+		})
+
+		it('hides an item when user.primaryRole is not in the allowed roles', () => {
+			const manifest = runtimeManifest(
+				{ user: { primaryRole: 'employee' } },
+				[{
+					id: 'compliance-dashboard',
+					label: 'scholiq.nav.complianceDashboard',
+					route: 'compliance-dashboard',
+					order: 2,
+					visibleIf: { 'user.primaryRole': { in: ['compliance-officer', 'hr-coordinator'] } },
+				}],
+			)
+			const wrapper = mountNav({ manifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('always')
+			expect(ids).not.toContain('compliance-dashboard')
+		})
+
+		it('shows an item when user.primaryRole is in the allowed roles', () => {
+			const manifest = runtimeManifest(
+				{ user: { primaryRole: 'compliance-officer' } },
+				[{
+					id: 'compliance-dashboard',
+					label: 'scholiq.nav.complianceDashboard',
+					route: 'compliance-dashboard',
+					order: 2,
+					visibleIf: { 'user.primaryRole': { in: ['compliance-officer', 'hr-coordinator'] } },
+				}],
+			)
+			const wrapper = mountNav({ manifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('compliance-dashboard')
+		})
+
+		it('hides an item when the boolean runtime flag is false', () => {
+			const manifest = runtimeManifest(
+				{ user: { isOverdueOnMandatoryTraining: false } },
+				[{
+					id: 'overdue-banner',
+					label: 'scholiq.nav.overdue',
+					route: 'overdue-courses',
+					order: 2,
+					visibleIf: { 'user.isOverdueOnMandatoryTraining': true },
+				}],
+			)
+			const wrapper = mountNav({ manifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).not.toContain('overdue-banner')
+		})
+
+		it('shows an item when the boolean runtime flag is true', () => {
+			const manifest = runtimeManifest(
+				{ user: { isOverdueOnMandatoryTraining: true } },
+				[{
+					id: 'overdue-banner',
+					label: 'scholiq.nav.overdue',
+					route: 'overdue-courses',
+					order: 2,
+					visibleIf: { 'user.isOverdueOnMandatoryTraining': true },
+				}],
+			)
+			const wrapper = mountNav({ manifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('overdue-banner')
+		})
+
+		it('hides an item (fail-safe) when runtime is absent and context predicates are declared', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				// No `runtime` field — OR backend hasn't injected it yet.
+				menu: [
+					{ id: 'always', label: 'app.always', route: 'always', order: 1 },
+					{
+						id: 'compliance-dashboard',
+						label: 'scholiq.nav.complianceDashboard',
+						route: 'compliance-dashboard',
+						order: 2,
+						visibleIf: { 'user.primaryRole': { in: ['compliance-officer'] } },
+					},
+				],
+			}
+			const wrapper = mountNav({ manifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('always')
+			expect(ids).not.toContain('compliance-dashboard')
+		})
+
+		it('coexists with appInstalled — both conditions must pass', () => {
+			// Item requires mydash installed AND user.primaryRole === 'compliance-officer'.
+			const manifest = runtimeManifest(
+				{ user: { primaryRole: 'compliance-officer' } },
+				[{
+					id: 'combined',
+					label: 'scholiq.nav.combined',
+					href: '/apps/mydash#scholiq',
+					order: 2,
+					visibleIf: {
+						appInstalled: 'mydash',
+						'user.primaryRole': { in: ['compliance-officer'] },
+					},
+				}],
+			)
+			// mydash IS installed, role IS correct → visible.
+			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			const wrapperVisible = mountNav({ manifest, useProps: true })
+			expect(wrapperVisible.vm.visibleItems.map((i) => i.id)).toContain('combined')
+
+			// Reset and verify: mydash NOT installed → hidden despite correct role.
+			__resetAppInstalledCacheForTests()
+			global.OC = { appswebroots: {} }
+			getCapabilities.mockReturnValue({})
+			const wrapperHidden = mountNav({ manifest, useProps: true })
+			expect(wrapperHidden.vm.visibleItems.map((i) => i.id)).not.toContain('combined')
+		})
+
+		it('filters children using context predicates too', () => {
+			const manifest = runtimeManifest(
+				{ user: { primaryRole: 'employee' } },
+				[{
+					id: 'parent',
+					label: 'app.parent',
+					order: 2,
+					children: [
+						{ id: 'child-always', label: 'app.child-always', route: 'ca' },
+						{
+							id: 'child-hr-only',
+							label: 'app.child-hr',
+							route: 'ch',
+							visibleIf: { 'user.primaryRole': { in: ['hr-coordinator'] } },
+						},
+					],
+				}],
+			)
+			const wrapper = mountNav({ manifest, useProps: true })
+			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
+			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
+			expect(childIds).toContain('child-always')
+			expect(childIds).not.toContain('child-hr-only')
+		})
+	})
 })
