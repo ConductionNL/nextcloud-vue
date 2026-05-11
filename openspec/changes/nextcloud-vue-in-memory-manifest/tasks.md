@@ -43,22 +43,22 @@
 
 ## 4. Tests
 
-- [ ] 4.1 Add unit test: `useAppManifest({ manifest })` returns the input manifest by
+- [x] 4.1 Add unit test: `useAppManifest({ manifest })` returns the input manifest by
   reference, `isLoading.value === false` synchronously, `validationErrors.value === null`,
   and no fetcher / axios call is made. Use a spy on `axios.get` to assert zero calls.
   - spec_ref: REQ-IMM-001, REQ-IMM-002
   - files_likely_affected: `tests/composables/useAppManifest.spec.js` (or
     `tests/composables/use-app-manifest.spec.js` — match existing naming)
-- [ ] 4.2 Add unit test: `useAppManifest({ manifest, validate: true })` with a valid
+- [x] 4.2 Add unit test: `useAppManifest({ manifest, validate: true })` with a valid
   manifest produces `validationErrors.value === null` and emits no `console.warn`.
   - spec_ref: REQ-IMM-003
   - files_likely_affected: same test file
-- [ ] 4.3 Add unit test: `useAppManifest({ manifest, validate: true })` with an invalid
+- [x] 4.3 Add unit test: `useAppManifest({ manifest, validate: true })` with an invalid
   manifest produces a populated `validationErrors.value` and emits a `console.warn`
   containing `[useAppManifest]`. The `manifest` ref MUST still hold the input manifest.
   - spec_ref: REQ-IMM-003
   - files_likely_affected: same test file
-- [ ] 4.4 Add regression test: legacy positional signature `useAppManifest('openregister',
+- [x] 4.4 Add regression test: legacy positional signature `useAppManifest('openregister',
   bundled)` still triggers the fetcher and returns the same shape. (Existing tests should
   cover this — add an explicit assertion if missing.)
   - spec_ref: REQ-IMM-004
