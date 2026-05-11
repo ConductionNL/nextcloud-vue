@@ -2,12 +2,12 @@
 
 ## 1. Composable: branch on first argument
 
-- [ ] 1.1 Add a runtime discriminator at the top of `useAppManifest` that branches on
+- [x] 1.1 Add a runtime discriminator at the top of `useAppManifest` that branches on
   `typeof arguments[0]` — `string` enters the legacy fetch-and-merge path; non-null plain
   `object` enters the new in-memory path.
   - spec_ref: REQ-IMM-001, REQ-IMM-004
   - files_likely_affected: `src/composables/useAppManifest.js`
-- [ ] 1.2 Refactor the legacy body into a private helper (e.g. `loadFromBackend(appId,
+- [x] 1.2 Refactor the legacy body into a private helper (e.g. `loadFromBackend(appId,
   bundledManifest, options)`) called from the string-first branch only. The in-memory
   branch MUST NOT reach this helper.
   - spec_ref: REQ-IMM-002, REQ-IMM-004
@@ -15,12 +15,12 @@
 
 ## 2. Composable: in-memory branch implementation
 
-- [ ] 2.1 Implement the in-memory branch: construct `manifest = ref(input.manifest)`,
+- [x] 2.1 Implement the in-memory branch: construct `manifest = ref(input.manifest)`,
   `isLoading = ref(false)`, `validationErrors = ref(null)`, and return them. No call to
   `generateUrl`, `axios.get`, or any fetcher.
   - spec_ref: REQ-IMM-001, REQ-IMM-002
   - files_likely_affected: `src/composables/useAppManifest.js`
-- [ ] 2.2 Wire the optional `validate: true` flag to call `validateManifest(input.manifest)`
+- [x] 2.2 Wire the optional `validate: true` flag to call `validateManifest(input.manifest)`
   synchronously before returning. On failure, populate `validationErrors.value` with the
   error list and emit a `console.warn` whose message begins with `[useAppManifest]`. Do NOT
   throw. Do NOT replace the manifest value.
@@ -29,12 +29,12 @@
 
 ## 3. TypeScript / JSDoc
 
-- [ ] 3.1 Update the JSDoc block on `useAppManifest` to document the new overload — both
+- [x] 3.1 Update the JSDoc block on `useAppManifest` to document the new overload — both
   call shapes side by side, return shape unchanged. Add a `@example` block showing the
   in-memory mount pattern (mirroring the structure of the existing positional examples).
   - spec_ref: REQ-IMM-001, REQ-IMM-003, REQ-IMM-004
   - files_likely_affected: `src/composables/useAppManifest.js`
-- [ ] 3.2 If a sibling `.d.ts` for the composable exists, add a TypeScript overload signature
+- [x] 3.2 If a sibling `.d.ts` for the composable exists, add a TypeScript overload signature
   for `useAppManifest(options: { manifest: object, validate?: boolean })`. If no `.d.ts`
   exists yet, JSDoc + the runtime branch are sufficient — do not introduce a new `.d.ts`
   in this change.
