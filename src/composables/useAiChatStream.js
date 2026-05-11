@@ -116,8 +116,15 @@ export function useAiChatStream(contextInstance) {
 			break
 
 		case 'final':
-			// Commit the streamed text as a finalised assistant message
-			finalise()
+			// Commit the streamed text as a finalised assistant message.
+			// If no `token` events arrived (non-streaming-provider fallback path —
+			// the contract allows the server to emit only the terminal `final`
+			// event with `fullText` for providers that don't stream), seed
+			// `currentText` from the payload so the assistant bubble renders.
+			if (state.currentText === '' && typeof parsed.fullText === 'string') {
+				state.currentText = parsed.fullText
+			}
+			finalise(parsed.messageId)
 			break
 
 		case 'error':
@@ -129,9 +136,17 @@ export function useAiChatStream(contextInstance) {
 		}
 	}
 
-	/** Push the completed assistant message into state.messages and resolve send(). */
-	function finalise() {
+	/**
+	 * Push the completed assistant message into state.messages and resolve send().
+	 * @param {string|undefined} messageId - Server-supplied id from the final event;
+	 *   when empty/missing we synthesise a stable client-side id so Vue's :key
+	 *   stays unique within the conversation.
+	 */
+	function finalise(messageId) {
 		const assistantMessage = {
+			id: (typeof messageId === 'string' && messageId !== '')
+				? messageId
+				: `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
 			role: 'assistant',
 			content: state.currentText,
 			toolCalls: state.toolCalls.slice(),
