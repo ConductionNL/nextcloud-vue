@@ -112,7 +112,7 @@ if (validationErrors.value) {
 
 ### Guarantees of the in-memory branch
 
-- `manifest.value` holds the input object **by reference** — the composable never clones or mutates it. Mutating the input object from elsewhere reflects in the ref immediately (Vue 2.7 reactivity caveats apply for non-reactive inputs).
+- `manifest.value` holds the input object **by reference**; Vue 2.7's reactivity adds reactive getters in place — do not pass objects whose property descriptors must remain untouched. Mutating the input object from elsewhere reflects in the ref immediately.
 - `isLoading.value === false` synchronously. No async tick is required to settle.
 - `validationErrors.value === null` unless `validate: true` and validation failed.
 - `unresolvedSentinels.value === []` — sentinel resolution is a backend-merge concern and does not run on in-memory manifests. Build the manifest with its sentinels already resolved.

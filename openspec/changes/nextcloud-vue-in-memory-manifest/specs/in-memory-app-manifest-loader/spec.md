@@ -10,13 +10,16 @@ object (not a string), the composable MUST enter the in-memory branch and MUST N
 any backend fetch. The returned `manifest` ref MUST hold the exact object passed in (by
 reference; the composable MUST NOT clone or mutate it).
 
-The composable MUST return the canonical three-property shape
-`{ manifest, isLoading, validationErrors }`:
+The composable MUST return the canonical four-property shape
+`{ manifest, isLoading, validationErrors, unresolvedSentinels }`:
 
 - `manifest` — `Ref<object>` initialised to the input `manifest`
 - `isLoading` — `Ref<boolean>` set to `false` immediately because no async work is queued
 - `validationErrors` — `Ref<string[]|null>` initialised to `null`, populated only by the
   validation requirement below
+- `unresolvedSentinels` — `Ref<string[]>` initialised to `[]`; sentinel resolution is a
+  backend-merge concern and does not run on in-memory manifests, so this ref always
+  remains empty in the in-memory branch
 
 #### Scenario: Consumer passes a manifest object without `validate`
 
@@ -111,5 +114,5 @@ The composable SHALL preserve the existing positional signature `useAppManifest(
 - **THEN** the composable MUST enter the legacy branch
 - **AND** the composable MUST issue an HTTP request via the configured fetcher to
   `/index.php/apps/openregister/api/manifest`
-- **AND** the returned shape MUST be `{ manifest, isLoading, validationErrors }` as before
+- **AND** the returned shape MUST be `{ manifest, isLoading, validationErrors, unresolvedSentinels }` as before
 - **AND** all existing REQ-JMR-002 scenarios in the `json-manifest-renderer` capability MUST continue to hold
