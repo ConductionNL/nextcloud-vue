@@ -4,9 +4,21 @@
  * Covers REQ-JMR-004 from the json-manifest-renderer spec — manifest
  * menu rendering, ordering, permission filtering, label resolution
  * via the injected translate function, active-route highlighting,
- * one-level nested children, and the standalone props-vs-inject
- * fallback path.
+ * one-level nested children, the standalone props-vs-inject fallback
+ * path, and the `visibleIf.appInstalled` nav filter.
  */
+
+// Mock `@nextcloud/capabilities` before loading CnAppNav so that the
+// `isAppInstalled` utility (imported by CnAppNav) can have its
+// `getCapabilities` call intercepted.
+jest.mock('@nextcloud/capabilities', () => ({
+	getCapabilities: jest.fn(),
+}))
+
+const { getCapabilities } = require('@nextcloud/capabilities')
+
+// Import the cache-reset helper so each test starts with a clean slate.
+const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
 
 import { mount } from '@vue/test-utils'
 import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
@@ -64,6 +76,17 @@ function mountNav({
 }
 
 describe('CnAppNav', () => {
+	beforeEach(() => {
+		// Reset the isAppInstalled per-page-load cache between tests so
+		// each test controls its own OC.appswebroots / capabilities state.
+		__resetAppInstalledCacheForTests()
+		getCapabilities.mockReset()
+		// Default: no apps visible via capabilities.
+		getCapabilities.mockReturnValue({})
+		// Default: no OC.appswebroots.
+		delete global.OC
+	})
+
 	describe('ordering', () => {
 		it('renders top-level items sorted by ascending `order`, with unordered items last', () => {
 			const wrapper = mountNav()
@@ -164,6 +187,135 @@ describe('CnAppNav', () => {
 		it('handles a manifest with no menu array', () => {
 			const wrapper = mountNav({ manifest: { version: '1.0.0', pages: [] }, useProps: true })
 			expect(wrapper.vm.visibleItems).toEqual([])
+		})
+	})
+
+	describe('visibleIf.appInstalled filter', () => {
+		const crossAppManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'always', label: 'app.always', route: 'always', order: 1 },
+				{
+					id: 'view-in-mydash',
+					label: 'scholiq.nav.viewInMydash',
+					href: '/index.php/apps/mydash#scholiq-compliance',
+					order: 2,
+					visibleIf: { appInstalled: 'mydash' },
+				},
+			],
+		}
+
+		it('hides items where visibleIf.appInstalled names an app not in OC.appswebroots', () => {
+			// mydash not installed: OC.appswebroots empty, capabilities empty.
+			global.OC = { appswebroots: {} }
+			getCapabilities.mockReturnValue({})
+
+			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('always')
+			expect(ids).not.toContain('view-in-mydash')
+		})
+
+		it('shows items where visibleIf.appInstalled names an app in OC.appswebroots', () => {
+			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			getCapabilities.mockReturnValue({})
+
+			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('always')
+			expect(ids).toContain('view-in-mydash')
+		})
+
+		it('shows items where visibleIf.appInstalled is in capabilities (fallback path)', () => {
+			// No OC.appswebroots, but capabilities advertise mydash.
+			delete global.OC
+			getCapabilities.mockReturnValue({ mydash: {} })
+
+			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('view-in-mydash')
+		})
+
+		it('keeps items without visibleIf always visible (backwards-compatible)', () => {
+			global.OC = { appswebroots: {} }
+			getCapabilities.mockReturnValue({})
+
+			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
+			const ids = wrapper.vm.visibleItems.map((i) => i.id)
+			expect(ids).toContain('always')
+		})
+
+		it('hides conditional children when the named app is not installed', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'parent',
+						label: 'app.parent',
+						order: 1,
+						children: [
+							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
+							{
+								id: 'child-mydash',
+								label: 'app.child-mydash',
+								href: '/index.php/apps/mydash',
+								visibleIf: { appInstalled: 'mydash' },
+							},
+						],
+					},
+				],
+			}
+			global.OC = { appswebroots: {} }
+			getCapabilities.mockReturnValue({})
+
+			const wrapper = mountNav({ manifest, useProps: true })
+			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
+			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
+			expect(childIds).toContain('child-always')
+			expect(childIds).not.toContain('child-mydash')
+		})
+
+		it('shows conditional children when the named app is installed', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'parent',
+						label: 'app.parent',
+						order: 1,
+						children: [
+							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
+							{
+								id: 'child-mydash',
+								label: 'app.child-mydash',
+								href: '/index.php/apps/mydash',
+								visibleIf: { appInstalled: 'mydash' },
+							},
+						],
+					},
+				],
+			}
+			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			getCapabilities.mockReturnValue({})
+
+			const wrapper = mountNav({ manifest, useProps: true })
+			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
+			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
+			expect(childIds).toContain('child-always')
+			expect(childIds).toContain('child-mydash')
+		})
+
+		it('passesVisibleIf returns true when visibleIf is absent', () => {
+			const wrapper = mountNav()
+			expect(wrapper.vm.passesVisibleIf({ id: 'no-condition', label: 'x' })).toBe(true)
+		})
+
+		it('passesVisibleIf returns true when visibleIf is an empty object', () => {
+			const wrapper = mountNav()
+			expect(wrapper.vm.passesVisibleIf({ id: 'x', label: 'x', visibleIf: {} })).toBe(true)
 		})
 	})
 })

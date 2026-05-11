@@ -1441,3 +1441,111 @@ describe('validateManifest — manifest-form-page-type', () => {
 		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
 	})
 })
+
+describe('validateManifest — visibleIf.appInstalled nav filter', () => {
+	const baseWithMenu = (menuItems) => ({
+		version: '1.0.0',
+		menu: menuItems,
+		pages: [],
+	})
+
+	it('accepts a menu item without visibleIf (backwards-compatible)', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'home', label: 'app.home', route: 'home' },
+		]))
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts a menu item with a valid visibleIf.appInstalled string', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'view-in-mydash',
+				label: 'scholiq.nav.viewInMydash',
+				href: '/index.php/apps/mydash#scholiq',
+				visibleIf: { appInstalled: 'mydash' },
+			},
+		]))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a child item with a valid visibleIf.appInstalled string', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'parent',
+				label: 'app.parent',
+				children: [
+					{
+						id: 'child-mydash',
+						label: 'app.child-mydash',
+						href: '/index.php/apps/mydash',
+						visibleIf: { appInstalled: 'mydash' },
+					},
+				],
+			},
+		]))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects visibleIf that is not an object', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: 'mydash' },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf') && e.includes('must be an object'))).toBe(true)
+	})
+
+	it('rejects visibleIf.appInstalled that is an empty string', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appInstalled: '' } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf/appInstalled') && e.includes('non-empty string'))).toBe(true)
+	})
+
+	it('rejects visibleIf.appInstalled that is a non-string (number)', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appInstalled: 42 } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf/appInstalled'))).toBe(true)
+	})
+
+	it('rejects an unknown visibleIf key (protects against typos)', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'mydash' } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf/appIsInstalled') && e.includes('not a known visibleIf condition'))).toBe(true)
+	})
+
+	it('rejects unknown visibleIf key on a child item', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'parent',
+				label: 'parent',
+				children: [
+					{ id: 'child', label: 'child', visibleIf: { unknownKey: 'x' } },
+				],
+			},
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/children/0/visibleIf/unknownKey'))).toBe(true)
+	})
+
+	it('schema declares visibleIf in menuItem $def with appInstalled property', () => {
+		const visibleIf = schema.$defs.menuItem.properties.visibleIf
+		expect(visibleIf).toBeDefined()
+		expect(visibleIf.type).toBe('object')
+		expect(visibleIf.properties.appInstalled).toBeDefined()
+		expect(visibleIf.additionalProperties).toBe(false)
+	})
+
+	it('schema declares visibleIf in menuItemLeaf $def', () => {
+		const visibleIf = schema.$defs.menuItemLeaf.properties.visibleIf
+		expect(visibleIf).toBeDefined()
+		expect(visibleIf.type).toBe('object')
+		expect(visibleIf.properties.appInstalled).toBeDefined()
+	})
+})

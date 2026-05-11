@@ -76,6 +76,18 @@
 					"type": "string",
 					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
 				},
+				"visibleIf": {
+					"type": "object",
+					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Currently supports `appInstalled` (checks whether a given Nextcloud app is installed and enabled). Items without `visibleIf` are always visible (backwards-compatible). Example: `{ \"appInstalled\": \"mydash\" }` hides a \"View in mydash\" link when mydash is not installed.",
+					"additionalProperties": false,
+					"properties": {
+						"appInstalled": {
+							"type": "string",
+							"minLength": 1,
+							"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in mydash' link should only show when mydash is enabled)."
+						}
+					}
+				},
 				"children": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/menuItemLeaf" },
@@ -100,7 +112,19 @@
 					"enum": ["main", "settings"],
 					"default": "main"
 				},
-				"href": { "type": "string" }
+				"href": { "type": "string" },
+				"visibleIf": {
+					"type": "object",
+					"description": "Optional display condition for a nested menu entry. Same semantics as the top-level `menuItem.visibleIf`.",
+					"additionalProperties": false,
+					"properties": {
+						"appInstalled": {
+							"type": "string",
+							"minLength": 1,
+							"description": "Nextcloud app id that MUST be installed and enabled for this entry to render."
+						}
+					}
+				}
 			}
 		},
 		"page": {
