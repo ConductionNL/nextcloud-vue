@@ -100,6 +100,21 @@ export function validateManifest(manifest, options = {}) {
 			if (item.children !== undefined && !Array.isArray(item.children)) {
 				errors.push(`/menu/${index}/children must be an array`)
 			}
+			// `visibleIf` validation — when set, must be a plain object;
+			// the only known sub-key is `appInstalled` (non-empty string).
+			validateMenuItemVisibleIf(item.visibleIf, `/menu/${index}/visibleIf`, errors)
+			// Also validate visibleIf on children when present.
+			if (Array.isArray(item.children)) {
+				item.children.forEach((child, cIndex) => {
+					if (isPlainObject(child)) {
+						validateMenuItemVisibleIf(
+							child.visibleIf,
+							`/menu/${index}/children/${cIndex}/visibleIf`,
+							errors,
+						)
+					}
+				})
+			}
 		})
 	}
 
@@ -908,6 +923,40 @@ function validateSettingsSection(section, pathSlash, pathBracket, errors) {
 	// each entry must match the formField $def shape.
 	if (hasFields) {
 		validateFieldsArray(section.fields, `${pathSlash}/fields`, errors)
+	}
+}
+
+/**
+ * Validate a `visibleIf` block on a menu item or nested child.
+ *
+ * `visibleIf` is optional; when present it MUST be a plain object.
+ * The only currently supported sub-key is `appInstalled` (a non-empty
+ * string naming the Nextcloud app whose installation gates the entry).
+ * Unknown sub-keys are rejected because the schema declares
+ * `additionalProperties: false` — this avoids silently ignoring typos
+ * like `appIsInstalled` that would leave an entry permanently visible.
+ *
+ * @param {*} visibleIf The candidate value (may be undefined)
+ * @param {string} path JSON-pointer-style path prefix for error messages
+ * @param {string[]} errors Accumulator
+ */
+function validateMenuItemVisibleIf(visibleIf, path, errors) {
+	if (visibleIf === undefined) return
+	if (!isPlainObject(visibleIf)) {
+		errors.push(`${path} must be an object when set`)
+		return
+	}
+	if (visibleIf.appInstalled !== undefined) {
+		if (typeof visibleIf.appInstalled !== 'string' || visibleIf.appInstalled.length === 0) {
+			errors.push(`${path}/appInstalled must be a non-empty string`)
+		}
+	}
+	// Reject unknown keys — mirrors the schema's additionalProperties: false.
+	const known = new Set(['appInstalled'])
+	for (const key of Object.keys(visibleIf)) {
+		if (!known.has(key)) {
+			errors.push(`${path}/${key} is not a known visibleIf condition`)
+		}
 	}
 }
 
