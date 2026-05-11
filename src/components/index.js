@@ -71,3 +71,11 @@ export { CnAppNav } from './CnAppNav/index.js'
 export { CnAppLoading } from './CnAppLoading/index.js'
 export { CnDependencyMissing } from './CnDependencyMissing/index.js'
 export { CnAppRoot } from './CnAppRoot/index.js'
+
+// Features & roadmap menu (add-features-roadmap-menu)
+export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
+export { FeaturesAndRoadmapView } from './FeaturesAndRoadmapView/index.js'
+export { FeaturesTab } from './FeaturesTab/index.js'
+export { RoadmapTab } from './RoadmapTab/index.js'
+export { RoadmapItem } from './RoadmapItem/index.js'
+export { SuggestFeatureModal } from './SuggestFeatureModal/index.js'
