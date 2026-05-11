@@ -104,3 +104,21 @@ No new props are required. The `appId` prop value is automatically forwarded to 
 | `route.path` | `window.location.pathname` at mount time |
 
 Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) overwrite `pageKind`, `registerSlug`, `schemaSlug`, and `objectUuid` on the same reactive object to give the AI companion per-page context.
+
+## Mounting an in-memory manifest
+
+Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override.
+
+Virtual-app hosts (e.g. the OpenBuilt app builder) build their manifest in memory and have no backend route. Pass an options object with the constructed manifest and the composable skips the fetch entirely:
+
+```js
+import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
+
+setup() {
+  const builderManifest = buildManifestFromStore()
+  const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
+  return { manifest, isLoading }
+}
+```
+
+`isLoading.value` is `false` from the first read, no HTTP request is issued, and the returned `{ manifest, isLoading, validationErrors, unresolvedSentinels }` shape matches the legacy positional signature so `CnAppRoot` consumes it unchanged. Add `validate: true` for synchronous pre-mount validation — failures populate `validationErrors` but never replace the manifest (informational policy, mirroring the legacy branch). See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilities/composables/use-app-manifest.md#mounting-an-in-memory-manifest).

@@ -13,10 +13,16 @@ The returned `manifest` is reactive, so the future "app builder" backend can hot
 
 ## Signature
 
+Two call shapes are supported. The composable discriminates on `typeof arguments[0]` — a string enters the legacy fetch-and-merge branch; a non-null plain object enters the new in-memory branch. Both shapes return the same canonical four-property result.
+
 ```js
 import { useAppManifest } from '@conduction/nextcloud-vue'
 
+// Legacy positional signature — bundled manifest + backend fetch + sentinel resolution + validation.
 const { manifest, isLoading, validationErrors } = useAppManifest(appId, bundledManifest, options)
+
+// In-memory signature — mount an already-constructed manifest synchronously, no HTTP IO.
+const { manifest, isLoading } = useAppManifest({ manifest: inMemoryManifest, validate: true })
 ```
 
 | Argument | Type | Description |
@@ -65,6 +71,52 @@ useAppManifest('decidesk', bundledManifest, {
   fetcher: (url) => Promise.resolve({ status: 200, data: { /* ... */ } }),
 })
 ```
+
+## Mounting an in-memory manifest
+
+For consumers that build their manifest in memory from runtime state — for example the OpenBuilt app builder, which mounts virtual apps from store data and has no backend `/api/manifest` route — pass an options object whose `manifest` field is the canonical, fully-constructed manifest. The composable enters a separate, synchronous code path: no HTTP fetch, no deep-merge, no sentinel resolution.
+
+```js
+import { useAppManifest } from '@conduction/nextcloud-vue'
+
+const builderManifest = buildManifestFromStore() // synchronously constructed
+const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
+
+// manifest.value === builderManifest (by reference; no clone)
+// isLoading.value === false from the first read; no async tick required
+```
+
+### Optional pre-mount validation
+
+Pass `validate: true` to run [`validateManifest`](../validate-manifest.md) synchronously before returning. Validation is **informational** — the manifest is mounted unchanged either way; a failure populates `validationErrors` and emits a `console.warn` prefixed with `[useAppManifest]`. This mirrors the legacy fetch-and-merge branch's policy and lets the consumer surface the error however it likes (banner, console only, ignore).
+
+```js
+const { manifest, validationErrors } = useAppManifest({
+  manifest: builderManifest,
+  validate: true,
+})
+
+if (validationErrors.value) {
+  // manifest is still mounted; surface the errors to the builder UI
+  // so the user can fix the offending field interactively.
+  console.error('Manifest has issues:', validationErrors.value)
+}
+```
+
+### When to use which signature
+
+| Signature | Use when |
+|-----------|----------|
+| `useAppManifest(appId, bundled, options?)` | The app ships a static `manifest.json` and (optionally) a backend route at `/index.php/apps/{appId}/api/manifest` that returns a partial override. Default for all production Conduction apps. |
+| `useAppManifest({ manifest })` | The host renders a virtual app whose manifest is constructed in memory at runtime (no static file, no backend route). Canonical consumer: the OpenBuilt app builder — see the `bootstrap-openbuilt` change for the full virtual-host pattern. |
+
+### Guarantees of the in-memory branch
+
+- `manifest.value` holds the input object **by reference** — the composable never clones or mutates it. Mutating the input object from elsewhere reflects in the ref immediately (Vue 2.7 reactivity caveats apply for non-reactive inputs).
+- `isLoading.value === false` synchronously. No async tick is required to settle.
+- `validationErrors.value === null` unless `validate: true` and validation failed.
+- `unresolvedSentinels.value === []` — sentinel resolution is a backend-merge concern and does not run on in-memory manifests. Build the manifest with its sentinels already resolved.
+- No call to `axios.get`, `generateUrl`, or any `options.fetcher` is made. The branch is entirely synchronous from the caller's perspective.
 
 ## `@resolve:<key>` sentinel
 
