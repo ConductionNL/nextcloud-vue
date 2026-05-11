@@ -245,7 +245,7 @@ describe('manifest-config-defs additivity', () => {
 		//   field on `type:'index'` config.
 		// - `manifest-actions-dispatch` adds `handler` + `route` to the `action`
 		//   $def. Existing $defs unchanged either way.
-		expect(schema.version).toBe('1.3.0')
+		expect(schema.version).toBe('1.4.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {

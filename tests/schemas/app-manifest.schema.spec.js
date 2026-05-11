@@ -161,8 +161,8 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-	it('schema declares its version as 1.3.0', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('schema declares its version as 1.4.0', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -548,8 +548,8 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-		it('bumps the schema version field to 1.3.0', () => {
-			expect(schema.version).toBe('1.3.0')
+		it('bumps the schema version field (currently 1.4.0)', () => {
+			expect(schema.version).toBe('1.4.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -661,8 +661,8 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('REQ-MSRS-6: schema top-level version field is at the current schema version (1.4.0 with widget-ref addition)', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -881,13 +881,14 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version reaches 1.3.0 with the manifest-card-index-component additive change', () => {
+		it('schema version reflects the cumulative additive changes (currently 1.4.0)', () => {
 			// `manifest-detail-sidebar-config` itself was non-breaking and
 			// kept the version at 1.1.0. The successor `manifest-config-refs`
 			// change wires up $refs on the recurring config sub-shapes and
 			// bumped to 1.2.0. `manifest-card-index-component` and
-			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
-			expect(schema.version).toBe('1.3.0')
+			// `manifest-actions-dispatch` further bumped to 1.3.0.
+			// `manifest-widget-ref-page-content-type` bumped to 1.4.0.
+			expect(schema.version).toBe('1.4.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
@@ -1345,7 +1346,7 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 	})
 
 	it('REQ-MSO-8: schema top-level version field is at the current schema version', () => {
-		expect(schema.version).toBe('1.3.0')
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -1439,5 +1440,119 @@ describe('validateManifest — manifest-form-page-type', () => {
 		}))
 		expect(result.valid).toBe(false)
 		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
+	})
+})
+
+// `manifest-widget-ref-page-content-type` — adds `content[]` with `widget-ref`
+// entries to dashboard pages (nc-vue issue #200 §1).
+describe('validateManifest — manifest-widget-ref-page-content-type', () => {
+	const baseDashboard = (config) => ({
+		version: '1.0.0',
+		menu: [],
+		pages: [{ id: 'd', route: '/d', type: 'dashboard', title: 't', config }],
+	})
+
+	it('accepts a dashboard page with two widget-ref content items (scholiq example)', () => {
+		const result = validateManifest(baseDashboard({
+			content: [
+				{ type: 'widget-ref', ref: 'openregister://widget/regulation/coverageGrid' },
+				{ type: 'widget-ref', ref: 'openregister://widget/regulation/boardProof' },
+			],
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a dashboard page with only widgets+layout (back-compat, no content)', () => {
+		const result = validateManifest(baseDashboard({
+			widgets: [{ id: 'kpis', title: 'KPIs', type: 'custom' }],
+			layout: [],
+		}))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a dashboard page with no config at all (back-compat)', () => {
+		const result = validateManifest({
+			version: '1.0.0',
+			menu: [],
+			pages: [{ id: 'd', route: '/d', type: 'dashboard', title: 't' }],
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects a content item whose type is not "widget-ref"', () => {
+		const result = validateManifest(baseDashboard({
+			content: [
+				{ type: 'component-ref', ref: 'openregister://widget/regulation/coverageGrid' },
+			],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content/0/type') && e.includes('"widget-ref"'))).toBe(true)
+	})
+
+	it('rejects a content item with a missing ref', () => {
+		const result = validateManifest(baseDashboard({
+			content: [{ type: 'widget-ref' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content/0/ref') && e.includes('non-empty string'))).toBe(true)
+	})
+
+	it('rejects a widget-ref whose ref URI does not match the pattern', () => {
+		const result = validateManifest(baseDashboard({
+			content: [{ type: 'widget-ref', ref: 'https://example.com/widget' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content/0/ref') && e.includes('openregister://widget/'))).toBe(true)
+	})
+
+	it('rejects a widget-ref whose widgetSlug starts with a digit', () => {
+		const result = validateManifest(baseDashboard({
+			content: [{ type: 'widget-ref', ref: 'openregister://widget/regulation/2badSlug' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content/0/ref'))).toBe(true)
+	})
+
+	it('rejects a widget-ref whose schemaSlug contains uppercase letters', () => {
+		const result = validateManifest(baseDashboard({
+			content: [{ type: 'widget-ref', ref: 'openregister://widget/Regulation/coverageGrid' }],
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content/0/ref'))).toBe(true)
+	})
+
+	it('rejects content[] that is not an array', () => {
+		const result = validateManifest(baseDashboard({
+			content: { type: 'widget-ref', ref: 'openregister://widget/regulation/coverageGrid' },
+		}))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/content') && e.includes('must be an array'))).toBe(true)
+	})
+
+	it('all-types fixture validates with errors=[] including widget-ref content items', () => {
+		const allTypes = require('../fixtures/manifest-all-types.json')
+		const result = validateManifest(allTypes)
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
+	it('schema declares widgetRefItem $def with required type + ref', () => {
+		expect(schema.$defs.widgetRefItem).toBeDefined()
+		expect(schema.$defs.widgetRefItem.required).toEqual(expect.arrayContaining(['type', 'ref']))
+		expect(schema.$defs.widgetRefItem.properties.type.const).toBe('widget-ref')
+	})
+
+	it('schema declares content[] under page.config.properties', () => {
+		const contentProp = schema.$defs.page.properties.config.properties.content
+		expect(contentProp).toBeDefined()
+		expect(contentProp.type).toBe('array')
+		expect(contentProp.items.$ref).toBe('#/$defs/widgetRefItem')
+	})
+
+	it('bumps schema version to 1.4.0 for the widget-ref content type addition', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
