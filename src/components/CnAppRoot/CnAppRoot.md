@@ -105,20 +105,66 @@ No new props are required. The `appId` prop value is automatically forwarded to 
 
 Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) overwrite `pageKind`, `registerSlug`, `schemaSlug`, and `objectUuid` on the same reactive object to give the AI companion per-page context.
 
-## Mounting an in-memory manifest
+## Examples
 
-Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override.
-
-Virtual-app hosts (e.g. the OpenBuilt app builder) build their manifest in memory and have no backend route. Pass an options object with the constructed manifest and the composable skips the fetch entirely:
+### Static manifest with backend override (default)
 
 ```js
 import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
+import bundledManifest from '../manifest.json'
 
-setup() {
-  const builderManifest = buildManifestFromStore()
-  const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
-  return { manifest, isLoading }
+export default {
+  setup() {
+    const { manifest, isLoading } = useAppManifest('myapp', bundledManifest)
+    return { manifest, isLoading }
+  },
 }
 ```
 
-`isLoading.value` is `false` from the first read, no HTTP request is issued, and the returned `{ manifest, isLoading, validationErrors, unresolvedSentinels }` shape matches the legacy positional signature so `CnAppRoot` consumes it unchanged. Add `validate: true` for synchronous pre-mount validation — failures populate `validationErrors` but never replace the manifest (informational policy, mirroring the legacy branch). See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilities/composables/use-app-manifest.md#mounting-an-in-memory-manifest).
+### In-memory manifest (virtual-app hosts, e.g. OpenBuilt)
+
+Virtual-app hosts build their manifest in memory and have no backend route. Pass an options object with the constructed manifest and the composable skips the fetch entirely:
+
+```vue
+<template>
+  <CnAppRoot
+    app-id="openbuilt"
+    :manifest="manifest"
+    :is-loading="isLoading">
+    <router-view />
+  </CnAppRoot>
+</template>
+
+<script>
+import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
+
+export default {
+  components: { CnAppRoot },
+  setup() {
+    const builderManifest = buildManifestFromStore()
+    const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
+    return { manifest, isLoading }
+  },
+}
+</script>
+```
+
+`isLoading.value` is `false` from the first read, no HTTP request is issued, and the returned `{ manifest, isLoading, validationErrors, unresolvedSentinels }` shape matches the legacy positional signature so `CnAppRoot` consumes it unchanged.
+
+### In-memory manifest with pre-mount validation
+
+Add `validate: true` for synchronous schema validation — failures populate `validationErrors` and emit a `console.warn` prefixed `[useAppManifest]` but never replace the manifest (informational policy, mirroring the legacy branch):
+
+```js
+const { manifest, isLoading, validationErrors } = useAppManifest({
+  manifest: builderManifest,
+  validate: true,
+})
+// validationErrors.value === null on success, string[] on failure.
+```
+
+See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilities/composables/use-app-manifest.md#mounting-an-in-memory-manifest).
+
+## Mounting an in-memory manifest
+
+Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuilt app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuilt) above.
