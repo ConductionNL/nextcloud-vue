@@ -222,7 +222,12 @@ export function useAiChatStream(contextInstance) {
 		const newThread = options.newThread || state._newThread
 		state._newThread = false
 
+		// OR's ChatStreamController reads `$body['message']` (matches the existing
+		// non-streaming `/api/chat/send` request shape). We keep `content` as a
+		// fallback alias for clients that already used the old field name — the
+		// controller ignores unknown keys.
 		const body = {
+			message: content,
 			content,
 			context: getContextSnapshot(),
 			newThread,
