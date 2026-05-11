@@ -277,6 +277,12 @@ export default {
 
 	inject: {
 		objectSidebarState: { default: null },
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. This page
+		 * component writes pageKind, objectUuid, registerSlug, schemaSlug
+		 * in created() and watches for changes. Resets on beforeDestroy().
+		 */
+		cnAiContext: { default: null },
 	},
 
 	setup(props) {
@@ -543,20 +549,48 @@ export default {
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
-		objectId() { this.syncSidebarState() },
+		objectId() {
+			this.syncSidebarState()
+			this.pushAiContext()
+		},
 		sidebarProps: {
 			deep: true,
 			handler() { this.syncSidebarState() },
 		},
 	},
 
+	created() {
+		this.pushAiContext()
+	},
+
 	beforeDestroy() {
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
 		}
+		// Reset AI context fields so stale detail context doesn't leak
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.objectUuid = undefined
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+		}
 	},
 
 	methods: {
+		/**
+		 * Push pageKind + objectUuid + register/schema context into the
+		 * reactive cnAiContext holder so the AI Chat Companion knows
+		 * what object the user is viewing.
+		 */
+		pushAiContext() {
+			if (!this.cnAiContext) return
+			const resolved = this.resolvedSidebar || {}
+			this.cnAiContext.pageKind = 'detail'
+			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
+			this.cnAiContext.registerSlug = resolved.register || this.sidebarProps?.register || undefined
+			this.cnAiContext.schemaSlug = resolved.schema || this.objectType || this.sidebarProps?.schema || undefined
+		},
+
 		/**
 		 * Pushes the resolved sidebar config into the
 		 * `objectSidebarState` provide/inject channel for the host

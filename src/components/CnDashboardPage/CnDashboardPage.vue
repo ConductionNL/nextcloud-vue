@@ -284,6 +284,14 @@ export default {
 		CnStatsBlockWidget,
 	},
 
+	inject: {
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. Overwritten
+		 * on created() and watched for prop changes. Reset on beforeDestroy().
+		 */
+		cnAiContext: { default: null },
+	},
+
 	props: {
 		/** Page title */
 		title: {
@@ -391,7 +399,35 @@ export default {
 		},
 	},
 
+	created() {
+		this.pushAiContext()
+	},
+
+	beforeDestroy() {
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+		}
+	},
+
 	methods: {
+		/**
+		 * Push pageKind = 'dashboard' into the reactive cnAiContext.
+		 * registerSlug/schemaSlug are populated when the dashboard page
+		 * receives those props (some dashboards are schema-specific).
+		 */
+		pushAiContext() {
+			if (!this.cnAiContext) return
+			this.cnAiContext.pageKind = 'dashboard'
+			// Dashboard pages don't universally carry register/schema props —
+			// leave them undefined (they'll be whatever the previous page set,
+			// but we reset to undefined here for a clean context).
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+			this.cnAiContext.objectUuid = undefined
+		},
+
 		toggleEdit() {
 			this.isEditing = !this.isEditing
 			this.$emit('edit-toggle', this.isEditing)

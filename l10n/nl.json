@@ -409,7 +409,20 @@
     "{name} (Copy)": "{name} (Kopie)",
     "{name} - Copy": "{name} - Kopie",
     "{title} saved successfully.": "{title} succesvol opgeslagen.",
-    "Inherits schema permissions": "Erft schemarechten"
+    "Inherits schema permissions": "Erft schemarechten",
+    "Open AI chat": "AI-chat openen",
+    "AI assistant": "AI-assistent",
+    "Send message": "Bericht versturen",
+    "Message input": "Berichtinvoer",
+    "Start new chat": "Nieuwe chat starten",
+    "History": "Geschiedenis",
+    "Close": "Sluiten",
+    "No conversations yet": "Nog geen gesprekken",
+    "Connecting...": "Verbinden...",
+    "Loading conversations...": "Gesprekken laden...",
+    "Could not connect to AI service": "Kon geen verbinding maken met de AI-service",
+    "Tool: {toolId}": "Hulpmiddel: {toolId}",
+    "Reply was cancelled": "Antwoord geannuleerd"
   },
   "plurals": {}
 }

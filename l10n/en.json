@@ -417,7 +417,20 @@
     "If no groups are specified for an operation, all users can perform it": "If no groups are specified for an operation, all users can perform it",
     "Inherits schema permissions": "Inherits schema permissions",
     "Maximum items": "Maximum items",
-    "Minimum items": "Minimum items"
+    "Minimum items": "Minimum items",
+    "Open AI chat": "Open AI chat",
+    "AI assistant": "AI assistant",
+    "Send message": "Send message",
+    "Message input": "Message input",
+    "Start new chat": "Start new chat",
+    "History": "History",
+    "Close": "Close",
+    "No conversations yet": "No conversations yet",
+    "Connecting...": "Connecting...",
+    "Loading conversations...": "Loading conversations...",
+    "Could not connect to AI service": "Could not connect to AI service",
+    "Tool: {toolId}": "Tool: {toolId}",
+    "Reply was cancelled": "Reply was cancelled"
   },
   "plurals": {}
 }

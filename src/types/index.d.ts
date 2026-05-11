@@ -74,3 +74,50 @@ export type {
 // Runtime store plugins. Each plugin is a factory returning a plugin definition
 // consumed by `createCrudStore({ plugins: [...] })` or `createObjectStore`.
 export { logsPlugin } from '../store/plugins/logs'
+
+// AI Chat Companion types
+/**
+ * Reactive context object injected by CnAppRoot and consumed by useAiContext().
+ * Page components (CnIndexPage, CnDetailPage, CnDashboardPage) overwrite fields
+ * to give the AI Chat Companion per-page context.
+ */
+export interface CnAiContext {
+	appId: string
+	pageKind: 'index' | 'detail' | 'dashboard' | 'chat' | 'settings' | 'custom'
+	objectUuid?: string
+	registerSlug?: string
+	schemaSlug?: string
+	route?: { path: string; name?: string; params?: Record<string, string> }
+}
+
+/**
+ * Return type of useAiChatStream(). All state properties are reactive.
+ */
+export interface UseAiChatStreamReturn {
+	state: {
+		isStreaming: boolean
+		currentText: string
+		toolCalls: Array<{
+			toolId: string
+			arguments: unknown
+			result?: unknown
+			isError?: boolean
+		}>
+		error: { code: string; message: string } | null
+		messages: Array<{
+			role: 'user' | 'assistant' | 'system'
+			content: string
+			toolCalls?: unknown[]
+		}>
+	}
+	send(content: string, options?: { newThread?: boolean }): Promise<void>
+	abort(): void
+	startNewThread(): void
+	loadConversation(uuid: string): Promise<void>
+}
+
+/** Inject the reactive cnAiContext from the nearest CnAppRoot ancestor. */
+export function useAiContext(instance?: object | null): CnAiContext
+
+/** Create a streaming chat state + transport for the AI Chat Companion. */
+export function useAiChatStream(contextInstance?: object | null): UseAiChatStreamReturn
