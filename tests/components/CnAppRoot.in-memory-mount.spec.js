@@ -84,12 +84,21 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 	})
 
 	// REQ-IMM-001 + REQ-IMM-002: in-memory overload + CnAppRoot mount
-	// produces no HTTP traffic and propagates the manifest by reference.
+	// produces no manifest HTTP traffic and propagates the manifest by reference.
+	// NOTE: the unrelated AI-companion health probe (GET /apps/openregister/api/chat/health)
+	// may issue a single axios call from CnAppRoot's mounted child — that is not
+	// the manifest endpoint and is irrelevant to REQ-IMM-002. We assert that
+	// no call hits a `*/api/manifest` URL.
 	it('mounts with an in-memory manifest and issues no HTTP request', async () => {
-		// Hard guarantee: axios.get throws if invoked anywhere in the
-		// in-memory branch — proves the composable is fully synchronous.
-		axios.get.mockImplementation(() => {
-			throw new Error('axios.get must not be called in the in-memory branch')
+		// Hard guarantee: any axios.get to the manifest endpoint throws — proves
+		// the composable is fully synchronous on the in-memory branch.
+		axios.get.mockImplementation((url) => {
+			if (typeof url === 'string' && url.includes('/api/manifest')) {
+				throw new Error('axios.get must not be called for the manifest endpoint in the in-memory branch')
+			}
+			// AI-companion health probe + any other unrelated call: return a benign
+			// rejected promise so its catch path runs and no manifest fetch is implied.
+			return Promise.reject(new Error('unrelated probe ignored'))
 		})
 
 		const { manifest, isLoading, validationErrors } = useAppManifest({ manifest: fixtureManifest })
@@ -118,8 +127,13 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		expect(wrapper.props('manifest')).toBe(fixtureManifest)
 		expect(wrapper.props('manifest').menu.map((m) => m.id)).toEqual(['home', 'reports'])
 
-		// REQ-IMM-002: no backend fetch / URL computation happened.
-		expect(axios.get).not.toHaveBeenCalled()
+		// REQ-IMM-002: no manifest backend fetch / URL computation happened.
+		// (Unrelated AI-companion health probe is permitted; the manifest
+		// endpoint must not be hit.)
+		const manifestCalls = axios.get.mock.calls.filter(
+			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
+		)
+		expect(manifestCalls).toHaveLength(0)
 		expect(generateUrl).not.toHaveBeenCalled()
 	})
 
@@ -152,8 +166,11 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 	// REQ-IMM-003: `validate: true` + legitimate manifest → no warning.
 	it('does not warn when validate:true is passed a legitimate manifest', async () => {
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-		axios.get.mockImplementation(() => {
-			throw new Error('axios.get must not be called in the in-memory branch')
+		axios.get.mockImplementation((url) => {
+			if (typeof url === 'string' && url.includes('/api/manifest')) {
+				throw new Error('axios.get must not be called for the manifest endpoint in the in-memory branch')
+			}
+			return Promise.reject(new Error('unrelated probe ignored'))
 		})
 
 		const { manifest, isLoading, validationErrors } = useAppManifest({
@@ -233,7 +250,11 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		// Inner surface receives the invalid manifest's first page id (dup)
 		// rather than a placeholder — the mount is not blocked.
 		expect(wrapper.find('.router-view-stub').attributes('data-page-id')).toBe('dup')
-		expect(axios.get).not.toHaveBeenCalled()
+		// No manifest endpoint hit (AI-companion health probe is unrelated).
+		const manifestCalls = axios.get.mock.calls.filter(
+			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
+		)
+		expect(manifestCalls).toHaveLength(0)
 
 		warnSpy.mockRestore()
 	})
@@ -243,10 +264,16 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 	// the returned manifest ref the same way as the in-memory branch — the
 	// two shapes are interchangeable at the component boundary.
 	it('legacy positional signature still triggers the fetcher (regression)', async () => {
-		// Hang the fetch so we observe the bundled value while isLoading is
-		// still true — proves the fetcher was called without racing the
-		// resolution.
-		axios.get.mockReturnValue(new Promise(() => {}))
+		// Hang the manifest fetch so we observe the bundled value while
+		// isLoading is still true — proves the fetcher was called without
+		// racing the resolution. Other axios.get callers (e.g. AI-companion
+		// health probe) receive a benign rejected promise.
+		axios.get.mockImplementation((url) => {
+			if (typeof url === 'string' && url.includes('/api/manifest')) {
+				return new Promise(() => {})
+			}
+			return Promise.reject(new Error('unrelated probe ignored'))
+		})
 
 		const { manifest, isLoading } = useAppManifest('fixture-app', fixtureManifest)
 
@@ -263,9 +290,12 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		await wrapper.vm.$nextTick()
 
 		// REQ-IMM-004: the fetcher branch ran — axios.get called once
-		// against the generated endpoint.
-		expect(axios.get).toHaveBeenCalledTimes(1)
-		expect(axios.get.mock.calls[0][0]).toBe('/index.php/apps/fixture-app/api/manifest')
+		// against the generated manifest endpoint.
+		const manifestCalls = axios.get.mock.calls.filter(
+			(call) => typeof call[0] === 'string' && call[0].includes('/api/manifest'),
+		)
+		expect(manifestCalls).toHaveLength(1)
+		expect(manifestCalls[0][0]).toBe('/index.php/apps/fixture-app/api/manifest')
 		expect(generateUrl).toHaveBeenCalledWith('/apps/fixture-app/api/manifest')
 
 		// The bundled manifest is observable synchronously — same shape as
