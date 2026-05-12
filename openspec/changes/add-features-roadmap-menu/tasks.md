@@ -59,17 +59,17 @@
 
 ## 9. JSDoc + documentation
 
-- [ ] 9.1 Every prop, event, slot on the six new SFCs has JSDoc per the three canonical shapes (prop `@type`, event `@event` + `@type`, slot template-comment `@slot`).
+- [x] 9.1 Every prop, event, slot on the six new SFCs has JSDoc per the three canonical shapes (prop `@type`, event `@event` + `@type`, slot template-comment `@slot`).
 - [x] 9.2 Create `docs/components/cn-features-and-roadmap-link.md`, `features-and-roadmap-view.md`, `features-tab.md`, `roadmap-tab.md`, `roadmap-item.md`, `suggest-feature-modal.md` — purpose, props/events/slots table (auto-generated partial embedded), Backend contract note linking to OR spec, accessibility notes.
 - [x] 9.3 Create `docs/utilities/composables/use-spec-ref.md`, `use-suggest-feature-action.md`, `docs/utilities/safe-markdown-dompurify-config.md`, `docs/utilities/roadmap-label-blocklist.md`.
-- [ ] 9.4 Run `cd docusaurus && npm run prebuild:docs` to regenerate `docs/components/_generated/` partials from JSDoc. Commit alongside source.
-- [ ] 9.5 Run `npm run jsdoc-baselines:update` and commit the bumped baseline.
+- [x] 9.4 Run `cd docusaurus && npm run prebuild:docs` to regenerate `docs/components/_generated/` partials from JSDoc. Commit alongside source.
+- [x] 9.5 Run `npm run jsdoc-baselines:update` and commit the bumped baseline.
 
 ## 10. Build + version bump
 
-- [ ] 10.1 Run `npm run build` and confirm Rollup output includes the six new components + two composables + two constants in ESM + CJS bundles.
-- [ ] 10.2 Run `npm test` — all unit tests pass.
-- [ ] 10.3 Run `npm run check:docs` and `npm run check:jsdoc` — both exit 0.
+- [x] 10.1 Run `npm run build` and confirm Rollup output includes the six new components + two composables + two constants in ESM + CJS bundles.
+- [x] 10.2 Run `npm test` — all unit tests pass.
+- [x] 10.3 Run `npm run check:docs` and `npm run check:jsdoc` — both exit 0.
 - [x] 10.4 Bump `version` in `package.json` (minor — new exports, no breaking changes).
 
 ## Verification
