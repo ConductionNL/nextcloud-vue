@@ -60,6 +60,8 @@ export {
 	CnFilesCard,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnXwikiTab,
+	CnXwikiCard,
 	CnDetailCard,
 	CnDetailPage,
 	CnCard,
@@ -124,7 +126,7 @@ export { useAiContext, useAiChatStream } from './composables/index.js'
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
-export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations } from './integrations/index.js'
+export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, xwikiIntegration, registerXwikiIntegration } from './integrations/index.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'
