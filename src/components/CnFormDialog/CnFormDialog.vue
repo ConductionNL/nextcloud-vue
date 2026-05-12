@@ -42,6 +42,14 @@
 						:error="errors[field.key]"
 						:update-field="updateField" />
 
+					<!-- referenceType (AD-18): render the integration's
+					     single-entity widget instead of a plain input. -->
+					<component
+						:is="resolveReferenceWidget(field)"
+						v-else-if="resolveReferenceWidget(field)"
+						v-bind="referenceWidgetProps(field)"
+						@input="value => updateField(field.key, value)" />
+
 					<!-- Auto-generated field -->
 					<template v-else>
 						<!-- Text / Email / URL -->
@@ -308,6 +316,7 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -417,6 +426,18 @@ export default {
 		ContentSaveOutline,
 	},
 
+	setup() {
+		// Pluggable integration registry — used to resolve fields that
+		// declare `referenceType: '<integration-id>'` (AD-18) to the
+		// integration's single-entity widget. Cheap when no such
+		// fields exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
+	},
+
 	props: {
 		/** Schema for auto-generating fields. Either schema or fields must be provided. */
 		schema: {
@@ -452,6 +473,17 @@ export default {
 		fieldOverrides: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * Object context forwarded to integration single-entity
+		 * widgets rendered for fields that declare a `referenceType`
+		 * (AD-18): `{ register, schema, objectId }`. Optional.
+		 *
+		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 */
+		referenceContext: {
+			type: Object,
+			default: null,
 		},
 		/** Which field is the "name" (used in result messages) */
 		nameField: {
@@ -566,6 +598,43 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a field's reference integration widget, if any.
+		 * Returns the integration's single-entity widget component
+		 * (AD-19 fallback to its main `widget`) when the field
+		 * declares a `referenceType` that maps to a registered
+		 * integration; null otherwise.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveReferenceWidget(field) {
+			if (!field || typeof field.referenceType !== 'string' || field.referenceType === '') {
+				return null
+			}
+			if (typeof this.getRegistryIntegration === 'function' && this.getRegistryIntegration(field.referenceType) === null) {
+				return null
+			}
+			return this.resolveRegistryWidget(field.referenceType, 'single-entity')
+		},
+
+		/**
+		 * Props passed to a reference integration widget: the current
+		 * value, the rendering surface, and the object context (from
+		 * the `referenceContext` prop).
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} Props object for the widget component.
+		 */
+		referenceWidgetProps(field) {
+			return {
+				surface: 'single-entity',
+				value: this.formData[field.key],
+				field,
+				...(this.referenceContext || {}),
+			}
+		},
+
 		initFormData(item) {
 			if (item) {
 				// Edit mode: clone item data
