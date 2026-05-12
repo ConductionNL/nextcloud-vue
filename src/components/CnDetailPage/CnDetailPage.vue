@@ -440,13 +440,13 @@ export default {
 			validator: (value) => INTEGRATION_SURFACES.includes(value),
 		},
 		/**
-		 * Object context forwarded to integration widgets:
+		 * Object context forwarded to integration widgets — an object
 		 * `{ register, schema, objectId }`. When omitted it is derived
 		 * from `sidebarProps.register` / `sidebarProps.schema` (or
 		 * `objectType`) and `objectId`, so `CnFilesCard` etc. can
 		 * fetch the right object's sub-resources without extra wiring.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		integrationContext: {
 			type: Object,
