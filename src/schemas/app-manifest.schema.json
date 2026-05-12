@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.5.0",
+	"version": "1.4.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
