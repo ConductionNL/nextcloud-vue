@@ -61,6 +61,8 @@
 
 <script>
 import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 export default {
 	name: 'CnAppNav',
@@ -118,15 +120,15 @@ export default {
 			return this.translate ?? this.cnTranslate
 		},
 		/**
-		 * All visible items (filtered by permission, sorted by order).
-		 * Retained for backwards-compat with the previous public API and
-		 * tests that read this computed; new code should use
+		 * All visible items (filtered by permission and visibleIf conditions,
+		 * sorted by order). Retained for backwards-compat with the previous
+		 * public API and tests that read this computed; new code should use
 		 * `mainItems` / `settingsItems` instead.
 		 */
 		visibleItems() {
 			const items = this.effectiveManifest?.menu ?? []
 			return items
-				.filter((item) => this.passesPermission(item))
+				.filter((item) => this.passesPermission(item) && this.passesVisibleIf(item))
 				.slice()
 				.sort((a, b) => {
 					const aHas = typeof a.order === 'number'
@@ -159,9 +161,50 @@ export default {
 			if (!this.permissions || this.permissions.length === 0) return true
 			return this.permissions.includes(item.permission)
 		},
+		/**
+		 * Evaluate a menu item's `visibleIf` condition block.
+		 *
+		 * Returns `true` (visible) when:
+		 *  - No `visibleIf` is declared (backwards-compatible default).
+		 *  - `visibleIf.appInstalled` is set AND the named app is
+		 *    installed / enabled (checked via `OC.appswebroots` then the
+		 *    capabilities fallback, cached per page load by `isAppInstalled`).
+		 *  - Context-path predicates (any key that is a dot-separated path
+		 *    into `manifest.runtime`) all pass against the current runtime
+		 *    data. Predicates are evaluated by `passesContextPredicates`.
+		 *    Example: `{ "user.primaryRole": { "in": ["hr", "compliance"] } }`
+		 *    hides the entry unless `manifest.runtime.user.primaryRole` is
+		 *    `"hr"` or `"compliance"`. When the runtime block is absent the
+		 *    entry is hidden (fail-safe: never show role-gated items to
+		 *    unidentified users).
+		 *
+		 * All conditions are combined with implicit AND — every condition
+		 * must pass for the item to render. Returns `false` when any fails.
+		 *
+		 * @param {object} item Menu item (or child) to evaluate.
+		 * @return {boolean} Whether the item should render.
+		 */
+		passesVisibleIf(item) {
+			const condition = item.visibleIf
+			if (!condition || typeof condition !== 'object') return true
+
+			// Specialised condition: appInstalled.
+			if (condition.appInstalled) {
+				if (!isAppInstalled(condition.appInstalled)) return false
+			}
+
+			// Context-path predicates: any non-reserved key is a dot-path
+			// into manifest.runtime evaluated by passesContextPredicates.
+			const runtime = this.effectiveManifest?.runtime ?? null
+			if (!passesContextPredicates(condition, runtime)) return false
+
+			return true
+		},
 		visibleChildren(item) {
 			if (!Array.isArray(item.children)) return []
-			return item.children.filter((c) => this.passesPermission(c))
+			return item.children.filter(
+				(c) => this.passesPermission(c) && this.passesVisibleIf(c),
+			)
 		},
 		resolveLabel(item) {
 			return this.effectiveTranslate(item.label)

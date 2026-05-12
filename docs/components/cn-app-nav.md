@@ -54,6 +54,78 @@ Items split into two groups by `section`:
 | `section` | `'main' \| 'settings'` | Default `'main'`. `'settings'` items render in the bottom footer list |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
 | `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently |
+| `visibleIf` | `object` | Optional display condition block — see [visibleIf conditions](#visibleif-conditions) |
+
+## visibleIf conditions
+
+`visibleIf` gates a menu item behind one or more conditions. All conditions use implicit AND — every condition must pass for the item to render. Items without `visibleIf` are always visible (backwards-compatible).
+
+### `appInstalled` — cross-app link guard
+
+```json
+{
+  "id": "view-in-mydash",
+  "label": "scholiq.nav.viewInMydash",
+  "href": "/index.php/apps/mydash#scholiq",
+  "visibleIf": { "appInstalled": "mydash" }
+}
+```
+
+Checks `OC.appswebroots` first, then the capabilities API as fallback. Result is cached per page load.
+
+### Context-path predicates — role-based / runtime-field gating
+
+Any key other than `appInstalled` is treated as a **dot-separated path into `manifest.runtime`**. The value is a predicate expression:
+
+| Predicate form | Example | Passes when… |
+|----------------|---------|--------------|
+| scalar | `"compliance-officer"` | value `===` the scalar (strict eq) |
+| `{ eq: <scalar> }` | `{ eq: "hr-coordinator" }` | value `===` eq |
+| `{ in: [<scalar>, …] }` | `{ in: ["hr", "compliance"] }` | value is in the array |
+| `{ notIn: [<scalar>, …] }` | `{ notIn: ["guest"] }` | value is NOT in the array |
+| `{ gt / gte / lt / lte: <num or ISO date> }` | `{ gt: 0 }` | numeric / date comparison |
+| `{ truthy: true }` | `{ truthy: true }` | `Boolean(value) === true` |
+| `{ truthy: false }` | `{ truthy: false }` | `Boolean(value) === false` |
+
+The backend (OpenRegister) injects `manifest.runtime` when serving the manifest for an authenticated request. When `runtime` is absent and context-path predicates are declared, the item is hidden (fail-safe — never show role-gated content to unidentified users).
+
+**Examples:**
+
+```json
+{
+  "id": "compliance-dashboard",
+  "label": "scholiq.nav.complianceDashboard",
+  "route": "compliance-dashboard",
+  "visibleIf": {
+    "user.primaryRole": { "in": ["compliance-officer", "hr-coordinator"] }
+  }
+}
+```
+
+```json
+{
+  "id": "overdue-banner",
+  "label": "scholiq.nav.overdue",
+  "route": "overdue-courses",
+  "visibleIf": {
+    "user.isOverdueOnMandatoryTraining": true
+  }
+}
+```
+
+**Combined `appInstalled` + context predicate** (both must pass):
+
+```json
+{
+  "id": "combined",
+  "label": "scholiq.nav.combined",
+  "href": "/apps/mydash#scholiq",
+  "visibleIf": {
+    "appInstalled": "mydash",
+    "user.primaryRole": { "in": ["compliance-officer"] }
+  }
+}
+```
 
 ## Props
 
