@@ -93,8 +93,8 @@ describe('CnXwikiCard', () => {
 		expect(chip.exists()).toBe(true)
 		expect(chip.text()).toContain('Charter')
 		expect(chip.text()).toContain('Wiki / Team')
-		// the GET was for the encoded reference
-		expect(global.fetch.mock.calls[0][0]).toContain('/objects/reg/sch/obj-1/xwiki/Team.Charter')
+		// the GET was for the encoded reference, on the pluggable-integration sub-resource
+		expect(global.fetch.mock.calls[0][0]).toContain('/objects/reg/sch/obj-1/integrations/xwiki/Team.Charter')
 		wrapper.destroy()
 	})
 

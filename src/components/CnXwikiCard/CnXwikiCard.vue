@@ -17,11 +17,12 @@
                        property declares `referenceType: 'xwiki'`
                        (AD-18); the chip is read-only.
 
-  All data comes from OpenRegister's
-  `/objects/{register}/{schema}/{id}/xwiki` sub-resource (and
-  `/{reference}` for single-entity), which the PHP XwikiProvider
-  delegates to the OpenConnector `xwiki` source. A 503 from the
-  endpoint renders a quiet unavailable state, never a broken widget.
+  All data comes from OpenRegister's pluggable-integration
+  sub-resource `/api/objects/{register}/{schema}/{id}/integrations/xwiki`
+  (and `/{reference}` appended for single-entity), which dispatches to
+  the PHP `XwikiProvider`, which delegates to the OpenConnector `xwiki`
+  source. A 503 from the endpoint renders a quiet unavailable state,
+  never a broken widget.
 -->
 <template>
 	<CnDetailCard :title="cardTitle" :icon="FileDocumentMultiple" :collapsible="collapsible">
@@ -199,7 +200,7 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/xwiki`
 		},
 
 		breadcrumbText(page) {

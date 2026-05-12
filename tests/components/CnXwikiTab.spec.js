@@ -80,7 +80,7 @@ describe('CnXwikiTab', () => {
 		await wrapper.vm.$nextTick()
 		const delCall = global.fetch.mock.calls.find((c) => c[1] && c[1].method === 'DELETE')
 		expect(delCall).toBeTruthy()
-		expect(delCall[0]).toContain('/objects/reg/sch/obj-1/xwiki/X.Y')
+		expect(delCall[0]).toContain('/objects/reg/sch/obj-1/integrations/xwiki/X.Y')
 		expect(wrapper.emitted('unlinked')).toBeTruthy()
 		expect(wrapper.findAll('.cn-xwiki-tab__row')).toHaveLength(0)
 		wrapper.destroy()

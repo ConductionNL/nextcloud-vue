@@ -9,11 +9,13 @@
   it never deletes the page in XWiki.
 
   External integration: all CRUD goes through OpenRegister's
-  `/objects/{register}/{schema}/{id}/xwiki` sub-resource, which the
-  PHP XwikiProvider delegates to the OpenConnector `xwiki` source. If
-  the source's credentials have expired the endpoint answers 503 with
-  a `reason` of `provider-unavailable` — the tab then shows a
-  reconnect banner instead of a broken list (AD-23).
+  pluggable-integration sub-resource
+  `/api/objects/{register}/{schema}/{id}/integrations/xwiki`
+  (`ObjectIntegrationsController`), which dispatches to the PHP
+  `XwikiProvider`, which in turn delegates to the OpenConnector `xwiki`
+  source. If the source's credentials have expired the endpoint
+  answers 503 with a `reason` — the tab then shows a reconnect banner
+  instead of a broken list (AD-23).
 
   Registered on the pluggable integration registry as `xwiki` (see
   src/integrations/builtin/xwiki.js).
@@ -150,7 +152,7 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/xwiki`
 		},
 
 		breadcrumbText(page) {
