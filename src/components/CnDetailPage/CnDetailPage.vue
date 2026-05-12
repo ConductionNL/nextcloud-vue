@@ -446,7 +446,7 @@ export default {
 		 * `objectType`) and `objectId`, so `CnFilesCard` etc. can
 		 * fetch the right object's sub-resources without extra wiring.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		integrationContext: {
 			type: Object,

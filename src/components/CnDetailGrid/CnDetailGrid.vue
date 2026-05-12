@@ -128,7 +128,7 @@ export default {
 		 * widgets rendered for items that declare a `referenceType`:
 		 * `{ register, schema, objectId }`. Optional.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		referenceContext: {
 			type: Object,

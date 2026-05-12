@@ -11,7 +11,8 @@
 		{ "id": "chat-menu", "label": "myapp.menu.chat", "route": "chat-thread", "order": 40 },
 		{ "id": "files-menu", "label": "myapp.menu.files", "route": "files-browser", "order": 50 },
 		{ "id": "custom-menu", "label": "myapp.menu.custom", "route": "custom-page", "order": 99 },
-		{ "id": "map-menu", "label": "myapp.menu.map", "route": "cases-map", "order": 60 }
+		{ "id": "map-menu", "label": "myapp.menu.map", "route": "cases-map", "order": 60 },
+		{ "id": "compliance-menu", "label": "myapp.menu.compliance", "route": "compliance-dashboard", "order": 70 }
 	],
 	"pages": [
 		{
@@ -122,6 +123,18 @@
 					"popupField": "title",
 					"clustering": true
 				}
+			}
+		},
+		{
+			"id": "compliance-dashboard",
+			"route": "/compliance",
+			"type": "dashboard",
+			"title": "myapp.compliance.title",
+			"config": {
+				"content": [
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/coverageGrid" },
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/boardProof" }
+				]
 			}
 		}
 	]

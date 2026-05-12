@@ -316,6 +316,7 @@ module.exports = {
 				`${ROOT}/src/components/CnWidgetRenderer/CnWidgetRenderer.vue`,
 				`${ROOT}/src/components/CnTileWidget/CnTileWidget.vue`,
 				`${ROOT}/src/components/CnChartWidget/CnChartWidget.vue`,
+				`${ROOT}/src/components/CnWidgetRefItem/CnWidgetRefItem.vue`,
 			],
 		},
 		{

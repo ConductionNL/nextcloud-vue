@@ -12,7 +12,8 @@
 
 ### Events
 
-| Name           | Payload | Description |
-| -------------- | ------- | ----------- |
-| `update:value` | —       |             |
-| `format`       | —       |             |
+| Name                | Payload | Description |
+| ------------------- | ------- | ----------- |
+| `update:value`      | —       |             |
+| `format`            | —       |             |
+| `detected-language` | —       |             |
