@@ -427,13 +427,13 @@ export default {
 			validator: (value) => INTEGRATION_SURFACES.includes(value),
 		},
 		/**
-		 * Object context forwarded to integration widgets:
+		 * Object context forwarded to integration widgets — an object
 		 * `{ register, schema, objectId }`. Optional — most dashboards
 		 * aren't object-scoped, but CnDetailPage passes one through so
 		 * `CnFilesCard` / `CnTagsCard` / `CnAuditTrailCard` know which
 		 * object's sub-resources to fetch.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		integrationContext: {
 			type: Object,

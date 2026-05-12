@@ -125,10 +125,10 @@ export default {
 		},
 		/**
 		 * Object context forwarded to integration single-entity
-		 * widgets rendered for items that declare a `referenceType`:
-		 * `{ register, schema, objectId }`. Optional.
+		 * widgets rendered for items that declare a `referenceType` —
+		 * an object `{ register, schema, objectId }`. Optional.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		referenceContext: {
 			type: Object,
