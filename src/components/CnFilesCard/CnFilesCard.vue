@@ -41,7 +41,7 @@
 			</li>
 		</ul>
 		<template v-if="files.length > maxDisplay" #footer>
-			<button class="cn-files-card__show-all" @click="$emit('show-all')">
+			<button class="cn-files-card__show-all" @click="onShowAll">
 				{{ showAllLabel }} ({{ files.length }})
 			</button>
 		</template>
@@ -66,7 +66,8 @@ import { buildHeaders } from '../../utils/index.js'
  *   :register="registerId"
  *   :schema="schemaId"
  *   :object-id="objectId"
- *   surface="detail-page" />
+ *   surface="detail-page"
+ *   @show-all="openFilesTab" />
  * ```
  */
 export default {
@@ -128,6 +129,11 @@ export default {
 	},
 
 	methods: {
+		onShowAll() {
+			/** @event show-all Emitted when the "Show all (N)" overflow control is clicked — the host typically opens the full Files sidebar tab. No payload. */
+			this.$emit('show-all')
+		},
+
 		async fetchFiles() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
