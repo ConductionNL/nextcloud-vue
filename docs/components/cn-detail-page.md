@@ -78,15 +78,24 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
     hiddenTabs: ['notes'],
     title: 'Lead detail',
     subtitle: '...',
-    tabs: [             // see manifest-abstract-sidebar
+    tabs: [             // open-enum tabs — see manifest-abstract-sidebar
       { id: 'overview', label: 'lead.overview', widgets: [{ type: 'data' }] },
     ],
+    // — OR — drive the tab strip from the pluggable integration registry (ADR-019):
+    useRegistry: true,             // one tab per registered provider (mutually exclusive with `tabs`)
+    excludeIntegrations: ['tags'], // hide integration ids in registry mode (mirrors `hiddenTabs`)
   }
   ```
 
   Use `show: false` to hide the sidebar declaratively without
   removing the rest of the config (e.g. behind a feature flag or
   a responsive layout watcher).
+
+  `useRegistry` / `excludeIntegrations` flow through `objectSidebarState` —
+  for them to take effect the host App's `#sidebar` slot must bind
+  `:use-registry="objectSidebarState.useRegistry"` and
+  `:exclude-integrations="objectSidebarState.excludeIntegrations"` onto its
+  `<CnObjectSidebar>`. See [CnObjectSidebar — registry-driven tabs](./cn-object-sidebar.md#registry-driven-tabs-useregistry).
 
 ### Migrating from boolean
 
