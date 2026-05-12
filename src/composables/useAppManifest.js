@@ -7,33 +7,57 @@ import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 /**
  * Composable that loads, resolves, and validates a Conduction app manifest.
  *
- * The composable implements the four-phase flow specified in
- * REQ-JMR-002 of the json-manifest-renderer capability + the
- * substitution step from the `manifest-resolve-sentinel` capability:
+ * Two call shapes are supported:
  *
- *  1. Synchronous bundled load — `bundledManifest` is the immediate value.
- *  2. Async backend merge — fetches `/index.php/apps/{appId}/api/manifest`
- *     and deep-merges any 200 response over the bundled manifest. 4xx /
- *     5xx / network errors are silently ignored so apps work without a
- *     backend endpoint.
- *  3. Sentinel resolution — `@resolve:<key>` strings under
- *     `pages[].config` are substituted with `IAppConfig` values via the
- *     `resolveManifestSentinels` utility (see its module docs for the
- *     resolution source chain). Unresolved keys surface on the
- *     returned `unresolvedSentinels` ref.
- *  4. Validation — the resolved result is validated against
- *     `app-manifest.schema.json`. On failure, the bundled manifest is
- *     kept and a `console.warn` is emitted with the error list.
+ *  1. **Legacy positional signature** —
+ *     `useAppManifest(appId, bundledManifest, options?)`.
+ *     Implements the four-phase flow specified in REQ-JMR-002 of the
+ *     `json-manifest-renderer` capability + the substitution step from the
+ *     `manifest-resolve-sentinel` capability:
+ *
+ *      1. Synchronous bundled load — `bundledManifest` is the immediate value.
+ *      2. Async backend merge — fetches `/index.php/apps/{appId}/api/manifest`
+ *         and deep-merges any 200 response over the bundled manifest. 4xx /
+ *         5xx / network errors are silently ignored so apps work without a
+ *         backend endpoint.
+ *      3. Sentinel resolution — `@resolve:<key>` strings under
+ *         `pages[].config` are substituted with `IAppConfig` values via
+ *         the `resolveManifestSentinels` utility (see its module docs for
+ *         the resolution source chain). Unresolved keys surface on the
+ *         returned `unresolvedSentinels` ref.
+ *      4. Validation — the resolved result is validated against
+ *         `app-manifest.schema.json`. On failure, the bundled manifest is
+ *         kept and a `console.warn` is emitted with the error list.
+ *
+ *  2. **In-memory signature** —
+ *     `useAppManifest({ manifest, validate? })`.
+ *     Mounts an already-constructed manifest object synchronously, with no
+ *     backend fetch, no deep-merge, and no sentinel resolution. Designed
+ *     for virtual-app hosts (e.g. the OpenBuilt app builder) that build
+ *     their manifests in memory from store state. When `validate: true`,
+ *     `validateManifest` is called synchronously before returning and any
+ *     failures populate `validationErrors`; validation is informational —
+ *     the input manifest is never replaced.
+ *
+ * The two shapes are discriminated by inspecting `typeof arguments[0]`:
+ *  - `string` → legacy fetch-and-merge branch
+ *  - non-null plain `object` → in-memory branch
+ *
+ * Both branches return the same shape:
+ * `{ manifest, isLoading, validationErrors, unresolvedSentinels }`.
  *
  * The returned manifest is reactive, so the future "app builder" backend
  * can hot-swap the manifest without a page reload.
  *
- * @param {string} appId Nextcloud app ID. Used to build the default
- *   backend endpoint URL via `@nextcloud/router` and to scope
- *   IAppConfig lookups for `@resolve:<key>` sentinels.
- * @param {object} bundledManifest The manifest shipped with the app (the
- *   default value, available synchronously).
- * @param {object} [options] Configuration options.
+ * @param {string | { manifest: object, validate?: boolean }} appIdOrOptions
+ *   Either a Nextcloud app ID (legacy positional signature) OR an options
+ *   object whose `manifest` field is the canonical, in-memory manifest
+ *   (in-memory signature).
+ * @param {object} [bundledManifest] Manifest shipped with the app. Only
+ *   read when `appIdOrOptions` is a string (legacy signature); ignored in
+ *   the in-memory signature.
+ * @param {object} [options] Configuration options. Only read in the
+ *   legacy signature; ignored in the in-memory signature.
  * @param {string} [options.endpoint] Override the backend fetch URL.
  *   Useful for tests and alternative-host deployments.
  * @param {Function} [options.fetcher] Override the fetch function. Must
@@ -65,8 +89,91 @@ import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
  * const { manifest, unresolvedSentinels } = useAppManifest('softwarecatalog', bundled)
  * // unresolvedSentinels.value is e.g. ['voorzieningen_register']
  * // when that IAppConfig key is unset on the tenant.
+ *
+ * @example In-memory manifest (virtual-app host, e.g. OpenBuilt)
+ * const builderManifest = buildManifestFromStore()
+ * const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
+ * // isLoading.value === false immediately; no HTTP fetch is issued.
+ *
+ * @example In-memory manifest with pre-mount validation
+ * const { manifest, validationErrors } = useAppManifest({
+ *   manifest: builderManifest,
+ *   validate: true,
+ * })
+ * // validationErrors.value is null on success or string[] on failure.
+ * // Validation is informational — the manifest is mounted either way.
  */
-export function useAppManifest(appId, bundledManifest, options = {}) {
+export function useAppManifest(appIdOrOptions, bundledManifest, options = {}) {
+	// REQ-IMM-001 / REQ-IMM-004 — discriminate the call shape on the
+	// first argument: a string enters the legacy fetch-and-merge branch;
+	// a non-null plain object enters the new in-memory branch.
+	if (isPlainObject(appIdOrOptions)) {
+		return loadInMemory(appIdOrOptions)
+	}
+
+	return loadFromBackend(appIdOrOptions, bundledManifest, options)
+}
+
+/**
+ * In-memory branch — mount a manifest object synchronously without any
+ * backend fetch, deep-merge, or sentinel resolution.
+ *
+ * Implements REQ-IMM-001..REQ-IMM-003 of the
+ * `in-memory-app-manifest-loader` capability:
+ *
+ *  - `manifest` ref holds the input object by reference (no clone, no
+ *    mutation).
+ *  - `isLoading` is `false` from the first read because nothing is queued.
+ *  - `validationErrors` is `null` unless `options.validate === true` and
+ *    `validateManifest` returns a non-empty error list.
+ *  - `unresolvedSentinels` is always `[]` — sentinel resolution is a
+ *    backend-merge concern and does not apply to in-memory manifests.
+ *
+ * Validation is informational, mirroring the legacy branch's policy
+ * (REQ-JMR-002 / Decision 2 in the change design): a failure emits a
+ * `console.warn` and populates `validationErrors`, but the manifest is
+ * never replaced.
+ *
+ * @param {{ manifest: object, validate?: boolean }} input The options
+ *   object passed to `useAppManifest`.
+ * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
+ */
+function loadInMemory(input) {
+	const manifest = ref(input.manifest)
+	const isLoading = ref(false)
+	const validationErrors = ref(null)
+	const unresolvedSentinels = ref([])
+
+	if (input.validate === true) {
+		const result = validateManifest(input.manifest)
+		if (!result.valid) {
+			validationErrors.value = result.errors
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[useAppManifest] In-memory manifest failed schema validation; manifest is mounted unchanged (validation is informational).',
+				result.errors,
+			)
+		}
+	}
+
+	return { manifest, isLoading, validationErrors, unresolvedSentinels }
+}
+
+/**
+ * Legacy fetch-and-merge branch — synchronous bundled load, async backend
+ * merge, sentinel resolution, validation. Implements REQ-JMR-002 of the
+ * `json-manifest-renderer` capability. Preserved verbatim for backwards
+ * compatibility with all current consumers (OpenRegister, OpenCatalogi,
+ * Procest, Pipelinq, MyDash, decidesk, docudesk, larpingapp,
+ * softwarecatalog).
+ *
+ * @param {string} appId Nextcloud app ID.
+ * @param {object} bundledManifest The manifest shipped with the app.
+ * @param {object} options Configuration options (endpoint / fetcher /
+ *   getAppConfigValue overrides).
+ * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
+ */
+function loadFromBackend(appId, bundledManifest, options) {
 	const manifest = ref(bundledManifest)
 	const isLoading = ref(true)
 	const validationErrors = ref(null)

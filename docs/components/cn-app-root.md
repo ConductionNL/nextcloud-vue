@@ -103,6 +103,28 @@ The hoist is automatic — apps using `CnAppRoot` get correct positioning the mo
 
 Apps mounting `CnIndexPage` standalone (without `CnAppRoot`) keep the legacy inline rendering — the `cnHostsIndexSidebar` sentinel defaults to `false` in that case, so `CnIndexPage` renders the sidebar in-tree as before.
 
+## Mounting virtual apps with an in-memory manifest
+
+Most CnAppRoot consumers ship a static `manifest.json` and let `useAppManifest('myapp', bundled)` fetch the optional `/index.php/apps/myapp/api/manifest` override. Some consumers — notably the OpenBuilt app builder — render **virtual apps** whose manifest is constructed in memory at runtime, with no static file and no backend route.
+
+For those hosts, `useAppManifest` now exposes a direct in-memory overload that mounts the manifest synchronously without any HTTP IO:
+
+```js
+import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
+
+setup() {
+  const builderManifest = buildManifestFromStore()
+  const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
+  return { manifest, isLoading }
+}
+```
+
+The composable returns the same `{ manifest, isLoading, validationErrors, unresolvedSentinels }` shape as the legacy positional signature, so `CnAppRoot` consumes it unchanged. `isLoading.value` is `false` immediately because no fetch is queued. See [`useAppManifest` — Mounting an in-memory manifest](../utilities/composables/use-app-manifest.md#mounting-an-in-memory-manifest) for the full overload contract and the optional `validate: true` flag.
+
+### Historical workaround
+
+Before this overload existed, virtual-app hosts had to fake an HTTP fetch by passing a stub `options.endpoint` and an `options.fetcher` that resolved synchronously to the in-memory manifest. That workaround is documented in the OpenBuilt `bootstrap-openbuilt` change (Decision 4) and is now historical — the in-memory overload is the supported path. The legacy `options.endpoint` / `options.fetcher` parameters remain fully supported for their intended uses (tests, alternative-host deployments).
+
 ## Related
 
 - [useAppManifest](../utilities/composables/use-app-manifest.md) — Loads/validates the manifest passed in.
