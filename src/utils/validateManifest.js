@@ -100,13 +100,15 @@ export function validateManifest(manifest, options = {}) {
 			if (item.children !== undefined && !Array.isArray(item.children)) {
 				errors.push(`/menu/${index}/children must be an array`)
 			}
+			validateMenuAction(item, `/menu/${index}`, errors)
 			// `visibleIf` validation — when set, must be a plain object;
 			// the only known sub-key is `appInstalled` (non-empty string).
 			validateMenuItemVisibleIf(item.visibleIf, `/menu/${index}/visibleIf`, errors)
-			// Also validate visibleIf on children when present.
+			// Also validate visibleIf and action on children when present.
 			if (Array.isArray(item.children)) {
 				item.children.forEach((child, cIndex) => {
 					if (isPlainObject(child)) {
+						validateMenuAction(child, `/menu/${index}/children/${cIndex}`, errors)
 						validateMenuItemVisibleIf(
 							child.visibleIf,
 							`/menu/${index}/children/${cIndex}/visibleIf`,
@@ -930,6 +932,28 @@ function validateSettingsSection(section, pathSlash, pathBracket, errors) {
 	// each entry must match the formField $def shape.
 	if (hasFields) {
 		validateFieldsArray(section.fields, `${pathSlash}/fields`, errors)
+	}
+}
+
+const MENU_ACTIONS = ['user-settings']
+
+/**
+ * Validate the optional `action` field on a menu item. The schema
+ * declares a closed enum ("user-settings" only); this helper enforces
+ * that constraint at validate time so manifest typos surface
+ * immediately rather than silently no-op'ing in CnAppNav (where
+ * unknown action values fall through the click handler).
+ *
+ * Added in schema 1.5.0 alongside the user-settings action.
+ *
+ * @param {object} item Menu item (top-level or leaf child).
+ * @param {string} path JSON path of this item (e.g. `/menu/0`).
+ * @param {string[]} errors Error array to push to (mutated).
+ */
+function validateMenuAction(item, path, errors) {
+	if (item.action === undefined) return
+	if (typeof item.action !== 'string' || !MENU_ACTIONS.includes(item.action)) {
+		errors.push(`${path}/action must be one of: ${MENU_ACTIONS.join(', ')}`)
 	}
 }
 

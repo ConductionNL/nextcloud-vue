@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -88,6 +88,11 @@
 					"type": "string",
 					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
 				},
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"],
+					"description": "Built-in action to invoke when the entry is clicked, instead of routing or opening a URL. Closed enum: \"user-settings\" opens the host app's NcAppSettingsDialog modal (provided by CnAppRoot via the `cnOpenUserSettings` inject). When `action` is set, both `route` and `href` are ignored. Added in schema 1.5.0."
+				},
 				"visibleIf": {
 					"$ref": "#/$defs/visibleIfCondition",
 					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"mydash\" }` — hides when mydash is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
@@ -117,6 +122,10 @@
 					"default": "main"
 				},
 				"href": { "type": "string" },
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"]
+				},
 				"visibleIf": {
 					"$ref": "#/$defs/visibleIfCondition",
 					"description": "Optional display condition for a nested menu entry. Same semantics as the top-level `menuItem.visibleIf` — see that field's description for the full predicate reference."

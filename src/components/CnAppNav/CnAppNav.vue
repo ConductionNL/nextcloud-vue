@@ -18,6 +18,14 @@
   also be passed as props for standalone use without CnAppRoot. Props
   win over inject when both are present.
 
+  Items can opt out of routing in favour of a built-in action by
+  setting `action: "user-settings"` on the manifest entry: clicking
+  the item invokes the `cnOpenUserSettings` provide-injected by
+  CnAppRoot, which opens the host app's NcAppSettingsDialog modal
+  instead of navigating. Both `route` and `href` are ignored when
+  `action` is set. The inject defaults to a no-op so CnAppNav stays
+  usable standalone (without a CnAppRoot ancestor).
+
   See REQ-JMR-004 of the json-manifest-renderer specification.
 -->
 <template>
@@ -75,6 +83,14 @@ export default {
 	inject: {
 		cnManifest: { default: null },
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * Provided by CnAppRoot — opens the host app's
+		 * NcAppSettingsDialog. Defaults to a no-op so CnAppNav is
+		 * still usable when mounted outside a CnAppRoot ancestor;
+		 * the click silently does nothing in that case rather than
+		 * throwing.
+		 */
+		cnOpenUserSettings: { default: () => () => {} },
 	},
 
 	props: {
@@ -241,29 +257,41 @@ export default {
 			return page?.route === '/'
 		},
 		/**
-		 * Build the `:to` value for an `NcAppNavigationItem`. External
-		 * (`href`) items return `null` so the underlying anchor falls
-		 * through to a click handler instead of vue-router; route items
+		 * Build the `:to` value for an `NcAppNavigationItem`. Action
+		 * items (`action: "user-settings"`) and external (`href`)
+		 * items return `null` so the underlying anchor falls through
+		 * to the click handler instead of vue-router; route items
 		 * return a named route.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {object|null} A `{ name }` route object, or null for
-		 *   external / route-less items.
+		 *   action / external / route-less items.
 		 */
 		itemTo(item) {
+			if (item.action) return null
 			if (item.href) return null
 			return item.route ? { name: item.route } : null
 		},
 		/**
-		 * Click handler. For external (`href`) items, opens the URL in a
-		 * new tab with safe rel attributes. Route items are handled by
-		 * `:to` and skip this path.
+		 * Click handler. Dispatch order: action keyword → external href
+		 * → route. For `action: "user-settings"` invokes the injected
+		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
+		 * default. For `href` items, opens the URL in a new tab with
+		 * safe rel attributes. Route items are handled by `:to` and
+		 * skip this path.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
-		 *   preventDefault for external links).
+		 *   preventDefault for action / external links).
 		 */
 		onItemClick(item, event) {
+			if (item.action === 'user-settings') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnOpenUserSettings()
+				return
+			}
 			if (!item.href) return
 			if (event && typeof event.preventDefault === 'function') {
 				event.preventDefault()
