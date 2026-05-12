@@ -27,8 +27,9 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `description` | String | `''` | Optional subtitle |
 | `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
 | `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
-| `schema` | Object | `null` | OpenRegister schema for auto-generating columns, filters, and form fields |
-| `objects` | Array | `[]` | Row data |
+| `schema` | Object \| String | `null` | OpenRegister schema for auto-generating columns, filters, and form fields. In [self-fetch mode](#self-fetch-mode) a String is the schema **slug** — the resolved schema object then drives column generation. |
+| `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
+| `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
@@ -240,6 +241,45 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
   @refresh="onRefresh"
   @page-changed="onPageChanged" />
 ```
+
+## Self-fetch mode
+
+A manifest `type:"index"` page dispatches to `CnIndexPage` via `CnPageRenderer`, which spreads `pages[].config` (`register`, `schema`, `columns`, `sidebar`, `actions`, `filter`) plus `$route.params` — but **never an `objects` prop**. So when `register` **and** `schema` are both set **and** the caller did not pass `objects`, `CnIndexPage` self-fetches: it derives `objectType = '${register}-${schema}'`, registers it in the object store, and drives the whole list (collection fetch, `_search`/`_order`/`_page`/`_limit`, facet filters, schema load, sidebar wiring, the `on*` handlers) through [`useListView`](../utilities/composables/use-list-view.md) against the store provided by an ancestor `CnAppRoot`.
+
+```json
+{
+  "type": "index",
+  "title": "Decisions",
+  "config": {
+    "register": "decidesk",
+    "schema": "decision",
+    "sidebar": { "enabled": true }
+  }
+}
+```
+
+In this mode the page's rows, loading, pagination, schema, sort and search term all come from the `useListView` instance rather than from props; `@search` / `@sort` / `@page-changed` / `@filter-change` / `@refresh` route to its handlers (and still `$emit` for observers).
+
+### Scoping a list to a parent — `config.filter`
+
+`config.filter` becomes the [`filter` prop](#props) and is applied to **every** fetch as a *fixed* filter (a user's facet selection for the same key cannot override it). String values of the form `"@route.<name>"` or `":<name>"` resolve against `$route.params`; everything else is passed through literally. The filter re-resolves when `$route.params` change, so a list nested under a parent route (`/forms/:id/submissions`, `/automations/:id/history`) is a fully declarative `type:"index"` page:
+
+```json
+{
+  "type": "index",
+  "title": "Submissions",
+  "route": "/forms/:id/submissions",
+  "config": {
+    "register": "pipelinq",
+    "schema": "intakeSubmission",
+    "filter": { "intakeForm": "@route.id", "archived": false }
+  }
+}
+```
+
+### Consumer-managed mode is unchanged
+
+When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
 
 ## Context Menu
 
