@@ -133,3 +133,9 @@ The component uses Nextcloud CSS variables for theming:
 - `--color-main-text` — value text color
 
 On screens narrower than 600px, the grid collapses to a single column and horizontal items stack vertically.
+
+## Integration props (AD-18)
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for items that declare a `referenceType`. Optional. |

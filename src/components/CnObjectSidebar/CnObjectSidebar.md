@@ -93,3 +93,5 @@ export default {
 | `subscribe` | Boolean | `true` | When `true` and `objectStore` is provided, auto-subscribes to live updates for `objectType` + `objectId` via `useObjectSubscription`. |
 | `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
 | `customComponents` | Object | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
+| `useRegistry` (`use-registry`) | Boolean | `false` | Opt into the pluggable integration registry — replaces the built-in tabs with one tab per registered provider. `#tab-<id>` overrides and `hiddenTabs` / `excludeIntegrations` still apply. Mutually exclusive with `tabs` (which wins when both are set). |
+| `excludeIntegrations` (`exclude-integrations`) | String[] | `[]` | Integration ids to exclude when rendering registry-driven tabs. Mirrors `hiddenTabs` for the legacy mode. |
