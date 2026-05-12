@@ -36,6 +36,7 @@ This component also backs the `json` and `code` widgets of [`CnFormDialog`](cn-f
 |-------|---------|-------------|
 | `update:value` | `string` | Emitted when the content changes (editable mode) or after formatting. Use with `.sync` for two-way binding. |
 | `format` | `object` | Emitted after a successful format with the parsed JSON object. Only relevant in JSON mode. |
+| `detected-language` | `string` | Emitted with the resolved language (`'json'`, `'html'`, `'xml'`, or `'text'`) whenever it changes — including once on mount. When `language` is set explicitly the payload mirrors that prop; in `'auto'` mode it reports the detection result. |
 
 ## Usage
 

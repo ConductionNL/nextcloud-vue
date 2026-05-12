@@ -55,16 +55,12 @@ With custom mass actions via slot:
 </template>
 <script>
 import { NcActionButton } from '@nextcloud/vue'
-import CloudUploadOutline from 'vue-material-design-icons/CloudUploadOutline.vue'
-import ArchiveArrowDown from 'vue-material-design-icons/ArchiveArrowDown.vue'
+import PublishIcon from 'vue-material-design-icons/CloudUploadOutline.vue'
+import ArchiveIcon from 'vue-material-design-icons/ArchiveArrowDown.vue'
 export default {
-  components: { NcActionButton },
+  components: { NcActionButton, PublishIcon, ArchiveIcon },
   data() {
-    return {
-      last: '',
-      PublishIcon: CloudUploadOutline,
-      ArchiveIcon: ArchiveArrowDown,
-    }
+    return { last: '' }
   },
 }
 </script>
