@@ -2,7 +2,9 @@
 	<div class="cn-features-and-roadmap-view">
 		<div v-if="disabled" class="cn-features-and-roadmap-view__disabled">
 			<NcEmptyContent :name="disabledTitle" :description="disabledDescription">
-				<template #icon><LockOutline :size="48" /></template>
+				<template #icon>
+					<LockOutline :size="48" />
+				</template>
 			</NcEmptyContent>
 		</div>
 		<template v-else>
@@ -11,7 +13,9 @@
 					{{ viewTitle }}
 				</h2>
 				<NcButton type="primary" @click="openSuggestModal">
-					<template #icon><Plus :size="20" /></template>
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ suggestLabel }}
 				</NcButton>
 			</header>
@@ -73,8 +77,13 @@ export default {
 	name: 'CnFeaturesAndRoadmapView',
 
 	components: {
-		NcButton, NcEmptyContent, LockOutline, Plus,
-		CnFeaturesTab, CnRoadmapTab, CnSuggestFeatureModal,
+		NcButton,
+		NcEmptyContent,
+		LockOutline,
+		Plus,
+		CnFeaturesTab,
+		CnRoadmapTab,
+		CnSuggestFeatureModal,
 	},
 
 	props: {

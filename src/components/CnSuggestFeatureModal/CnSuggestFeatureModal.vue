@@ -80,8 +80,13 @@ export default {
 	name: 'CnSuggestFeatureModal',
 
 	components: {
-		NcDialog, NcButton, NcTextField, NcTextArea,
-		NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch,
+		NcDialog,
+		NcButton,
+		NcTextField,
+		NcTextArea,
+		NcNoteCard,
+		NcLoadingIcon,
+		NcCheckboxRadioSwitch,
 	},
 
 	props: {
