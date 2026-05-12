@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema.",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -76,6 +76,11 @@
 					"type": "string",
 					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
 				},
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"],
+					"description": "Built-in action to invoke when the entry is clicked, instead of routing or opening a URL. Closed enum: \"user-settings\" opens the host app's NcAppSettingsDialog modal (provided by CnAppRoot via the `openUserSettings` inject). When `action` is set, both `route` and `href` are ignored. Added in schema 1.4.0."
+				},
 				"children": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/menuItemLeaf" },
@@ -100,7 +105,11 @@
 					"enum": ["main", "settings"],
 					"default": "main"
 				},
-				"href": { "type": "string" }
+				"href": { "type": "string" },
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"]
+				}
 			}
 		},
 		"page": {

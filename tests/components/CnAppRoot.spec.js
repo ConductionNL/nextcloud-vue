@@ -215,4 +215,46 @@ describe('CnAppRoot', () => {
 			expect(wrapper.vm.unresolvedDependencies.map((d) => d.id)).toEqual(['opencatalogi'])
 		})
 	})
+
+	describe('user-settings modal (cnOpenUserSettings)', () => {
+		function getProvided(wrapper) {
+			return wrapper.vm.$options.provide.call(wrapper.vm)
+		}
+
+		it('provides cnOpenUserSettings as a function', () => {
+			const wrapper = mountRoot()
+			const provided = getProvided(wrapper)
+			expect(typeof provided.cnOpenUserSettings).toBe('function')
+		})
+
+		it('flips userSettingsOpen to true when cnOpenUserSettings is called', () => {
+			const wrapper = mountRoot()
+			expect(wrapper.vm.userSettingsOpen).toBe(false)
+			const provided = getProvided(wrapper)
+			provided.cnOpenUserSettings()
+			expect(wrapper.vm.userSettingsOpen).toBe(true)
+		})
+
+		it('falls back to translate("User settings") when userSettingsTitle prop is empty', () => {
+			const wrapper = mountRoot({ t: (k) => `[t]${k}` })
+			expect(wrapper.vm.resolvedUserSettingsTitle).toBe('[t]User settings')
+		})
+
+		it('uses userSettingsTitle prop verbatim when provided', () => {
+			const wrapper = mount(CnAppRoot, {
+				propsData: {
+					manifest: baseManifest,
+					appId: 'myapp',
+					userSettingsTitle: 'Decidesk preferences',
+				},
+				mocks: { $route: { name: 'home' } },
+				stubs: {
+					'router-view': true,
+					NcAppSettingsDialog: true,
+					NcAppSettingsSection: true,
+				},
+			})
+			expect(wrapper.vm.resolvedUserSettingsTitle).toBe('Decidesk preferences')
+		})
+	})
 })

@@ -69,6 +69,7 @@ export default {
 | `pageTypes` | `Object \| null` | `null` | Map of `pages[].type` → Vue component. Provided to descendant renderers as `cnPageTypes`. When omitted, the renderer falls back to `defaultPageTypes`. |
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
+| `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
 
 ## Provided values
 
@@ -80,6 +81,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `cnCustomComponents` | The `customComponents` prop |
 | `cnTranslate` | The `translate` prop |
 | `cnPageTypes` | The `pageTypes` prop |
+| `cnOpenUserSettings` | Function that opens the hosted `NcAppSettingsDialog`. CnAppNav binds this to manifest entries with `action: "user-settings"`; consumer apps can also invoke it directly via inject for custom triggers (e.g. an avatar-menu entry). |
 
 ## Slots
 
@@ -92,6 +94,26 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | — | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
+| `user-settings` | — | Single placeholder section ("User preferences will appear here.") | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). |
+
+## User-settings modal
+
+CnAppRoot always mounts a single `NcAppSettingsDialog` and exposes a `cnOpenUserSettings` provide-injected method any descendant can call to open it. The default trigger is [CnAppNav](./cn-app-nav.md) — manifest entries declaring `action: "user-settings"` are wired to this method automatically.
+
+```vue {static}
+<CnAppRoot :manifest="manifest" app-id="decidesk">
+  <template #user-settings>
+    <NcAppSettingsSection id="general" :name="t('decidesk', 'General')">
+      <p>{{ t('decidesk', 'Personal preferences for Decidesk.') }}</p>
+    </NcAppSettingsSection>
+    <NcAppSettingsSection id="notifications" :name="t('decidesk', 'Notifications')">
+      <!-- toggles, selects, etc. -->
+    </NcAppSettingsSection>
+  </template>
+</CnAppRoot>
+```
+
+The slot defaults to a single placeholder section ("User preferences will appear here.") so the modal always has visible content while apps roll out their own preference UI.
 
 ## Related
 
