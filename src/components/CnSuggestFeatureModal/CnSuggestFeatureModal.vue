@@ -163,7 +163,21 @@ export default {
 					payload.specRef = this.specRef
 				}
 				const response = await axios.post(url, payload)
+				/**
+				 * Emitted after the GitHub issue was successfully created. Carries the
+				 * sanitized issue payload returned by the OpenRegister proxy
+				 * (`{number, title, html_url, ...}`) so the parent can show a success toast.
+				 *
+				 * @event submitted
+				 * @type {object}
+				 */
 				this.$emit('submitted', response.data)
+				/**
+				 * Emitted to request the host close the modal — fired both on a successful
+				 * submit and when the user cancels.
+				 *
+				 * @event close
+				 */
 				this.$emit('close')
 			} catch (e) {
 				const status = e?.response?.status

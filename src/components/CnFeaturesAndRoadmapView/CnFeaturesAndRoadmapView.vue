@@ -128,6 +128,14 @@ export default {
 		},
 		onSubmitted(payload) {
 			this.showSuggestModal = false
+			/**
+			 * Re-emitted when a feature suggestion was successfully filed from this view.
+			 * Carries the sanitized GitHub issue payload returned by the OpenRegister proxy
+			 * (`{number, title, html_url, ...}`). Host apps may use it to show a toast.
+			 *
+			 * @event submitted
+			 * @type {object}
+			 */
 			this.$emit('submitted', payload)
 			// Re-fetch the roadmap tab when the user just submitted from this view.
 			this.activeTab = 'roadmap'
