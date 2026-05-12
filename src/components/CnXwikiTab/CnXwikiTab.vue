@@ -174,7 +174,10 @@ export default {
 				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
-					this.pages = data.results || data || []
+					// The OR sub-resource controller wraps the list under
+					// `items`; a purpose-built source may use `results`; a
+					// raw upstream may return a bare array.
+					this.pages = data?.results ?? data?.items ?? (Array.isArray(data) ? data : [])
 				} else if (response.status === 503) {
 					this.pages = []
 					this.authBanner = await this.degradedMessage(response)

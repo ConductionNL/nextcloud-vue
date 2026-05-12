@@ -48,6 +48,19 @@ describe('CnXwikiTab', () => {
 		wrapper.destroy()
 	})
 
+	it('accepts the OpenRegister sub-resource `{ items: [...] }` envelope', async () => {
+		// ObjectIntegrationsController wraps the list under `items`, not `results`.
+		global.fetch.mockResolvedValueOnce(jsonResponse({
+			items: [{ id: 'Sandbox.IntegrationTest', title: 'Integration Test Page', space: 'Sandbox', url: 'https://wiki/bin/view/Sandbox/IntegrationTest' }],
+		}))
+		const wrapper = mount(CnXwikiTab, { propsData: baseProps })
+		await flushPromises()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findAll('.cn-xwiki-tab__row')).toHaveLength(1)
+		expect(wrapper.text()).toContain('Integration Test Page')
+		wrapper.destroy()
+	})
+
 	it('links a page by URL via POST and refreshes the list', async () => {
 		global.fetch
 			.mockResolvedValueOnce(jsonResponse({ results: [] }))            // initial fetch
