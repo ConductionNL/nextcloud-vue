@@ -13,6 +13,7 @@ import { getCurrentUser } from '@nextcloud/auth'
  * a "Locked by X" banner without a second fetch.
  */
 export class LockConflictError extends Error {
+
 	/**
 	 * @param {string}      message  Human-readable description.
 	 * @param {object|null} info     Lock metadata (`{ user, displayName, expiresAt }`) parsed from the response.
@@ -23,6 +24,7 @@ export class LockConflictError extends Error {
 		this.lockedBy = info?.user ?? info?.displayName ?? null
 		this.expiresAt = info?.expiresAt ?? null
 	}
+
 }
 
 /**
@@ -30,10 +32,12 @@ export class LockConflictError extends Error {
  * Consumers may fall back to "edit without lock" UX.
  */
 export class PermissionError extends Error {
+
 	constructor(message) {
 		super(message)
 		this.name = 'PermissionError'
 	}
+
 }
 
 /**
@@ -50,9 +54,9 @@ export class PermissionError extends Error {
  * @param {string|import('vue').Ref<string>}      schema   OR schema slug (also the GraphQL field name).
  * @param {string|import('vue').Ref<string>}      id       Object UUID.
  * @param {object}  [options]  Optional config.
- * @param {boolean} [options.autoRenew=true]      Renew the lock on a fixed interval while editing + visible.
- * @param {number}  [options.renewIntervalMs=600000]  Renew every N ms (default 10 min).
- * @param {number}  [options.lockDurationSec=1800]   Server-side TTL requested on acquire (default 30 min).
+ * @param {boolean} [options.autoRenew]      Renew the lock on a fixed interval while editing + visible.
+ * @param {number}  [options.renewIntervalMs]  Renew every N ms (default 10 min).
+ * @param {number}  [options.lockDurationSec]   Server-side TTL requested on acquire (default 30 min).
  * @return {{
  *   locked: import('vue').ComputedRef<boolean>,
  *   lockedByMe: import('vue').ComputedRef<boolean>,
