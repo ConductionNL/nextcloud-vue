@@ -142,6 +142,53 @@ Every widget and component mounted inside a custom tab receives the parent `CnOb
 
 Apps satisfied with the default tab set make NO changes — leave `tabs` unset and the hard-coded built-in tabs render exactly as today, including the `#tab-files` / `#tab-notes` / `#tab-tags` / `#tab-tasks` / `#tab-audit-trail` / `#extra-tabs` slot overrides. The `tabs` prop is purely additive.
 
+## Registry-driven tabs (`useRegistry`)
+
+Set `:use-registry="true"` to drive the tab strip from the [pluggable integration registry](../../guides/integrations.md) (ADR-019) instead of the hard-coded built-ins or the open-enum `tabs` array. The sidebar then renders one tab per provider registered on `window.OCA.OpenRegister.integrations` — `files` / `notes` / `tags` / `tasks` / `audit-trail` out of the box (via `registerBuiltinIntegrations()`), plus whatever leaf integrations the app registered (e.g. `xwiki` → `registerXwikiIntegration()`). The strip is reactive: late registrations re-render it.
+
+```vue
+<CnObjectSidebar
+  object-type="lead"
+  :object-id="leadId"
+  :register="registerId"
+  :schema="schemaId"
+  :use-registry="true"
+  :exclude-integrations="['tags']" />
+```
+
+- `excludeIntegrations` (`string[]`) and `hiddenTabs` both filter the rendered set (by integration id).
+- Mutually exclusive with `tabs` — when both are set, `tabs` wins and a `console.warn` fires. Per-integration `#tab-<id>` slot overrides aren't supported in registry mode; the `#extra-tabs` slot still appends consumer tabs.
+- To override a built-in (e.g. ship a richer `notes` tab), register your own provider with the same id *before* OpenRegister's bundle loads — collision policy keeps the first registration.
+
+### Driving it from a manifest
+
+If your app uses `CnDetailPage` via `CnAppRoot`'s `#sidebar` slot (the manifest pattern), `CnDetailPage`'s `sidebar` Object form accepts `useRegistry: true` and `excludeIntegrations: string[]` and pushes both into the shared `objectSidebarState`. For that to take effect, the `#sidebar` slot's `<CnObjectSidebar>` must bind them through (alongside `tabs`/`hiddenTabs` etc. it already binds):
+
+```vue
+<template #sidebar>
+  <CnObjectSidebar
+    v-if="objectSidebarState.active"
+    :object-type="objectSidebarState.objectType"
+    :object-id="objectSidebarState.objectId"
+    :register="objectSidebarState.register"
+    :schema="objectSidebarState.schema"
+    :tabs="objectSidebarState.tabs"
+    :hidden-tabs="objectSidebarState.hiddenTabs"
+    :use-registry="objectSidebarState.useRegistry"
+    :exclude-integrations="objectSidebarState.excludeIntegrations"
+    :custom-components="customComponents"
+    :open.sync="objectSidebarState.open" />
+</template>
+```
+
+Then a detail page's `manifest.json` can flip its sidebar to registry mode declaratively:
+
+```json
+{ "id": "leads-detail", "type": "detail", "route": "/leads/:id",
+  "config": { "register": "crm", "schema": "lead",
+              "sidebar": { "useRegistry": true, "excludeIntegrations": ["audit-trail"] } } }
+```
+
 ## Live updates (collaborative editing)
 
 `CnObjectSidebar` auto-subscribes to live updates for the active object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the sidebar lifecycle so the cached object stays fresh as remote users edit, and downstream tabs (`CnObjectDataWidget`, `CnAuditTrailTab`, etc.) re-render reactively without polling.

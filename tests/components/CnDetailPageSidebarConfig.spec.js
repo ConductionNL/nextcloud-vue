@@ -29,6 +29,8 @@ function makeState() {
 		schema: '',
 		hiddenTabs: [],
 		tabs: undefined,
+		useRegistry: false,
+		excludeIntegrations: [],
 	}
 }
 
@@ -216,5 +218,60 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			expect(state.schema).toBe('fromProps')
 			expect(state.hiddenTabs).toEqual(['notes'])
 		})
+	})
+})
+
+describe('CnDetailPage — sidebar registry mode (useRegistry / excludeIntegrations)', () => {
+	it('pushes useRegistry + excludeIntegrations from the Object form into objectSidebarState', () => {
+		const state = makeState()
+		mountDetailPage({
+			sidebar: { register: 'crm', schema: 'lead', useRegistry: true, excludeIntegrations: ['tags'] },
+			objectType: 'lead',
+			objectId: '1',
+		}, state)
+		expect(state.active).toBe(true)
+		expect(state.useRegistry).toBe(true)
+		expect(state.excludeIntegrations).toEqual(['tags'])
+		// in registry mode the manifest `tabs` array isn't set
+		expect(state.tabs).toBeUndefined()
+	})
+
+	it('defaults useRegistry to false and excludeIntegrations to [] when the Object form omits them', () => {
+		const state = makeState()
+		mountDetailPage({
+			sidebar: { register: 'crm', schema: 'lead' },
+			objectType: 'lead',
+			objectId: '1',
+		}, state)
+		expect(state.useRegistry).toBe(false)
+		expect(state.excludeIntegrations).toEqual([])
+	})
+
+	it('clears useRegistry / excludeIntegrations when the page is suppressed', () => {
+		const state = makeState()
+		state.useRegistry = true
+		state.excludeIntegrations = ['tags']
+		mountDetailPage({
+			sidebar: { show: false, useRegistry: true, excludeIntegrations: ['tags'] },
+			objectType: 'lead',
+			objectId: '1',
+		}, state)
+		expect(state.active).toBe(false)
+		expect(state.useRegistry).toBe(false)
+		expect(state.excludeIntegrations).toEqual([])
+	})
+
+	it('falls back to sidebarProps for useRegistry / excludeIntegrations the Object form omits', () => {
+		const state = makeState()
+		mountDetailPage({
+			// the Object form activates the sidebar; sidebarProps fills the rest
+			sidebar: { register: 'crm', schema: 'lead' },
+			sidebarProps: { useRegistry: true, excludeIntegrations: ['notes'] },
+			objectType: 'lead',
+			objectId: '1',
+		}, state)
+		expect(state.active).toBe(true)
+		expect(state.useRegistry).toBe(true)
+		expect(state.excludeIntegrations).toEqual(['notes'])
 	})
 })
