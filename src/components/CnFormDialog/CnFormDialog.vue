@@ -477,9 +477,9 @@ export default {
 		/**
 		 * Object context forwarded to integration single-entity
 		 * widgets rendered for fields that declare a `referenceType`
-		 * (AD-18): `{ register, schema, objectId }`. Optional.
+		 * (AD-18) — an object `{ register, schema, objectId }`. Optional.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		referenceContext: {
 			type: Object,
