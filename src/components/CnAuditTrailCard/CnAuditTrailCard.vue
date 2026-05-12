@@ -31,7 +31,7 @@
 			</li>
 		</ul>
 		<template v-if="entries.length > maxDisplay" #footer>
-			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
+			<button class="cn-audit-card__show-all" @click="onShowAll">
 				{{ showAllLabel }} ({{ entries.length }})
 			</button>
 		</template>
@@ -55,7 +55,8 @@ import { buildHeaders } from '../../utils/index.js'
  *   :register="registerId"
  *   :schema="schemaId"
  *   :object-id="objectId"
- *   surface="detail-page" />
+ *   surface="detail-page"
+ *   @show-all="openAuditTrailTab" />
  * ```
  */
 export default {
@@ -119,6 +120,11 @@ export default {
 	},
 
 	methods: {
+		onShowAll() {
+			/** @event show-all Emitted when the "Show all (N)" overflow control is clicked — the host typically opens the full Audit-trail sidebar tab. No payload. */
+			this.$emit('show-all')
+		},
+
 		async fetchEntries() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
