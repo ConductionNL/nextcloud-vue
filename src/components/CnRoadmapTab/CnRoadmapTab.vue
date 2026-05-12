@@ -2,7 +2,9 @@
 	<div class="cn-roadmap-tab">
 		<div v-if="disabled" class="cn-roadmap-tab__empty">
 			<NcEmptyContent :name="disabledLabel">
-				<template #icon><InformationOutline :size="48" /></template>
+				<template #icon>
+					<InformationOutline :size="48" />
+				</template>
 			</NcEmptyContent>
 		</div>
 		<div v-else-if="loading" class="cn-roadmap-tab__loading">
@@ -10,17 +12,23 @@
 		</div>
 		<div v-else-if="degraded === 'pat_not_configured'" class="cn-roadmap-tab__empty">
 			<NcEmptyContent :name="patNotConfiguredTitle" :description="patNotConfiguredDescription">
-				<template #icon><KeyOutline :size="48" /></template>
+				<template #icon>
+					<KeyOutline :size="48" />
+				</template>
 			</NcEmptyContent>
 		</div>
 		<div v-else-if="degraded === 'rate_limited'" class="cn-roadmap-tab__empty">
 			<NcEmptyContent :name="rateLimitedTitle" :description="rateLimitedDescription">
-				<template #icon><ClockOutline :size="48" /></template>
+				<template #icon>
+					<ClockOutline :size="48" />
+				</template>
 			</NcEmptyContent>
 		</div>
 		<div v-else-if="degraded === 'error'" class="cn-roadmap-tab__empty">
 			<NcEmptyContent :name="errorTitle">
-				<template #icon><AlertCircleOutline :size="48" /></template>
+				<template #icon>
+					<AlertCircleOutline :size="48" />
+				</template>
 				<template #action>
 					<NcButton type="primary" @click="fetchItems">
 						{{ retryLabel }}
@@ -30,7 +38,9 @@
 		</div>
 		<div v-else-if="sortedItems.length === 0" class="cn-roadmap-tab__empty">
 			<NcEmptyContent :name="emptyTitle" :description="emptyDescription">
-				<template #icon><RoadVariant :size="48" /></template>
+				<template #icon>
+					<RoadVariant :size="48" />
+				</template>
 			</NcEmptyContent>
 		</div>
 		<ul v-else class="cn-roadmap-tab__list">
@@ -73,8 +83,14 @@ export default {
 	name: 'CnRoadmapTab',
 
 	components: {
-		AlertCircleOutline, ClockOutline, InformationOutline, KeyOutline, RoadVariant,
-		NcEmptyContent, NcLoadingIcon, NcButton,
+		AlertCircleOutline,
+		ClockOutline,
+		InformationOutline,
+		KeyOutline,
+		RoadVariant,
+		NcEmptyContent,
+		NcLoadingIcon,
+		NcButton,
 		CnRoadmapItem,
 	},
 
@@ -107,7 +123,7 @@ export default {
 	computed: {
 		sortedItems() {
 			return [...this.items].sort(
-				(a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0)
+				(a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0),
 			)
 		},
 		disabledLabel() { return t('nextcloud-vue', 'Roadmap is disabled by your administrator') },
