@@ -86,7 +86,21 @@ describe('CnXwikiTab', () => {
 		wrapper.destroy()
 	})
 
-	it('shows a reconnect banner when the endpoint answers 503 with an auth reason', async () => {
+	it('shows a reconnect banner when the endpoint answers 503 with an auth cause', async () => {
+		// ObjectIntegrationsController surfaces the cause under details.cause.
+		global.fetch.mockResolvedValueOnce(jsonResponse(
+			{ message: 'OpenConnector source "xwiki" is missing or unreadable.', details: { cause: 'openconnector-source-missing' } },
+			false, 503,
+		))
+		const wrapper = mount(CnXwikiTab, { propsData: baseProps })
+		await flushPromises()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-xwiki-tab__banner').exists()).toBe(true)
+		expect(wrapper.text()).toContain('re-connect')
+		wrapper.destroy()
+	})
+
+	it('still honours the legacy details.reason shape for the reconnect banner', async () => {
 		global.fetch.mockResolvedValueOnce(jsonResponse(
 			{ message: 'token refresh failed', details: { reason: 'openconnector-source-missing' } },
 			false, 503,
@@ -94,7 +108,6 @@ describe('CnXwikiTab', () => {
 		const wrapper = mount(CnXwikiTab, { propsData: baseProps })
 		await flushPromises()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.find('.cn-xwiki-tab__banner').exists()).toBe(true)
 		expect(wrapper.text()).toContain('re-connect')
 		wrapper.destroy()
 	})

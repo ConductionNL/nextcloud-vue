@@ -13,9 +13,10 @@
   `/api/objects/{register}/{schema}/{id}/integrations/xwiki`
   (`ObjectIntegrationsController`), which dispatches to the PHP
   `XwikiProvider`, which in turn delegates to the OpenConnector `xwiki`
-  source. If the source's credentials have expired the endpoint
-  answers 503 with a `reason` — the tab then shows a reconnect banner
-  instead of a broken list (AD-23).
+  source. If the source is missing/unreadable or its credentials have
+  expired the endpoint answers 503 with a `details.cause` — the tab
+  then shows a reconnect/unavailable banner instead of a broken list
+  (AD-23).
 
   Registered on the pluggable integration registry as `xwiki` (see
   src/integrations/builtin/xwiki.js).
@@ -194,8 +195,13 @@ export default {
 		async degradedMessage(response) {
 			try {
 				const body = await response.json()
-				const reason = body?.details?.reason || body?.reason
-				if (reason === 'openconnector-source-missing' || reason === 'provider-auth' || /auth/i.test(String(body?.message || ''))) {
+				// OpenRegister's ObjectIntegrationsController surfaces the
+				// ProviderUnavailableException cause under `details.cause`
+				// (AD-23); accept the older `details.reason` / bare `reason`
+				// shapes too so the reconnect banner fires whichever arrives.
+				const reason = body?.details?.cause || body?.details?.reason || body?.reason
+				const reconnectCauses = ['openconnector-source-missing', 'openconnector-down', 'provider-auth']
+				if (reconnectCauses.includes(reason) || /auth/i.test(String(body?.message || ''))) {
 					return this.reconnectLabel
 				}
 			} catch (e) {
