@@ -433,7 +433,7 @@ export default {
 		 * `CnFilesCard` / `CnTagsCard` / `CnAuditTrailCard` know which
 		 * object's sub-resources to fetch.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		integrationContext: {
 			type: Object,

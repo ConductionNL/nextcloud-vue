@@ -35,7 +35,7 @@ Items split into two groups by `section`:
 {
   "menu": [
     { "id": "decisions", "label": "myapp.menu.decisions", "icon": "icon-checkmark", "route": "decisions-index", "order": 10 },
-    { "id": "settings", "label": "myapp.menu.settings", "icon": "icon-settings", "route": "settings", "section": "settings", "order": 100 },
+    { "id": "user-settings", "label": "myapp.menu.settings", "icon": "icon-settings", "action": "user-settings", "section": "settings", "order": 100 },
     { "id": "docs", "label": "myapp.menu.docs", "href": "https://example.com/docs", "section": "settings", "order": 110 }
   ]
 }
@@ -50,6 +50,7 @@ Items split into two groups by `section`:
 | `icon` | `string` | CSS class (e.g. `icon-checkmark`); the active-state filter only applies to `class*="icon-"` |
 | `route` | `string` | Vue Router named route. Resolved against `manifest.pages` for `exact` matching |
 | `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
+| `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
 | `section` | `'main' \| 'settings'` | Default `'main'`. `'settings'` items render in the bottom footer list |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
@@ -140,6 +141,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 - **Active state** — an item is active when `$route.name === item.route`. External (`href`) items never appear active.
 - **Exact matching** — when the resolved page's `route === '/'`, `exact` is set on the underlying router-link. Without this, the root item would look permanently active for nested routes.
 - **External links** — `href` items return `null` for `:to`, intercept the click, call `preventDefault()`, then open the URL via `window.open(..., '_blank', 'noopener,noreferrer')`.
+- **User settings action** — items with `action: "user-settings"` return `null` for `:to`, intercept the click, and invoke the injected `cnOpenUserSettings()`. CnAppRoot provides this inject and toggles its hosted `NcAppSettingsDialog`. When CnAppNav is mounted standalone (no CnAppRoot ancestor), the inject defaults to a no-op so the click silently does nothing.
 - **Active icon colour** — `icon-*` background-image classes have a hardcoded dark fill, so the component injects `filter: brightness(0) invert(1)` to whiten them when active. `<template #icon>` MDI components inherit `currentColor` and don't need this.
 
 ## Dynamic per-tenant menu entries

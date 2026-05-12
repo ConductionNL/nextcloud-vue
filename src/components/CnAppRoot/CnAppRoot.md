@@ -73,6 +73,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | `permissions` | Array | No | `[]` | Permission strings for the current user; forwarded to `CnAppNav` for menu filtering |
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
 | `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
+| `userSettingsTitle` | String | No | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')`. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
 
 ## Slots
 
@@ -86,6 +87,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | `header-actions` | — | Extra buttons rendered in the app header |
 | `sidebar` | — | Sidebar area rendered alongside `NcAppContent` |
 | `footer` | — | Footer area rendered inside `NcAppContent` |
+| `user-settings` | — | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. CnAppRoot always mounts the dialog and exposes `cnOpenUserSettings` via inject; CnAppNav binds it to manifest items declaring `action: "user-settings"`. Defaults to a single placeholder section. |
 
 ## AI Chat Companion — Context push
 

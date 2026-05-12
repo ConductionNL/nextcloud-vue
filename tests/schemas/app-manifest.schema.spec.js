@@ -549,7 +549,7 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 
 	describe('schema metadata bump', () => {
 		it('bumps the schema version field to at least 1.3.0 (current: 1.4.0)', () => {
-			// 1.3.0 introduced sidebarComponent/slots; 1.4.0 adds runtime + visibleIf context predicates.
+			// 1.3.0 introduced sidebarComponent/slots; 1.4.0 adds runtime + visibleIf context predicates + the user-settings menu action.
 			expect(schema.version).toBe('1.4.0')
 		})
 
@@ -662,7 +662,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates)', () => {
+	it('REQ-MSRS-6: schema top-level version field is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates + the user-settings menu action)', () => {
 		expect(schema.version).toBe('1.4.0')
 	})
 })
@@ -882,10 +882,11 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates)', () => {
+		it('schema version is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates + the user-settings menu action)', () => {
 			// `manifest-detail-sidebar-config` kept version at 1.1.0; `manifest-config-refs`
 			// bumped to 1.2.0; `manifest-card-index-component` + `manifest-actions-dispatch`
-			// bumped to 1.3.0; `manifest-visible-if-context` bumps to 1.4.0.
+			// bumped to 1.3.0; `manifest-visible-if-context` + `manifest-user-settings-action`
+			// both ship under 1.4.0.
 			expect(schema.version).toBe('1.4.0')
 		})
 

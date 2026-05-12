@@ -29,6 +29,13 @@
   with explicit props (the props-vs-inject fallback). CnAppRoot is the
   full-shell convenience.
 
+  Hosts a single `NcAppSettingsDialog` that any descendant can open
+  via the injected `cnOpenUserSettings()` method. CnAppNav binds the
+  inject to manifest entries with `action: "user-settings"`. Apps
+  populate the modal by passing `NcAppSettingsSection`s into the
+  `#user-settings` slot; the slot falls back to a single placeholder
+  section when no content is supplied.
+
   See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec,
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
@@ -181,6 +188,29 @@
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
 			<!--
+			  User-settings modal. Always mounted so descendants can
+			  open it via the `cnOpenUserSettings` inject (CnAppNav
+			  wires this to manifest entries with
+			  `action: "user-settings"`). The `#user-settings` slot
+			  hosts NcAppSettingsSection children; the placeholder
+			  fallback below renders when no slot content is supplied.
+			-->
+			<NcAppSettingsDialog
+				:open="userSettingsOpen"
+				:show-navigation="true"
+				:name="resolvedUserSettingsTitle"
+				@update:open="userSettingsOpen = $event">
+				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to a single placeholder section when omitted. -->
+				<slot name="user-settings">
+					<NcAppSettingsSection
+						id="general"
+						:name="translate('User preferences')">
+						<p>{{ translate('User preferences will appear here.') }}</p>
+					</NcAppSettingsSection>
+				</slot>
+			</NcAppSettingsDialog>
+
+			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
 			  children so its embedded NcAppSidebar slides in from the right
 			  edge (positioning relies on being the last NcContent sibling,
@@ -194,7 +224,7 @@
 </template>
 
 <script>
-import { NcAppContent, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCapabilities } from '@nextcloud/capabilities'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
@@ -217,6 +247,8 @@ export default {
 
 	components: {
 		NcAppContent,
+		NcAppSettingsDialog,
+		NcAppSettingsSection,
 		NcContent,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -258,6 +290,16 @@ export default {
 			 * hosts).
 			 */
 			cnHostsIndexSidebar: true,
+			/**
+			 * Open the host app's NcAppSettingsDialog. Bound to
+			 * `this` so descendants don't have to. Used by CnAppNav
+			 * to dispatch `action: "user-settings"` clicks; consumer
+			 * apps can also call it directly via inject for custom
+			 * triggers (e.g. an avatar-menu entry).
+			 */
+			cnOpenUserSettings: () => {
+				this.userSettingsOpen = true
+			},
 		}
 	},
 
@@ -403,6 +445,18 @@ export default {
 			type: Array,
 			default: () => ['openregister'],
 		},
+		/**
+		 * Title rendered at the top of the user-settings modal
+		 * (NcAppSettingsDialog `name` prop). Defaults to the
+		 * translated string "User settings"; pass a custom label
+		 * (e.g. "Decidesk preferences") to override per app.
+		 *
+		 * @type {string}
+		 */
+		userSettingsTitle: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
@@ -420,6 +474,7 @@ export default {
 	 * - `guardError`: stores the caught error so consumers
 	 *   inspecting the component instance can introspect failures.
 	 *   The error path falls through to the renderer regardless.
+	 * - `userSettingsOpen`: open state of the host NcAppSettingsDialog.
 	 */
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
@@ -450,6 +505,14 @@ export default {
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
+			/**
+			 * Open state of the host NcAppSettingsDialog. Toggled
+			 * to `true` by the provided `cnOpenUserSettings()`
+			 * method (CnAppNav binds this to manifest entries with
+			 * `action: "user-settings"`); the dialog flips it back
+			 * via its `update:open` event.
+			 */
+			userSettingsOpen: false,
 		}
 	},
 
@@ -513,6 +576,9 @@ export default {
 		 */
 		orStoreLink() {
 			return OR_STORE_LINK
+		},
+		resolvedUserSettingsTitle() {
+			return this.userSettingsTitle || this.translate('User settings')
 		},
 	},
 }
