@@ -31,6 +31,14 @@ Pass pre-translated labels when your app handles i18n:
   :no-tags-label="t('myapp', 'No tags')" />
 ```
 
+## Display props
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `title` | String | `''` | Override the card title (defaults to the translated label). |
+| `collapsible` | Boolean | `false` | Whether the card collapses. |
+| `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+
 ## Reference
 
 <GeneratedRef />

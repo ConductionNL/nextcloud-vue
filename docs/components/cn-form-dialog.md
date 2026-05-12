@@ -36,6 +36,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
+| `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
 
 ## Widget Types
 

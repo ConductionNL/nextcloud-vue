@@ -414,7 +414,9 @@ function parsePublicExports(filePath) {
 	let match
 	while ((match = re.exec(source)) !== null) {
 		for (const raw of match[1].split(',')) {
-			const name = raw.trim().split(/\s+as\s+/)[0].trim()
+			// `foo as bar` → the *exported* name is `bar`; `foo` → `foo`.
+			const parts = raw.trim().split(/\s+as\s+/)
+			const name = (parts[1] || parts[0]).trim()
 			if (name) {
 				names.add(name)
 			}

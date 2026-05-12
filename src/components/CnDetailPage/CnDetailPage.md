@@ -214,3 +214,10 @@ export default {
 | `sections` | Additional content below the main content area |
 | `footer` | Footer content rendered below the body |
 | `widget-{widgetId}` | Widget slot in grid layout mode. Scope: `{ item, widget }` |
+
+## Integration props (AD-19)
+
+| Prop | Default | Description |
+|---|---|---|
+| `surface` | `'detail-page'` | Rendering surface forwarded to integration widgets (`type === 'integration'`) in the grid layout. Drives the AD-19 surface fallback. |
+| `integrationContext` (`integration-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. Derived from `sidebarProps` + `objectId` when omitted. |

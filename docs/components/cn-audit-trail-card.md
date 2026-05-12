@@ -33,6 +33,16 @@ Pass pre-translated labels when your app handles i18n:
   :show-all-label="t('myapp', 'Show all')" />
 ```
 
+## Display props
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `title` | String | `''` | Override the card title (defaults to the translated label). |
+| `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
+| `collapsible` | Boolean | `false` | Whether the card collapses. |
+| `actionLabel` (`action-label`) | String | `t('nextcloud-vue', 'Change')` | Pre-translated fallback action label. |
+| `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+
 ## Reference
 
 <GeneratedRef />

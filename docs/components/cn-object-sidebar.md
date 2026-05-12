@@ -153,6 +153,13 @@ Apps satisfied with the default tab set make NO changes — leave `tabs` unset a
 
 The locked-banner UX lives on [`CnDetailPage`](./cn-detail-page.md) for v1 — sidebars host so many editor surfaces (each tab) that the banner would compete with tab content. Consumers needing lock UX inside a sidebar tab should consume [`useObjectLock`](../utilities/composables/use-object-lock.md) directly inside the tab component.
 
+## Integration registry props (AD-19)
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `useRegistry` (`use-registry`) | Boolean | `false` | Opt into the pluggable integration registry. When `true`, the hard-coded built-in tabs are replaced by one tab per registered provider. `#tab-<id>` slot overrides and `hiddenTabs` / `excludeIntegrations` still apply. Mutually exclusive with the open-enum `tabs` prop — `tabs` wins when both are set. |
+| `excludeIntegrations` (`exclude-integrations`) | String[] | `[]` | Integration ids to exclude when rendering registry-driven tabs. Mirrors `hiddenTabs` for the legacy mode. |
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectSidebar/CnObjectSidebar.vue) and update automatically whenever the component changes.

@@ -103,3 +103,9 @@ Empty state — custom message via the `empty` slot when `items` is empty:
 | `label-{index}` | `{ item, index }` | Override the label cell for a specific item |
 | `item-actions-{index}` | `{ item, index }` | Add action buttons after the value for a specific item |
 | default | — | Append extra items after the data-driven ones |
+
+## Integration props (AD-18)
+
+| Prop | Default | Description |
+|---|---|---|
+| `referenceContext` (`reference-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for items that declare a `referenceType`. Optional. |
