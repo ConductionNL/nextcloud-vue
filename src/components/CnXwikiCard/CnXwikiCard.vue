@@ -135,9 +135,11 @@ export default {
 		collapsible: { type: Boolean, default: false },
 		/** Override the card title (defaults to the translated label). */
 		title: { type: String, default: '' },
-		/** Pre-translated labels. */
+		/** Pre-translated empty-state label when no pages are linked. */
 		noPagesLabel: { type: String, default: () => t('nextcloud-vue', 'No linked articles') },
+		/** Pre-translated label for the "Open in XWiki" link below the detail-page preview. */
 		openInXwikiLabel: { type: String, default: () => t('nextcloud-vue', 'Open in XWiki') },
+		/** Pre-translated message shown when XWiki / OpenConnector is unreachable. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'XWiki is not reachable right now.') },
 	},
 

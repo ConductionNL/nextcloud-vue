@@ -117,12 +117,17 @@ export default {
 		schema: { type: String, default: '' },
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		/** Pre-translated labels. */
+		/** Pre-translated placeholder/label for the link input. */
 		linkPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Paste an XWiki page URL or type a Space.Page path') },
+		/** Pre-translated label for the "Link page" button. */
 		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link page') },
+		/** Pre-translated aria-label for the per-row "Unlink page" button. */
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink page') },
+		/** Pre-translated empty-state label when no pages are linked. */
 		noPagesLabel: { type: String, default: () => t('nextcloud-vue', 'No linked articles') },
+		/** Pre-translated banner shown when the OpenConnector source's credentials need re-connecting. */
 		reconnectLabel: { type: String, default: () => t('nextcloud-vue', 'XWiki connection needs attention — re-connect it in OpenConnector.') },
+		/** Pre-translated banner shown when XWiki / OpenConnector is unreachable. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'XWiki is not reachable right now.') },
 	},
 
@@ -213,6 +218,7 @@ export default {
 				if (response.ok) {
 					this.linkInput = ''
 					await this.fetchPages()
+					/** @event linked Emitted after a page is linked and the list refreshes. Payload: the reference (URL or `Space.Page` path) that was submitted. */
 					this.$emit('linked', reference)
 				} else if (response.status === 503) {
 					this.linkError = await this.degradedMessage(response)
@@ -240,6 +246,7 @@ export default {
 				})
 				if (response.ok) {
 					this.pages = this.pages.filter((p) => p.id !== page.id)
+					/** @event unlinked Emitted after a page's pairing is removed (the page itself is NOT deleted in XWiki). Payload: the page reference id. */
 					this.$emit('unlinked', page.id)
 				} else if (response.status === 503) {
 					this.authBanner = await this.degradedMessage(response)
