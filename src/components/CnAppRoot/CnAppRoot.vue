@@ -264,6 +264,7 @@ export default {
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
+			cnFormatters: this.formatters,
 			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to
 			 * `this` so descendants don't have to. Used by CnAppNav
@@ -367,6 +368,23 @@ export default {
 		 * @type {object}
 		 */
 		customComponents: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Cell-formatter registry. Map of formatter-id →
+		 * `(value, row, property) => string|number`. Resolves the
+		 * `pages[].config.columns[].formatter` ids that index/logs pages
+		 * declare, so per-column value formatting (status-label maps,
+		 * "days in step", currency, …) lives in small pure data functions
+		 * instead of bespoke `type:"custom"` table views. Provided to
+		 * descendant CnDataTable / CnCellRenderer via inject (`cnFormatters`).
+		 * Empty by default — a column with no `formatter`, or an app that
+		 * passes no `formatters`, renders exactly as before.
+		 *
+		 * @type {object}
+		 */
+		formatters: {
 			type: Object,
 			default: () => ({}),
 		},
