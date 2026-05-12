@@ -50,12 +50,14 @@ function mountNav({
 	useProps = false,
 	routeName = 'a',
 	translate,
+	openUserSettings,
 } = {}) {
 	const provide = useProps
 		? {}
 		: {
 				cnManifest: manifest,
 				cnTranslate: translate ?? ((k) => k),
+				...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
 			}
 	const propsData = {
 		permissions,
@@ -468,6 +470,69 @@ describe('CnAppNav', () => {
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
 			expect(childIds).not.toContain('child-hr-only')
+		})
+	})
+
+	describe('action: "user-settings"', () => {
+		const actionManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+				{
+					id: 'user-settings',
+					label: 'app.settings',
+					action: 'user-settings',
+					section: 'settings',
+					order: 99,
+				},
+			],
+		}
+
+		it('invokes the injected cnOpenUserSettings on click and prevents default', () => {
+			const openUserSettings = jest.fn()
+			const wrapper = mountNav({
+				manifest: actionManifest,
+				openUserSettings,
+				routeName: 'home',
+			})
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(actionManifest.menu[1], event)
+			expect(openUserSettings).toHaveBeenCalledTimes(1)
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
+		})
+
+		it('returns null for itemTo so vue-router does not navigate', () => {
+			const wrapper = mountNav({ manifest: actionManifest, routeName: 'home' })
+			expect(wrapper.vm.itemTo(actionManifest.menu[1])).toBeNull()
+		})
+
+		it('falls back to a no-op when no cnOpenUserSettings inject is provided', () => {
+			const wrapper = mountNav({ manifest: actionManifest, routeName: 'home' })
+			const event = { preventDefault: jest.fn() }
+			expect(() => wrapper.vm.onItemClick(actionManifest.menu[1], event)).not.toThrow()
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
+		})
+
+		it('does not open URLs for action items even if href is also set', () => {
+			const openUserSettings = jest.fn()
+			const item = {
+				id: 'mixed',
+				label: 'app.mixed',
+				action: 'user-settings',
+				href: 'https://example.com',
+			}
+			const wrapper = mountNav({
+				manifest: { version: '1.0.0', pages: [], menu: [item] },
+				openUserSettings,
+				useProps: false,
+			})
+			const originalOpen = window.open
+			window.open = jest.fn()
+			wrapper.vm.onItemClick(item, { preventDefault: jest.fn() })
+			expect(window.open).not.toHaveBeenCalled()
+			expect(openUserSettings).toHaveBeenCalledTimes(1)
+			window.open = originalOpen
 		})
 	})
 })
