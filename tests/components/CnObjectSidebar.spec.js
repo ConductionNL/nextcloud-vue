@@ -11,6 +11,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnObjectSidebar from '../../src/components/CnObjectSidebar/CnObjectSidebar.vue'
 import CnObjectDataWidget from '../../src/components/CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../../src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
@@ -239,5 +240,100 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 			customComponents: { MyCustomTab },
 		})
 		expect(wrapper.vm.activeTab).toBe('first')
+	})
+})
+
+describe('CnObjectSidebar — pluggable integration registry mode', () => {
+	// CnObjectSidebar's setup() calls useIntegrationRegistry() with no
+	// args, so it consumes the default singleton. Register on it and
+	// reset between tests.
+	const { integrations } = require('../../src/integrations/registry.js')
+
+	// Use render-fn (not template:) components so `<component :is>`
+	// resolves them without the runtime template compiler.
+	const RegistryTab = {
+		name: 'RegistryTab',
+		props: ['objectId', 'objectType', 'register', 'schema', 'apiBase'],
+		render() { return h('div', { class: 'registry-tab' }, String(this.objectId)) },
+	}
+	const RegistryWidget = { name: 'RegistryWidget', render() { return h('div', { class: 'registry-widget' }) } }
+
+	function mountRegistrySidebar(extra = {}) {
+		return mount(CnObjectSidebar, {
+			propsData: { ...baseProps, useRegistry: true, ...extra },
+			stubs: {
+				CnFilesTab: true, CnNotesTab: true, CnTagsTab: true,
+				CnTasksTab: true, CnAuditTrailTab: true,
+			},
+		})
+	}
+
+	afterEach(() => {
+		integrations.__resetForTests()
+	})
+
+	it('renders one tab per registered provider when useRegistry is true', () => {
+		integrations.register({ id: 'files', label: 'Files', order: 1, tab: RegistryTab, widget: RegistryWidget })
+		integrations.register({ id: 'notes', label: 'Notes', order: 2, tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar()
+		const html = wrapper.html()
+		expect(html).toContain('id="files"')
+		expect(html).toContain('id="notes"')
+		expect(wrapper.findAll('.registry-tab').length).toBe(2)
+		wrapper.destroy()
+	})
+
+	it('excludes providers listed in excludeIntegrations', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: RegistryWidget })
+		integrations.register({ id: 'notes', label: 'Notes', tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar({ excludeIntegrations: ['notes'] })
+		const html = wrapper.html()
+		expect(html).toContain('id="files"')
+		expect(html).not.toContain('id="notes"')
+		wrapper.destroy()
+	})
+
+	it('also honours hiddenTabs for registry providers', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: RegistryWidget })
+		integrations.register({ id: 'tags', label: 'Tags', tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar({ hiddenTabs: ['tags'] })
+		expect(wrapper.html()).not.toContain('id="tags"')
+		wrapper.destroy()
+	})
+
+	it('re-renders reactively when a late registration arrives', async () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar()
+		expect(wrapper.findAll('.registry-tab').length).toBe(1)
+		integrations.register({ id: 'late', label: 'Late', tab: RegistryTab, widget: RegistryWidget })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findAll('.registry-tab').length).toBe(2)
+		wrapper.destroy()
+	})
+
+	it('appends consumer-supplied tabs via the #extra-tabs slot', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mount(CnObjectSidebar, {
+			propsData: { ...baseProps, useRegistry: true },
+			stubs: { CnFilesTab: true, CnNotesTab: true, CnTagsTab: true, CnTasksTab: true, CnAuditTrailTab: true },
+			slots: { 'extra-tabs': '<div class="extra-tab">extra</div>' },
+		})
+		expect(wrapper.html()).toContain('extra-tab')
+		expect(wrapper.findAll('.registry-tab').length).toBe(1)
+		wrapper.destroy()
+	})
+
+	it('warns and falls back to `tabs` when both useRegistry and tabs are set', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar({
+			tabs: [{ id: 'manual', label: 'Manual', component: 'X' }],
+			customComponents: { X: RegistryTab },
+		})
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('falling back to `tabs`'))
+		expect(wrapper.html()).toContain('id="manual"')
+		expect(wrapper.html()).not.toContain('id="files"')
+		warn.mockRestore()
+		wrapper.destroy()
 	})
 })

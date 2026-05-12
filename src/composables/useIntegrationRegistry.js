@@ -19,7 +19,7 @@
  * }
  */
 
-import { onBeforeUnmount, ref, computed } from 'vue'
+import { onBeforeUnmount, shallowRef, computed } from 'vue'
 import { integrations as defaultRegistry } from '../integrations/registry.js'
 
 /**
@@ -37,7 +37,13 @@ import { integrations as defaultRegistry } from '../integrations/registry.js'
  */
 export function useIntegrationRegistry(registry) {
 	const target = registry || defaultRegistry
-	const snapshot = ref(target.list())
+	// shallowRef, not ref: the snapshot holds integration descriptors
+	// whose `tab` / `widget` / `widget*` fields are Vue component
+	// options objects. Deep reactive observation would walk into those
+	// component objects and tag them with `__ob__`, which breaks
+	// `<component :is="...">` resolution. We only need top-level
+	// reactivity — replacing `.value` on each registry change.
+	const snapshot = shallowRef(target.list())
 
 	const unsubscribe = target.onChange((next) => {
 		snapshot.value = next
