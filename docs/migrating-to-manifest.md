@@ -656,7 +656,35 @@ render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatte
 
 `CnDataTable` renders **every** column through `CnCellRenderer`, which resolves `widget` (consumer registry, then the built-in `badge`), then `formatter`, then the schema-type-aware rendering, then a plain `formatValue()` fallback. When both `formatter` and `widget` are set the widget receives the formatter-shaped value as `formatted`. A column with no `widget`/`formatter` renders exactly as before — except that, because cells now always flow through `CnCellRenderer`, **manual-mode** columns (a `columns` array with no `schema`) pick up the same niceties (boolean cell values render as the check-icon, long strings truncate at 100 chars with a hover title); pass a `#column-{key}` scoped slot if you need the raw text.
 
-> `columns[].aggregate` (related-object counts/sums via OpenRegister aggregations) and `actions[].route` (declarative navigation row-actions) are the remaining planned follow-ups; until then, those still need a `type: "custom"` view (or a consumer `cellWidget` for the aggregate case).
+> `actions[].route` (declarative navigation row-actions) is already available — set `handler:"navigate"` + `route` on an action (schema 1.3.0). A self-fetch mode on `CnIndexPage` (so a manifest `type:"index"` page renders its object collection without a wrapper) + a `pages[].config.filter` (route-param-interpolated base filter, for `/x/:id/sub` filtered lists) are tracked in `openspec/changes/manifest-index-self-fetch/`.
+
+## Aggregate columns
+
+A column can render a **count of related objects** instead of a property of the row — give it an `aggregate` block:
+
+```jsonc
+// manifest.json — a type:"index" page's config.columns[]
+{ "key": "submitCount", "label": "Submissions",
+  "aggregate": { "schema": "intakeSubmission", "op": "count",
+                 "where": { "intakeForm": "@self.id" } } },
+{ "key": "agentCount", "label": "Agents", "align": "right",
+  "aggregate": { "register": "pipelinq", "schema": "agentProfile", "op": "count",
+                 "where": { "queue": "@self.id" } } }
+```
+
+`CnDataTable` reads `aggregate` off each column: for every visible row it issues one
+`GET /apps/openregister/api/objects/{register}/{schema}?{where…}&_limit=0` (reading
+`data.total`), batched with `Promise.all`. String values in `where` of the form
+`"@self.<path>"` are replaced per-row with `getCellValue(row, path)` (so
+`{ "intakeForm": "@self.id" }` filters the related collection on `intakeForm == row.id`);
+everything else is a literal. `register` defaults to the page's `config.register`
+(`CnIndexPage` fills it in before handing the columns to `CnDataTable` — so most
+manifests can omit it). The cell shows `…` while the count is loading and `—` if the
+request fails (logged); a failed cell never blanks the page, and a stale batch is
+discarded when the rows change. `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
+each needing a `field`, are a planned follow-up — the column-config shape is forward-compatible).
+
+> Note: a manifest `type:"index"` page only renders rows once `CnIndexPage` self-fetches from its `register`+`schema` (tracked in `openspec/changes/manifest-index-self-fetch/`); until then `aggregate` columns are usable today via `CnTableWidget` (which has a self-fetch mode) or any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly.
 
 ## Sidebar (manifest-driven)
 

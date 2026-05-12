@@ -359,6 +359,32 @@
 					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
 					"additionalProperties": true
 				},
+				"aggregate": {
+					"type": "object",
+					"required": ["schema", "op"],
+					"additionalProperties": false,
+					"description": "Render this cell as a count of related objects rather than a property of the row. The cell value is the number of `schema` objects matching `where` — string values in `where` of the form \"@self.<path>\" are interpolated per-row from the parent row (e.g. `{ \"intakeForm\": \"@self.id\" }` filters the related collection on `intakeForm == row.id`). `register` defaults to the page's `config.register` (CnIndexPage fills it in before passing columns to CnDataTable). `op` is \"count\" for now; \"sum\"/\"min\"/\"max\"/\"avg\" (each needing a `field`) are a planned follow-up. CnDataTable issues one `_limit=0` count request per visible row for each aggregate column (batched); failures degrade that one cell, not the page.",
+					"properties": {
+						"register": {
+							"type": "string",
+							"description": "OpenRegister register slug of the related collection. Defaults to the page's `config.register`."
+						},
+						"schema": {
+							"type": "string",
+							"description": "OpenRegister schema slug of the related collection to count."
+						},
+						"op": {
+							"type": "string",
+							"enum": ["count"],
+							"description": "Aggregation operation. Closed enum — \"count\" only for now."
+						},
+						"where": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "Filter applied to the related collection. String values \"@self.<path>\" are replaced per-row with `getCellValue(row, path)`; everything else is a literal."
+						}
+					}
+				},
 				"hidden": {
 					"type": "boolean",
 					"default": false,
