@@ -306,7 +306,7 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, validation: object, order: number}>}
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
@@ -353,6 +353,11 @@ export function fieldsFromSchema(schema, options = {}) {
 			default: prop.default !== undefined ? prop.default : null,
 			enum: prop.enum || null,
 			items: prop.items || null,
+			// Pluggable integration registry marker (AD-18): a property
+			// can declare `referenceType: '<integration-id>'` so consumer
+			// surfaces (CnFormDialog, CnDetailGrid) render that
+			// integration's single-entity widget instead of a plain input.
+			referenceType: prop.referenceType || null,
 			validation: {
 				minLength: prop.minLength,
 				maxLength: prop.maxLength,
