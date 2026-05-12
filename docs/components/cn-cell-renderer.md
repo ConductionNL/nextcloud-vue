@@ -23,6 +23,8 @@ Type-aware cell renderer for schema-driven tables. Automatically formats values 
 |------|------|---------|-------------|
 | `value` | any | `null` | Cell value |
 | `property` | Object | `\{\}` | Schema property definition |
+| `formatter` | String | `null` | Optional cell-formatter id (e.g. `currency`, `automationTrigger`). When set and resolvable in the injected `cnFormatters` registry (provided by `CnAppRoot`), the cell renders `cnFormatters[formatter](value, row, property)` as text — overriding the type-aware rendering. Unknown id / missing registry / a throwing formatter all fall back. See [migrating-to-manifest → Column formatters](../migrating-to-manifest.md#column-formatters). |
+| `row` | Object | `\{\}` | The full row object — passed so a formatter can be a function of the whole record (e.g. "days since `@self.updated`"), not just this one cell value. |
 | `truncate` | Number | `100` | Max string length before truncation |
 
 ## Type Rendering
