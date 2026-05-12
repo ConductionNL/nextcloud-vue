@@ -352,7 +352,12 @@
 				},
 				"widget": {
 					"type": "string",
-					"description": "Optional cell-widget hint (e.g. \"badge\", \"link\"). Resolves against the consuming app's cell-widget registry; free-form for the same reason as `formatter`."
+					"description": "Optional cell-widget id (e.g. \"badge\", or a consumer-registered name). When it resolves in the app's cell-widget registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`) the cell renders that component with `{ value, row, property, formatted, ...widgetProps }`; the built-in id \"badge\" renders `CnStatusBadge`. Takes precedence over `formatter` / the type-aware rendering. Free-form because widget sets vary per app."
+				},
+				"widgetProps": {
+					"type": "object",
+					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
+					"additionalProperties": true
 				},
 				"hidden": {
 					"type": "boolean",

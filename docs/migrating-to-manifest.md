@@ -622,7 +622,41 @@ render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatte
 
 `CnAppRoot` provides the registry as `cnFormatters`; `CnDataTable` / `CnCellRenderer` resolve `columns[].formatter` against it (and pass the formatter the full `row`, so it can be a function of the whole record). A column with no `formatter`, or an app that passes no `formatters`, renders exactly as before; a formatter that throws degrades that one cell (logged) and falls back to the type-aware rendering. Like `customComponents`, `src/formatters.js` is the audit point for "what app-specific data shaping does this app do?" — keep the Vue layer abstract, push the per-row logic here.
 
-> `columns[].aggregate` (related-object counts/sums via OpenRegister aggregations / GraphQL) and `columns[].widget` (a cell-component registry for badges / links / inline toggles) are planned follow-ups; until then, those still need a `type: "custom"` view.
+## Column widgets
+
+When a column needs a *component* per cell — a status pill, a link, an inline toggle, a sparkline — declare a `widget` id (and optional `widgetProps`). The library ships one built-in id, `"badge"` (renders `CnStatusBadge`); everything else resolves against the `cellWidgets` registry you pass to `CnAppRoot`:
+
+```jsonc
+// manifest.json
+"columns": [
+  "name",
+  { "key": "status", "label": "myapp.status", "widget": "badge", "widgetProps": { "variant": "warning" } },
+  { "key": "isActive", "label": "myapp.active", "widget": "active-toggle" },
+  { "key": "trigger", "label": "myapp.trigger", "formatter": "automationTrigger", "widget": "badge" }
+]
+```
+
+```js
+// src/cellWidgets.js — small components, registered by id
+import ActiveToggle from './components/cells/ActiveToggle.vue'
+export default { 'active-toggle': ActiveToggle }
+// each widget receives { value, row, property, formatted, ...widgetProps }
+```
+
+```js
+// main.js
+import cellWidgets from './cellWidgets.js'
+render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatters, cellWidgets } }),
+```
+
+```vue
+<!-- App.vue -->
+<CnAppRoot … :formatters="formatters" :cell-widgets="cellWidgets" />
+```
+
+`CnDataTable` renders **every** column through `CnCellRenderer`, which resolves `widget` (consumer registry, then the built-in `badge`), then `formatter`, then the schema-type-aware rendering, then a plain `formatValue()` fallback. When both `formatter` and `widget` are set the widget receives the formatter-shaped value as `formatted`. A column with no `widget`/`formatter` renders exactly as before — except that, because cells now always flow through `CnCellRenderer`, **manual-mode** columns (a `columns` array with no `schema`) pick up the same niceties (boolean cell values render as the check-icon, long strings truncate at 100 chars with a hover title); pass a `#column-{key}` scoped slot if you need the raw text.
+
+> `columns[].aggregate` (related-object counts/sums via OpenRegister aggregations) and `actions[].route` (declarative navigation row-actions) are the remaining planned follow-ups; until then, those still need a `type: "custom"` view (or a consumer `cellWidget` for the aggregate case).
 
 ## Sidebar (manifest-driven)
 

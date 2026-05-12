@@ -265,6 +265,7 @@ export default {
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
 			cnFormatters: this.formatters,
+			cnCellWidgets: this.cellWidgets,
 			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to
 			 * `this` so descendants don't have to. Used by CnAppNav
@@ -385,6 +386,22 @@ export default {
 		 * @type {object}
 		 */
 		formatters: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Cell-widget registry. Map of widget-id → Vue component, rendered
+		 * for a column that declares `pages[].config.columns[].widget`. The
+		 * component receives `{ value, row, property, formatted, ...widgetProps }`.
+		 * The library ships one built-in id, `"badge"` (renders `CnStatusBadge`);
+		 * consumer entries cover everything else (status pills with custom
+		 * colour maps, inline toggles, link cells, …). Provided to descendant
+		 * `CnDataTable` / `CnCellRenderer` via inject (`cnCellWidgets`). Empty
+		 * by default — a column with no `widget` renders as before.
+		 *
+		 * @type {object}
+		 */
+		cellWidgets: {
 			type: Object,
 			default: () => ({}),
 		},

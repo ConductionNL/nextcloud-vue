@@ -79,17 +79,18 @@
 						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
 						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
-							<!-- Schema-driven: use CnCellRenderer (it resolves col.formatter itself) -->
+							<!-- Every column renders through CnCellRenderer: it resolves
+							     col.formatter / col.widget against the injected registries
+							     (cnFormatters / cnCellWidgets), uses the schema property when
+							     one is available (else {}) for type-aware rendering, and
+							     falls back to formatValue(). The #column-{key} slot still wins. -->
 							<CnCellRenderer
-								v-if="isSchemaColumn(col)"
 								:value="getCellValue(row, col.key)"
 								:property="getSchemaProperty(col.key)"
 								:formatter="col.formatter || null"
+								:widget="col.widget || null"
+								:widget-props="col.widgetProps || undefined"
 								:row="row" />
-							<!-- Manual: plain text, optionally run through a registered formatter -->
-							<template v-else>
-								{{ formatCell(row, col) }}
-							</template>
 						</slot>
 					</td>
 
@@ -158,16 +159,6 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
-	},
-
-	inject: {
-		/**
-		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
-		 * Used by `formatCell()` for manual (non-schema) columns; schema
-		 * columns pass the formatter id straight through to CnCellRenderer.
-		 * Defaults to an empty object so standalone use is unaffected.
-		 */
-		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -314,44 +305,13 @@ export default {
 		},
 
 		/**
-		 * Render a cell for a manual (non-schema) column. If the column
-		 * declares a `formatter` id that resolves in the injected
-		 * `cnFormatters` registry, the value flows through
-		 * `formatter(value, row, column)`; otherwise the raw value is
-		 * returned. (Schema columns get the same treatment inside
-		 * CnCellRenderer via the `:formatter` / `:row` props.)
+		 * Get the schema property definition for a column key, or `{}` when
+		 * there is no schema (manual mode) or no matching property. The result
+		 * is handed to `CnCellRenderer` for type-aware rendering; an empty
+		 * object makes it fall back to `formatValue()` (plain truncated text).
 		 *
-		 * @param {object} row The row data.
-		 * @param {object} col The column definition.
-		 * @return {*} The (optionally formatted) cell value.
-		 */
-		formatCell(row, col) {
-			const value = this.getCellValue(row, col.key)
-			const fn = col.formatter && this.cnFormatters && this.cnFormatters[col.formatter]
-			if (typeof fn === 'function') {
-				try {
-					return fn(value, row, col)
-				} catch (e) {
-					// eslint-disable-next-line no-console
-					console.warn(`[CnDataTable] formatter "${col.formatter}" threw; falling back`, e)
-				}
-			}
-			return value
-		},
-
-		/**
-		 * Check if a column was generated from schema (has type info).
-		 * @param {object} col Column definition
-		 * @return {boolean}
-		 */
-		isSchemaColumn(col) {
-			return !!(this.schema && col.type)
-		},
-
-		/**
-		 * Get the schema property definition for a column key.
 		 * @param {string} key Column key
-		 * @return {object} Property definition
+		 * @return {object} Property definition (possibly empty).
 		 */
 		getSchemaProperty(key) {
 			return this.schema?.properties?.[key] || {}

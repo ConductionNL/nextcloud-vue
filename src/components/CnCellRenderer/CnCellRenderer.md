@@ -80,3 +80,12 @@ fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
 > The example above needs an ancestor that `provide`s `cnFormatters` (e.g.
 > `cnFormatters: { automationTrigger: v => ({ 'lead.created': 'Lead created' }[v] ?? v) }`);
 > standalone (no provider) it falls back to rendering the raw value.
+
+Column widget — `widget="badge"` is built in (renders `CnStatusBadge`, `widgetProps.variant` selects the colour); any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets".
+
+```vue
+<div style="display: flex; gap: 12px; align-items: center;">
+  <CnCellRenderer value="open" :property="{ type: 'string' }" widget="badge" />
+  <CnCellRenderer value="failed" :property="{ type: 'string' }" widget="badge" :widget-props="{ variant: 'error' }" />
+</div>
+```
