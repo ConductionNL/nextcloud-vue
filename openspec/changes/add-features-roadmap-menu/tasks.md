@@ -48,11 +48,11 @@
 ## 8. Tests
 
 - [x] 8.1 `tests/components/CnFeaturesAndRoadmapLink.spec.js` — default render, `disabled` returns null, custom route name.
-- [ ] 8.2 `tests/components/CnFeaturesAndRoadmapView.spec.js` — both tabs rendered, Suggest opens modal, `disabled` shows admin empty state.
-- [ ] 8.3 `tests/components/CnFeaturesTab.spec.js` — alphabetical sort, empty state, docsUrl gets noopener.
-- [ ] 8.4 `tests/components/CnRoadmapTab.spec.js` — success path (mocked axios), PAT-not-configured hint, 429 rate-limited, network error retry. Verify the fetch URL contains `labels=enhancement,feature` exactly.
-- [ ] 8.5 `tests/components/CnRoadmapItem.spec.js` — markdown sanitization (XSS vectors stripped), label blocklist filters hydra labels, reaction count rendered, avatar fallback.
-- [ ] 8.6 `tests/components/CnSuggestFeatureModal.spec.js` — submit disabled for invalid input, 201 emits `submitted`, 429 inline error, CSRF token sent in header.
+- [x] 8.2 `tests/components/CnFeaturesAndRoadmapView.spec.js` — both tabs rendered, Suggest opens modal, `disabled` shows admin empty state.
+- [x] 8.3 `tests/components/CnFeaturesTab.spec.js` — alphabetical sort, empty state, docsUrl gets noopener.
+- [x] 8.4 `tests/components/CnRoadmapTab.spec.js` — success path (mocked axios), PAT-not-configured hint, 429 rate-limited, network error retry. Verify the fetch URL contains `labels=enhancement,feature` exactly.
+- [x] 8.5 `tests/components/CnRoadmapItem.spec.js` — markdown sanitization (XSS vectors stripped), label blocklist filters hydra labels, reaction count rendered, avatar fallback.
+- [x] 8.6 `tests/components/CnSuggestFeatureModal.spec.js` — submit disabled for invalid input, 201 emits `submitted`, 429 inline error, CSRF token sent in header.
 - [x] 8.7 `tests/composables/useSpecRef.spec.js` — component option wins, route meta fallback, both absent returns null.
 - [x] 8.8 `tests/composables/useSuggestFeatureAction.spec.js` — action when specRef present, null when absent.
 - [x] 8.9 `tests/utils/safeMarkdownDompurifyConfig.spec.js` — XSS vector strip suite (script, on*, javascript:, iframe, style).
