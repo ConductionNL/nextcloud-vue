@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -23,6 +23,18 @@
 			"default": [],
 			"items": { "type": "string" },
 			"description": "Nextcloud app IDs that MUST be installed and enabled for this app to function. CnAppRoot checks each via useAppStatus(appId)."
+		},
+		"runtime": {
+			"type": "object",
+			"description": "Runtime context data injected into the manifest by the backend (e.g. OpenRegister) at serve time. Carries per-user fields that `visibleIf` context-path predicates resolve against. The canonical sub-object is `user`, which exposes user-specific flags and role information. Example: `{ \"user\": { \"primaryRole\": \"compliance-officer\", \"isOverdueOnMandatoryTraining\": false } }`. Consumer apps MUST NOT assume any field is present; the FE evaluator returns `false` (hidden) when a referenced path resolves to `undefined`.",
+			"additionalProperties": true,
+			"properties": {
+				"user": {
+					"type": "object",
+					"description": "Per-user runtime context. Populated by the backend for authenticated requests. All fields are optional; the FE predicate evaluator treats missing fields as `undefined`.",
+					"additionalProperties": true
+				}
+			}
 		},
 		"menu": {
 			"type": "array",
@@ -76,6 +88,10 @@
 					"type": "string",
 					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
 				},
+				"visibleIf": {
+					"$ref": "#/$defs/visibleIfCondition",
+					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"mydash\" }` — hides when mydash is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
+				},
 				"children": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/menuItemLeaf" },
@@ -100,7 +116,11 @@
 					"enum": ["main", "settings"],
 					"default": "main"
 				},
-				"href": { "type": "string" }
+				"href": { "type": "string" },
+				"visibleIf": {
+					"$ref": "#/$defs/visibleIfCondition",
+					"description": "Optional display condition for a nested menu entry. Same semantics as the top-level `menuItem.visibleIf` — see that field's description for the full predicate reference."
+				}
 			}
 		},
 		"page": {
@@ -605,6 +625,18 @@
 				"component": {
 					"type": "string",
 					"description": "Optional registry component name. When set the tab body renders the resolved component. Mutually exclusive with `widgets` at runtime."
+				}
+			}
+		},
+		"visibleIfCondition": {
+			"type": "object",
+			"description": "A `visibleIf` condition block. Each key is either a reserved specialised condition (`appInstalled`) OR a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`). The value for a context-path key is a predicate expression — either a scalar (strict equality shorthand) or an operator object (`{ eq }`, `{ in }`, `{ notIn }`, `{ gt }`, `{ gte }`, `{ lt }`, `{ lte }`, `{ truthy }`). All conditions across all keys are combined with implicit AND — every condition must pass for the item to render. As of schema 1.4.0 this $def is referenced by both `menuItem.visibleIf` and `menuItemLeaf.visibleIf`.",
+			"additionalProperties": true,
+			"properties": {
+				"appInstalled": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in mydash' link should only show when mydash is enabled)."
 				}
 			}
 		}

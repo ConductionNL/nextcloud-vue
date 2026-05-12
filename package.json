@@ -33,6 +33,7 @@
 		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
 		"check:docs": "node scripts/check-docs.js",
 		"check:jsdoc": "node scripts/check-jsdoc.js",
+		"check:integration-parity": "node scripts/check-integration-parity.js",
 		"jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
 		"prepare": "husky || true",
 		"prepublishOnly": "npm run build",

@@ -236,7 +236,7 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('schema version reflects manifest-actions-dispatch follow-up bump (1.3.0)', () => {
+	it('schema version reflects the current bump (1.4.0)', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
@@ -245,7 +245,9 @@ describe('manifest-config-defs additivity', () => {
 		//   field on `type:'index'` config.
 		// - `manifest-actions-dispatch` adds `handler` + `route` to the `action`
 		//   $def. Existing $defs unchanged either way.
-		expect(schema.version).toBe('1.3.0')
+		// 1.4.0 adds `runtime` (top-level) and `visibleIfCondition` ($def)
+		// for context-path predicate gating (role-aware nav).
+		expect(schema.version).toBe('1.4.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {

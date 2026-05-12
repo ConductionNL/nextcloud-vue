@@ -161,8 +161,8 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 		expect(result.errors.some((e) => e.startsWith('/pages/3/config/folder'))).toBe(true)
 	})
 
-	it('schema declares its version as 1.3.0', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('schema declares its version as 1.4.0', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -548,8 +548,9 @@ describe('validateManifest — manifest-abstract-sidebar additions', () => {
 	})
 
 	describe('schema metadata bump', () => {
-		it('bumps the schema version field to 1.3.0', () => {
-			expect(schema.version).toBe('1.3.0')
+		it('bumps the schema version field to at least 1.3.0 (current: 1.4.0)', () => {
+			// 1.3.0 introduced sidebarComponent/slots; 1.4.0 adds runtime + visibleIf context predicates.
+			expect(schema.version).toBe('1.4.0')
 		})
 
 		it("page.config description references the new 'sidebar' field", () => {
@@ -661,8 +662,8 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field bumps to 1.3.0 (manifest-card-index-component + manifest-actions-dispatch)', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('REQ-MSRS-6: schema top-level version field is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates)', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -881,13 +882,11 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 	})
 
 	describe('schema metadata stability', () => {
-		it('schema version reaches 1.3.0 with the manifest-card-index-component additive change', () => {
-			// `manifest-detail-sidebar-config` itself was non-breaking and
-			// kept the version at 1.1.0. The successor `manifest-config-refs`
-			// change wires up $refs on the recurring config sub-shapes and
-			// bumped to 1.2.0. `manifest-card-index-component` and
-			// `manifest-actions-dispatch` further bump to 1.3.0 (additive).
-			expect(schema.version).toBe('1.3.0')
+		it('schema version is at 1.4.0 (1.3.0 introduced card/actions; 1.4.0 adds runtime+visibleIf context predicates)', () => {
+			// `manifest-detail-sidebar-config` kept version at 1.1.0; `manifest-config-refs`
+			// bumped to 1.2.0; `manifest-card-index-component` + `manifest-actions-dispatch`
+			// bumped to 1.3.0; `manifest-visible-if-context` bumps to 1.4.0.
+			expect(schema.version).toBe('1.4.0')
 		})
 
 		it('mentions config.sidebar.show in the page.config description', () => {
@@ -1344,8 +1343,8 @@ describe('validateManifest — settings orchestration (manifest-settings-orchest
 		)
 	})
 
-	it('REQ-MSO-8: schema top-level version field is at the current schema version', () => {
-		expect(schema.version).toBe('1.3.0')
+	it('REQ-MSO-8: schema top-level version field is at the current schema version (1.4.0)', () => {
+		expect(schema.version).toBe('1.4.0')
 	})
 })
 
@@ -1439,5 +1438,256 @@ describe('validateManifest — manifest-form-page-type', () => {
 		}))
 		expect(result.valid).toBe(false)
 		expect(result.errors.some((e) => e.includes('/fields/0/label') || e.includes('/fields/0/type'))).toBe(true)
+	})
+})
+
+describe('validateManifest — visibleIf.appInstalled nav filter', () => {
+	const baseWithMenu = (menuItems) => ({
+		version: '1.0.0',
+		menu: menuItems,
+		pages: [],
+	})
+
+	it('accepts a menu item without visibleIf (backwards-compatible)', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'home', label: 'app.home', route: 'home' },
+		]))
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts a menu item with a valid visibleIf.appInstalled string', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'view-in-mydash',
+				label: 'scholiq.nav.viewInMydash',
+				href: '/index.php/apps/mydash#scholiq',
+				visibleIf: { appInstalled: 'mydash' },
+			},
+		]))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a child item with a valid visibleIf.appInstalled string', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'parent',
+				label: 'app.parent',
+				children: [
+					{
+						id: 'child-mydash',
+						label: 'app.child-mydash',
+						href: '/index.php/apps/mydash',
+						visibleIf: { appInstalled: 'mydash' },
+					},
+				],
+			},
+		]))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects visibleIf that is not an object', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: 'mydash' },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf') && e.includes('must be an object'))).toBe(true)
+	})
+
+	it('rejects visibleIf.appInstalled that is an empty string', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appInstalled: '' } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf/appInstalled') && e.includes('non-empty string'))).toBe(true)
+	})
+
+	it('rejects visibleIf.appInstalled that is a non-string (number)', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appInstalled: 42 } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf/appInstalled'))).toBe(true)
+	})
+
+	it('treats an unknown-looking key like "appIsInstalled" as a valid context path (single-segment path)', () => {
+		// Since schema v1.4.0, any non-reserved key is a context-path predicate.
+		// "appIsInstalled" (likely a typo for "appInstalled") is silently treated
+		// as a runtime path. Typo detection is now a consumer responsibility.
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'mydash' } },
+		]))
+		// Single non-empty segment is a valid path → no error.
+		expect(result.valid).toBe(true)
+	})
+
+	it('accepts context-path keys on a child item', () => {
+		const result = validateManifest(baseWithMenu([
+			{
+				id: 'parent',
+				label: 'parent',
+				children: [
+					{
+						id: 'child',
+						label: 'child',
+						visibleIf: { 'user.primaryRole': { in: ['hr-coordinator'] } },
+					},
+				],
+			},
+		]))
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('accepts a manifest with context-path visibleIf and runtime block', () => {
+		const result = validateManifest({
+			version: '1.0.0',
+			runtime: { user: { primaryRole: 'compliance-officer' } },
+			menu: [
+				{
+					id: 'compliance-dashboard',
+					label: 'scholiq.nav.complianceDashboard',
+					route: 'compliance-dashboard',
+					visibleIf: { 'user.primaryRole': { in: ['compliance-officer', 'hr-coordinator'] } },
+				},
+			],
+			pages: [],
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('rejects runtime that is not an object', () => {
+		const result = validateManifest({
+			version: '1.0.0',
+			menu: [],
+			pages: [],
+			runtime: 'invalid',
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('/runtime') && e.includes('must be an object'))).toBe(true)
+	})
+
+	it('rejects visibleIf with an in operator value that is not an array', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { 'user.primaryRole': { in: 'not-an-array' } } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('"in" operator value must be an array'))).toBe(true)
+	})
+
+	it('rejects visibleIf with a notIn operator value that is not an array', () => {
+		const result = validateManifest(baseWithMenu([
+			{ id: 'x', label: 'x', visibleIf: { 'user.role': { notIn: 'not-an-array' } } },
+		]))
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('"notIn" operator value must be an array'))).toBe(true)
+	})
+
+	it('schema declares visibleIf in menuItem $def via $ref to visibleIfCondition', () => {
+		const visibleIf = schema.$defs.menuItem.properties.visibleIf
+		expect(visibleIf).toBeDefined()
+		// As of schema 1.4.0, visibleIf uses a $ref instead of an inline type.
+		expect(visibleIf.$ref).toBe('#/$defs/visibleIfCondition')
+	})
+
+	it('schema declares visibleIf in menuItemLeaf $def via $ref to visibleIfCondition', () => {
+		const visibleIf = schema.$defs.menuItemLeaf.properties.visibleIf
+		expect(visibleIf).toBeDefined()
+		expect(visibleIf.$ref).toBe('#/$defs/visibleIfCondition')
+	})
+
+	it('schema defines the visibleIfCondition $def with appInstalled and additionalProperties:true', () => {
+		const def = schema.$defs.visibleIfCondition
+		expect(def).toBeDefined()
+		expect(def.properties.appInstalled).toBeDefined()
+		// additionalProperties:true allows context-path keys.
+		expect(def.additionalProperties).toBe(true)
+	})
+
+	it('schema defines the runtime top-level property', () => {
+		expect(schema.properties.runtime).toBeDefined()
+		expect(schema.properties.runtime.type).toBe('object')
+		expect(schema.properties.runtime.properties.user).toBeDefined()
+	})
+})
+
+describe('validateManifest — role-aware demo fixture (visible-if-context)', () => {
+	/**
+	 * Integration tests for the role-aware manifest demo.
+	 * These tests act as the "Storybook" scenario for visibleIf context predicates:
+	 * two pages gated by runtime.user.primaryRole and a boolean training flag.
+	 */
+
+	const roleAwareManifest = {
+		version: '1.0.0',
+		runtime: {
+			user: {
+				primaryRole: 'compliance-officer',
+				isOverdueOnMandatoryTraining: true,
+			},
+		},
+		menu: [
+			{
+				id: 'overview',
+				label: 'demo.menu.overview',
+				route: 'overview',
+				order: 10,
+			},
+			{
+				id: 'compliance-dashboard',
+				label: 'demo.menu.complianceDashboard',
+				route: 'compliance-dashboard',
+				order: 20,
+				visibleIf: {
+					'user.primaryRole': { in: ['compliance-officer', 'hr-coordinator'] },
+				},
+			},
+			{
+				id: 'overdue-courses',
+				label: 'demo.menu.overdueCourses',
+				route: 'overdue-courses',
+				order: 25,
+				visibleIf: {
+					'user.isOverdueOnMandatoryTraining': true,
+				},
+			},
+			{
+				id: 'settings',
+				label: 'demo.menu.settings',
+				route: 'settings',
+				order: 99,
+			},
+		],
+		pages: [
+			{ id: 'overview', route: '/', type: 'dashboard', title: 'demo.overview.title', config: { widgets: [{ id: 'kpis', title: 'kpis', type: 'custom' }], layout: [{ id: 'layout-kpis', widgetId: 'kpis', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 3 }] } },
+			{ id: 'compliance-dashboard', route: '/compliance', type: 'dashboard', title: 'demo.compliance.title', config: { widgets: [{ id: 'comp-w', title: 'comp-w', type: 'custom' }], layout: [{ id: 'layout-comp-w', widgetId: 'comp-w', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 3 }] } },
+			{ id: 'overdue-courses', route: '/overdue', type: 'index', title: 'demo.overdueCourses.title', config: { register: 'scholiq', schema: 'course-enrollment', columns: ['course', 'dueDate', 'status'] } },
+			{ id: 'settings', route: '/settings', type: 'custom', title: 'demo.settings.title', component: 'SettingsPage' },
+		],
+	}
+
+	it('the role-aware demo manifest validates clean', () => {
+		const result = validateManifest(roleAwareManifest)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('the compliance-dashboard page has a role-gated visibleIf using the in operator', () => {
+		const complianceItem = roleAwareManifest.menu.find((i) => i.id === 'compliance-dashboard')
+		expect(complianceItem.visibleIf).toBeDefined()
+		expect(complianceItem.visibleIf['user.primaryRole']).toEqual({ in: ['compliance-officer', 'hr-coordinator'] })
+	})
+
+	it('the overdue-courses page has a boolean flag visibleIf predicate', () => {
+		const overdueItem = roleAwareManifest.menu.find((i) => i.id === 'overdue-courses')
+		expect(overdueItem.visibleIf).toBeDefined()
+		expect(overdueItem.visibleIf['user.isOverdueOnMandatoryTraining']).toBe(true)
+	})
+
+	it('the runtime block carries the expected user fields', () => {
+		expect(roleAwareManifest.runtime.user.primaryRole).toBe('compliance-officer')
+		expect(roleAwareManifest.runtime.user.isOverdueOnMandatoryTraining).toBe(true)
 	})
 })
