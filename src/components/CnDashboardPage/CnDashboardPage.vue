@@ -135,6 +135,30 @@
 					</CnWidgetWrapper>
 				</template>
 
+				<!-- Integration widget — resolved from the pluggable
+				     integration registry (AD-19 surface fallback). -->
+				<template v-else-if="isIntegration(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)">
+						<component
+							:is="resolveIntegrationWidget(item)"
+							v-if="resolveIntegrationWidget(item)"
+							v-bind="getIntegrationProps(item)" />
+						<div v-else class="cn-dashboard-page__unknown">
+							{{ unavailableLabel }}
+						</div>
+					</CnWidgetWrapper>
+				</template>
+
 				<!-- NC Dashboard API widget -->
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
@@ -176,6 +200,10 @@ import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+
+/** Surfaces understood by the pluggable integration registry (AD-19). */
+const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
 /**
  * Subset of `widgetDef.props` keys that the chart widget dispatcher
@@ -292,6 +320,17 @@ export default {
 		cnAiContext: { default: null },
 	},
 
+	setup() {
+		// Wire the pluggable integration registry so widgets of type
+		// `integration` resolve their component reactively. No-op cost
+		// when no integration widgets are configured.
+		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		return {
+			registryIntegrations,
+			resolveRegistryWidget: resolveWidget,
+		}
+	},
+
 	props: {
 		/** Page title */
 		title: {
@@ -374,6 +413,31 @@ export default {
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget not available'),
+		},
+		/**
+		 * Rendering surface forwarded to integration widgets (widgets
+		 * whose `type === 'integration'`). Drives the AD-19 surface
+		 * fallback on `resolveWidget(integrationId, surface)`.
+		 *
+		 * @type {'user-dashboard'|'app-dashboard'|'detail-page'|'single-entity'}
+		 */
+		surface: {
+			type: String,
+			default: 'app-dashboard',
+			validator: (value) => INTEGRATION_SURFACES.includes(value),
+		},
+		/**
+		 * Object context forwarded to integration widgets:
+		 * `{ register, schema, objectId }`. Optional — most dashboards
+		 * aren't object-scoped, but CnDetailPage passes one through so
+		 * `CnFilesCard` / `CnTagsCard` / `CnAuditTrailCard` know which
+		 * object's sub-resources to fetch.
+		 *
+		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 */
+		integrationContext: {
+			type: Object,
+			default: null,
 		},
 	},
 
@@ -493,6 +557,53 @@ export default {
 		isNcWidget(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.itemApiVersions && def.itemApiVersions.length > 0
+		},
+
+		/**
+		 * Whether this layout item resolves to an integration-typed
+		 * widget — `def.type === 'integration'` with an `integrationId`
+		 * pointing at a provider registered on the pluggable
+		 * integration registry. Mirrors `isTile` / `isChart`.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef is an integration widget
+		 */
+		isIntegration(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'integration' && typeof def.integrationId === 'string'
+		},
+
+		/**
+		 * Resolve the Vue component for an integration widget, applying
+		 * the AD-19 surface fallback. Returns null when the integration
+		 * isn't registered (renders the unavailable fallback instead).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveIntegrationWidget(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || typeof def.integrationId !== 'string') {
+				return null
+			}
+			return this.resolveRegistryWidget(def.integrationId, this.surface)
+		},
+
+		/**
+		 * Props passed to an integration widget: the rendering surface,
+		 * the (optional) object context, and any extra `props` declared
+		 * on the widget definition (per-widget props win on overlap).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Props object for the widget component.
+		 */
+		getIntegrationProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return {
+				surface: this.surface,
+				...(this.integrationContext || {}),
+				...(def?.props || {}),
+			}
 		},
 
 		/**

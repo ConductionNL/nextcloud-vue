@@ -207,3 +207,73 @@ describe('CnDashboardPage — chart widget dispatcher', () => {
 		expect(wrapper.find('.cn-chart-widget-stub').exists()).toBe(false)
 	})
 })
+
+describe('CnDashboardPage — integration widget dispatcher', () => {
+	// CnDashboardPage's setup() consumes the default registry singleton.
+	const { integrations } = require('@/integrations/registry.js')
+	const { h } = require('vue')
+
+	const IntegrationWidget = {
+		name: 'IntegrationWidget',
+		props: ['surface', 'register', 'schema', 'objectId', 'extraProp'],
+		render() {
+			return h('div', { class: 'integration-widget' }, `${this.surface}|${this.objectId || ''}|${this.extraProp || ''}`)
+		},
+	}
+	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+
+	afterEach(() => integrations.__resetForTests())
+
+	it('renders the integration widget resolved from the registry', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: IntegrationWidget })
+		const widgets = [{ id: 'w1', title: 'Files', type: 'integration', integrationId: 'files' }]
+		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
+		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout }, stubs })
+		expect(wrapper.find('.integration-widget').exists()).toBe(true)
+		// default surface is app-dashboard
+		expect(wrapper.find('.integration-widget').text()).toContain('app-dashboard')
+		wrapper.destroy()
+	})
+
+	it('forwards the surface prop and integrationContext to the widget', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: IntegrationWidget })
+		const widgets = [{ id: 'w1', title: 'Files', type: 'integration', integrationId: 'files' }]
+		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
+		const wrapper = mount(CnDashboardPage, {
+			propsData: {
+				widgets, layout,
+				surface: 'detail-page',
+				integrationContext: { register: 'r', schema: 's', objectId: 'obj-1' },
+			},
+			stubs,
+		})
+		expect(wrapper.find('.integration-widget').text()).toContain('detail-page|obj-1')
+		wrapper.destroy()
+	})
+
+	it('merges per-widget props (def.props) into the widget', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: RegistryTab, widget: IntegrationWidget })
+		const widgets = [{ id: 'w1', title: 'Files', type: 'integration', integrationId: 'files', props: { extraProp: 'hello' } }]
+		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
+		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout }, stubs })
+		expect(wrapper.find('.integration-widget').text()).toContain('hello')
+		wrapper.destroy()
+	})
+
+	it('falls back to unavailableLabel when the integration is not registered', () => {
+		const widgets = [{ id: 'w1', title: 'Gone', type: 'integration', integrationId: 'not-registered' }]
+		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
+		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout, unavailableLabel: 'No widget here' }, stubs })
+		expect(wrapper.text()).toContain('No widget here')
+		expect(wrapper.find('.integration-widget').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('an integration widget def without integrationId is treated as unknown', () => {
+		const widgets = [{ id: 'w1', title: 'Bad', type: 'integration' }]
+		const layout = [{ id: 1, widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }]
+		const wrapper = mount(CnDashboardPage, { propsData: { widgets, layout, unavailableLabel: 'unknown' }, stubs })
+		expect(wrapper.text()).toContain('unknown')
+		wrapper.destroy()
+	})
+})

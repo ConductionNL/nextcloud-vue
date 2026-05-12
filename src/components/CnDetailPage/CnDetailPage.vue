@@ -124,7 +124,16 @@
 					<slot
 						:name="`widget-${item.widgetId}`"
 						:item="item"
-						:widget="findWidget(item)" />
+						:widget="findWidget(item)">
+						<!-- Fallback for `type: 'integration'` widget defs:
+						     render the registry widget on the detail-page
+						     surface. A consumer-supplied #widget-<id> slot
+						     still overrides this. -->
+						<component
+							:is="resolveIntegrationWidget(item)"
+							v-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
+							v-bind="getIntegrationProps(item)" />
+					</slot>
 				</section>
 			</div>
 
@@ -186,7 +195,11 @@ import { gridLayout } from '../../mixins/gridLayout.js'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
+
+/** Surfaces understood by the pluggable integration registry (AD-19). */
+const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
 /**
  * CnDetailPage — Generic detail/overview page.
@@ -286,6 +299,13 @@ export default {
 	},
 
 	setup(props) {
+		// Pluggable integration registry — used to resolve `type:
+		// 'integration'` widgets in the grid layout to their Vue
+		// component (AD-19 surface fallback). Always wired; cheap when
+		// no integration widgets are configured.
+		const { resolveWidget } = useIntegrationRegistry()
+		const registryExposed = { resolveRegistryWidget: resolveWidget }
+
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
 		// when subscribe is false (read-only / archive views), or when
@@ -293,7 +313,7 @@ export default {
 		// setup() keeps the lifecycle bound to the component scope —
 		// `tryOnScopeDispose` releases the subscription on unmount.
 		if (!props.objectStore || !props.subscribe) {
-			return { _lockState: null }
+			return { ...registryExposed, _lockState: null }
 		}
 		const subscription = useObjectSubscription(
 			props.objectStore,
@@ -310,6 +330,7 @@ export default {
 			() => props.objectId,
 		)
 		return {
+			...registryExposed,
 			_subscriptionStatus: subscription.status,
 			_lockState: lock,
 		}
@@ -404,6 +425,32 @@ export default {
 		sidebarProps: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * Rendering surface forwarded to integration widgets in the
+		 * grid layout (widget defs with `type === 'integration'`).
+		 * Drives the AD-19 surface fallback. Defaults to
+		 * `'detail-page'` — the surface this page represents.
+		 *
+		 * @type {'user-dashboard'|'app-dashboard'|'detail-page'|'single-entity'}
+		 */
+		surface: {
+			type: String,
+			default: 'detail-page',
+			validator: (value) => INTEGRATION_SURFACES.includes(value),
+		},
+		/**
+		 * Object context forwarded to integration widgets:
+		 * `{ register, schema, objectId }`. When omitted it is derived
+		 * from `sidebarProps.register` / `sidebarProps.schema` (or
+		 * `objectType`) and `objectId`, so `CnFilesCard` etc. can
+		 * fetch the right object's sub-resources without extra wiring.
+		 *
+		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 */
+		integrationContext: {
+			type: Object,
+			default: null,
 		},
 		/** Whether the page is in an error state */
 		error: {
@@ -577,6 +624,59 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether a grid-layout item resolves to an integration-typed
+		 * widget — `def.type === 'integration'` with a string
+		 * `integrationId`. Used by the grid template to render the
+		 * registry widget as the slot fallback.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is an integration widget
+		 */
+		isIntegrationWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'integration' && typeof def.integrationId === 'string'
+		},
+
+		/**
+		 * Resolve the Vue component for an integration widget, applying
+		 * the AD-19 surface fallback. Null when the integration isn't
+		 * registered (the grid section simply renders nothing extra).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveIntegrationWidget(item) {
+			const def = this.findWidget(item)
+			if (!def || typeof def.integrationId !== 'string') {
+				return null
+			}
+			return this.resolveRegistryWidget(def.integrationId, this.surface)
+		},
+
+		/**
+		 * Props passed to an integration widget: surface, object
+		 * context (explicit `integrationContext` prop, else derived
+		 * from the sidebar config + objectId), and per-widget `props`.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Props object for the widget component.
+		 */
+		getIntegrationProps(item) {
+			const def = this.findWidget(item)
+			const resolved = this.resolvedSidebar || {}
+			const derivedContext = {
+				register: resolved.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.objectType || this.sidebarProps?.schema || '',
+				objectId: this.objectId ? String(this.objectId) : '',
+			}
+			return {
+				surface: this.surface,
+				...(this.integrationContext || derivedContext),
+				...(def?.props || {}),
+			}
+		},
+
 		/**
 		 * Push pageKind + objectUuid + register/schema context into the
 		 * reactive cnAiContext holder so the AI Chat Companion knows
