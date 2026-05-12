@@ -2,21 +2,22 @@
 
 ### Props
 
-| Name             | Type     | Required | Default                                 | Description                                                                     |
-| ---------------- | -------- | -------- | --------------------------------------- | ------------------------------------------------------------------------------- |
-| `schema`         | `object` |          | `null`                                  | Schema for auto-generating fields. Either schema or fields must be provided.    |
-| `item`           | `object` |          | `null`                                  | Existing item for edit mode. Pass null for create mode.                         |
-| `dialogTitle`    | `string` |          | `''`                                    | Dialog title. Defaults to "Create \{schema.title\}" or "Edit \{schema.title\}". |
-| `fields`         | `array`  |          | `null`                                  | Manual field definitions. Overrides schema-generated fields when provided.      |
-| `excludeFields`  | `array`  |          | `[]`                                    | Field keys to exclude from auto-generated form                                  |
-| `includeFields`  | `array`  |          | `null`                                  | Field keys to include (whitelist mode)                                          |
-| `fieldOverrides` | `object` |          | `\{\}`                                  | Per-field overrides passed to fieldsFromSchema                                  |
-| `nameField`      | `string` |          | `'title'`                               | Which field is the "name" (used in result messages)                             |
-| `size`           | `string` |          | `'normal'`                              | NcDialog size                                                                   |
-| `successText`    | `string` |          | `''`                                    | Success message. Defaults to "Item saved successfully."                         |
-| `cancelLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')` |                                                                                 |
-| `closeLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`  |                                                                                 |
-| `confirmLabel`   | `string` |          | `''`                                    | Confirm button label. Defaults to "Create" or "Save".                           |
+| Name               | Type     | Required | Default                                 | Description                                                                                                                                                                      |
+| ------------------ | -------- | -------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema`           | `object` |          | `null`                                  | Schema for auto-generating fields. Either schema or fields must be provided.                                                                                                     |
+| `item`             | `object` |          | `null`                                  | Existing item for edit mode. Pass null for create mode.                                                                                                                          |
+| `dialogTitle`      | `string` |          | `''`                                    | Dialog title. Defaults to "Create \{schema.title\}" or "Edit \{schema.title\}".                                                                                                  |
+| `fields`           | `array`  |          | `null`                                  | Manual field definitions. Overrides schema-generated fields when provided.                                                                                                       |
+| `excludeFields`    | `array`  |          | `[]`                                    | Field keys to exclude from auto-generated form                                                                                                                                   |
+| `includeFields`    | `array`  |          | `null`                                  | Field keys to include (whitelist mode)                                                                                                                                           |
+| `fieldOverrides`   | `object` |          | `\{\}`                                  | Per-field overrides passed to fieldsFromSchema                                                                                                                                   |
+| `referenceContext` | `union`  |          | `null`                                  | Object context forwarded to integration single-entity widgets rendered for fields that declare a `referenceType` (AD-18) — an object `{ register, schema, objectId }`. Optional. |
+| `nameField`        | `string` |          | `'title'`                               | Which field is the "name" (used in result messages)                                                                                                                              |
+| `size`             | `string` |          | `'normal'`                              | NcDialog size                                                                                                                                                                    |
+| `successText`      | `string` |          | `''`                                    | Success message. Defaults to "Item saved successfully."                                                                                                                          |
+| `cancelLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')` |                                                                                                                                                                                  |
+| `closeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`  |                                                                                                                                                                                  |
+| `confirmLabel`     | `string` |          | `''`                                    | Confirm button label. Defaults to "Create" or "Save".                                                                                                                            |
 
 ### Events
 
