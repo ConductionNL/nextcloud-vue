@@ -179,6 +179,16 @@
 				:is="cnIndexSidebarConfig.value.component"
 				v-bind="cnIndexSidebarConfig.value.props"
 				v-on="cnIndexSidebarConfig.value.listeners" />
+
+			<!--
+			  AI Chat Companion — auto-mounted at the END of NcContent's
+			  children so its embedded NcAppSidebar slides in from the right
+			  edge (positioning relies on being the last NcContent sibling,
+			  same trick the hoisted index-page sidebar above uses).
+			  Gating (health probe, pageKind overrides) happens inside the
+			  component. No per-app wiring required.
+			-->
+			<CnAiCompanion />
 		</template>
 	</NcContent>
 </template>
@@ -190,7 +200,9 @@ import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutli
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import Vue from 'vue'
 
 /**
  * Default URL for the OpenRegister integration page. The empty-state
@@ -212,6 +224,7 @@ export default {
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnAiCompanion,
 	},
 
 	provide() {
@@ -220,6 +233,13 @@ export default {
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
+			/**
+			 * Reactive AI context holder. Page components (CnIndexPage,
+			 * CnDetailPage, CnDashboardPage) overwrite fields on this object
+			 * in created() and watch() so the widget sees live context.
+			 * The same object reference is stable for the lifetime of CnAppRoot.
+			 */
+			cnAiContext: this.cnAiContext,
 			/**
 			 * Reactive holder that descendants — specifically
 			 * CnIndexPage — write to in order to mount their embedded
@@ -414,6 +434,22 @@ export default {
 			 * docs for the contract.
 			 */
 			cnIndexSidebarConfig: { value: null },
+			/**
+			 * Reactive AI context. Provided to all descendants via
+			 * provide('cnAiContext'). Page components overwrite fields
+			 * in their created() + watch() to give the companion
+			 * per-page context. The same object reference is stable
+			 * across the lifetime of CnAppRoot.
+			 *
+			 * Shape: CnAiContext (hydra-locked TypeScript interface)
+			 *   { appId, pageKind, objectUuid?, registerSlug?,
+			 *     schemaSlug?, route? }
+			 */
+			cnAiContext: Vue.observable({
+				appId: this.appId || 'unknown',
+				pageKind: 'custom',
+				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
+			}),
 		}
 	},
 

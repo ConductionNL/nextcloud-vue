@@ -436,6 +436,25 @@ aliases — pick whichever feels natural.
 | `mass-actions` | `{ count, selectedIds }` | Extra mass action buttons shown when items are selected |
 | `action-items` | — | Extra buttons in the action bar |
 | `actions` | — | Extra action bar buttons (alias) |
+## AI Chat Companion — Context push
+
+`CnIndexPage` writes into the `cnAiContext` reactive object injected by the nearest `CnAppRoot` ancestor so the AI companion can refer to the current register and schema when answering user questions.
+
+| Field written | When | Value |
+|---|---|---|
+| `pageKind` | `created()` and on prop changes | `'index'` |
+| `registerSlug` | `created()` and on prop changes | value of the `register` prop |
+| `schemaSlug` | `created()` and on prop changes | value of the `schema` prop |
+| `objectUuid` | `beforeDestroy()` only | cleared to `undefined` |
+
+In `beforeDestroy()` all three fields are reset (`pageKind → 'custom'`, `registerSlug` and `schemaSlug` cleared) so the companion reverts to the default idle context when the user navigates away.
+
+No new props are required on `CnIndexPage`.
+
+## Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
 | `delete-dialog` | `{ item, close }` | Replace the single-item delete dialog |
 | `copy-dialog` | `{ item, close }` | Replace the single-item copy dialog |
 | `form-dialog` | `{ item, schema, close }` | Replace the create/edit form dialog |

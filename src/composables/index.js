@@ -1,3 +1,5 @@
+export { useAiContext, CN_AI_CONTEXT_KEY } from './useAiContext.js'
+export { useAiChatStream } from './useAiChatStream.js'
 export { useListView } from './useListView.js'
 export { useDetailView } from './useDetailView.js'
 export { useSubResource } from './useSubResource.js'

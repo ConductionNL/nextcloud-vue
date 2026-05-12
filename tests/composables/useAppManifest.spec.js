@@ -435,4 +435,134 @@ describe('useAppManifest', () => {
 			expect(validationErrors.value).toBeNull()
 		})
 	})
+
+	// -----------------------------------------------------------------
+	// in-memory-app-manifest-loader — REQ-IMM-001..REQ-IMM-004
+	// -----------------------------------------------------------------
+	// The new overload `useAppManifest({ manifest, validate? })` mounts an
+	// already-constructed manifest object synchronously, with no backend
+	// fetch, no deep-merge, no sentinel resolution. Designed for
+	// virtual-app hosts (OpenBuilt) and any future consumer that
+	// constructs its manifest in memory.
+	describe('in-memory manifest overload', () => {
+		it('returns the input manifest by reference and emits no HTTP request', () => {
+			// REQ-IMM-001 + REQ-IMM-002: no fetcher / axios / generateUrl
+			// call MUST be made; manifest ref MUST hold the input object
+			// (by reference, not a clone); isLoading is false from the
+			// first read.
+			axios.get.mockImplementation(() => {
+				throw new Error('axios.get must not be called in in-memory branch')
+			})
+			const inMemoryManifest = {
+				version: '1.0.0',
+				menu: [{ id: 'home', label: 'app.home' }],
+				pages: [
+					{ id: 'home', route: '/', type: 'index', title: 'app.home', config: { register: 'r1', schema: 's1' } },
+				],
+			}
+			const { manifest, isLoading, validationErrors, unresolvedSentinels } = useAppManifest({
+				manifest: inMemoryManifest,
+			})
+			// Same reference — composable MUST NOT clone.
+			expect(manifest.value).toBe(inMemoryManifest)
+			expect(isLoading.value).toBe(false)
+			expect(validationErrors.value).toBeNull()
+			expect(unresolvedSentinels.value).toEqual([])
+			expect(axios.get).not.toHaveBeenCalled()
+		})
+
+		it('skips validation when `validate` is omitted', () => {
+			// REQ-IMM-003: when `validate` is omitted/undefined/false the
+			// composable MUST NOT invoke validateManifest. The simplest
+			// proof is that a structurally invalid manifest produces no
+			// validationErrors and no console.warn.
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const invalidManifest = { /* missing required version/menu/pages */ }
+			const { validationErrors } = useAppManifest({ manifest: invalidManifest })
+			expect(validationErrors.value).toBeNull()
+			expect(warnSpy).not.toHaveBeenCalled()
+			warnSpy.mockRestore()
+		})
+
+		it('runs validateManifest on `validate: true` with a valid manifest and emits no warning', () => {
+			// REQ-IMM-003 happy path.
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const { manifest, validationErrors, isLoading } = useAppManifest({
+				manifest: validBundled,
+				validate: true,
+			})
+			expect(manifest.value).toBe(validBundled)
+			expect(validationErrors.value).toBeNull()
+			expect(isLoading.value).toBe(false)
+			expect(warnSpy).not.toHaveBeenCalled()
+			warnSpy.mockRestore()
+		})
+
+		it('populates validationErrors and warns on `validate: true` with an invalid manifest', () => {
+			// REQ-IMM-003 failure path: validation is informational —
+			// manifest ref MUST still hold the input value, isLoading MUST
+			// still be false, console.warn MUST be emitted with the
+			// `[useAppManifest]` prefix.
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const invalidManifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [
+					{ id: 'dup', route: '/a', type: 'index', title: 'a' },
+					{ id: 'dup', route: '/b', type: 'index', title: 'b' },
+				],
+			}
+			const { manifest, validationErrors, isLoading } = useAppManifest({
+				manifest: invalidManifest,
+				validate: true,
+			})
+			// Validation populated but manifest is mounted unchanged.
+			expect(manifest.value).toBe(invalidManifest)
+			expect(isLoading.value).toBe(false)
+			expect(validationErrors.value).not.toBeNull()
+			expect(Array.isArray(validationErrors.value)).toBe(true)
+			expect(validationErrors.value.some((e) => e.includes('unique'))).toBe(true)
+			// REQ-IMM-003: warn message MUST begin with `[useAppManifest]`.
+			expect(warnSpy).toHaveBeenCalled()
+			const warnArgs = warnSpy.mock.calls[0]
+			expect(typeof warnArgs[0]).toBe('string')
+			expect(warnArgs[0].startsWith('[useAppManifest]')).toBe(true)
+			warnSpy.mockRestore()
+		})
+
+		it('does not invoke generateUrl when called via in-memory shape', () => {
+			// REQ-IMM-002: no backend endpoint URL is computed.
+			const generateUrlMock = require('@nextcloud/router').generateUrl
+			generateUrlMock.mockClear()
+			useAppManifest({ manifest: validBundled })
+			expect(generateUrlMock).not.toHaveBeenCalled()
+		})
+
+		it('returns the canonical { manifest, isLoading, validationErrors, unresolvedSentinels } shape', () => {
+			// REQ-IMM-001: same return shape as the legacy branch.
+			const result = useAppManifest({ manifest: validBundled })
+			expect(result).toHaveProperty('manifest')
+			expect(result).toHaveProperty('isLoading')
+			expect(result).toHaveProperty('validationErrors')
+			expect(result).toHaveProperty('unresolvedSentinels')
+			expect(result.manifest).toHaveProperty('value')
+			expect(result.isLoading).toHaveProperty('value')
+			expect(result.validationErrors).toHaveProperty('value')
+			expect(result.unresolvedSentinels).toHaveProperty('value')
+		})
+
+		it('regression: legacy positional signature still triggers the fetcher', async () => {
+			// REQ-IMM-004: a string first argument MUST enter the legacy
+			// fetch-and-merge branch unchanged.
+			axios.get.mockResolvedValue({ status: 200, data: validBundled })
+			const { manifest, isLoading } = useAppManifest('openregister', validBundled)
+			// Initial state: bundled mounted, loading true.
+			expect(manifest.value).toEqual(validBundled)
+			expect(isLoading.value).toBe(true)
+			await flush()
+			expect(axios.get).toHaveBeenCalledTimes(1)
+			expect(axios.get).toHaveBeenCalledWith('/index.php/apps/openregister/api/manifest')
+			expect(isLoading.value).toBe(false)
+		})
+	})
 })

@@ -97,6 +97,10 @@ export {
 	registerIcons,
 } from './components/index.js'
 
+// AI Chat Companion component family
+export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
+export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
+
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
 export { createCrudStore } from './store/index.js'
@@ -119,6 +123,7 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
+export { useAiContext, useAiChatStream } from './composables/index.js'
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown } from './composables/index.js'
 
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
