@@ -88,6 +88,12 @@ export {
 	CnAppLoading,
 	CnDependencyMissing,
 	CnAppRoot,
+	CnFeaturesAndRoadmapLink,
+	CnFeaturesAndRoadmapView,
+	CnFeaturesTab,
+	CnRoadmapTab,
+	CnRoadmapItem,
+	CnSuggestFeatureModal,
 	registerIcons,
 } from './components/index.js'
 
@@ -119,6 +125,14 @@ export {
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown } from './composables/index.js'
+
+// Composables — Features & roadmap menu (add-features-roadmap-menu)
+export { useSpecRef } from './composables/useSpecRef.js'
+export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
+
+// Utilities — Features & roadmap menu (add-features-roadmap-menu)
+export { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from './utils/safeMarkdownDompurifyConfig.js'
+export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'

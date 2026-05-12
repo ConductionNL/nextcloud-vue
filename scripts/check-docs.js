@@ -349,11 +349,24 @@ function checkComponentDetail(componentName, docPath) {
 // ---------------------------------------------------------------------------
 
 /**
- * Convert PascalCase or camelCase to kebab-case.
+ * Convert PascalCase, camelCase, or SCREAMING_SNAKE_CASE to kebab-case.
+ *
+ * SCREAMING_SNAKE_CASE detection — when the name contains an underscore we
+ * treat it as snake-cased and just lowercase + replace `_` with `-`. Without
+ * this branch, `SAFE_MARKDOWN_DOMPURIFY_CONFIG` would become
+ * `s-a-f-e_-m-a-r-k-d-o-w-n_...` because the per-uppercase-character regex
+ * would insert a dash before every capital. Constants like
+ * `SAFE_MARKDOWN_DOMPURIFY_CONFIG` and `ROADMAP_LABEL_BLOCKLIST` map cleanly
+ * to `safe-markdown-dompurify-config.md` / `roadmap-label-blocklist.md` this
+ * way.
+ *
  * @param {string} name identifier to convert
  * @return {string} kebab-cased form
  */
 function toKebab(name) {
+	if (name.includes('_')) {
+		return name.toLowerCase().replace(/_/g, '-')
+	}
 	return name.replace(/([A-Z])/g, (m, l, i) => (i === 0 ? '' : '-') + l.toLowerCase())
 }
 
