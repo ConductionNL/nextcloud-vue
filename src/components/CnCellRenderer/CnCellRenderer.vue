@@ -1,7 +1,23 @@
 <template>
 	<span class="cn-cell-renderer" :class="cellClass">
+		<!-- Consumer-registered cell widget (cnCellWidgets[column.widget]) -->
+		<component
+			:is="widgetComponent"
+			v-if="widgetComponent"
+			:value="value"
+			:row="row"
+			:property="property"
+			:formatted="formattedValue"
+			v-bind="widgetProps" />
+
+		<!-- Built-in "badge" widget — renders the (possibly formatter-shaped) value as a status pill -->
+		<template v-else-if="widget === 'badge'">
+			<CnStatusBadge v-if="hasValue" :label="String(formattedValue)" :variant="badgeVariant" />
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
-		<template v-if="hasFormatter">
+		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
 		</template>
 
@@ -64,6 +80,13 @@ export default {
 		 * ancestor) is unaffected.
 		 */
 		cnFormatters: { default: () => ({}) },
+		/**
+		 * Cell-widget registry, provided by CnAppRoot (`cnCellWidgets`).
+		 * Map of widget-id → Vue component. Resolves a column's `widget` id;
+		 * the built-in `"badge"` is handled inline (no registry entry needed).
+		 * Defaults to an empty object.
+		 */
+		cnCellWidgets: { default: () => ({}) },
 	},
 
 	props: {
@@ -88,6 +111,24 @@ export default {
 			default: null,
 		},
 		/**
+		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
+		 * name). When it resolves in `cnCellWidgets` the cell renders that
+		 * component with `{ value, row, property, formatted, ...widgetProps }`;
+		 * the built-in id `"badge"` renders `CnStatusBadge`. Takes precedence
+		 * over `formatter`/the type-aware rendering, but the value handed to
+		 * the widget is the formatter-shaped `formatted` when `formatter` is
+		 * also set.
+		 */
+		widget: {
+			type: String,
+			default: null,
+		},
+		/** Extra props spread onto the resolved cell-widget component. */
+		widgetProps: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
 		 * The full row object — passed so a formatter can be a function of
 		 * the whole record (e.g. "days since `@self.updated`"), not just
 		 * this one cell value.
@@ -110,6 +151,30 @@ export default {
 
 		isEnum() {
 			return !!(this.property?.enum && this.property.enum.length > 0)
+		},
+
+		/** True when the cell has a renderable value (not null/undefined/empty string). */
+		hasValue() {
+			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * Resolved cell-widget component for this column, or `null`. A column's
+		 * `widget` id resolves against the injected `cnCellWidgets` registry;
+		 * the built-in `"badge"` is NOT resolved here (handled inline in the
+		 * template) so apps can still override `"badge"` via the registry.
+		 *
+		 * @return {object|Function|null}
+		 */
+		widgetComponent() {
+			if (!this.widget) return null
+			const c = this.cnCellWidgets && this.cnCellWidgets[this.widget]
+			return c || null
+		},
+
+		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
+		badgeVariant() {
+			return (this.widgetProps && this.widgetProps.variant) || 'default'
 		},
 
 		/**

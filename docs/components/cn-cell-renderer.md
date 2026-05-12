@@ -24,6 +24,8 @@ Type-aware cell renderer for schema-driven tables. Automatically formats values 
 | `value` | any | `null` | Cell value |
 | `property` | Object | `\{\}` | Schema property definition |
 | `formatter` | String | `null` | Optional cell-formatter id (e.g. `currency`, `automationTrigger`). When set and resolvable in the injected `cnFormatters` registry (provided by `CnAppRoot`), the cell renders `cnFormatters[formatter](value, row, property)` as text — overriding the type-aware rendering. Unknown id / missing registry / a throwing formatter all fall back. See [migrating-to-manifest → Column formatters](../migrating-to-manifest.md#column-formatters). |
+| `widget` | String | `null` | Optional cell-widget id. When it resolves in the injected `cnCellWidgets` registry (provided by `CnAppRoot`), the cell renders that component with `{ value, row, property, formatted, ...widgetProps }`; the built-in id `"badge"` renders `CnStatusBadge`. Takes precedence over `formatter` / the type-aware rendering (the widget gets the formatter-shaped value as `formatted` when `formatter` is also set). Unknown id falls back. See [migrating-to-manifest → Column widgets](../migrating-to-manifest.md#column-widgets). |
+| `widgetProps` | Object | `\{\}` | Extra props spread onto the resolved cell-widget component (e.g. `{ variant: 'warning' }` for the built-in `badge`). |
 | `row` | Object | `\{\}` | The full row object — passed so a formatter can be a function of the whole record (e.g. "days since `@self.updated`"), not just this one cell value. |
 | `truncate` | Number | `100` | Max string length before truncation |
 
