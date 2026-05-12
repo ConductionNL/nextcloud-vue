@@ -79,14 +79,16 @@
 						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
 						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
-							<!-- Schema-driven: use CnCellRenderer -->
+							<!-- Schema-driven: use CnCellRenderer (it resolves col.formatter itself) -->
 							<CnCellRenderer
 								v-if="isSchemaColumn(col)"
 								:value="getCellValue(row, col.key)"
-								:property="getSchemaProperty(col.key)" />
-							<!-- Manual: plain text -->
+								:property="getSchemaProperty(col.key)"
+								:formatter="col.formatter || null"
+								:row="row" />
+							<!-- Manual: plain text, optionally run through a registered formatter -->
 							<template v-else>
-								{{ getCellValue(row, col.key) }}
+								{{ formatCell(row, col) }}
 							</template>
 						</slot>
 					</td>
@@ -156,6 +158,16 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+	},
+
+	inject: {
+		/**
+		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
+		 * Used by `formatCell()` for manual (non-schema) columns; schema
+		 * columns pass the formatter id straight through to CnCellRenderer.
+		 * Defaults to an empty object so standalone use is unaffected.
+		 */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -299,6 +311,32 @@ export default {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
 			return row[key]
+		},
+
+		/**
+		 * Render a cell for a manual (non-schema) column. If the column
+		 * declares a `formatter` id that resolves in the injected
+		 * `cnFormatters` registry, the value flows through
+		 * `formatter(value, row, column)`; otherwise the raw value is
+		 * returned. (Schema columns get the same treatment inside
+		 * CnCellRenderer via the `:formatter` / `:row` props.)
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {*} The (optionally formatted) cell value.
+		 */
+		formatCell(row, col) {
+			const value = this.getCellValue(row, col.key)
+			const fn = col.formatter && this.cnFormatters && this.cnFormatters[col.formatter]
+			if (typeof fn === 'function') {
+				try {
+					return fn(value, row, col)
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDataTable] formatter "${col.formatter}" threw; falling back`, e)
+				}
+			}
+			return value
 		},
 
 		/**

@@ -571,6 +571,59 @@ const customComponents = {
 
 Pass it to `CnAppRoot` (Tier 4) or to `CnPageRenderer` (Tier 2/3). The library statically imports nothing app-specific — your registry is the audit point for "what custom code does this app actually have?".
 
+## Column formatters
+
+When a `type: "index"` (or `type: "logs"`) page needs a column rendered through app-specific logic — a status-label map, "days in step", a currency/locale format, a human label for an enum-ish code — you don't need a bespoke `type: "custom"` table view just for that. Declare a `formatter` id on the column and register the function:
+
+```jsonc
+// manifest.json
+{
+  "id": "automations",
+  "route": "/automations",
+  "type": "index",
+  "title": "myapp.automations.title",
+  "config": {
+    "register": "myapp",
+    "schema": "automation",
+    "columns": [
+      "name",
+      { "key": "trigger", "label": "myapp.automations.trigger", "formatter": "automationTrigger" },
+      { "key": "@self.updated", "label": "myapp.automations.daysIdle", "formatter": "daysSince", "align": "right" },
+      "isActive",
+      "runCount"
+    ]
+  }
+}
+```
+
+```js
+// src/formatters.js — small pure data functions, no Vue
+export default {
+  // (value, row, property) => string | number
+  automationTrigger: (value) => ({
+    'lead.created': t('myapp', 'Lead created'),
+    'request.received': t('myapp', 'Request received'),
+  }[value] ?? value),
+  daysSince: (value) => value ? Math.floor((Date.now() - new Date(value)) / 86400000) : '—',
+}
+```
+
+```js
+// main.js — pass it through CnAppRoot
+import formatters from './formatters.js'
+// …
+render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatters } }),
+```
+
+```vue
+<!-- App.vue — forward to CnAppRoot -->
+<CnAppRoot :manifest="manifest" :custom-components="customComponents" :page-types="pageTypes" :formatters="formatters" … />
+```
+
+`CnAppRoot` provides the registry as `cnFormatters`; `CnDataTable` / `CnCellRenderer` resolve `columns[].formatter` against it (and pass the formatter the full `row`, so it can be a function of the whole record). A column with no `formatter`, or an app that passes no `formatters`, renders exactly as before; a formatter that throws degrades that one cell (logged) and falls back to the type-aware rendering. Like `customComponents`, `src/formatters.js` is the audit point for "what app-specific data shaping does this app do?" — keep the Vue layer abstract, push the per-row logic here.
+
+> `columns[].aggregate` (related-object counts/sums via OpenRegister aggregations / GraphQL) and `columns[].widget` (a cell-component registry for badges / links / inline toggles) are planned follow-ups; until then, those still need a `type: "custom"` view.
+
 ## Sidebar (manifest-driven)
 
 Both index and detail pages can drive their sidebar entirely from `manifest.json` — no consumer-side wiring required for the common shapes.

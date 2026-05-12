@@ -1,7 +1,12 @@
 <template>
 	<span class="cn-cell-renderer" :class="cellClass">
+		<!-- Explicit column formatter — overrides the type-aware paths below -->
+		<template v-if="hasFormatter">
+			<span :title="rawTitle">{{ formattedValue }}</span>
+		</template>
+
 		<!-- Boolean: icon -->
-		<template v-if="propertyType === 'boolean'">
+		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
@@ -51,6 +56,16 @@ export default {
 		CheckBold,
 	},
 
+	inject: {
+		/**
+		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
+		 * Map of formatter-id → `(value, row, property) => string|number`.
+		 * Defaults to an empty object so standalone use (no CnAppRoot
+		 * ancestor) is unaffected.
+		 */
+		cnFormatters: { default: () => ({}) },
+	},
+
 	props: {
 		/** The raw cell value */
 		value: {
@@ -59,6 +74,25 @@ export default {
 		},
 		/** Schema property definition: { type, format, enum, items, title } */
 		property: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
+		 * When set and resolvable in the injected `cnFormatters` registry,
+		 * the cell renders `cnFormatters[formatter](value, row, property)`
+		 * as text — an explicit override of the type-aware rendering below.
+		 */
+		formatter: {
+			type: String,
+			default: null,
+		},
+		/**
+		 * The full row object — passed so a formatter can be a function of
+		 * the whole record (e.g. "days since `@self.updated`"), not just
+		 * this one cell value.
+		 */
+		row: {
 			type: Object,
 			default: () => ({}),
 		},
@@ -78,7 +112,31 @@ export default {
 			return !!(this.property?.enum && this.property.enum.length > 0)
 		},
 
+		/**
+		 * Resolved formatter function for this cell, or `null`. A column's
+		 * `formatter` id resolves against the injected `cnFormatters` registry.
+		 *
+		 * @return {Function|null}
+		 */
+		formatterFn() {
+			const fn = this.formatter && this.cnFormatters && this.cnFormatters[this.formatter]
+			return typeof fn === 'function' ? fn : null
+		},
+
+		/** True when an explicit formatter is in play for this cell. */
+		hasFormatter() {
+			return this.formatterFn !== null
+		},
+
 		formattedValue() {
+			if (this.formatterFn) {
+				try {
+					return this.formatterFn(this.value, this.row, this.property)
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
+				}
+			}
 			return formatValue(this.value, this.property, { truncate: this.truncate })
 		},
 

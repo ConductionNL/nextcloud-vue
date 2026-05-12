@@ -58,3 +58,25 @@ Date/UUID — formatted with monospace styling:
   <CnCellRenderer value="a1b2c3d4-e5f6-7890-abcd-ef1234567890" :property="{ type: 'string', format: 'uuid' }" />
 </div>
 ```
+
+Column formatter — when a `formatter` id is set and resolves in the injected
+`cnFormatters` registry (provided by `CnAppRoot`), the cell renders
+`cnFormatters[formatter](value, row, property)` as text, overriding the
+type-aware paths above. `CnDataTable` passes `:formatter="col.formatter"` and
+`:row="row"` for schema columns; for manual columns it runs the value through
+`formatCell(row, col)`. Unknown ids / a missing registry / a throwing formatter
+fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
+"Column formatters" for the consumer-side wiring (`src/formatters.js` +
+`:formatters` on `CnAppRoot`).
+
+```vue
+<CnCellRenderer
+  value="lead.created"
+  :row="{ trigger: 'lead.created', name: 'Welcome flow' }"
+  :property="{ type: 'string' }"
+  formatter="automationTrigger" />
+```
+
+> The example above needs an ancestor that `provide`s `cnFormatters` (e.g.
+> `cnFormatters: { automationTrigger: v => ({ 'lead.created': 'Lead created' }[v] ?? v) }`);
+> standalone (no provider) it falls back to rendering the raw value.
