@@ -279,6 +279,11 @@ function validateTypeConfig(page, index, errors) {
 		// present.
 		validateWidgetsArray(cfg, pathSlash, pathBracket, errors)
 		validateLayoutArray(cfg, pathSlash, pathBracket, errors)
+		// `manifest-widget-ref-page-content-type` — validate the
+		// declarative content[] array. Each item MUST be a `widget-ref`
+		// object with a valid `ref` URI. OPTIONAL — only validated when
+		// the `content` key is present.
+		validateContentArray(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'settings': {
@@ -1016,6 +1021,54 @@ function validateMenuItemVisibleIf(visibleIf, path, errors) {
 		}
 		// Scalar predicates (string, number, boolean, null) are always valid.
 	}
+}
+
+/**
+ * Pattern matching the `openregister://widget/<schemaSlug>/<widgetSlug>` URI.
+ * schemaSlug: lowercase alphanumeric + hyphens.
+ * widgetSlug: starts with a letter (upper or lower), then alphanumeric + hyphens.
+ *   camelCase is supported (e.g. `coverageGrid`).
+ */
+const WIDGET_REF_URI_PATTERN = /^openregister:\/\/widget\/[a-z0-9-]+\/[a-zA-Z][a-zA-Z0-9-]+$/
+
+/**
+ * Validate `config.content[]` for dashboard page type
+ * (`manifest-widget-ref-page-content-type`). Each item MUST be an
+ * object with:
+ *   - `type` === "widget-ref" (the only supported discriminator)
+ *   - `ref` matching `openregister://widget/<schemaSlug>/<widgetSlug>`
+ *
+ * Skipped silently when `cfg` or `cfg.content` is missing.
+ *
+ * @param {object|null} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateContentArray(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.content === undefined) return
+	if (!Array.isArray(cfg.content)) {
+		errors.push(`${pathSlash}/content: ${pathBracket}.content: must be an array when set`)
+		return
+	}
+	cfg.content.forEach((item, cIndex) => {
+		const itemPath = `${pathSlash}/content/${cIndex}`
+		if (!isPlainObject(item)) {
+			errors.push(`${itemPath}: must be an object`)
+			return
+		}
+		if (item.type !== 'widget-ref') {
+			errors.push(`${itemPath}/type: must be "widget-ref" (got "${item.type}")`)
+		}
+		if (typeof item.ref !== 'string' || item.ref.length === 0) {
+			errors.push(`${itemPath}/ref: must be a non-empty string`)
+		} else if (!WIDGET_REF_URI_PATTERN.test(item.ref)) {
+			errors.push(
+				`${itemPath}/ref: "${item.ref}" must match openregister://widget/<schemaSlug>/<widgetSlug> `
+				+ '(slugs: lowercase letters, digits, hyphens; widgetSlug must start with a letter)',
+			)
+		}
+	})
 }
 
 /**

@@ -479,7 +479,7 @@ export default {
 		 * widgets rendered for fields that declare a `referenceType`
 		 * (AD-18): `{ register, schema, objectId }`. Optional.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		referenceContext: {
 			type: Object,

@@ -58,7 +58,24 @@
 			</slot>
 		</div>
 
-		<!-- Dashboard grid -->
+		<!-- Widget-ref content items (manifest-widget-ref-page-content-type).
+		     Rendered above the classic GridStack grid when present. Each item
+		     is a `{ type: 'widget-ref', ref: 'openregister://widget/…' }` entry
+		     from the manifest's `pages[].config.content[]` array. -->
+		<div
+			v-else-if="widgetRefItems.length > 0"
+			class="cn-dashboard-page__content">
+			<CnWidgetRefItem
+				v-for="(item, idx) in widgetRefItems"
+				:key="item.ref + '-' + idx"
+				:ref-uri="item.ref"
+				class="cn-dashboard-page__content-item" />
+		</div>
+
+		<!-- Dashboard grid (classic widgets+layout mode).
+		     Uses v-else so the `v-else-if="!hasWidgets"` empty state and the
+		     `v-else-if="widgetRefItems.length > 0"` content-items section
+		     are mutually exclusive with the grid. -->
 		<CnDashboardGrid
 			v-else
 			:layout="layout"
@@ -200,6 +217,7 @@ import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -310,6 +328,7 @@ export default {
 		CnTileWidget,
 		CnChartWidget,
 		CnStatsBlockWidget,
+		CnWidgetRefItem,
 	},
 
 	inject: {
@@ -366,6 +385,27 @@ export default {
 		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Declarative content items. Each item is a `widget-ref` entry from the
+		 * manifest's `pages[].config.content[]` array:
+		 *
+		 *   `{ type: 'widget-ref', ref: 'openregister://widget/<schemaSlug>/<widgetSlug>' }`
+		 *
+		 * CnDashboardPage renders each widget-ref item as a `CnWidgetRefItem`
+		 * which resolves the widget from OR's registry at runtime and renders
+		 * the resolved component. Only `widget-ref` entries are processed; unknown
+		 * `type` values are skipped with a `console.warn`.
+		 *
+		 * When both `content` (widget-ref items) and `widgets`+`layout` (classic
+		 * GridStack layout) are present, `content` items are rendered above the
+		 * grid in a stacked list.
+		 *
+		 * @type {Array<{ type: string, ref: string }>}
+		 */
+		content: {
 			type: Array,
 			default: () => [],
 		},
@@ -433,7 +473,7 @@ export default {
 		 * `CnFilesCard` / `CnTagsCard` / `CnAuditTrailCard` know which
 		 * object's sub-resources to fetch.
 		 *
-		 * @type {?{ register?: string, schema?: string, objectId?: string }}
+		 * @type {object|null}
 		 */
 		integrationContext: {
 			type: Object,
@@ -450,8 +490,12 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * True when the dashboard has either classic grid widgets (via
+		 * `layout`) or declarative `content[]` widget-ref items to render.
+		 */
 		hasWidgets() {
-			return this.layout.length > 0
+			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
 
 		widgetMap() {
@@ -460,6 +504,30 @@ export default {
 				map[w.id] = w
 			}
 			return map
+		},
+
+		/**
+		 * Filtered list of `widget-ref` items from `content[]`.
+		 * Unknown `type` values are logged and excluded so future
+		 * content item types can be added without breaking existing
+		 * dashboards.
+		 *
+		 * @return {Array<{ type: 'widget-ref', ref: string }>}
+		 */
+		widgetRefItems() {
+			const out = []
+			for (const item of this.content) {
+				if (!item || typeof item !== 'object') continue
+				if (item.type === 'widget-ref') {
+					out.push(item)
+				} else {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`,
+					)
+				}
+			}
+			return out
 		},
 	},
 
@@ -751,5 +819,16 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	padding: 16px;
+}
+
+/* widget-ref content items */
+.cn-dashboard-page__content {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.cn-dashboard-page__content-item {
+	width: 100%;
 }
 </style>
