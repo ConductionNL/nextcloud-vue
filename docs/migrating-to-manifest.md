@@ -656,7 +656,7 @@ render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatte
 
 `CnDataTable` renders **every** column through `CnCellRenderer`, which resolves `widget` (consumer registry, then the built-in `badge`), then `formatter`, then the schema-type-aware rendering, then a plain `formatValue()` fallback. When both `formatter` and `widget` are set the widget receives the formatter-shaped value as `formatted`. A column with no `widget`/`formatter` renders exactly as before — except that, because cells now always flow through `CnCellRenderer`, **manual-mode** columns (a `columns` array with no `schema`) pick up the same niceties (boolean cell values render as the check-icon, long strings truncate at 100 chars with a hover title); pass a `#column-{key}` scoped slot if you need the raw text.
 
-> `actions[].route` (declarative navigation row-actions) is already available — set `handler:"navigate"` + `route` on an action (schema 1.3.0). A self-fetch mode on `CnIndexPage` (so a manifest `type:"index"` page renders its object collection without a wrapper) + a `pages[].config.filter` (route-param-interpolated base filter, for `/x/:id/sub` filtered lists) are tracked in `openspec/changes/manifest-index-self-fetch/`.
+> `actions[].route` (declarative navigation row-actions) is already available — set `handler:"navigate"` + `route` on an action (schema 1.3.0). `CnIndexPage` also **self-fetches** in the manifest path (so a `type:"index"` page renders its object collection without a wrapper) and accepts a `config.filter` route-param-interpolated base filter — see [Self-fetch index pages](#self-fetch-index-pages) below.
 
 ## Aggregate columns
 
@@ -684,7 +684,49 @@ request fails (logged); a failed cell never blanks the page, and a stale batch i
 discarded when the rows change. `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
 each needing a `field`, are a planned follow-up — the column-config shape is forward-compatible).
 
-> Note: a manifest `type:"index"` page only renders rows once `CnIndexPage` self-fetches from its `register`+`schema` (tracked in `openspec/changes/manifest-index-self-fetch/`); until then `aggregate` columns are usable today via `CnTableWidget` (which has a self-fetch mode) or any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly.
+> `aggregate` columns light up on a manifest `type:"index"` page because `CnIndexPage` self-fetches its `register`+`schema` collection (see below) — and also work on any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly, or via `CnTableWidget`'s self-fetch mode.
+
+## Self-fetch index pages
+
+A manifest `type:"index"` page dispatches to `CnIndexPage`, and `CnPageRenderer` spreads `pages[].config` onto it (`register`, `schema`, `columns`, `sidebar`, `actions`, `filter`) plus `$route.params` — but never an `objects` prop. So **when `register` and `schema` are both set and no `objects` prop is passed**, `CnIndexPage` self-fetches: it derives `objectType = '${register}-${schema}'`, registers it in the object store, and drives the whole list (collection fetch, `_search`/`_order`/`_page`/`_limit`, facet filters, schema load, sidebar wiring, the `@search`/`@sort`/`@page-changed`/`@filter-change`/`@refresh` handlers) through `useListView` against the store an ancestor `CnAppRoot` provides. No wrapper component, no App.vue wiring:
+
+```jsonc
+{
+  "id": "decisions",
+  "route": "/decisions",
+  "type": "index",
+  "title": "myapp.decisions.title",
+  "config": {
+    "register": "decidesk",
+    "schema": "decision",
+    "sidebar": { "enabled": true }
+  }
+}
+```
+
+`config.schema` is a **slug** here — `CnIndexPage`'s `schema` prop accepts `Object | String`, and the slug's resolved schema object drives column generation. (Passing an `objects` prop — every current consumer — keeps the existing consumer-managed behaviour: no store touched, props win.)
+
+### Scoping a list to a parent — `config.filter`
+
+`config.filter` (an object, spread onto `CnIndexPage` as the `filter` prop) is merged into **every** fetch as a *fixed* filter — the user's facet selection for the same key can't override it. String values of the form `"@route.<name>"` or `":<name>"` resolve against `$route.params`; everything else is literal. The filter re-resolves when `$route.params` change, so a list nested under a parent route is a fully declarative page:
+
+```jsonc
+{
+  "id": "form-submissions",
+  "route": "/forms/:id/submissions",
+  "type": "index",
+  "title": "myapp.submissions.title",
+  "config": {
+    "register": "pipelinq",
+    "schema": "intakeSubmission",
+    "filter": { "intakeForm": "@route.id", "archived": false }
+  }
+}
+```
+
+`config.filter` needs no schema change — `pages[].config` is `additionalProperties: true`. In consumer-managed mode (`objects` prop supplied) `filter` has no effect.
+
+> Under the hood: `useListView('<objectType>', { …, fixedFilters })` gained an `opts.fixedFilters` — a plain object or a getter returning one — spread into the fetch params *after* the user's `activeFilters` so the fixed entries always win. `CnIndexPage` passes a getter that re-interpolates `filter` from `$route.params` on every fetch.
 
 ## Sidebar (manifest-driven)
 

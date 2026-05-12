@@ -22,8 +22,8 @@
 
 		<!-- Actions bar -->
 		<CnActionsBar
-			:pagination="pagination"
-			:object-count="objects.length"
+			:pagination="effectivePagination"
+			:object-count="effectiveObjects.length"
 			:selectable="selectable"
 			:selected-ids="internalSelectedIds"
 			:add-label="resolvedAddLabel"
@@ -40,7 +40,7 @@
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			@add="onAddClick"
-			@refresh="$emit('refresh')"
+			@refresh="onRefreshEvent"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -132,12 +132,12 @@
 			name="form-dialog"
 			:show="showFormDialogVisible"
 			:item="editItem"
-			:schema="schema"
+			:schema="effectiveSchema"
 			:close="closeFormDialog">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="schema"
+				:schema="effectiveSchema"
 				:item="editItem"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
@@ -152,7 +152,7 @@
 			<CnAdvancedFormDialog
 				v-if="showFormDialogVisible && useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="schema"
+				:schema="effectiveSchema"
 				:item="editItem"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
@@ -166,12 +166,12 @@
 		<div class="cn-index-page__body">
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
-				<div v-if="loading" class="cn-index-page__loading">
+				<div v-if="effectiveLoading" class="cn-index-page__loading">
 					<NcLoadingIcon :size="32" />
 				</div>
 
 				<!-- Empty state -->
-				<div v-else-if="objects.length === 0" class="cn-index-page__empty">
+				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
 						<NcEmptyContent :name="emptyText">
 							<template #icon>
@@ -185,11 +185,11 @@
 				<!-- Table view -->
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
-					:schema="schema"
-					:columns="columns"
-					:rows="objects"
-					:sort-key="sortKey"
-					:sort-order="sortOrder"
+					:schema="effectiveSchema"
+					:columns="tableColumns"
+					:rows="effectiveObjects"
+					:sort-key="effectiveSortKey"
+					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
@@ -198,7 +198,7 @@
 					:include-columns="includeColumns"
 					:column-overrides="columnOverrides"
 					:row-class="rowClass"
-					@sort="$emit('sort', $event)"
+					@sort="onSortEvent"
 					@select="onSelect"
 					@row-click="onRowClick"
 					@row-context-menu="onRowContextMenu">
@@ -223,8 +223,8 @@
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
-					:objects="objects"
-					:schema="schema"
+					:objects="effectiveObjects"
+					:schema="effectiveSchema"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
@@ -246,7 +246,7 @@
 							:is="resolvedCardComponent"
 							:item="object"
 							:object="object"
-							:schema="schema"
+							:schema="effectiveSchema"
 							:register="register"
 							:selected="selected"
 							@click="onRowClick(object)"
@@ -272,13 +272,13 @@
 
 				<!-- Pagination -->
 				<CnPagination
-					v-if="pagination && pagination.pages > 1"
-					:current-page="pagination.page || 1"
-					:total-pages="pagination.pages || 1"
-					:total-items="pagination.total || 0"
-					:current-page-size="pagination.limit || 20"
+					v-if="effectivePagination && effectivePagination.pages > 1"
+					:current-page="effectivePagination.page || 1"
+					:total-pages="effectivePagination.pages || 1"
+					:total-items="effectivePagination.total || 0"
+					:current-page-size="effectivePagination.limit || 20"
 					class="cn-index-page__pagination"
-					@page-changed="$emit('page-changed', $event)"
+					@page-changed="onPageEvent"
 					@page-size-changed="$emit('page-size-changed', $event)" />
 			</div>
 		</div>
@@ -298,19 +298,19 @@
 		     here so the legacy contract still works. -->
 		<CnIndexSidebar
 			v-if="shouldRenderInlineSidebar"
-			:schema="schema"
+			:schema="effectiveSchema"
 			:title="title"
 			:icon="resolvedIcon"
-			:search-value="searchValue"
-			:visible-columns="visibleColumns"
-			:active-filters="activeFilters"
+			:search-value="effectiveSearchValue"
+			:visible-columns="effectiveVisibleColumns"
+			:active-filters="effectiveActiveFilters"
 			:column-groups="resolvedSidebar.columnGroups || []"
 			:facet-data="resolvedSidebar.facets || {}"
 			:show-metadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
-			@search="$emit('search', $event)"
-			@columns-change="$emit('columns-change', $event)"
-			@filter-change="$emit('filter-change', $event)" />
+			@search="onSearchEvent"
+			@columns-change="onColumnsEvent"
+			@filter-change="onFilterEvent" />
 	</div>
 </template>
 
@@ -338,7 +338,9 @@ import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { useContextMenu } from '../../composables/index.js'
+import { getCurrentInstance, inject } from 'vue'
+import { useContextMenu, useListView } from '../../composables/index.js'
+import { useObjectStore } from '../../store/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -359,9 +361,9 @@ import { useContextMenu } from '../../composables/index.js'
  * ```vue
  * <CnIndexPage
  *   title="Clients"
- *   :schema="schema"
+ *   :schema="effectiveSchema"
  *   :objects="clients"
- *   :pagination="pagination"
+ *   :pagination="effectivePagination"
  *   :loading="loading"
  *   @create="onCreate"
  *   @edit="onEdit"
@@ -505,8 +507,26 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Schema definition */
+		/**
+		 * Schema. Either a resolved schema object (consumer-managed path) OR a
+		 * schema-slug string — when a string is given together with `register`
+		 * and no `objects` prop, the page enters self-fetch mode: it drives the
+		 * list via `useListView('${register}-${schema}', …)` and the column
+		 * generation uses the schema object that composable loads. Backwards-
+		 * compatible: `[Object, String]` still accepts an object.
+		 */
 		schema: {
+			type: [Object, String],
+			default: null,
+		},
+		/**
+		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
+		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
+		 * are interpolated from `$route.params`; everything else is a literal.
+		 * Applied as a FIXED filter — always wins over the user's facet filters.
+		 * No effect in consumer-managed mode (the consumer owns the fetch).
+		 */
+		filter: {
 			type: Object,
 			default: null,
 		},
@@ -833,7 +853,7 @@ export default {
 		},
 	},
 
-	setup() {
+	setup(props) {
 		const {
 			isOpen: contextMenuOpen,
 			targetItem: contextMenuRow,
@@ -841,11 +861,65 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
+		// ── Self-fetch mode ──────────────────────────────────────────────────
+		// A manifest `type:"index"` page reaches CnIndexPage with `register` and
+		// `schema` from `config` but NEVER an `objects` prop (CnPageRenderer
+		// spreads `config`, not runtime data). So when `register` + `schema` are
+		// set AND the caller did not pass `objects`, we self-fetch: drive the
+		// list via `useListView('${register}-${schema}', …)` (which itself
+		// registers the object type, fetches the collection with
+		// _search/_order/_page/_limit/activeFilters, loads the schema, wires the
+		// sidebar and returns the search/sort/page/filter handlers). When
+		// `objects` IS passed (every existing consumer), nothing changes — the
+		// props win, no store is touched, the @events bubble as before.
+		const instance = getCurrentInstance()
+		const objectsProvided = !!(
+			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
+			&& Object.prototype.hasOwnProperty.call(instance.proxy.$options.propsData, 'objects')
+		)
+		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
+
+		let list = null
+		if (isSelfFetch) {
+			const objectType = `${props.register}-${props.schema}`
+			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
+			const objectStore = useObjectStore()
+			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
+			// store has a slot for it before `useListView` issues the first fetch.
+			if (typeof objectStore.registerObjectType === 'function') {
+				objectStore.registerObjectType(objectType, { register: props.register, schema: props.schema })
+			}
+			list = useListView(objectType, {
+				objectStore,
+				sidebarState,
+				defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
+				defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+				// Re-read on every fetch so a same-component route-param change
+				// (e.g. /forms/:id/submissions) is picked up; CnIndexPage also
+				// watches $route.params → list.refresh() (see watch:).
+				fixedFilters: () => {
+					const f = props.filter
+					if (!f || typeof f !== 'object') return {}
+					const route = instance && instance.proxy && instance.proxy.$route
+					const params = (route && route.params) || {}
+					const out = {}
+					for (const [k, v] of Object.entries(f)) {
+						if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
+						else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
+						else out[k] = v
+					}
+					return out
+				},
+			})
+		}
+
 		return {
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
 			closeContextMenu,
+			isSelfFetch,
+			list,
 		}
 	},
 
@@ -869,10 +943,47 @@ export default {
 	},
 
 	computed: {
+		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
+		//    list datum is the useListView instance in self-fetch mode, the
+		//    prop otherwise. The template binds to these.
+		/** True when self-fetch mode is active and the useListView instance exists. */
+		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
+		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
+		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
+		/** Resolved schema OBJECT (for column generation / icons / labels). */
+		effectiveSchema() {
+			if (this.isSelfFetchMode) return this.list.schema.value
+			return (this.schema && typeof this.schema === 'object') ? this.schema : null
+		},
+		/** Sort key / order: list state in self-fetch mode, else the props. */
+		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
+		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		/** Search term / visible columns / active facet filters for the embedded sidebar. */
+		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
+		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
+		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+		/**
+		 * Columns handed to CnDataTable — same as the `columns` prop, except any
+		 * `aggregate` block lacking a `register` is defaulted to this page's
+		 * `register` slug (so manifests can omit `aggregate.register`).
+		 */
+		tableColumns() {
+			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+			if (!reg) return this.columns || []
+			return (this.columns || []).map((c) => (
+				c && c.aggregate && !c.aggregate.register
+					? { ...c, aggregate: { ...c.aggregate, register: reg } }
+					: c
+			))
+		},
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
-			return this.schema?.icon || ''
+			return this.effectiveSchema?.icon || ''
 		},
 
 		/** Resolved schema icon component for View action */
@@ -987,13 +1098,13 @@ export default {
 
 		/** Whether all visible items are selected */
 		allSelected() {
-			if (this.objects.length === 0 || this.internalSelectedIds.length === 0) return false
-			return this.objects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
+			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) return false
+			return this.effectiveObjects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Full objects for the selected IDs (used by mass action dialogs) */
 		selectedObjects() {
-			return this.objects.filter((o) => this.internalSelectedIds.includes(o[this.rowKey]))
+			return this.effectiveObjects.filter((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Column slot names that the parent has provided (for pass-through) */
@@ -1006,7 +1117,7 @@ export default {
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) return this.addLabel
-			return 'Add ' + (this.schema?.title || 'Item')
+			return 'Add ' + (this.effectiveSchema?.title || 'Item')
 		},
 
 		/**
@@ -1050,12 +1161,12 @@ export default {
 		 */
 		hoistedSidebarProps() {
 			return {
-				schema: this.schema,
+				schema: this.effectiveSchema,
 				title: this.title,
 				icon: this.resolvedIcon,
-				searchValue: this.searchValue,
-				visibleColumns: this.visibleColumns,
-				activeFilters: this.activeFilters,
+				searchValue: this.effectiveSearchValue,
+				visibleColumns: this.effectiveVisibleColumns,
+				activeFilters: this.effectiveActiveFilters,
 				columnGroups: this.resolvedSidebar.columnGroups || [],
 				facetData: this.resolvedSidebar.facets || {},
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
@@ -1117,6 +1228,16 @@ export default {
 		// Re-push AI context when relevant props change
 		register() { this.pushAiContext() },
 		schema() { this.pushAiContext() },
+		// In self-fetch mode, a same-component route-param change (e.g. the
+		// `:id` of `/forms/:id/submissions`) must re-resolve `config.filter`
+		// and re-fetch. useListView's `fixedFilters` getter re-reads $route on
+		// each fetch; this watcher triggers the re-fetch.
+		'$route.params': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
 	},
 
 	mounted() {
@@ -1154,8 +1275,60 @@ export default {
 			if (!this.cnAiContext) return
 			this.cnAiContext.pageKind = 'index'
 			this.cnAiContext.registerSlug = this.register || undefined
-			this.cnAiContext.schemaSlug = this.schema?.id || this.schema?.slug || undefined
+			this.cnAiContext.schemaSlug = (typeof this.schema === 'string' && this.schema)
+				|| this.effectiveSchema?.id || this.effectiveSchema?.slug
+				|| (this.schema && (this.schema.id || this.schema.slug)) || undefined
 			this.cnAiContext.objectUuid = undefined
+		},
+
+		// ── List-event handlers ──────────────────────────────────────────────
+		// In self-fetch mode each routes to the useListView instance (re-fetch);
+		// in every mode the event still bubbles via $emit so a host that wants
+		// to observe (or take over) keeps working — unchanged for consumers.
+		/**
+		 * @param {string} value Search term from the sidebar / header.
+		 * @return {void}
+		 */
+		onSearchEvent(value) {
+			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
+			this.$emit('search', value)
+		},
+		/**
+		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
+		 * @return {void}
+		 */
+		onSortEvent(payload) {
+			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
+			this.$emit('sort', payload)
+		},
+		/**
+		 * @param {number} page Requested page from CnPagination.
+		 * @return {void}
+		 */
+		onPageEvent(page) {
+			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
+			this.$emit('page-changed', page)
+		},
+		/**
+		 * @param {{key: string, values: Array}} payload Facet-filter change from the sidebar.
+		 * @return {void}
+		 */
+		onFilterEvent(payload) {
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
+			this.$emit('filter-change', payload)
+		},
+		/**
+		 * @param {Array} columns Visible-column change from the sidebar.
+		 * @return {void}
+		 */
+		onColumnsEvent(columns) {
+			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
+			this.$emit('columns-change', columns)
+		},
+		/** @return {void} */
+		onRefreshEvent() {
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
+			this.$emit('refresh')
 		},
 
 		/**
@@ -1175,9 +1348,9 @@ export default {
 				component: CnIndexSidebar,
 				props: this.hoistedSidebarProps,
 				listeners: {
-					search: (event) => this.$emit('search', event),
-					'columns-change': (event) => this.$emit('columns-change', event),
-					'filter-change': (event) => this.$emit('filter-change', event),
+					search: (event) => this.onSearchEvent(event),
+					'columns-change': (event) => this.onColumnsEvent(event),
+					'filter-change': (event) => this.onFilterEvent(event),
 				},
 			}
 		},
