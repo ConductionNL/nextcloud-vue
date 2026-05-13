@@ -2,20 +2,20 @@
 
 ### Props
 
-| Name                 | Type      | Required | Default                                          | Description                        |
-| -------------------- | --------- | -------- | ------------------------------------------------ | ---------------------------------- |
-| `registerId`         | `string`  | ✓        | —                                                | OpenRegister register ID           |
-| `schemaId`           | `string`  | ✓        | —                                                | OpenRegister schema ID             |
-| `objectId`           | `string`  | ✓        | —                                                | Object UUID                        |
-| `apiBase`            | `string`  |          | `'/apps/openregister/api'`                       | Base API URL for OpenRegister      |
-| `maxDisplay`         | `number`  |          | `5`                                              | Maximum number of notes to display |
-| `collapsible`        | `boolean` |          | `false`                                          | Whether the card is collapsible    |
-| `titleLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Notes')`           |                                    |
-| `addNoteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Add note')`        |                                    |
-| `addNotePlaceholder` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Write a note...')` |                                    |
-| `noNotesLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'No notes yet')`    |                                    |
-| `showAllLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`        |                                    |
-| `deleteLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete note')`     |                                    |
+| Name                 | Type      | Required | Default                                        | Description                               |
+| -------------------- | --------- | -------- | ---------------------------------------------- | ----------------------------------------- |
+| `registerId`         | `string`  | ✓        | —                                              | OpenRegister register ID                  |
+| `schemaId`           | `string`  | ✓        | —                                              | OpenRegister schema ID                    |
+| `objectId`           | `string`  | ✓        | —                                              | Object UUID                               |
+| `apiBase`            | `string`  |          | `'/apps/openregister/api'`                     | Base API URL for OpenRegister             |
+| `maxDisplay`         | `number`  |          | `5`                                            | Maximum number of notes to display        |
+| `collapsible`        | `boolean` |          | `false`                                        | Whether the card is collapsible           |
+| `titleLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Notes')`         | Label / heading for the card title        |
+| `addNoteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Add note')`      | Label for the add note button             |
+| `addNotePlaceholder` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Write a note…')` | Placeholder text for the note input field |
+| `noNotesLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'No notes yet')`  | Text shown when there are no notes        |
+| `showAllLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`      | Label for the show-all link               |
+| `deleteLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete note')`   | Label for the delete action               |
 
 ### Events
 

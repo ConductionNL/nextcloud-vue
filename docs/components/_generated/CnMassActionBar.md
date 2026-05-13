@@ -11,10 +11,10 @@
 | `showCopy`          | `boolean` |          | `true`                                                    | Whether to show the built-in Copy action                         |
 | `showDelete`        | `boolean` |          | `true`                                                    | Whether to show the built-in Delete action                       |
 | `menuLabelTemplate` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Mass actions (\{count\})')` | Label template for the menu button. Use \{count\} for the count. |
-| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                   |                                                                  |
-| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                   |                                                                  |
-| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                     |                                                                  |
-| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                   |                                                                  |
+| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                   | Label for the import action                                      |
+| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                   | Label for the export action                                      |
+| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                     | Label for the copy action                                        |
+| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                   | Label for the delete action                                      |
 
 ### Events
 

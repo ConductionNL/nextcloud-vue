@@ -1,5 +1,5 @@
+import { networkError, parseResponseError } from '../../utils/errors.js'
 import { buildHeaders } from '../../utils/headers.js'
-import { parseResponseError, networkError } from '../../utils/errors.js'
 
 /**
  * Lifecycle plugin for the object store.

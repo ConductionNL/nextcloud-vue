@@ -56,8 +56,8 @@
 				<li
 					v-for="conv in conversations"
 					:key="conv.uuid"
+					class="cn-ai-history-dialog__item"
 					:class="[
-						'cn-ai-history-dialog__item',
 						{ 'cn-ai-history-dialog__item--active': conv.uuid === activeConversationUuid },
 					]">
 					<button
@@ -74,8 +74,8 @@
 </template>
 
 <script>
-import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
+import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 
@@ -100,6 +100,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** UUID of the currently active conversation (for active indicator) */
 		activeConversationUuid: {
 			type: String,

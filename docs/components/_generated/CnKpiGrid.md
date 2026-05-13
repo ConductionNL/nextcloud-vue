@@ -2,10 +2,10 @@
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                |
-| ----------- | -------- | -------- | ------- | ------------------------------------------ |
-| `columns`   | `number` |          | `4`     | Number of columns at max width: 2, 3, or 4 |
-| `gridClass` | `string` |          | `''`    |                                            |
+| Name        | Type     | Required | Default | Description                                              |
+| ----------- | -------- | -------- | ------- | -------------------------------------------------------- |
+| `columns`   | `number` |          | `4`     | Number of columns at max width: 2, 3, or 4               |
+| `gridClass` | `string` |          | `''`    | Additional CSS class(es) applied to the KPI grid element |
 
 ### Slots
 

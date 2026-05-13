@@ -71,9 +71,9 @@
 </template>
 
 <script>
+import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 
 /**
  * Module-level set of column keys already warned about for a
@@ -121,14 +121,16 @@ export default {
 	props: {
 		/** The raw cell value */
 		value: {
-			type: [String, Number, Boolean, Array, Object],
+			type: [Boolean, String, Number, Array, Object],
 			default: null,
 		},
+
 		/** Schema property definition: { type, format, enum, items, title } */
 		property: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
 		 * When set and resolvable in the injected `cnFormatters` registry,
@@ -139,6 +141,7 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
 		 * name). When it resolves in `cnCellWidgets` the cell renders that
@@ -152,11 +155,13 @@ export default {
 			type: String,
 			default: null,
 		},
+
 		/** Extra props spread onto the resolved cell-widget component. */
 		widgetProps: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * The full row object — passed so a formatter can be a function of
 		 * the whole record (e.g. "days since `@self.updated`"), not just
@@ -166,11 +171,13 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Maximum string length before truncation */
 		truncate: {
 			type: Number,
 			default: 100,
 		},
+
 		/**
 		 * Row identifier field — used by the built-in `widget:"link"` when
 		 * the manifest doesn't specify an explicit `widgetProps.params`
@@ -252,9 +259,7 @@ export default {
 			if (this.widget !== 'link') return null
 			const href = this.widgetProps && this.widgetProps.href
 			if (!href) return null
-			return String(href).replace(/\{(\w+)\}/g, (_, key) =>
-				this.row && this.row[key] != null ? String(this.row[key]) : '',
-			)
+			return String(href).replace(/\{(\w+)\}/g, (_, key) => this.row && this.row[key] !== null && this.row[key] !== undefined ? String(this.row[key]) : '')
 		},
 
 		/**
@@ -278,7 +283,6 @@ export default {
 				try {
 					return this.formatterFn(this.value, this.row, this.property)
 				} catch (e) {
-					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
 				}
 			}
@@ -322,10 +326,8 @@ export default {
 			const key = this.property?.title || String(this.value).slice(0, 20)
 			if (!WARNED_LINK_KEYS.has(key)) {
 				WARNED_LINK_KEYS.add(key)
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`,
-				)
+
+				console.warn(`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`)
 			}
 		}
 	},

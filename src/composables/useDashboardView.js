@@ -1,6 +1,6 @@
-import { ref, computed, onMounted } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { computed, onMounted, ref } from 'vue'
 import { filterWidgetsByVisibility } from '../utils/widgetVisibility.js'
 
 /**
@@ -93,12 +93,12 @@ export function useDashboardView(options = {}) {
 
 	/** Widget IDs currently on the dashboard */
 	const activeWidgetIds = computed(() => {
-		return layout.value.map(item => item.widgetId)
+		return layout.value.map((item) => item.widgetId)
 	})
 
 	/** Widgets not yet placed on the dashboard */
 	const availableWidgets = computed(() => {
-		return widgets.value.filter(w => !activeWidgetIds.value.includes(w.id))
+		return widgets.value.filter((w) => !activeWidgetIds.value.includes(w.id))
 	})
 
 	// ── Methods ──────────────────────────────────────────────────────────
@@ -112,8 +112,8 @@ export function useDashboardView(options = {}) {
 		visibleNcWidgets.value = await filterWidgetsByVisibility(ncWidgets.value)
 
 		// Remove layout items that reference widgets the user cannot see
-		const visibleIds = new Set(widgets.value.map(w => w.id))
-		const filteredLayout = layout.value.filter(item => visibleIds.has(item.widgetId))
+		const visibleIds = new Set(widgets.value.map((w) => w.id))
+		const filteredLayout = layout.value.filter((item) => visibleIds.has(item.widgetId))
 		if (filteredLayout.length !== layout.value.length) {
 			layout.value = filteredLayout
 		}
@@ -128,7 +128,7 @@ export function useDashboardView(options = {}) {
 			const response = await axios.get(url)
 			const data = response.data?.ocs?.data || {}
 
-			ncWidgets.value = Object.values(data).map(w => ({
+			ncWidgets.value = Object.values(data).map((w) => ({
 				id: w.id,
 				title: w.title,
 				iconClass: w.icon_class,
@@ -159,15 +159,13 @@ export function useDashboardView(options = {}) {
 			}
 
 			if (opts.loadLayout) {
-				tasks.push(
-					opts.loadLayout().then(saved => {
-						if (saved && saved.length > 0) {
-							layout.value = saved
-						} else {
-							layout.value = [...opts.defaultLayout]
-						}
-					}),
-				)
+				tasks.push(opts.loadLayout().then((saved) => {
+					if (saved && saved.length > 0) {
+						layout.value = saved
+					} else {
+						layout.value = [...opts.defaultLayout]
+					}
+				}))
 			} else {
 				layout.value = [...opts.defaultLayout]
 			}
@@ -240,7 +238,7 @@ export function useDashboardView(options = {}) {
 	 * @param {string|number} itemId Layout item ID to remove
 	 */
 	function removeWidget(itemId) {
-		const newLayout = layout.value.filter(item => item.id !== itemId)
+		const newLayout = layout.value.filter((item) => item.id !== itemId)
 		onLayoutChange(newLayout)
 	}
 

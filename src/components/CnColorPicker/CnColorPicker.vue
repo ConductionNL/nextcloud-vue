@@ -86,11 +86,13 @@ export default {
 			type: [String, Object],
 			default: null,
 		},
+
 		/** Disables the swatch trigger and prevents the popover from opening. */
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Lock the picker's numeric input fields to a single mode and hide the
 		 * mode-toggle button. One of `'hex'`, `'rgb'`, `'hsl'`. When `null`
@@ -143,6 +145,7 @@ export default {
 				this.$nextTick(() => this.applyMode())
 			},
 		},
+
 		open(isOpen) {
 			// Re-apply on every open: vue-color resets `fieldsIndex` if the
 			// component is unmounted/remounted by the popover.

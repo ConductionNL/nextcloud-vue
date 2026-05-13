@@ -1,6 +1,6 @@
 <template>
 	<div class="cn-advanced-form-dialog__json-editor">
-		<div :class="['cn-advanced-form-dialog__codemirror-container', dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
+		<div class="cn-advanced-form-dialog__codemirror-container" :class="[dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -13,7 +13,7 @@
 				style="height: 400px" />
 			<NcButton
 				class="cn-advanced-form-dialog__format-btn"
-				type="secondary"
+				variant="secondary"
 				size="small"
 				@click="formatJson">
 				{{ t('nextcloud-vue', 'Format JSON') }}
@@ -26,9 +26,9 @@
 </template>
 
 <script>
+import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { NcButton } from '@nextcloud/vue'
 import CodeMirror from 'vue-codemirror6'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 
 export default {
 	name: 'CnDataTab',

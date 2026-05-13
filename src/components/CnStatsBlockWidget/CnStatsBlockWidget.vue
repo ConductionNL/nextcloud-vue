@@ -108,6 +108,7 @@ export default {
 		/**
 		 * Vue-router location to navigate to on click. When set, the
 		 * inner CnStatsBlock renders as a `<router-link>`.
+		 *
 		 * @type {object|null}
 		 */
 		route: {

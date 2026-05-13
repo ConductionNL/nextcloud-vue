@@ -105,6 +105,7 @@ export default {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
 		 * Optional `subtitle` for secondary text below the label.
+		 *
 		 * @type {{ id: string, label: string, subtitle: string }[]}
 		 */
 		stages: {
@@ -112,18 +113,22 @@ export default {
 			required: true,
 			validator: (stages) => stages.every((s) => s.id !== undefined && s.label !== undefined),
 		},
+
 		/**
 		 * The `id` of the currently active stage. Stages before it are "completed",
 		 * stages after it are "upcoming". If null/undefined or not matching any id,
 		 * all stages are "upcoming".
+		 *
 		 * @type {string|number|null}
 		 */
 		currentStage: {
 			type: [String, Number],
 			default: null,
 		},
+
 		/**
 		 * Layout orientation: "horizontal" (left-to-right) or "vertical" (top-to-bottom).
+		 *
 		 * @type {string}
 		 */
 		orientation: {
@@ -131,8 +136,10 @@ export default {
 			default: 'horizontal',
 			validator: (v) => ['horizontal', 'vertical'].includes(v),
 		},
+
 		/**
 		 * Size variant: "medium" (32px indicators) or "small" (20px indicators).
+		 *
 		 * @type {string}
 		 */
 		size: {
@@ -140,17 +147,21 @@ export default {
 			default: 'medium',
 			validator: (v) => ['small', 'medium'].includes(v),
 		},
+
 		/**
 		 * Whether stages are clickable. When true, stages emit `stage-click`
 		 * on click/Enter/Space and support keyboard navigation with arrow keys.
+		 *
 		 * @type {boolean}
 		 */
 		clickable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Accessible label for the timeline container.
+		 *
 		 * @type {string}
 		 */
 		ariaLabel: {
@@ -169,6 +180,7 @@ export default {
 	computed: {
 		/**
 		 * Root element CSS classes based on orientation and size props.
+		 *
 		 * @return {object}
 		 */
 		rootClasses() {
@@ -180,16 +192,20 @@ export default {
 				'cn-timeline-stages--clickable': this.clickable,
 			}
 		},
+
 		/**
 		 * Index of the current stage in the stages array, or -1 if not found.
+		 *
 		 * @return {number}
 		 */
 		currentStageIndex() {
-			if (this.currentStage == null) return -1
+			if (this.currentStage === null || this.currentStage === undefined) return -1
 			return this.stages.findIndex((s) => s.id === this.currentStage)
 		},
+
 		/**
 		 * Pre-calculated states for all stages to avoid repeated stageState() calls in template.
+		 *
 		 * @return {Array<'completed'|'current'|'upcoming'>}
 		 */
 		stageStates() {
@@ -204,6 +220,7 @@ export default {
 	methods: {
 		/**
 		 * Derive the visual state of a stage by its index.
+		 *
 		 * @param {number} index Stage index
 		 * @return {'completed'|'current'|'upcoming'}
 		 */
@@ -213,8 +230,10 @@ export default {
 			if (index === this.currentStageIndex) return 'current'
 			return 'upcoming'
 		},
+
 		/**
 		 * CSS classes for a stage node.
+		 *
 		 * @param {number} index Stage index
 		 * @return {object}
 		 */
@@ -225,8 +244,10 @@ export default {
 				[`cn-timeline-stages__stage--${state}`]: true,
 			}
 		},
+
 		/**
 		 * Handle click on a stage node.
+		 *
 		 * @param {object} stage The stage object
 		 * @param {number} index The stage index
 		 */
@@ -234,14 +255,17 @@ export default {
 			if (!this.clickable) return
 			/**
 			 * Emitted when a clickable stage is activated (click, Enter, or Space).
+			 *
 			 * @event stage-click
 			 * @type {{ stage: object, index: number }}
 			 */
 			this.$emit('stage-click', { stage, index })
 		},
+
 		/**
 		 * Keyboard handler for arrow keys, Enter, and Space.
 		 * Implements roving tabindex pattern.
+		 *
 		 * @param {KeyboardEvent} event The keyboard event
 		 * @param {object} stage The stage object
 		 * @param {number} index The stage index
@@ -264,8 +288,10 @@ export default {
 				this.$emit('stage-click', { stage, index })
 			}
 		},
+
 		/**
 		 * Move focus to a new stage index (roving tabindex).
+		 *
 		 * @param {number} newIndex Target index
 		 */
 		moveFocus(newIndex) {
@@ -278,6 +304,7 @@ export default {
 				}
 			})
 		},
+
 		/**
 		 * Scroll the current stage into view on mount (horizontal overflow).
 		 */

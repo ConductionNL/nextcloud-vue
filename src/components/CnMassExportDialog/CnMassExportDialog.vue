@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -33,7 +33,7 @@
 				<NcSelect
 					input-id="cn-mass-export-format"
 					:options="formatOptions"
-					:value="selectedFormat"
+					:model-value="selectedFormat"
 					:clearable="false"
 					@input="selectedFormat = $event" />
 			</div>
@@ -45,7 +45,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeExport">
 				<template #icon>
@@ -60,7 +60,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**
@@ -113,11 +113,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
 		},
+
 		/** Description text shown above the format selector */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Available export formats */
 		formats: {
 			type: Array,
@@ -126,19 +128,26 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
+
 		/** Default selected format ID */
 		defaultFormat: {
 			type: String,
 			default: 'excel',
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export completed successfully.'),
 		},
+
+		/** Label for the export format selector */
 		formatLabel: { type: String, default: () => t('nextcloud-vue', 'Export format') },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
@@ -166,6 +175,7 @@ export default {
 
 		/**
 		 * Set the result of the export operation.
+		 *
 		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

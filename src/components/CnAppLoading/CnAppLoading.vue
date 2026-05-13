@@ -48,6 +48,7 @@ export default {
 			type: String,
 			default: 'Loading...',
 		},
+
 		/**
 		 * Optional logo image URL displayed above the spinner. Apps
 		 * with custom branding can also override the `#logo` slot.

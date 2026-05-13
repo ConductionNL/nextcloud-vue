@@ -111,21 +111,25 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Conversation'),
 		},
+
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether to render the inline page header. */
 		showTitle: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * URL of the embedded conversation (NC Talk iframe URL by
 		 * default). Required for v1 unless the consumer supplies a
@@ -135,6 +139,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Custom thread-API endpoint. Used by consumers building their
 		 * own chat UI via the `#conversation` slot. The value is passed
@@ -144,6 +149,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * OpenRegister schema slug for an OR-backed conversation.
 		 * Reserved for v2 native thread rendering.
@@ -152,6 +158,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * `sandbox` attribute on the iframe. Defaults to a minimal
 		 * permissive set: scripts + same-origin (so NC Talk can call
@@ -162,6 +169,7 @@ export default {
 			type: String,
 			default: 'allow-scripts allow-same-origin allow-forms allow-popups',
 		},
+
 		/** Empty-state text shown when no conversation source is set. */
 		emptyText: {
 			type: String,

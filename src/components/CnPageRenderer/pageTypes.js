@@ -46,14 +46,14 @@ import { defineAsyncComponent } from 'vue'
  *   `src/components/index.js` barrel. No change to CnPageRenderer.vue.
  */
 export const defaultPageTypes = {
-	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue').then(m => m.default)),
-	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue').then(m => m.default)),
-	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then(m => m.default)),
-	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue').then(m => m.default)),
-	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then(m => m.default)),
-	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then(m => m.default)),
-	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then(m => m.default)),
-	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then(m => m.default)),
-	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
-	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
+	index: defineAsyncComponent(() => import('../CnIndexPage/CnIndexPage.vue').then((m) => m.default)),
+	detail: defineAsyncComponent(() => import('../CnDetailPage/CnDetailPage.vue').then((m) => m.default)),
+	dashboard: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+	logs: defineAsyncComponent(() => import('../CnLogsPage/CnLogsPage.vue').then((m) => m.default)),
+	settings: defineAsyncComponent(() => import('../CnSettingsPage/CnSettingsPage.vue').then((m) => m.default)),
+	chat: defineAsyncComponent(() => import('../CnChatPage/CnChatPage.vue').then((m) => m.default)),
+	files: defineAsyncComponent(() => import('../CnFilesPage/CnFilesPage.vue').then((m) => m.default)),
+	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then((m) => m.default)),
+	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then((m) => m.default)),
+	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then((m) => m.default)),
 }

@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useObjectStore } from '../store/index.js'
 
 /**
@@ -65,9 +65,7 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Computed refs from the store ─────────────────────────────────────
 	const objects = computed(() => objectStore.collections[objectType] || [])
 	const loading = computed(() => objectStore.loading[objectType] || false)
-	const pagination = computed(
-		() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 },
-	)
+	const pagination = computed(() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 })
 
 	let searchTimeout = null
 

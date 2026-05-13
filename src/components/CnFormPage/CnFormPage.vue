@@ -115,8 +115,8 @@
 					:dirty="dirty"
 					:submit="submit">
 					<NcButton
-						type="primary"
-						native-type="submit"
+						variant="primary"
+						type="submit"
 						:disabled="submitting">
 						<template #icon>
 							<NcLoadingIcon v-if="submitting" :size="20" />
@@ -131,12 +131,12 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Send from 'vue-material-design-icons/Send.vue'
-import { CnPageHeader } from '../CnPageHeader/index.js'
 import { cnRenderFormField } from '../../composables/cnFormFieldRenderer.js'
+import { CnPageHeader } from '../CnPageHeader/index.js'
 
 const ALLOWED_METHODS = ['POST', 'PUT', 'PATCH']
 
@@ -195,6 +195,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Registered submit handler name. Resolves against the
 		 * `cnCustomComponents` registry (or `customComponents` prop).
@@ -206,6 +207,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * URL the form data is dispatched to. `:paramName` segments are
 		 * resolved against `$route.params` at submit time.
@@ -214,12 +216,14 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** HTTP method for endpoint mode. POST | PUT | PATCH. */
 		submitMethod: {
 			type: String,
 			default: 'POST',
 			validator: (v) => typeof v === 'string' && ALLOWED_METHODS.includes(v.toUpperCase()),
 		},
+
 		/**
 		 * Form mode. `public` shows the success banner and hides the
 		 * form on submit; `edit` and `create` keep the form mounted so
@@ -230,31 +234,37 @@ export default {
 			default: 'public',
 			validator: (v) => ['edit', 'create', 'public'].includes(v),
 		},
+
 		/** i18n key for the submit button label. */
 		submitLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Submit'),
 		},
+
 		/** i18n key for the success banner. */
 		successMessage: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Thank you!'),
 		},
+
 		/** Pre-filled form state. Consumed by `mode: "edit"`. */
 		initialValue: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Page title. Forwarded to CnPageHeader. */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Page description. Forwarded to CnPageHeader. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional translation function. When provided, applied to
 		 * field labels, success messages, etc. Defaults to identity.
@@ -265,6 +275,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Optional explicit custom-component registry. When set, takes
 		 * precedence over the injected `cnCustomComponents`. Mirrors
@@ -280,6 +291,7 @@ export default {
 
 	/**
 	 * Events:
+	 *
 	 * @event submit
 	 * @description Fired after a successful submit (handler returned, or endpoint POST/PUT/PATCH succeeded).
 	 *   Payload is `{ formData, response? }` — `response` is present in endpoint mode, omitted in handler mode.
@@ -308,6 +320,7 @@ export default {
 		dirty() {
 			return JSON.stringify(this.formData) !== JSON.stringify(this.cloneInitial())
 		},
+
 		/**
 		 * Effective custom-component registry. Explicit prop wins over
 		 * the injected value (mirrors CnPageRenderer's resolution).
@@ -424,10 +437,7 @@ export default {
 		async submitViaHandler() {
 			const handler = this.effectiveCustomComponents[this.submitHandler]
 			if (typeof handler !== 'function') {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnFormPage] handler "${this.submitHandler}" not found in customComponents (or not a function). Did you register it?`,
-				)
+				console.warn(`[CnFormPage] handler "${this.submitHandler}" not found in customComponents (or not a function). Did you register it?`)
 				throw new Error(`CnFormPage: handler "${this.submitHandler}" not registered`)
 			}
 			await handler(this.formData, this.$route, this.$router)

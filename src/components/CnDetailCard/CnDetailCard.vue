@@ -92,21 +92,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Optional MDI icon component for the header */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/** Whether the card can be collapsed */
 		collapsible: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Initial collapsed state (only relevant when collapsible is true) */
 		collapsed: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Remove content padding — allows tables and lists to go edge-to-edge.
 		 */

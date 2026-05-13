@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
 		<div v-if="result === null"
@@ -15,7 +15,7 @@
 				<NcSelect
 					input-id="cn-mass-copy-pattern"
 					:options="patternOptions"
-					:value="selectedPattern"
+					:model-value="selectedPattern"
 					:clearable="false"
 					@input="onPatternChange" />
 			</div>
@@ -31,7 +31,7 @@
 						<span class="cn-mass-copy__item-new">{{ getNewName(item) }}</span>
 					</div>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="removeLabel"
 						@click="removeItem(item.id)">
 						<template #icon>
@@ -66,7 +66,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading || localItems.length === 0"
 				@click="executeCopy">
 				<template #icon>
@@ -81,9 +81,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 
 /**
  * CnMassCopyDialog — Two-phase mass copy confirmation dialog.
@@ -137,39 +137,50 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Copy items'),
 		},
+
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
+
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items selected for copying.'),
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully copied.'),
 		},
+
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
+		/** Label for the remove button */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 
@@ -216,14 +227,14 @@ export default {
 
 		applyPattern(name, patternId) {
 			switch (patternId) {
-			case 'copy-of':
-				return `Copy of ${name}`
-			case 'name-copy':
-				return `${name} - Copy`
-			case 'name-parens':
-				return `${name} (Copy)`
-			default:
-				return `Copy of ${name}`
+				case 'copy-of':
+					return `Copy of ${name}`
+				case 'name-copy':
+					return `${name} - Copy`
+				case 'name-parens':
+					return `${name} (Copy)`
+				default:
+					return `Copy of ${name}`
 			}
 		},
 

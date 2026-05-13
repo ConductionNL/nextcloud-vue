@@ -2,25 +2,25 @@
 
 ### Props
 
-| Name                    | Type      | Required | Default                                 | Description |
-| ----------------------- | --------- | -------- | --------------------------------------- | ----------- |
-| `schema`                | `object`  |          | `null`                                  |             |
-| `item`                  | `object`  |          | `null`                                  |             |
-| `dialogTitle`           | `string`  |          | `''`                                    |             |
-| `nameField`             | `string`  |          | `'title'`                               |             |
-| `successText`           | `string`  |          | `''`                                    |             |
-| `cancelLabel`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')` |             |
-| `closeLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close')`  |             |
-| `confirmLabel`          | `string`  |          | `''`                                    |             |
-| `excludeFields`         | `array`   |          | `[]`                                    |             |
-| `includeFields`         | `array`   |          | `null`                                  |             |
-| `fieldOverrides`        | `object`  |          | `\{\}`                                  |             |
-| `showPropertiesTable`   | `boolean` |          | `true`                                  |             |
-| `showJsonTab`           | `boolean` |          | `true`                                  |             |
-| `showMetadataTab`       | `boolean` |          | `null`                                  |             |
-| `editablePropertyTypes` | `array`   |          | `null`                                  |             |
-| `validationDisplay`     | `string`  |          | `'indicator'`                           |             |
-| `jsonEditorDark`        | `boolean` |          | `false`                                 |             |
+| Name                    | Type      | Required | Default                                 | Description                                                  |
+| ----------------------- | --------- | -------- | --------------------------------------- | ------------------------------------------------------------ |
+| `schema`                | `object`  |          | `null`                                  | JSON Schema definition for the object                        |
+| `item`                  | `object`  |          | `null`                                  | The object instance being created or edited                  |
+| `dialogTitle`           | `string`  |          | `''`                                    | Dialog title; falls back to schema.title when empty          |
+| `nameField`             | `string`  |          | `'title'`                               | Schema property used as the item name in the title           |
+| `successText`           | `string`  |          | `''`                                    | Message shown after a successful operation                   |
+| `cancelLabel`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')` | Label for the cancel button                                  |
+| `closeLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close')`  | Label for the close button                                   |
+| `confirmLabel`          | `string`  |          | `''`                                    | Label for the confirm / primary action button                |
+| `excludeFields`         | `array`   |          | `[]`                                    | Field keys to hide from the form                             |
+| `includeFields`         | `array`   |          | `null`                                  | When set, only these field keys are shown                    |
+| `fieldOverrides`        | `object`  |          | `\{\}`                                  | Per-field schema overrides keyed by field name               |
+| `showPropertiesTable`   | `boolean` |          | `true`                                  | Whether to render the Properties tab                         |
+| `showJsonTab`           | `boolean` |          | `true`                                  | Whether to render the Data (JSON) tab                        |
+| `showMetadataTab`       | `boolean` |          | `null`                                  | Whether to render the Metadata tab (auto-detected when null) |
+| `editablePropertyTypes` | `array`   |          | `null`                                  | JSON Schema types allowed for inline editing                 |
+| `validationDisplay`     | `string`  |          | `'indicator'`                           | How to display validation results: "indicator" or "none"     |
+| `jsonEditorDark`        | `boolean` |          | `false`                                 | Enable dark mode for the JSON editor                         |
 
 ### Events
 

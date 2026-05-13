@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia'
-import { buildHeaders, prefixUrl } from '../utils/headers.js'
 import { parseResponseError } from '../utils/errors.js'
-import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
+import { buildHeaders, prefixUrl } from '../utils/headers.js'
+import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 
 /**
  * Default fields stripped from items before POST/PUT.
+ *
  * @type {string[]}
  */
 const DEFAULT_CLEAN_FIELDS = ['id', 'uuid', 'created', 'updated']
 
 /**
  * Default base URL for the API.
+ *
  * @type {string}
  */
 const DEFAULT_BASE_URL = '/apps/openregister/api'
@@ -143,9 +145,9 @@ export function createCrudStore(name, config = {}) {
 			...(features.viewMode ? { getViewMode: (state) => state.viewMode } : {}),
 			...(features.loading
 				? {
-					isLoading: (state) => state.loading,
-					getError: (state) => state.error,
-				}
+						isLoading: (state) => state.loading,
+						getError: (state) => state.error,
+					}
 				: {}),
 
 			// ── Plugin getters ──
@@ -160,6 +162,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Set the active item. Wraps in Entity class if configured.
+			 *
 			 * @param {object|null} data Raw item data or null to clear
 			 */
 			setItem(data) {
@@ -170,6 +173,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Set the item list. Wraps each item in Entity class if configured.
+			 *
 			 * @param {Array} data Array of raw item objects
 			 */
 			setList(data) {
@@ -180,6 +184,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Set pagination parameters.
+			 *
 			 * @param {number} page Current page number
 			 * @param {number} [limit] Items per page
 			 */
@@ -189,6 +194,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Merge filter criteria into the current filters.
+			 *
 			 * @param {object} filters Key-value filter pairs to merge
 			 */
 			setFilters(filters) {
@@ -200,18 +206,20 @@ export function createCrudStore(name, config = {}) {
 				? {
 					/**
 					 * Set the view mode (e.g. 'cards', 'table').
+					 *
 					 * @param {string} mode View mode identifier
 					 */
-					setViewMode(mode) {
-						this.viewMode = mode
-					},
-				}
+						setViewMode(mode) {
+							this.viewMode = mode
+						},
+					}
 				: {}),
 
 			// ── CRUD actions ──
 
 			/**
 			 * Fetch the item list from the API.
+			 *
 			 * @param {string|null} [search] Optional search query
 			 * @param {boolean} [soft] If true, don't toggle loading state
 			 * @return {Promise<{response: Response, data: Array}>}
@@ -251,6 +259,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Fetch a single item by ID and set it as the active item.
+			 *
 			 * @param {string|number} id Item ID or UUID
 			 * @return {Promise<object>} The fetched item data
 			 */
@@ -283,6 +292,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Delete an item by ID. Refreshes the list and clears the active item.
+			 *
 			 * @param {object} item Item object (must have .id)
 			 * @return {Promise<{response: Response}>}
 			 */
@@ -320,6 +330,7 @@ export function createCrudStore(name, config = {}) {
 			 * Strip read-only fields from an item before saving.
 			 * Uses the `cleanFields` config array. Override in `extend.actions`
 			 * for custom cleaning (the configured fields are in `this._options.cleanFields`).
+			 *
 			 * @param {object} item Raw item data
 			 * @return {object} Cleaned copy safe for POST/PUT
 			 */
@@ -333,6 +344,7 @@ export function createCrudStore(name, config = {}) {
 
 			/**
 			 * Create or update an item. Determines method from presence of `.id`.
+			 *
 			 * @param {object} item Item data (without .id = create, with .id = update)
 			 * @return {Promise<{response: Response, data: object}>}
 			 */

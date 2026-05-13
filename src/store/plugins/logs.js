@@ -1,5 +1,5 @@
+import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
 import { buildHeaders, buildQueryString } from '../../utils/headers.js'
-import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
 
 /**
  * Logs sub-resource plugin for createCrudStore.
@@ -84,7 +84,7 @@ export function logsPlugin(options = {}) {
 
 			try {
 				const params = { ...defaultSort }
-				if (!(parentIdParam in filters) && this.item?.id != null) {
+				if (!(parentIdParam in filters) && this.item?.id !== null && this.item?.id !== undefined) {
 					params[parentIdParam] = String(this.item.id)
 				}
 				Object.assign(params, filters)
@@ -156,7 +156,7 @@ export function logsPlugin(options = {}) {
 			store.$onAction(({ name, after }) => {
 				if (name !== 'setItem') return
 				after(() => {
-					if (store.item?.id != null) {
+					if (store.item?.id !== null && store.item?.id !== undefined) {
 						store.refreshLogs().catch((error) => {
 							console.error('logsPlugin: auto-refresh failed:', error)
 						})

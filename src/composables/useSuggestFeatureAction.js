@@ -21,7 +21,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { useSpecRef } from './useSpecRef.js'
 
 /**
- * @typedef {Object} SuggestFeatureAction
+ * @typedef {object} SuggestFeatureAction
  * @property {string}      label  Localized action label.
  * @property {string}      icon   Material-design-icon name suitable for `<NcActions>`.
  * @property {Function}    action Callback that should open the suggestion modal.
@@ -33,7 +33,7 @@ import { useSpecRef } from './useSpecRef.js'
  * context. Returns `null` when no specRef is in scope so consumers can `v-if`
  * cleanly: `<NcActionButton v-if="suggestAction" ... />`.
  *
- * @param {Object}   vm                The Vue component instance (typically `this`).
+ * @param {object}   vm                The Vue component instance (typically `this`).
  * @param {Function} onOpenModal       Callback invoked when the action is clicked.
  *                                     Receives the resolved slug.
  * @return {SuggestFeatureAction|null} Descriptor or `null` when no specRef present.

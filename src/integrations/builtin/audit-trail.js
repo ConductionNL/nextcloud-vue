@@ -11,8 +11,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnAuditTrailTab from '../../components/CnObjectSidebar/CnAuditTrailTab.vue'
 import CnAuditTrailCard from '../../components/CnAuditTrailCard/CnAuditTrailCard.vue'
+import CnAuditTrailTab from '../../components/CnObjectSidebar/CnAuditTrailTab.vue'
 
 /**
  * `audit-trail` integration descriptor.

@@ -24,7 +24,7 @@
  * @return {Date|null} A `Date` instance, or `null` if the input is null/empty/unparseable.
  */
 function toDate(value) {
-	if (value == null || value === '') return null
+	if (value === null || value === undefined || value === '') return null
 	if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
 	const d = new Date(value)
 	return Number.isNaN(d.getTime()) ? null : d
@@ -38,7 +38,7 @@ function toDate(value) {
  * @return {string} Formatted date, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDate(value) {
-	if (value == null || value === '') return ''
+	if (value === null || value === undefined || value === '') return ''
 	const d = toDate(value)
 	if (!d) return String(value)
 	return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d)
@@ -52,7 +52,7 @@ export function formatDate(value) {
  * @return {string}
  */
 export function formatDateTime(value) {
-	if (value == null || value === '') return ''
+	if (value === null || value === undefined || value === '') return ''
 	const d = toDate(value)
 	if (!d) return String(value)
 	return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(d)
@@ -67,7 +67,7 @@ export function formatDateTime(value) {
  * @return {string}
  */
 export function formatRelativeTime(value) {
-	if (value == null || value === '') return ''
+	if (value === null || value === undefined || value === '') return ''
 	const d = toDate(value)
 	if (!d) return String(value)
 	const diffMs = d.getTime() - Date.now()

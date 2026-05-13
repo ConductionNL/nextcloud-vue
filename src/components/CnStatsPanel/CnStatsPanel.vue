@@ -144,11 +144,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon, NcListItem } from '@nextcloud/vue'
-import { CnStatsBlock } from '../CnStatsBlock/index.js'
-import { CnKpiGrid } from '../CnKpiGrid/index.js'
+import { NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
+import { CnKpiGrid } from '../CnKpiGrid/index.js'
 import { CnProgressBar } from '../CnProgressBar/index.js'
+import { CnStatsBlock } from '../CnStatsBlock/index.js'
 
 /**
  * CnStatsPanel — Configurable statistics panel with sections of stat blocks and list items.
@@ -247,7 +247,7 @@ export default {
 		/** Label shown during loading state */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
 
 		/** Default text shown when a section has no items. Can be overridden per section via `section.emptyLabel`. */
@@ -262,11 +262,12 @@ export default {
 	methods: {
 		/**
 		 * Check if an icon value is a component reference (not a string name).
+		 *
 		 * @param {*} icon - Icon value to check
 		 * @return {boolean}
 		 */
 		isComponentIcon(icon) {
-			return icon != null && typeof icon !== 'string'
+			return icon !== null && icon !== undefined && typeof icon !== 'string'
 		},
 	},
 }

@@ -23,7 +23,7 @@ export async function parseResponseError(response, type) {
 	const status = response.status
 	let details = null
 	let fields = null
-	let message = ''
+	let message
 
 	try {
 		const body = await response.json()
@@ -34,31 +34,49 @@ export async function parseResponseError(response, type) {
 	}
 
 	switch (true) {
-	case status === 400 || status === 422:
-		message = details && typeof details === 'string'
-			? details
-			: `Validation failed for ${type}`
-		return { status, message, details, isValidation: true, fields, toString() { return this.message } }
-	case status === 401:
-		message = 'Session expired, please log in again'
-		break
-	case status === 403:
-		message = 'You do not have permission to perform this action'
-		break
-	case status === 404:
-		message = `The requested ${type} could not be found`
-		break
-	case status === 409:
-		message = `This ${type} was modified by another user. Please reload.`
-		break
-	case status >= 500:
-		message = 'An unexpected server error occurred. Please try again.'
-		break
-	default:
-		message = response.statusText || 'An unexpected error occurred'
+		case status === 400 || status === 422:
+			message = details && typeof details === 'string'
+				? details
+				: `Validation failed for ${type}`
+			return {
+				status,
+				message,
+				details,
+				isValidation: true,
+				fields,
+				toString() {
+					return this.message
+				},
+			}
+		case status === 401:
+			message = 'Session expired, please log in again'
+			break
+		case status === 403:
+			message = 'You do not have permission to perform this action'
+			break
+		case status === 404:
+			message = `The requested ${type} could not be found`
+			break
+		case status === 409:
+			message = `This ${type} was modified by another user. Please reload.`
+			break
+		case status >= 500:
+			message = 'An unexpected server error occurred. Please try again.'
+			break
+		default:
+			message = response.statusText || 'An unexpected error occurred'
 	}
 
-	return { status, message, details, isValidation: false, fields, toString() { return this.message } }
+	return {
+		status,
+		message,
+		details,
+		isValidation: false,
+		fields,
+		toString() {
+			return this.message
+		},
+	}
 }
 
 /**

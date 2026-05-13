@@ -9,10 +9,10 @@
 | `formats`       | `array`  |          | `[     \{ id: 'excel', label: 'Excel (.xlsx)' \},     \{ id: 'csv', label: 'CSV (.csv)' \}, ]` | Available export formats                         |
 | `defaultFormat` | `string` |          | `'excel'`                                                                                      | Default selected format ID                       |
 | `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export completed successfully.')`                                | Success message                                  |
-| `formatLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export format')`                                                 |                                                  |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                        |                                                  |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                         |                                                  |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Export')`                                                        |                                                  |
+| `formatLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export format')`                                                 | Label for the export format selector             |
+| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                        | Label for the cancel button                      |
+| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                         | Label for the close button                       |
+| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Export')`                                                        | Label for the confirm / primary action button    |
 
 ### Events
 

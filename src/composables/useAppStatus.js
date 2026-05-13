@@ -1,5 +1,5 @@
-import { ref } from 'vue'
 import { getCapabilities } from '@nextcloud/capabilities'
+import { ref } from 'vue'
 
 /**
  * Per-`appId` cache of status results. Populated lazily on first call.
@@ -65,7 +65,7 @@ export function useAppStatus(appId) {
 		// running outside a real Nextcloud page won't have it, in which
 		// case we fall through to the capabilities check.
 		const ocAppsWebRoots = (typeof OC !== 'undefined' && OC && OC.appswebroots) || null
-		if (ocAppsWebRoots && Object.prototype.hasOwnProperty.call(ocAppsWebRoots, appId)) {
+		if (ocAppsWebRoots && Object.hasOwn(ocAppsWebRoots, appId)) {
 			installed.value = true
 			enabled.value = true
 			return result
@@ -77,13 +77,12 @@ export function useAppStatus(appId) {
 		if (
 			capabilities
 			&& typeof capabilities === 'object'
-			&& Object.prototype.hasOwnProperty.call(capabilities, appId)
+			&& Object.hasOwn(capabilities, appId)
 		) {
 			installed.value = true
 			enabled.value = true
 		}
 	} catch (err) {
-		// eslint-disable-next-line no-console
 		console.warn(
 			`[useAppStatus] Failed to determine status for "${appId}":`,
 			err,

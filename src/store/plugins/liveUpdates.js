@@ -48,13 +48,14 @@
  * store.unsubscribe(handle)
  */
 
+import { buildCollectionKey, buildObjectKey } from '../liveUpdates/eventKeys.js'
 import { getLiveUpdates } from '../liveUpdates/transport.js'
-import { buildObjectKey, buildCollectionKey } from '../liveUpdates/eventKeys.js'
 
 // tryOnScopeDispose is from @vueuse/core — available as peerDependency
 let _tryOnScopeDispose = null
 try {
 	// Dynamic import guard: avoid hard failure if @vueuse/core is absent
+	// eslint-disable-next-line no-undef
 	const vueuse = require('@vueuse/core')
 	_tryOnScopeDispose = vueuse.tryOnScopeDispose
 } catch {
@@ -200,7 +201,7 @@ export function liveUpdatesPlugin(opts = {}) {
 								[type]: { ...config, registerSlug, schemaSlug },
 							}
 						} catch (err) {
-							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`)
+							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`, { cause: err })
 						}
 					}
 
@@ -216,16 +217,16 @@ export function liveUpdatesPlugin(opts = {}) {
 
 				const callback = isObject
 					? () => {
-						store.liveLastEventAt = new Date()
-						// Dispatch fetchObject with dedup
-						store.fetchObject(type, id)
-					}
+							store.liveLastEventAt = new Date()
+							// Dispatch fetchObject with dedup
+							store.fetchObject(type, id)
+						}
 					: () => {
-						store.liveLastEventAt = new Date()
-						// Dispatch fetchCollection with last stashed params + dedup
-						const lastParams = store.__lastCollectionParams?.get(type) || {}
-						store.fetchCollection(type, lastParams)
-					}
+							store.liveLastEventAt = new Date()
+							// Dispatch fetchCollection with last stashed params + dedup
+							const lastParams = store.__lastCollectionParams?.get(type) || {}
+							store.fetchCollection(type, lastParams)
+						}
 
 				const transportOpts = {
 					isObject,

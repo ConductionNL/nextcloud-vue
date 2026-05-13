@@ -33,7 +33,7 @@
 		<!-- Actions slot -->
 		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-files-page__actions">
 			<slot name="actions">
-				<NcButton type="secondary" @click="openInFiles">
+				<NcButton variant="secondary" @click="openInFiles">
 					<template #icon>
 						<OpenInNew :size="20" />
 					</template>
@@ -96,9 +96,9 @@ import {
 	NcEmptyContent,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
-import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
@@ -150,21 +150,25 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Files'),
 		},
+
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether to render the inline page header. */
 		showTitle: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Folder path within the user's Nextcloud filesystem. Required
 		 * for the "Open in Files" link to work; the spec marks this
@@ -174,6 +178,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * MIME types to filter on. Each entry is matched literally OR
 		 * as a wildcard with a trailing `/*`. Examples:
@@ -186,6 +191,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Pre-loaded file listing — used when the consumer wants to
 		 * provide their own data fetch (e.g. via the consuming app's
@@ -199,31 +205,37 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether a fetch is in progress (rendered as a spinner). */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Error object/message — when truthy the error state shows. */
 		error: {
 			type: [Error, String, Object],
 			default: null,
 		},
+
 		/** Empty-state text. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No files in this folder'),
 		},
+
 		/** Error-state text. */
 		errorText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Could not load folder contents'),
 		},
+
 		/** Label for the "Open in Files" button. */
 		openInFilesLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Open in Files'),
 		},
+
 		/**
 		 * Optional refresh callback wired to the slot scope. The library
 		 * cannot trigger a re-fetch on its own (no built-in WebDAV

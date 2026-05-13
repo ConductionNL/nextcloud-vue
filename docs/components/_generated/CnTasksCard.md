@@ -2,18 +2,18 @@
 
 ### Props
 
-| Name              | Type      | Required | Default                                     | Description                        |
-| ----------------- | --------- | -------- | ------------------------------------------- | ---------------------------------- |
-| `registerId`      | `string`  | ✓        | —                                           | OpenRegister register ID           |
-| `schemaId`        | `string`  | ✓        | —                                           | OpenRegister schema ID             |
-| `objectId`        | `string`  | ✓        | —                                           | Object UUID                        |
-| `apiBase`         | `string`  |          | `'/apps/openregister/api'`                  | Base API URL for OpenRegister      |
-| `maxDisplay`      | `number`  |          | `5`                                         | Maximum number of tasks to display |
-| `collapsible`     | `boolean` |          | `false`                                     | Whether the card is collapsible    |
-| `titleLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Tasks')`      |                                    |
-| `noTasksLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'No tasks')`   |                                    |
-| `showAllLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`   |                                    |
-| `unassignedLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unassigned')` |                                    |
+| Name              | Type      | Required | Default                                     | Description                         |
+| ----------------- | --------- | -------- | ------------------------------------------- | ----------------------------------- |
+| `registerId`      | `string`  | ✓        | —                                           | OpenRegister register ID            |
+| `schemaId`        | `string`  | ✓        | —                                           | OpenRegister schema ID              |
+| `objectId`        | `string`  | ✓        | —                                           | Object UUID                         |
+| `apiBase`         | `string`  |          | `'/apps/openregister/api'`                  | Base API URL for OpenRegister       |
+| `maxDisplay`      | `number`  |          | `5`                                         | Maximum number of tasks to display  |
+| `collapsible`     | `boolean` |          | `false`                                     | Whether the card is collapsible     |
+| `titleLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Tasks')`      | Label / heading for the card title  |
+| `noTasksLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'No tasks')`   | Text shown when no tasks are linked |
+| `showAllLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'Show all')`   | Label for the show-all link         |
+| `unassignedLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unassigned')` | Label shown when no assignee is set |
 
 ### Events
 

@@ -14,124 +14,124 @@ export * from '@nextcloud/vue'
 
 // Components
 export {
-	CnDataTable,
-	CnFilterBar,
-	CnStatusBadge,
-	CnPagination,
-	CnSettingsCard,
-	CnSettingsSection,
-	CnStatsBlock,
-	CnConfigurationCard,
-	CnVersionInfoCard,
-	CnCellRenderer,
-	CnObjectCard,
-	CnCardGrid,
-	CnFacetSidebar,
-	CnRowActions,
-	CnContextMenu,
-	CnIndexPage,
-	CnQuickFilterBar,
-	CnMassActionBar,
-	CnDeleteDialog,
-	CnCopyDialog,
-	CnFormDialog,
-	CnAdvancedFormDialog,
-	CnPropertiesTab,
-	CnMetadataTab,
-	CnPropertyValueCell,
-	CnMassDeleteDialog,
-	CnMassCopyDialog,
-	CnKpiGrid,
-	CnMassExportDialog,
-	CnMassImportDialog,
-	CnIndexSidebar,
-	CnRegisterMapping,
-	CnDashboardPage,
-	CnDashboardGrid,
-	CnWidgetWrapper,
-	CnWidgetRenderer,
-	CnTileWidget,
-	CnItemCard,
-	CnSchemaFormDialog,
-	CnTabbedFormDialog,
-	CnTimelineStages,
-	CnUserActionMenu,
-	CnNotesCard,
-	CnTasksCard,
-	CnFilesCard,
-	CnTagsCard,
-	CnAuditTrailCard,
-	CnDetailCard,
-	CnDetailPage,
-	CnCard,
-	CnStatsPanel,
-	CnJsonViewer,
-	CnColorPicker,
-	CnDetailGrid,
-	CnProgressBar,
-	CnChartWidget,
-	CnStatsBlockWidget,
-	CnLockedBanner,
-	CnObjectSidebar,
-	CnInfoWidget,
-	CnTableWidget,
 	CnActionsBar,
-	CnIcon,
-	CnPageHeader,
-	CnNoteCard,
-	CnObjectDataWidget,
-	CnObjectMetadataWidget,
-	CnLogsPage,
-	CnSettingsPage,
-	CnChatPage,
-	CnFilesPage,
-	CnWikiPage,
-	CnPageRenderer,
-	defaultPageTypes,
-	CnAppNav,
+	CnAdvancedFormDialog,
 	CnAppLoading,
-	CnDependencyMissing,
+	CnAppNav,
 	CnAppRoot,
+	CnAuditTrailCard,
+	CnCard,
+	CnCardGrid,
+	CnCellRenderer,
+	CnChartWidget,
+	CnChatPage,
+	CnColorPicker,
+	CnConfigurationCard,
+	CnContextMenu,
+	CnCopyDialog,
+	CnDashboardGrid,
+	CnDashboardPage,
+	CnDataTable,
+	CnDeleteDialog,
+	CnDependencyMissing,
+	CnDetailCard,
+	CnDetailGrid,
+	CnDetailPage,
+	CnFacetSidebar,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapView,
 	CnFeaturesTab,
-	CnRoadmapTab,
+	CnFilesCard,
+	CnFilesPage,
+	CnFilterBar,
+	CnFormDialog,
+	CnIcon,
+	CnIndexPage,
+	CnIndexSidebar,
+	CnInfoWidget,
+	CnItemCard,
+	CnJsonViewer,
+	CnKpiGrid,
+	CnLockedBanner,
+	CnLogsPage,
+	CnMassActionBar,
+	CnMassCopyDialog,
+	CnMassDeleteDialog,
+	CnMassExportDialog,
+	CnMassImportDialog,
+	CnMetadataTab,
+	CnNoteCard,
+	CnNotesCard,
+	CnObjectCard,
+	CnObjectDataWidget,
+	CnObjectMetadataWidget,
+	CnObjectSidebar,
+	CnPageHeader,
+	CnPageRenderer,
+	CnPagination,
+	CnProgressBar,
+	CnPropertiesTab,
+	CnPropertyValueCell,
+	CnQuickFilterBar,
+	CnRegisterMapping,
 	CnRoadmapItem,
+	CnRoadmapTab,
+	CnRowActions,
+	CnSchemaFormDialog,
+	CnSettingsCard,
+	CnSettingsPage,
+	CnSettingsSection,
+	CnStatsBlock,
+	CnStatsBlockWidget,
+	CnStatsPanel,
+	CnStatusBadge,
 	CnSuggestFeatureModal,
+	CnTabbedFormDialog,
+	CnTableWidget,
+	CnTagsCard,
+	CnTasksCard,
+	CnTileWidget,
+	CnTimelineStages,
+	CnUserActionMenu,
+	CnVersionInfoCard,
+	CnWidgetRenderer,
+	CnWidgetWrapper,
+	CnWikiPage,
+	defaultPageTypes,
 	registerIcons,
 } from './components/index.js'
 
 // AI Chat Companion component family
-export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
+export { CnAiChatPanel, CnAiCompanion, CnAiFloatingButton, CnAiInput, CnAiMessageList } from './components/CnAiCompanion/index.js'
 export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Store
-export { useObjectStore, createObjectStore } from './store/index.js'
+export { createObjectStore, useObjectStore } from './store/index.js'
 export { createCrudStore } from './store/index.js'
 export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 
 // Store plugins
 export {
 	auditTrailsPlugin,
-	relationsPlugin,
 	filesPlugin,
+	getRegisterApiUrl,
+	getSchemaApiUrl,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
 	registerMappingPlugin,
-	selectionPlugin,
-	searchPlugin,
+	relationsPlugin,
 	SEARCH_TYPE,
-	getRegisterApiUrl,
-	getSchemaApiUrl,
+	searchPlugin,
+	selectionPlugin,
 } from './store/plugins/index.js'
 
 // Composables
-export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry } from './composables/index.js'
+export { useAiChatStream, useAiContext } from './composables/index.js'
+export { buildCountQuery, cnRenderMarkdown, LockConflictError, PermissionError, selectByPath, useAppManifest, useAppStatus, useContextMenu, useDashboardView, useDataSource, useDetailView, useGraphQL, useIntegrationRegistry, useListView, useObjectLock, useObjectSubscription, useSubResource } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
-export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations } from './integrations/index.js'
+export { builtinIntegrations, createIntegrationRegistry, installIntegrationRegistry, integrations, registerBuiltinIntegrations, VALID_SURFACES } from './integrations/index.js'
 
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
@@ -145,8 +145,8 @@ export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 export { registerTranslations } from './l10n/index.js'
 
 // Utilities
-export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
-export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
+export { buildHeaders, buildQueryString, genericError, networkError, parseResponseError } from './utils/index.js'
+export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './utils/index.js'
 export { validateManifest } from './utils/validateManifest.js'
-export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
-export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
+export { clearResolveCache, resolveManifestSentinels } from './utils/resolveManifestSentinels.js'
+export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'

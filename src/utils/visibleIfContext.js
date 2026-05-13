@@ -27,7 +27,7 @@ function resolvePath(root, path) {
 	let current = root
 	for (const segment of segments) {
 		if (current === null || typeof current !== 'object') return undefined
-		if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined
+		if (!Object.hasOwn(current, segment)) return undefined
 		current = current[segment]
 	}
 	return current
@@ -67,15 +67,15 @@ function evaluatePredicate(value, predicate) {
 	}
 
 	// Object predicate — evaluate each recognised operator; all must pass (implicit AND).
-	if (Object.prototype.hasOwnProperty.call(predicate, 'eq')) {
+	if (Object.hasOwn(predicate, 'eq')) {
 		if (value !== predicate.eq) return false
 	}
 
-	if (Object.prototype.hasOwnProperty.call(predicate, 'in')) {
+	if (Object.hasOwn(predicate, 'in')) {
 		if (!Array.isArray(predicate.in) || !predicate.in.includes(value)) return false
 	}
 
-	if (Object.prototype.hasOwnProperty.call(predicate, 'notIn')) {
+	if (Object.hasOwn(predicate, 'notIn')) {
 		if (!Array.isArray(predicate.notIn) || predicate.notIn.includes(value)) return false
 	}
 
@@ -89,20 +89,20 @@ function evaluatePredicate(value, predicate) {
 		return v
 	}
 
-	if (Object.prototype.hasOwnProperty.call(predicate, 'gt')) {
+	if (Object.hasOwn(predicate, 'gt')) {
 		if (!(toComparable(value) > toComparable(predicate.gt))) return false
 	}
-	if (Object.prototype.hasOwnProperty.call(predicate, 'gte')) {
+	if (Object.hasOwn(predicate, 'gte')) {
 		if (!(toComparable(value) >= toComparable(predicate.gte))) return false
 	}
-	if (Object.prototype.hasOwnProperty.call(predicate, 'lt')) {
+	if (Object.hasOwn(predicate, 'lt')) {
 		if (!(toComparable(value) < toComparable(predicate.lt))) return false
 	}
-	if (Object.prototype.hasOwnProperty.call(predicate, 'lte')) {
+	if (Object.hasOwn(predicate, 'lte')) {
 		if (!(toComparable(value) <= toComparable(predicate.lte))) return false
 	}
 
-	if (Object.prototype.hasOwnProperty.call(predicate, 'truthy')) {
+	if (Object.hasOwn(predicate, 'truthy')) {
 		const expected = Boolean(predicate.truthy)
 		if (Boolean(value) !== expected) return false
 	}
@@ -217,10 +217,10 @@ export function validateContextPredicates(visibleIf, path) {
 				}
 			}
 
-			if (Object.prototype.hasOwnProperty.call(predicate, 'in') && !Array.isArray(predicate.in)) {
+			if (Object.hasOwn(predicate, 'in') && !Array.isArray(predicate.in)) {
 				errors.push(`${path}/${key}/in: "in" operator value must be an array`)
 			}
-			if (Object.prototype.hasOwnProperty.call(predicate, 'notIn') && !Array.isArray(predicate.notIn)) {
+			if (Object.hasOwn(predicate, 'notIn') && !Array.isArray(predicate.notIn)) {
 				errors.push(`${path}/${key}/notIn: "notIn" operator value must be an array`)
 			}
 		}

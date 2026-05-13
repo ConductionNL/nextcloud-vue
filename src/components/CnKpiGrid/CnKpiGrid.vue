@@ -42,6 +42,8 @@ export default {
 			default: 4,
 			validator: (v) => [2, 3, 4].includes(v),
 		},
+
+		/** Additional CSS class(es) applied to the KPI grid element */
 		gridClass: {
 			type: String,
 			default: '',

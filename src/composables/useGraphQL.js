@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { ref, watch, isRef } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { isRef, ref, watch } from 'vue'
 
 /**
  * Default OpenRegister GraphQL endpoint.
@@ -31,7 +31,7 @@ export const OPENREGISTER_GRAPHQL_PATH = '/apps/openregister/api/graphql'
  * @return {*} The resolved value, or `undefined` if any segment is missing.
  */
 export function selectByPath(obj, selector) {
-	if (obj == null || typeof selector !== 'string' || selector === '') {
+	if (obj === null || obj === undefined || typeof selector !== 'string' || selector === '') {
 		return undefined
 	}
 	const segments = selector.split('.')
@@ -41,7 +41,7 @@ export function selectByPath(obj, selector) {
 		const key = isArrayHop ? raw.slice(0, -2) : raw
 		const next = []
 		for (const value of cursor) {
-			if (value == null) continue
+			if (value === null || value === undefined) continue
 			const inner = key === '' ? value : value[key]
 			if (inner === undefined) continue
 			if (isArrayHop) {
@@ -108,7 +108,7 @@ export function useGraphQL(query, variables, options = {}) {
 			if (operationName) body.operationName = operationName
 			const resp = await axios.post(endpoint, body)
 			if (resp.data?.errors?.length) {
-				error.value = new Error(resp.data.errors.map(e => e.message).join('; '))
+				error.value = new Error(resp.data.errors.map((e) => e.message).join('; '))
 				data.value = resp.data.data ?? null
 				return
 			}

@@ -14,8 +14,8 @@
  *   failures) → switches to pollingTransport automatically.
  */
 
-import { createWebsocketTransport } from './websocketTransport.js'
 import { createPollingTransport, DEFAULT_POLL_INTERVAL_COLLECTION, DEFAULT_POLL_INTERVAL_OBJECT } from './pollingTransport.js'
+import { createWebsocketTransport } from './websocketTransport.js'
 
 /** @type {object|null} Module-level singleton instance */
 let instance = null

@@ -2,14 +2,14 @@
 
 ### Props
 
-| Name            | Type     | Required | Default                                                             | Description |
-| --------------- | -------- | -------- | ------------------------------------------------------------------- | ----------- |
-| `objectId`      | `string` | ✓        | —                                                                   |             |
-| `register`      | `string` |          | `''`                                                                |             |
-| `schema`        | `string` |          | `''`                                                                |             |
-| `apiBase`       | `string` |          | `'/apps/openregister/api'`                                          |             |
-| `dropZoneLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Drop files here or click to browse')` |             |
-| `noFilesLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'No files attached')`                  |             |
-| `openLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Open')`                               |             |
-| `deleteLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`                             |             |
-| `loadMoreLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`                          |             |
+| Name            | Type     | Required | Default                                                             | Description                           |
+| --------------- | -------- | -------- | ------------------------------------------------------------------- | ------------------------------------- |
+| `objectId`      | `string` | ✓        | —                                                                   | ID of the object this tab belongs to  |
+| `register`      | `string` |          | `''`                                                                | OpenRegister register slug            |
+| `schema`        | `string` |          | `''`                                                                | JSON Schema definition for the object |
+| `apiBase`       | `string` |          | `'/apps/openregister/api'`                                          | Base URL for the OpenRegister API     |
+| `dropZoneLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Drop files here or click to browse')` | Text shown inside the file drop zone  |
+| `noFilesLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'No files attached')`                  | Text shown when no files are attached |
+| `openLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Open')`                               | Label for the open/view file action   |
+| `deleteLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`                             | Label for the delete action           |
+| `loadMoreLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`                          | Label for the load-more button        |

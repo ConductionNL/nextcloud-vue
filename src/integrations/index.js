@@ -1,16 +1,16 @@
 export {
-	integrations,
 	createIntegrationRegistry,
 	installIntegrationRegistry,
+	integrations,
 	VALID_SURFACES,
 } from './registry.js'
 
 export {
+	auditTrailIntegration,
 	builtinIntegrations,
-	registerBuiltinIntegrations,
 	filesIntegration,
 	notesIntegration,
+	registerBuiltinIntegrations,
 	tagsIntegration,
 	tasksIntegration,
-	auditTrailIntegration,
 } from './builtin/index.js'

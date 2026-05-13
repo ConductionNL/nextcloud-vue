@@ -6,7 +6,7 @@
 			</h3>
 			<NcButton
 				v-if="hasActiveFilters"
-				type="tertiary"
+				variant="tertiary"
 				class="cn-facet-sidebar__clear"
 				@click="$emit('clear-all')">
 				{{ clearLabel }}
@@ -29,7 +29,7 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:checked="getFilterValue(filter.key) === true"
+					:model-value="getFilterValue(filter.key) === true"
 					@update:checked="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
@@ -38,7 +38,7 @@
 				<NcSelect
 					v-else-if="filter.type === 'select'"
 					class="cn-facet-sidebar__select"
-					:value="getSelectedOptions(filter)"
+					:model-value="getSelectedOptions(filter)"
 					:options="getFilterOptions(filter)"
 					:placeholder="filter.label"
 					:input-label="filter.label"
@@ -49,7 +49,7 @@
 				<!-- Text filter (fallback) -->
 				<NcTextField
 					v-else
-					:value="getFilterValue(filter.key) || ''"
+					:model-value="getFilterValue(filter.key) || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
 					@update:value="onFilterChange(filter.key, $event)" />
@@ -60,7 +60,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
 import { filtersFromSchema } from '../../utils/schema.js'
 
 /**
@@ -96,31 +96,37 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Live facet data from API: { fieldName: { values: [{value, count}] } } */
 		facetData: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Current active filters: { fieldName: value | [values] } */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether facet data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Sidebar title */
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Filters'),
 		},
+
 		/** Clear all button label */
 		clearLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Clear all'),
 		},
+
 		/**
 		 * Whether the current user is an admin.
 		 * When false, schema properties with `adminOnly: true` are hidden from filters.

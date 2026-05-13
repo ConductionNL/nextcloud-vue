@@ -324,33 +324,33 @@
 </template>
 
 <script>
-import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCurrentInstance, inject, ref, watch } from 'vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import { CnPageHeader } from '../CnPageHeader/index.js'
-import { CnActionsBar } from '../CnActionsBar/index.js'
-import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
-import { CnDataTable } from '../CnDataTable/index.js'
-import { CnCardGrid } from '../CnCardGrid/index.js'
-import { CnPagination } from '../CnPagination/index.js'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
-import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
-import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
-import { CnCopyDialog } from '../CnCopyDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnContextMenu } from '../CnContextMenu/index.js'
-import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { getCurrentInstance, inject, ref, watch } from 'vue'
 import { useContextMenu, useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { CnActionsBar } from '../CnActionsBar/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnCardGrid } from '../CnCardGrid/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { CnCopyDialog } from '../CnCopyDialog/index.js'
+import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
+import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
+import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
+import { CnPageHeader } from '../CnPageHeader/index.js'
+import { CnPagination } from '../CnPagination/index.js'
+import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
+import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -500,11 +500,13 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether to show the page header (icon, title, description) inline.
 		 * When false (default), the title is shown in the sidebar header instead.
@@ -513,11 +515,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Schema. Either a resolved schema object (consumer-managed path) OR a
 		 * schema-slug string — when a string is given together with `register`
@@ -530,6 +534,7 @@ export default {
 			type: [Object, String],
 			default: null,
 		},
+
 		/**
 		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
 		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
@@ -541,6 +546,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Self-fetch mode only — an array of clickable filter tabs rendered as
 		 * a strip above the table. Each entry is `{label, filter, default?, icon?}`;
@@ -557,127 +563,152 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Object/row data array */
 		objects: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Pagination state: { page, pages, total, limit } */
 		pagination: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether rows/cards can be selected */
 		selectable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Currently selected IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** View mode: 'table' or 'cards' */
 		viewMode: {
 			type: String,
 			default: 'table',
 			validator: (v) => ['table', 'cards'].includes(v),
 		},
+
 		/** Current sort key */
 		sortKey: {
 			type: String,
 			default: null,
 		},
+
 		/** Current sort order */
 		sortOrder: {
 			type: String,
 			default: 'asc',
 		},
+
 		/** Unique row identifier property */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Columns to exclude in schema mode */
 		excludeColumns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Columns to include in schema mode (whitelist) */
 		includeColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Per-column overrides in schema mode */
 		columnOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Row action definitions (app-provided, merged with built-in actions) */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Text shown when no items found */
 		emptyText: {
 			type: String,
 			default: 'No items found',
 		},
+
 		/** Function returning CSS class(es) for a row */
 		rowClass: {
 			type: Function,
 			default: null,
 		},
+
 		/** Override label for the Add button. Defaults to "Add {schema.title}" */
 		addLabel: {
 			type: String,
 			default: '',
 		},
+
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Export action */
 		showMassExport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Copy button */
 		showMassCopy: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Delete button */
 		showMassDelete: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format item names in dialogs. Receives the item, returns a string. Overrides massActionNameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Available export formats for the export dialog */
 		exportFormats: {
 			type: Array,
@@ -686,21 +717,25 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
+
 		/** Import option definitions for the import dialog */
 		importOptions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether to show the built-in form dialog for Add/Edit */
 		showFormDialog: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether to add a View action to row actions. The action emits a
 		 * dedicated `view` event — independent of `row-click`. Bind `@view`
@@ -712,61 +747,73 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add a Copy action to row actions */
 		showCopyAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add a Delete action to row actions */
 		showDeleteAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Field keys to exclude from the form dialog */
 		excludeFields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Field keys to include in the form dialog (whitelist mode) */
 		includeFields: {
 			type: Array,
 			default: null,
 		},
+
 		/** Per-field overrides passed to CnFormDialog */
 		fieldOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether to show the Cards/Table view toggle in the actions bar */
 		showViewToggle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
 		refreshDisabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the Add button is disabled (e.g. when required selections are missing) */
 		addDisabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the Add button in the actions bar */
 		showAdd: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Store instance for automatic save integration. When provided alongside
 		 * objectType, the form dialog saves directly to the store instead of
@@ -811,21 +858,25 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Current search term (forwarded to the embedded sidebar when sidebar.enabled). */
 		searchValue: {
 			type: String,
 			default: '',
 		},
+
 		/** Currently visible column keys (forwarded to the embedded sidebar). */
 		visibleColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Currently active facet filters: { fieldName: [values] } (forwarded to the embedded sidebar). */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Effective register slug for the page. Forwarded as a prop to
 		 * the resolved card component (when `cardComponent` is set) so
@@ -840,6 +891,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional name of a consumer-provided card component (registered
 		 * in the `customComponents` registry on `CnAppRoot`) to render in
@@ -861,6 +913,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional explicit customComponents registry. When set, this
 		 * overrides the registry injected from `CnAppRoot` via
@@ -902,7 +955,7 @@ export default {
 		const instance = getCurrentInstance()
 		const objectsProvided = !!(
 			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
-			&& Object.prototype.hasOwnProperty.call(instance.proxy.$options.propsData, 'objects')
+			&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
 		)
 		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
 
@@ -981,7 +1034,7 @@ export default {
 					// the user's intent).
 					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 					const activeIdx = activeQuickFilterIndex.value
-					const tabFilter = (tabs && activeIdx != null) ? tabs[activeIdx]?.filter : null
+					const tabFilter = (tabs && activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
 					return { ...base, ...resolveFilterMap(tabFilter, params) }
 				},
 			})
@@ -1040,6 +1093,7 @@ export default {
 			if (this.isSelfFetchMode) return this.list.schema.value
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
+
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
@@ -1061,6 +1115,7 @@ export default {
 					: c
 			))
 		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
@@ -1271,10 +1326,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`,
-				)
+				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
 				return null
 			}
 			return resolved
@@ -1285,9 +1337,11 @@ export default {
 		viewMode(val) {
 			this.currentViewMode = val
 		},
+
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
+
 		/**
 		 * Keep the hoisted sidebar in sync with reactive props.
 		 * The watcher fires whenever any of the props snapshot
@@ -1299,13 +1353,16 @@ export default {
 			handler() {
 				this.publishHoistedSidebar()
 			},
+
 			deep: false,
 		},
+
 		shouldRenderInlineSidebar() {
 			// When the gate flips (e.g. sidebar.show toggled), keep
 			// the hoist in sync.
 			this.publishHoistedSidebar()
 		},
+
 		// Re-push AI context when relevant props change
 		register() { this.pushAiContext() },
 		schema() { this.pushAiContext() },
@@ -1374,6 +1431,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
 			this.$emit('search', value)
 		},
+
 		/**
 		 * Quick-filter tab change. Updates the active index — the `setup()`
 		 * watcher then triggers `list.refresh(1)` so the new tab's filter
@@ -1388,6 +1446,7 @@ export default {
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
 		},
+
 		/**
 		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
 		 * @return {void}
@@ -1396,6 +1455,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
 			this.$emit('sort', payload)
 		},
+
 		/**
 		 * @param {number} page Requested page from CnPagination.
 		 * @return {void}
@@ -1404,6 +1464,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
 			this.$emit('page-changed', page)
 		},
+
 		/**
 		 * @param {{key: string, values: Array}} payload Facet-filter change from the sidebar.
 		 * @return {void}
@@ -1412,6 +1473,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
 			this.$emit('filter-change', payload)
 		},
+
 		/**
 		 * @param {Array} columns Visible-column change from the sidebar.
 		 * @return {void}
@@ -1420,6 +1482,7 @@ export default {
 			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
 			this.$emit('columns-change', columns)
 		},
+
 		/** @return {void} */
 		onRefreshEvent() {
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
@@ -1481,11 +1544,8 @@ export default {
 			if (name === 'navigate') {
 				const route = action.route
 				if (typeof route !== 'string' || route.length === 0) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
-						+ 'but route is missing; falling back to @action-only.',
-					)
+					console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @action-only.')
 					return null
 				}
 				return (row) => {
@@ -1507,12 +1567,9 @@ export default {
 				return (row) => fn({ actionId: action.id, item: row })
 			}
 			if (fn !== undefined) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
+				console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
 					+ 'customComponents — components belong to slot overrides; falling '
-					+ 'back to @action-only.',
-				)
+					+ 'back to @action-only.')
 			}
 			return null
 		},
@@ -1535,6 +1592,7 @@ export default {
 
 		/**
 		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
@@ -1546,6 +1604,7 @@ export default {
 		 * Kept distinct from `row-click` because the two are conceptually
 		 * different: a row click might mean select/expand/drilldown, while
 		 * View always means "open the detail view of this row".
+		 *
 		 * @param {object} row The row whose View action was triggered
 		 */
 		onView(row) {
@@ -1567,6 +1626,7 @@ export default {
 
 		/**
 		 * Handle view mode toggle.
+		 *
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
@@ -1577,6 +1637,7 @@ export default {
 		/**
 		 * Handle selection changes from CnDataTable/CnCardGrid.
 		 * Updates internal state and re-emits for parent.
+		 *
 		 * @param {Array} ids Array of selected row IDs
 		 */
 		onSelect(ids) {
@@ -1650,6 +1711,7 @@ export default {
 		setDeleteResult(resultData) {
 			this.setMassDeleteResult(resultData)
 		},
+
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
@@ -1744,6 +1806,7 @@ export default {
 
 		/**
 		 * Programmatically open the form dialog.
+		 *
 		 * @param {object|null} item Pass null for create mode, or an object for edit mode
 		 * @public
 		 */
@@ -1754,6 +1817,7 @@ export default {
 
 		/**
 		 * Programmatically open the single-item delete dialog.
+		 *
 		 * @param {object} item The item to delete
 		 * @public
 		 */

@@ -92,13 +92,13 @@
 </template>
 
 <script>
-import { NcAppSidebar, NcAppSidebarTab, NcActionButton, NcEmptyContent } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import History from 'vue-material-design-icons/History.vue'
+import { NcActionButton, NcAppSidebar, NcAppSidebarTab, NcEmptyContent } from '@nextcloud/vue'
 import Creation from 'vue-material-design-icons/Creation.vue'
-import CnAiMessageList from './CnAiMessageList.vue'
-import CnAiInput from './CnAiInput.vue'
+import History from 'vue-material-design-icons/History.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnAiHistoryDialog from '../../dialogs/CnAiHistoryDialog.vue'
+import CnAiInput from './CnAiInput.vue'
+import CnAiMessageList from './CnAiMessageList.vue'
 
 export default {
 	name: 'CnAiChatPanel',
@@ -126,6 +126,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Stream state object from useAiChatStream().state.
 		 * Contains: isStreaming, currentText, toolCalls, error, messages.
@@ -134,6 +135,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Ref to the FAB element — kept for API back-compat, focus return is handled by NcAppSidebar. */
 		fabRef: {
 			type: Object,

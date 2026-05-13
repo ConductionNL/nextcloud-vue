@@ -37,8 +37,8 @@ const stubs = {
 	},
 	NcButton: {
 		name: 'NcButton',
-		props: ['type', 'disabled'],
-		template: '<button class="btn" :data-type="type" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
+		props: ['type', 'variant', 'disabled'],
+		template: '<button class="btn" :data-type="variant || type" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
 	},
 	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
 	NcLoadingIcon: { name: 'NcLoadingIcon', template: '<span class="loading" />' },

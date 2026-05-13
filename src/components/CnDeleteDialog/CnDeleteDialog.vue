@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -35,7 +35,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="error"
+				variant="error"
 				:disabled="loading"
 				@click="executeDelete">
 				<template #icon>
@@ -50,7 +50,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 /**
@@ -96,33 +96,42 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Delete item'),
 		},
+
 		/** Warning text. Use `{name}` as placeholder for the item name. */
 		warningText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.'),
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully deleted.'),
 		},
+
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
@@ -139,6 +148,7 @@ export default {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
 			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
+
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
 		},

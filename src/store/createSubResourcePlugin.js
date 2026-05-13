@@ -1,5 +1,5 @@
+import { networkError, parseResponseError } from '../utils/errors.js'
 import { buildHeaders, buildQueryString, capitalize } from '../utils/headers.js'
-import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
  * Standard empty paginated response shape used by all sub-resource plugins.

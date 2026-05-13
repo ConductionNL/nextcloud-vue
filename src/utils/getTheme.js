@@ -1,4 +1,4 @@
-export const getTheme = () => {
+export function getTheme() {
 	if (document.body.hasAttribute('data-theme-dark')) {
 		return 'dark'
 	}

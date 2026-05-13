@@ -9,7 +9,7 @@
 					@keyup.enter="editingTaskId ? saveEdit() : addTask()" />
 				<NcButton
 					v-if="editingTaskId"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="cancelLabel"
 					@click="cancelEdit">
 					<template #icon>
@@ -17,7 +17,7 @@
 					</template>
 				</NcButton>
 				<NcButton
-					type="primary"
+					variant="primary"
 					:aria-label="editingTaskId ? saveLabel : addTaskPlaceholder"
 					:disabled="!newTaskSummary.trim() || saving"
 					@click="editingTaskId ? saveEdit() : addTask()">
@@ -113,7 +113,7 @@
 		</div>
 		<NcButton
 			v-if="tasks.length < total"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"
@@ -128,14 +128,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import { NcActionButton, NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
-import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -159,19 +159,33 @@ export default {
 	},
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task...') },
+		/** Placeholder text for the task input */
+		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task…') },
+		/** Label for the task deadline field */
 		deadlineLabel: { type: String, default: () => t('nextcloud-vue', 'Deadline') },
+		/** Label for the task assignee field */
 		assigneeLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
+		/** Label for the complete task action */
 		completeLabel: { type: String, default: () => t('nextcloud-vue', 'Complete') },
+		/** Label for the edit action */
 		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Text shown when no tasks are linked */
 		noTasksLabel: { type: String, default: () => t('nextcloud-vue', 'No linked tasks') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/** Label for the status filter control */
 		statusFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Status') },
+		/** Label for the assignee filter control */
 		assigneeFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
 	},
 
@@ -196,18 +210,20 @@ export default {
 
 	computed: {
 		statusOptions() {
-			return [...new Set(this.tasks.map(t => t.status).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => t.status).filter(Boolean))]
 		},
+
 		assigneeOptions() {
-			return [...new Set(this.tasks.map(t => this.extractAssignee(t)).filter(Boolean))]
+			return [...new Set(this.tasks.map((t) => this.extractAssignee(t)).filter(Boolean))]
 		},
+
 		filteredTasks() {
 			let result = this.tasks
 			if (this.filterStatus) {
-				result = result.filter(t => t.status === this.filterStatus)
+				result = result.filter((t) => t.status === this.filterStatus)
 			}
 			if (this.filterAssignee) {
-				result = result.filter(t => this.extractAssignee(t) === this.filterAssignee)
+				result = result.filter((t) => this.extractAssignee(t) === this.filterAssignee)
 			}
 			return result
 		},
@@ -228,7 +244,11 @@ export default {
 	methods: {
 		async fetchTasks(append = false) {
 			if (!this.register || !this.schema) return
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -311,7 +331,7 @@ export default {
 			this.newTaskSummary = task.summary || task.title || task.name || ''
 			this.newTaskDue = task.due ? new Date(task.due).toISOString().split('T')[0] : null
 			const assigneeName = this.extractAssignee(task)
-			this.newTaskAssignee = this.userList.find(u => u.displayName === assigneeName) || null
+			this.newTaskAssignee = this.userList.find((u) => u.displayName === assigneeName) || null
 		},
 
 		cancelEdit() {
@@ -397,7 +417,7 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.tasks = this.tasks.filter(t => t.id !== task.id)
+				this.tasks = this.tasks.filter((t) => t.id !== task.id)
 			} catch (err) {
 				console.error('CnTasksTab: Failed to delete task', err)
 			}
@@ -414,7 +434,8 @@ export default {
 			if (!dateStr) return ''
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
-					day: 'numeric', month: 'short',
+					day: 'numeric',
+					month: 'short',
 				})
 			} catch { return dateStr }
 		},

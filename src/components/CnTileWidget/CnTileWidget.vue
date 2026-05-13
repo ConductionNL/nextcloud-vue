@@ -24,7 +24,7 @@
 			</svg>
 			<!-- Other icon types -->
 			<div v-else class="cn-tile-widget__icon">
-				<span v-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
+				<span v-if="tile.iconType === 'class'" class="icon" :class="[tile.icon]" />
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
@@ -59,6 +59,7 @@ export default {
 	props: {
 		/**
 		 * Tile configuration object.
+		 *
 		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url', linkValue: string }}
 		 */
 		tile: {

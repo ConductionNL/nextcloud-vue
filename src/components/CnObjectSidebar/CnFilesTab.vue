@@ -59,7 +59,7 @@
 		</div>
 		<NcButton
 			v-if="files.length < total"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"
@@ -74,11 +74,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -87,14 +87,23 @@ export default {
 	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Text shown inside the file drop zone */
 		dropZoneLabel: { type: String, default: () => t('nextcloud-vue', 'Drop files here or click to browse') },
+		/** Text shown when no files are attached */
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
+		/** Label for the open/view file action */
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
@@ -121,7 +130,11 @@ export default {
 	methods: {
 		async fetchFiles(append = false) {
 			if (!this.register || !this.schema) return
-			if (append) { this.loadingMore = true } else { this.loading = true }
+			if (append) {
+				this.loadingMore = true
+			} else {
+				this.loading = true
+			}
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
@@ -216,7 +229,7 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.files = this.files.filter(f => f.id !== file.id)
+				this.files = this.files.filter((f) => f.id !== file.id)
 			} catch (err) {
 				console.error('CnFilesTab: Failed to delete file', err)
 			}
