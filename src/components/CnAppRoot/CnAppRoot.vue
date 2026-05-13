@@ -231,6 +231,7 @@ import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import Vue from 'vue'
 
 /**
@@ -264,7 +265,7 @@ export default {
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
-			cnFormatters: this.formatters,
+			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
 			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to

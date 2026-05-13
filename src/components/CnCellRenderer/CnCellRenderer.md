@@ -81,7 +81,10 @@ fall back to the normal rendering. See `docs/migrating-to-manifest.md` →
 > `cnFormatters: { automationTrigger: v => ({ 'lead.created': 'Lead created' }[v] ?? v) }`);
 > standalone (no provider) it falls back to rendering the raw value.
 
-Column widget — `widget="badge"` is built in (renders `CnStatusBadge`, `widgetProps.variant` selects the colour); any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets".
+Column widget — `widget="badge"` and `widget="link"` are built-in; any other id resolves against the app's `cellWidgets` registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`), and that component receives `{ value, row, property, formatted, ...widgetProps }`. `widget` takes precedence over `formatter`; when both are set the widget gets the formatter-shaped value as `formatted`. See `docs/migrating-to-manifest.md` → "Column widgets" + "Built-in cell formatters / widgets".
+
+- `widget="badge"` — `CnStatusBadge` pill; `widgetProps.variant` picks the colour.
+- `widget="link"` — `<router-link>` when `widgetProps.route` is a manifest page id; `<a target="_blank">` when `widgetProps.href` is set (with `{key}` placeholders substituted from the row); plain text + once-per-session `console.warn` when neither resolves (silence with `widgetProps.fallback:"silent"`). For non-`id` route params: `widgetProps.params: { routeParam: "rowField" }`. Default param map is `{ id: row[rowKey] }` — see the `row-key` prop below.
 
 ```vue
 <div style="display: flex; gap: 12px; align-items: center;">
@@ -89,3 +92,5 @@ Column widget — `widget="badge"` is built in (renders `CnStatusBadge`, `widget
   <CnCellRenderer value="failed" :property="{ type: 'string' }" widget="badge" :widget-props="{ variant: 'error' }" />
 </div>
 ```
+
+The `row-key` prop is used by the built-in `widget="link"` to compute the router-link's default `id` param (`{ id: row[rowKey] }`). Defaults to `'id'`; `CnDataTable` passes its own `rowKey` prop down so a table with a non-`id` identifier still works.

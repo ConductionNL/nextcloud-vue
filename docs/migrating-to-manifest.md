@@ -728,6 +728,114 @@ A manifest `type:"index"` page dispatches to `CnIndexPage`, and `CnPageRenderer`
 
 > Under the hood: `useListView('<objectType>', { …, fixedFilters })` gained an `opts.fixedFilters` — a plain object or a getter returning one — spread into the fetch params *after* the user's `activeFilters` so the fixed entries always win. `CnIndexPage` passes a getter that re-interpolates `filter` from `$route.params` on every fetch.
 
+### Quick-filter tabs (`config.quickFilters`)
+
+When a list page wants **clickable tab toggles** that change the active filter (e.g. *Open / Closed / All*, or *Mine / Team / Everyone*), declare `config.quickFilters`:
+
+```jsonc
+{
+  "id": "Tasks",
+  "type": "index",
+  "config": {
+    "register": "app",
+    "schema": "task",
+    "quickFilters": [
+      { "label": "Open",   "filter": { "status": "open" }, "default": true },
+      { "label": "Closed", "filter": { "status": "closed" } },
+      { "label": "Mine",   "filter": { "assignee": "@route.userId" } }
+    ]
+  }
+}
+```
+
+`CnIndexPage` renders `CnQuickFilterBar` above the table (pill-shaped buttons; active one filled with `--color-primary-element`). The active tab's `filter` is merged into every fetch **after** `config.filter` (so the tab wins on a colliding key) and **before** the user's facet `activeFilters` (which still narrow within the active tab). String values resolve `@route.<name>` / `:<name>` from `$route.params` the same way `config.filter` does. The first entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change` for observers. Omit `quickFilters` for the current no-tab behaviour.
+
+### Read-only shorthand (`config.readOnly`)
+
+When an index page is purely read-only (a log view, a generated report, an audit trail), spelling out `selectable:false, showAdd:false, showFormDialog:false, showEditAction:false, showCopyAction:false, showDeleteAction:false, showMassImport:false, showMassCopy:false, showMassDelete:false` is tedious. Declare `config.readOnly: true` and `CnPageRenderer` expands it to those nine defaults — merged **under** the explicit `config.*` props so any explicit override still wins:
+
+```jsonc
+{
+  "id": "AutomationHistory",
+  "type": "index",
+  "config": {
+    "register": "app",
+    "schema": "automationLog",
+    "filter": { "automation": "@route.id" },
+    "readOnly": true
+  }
+}
+```
+
+If you want a few of the read-only defaults overridden, mix them in:
+
+```jsonc
+"config": {
+  "readOnly": true,
+  "selectable": true   // ← keep selection on; everything else still falsy
+}
+```
+
+## Built-in cell formatters / widgets
+
+`CnAppRoot` ships a few built-in `cnFormatters` / `cnCellWidgets` so common manifest cell-rendering needs work without per-app boilerplate. Consumer-registered entries with the same id win on collision (override path).
+
+### Formatters
+
+| id | What |
+|---|---|
+| `date` | `Intl.DateTimeFormat` `dateStyle:"medium"` — locale-aware date, no time. |
+| `datetime` | Date + `timeStyle:"short"`. |
+| `relative-time` | `Intl.RelativeTimeFormat` — "3 days ago" / "in 2 hours". |
+
+```jsonc
+"columns": [
+  { "key": "createdAt", "label": "Created", "formatter": "date" },
+  { "key": "lastSeenAt", "label": "Last seen", "formatter": "relative-time" }
+]
+```
+
+All three are safe against `null` / `""` / non-parseable values — they return an empty string or the original value rather than throwing.
+
+### Widgets
+
+| id | What |
+|---|---|
+| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`). |
+| `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. |
+
+```jsonc
+"columns": [
+  { "key": "title", "label": "Title", "widget": "link", "widgetProps": { "route": "ContactDetail" } },
+  { "key": "status", "label": "Status", "widget": "badge", "widgetProps": { "variant": "warning" } }
+]
+```
+
+`widget` is checked AFTER any consumer registry entry, so an app can override `"link"` / `"badge"` by registering same-named components on `CnAppRoot`'s `:cell-widgets`.
+
+## `pages[].permission` (schema-only)
+
+A `pages[]` entry may carry an optional `permission: <string>` — a permission identifier for consumer-side access control:
+
+```jsonc
+{ "id": "AdminPage", "route": "/admin", "type": "index", "title": "Admin", "permission": "admin", "config": {…} }
+```
+
+The library does **not** currently enforce `permission` (it ignores the field at render time). Consumers that want enforcement filter the manifest themselves before passing it to `CnAppRoot`:
+
+```js
+const filtered = {
+  ...manifest,
+  pages: manifest.pages.filter((p) => !p.permission || perms.includes(p.permission)),
+  menu: manifest.menu.filter((m) => {
+    const page = manifest.pages.find((p) => p.id === m.route)
+    return !page?.permission || perms.includes(page.permission)
+  }),
+}
+```
+
+Adding `permission` to a page is safe — `validate-manifest.js` accepts it.
+
 ## Sidebar (manifest-driven)
 
 Both index and detail pages can drive their sidebar entirely from `manifest.json` — no consumer-side wiring required for the common shapes.
