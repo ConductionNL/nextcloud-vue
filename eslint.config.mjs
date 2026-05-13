@@ -12,6 +12,7 @@ export default [
 				argsIgnorePattern: '^_',
 				ignoreRestSiblings: true,
 			}],
+			curly: ['error', 'multi-line'],
 			'jsdoc/require-jsdoc': 'off',
 			'jsdoc/check-tag-names': 'off',
 			'vue/first-attribute-linebreak': 'off',
