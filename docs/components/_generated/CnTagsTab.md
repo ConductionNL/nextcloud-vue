@@ -2,11 +2,11 @@
 
 ### Props
 
-| Name                | Type     | Required | Default                                     | Description |
-| ------------------- | -------- | -------- | ------------------------------------------- | ----------- |
-| `objectId`          | `string` | ✓        | —                                           |             |
-| `register`          | `string` |          | `''`                                        |             |
-| `schema`            | `string` |          | `''`                                        |             |
-| `apiBase`           | `string` |          | `'/apps/openregister/api'`                  |             |
-| `addTagPlaceholder` | `string` |          | `() =&gt; t('nextcloud-vue', 'Add tag...')` |             |
-| `noTagsLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'No tags')`    |             |
+| Name                | Type     | Required | Default                                   | Description                           |
+| ------------------- | -------- | -------- | ----------------------------------------- | ------------------------------------- |
+| `objectId`          | `string` | ✓        | —                                         | ID of the object this tab belongs to  |
+| `register`          | `string` |          | `''`                                      | OpenRegister register slug            |
+| `schema`            | `string` |          | `''`                                      | JSON Schema definition for the object |
+| `apiBase`           | `string` |          | `'/apps/openregister/api'`                | Base URL for the OpenRegister API     |
+| `addTagPlaceholder` | `string` |          | `() =&gt; t('nextcloud-vue', 'Add tag…')` | Placeholder text for the tag input    |
+| `noTagsLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'No tags')`  | Text shown when no tags are present   |

@@ -5,7 +5,7 @@
 | Name       | Type                                                                     | Required | Default | Description                                                                                           |
 | ---------- | ------------------------------------------------------------------------ | -------- | ------- | ----------------------------------------------------------------------------------------------------- |
 | `repo`     | `string`                                                                 | ✓        | —       | `<owner>/<repo>` of the app's GitHub repository.                                                      |
-| `features` | `Array<{slug: string, title: string, summary: string, docsUrl: string}>` | ✓        | `[]`    | Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).                            |
+| `features` | `Array<{slug: string, title: string, summary: string, docsUrl: string}>` |          | `[]`    | Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).                            |
 | `disabled` | `boolean`                                                                |          | `false` | Admin opt-out flag — when true the entire view collapses to a single "disabled by admin" empty state. |
 
 ### Events

@@ -4,4 +4,4 @@
 
 | Name   | Type     | Required | Default | Description                                                                                                                                                                                                       |
 | ------ | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `item` | `Object` | ✓        | —       | Sanitized issue object from the OpenRegister GitHub proxy. Shape: \{number, title, body, html_url, user.\{login, avatar_url\}, reactions.\{total_count, +1\}, created_at, updated_at, labels[].\{name, color\}\}. |
+| `item` | `object` | ✓        | —       | Sanitized issue object from the OpenRegister GitHub proxy. Shape: \{number, title, body, html_url, user.\{login, avatar_url\}, reactions.\{total_count, +1\}, created_at, updated_at, labels[].\{name, color\}\}. |

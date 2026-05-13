@@ -10,9 +10,9 @@
 | `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy item')`                 | Dialog title                                                                                                       |
 | `patternLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Naming pattern')`            | Label for the naming pattern selector                                                                              |
 | `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Item successfully copied.')` | Success message                                                                                                    |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                    |                                                                                                                    |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                     |                                                                                                                    |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy')`                      |                                                                                                                    |
+| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                    | Label for the cancel button                                                                                        |
+| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                     | Label for the close button                                                                                         |
+| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy')`                      | Label for the confirm / primary action button                                                                      |
 
 ### Events
 

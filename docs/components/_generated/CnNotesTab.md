@@ -2,16 +2,16 @@
 
 ### Props
 
-| Name                 | Type     | Required | Default                                          | Description |
-| -------------------- | -------- | -------- | ------------------------------------------------ | ----------- |
-| `objectId`           | `string` | ✓        | —                                                |             |
-| `register`           | `string` |          | `''`                                             |             |
-| `schema`             | `string` |          | `''`                                             |             |
-| `apiBase`            | `string` |          | `'/apps/openregister/api'`                       |             |
-| `addNoteLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Add note')`        |             |
-| `addNotePlaceholder` | `string` |          | `() =&gt; t('nextcloud-vue', 'Write a note...')` |             |
-| `editLabel`          | `string` |          | `() =&gt; t('nextcloud-vue', 'Edit')`            |             |
-| `saveLabel`          | `string` |          | `() =&gt; t('nextcloud-vue', 'Save')`            |             |
-| `cancelLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`          |             |
-| `deleteLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`          |             |
-| `noNotesLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'No notes yet')`    |             |
+| Name                 | Type     | Required | Default                                        | Description                               |
+| -------------------- | -------- | -------- | ---------------------------------------------- | ----------------------------------------- |
+| `objectId`           | `string` | ✓        | —                                              | ID of the object this tab belongs to      |
+| `register`           | `string` |          | `''`                                           | OpenRegister register slug                |
+| `schema`             | `string` |          | `''`                                           | JSON Schema definition for the object     |
+| `apiBase`            | `string` |          | `'/apps/openregister/api'`                     | Base URL for the OpenRegister API         |
+| `addNoteLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Add note')`      | Label for the add note button             |
+| `addNotePlaceholder` | `string` |          | `() =&gt; t('nextcloud-vue', 'Write a note…')` | Placeholder text for the note input field |
+| `editLabel`          | `string` |          | `() =&gt; t('nextcloud-vue', 'Edit')`          | Label for the edit action                 |
+| `saveLabel`          | `string` |          | `() =&gt; t('nextcloud-vue', 'Save')`          | Label for the save action                 |
+| `cancelLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`        | Label for the cancel button               |
+| `deleteLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`        | Label for the delete action               |
+| `noNotesLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'No notes yet')`  | Text shown when there are no notes        |

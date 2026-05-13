@@ -11,10 +11,10 @@
 | `patternLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Naming pattern')`                 | Label for the naming pattern selector                                                                              |
 | `emptyText`     | `string` |          | `() =&gt; t('nextcloud-vue', 'No items selected for copying.')` | Text when all items removed from list                                                                              |
 | `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Items successfully copied.')`     | Success message                                                                                                    |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                         |                                                                                                                    |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                          |                                                                                                                    |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy')`                           |                                                                                                                    |
-| `removeLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Remove from list')`               |                                                                                                                    |
+| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                         | Label for the cancel button                                                                                        |
+| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                          | Label for the close button                                                                                         |
+| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Copy')`                           | Label for the confirm / primary action button                                                                      |
+| `removeLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Remove from list')`               | Label for the remove button                                                                                        |
 
 ### Events
 

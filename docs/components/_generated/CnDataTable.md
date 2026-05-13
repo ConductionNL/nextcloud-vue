@@ -20,7 +20,7 @@
 | `rowClass`        | `func`                                                                                                    |          | `null`                                          | Function returning CSS class(es) for a row: (row) =&gt; string\|object                                                        |
 | `cellClass`       | `func`                                                                                                    |          | `null`                                          | Function returning CSS class(es) for a data cell: (row, col) =&gt; string\|object                                             |
 | `scrollable`      | `boolean`                                                                                                 |          | `false`                                         | Whether to constrain table height and make it scrollable                                                                      |
-| `loadingText`     | `string`                                                                                                  |          | `() =&gt; t('nextcloud-vue', 'Loading...')`     | Text shown while loading                                                                                                      |
+| `loadingText`     | `string`                                                                                                  |          | `() =&gt; t('nextcloud-vue', 'Loading…')`       | Text shown while loading                                                                                                      |
 
 ### Events
 

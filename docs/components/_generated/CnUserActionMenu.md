@@ -7,11 +7,11 @@
 | `userId`           | `string`  | ✓        | —                                                                | The Nextcloud user ID                                                       |
 | `displayName`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unknown')`                         | The user's display name                                                     |
 | `interactive`      | `boolean` |          | `true`                                                           | Whether the menu is interactive (false for current user or system accounts) |
-| `sendMessageLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send message')`                    |                                                                             |
-| `startChatLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Start chat')`                      |                                                                             |
-| `sendEmailLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send email')`                      |                                                                             |
-| `planMeetingLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Schedule meeting')`                |                                                                             |
-| `noActionsLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No communication apps available')` |                                                                             |
+| `sendMessageLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send message')`                    | Label for the send message action                                           |
+| `startChatLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Start chat')`                      | Label for the start chat action                                             |
+| `sendEmailLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send email')`                      | Label for the send email action                                             |
+| `planMeetingLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Schedule meeting')`                | Label for the plan meeting action                                           |
+| `noActionsLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No communication apps available')` | Text shown when no actions are available                                    |
 
 ### Events
 

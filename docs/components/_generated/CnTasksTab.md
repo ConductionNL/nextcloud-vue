@@ -2,19 +2,19 @@
 
 ### Props
 
-| Name                  | Type     | Required | Default                                          | Description |
-| --------------------- | -------- | -------- | ------------------------------------------------ | ----------- |
-| `objectId`            | `string` | ✓        | —                                                |             |
-| `register`            | `string` |          | `''`                                             |             |
-| `schema`              | `string` |          | `''`                                             |             |
-| `apiBase`             | `string` |          | `'/apps/openregister/api'`                       |             |
-| `addTaskPlaceholder`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Add task...')`     |             |
-| `deadlineLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Deadline')`        |             |
-| `assigneeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Assignee')`        |             |
-| `completeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Complete')`        |             |
-| `editLabel`           | `string` |          | `() =&gt; t('nextcloud-vue', 'Edit')`            |             |
-| `deleteLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`          |             |
-| `noTasksLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'No linked tasks')` |             |
-| `loadMoreLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`       |             |
-| `statusFilterLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Status')`          |             |
-| `assigneeFilterLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Assignee')`        |             |
+| Name                  | Type     | Required | Default                                          | Description                           |
+| --------------------- | -------- | -------- | ------------------------------------------------ | ------------------------------------- |
+| `objectId`            | `string` | ✓        | —                                                | ID of the object this tab belongs to  |
+| `register`            | `string` |          | `''`                                             | OpenRegister register slug            |
+| `schema`              | `string` |          | `''`                                             | JSON Schema definition for the object |
+| `apiBase`             | `string` |          | `'/apps/openregister/api'`                       | Base URL for the OpenRegister API     |
+| `addTaskPlaceholder`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Add task…')`       | Placeholder text for the task input   |
+| `deadlineLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Deadline')`        | Label for the task deadline field     |
+| `assigneeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Assignee')`        | Label for the task assignee field     |
+| `completeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Complete')`        | Label for the complete task action    |
+| `editLabel`           | `string` |          | `() =&gt; t('nextcloud-vue', 'Edit')`            | Label for the edit action             |
+| `deleteLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`          | Label for the delete action           |
+| `noTasksLabel`        | `string` |          | `() =&gt; t('nextcloud-vue', 'No linked tasks')` | Text shown when no tasks are linked   |
+| `loadMoreLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`       | Label for the load-more button        |
+| `statusFilterLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Status')`          | Label for the status filter control   |
+| `assigneeFilterLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Assignee')`        | Label for the assignee filter control |
