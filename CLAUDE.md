@@ -115,6 +115,70 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `useContextMenu()` — Right-click context menu positioning and state (cursor CSS vars, open/close, action helpers)
 - `useAppManifest(appId, bundledManifest, options?)` — Load + validate the app manifest. Returns `{ manifest, isLoading, validationErrors }`. Synchronous bundled load + async backend-merge stub (silent fallback on 4xx / network errors); validates via `validateManifest`. Pass `options.endpoint` or `options.fetcher` to override the backend URL or inject a mock.
 - `useAppStatus(appId)` — Check whether a Nextcloud app is installed and enabled via `@nextcloud/capabilities`. Returns `{ installed, enabled, loading }`. Cached per appId for the page lifetime. CnAppRoot calls this once per `manifest.dependencies` entry to drive the dependency-check phase.
+- `useIntegrationRegistry()` — Reactive view onto the pluggable integration registry. Returns `{ integrations, getById, resolveWidget, registry }`. `integrations` is a `ComputedRef<object[]>` sorted by `order` ascending then `id`. Used by `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage` to render integration tabs/widgets that consuming apps register at bootstrap. See "Pluggable Integration Registry" below.
+
+### Pluggable Integration Registry
+
+OpenRegister exposes a JS registry on `window.OCA.OpenRegister.integrations`. Consuming apps register tabs and widgets that surface in `CnObjectSidebar` (per-object tab strip), `CnDashboardPage` (configurable widget grid), and `CnDetailPage` (object detail). Registration is reactive — late-loaded apps still cause mounted components to re-render.
+
+**Where it lives:**
+- `src/integrations/registry.js` — `createIntegrationRegistry()` factory + default `integrations` singleton + `installIntegrationRegistry(window)` for installing onto the global plus draining queued stub registrations
+- `src/composables/useIntegrationRegistry.js` — Vue 2.7 composable wrapping the singleton in a reactive snapshot
+
+**Registering an integration (from a consuming app's bootstrap):**
+```js
+import CnCalendarTab from './CnCalendarTab.vue'
+import CnCalendarCard from './CnCalendarCard.vue'
+
+OCA.OpenRegister.integrations.register({
+    id: 'calendar',
+    label: t('myapp', 'Meetings'),
+    icon: 'Calendar',              // MDI name
+    requiredApp: 'calendar',
+    order: 10,
+    group: 'comms',                // optional: 'core' | 'comms' | 'docs' | 'workflow' | 'external'
+    referenceType: 'calendar',     // marker for schema reference properties (AD-18)
+    tab: CnCalendarTab,            // REQUIRED — sidebar tab component
+    widget: CnCalendarCard,        // REQUIRED — receives `surface` prop at render
+    widgetCompact: CnCalendarMini, // optional override for surface='user-dashboard'
+    widgetExpanded: CnCalendarFull,// optional override for surface='detail-page'
+    widgetEntity: CnCalendarChip,  // optional override for surface='single-entity'
+    defaultSize: { w: 3, h: 3 },
+})
+```
+
+**Surface fallback (AD-19):** any surface without a dedicated component falls back to `widget` with `surface` passed as a prop, so simple integrations don't need three components. Surface registry: `'user-dashboard' | 'app-dashboard' | 'detail-page' | 'single-entity'`.
+
+**Collision policy (AD-13):** duplicate `id` throws synchronously in development (`NODE_ENV !== 'production'`) and warns + keeps the first registration in production.
+
+**Parity contract:** `tab` and `widget` are required. Registering without them throws. A CI parity gate (`scripts/check-integration-parity.sh`) catches missing declarations pre-merge.
+
+**Bootstrap-order safety:** if a consuming app's bundle loads before OpenRegister's, install a stub before any `register()` calls and OpenRegister will replay the queue when its main bundle initialises:
+```js
+window.OCA = window.OCA || {}
+window.OCA.OpenRegister = window.OCA.OpenRegister || {}
+window.OCA.OpenRegister.integrations = window.OCA.OpenRegister.integrations || {
+    _queue: [],
+    register(entry) { this._queue.push(entry) },
+}
+```
+
+**Reading the registry (in components):**
+```js
+import { useIntegrationRegistry } from '@conduction/nextcloud-vue'
+
+setup() {
+    const { integrations, getById, resolveWidget } = useIntegrationRegistry()
+    return { integrations, getById, resolveWidget }
+}
+```
+The `integrations` ref is sorted and reactive. Use `resolveWidget(id, surface)` to apply the AD-19 fallback rule when rendering a specific surface.
+
+**Surface components consume the registry (all opt-in, backwards-compatible):**
+
+- **`CnObjectSidebar`** — `useRegistry` (Boolean, default `false`): replace the hardcoded built-in tabs with one tab per registered provider. `excludeIntegrations` (`string[]`) and `hiddenTabs` filter the set. Mutually exclusive with the open-enum `tabs` prop (`tabs` wins, with a console.warn). Per-integration slot overrides aren't supported in registry mode — override a built-in by registering your own provider with the same id (collision policy: first wins).
+- **`CnDashboardPage`** / **`CnDetailPage`** — add an `integration` widget type to the layout: `{ id, title, type: 'integration', integrationId, props? }`. The component is resolved from the registry via `resolveWidget(integrationId, surface)`. `surface` prop defaults to `'app-dashboard'` (dashboard) / `'detail-page'` (detail). `integrationContext` prop (`{ register, schema, objectId }`) is forwarded to the widget — `CnDetailPage` derives it from `sidebarProps` + `objectId` when not given.
+- **`CnFormDialog`** / **`CnDetailGrid`** — a schema property (or detail item) carrying `referenceType: '<integration-id>'` (AD-18) renders that integration's single-entity widget (AD-19 fallback to its main `widget`) instead of a plain input/value. `referenceContext` prop (`{ register, schema, objectId }`) is forwarded. A consumer `#field-<key>` / `#item-<index>` slot still overrides it.
 
 ### CnIndexPage Dialog Override System
 
@@ -334,9 +398,10 @@ this.$emit('sort', { key: newKey, order })
 ### Workflow when adding or modifying a component
 
 1. Edit the SFC. Add / update JSDoc as you touch each prop, event, or slot.
-2. Run `cd docusaurus && npm run prebuild:docs` to regenerate the partial.
-3. Commit the SFC AND the regenerated `docs/components/_generated/<name>.md` together.
-4. Run `npm run check:jsdoc` locally to confirm no regression.
+2. `git add src/components/CnX/CnX.vue` then `git commit`.
+   The **husky pre-commit hook** (`.husky/pre-commit` → `scripts/precommit-regenerate-partials.sh`) detects the staged Cn* SFC, runs `npm run prebuild:docs` for you, and auto-stages the regenerated `docs/components/_generated/<name>.md`. The commit lands SFC + partial atomically.
+3. If the hook is skipped (e.g. `cd docusaurus && npm install --legacy-peer-deps` hasn't run yet — the script prints a one-line hint and exits 0), CI's freshness gate in `code-quality.yml` still catches the stale partial. Run `cd docusaurus && npm run prebuild:docs && git add docs/components/_generated/` manually before pushing.
+4. Run `npm run check:jsdoc` locally to confirm no regression below the baseline.
 5. If you intentionally improved coverage, `npm run jsdoc-baselines:update` and commit the bumped baseline.
 
 The CI failure messages cite the component name, the missing items by `kind:name`, and the file path — so the fix is always "open the SFC, add the JSDoc, commit."

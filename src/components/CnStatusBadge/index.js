@@ -1,1 +1,4 @@
-export { default as CnStatusBadge } from './CnStatusBadge.vue'
+import CnStatusBadge from './CnStatusBadge.vue'
+
+export default CnStatusBadge
+export { CnStatusBadge }

@@ -67,7 +67,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
-| `columns` | Array | `[]` | Manual column definitions when not using schema: `[{ key, label, sortable?, width?, class?, cellClass? }]` |
+| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, formatter?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
 | `includeColumns` | Array | `null` | Whitelist of column keys to show; all others hidden (takes precedence over `excludeColumns`) |

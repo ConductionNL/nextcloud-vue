@@ -155,6 +155,12 @@ import '@conduction/nextcloud-vue/dist/nextcloud-vue.css'
 import { CnIndexPage, useObjectStore } from '@conduction/nextcloud-vue'
 ```
 
+### Markdown sanitization (CnRoadmapItem / CnSuggestFeatureModal)
+
+The Features & Roadmap component family (`CnRoadmapItem`, `CnSuggestFeatureModal`) renders untrusted markdown coming from GitHub issue bodies and user input. Both components pipe the markdown through [`marked`](https://www.npmjs.com/package/marked) and then through [`DOMPurify`](https://www.npmjs.com/package/dompurify) using the exported `SAFE_MARKDOWN_DOMPURIFY_CONFIG` constant — `<script>`, `on*` handlers, `javascript:` URLs, `<iframe>`, and `<style>` are stripped before `v-html`.
+
+Both `marked` and `dompurify` are declared in this library's `dependencies` and ship in the consumer's bundle. Apps that already pin different versions can add their own constraints — the strict config is what matters, not the exact dependency version. The minimum compatible versions are documented in `package.json` (`marked ^15`, `dompurify ^3`).
+
 ### Webpack Alias (for local development)
 
 When developing against the source directly, add deduplication aliases in `webpack.config.js` to prevent dual-instance bugs:

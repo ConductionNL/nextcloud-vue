@@ -141,8 +141,8 @@ function isPlainObject(value) {
 const configProps = schema.$defs.page.properties.config.properties
 
 describe('app-manifest.schema.json — manifest-config-refs $ref wiring', () => {
-	it('schema version is 1.2.0', () => {
-		expect(schema.version).toBe('1.2.0')
+	it('schema version is 1.5.0 (manifest-card-index-component + manifest-actions-dispatch; 1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action)', () => {
+		expect(schema.version).toBe('1.5.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties true (per-app keys remain free-form)', () => {
@@ -221,6 +221,112 @@ describe('config.actions[] — $ref action', () => {
 		expect(result.valid).toBe(false)
 		expect(result.errors.some((e) => e.includes('/pages/0/config/actions/0/label'))).toBe(true)
 	})
+
+	// --- manifest-actions-dispatch (REQ-MAD-1, REQ-MAD-2) ---
+
+	it('accepts an action with a registry-name handler', () => {
+		const result = validateAgainst(
+			def,
+			[{ id: 'process', label: 'Process', handler: 'queueProcessHandler' }],
+			'$.actions',
+		)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('accepts an action with handler:"navigate" + route', () => {
+		const result = validateAgainst(
+			def,
+			[{ id: 'view', label: 'View', handler: 'navigate', route: 'QueueDetail' }],
+			'$.actions',
+		)
+		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	it('FE validator rejects handler:"navigate" missing route', () => {
+		const result = validateManifest({
+			version: '1.3.0',
+			menu: [],
+			pages: [{
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
+				config: { actions: [{ id: 'view', label: 'View', handler: 'navigate' }] },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('route: required when handler is "navigate"'))).toBe(true)
+	})
+
+	it('FE validator rejects a handler containing a hyphen (pattern violation)', () => {
+		const result = validateManifest({
+			version: '1.3.0',
+			menu: [],
+			pages: [{
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
+				config: { actions: [{ id: 'x', label: 'X', handler: 'with-dash' }] },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('handler:'))).toBe(true)
+	})
+
+	it('FE validator accepts each reserved keyword (navigate / emit / none)', () => {
+		const result = validateManifest({
+			version: '1.3.0',
+			menu: [],
+			pages: [{
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
+				config: {
+					actions: [
+						{ id: 'a', label: 'A', handler: 'navigate', route: 'X' },
+						{ id: 'b', label: 'B', handler: 'emit' },
+						{ id: 'c', label: 'C', handler: 'none' },
+					],
+				},
+			}],
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
+
+	it('FE validator rejects a non-string handler', () => {
+		const result = validateManifest({
+			version: '1.3.0',
+			menu: [],
+			pages: [{
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
+				config: { actions: [{ id: 'x', label: 'X', handler: 42 }] },
+			}],
+		})
+		expect(result.valid).toBe(false)
+		expect(result.errors.some((e) => e.includes('handler: must be a string'))).toBe(true)
+	})
+
+	it('v1.2 manifest (no handler) keeps validating against v1.3 schema', () => {
+		const result = validateManifest({
+			version: '1.2.0',
+			menu: [],
+			pages: [{
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
+				config: { actions: [{ id: 'edit', label: 'Edit', primary: true }] },
+			}],
+		})
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
+	})
 })
 
 describe('config.widgets[] — $ref widgetDef', () => {
@@ -246,7 +352,10 @@ describe('config.widgets[] — $ref widgetDef', () => {
 			version: '1.2.0',
 			menu: [],
 			pages: [{
-				id: 'overview', route: '/', type: 'dashboard', title: 't',
+				id: 'overview',
+				route: '/',
+				type: 'dashboard',
+				title: 't',
 				config: { widgets: [{ id: 'kpis', title: 'KPIs' }], layout: [] },
 			}],
 		})
@@ -282,7 +391,10 @@ describe('config.layout[] — $ref layoutItem', () => {
 			version: '1.2.0',
 			menu: [],
 			pages: [{
-				id: 'overview', route: '/', type: 'dashboard', title: 't',
+				id: 'overview',
+				route: '/',
+				type: 'dashboard',
+				title: 't',
 				config: {
 					widgets: [{ id: 'kpis', title: 'K', type: 'custom' }],
 					layout: [{ id: 'p1', widgetId: 'kpis', gridX: 0, gridY: 0, gridWidth: 0, gridHeight: 3 }],
@@ -319,7 +431,10 @@ describe('config.sections[].fields[] — $ref formField', () => {
 			version: '1.2.0',
 			menu: [],
 			pages: [{
-				id: 'app-settings', route: '/settings', type: 'settings', title: 't',
+				id: 'app-settings',
+				route: '/settings',
+				type: 'settings',
+				title: 't',
 				config: { sections: [{ title: 'g', fields: [{ key: 'k', label: 'L', type: 'datetime' }] }] },
 			}],
 		})
@@ -443,7 +558,10 @@ describe('manifest-config-refs backwards compatibility', () => {
 			version: '1.2.0',
 			menu: [],
 			pages: [{
-				id: 'i', route: '/', type: 'index', title: 't',
+				id: 'i',
+				route: '/',
+				type: 'index',
+				title: 't',
 				config: {
 					register: 'r',
 					schema: 's',
@@ -459,7 +577,10 @@ describe('manifest-config-refs backwards compatibility', () => {
 			version: '1.2.0',
 			menu: [],
 			pages: [{
-				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
 				config: { register: 'r', schema: 's', sidebar: true },
 			}],
 		})

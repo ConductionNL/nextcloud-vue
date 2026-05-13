@@ -108,8 +108,7 @@ be `{$ref: "#/$defs/layoutItem"}`.
 
 ### Requirement: The schema MUST $ref `formField` from settings sections.fields
 
-`pages[].config.properties.sections.items.properties.fields.items` for
-`type:"settings"` MUST be `{$ref: "#/$defs/formField"}`. The outer
+`pages[].config.properties.sections.items.properties.fields.items` for `type:"settings"` MUST be `{$ref: "#/$defs/formField"}`. The outer
 section object keeps `additionalProperties: true` (the body kind
 mutual exclusion stays FE-validated).
 
@@ -125,8 +124,7 @@ mutual exclusion stays FE-validated).
 
 ### Requirement: The schema MUST $ref `sidebarSection` from index sidebar columnGroups
 
-`pages[].config.properties.sidebar.properties.columnGroups.items` for
-`type:"index"` MUST be `{$ref: "#/$defs/sidebarSection"}`. The outer
+`pages[].config.properties.sidebar.properties.columnGroups.items` for `type:"index"` MUST be `{$ref: "#/$defs/sidebarSection"}`. The outer
 `sidebar` object keeps `additionalProperties: true`.
 
 #### Scenario: a typed columnGroups array validates
@@ -170,8 +168,7 @@ also be `{$ref: "#/$defs/sidebarTab"}`.
 
 ### Requirement: The schema's top-level `version` MUST bump to 1.2.0
 
-The `version` field at the top of
-`src/schemas/app-manifest.schema.json` MUST be `"1.2.0"`. This is a
+The `version` field at the top of `src/schemas/app-manifest.schema.json` MUST be `"1.2.0"`. This is a
 tightening change — non-breaking on the documented manifests in
 `tests/fixtures/`, but a meaningful surface change worth a minor
 version bump.
@@ -183,8 +180,7 @@ version bump.
 
 ### Requirement: pages[].config outer object MUST stay open
 
-Despite the inner `$ref`s, the outer
-`pages[].config.additionalProperties` MUST remain `true`. Consumer
+Despite the inner `$ref`s, the outer `pages[].config.additionalProperties` MUST remain `true`. Consumer
 apps add per-app keys (`register`, `schema`, `source`, `folder`,
 `saveEndpoint`, `conversationSource`, `postUrl`, `allowedTypes`, …)
 plus extension keys; closing the outer level is out of scope for
@@ -239,8 +235,7 @@ When `type:"index"`, the FE validator MUST validate each
 
 ### Requirement: FE validator MUST surface settings field shape errors
 
-When a settings section uses `fields[]` body kind, the FE validator
-MUST validate each field has `key`, `label`, `type`. The `type` MUST
+When a settings section uses `fields[]` body kind, the FE validator MUST validate each field has `key`, `label`, `type`. The `type` MUST
 be one of `boolean | number | string | enum | password | json`.
 
 #### Scenario: a settings field with type 'datetime' is flagged

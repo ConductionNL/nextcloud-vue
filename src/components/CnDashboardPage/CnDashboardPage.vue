@@ -10,9 +10,9 @@
   - Header with title, actions, and edit toggle
 -->
 <template>
-	<div class="cn-dashboard-page">
+	<div class="cn-dashboard-page" data-testid="cn-dashboard-page">
 		<!-- Header -->
-		<div class="cn-dashboard-page__header">
+		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<h2 v-if="title" class="cn-dashboard-page__title">
 					{{ title }}
@@ -58,7 +58,24 @@
 			</slot>
 		</div>
 
-		<!-- Dashboard grid -->
+		<!-- Widget-ref content items (manifest-widget-ref-page-content-type).
+		     Rendered above the classic GridStack grid when present. Each item
+		     is a `{ type: 'widget-ref', ref: 'openregister://widget/…' }` entry
+		     from the manifest's `pages[].config.content[]` array. -->
+		<div
+			v-else-if="widgetRefItems.length > 0"
+			class="cn-dashboard-page__content">
+			<CnWidgetRefItem
+				v-for="(item, idx) in widgetRefItems"
+				:key="item.ref + '-' + idx"
+				:ref-uri="item.ref"
+				class="cn-dashboard-page__content-item" />
+		</div>
+
+		<!-- Dashboard grid (classic widgets+layout mode).
+		     Uses v-else so the `v-else-if="!hasWidgets"` empty state and the
+		     `v-else-if="widgetRefItems.length > 0"` content-items section
+		     are mutually exclusive with the grid. -->
 		<CnDashboardGrid
 			v-else
 			:layout="layout"
@@ -95,6 +112,67 @@
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
+					</CnWidgetWrapper>
+				</template>
+
+				<!-- Chart widget — manifest-driven apexcharts mount -->
+				<template v-else-if="isChart(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)">
+						<CnChartWidget
+							v-bind="getChartProps(item)"
+							:data-source="getWidgetDataSource(item)" />
+					</CnWidgetWrapper>
+				</template>
+
+				<!-- Stats-block widget — manifest-driven CnStatsBlock with
+				     a GraphQL-resolved count via `dataSource`. -->
+				<template v-else-if="isStatsBlock(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}">
+						<CnStatsBlockWidget
+							v-bind="getStatsBlockProps(item)"
+							:data-source="getWidgetDataSource(item)" />
+					</CnWidgetWrapper>
+				</template>
+
+				<!-- Integration widget — resolved from the pluggable
+				     integration registry (AD-19 surface fallback). -->
+				<template v-else-if="isIntegration(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:icon-url="getWidgetIconUrl(item)"
+						:icon-class="getWidgetIconClass(item)"
+						:show-title="item.showTitle !== false"
+						:borderless="item.showTitle === false"
+						:flush="item.flush === true"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						:title-icon-position="getWidgetTitleIconPosition(item)"
+						:title-icon-color="getWidgetTitleIconColor(item)">
+						<component
+							:is="resolveIntegrationWidget(item)"
+							v-if="resolveIntegrationWidget(item)"
+							v-bind="getIntegrationProps(item)" />
+						<div v-else class="cn-dashboard-page__unknown">
+							{{ unavailableLabel }}
+						</div>
 					</CnWidgetWrapper>
 				</template>
 
@@ -137,6 +215,36 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
+import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+
+/** Surfaces understood by the pluggable integration registry (AD-19). */
+const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
+
+/**
+ * Subset of `widgetDef.props` keys that the chart widget dispatcher
+ * forwards to CnChartWidget. Unknown keys on `props` are ignored so
+ * the manifest stays forward-compatible (e.g. `dataSource` is
+ * round-tripped through manifest validators but not yet read here).
+ *
+ * `chartKind` is renamed to `type` because apexcharts' own component
+ * prop is also called `type`, and `widgetDef.type` already means
+ * "dispatcher selector" in this file.
+ */
+const CHART_PROP_KEYS = [
+	'series',
+	'categories',
+	'labels',
+	'options',
+	'colors',
+	'toolbar',
+	'legend',
+	'height',
+	'width',
+	'unavailableLabel',
+]
 
 /**
  * CnDashboardPage — Top-level dashboard page component.
@@ -144,10 +252,20 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  * The dashboard equivalent of CnIndexPage. Renders a configurable grid
  * of widgets from a `widgets` definition array and a `layout` array.
  *
- * Widget types:
- * 1. **Custom** — App provides rendering via `#widget-{widgetId}` slot
- * 2. **NC Dashboard API** — Widgets with `itemApiVersions` are auto-rendered
- * 3. **Tile** — Items with `type: 'tile'` render as quick-access tiles
+ * Widget types (priority order, first match wins):
+ * 1. **Tile** — Items with `type: 'tile'` render as quick-access tiles
+ * 2. **Custom slot** — App provides rendering via `#widget-{widgetId}`
+ *    (escape hatch — beats every built-in branch when a slot exists)
+ * 3. **Chart** — Items with `type: 'chart'` mount CnChartWidget; chart
+ *    inputs (chartKind, series, options, …) ride `widgetDef.props`,
+ *    plus an optional `dataSource` block resolves `series` /
+ *    `categories` from a GraphQL query.
+ * 4. **Stats-block** — Items with `type: 'stats-block'` mount
+ *    CnStatsBlockWidget; the count comes from `widgetDef.dataSource`
+ *    (shorthand `{ register, schema, filter?, aggregate: 'count' }`
+ *    or raw GraphQL `{ graphql: { query, variables?, selectors } }`).
+ * 5. **NC Dashboard API** — Widgets with `itemApiVersions` auto-rendered
+ * 6. **Unknown fallback** — `unavailableLabel` text inside a wrapper
  *
  * Basic usage with custom widgets
  * ```vue
@@ -173,6 +291,26 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
  *   :layout="layout"
  *   @layout-change="saveLayout" />
  * ```
+ *
+ * With manifest-driven chart widgets (no consumer code required)
+ * ```js
+ * const widgets = [{
+ *   id: 'sla-trend',
+ *   title: 'SLA trend',
+ *   type: 'chart',
+ *   props: {
+ *     chartKind: 'line',                 // line|bar|donut|area|pie|radialBar
+ *     series: [{ name: 'SLA %', data: [82, 85, 88, 91] }],
+ *     categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+ *     options: { stroke: { width: 3 } }, // deep-merged with defaults
+ *     // dataSource is reserved for a future cycle — round-tripped
+ *     // through manifest validators but not yet read at render time:
+ *     // dataSource: { url: '/index.php/apps/myapp/api/charts/sla' }
+ *     // dataSource: { register: 'cases', schema: 'case',
+ *     //               groupBy: 'caseType', aggregate: 'count' }
+ *   },
+ * }]
+ * ```
  */
 export default {
 	name: 'CnDashboardPage',
@@ -188,6 +326,28 @@ export default {
 		CnWidgetWrapper,
 		CnWidgetRenderer,
 		CnTileWidget,
+		CnChartWidget,
+		CnStatsBlockWidget,
+		CnWidgetRefItem,
+	},
+
+	inject: {
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. Overwritten
+		 * on created() and watched for prop changes. Reset on beforeDestroy().
+		 */
+		cnAiContext: { default: null },
+	},
+
+	setup() {
+		// Wire the pluggable integration registry so widgets of type
+		// `integration` resolve their component reactively. No-op cost
+		// when no integration widgets are configured.
+		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		return {
+			registryIntegrations,
+			resolveRegistryWidget: resolveWidget,
+		}
 	},
 
 	props: {
@@ -207,7 +367,10 @@ export default {
 		 * Custom widgets: `{ id: 'my-widget', title: 'My Widget', type: 'custom' }`
 		 * NC API widgets: `{ id: 'calendar', title: 'Calendar', itemApiVersions: [1,2], ... }`
 		 * Tile widgets: `{ id: 'tile-files', type: 'tile', title: 'Files', icon: 'M12...', iconType: 'svg', backgroundColor: '#0082c9', textColor: '#fff', linkType: 'app', linkValue: 'files' }`
-		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number }>}
+		 * Chart widgets: `{ id: 'sla', type: 'chart', title: 'SLA trend',
+		 *   props: { chartKind: 'line', series: [{ name: 'SLA %', data: [82, 88, 91] }],
+		 *            categories: ['Q1', 'Q2', 'Q3'], options: { stroke: { width: 3 } } } }`
+		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number, props: object }>}
 		 */
 		widgets: {
 			type: Array,
@@ -222,6 +385,27 @@ export default {
 		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Declarative content items. Each item is a `widget-ref` entry from the
+		 * manifest's `pages[].config.content[]` array:
+		 *
+		 *   `{ type: 'widget-ref', ref: 'openregister://widget/<schemaSlug>/<widgetSlug>' }`
+		 *
+		 * CnDashboardPage renders each widget-ref item as a `CnWidgetRefItem`
+		 * which resolves the widget from OR's registry at runtime and renders
+		 * the resolved component. Only `widget-ref` entries are processed; unknown
+		 * `type` values are skipped with a `console.warn`.
+		 *
+		 * When both `content` (widget-ref items) and `widgets`+`layout` (classic
+		 * GridStack layout) are present, `content` items are rendered above the
+		 * grid in a stacked list.
+		 *
+		 * @type {Array<{ type: string, ref: string }>}
+		 */
+		content: {
 			type: Array,
 			default: () => [],
 		},
@@ -270,6 +454,31 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget not available'),
 		},
+		/**
+		 * Rendering surface forwarded to integration widgets (widgets
+		 * whose `type === 'integration'`). Drives the AD-19 surface
+		 * fallback on `resolveWidget(integrationId, surface)`.
+		 *
+		 * @type {'user-dashboard'|'app-dashboard'|'detail-page'|'single-entity'}
+		 */
+		surface: {
+			type: String,
+			default: 'app-dashboard',
+			validator: (value) => INTEGRATION_SURFACES.includes(value),
+		},
+		/**
+		 * Object context forwarded to integration widgets:
+		 * `{ register, schema, objectId }`. Optional — most dashboards
+		 * aren't object-scoped, but CnDetailPage passes one through so
+		 * `CnFilesCard` / `CnTagsCard` / `CnAuditTrailCard` know which
+		 * object's sub-resources to fetch.
+		 *
+		 * @type {object|null}
+		 */
+		integrationContext: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['layout-change', 'edit-toggle'],
@@ -281,8 +490,12 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * True when the dashboard has either classic grid widgets (via
+		 * `layout`) or declarative `content[]` widget-ref items to render.
+		 */
 		hasWidgets() {
-			return this.layout.length > 0
+			return this.layout.length > 0 || this.widgetRefItems.length > 0
 		},
 
 		widgetMap() {
@@ -292,9 +505,61 @@ export default {
 			}
 			return map
 		},
+
+		/**
+		 * Filtered list of `widget-ref` items from `content[]`.
+		 * Unknown `type` values are logged and excluded so future
+		 * content item types can be added without breaking existing
+		 * dashboards.
+		 *
+		 * @return {Array<{ type: 'widget-ref', ref: string }>}
+		 */
+		widgetRefItems() {
+			const out = []
+			for (const item of this.content) {
+				if (!item || typeof item !== 'object') continue
+				if (item.type === 'widget-ref') {
+					out.push(item)
+				} else {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`,
+					)
+				}
+			}
+			return out
+		},
+	},
+
+	created() {
+		this.pushAiContext()
+	},
+
+	beforeDestroy() {
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+		}
 	},
 
 	methods: {
+		/**
+		 * Push pageKind = 'dashboard' into the reactive cnAiContext.
+		 * registerSlug/schemaSlug are populated when the dashboard page
+		 * receives those props (some dashboards are schema-specific).
+		 */
+		pushAiContext() {
+			if (!this.cnAiContext) return
+			this.cnAiContext.pageKind = 'dashboard'
+			// Dashboard pages don't universally carry register/schema props —
+			// leave them undefined (they'll be whatever the previous page set,
+			// but we reset to undefined here for a clean context).
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+			this.cnAiContext.objectUuid = undefined
+		},
+
 		toggleEdit() {
 			this.isEditing = !this.isEditing
 			this.$emit('edit-toggle', this.isEditing)
@@ -362,6 +627,141 @@ export default {
 			return def?.itemApiVersions && def.itemApiVersions.length > 0
 		},
 
+		/**
+		 * Whether this layout item resolves to an integration-typed
+		 * widget — `def.type === 'integration'` with an `integrationId`
+		 * pointing at a provider registered on the pluggable
+		 * integration registry. Mirrors `isTile` / `isChart`.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef is an integration widget
+		 */
+		isIntegration(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'integration' && typeof def.integrationId === 'string'
+		},
+
+		/**
+		 * Resolve the Vue component for an integration widget, applying
+		 * the AD-19 surface fallback. Returns null when the integration
+		 * isn't registered (renders the unavailable fallback instead).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveIntegrationWidget(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || typeof def.integrationId !== 'string') {
+				return null
+			}
+			return this.resolveRegistryWidget(def.integrationId, this.surface)
+		},
+
+		/**
+		 * Props passed to an integration widget: the rendering surface,
+		 * the (optional) object context, and any extra `props` declared
+		 * on the widget definition (per-widget props win on overlap).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} Props object for the widget component.
+		 */
+		getIntegrationProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return {
+				surface: this.surface,
+				...(this.integrationContext || {}),
+				...(def?.props || {}),
+			}
+		},
+
+		/**
+		 * Whether this layout item resolves to a chart-typed widget
+		 * definition. Mirrors `isTile` and `isNcWidget`. Used by the
+		 * dispatcher template to mount CnChartWidget.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef.type is 'chart'
+		 */
+		isChart(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'chart'
+		},
+
+		/**
+		 * Whether this layout item resolves to a stats-block widget
+		 * definition. Mirrors `isChart`. Used by the dispatcher
+		 * template to mount CnStatsBlockWidget.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widgetDef.type is 'stats-block'
+		 */
+		isStatsBlock(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.type === 'stats-block'
+		},
+
+		/**
+		 * Read the manifest `dataSource` block from a widget
+		 * definition. Returns `null` when none is set so the child
+		 * components can render their fallback (or stay loading).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The dataSource block or null
+		 */
+		getWidgetDataSource(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.dataSource || null
+		},
+
+		/**
+		 * Build the v-bind payload for CnStatsBlockWidget from a
+		 * stats-block widget definition. Forwards `props.countLabel`,
+		 * `props.variant`, `props.showZeroCount`, `props.horizontal`,
+		 * and `props.route` plus the widgetDef's `title`. The
+		 * `dataSource` is bound separately by the template (see
+		 * `getWidgetDataSource`) so the prop appears clearly in
+		 * the template even when it lives on the widgetDef root.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} v-bind payload for CnStatsBlockWidget
+		 */
+		getStatsBlockProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const props = def?.props || {}
+			const out = { title: def?.title || item.widgetId }
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route']) {
+				if (props[key] !== undefined) out[key] = props[key]
+			}
+			return out
+		},
+
+		/**
+		 * Build the v-bind payload for CnChartWidget from a chart-typed
+		 * widget definition. Translates `props.chartKind` → `type` (so
+		 * the manifest's free-form `chartKind` does not collide with
+		 * apexcharts' own reserved `type` prop) and forwards the
+		 * supported subset (`series`, `categories`, `labels`, `options`,
+		 * `colors`, `toolbar`, `legend`, `height`, `width`,
+		 * `unavailableLabel`).
+		 *
+		 * Unknown keys on `props` (including the reserved `dataSource`
+		 * union) are ignored at render time so manifest authors can ship
+		 * forward-compatible declarations.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} v-bind payload for CnChartWidget
+		 */
+		getChartProps(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const props = def?.props || {}
+			const out = {}
+			if (props.chartKind) out.type = props.chartKind
+			for (const key of CHART_PROP_KEYS) {
+				if (props[key] !== undefined) out[key] = props[key]
+			}
+			return out
+		},
+
 		hasWidgetSlot(widgetId) {
 			return !!this.$scopedSlots['widget-' + widgetId]
 		},
@@ -419,5 +819,16 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 	padding: 16px;
+}
+
+/* widget-ref content items */
+.cn-dashboard-page__content {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.cn-dashboard-page__content-item {
+	width: 100%;
 }
 </style>

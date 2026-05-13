@@ -1,9 +1,19 @@
 name: Documentation (Beta)
 
+# Refreshes /beta/styleguide/ on every beta push. Note that
+# `documentation.yml` also triggers on beta now and deploys the full
+# Docusaurus + Styleguidist to gh-pages root + /styleguide/. This
+# workflow keeps the historical /beta/styleguide/ URL working as a
+# parallel snapshot of the beta-channel styleguide build.
 on:
   push:
     branches:
       - beta
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   deploy-beta:
@@ -16,16 +26,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install and build component styleguide
         timeout-minutes: 10
         run: |
           cd styleguide
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Deploy styleguide to /beta/ on GitHub Pages

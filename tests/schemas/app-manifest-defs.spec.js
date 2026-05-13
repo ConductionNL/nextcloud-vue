@@ -236,13 +236,22 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('schema version reflects manifest-config-refs follow-up bump (1.2.0)', () => {
+	it('schema version reflects the current bump (1.5.0)', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
-		// This file's defs are still present and reachable; the assertion
-		// just keeps in sync with the latest base.
-		expect(schema.version).toBe('1.2.0')
+		// 1.3.0 reflects two additive changes that landed in the same wave:
+		// - `manifest-card-index-component` adds the optional `cardComponent`
+		//   field on `type:'index'` config.
+		// - `manifest-actions-dispatch` adds `handler` + `route` to the `action`
+		//   $def. Existing $defs unchanged either way.
+		// 1.4.0 adds `runtime` (top-level) and `visibleIfCondition` ($def)
+		// for context-path predicate gating (role-aware nav).
+		// 1.5.0 adds an optional `action` field (closed enum: "user-settings")
+		// to the `menuItem` / `menuItemLeaf` $defs, so CnAppNav can dispatch
+		// clicks to a host-provided NcAppSettingsDialog instead of routing.
+		// Existing $defs unchanged either way.
+		expect(schema.version).toBe('1.5.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {
@@ -263,5 +272,39 @@ describe('manifest-config-defs additivity', () => {
 	it('keeps the existing valid manifest fixture validating cleanly', () => {
 		const result = validateManifest(valid)
 		expect(result).toEqual({ valid: true, errors: [] })
+	})
+
+	describe('menuItem.action ("user-settings", schema 1.5.0)', () => {
+		it('adds the action field to menuItem and menuItemLeaf', () => {
+			expect(schema.$defs.menuItem.properties.action).toBeDefined()
+			expect(schema.$defs.menuItemLeaf.properties.action).toBeDefined()
+		})
+
+		it('declares action as a closed enum with "user-settings" only', () => {
+			expect(schema.$defs.menuItem.properties.action.enum).toEqual(['user-settings'])
+			expect(schema.$defs.menuItemLeaf.properties.action.enum).toEqual(['user-settings'])
+		})
+
+		it('accepts a manifest with action: "user-settings" on a top-level menu item', () => {
+			const result = validateManifest({
+				version: '1.5.0',
+				menu: [
+					{ id: 'home', label: 'app.home', route: 'home' },
+					{ id: 's', label: 'app.settings', icon: 'icon-settings', action: 'user-settings', section: 'settings' },
+				],
+				pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+			})
+			expect(result).toEqual({ valid: true, errors: [] })
+		})
+
+		it('rejects an unknown action value', () => {
+			const result = validateManifest({
+				version: '1.5.0',
+				menu: [{ id: 's', label: 'app.s', action: 'open-something' }],
+				pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+			})
+			expect(result.valid).toBe(false)
+			expect(result.errors.some((e) => e.includes('/menu/0/action'))).toBe(true)
+		})
 	})
 })

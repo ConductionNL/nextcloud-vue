@@ -1,0 +1,79 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.2.0",
+	"menu": [
+		{ "id": "settings", "label": "Settings", "icon": "icon-settings", "route": "Settings", "section": "settings", "order": 99 }
+	],
+	"pages": [
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "myapp.settings.title",
+			"config": {
+				"saveEndpoint": "/index.php/apps/myapp/api/settings",
+				"tabs": [
+					{
+						"id": "general",
+						"label": "myapp.settings.tab.general",
+						"sections": [
+							{
+								"title": "myapp.settings.section.general",
+								"fields": [
+									{ "key": "enabled", "type": "boolean", "label": "myapp.settings.enabled" }
+								]
+							}
+						]
+					},
+					{
+						"id": "about",
+						"label": "myapp.settings.tab.about",
+						"sections": [
+							{
+								"title": "myapp.settings.section.about",
+								"widgets": [
+									{ "type": "version-info", "props": { "appName": "MyApp", "appVersion": "0.1.0" } }
+								]
+							}
+						]
+					},
+					{
+						"id": "workflow",
+						"label": "myapp.settings.tab.workflow",
+						"sections": [
+							{
+								"title": "myapp.settings.section.workflow",
+								"widgets": [
+									{
+										"type": "component",
+										"componentName": "WorkflowEditor",
+										"props": { "schemaSlug": "workflow" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "mappings",
+						"label": "myapp.settings.tab.mappings",
+						"sections": [
+							{
+								"title": "myapp.settings.section.zgw",
+								"widgets": [
+									{
+										"type": "register-mapping",
+										"props": { "name": "ZGW", "groups": [] }
+									},
+									{
+										"type": "component",
+										"componentName": "ZgwMappingSettings"
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	]
+}

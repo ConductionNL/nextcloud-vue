@@ -16,7 +16,7 @@ slug values or rolling each app's own pre-processor.
 
 ### Requirement: The sentinel `@resolve:<key>` MUST be a recognised value in `pages[].config.*`
 
-Any `string`-typed field at any depth under `pages[].config` MAY contain a sentinel string `@resolve:<key>` where `<key>` matches `[a-z][a-z0-9_-]*`. The full string IS the sentinel; partial substitution (e.g. `prefix-@resolve:foo`) is NOT supported.
+Any `string`-typed field at any depth under `pages[].config` MAY contain a sentinel `@resolve:<key>` where `<key>` MUST match `[a-z][a-z0-9_-]*`. The full string IS the sentinel; partial substitution (e.g. `prefix-@resolve:foo`) is NOT supported.
 
 #### Scenario: Valid sentinel in config.register
 - GIVEN a manifest `pages[2] = {type: "index", config: {register: "@resolve:theme_register"}}`

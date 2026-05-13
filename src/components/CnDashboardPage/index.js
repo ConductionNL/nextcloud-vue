@@ -1,1 +1,4 @@
-export { default as CnDashboardPage } from './CnDashboardPage.vue'
+import CnDashboardPage from './CnDashboardPage.vue'
+
+export default CnDashboardPage
+export { CnDashboardPage }

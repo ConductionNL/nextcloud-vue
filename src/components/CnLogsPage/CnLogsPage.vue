@@ -18,7 +18,7 @@
   breaking the app shell.
 -->
 <template>
-	<div class="cn-logs-page">
+	<div class="cn-logs-page" data-testid="cn-logs-page">
 		<!-- Header — overridable via #header slot (renderer fills via headerComponent or slots.header) -->
 		<slot
 			name="header"
@@ -307,10 +307,16 @@ export default {
 				this.error = null
 				try {
 					if (typeof this.objectStore.registerObjectType === 'function') {
-						this.objectStore.registerObjectType(this.objectType, {
-							register: this.register,
-							schema: this.schema,
-						})
+						// (slug, schemaId, registerId, slugs) — slugs go into the id
+						// slots because OR's REST accepts kebab slugs there, and into
+						// the 4th-arg slug hints for live-updates. Passing
+						// `{register, schema}` as the second arg breaks fetch URLs.
+						this.objectStore.registerObjectType(
+							this.objectType,
+							this.schema,
+							this.register,
+							{ registerSlug: this.register, schemaSlug: this.schema },
+						)
 					}
 					if (typeof this.objectStore.fetchCollection === 'function') {
 						await this.objectStore.fetchCollection(this.objectType)

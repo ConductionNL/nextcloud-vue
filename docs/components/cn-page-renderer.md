@@ -84,11 +84,13 @@ const routes = manifest.pages.map((page) => ({
 |----------|-----------|
 | `page.id` | Matched against `$route.name`. The instance's `$options.name` is set to `CnPageRenderer:<id>` for cleaner Vue devtools / stack traces |
 | `page.type` | Looked up in `pageTypes`. Special-case: `"custom"` resolves `page.component` in `customComponents` instead |
-| `page.config` | Spread as props onto the resolved component |
+| `page.title` / `page.description` / `page.icon` | Forwarded as props onto the resolved component (defaults — `page.config.*` and `$route.params.*` still win on collision). Lets a manifest entry render its header from a single top-level field without duplicating into `config`. |
+| `page.config` | Spread as props onto the resolved component. Overrides any collision with the top-level `title`/`description`/`icon` defaults above. |
 | `page.slots` | `{ slotName: registryName }` map — each entry resolves a `customComponents` entry and mounts it inside the corresponding scoped slot |
 | `page.headerComponent` | Sugar for `slots.header` (sugar wins when both are set) |
 | `page.actionsComponent` | Sugar for `slots.actions` (sugar wins when both are set) |
 | `page.sidebar` | `{ show?: boolean }` object — sibling of `config`. Drives a reactive `cnPageSidebarVisible` provide and a CSS hook class. See [Per-page sidebar visibility](#per-page-sidebar-visibility) below. |
+| `page.sidebarComponent` | Registry name (string). Resolved against `customComponents` and pushed onto a reactive `cnPageSidebarComponent` provide so `CnAppRoot`'s `#sidebar` slot mounts it as default content for this page only. See [Per-page sidebar component](#per-page-sidebar-component) below. |
 
 When `page.type` (or a registered `customComponents` name) is missing, the renderer logs `console.warn` once and mounts nothing rather than crashing.
 
@@ -132,6 +134,61 @@ export default {
   </div>
 </template>
 ```
+
+## Per-page sidebar component
+
+Each page entry MAY declare a top-level `sidebarComponent` field (sibling of `config`) — a string referencing a key in the consuming app's `customComponents` registry. When set, `CnPageRenderer` resolves the name and publishes the resolved component on the `cnPageSidebarComponent` reactive provide channel. [`CnAppRoot`](./cn-app-root.md) injects the holder and renders the resolved component as the **default content** of its `#sidebar` slot.
+
+This is the manifest-side equivalent of Vue Router's named-view sidebar pattern. The canonical use case is a route that needs a completely different sidebar component than the rest of the app — e.g. opencatalogi's `Search` route hosting a `SearchSideBar` instead of the shared `CnIndexSidebar` / `CnObjectSidebar`.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sidebarComponent` | String | unset | Key in `customComponents`. The resolved component renders inside `CnAppRoot`'s `#sidebar` slot **as default content** — the consumer's `#sidebar` slot override (when supplied) wins via Vue's slot mechanic. Unknown names log a `console.warn` and the holder stays `null` (slot falls through to consumer content). |
+
+Composes with `sidebar.show`:
+
+- `sidebar.show: false` ALWAYS wins — the slot does not render at all and the resolved component is suppressed.
+- A page declaring both `sidebar.show: false` AND `sidebarComponent` triggers a one-line `console.warn` so manifest authors notice the dead config.
+
+```json
+{
+  "id": "search",
+  "route": "/search",
+  "type": "custom",
+  "title": "menu.search",
+  "component": "SearchPage",
+  "sidebarComponent": "SearchSideBar"
+}
+```
+
+```js
+// customComponents registry (passed to CnAppRoot)
+import SearchSideBar from './sidebars/search/SearchSideBar.vue'
+import SearchPage from './views/search/SearchIndex.vue'
+
+{ SearchPage, SearchSideBar }
+```
+
+If your app wires its own sidebar without `CnAppRoot`, inject the holder directly:
+
+```vue
+<script>
+export default {
+  inject: {
+    cnPageSidebarVisible: { default: () => ({ value: true }) },
+    cnPageSidebarComponent: { default: () => ({ value: null }) },
+  },
+}
+</script>
+<template>
+  <div v-if="cnPageSidebarVisible.value !== false">
+    <component :is="cnPageSidebarComponent.value" v-if="cnPageSidebarComponent.value" />
+    <CnObjectSidebar v-else />
+  </div>
+</template>
+```
+
+For per-tab content on the built-in `CnObjectSidebar` (Files / Notes / Tags / Tasks / Audit Trail) use `pages[].config.sidebar.tabs[]` — see [`CnObjectSidebar`](./cn-object-sidebar.md). `sidebarComponent` is for the full-sidebar swap case.
 
 ## Slot-override forwarding
 

@@ -14,7 +14,7 @@ Defines the manifest shape, loading composable, renderer components, and JSON Sc
 
 ---
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: REQ-JMR-001 — Manifest JSON Schema
 
@@ -49,7 +49,7 @@ Page items MUST include: `id` (string, required — also serves as the vue-route
 
 `pages[].id` MUST be unique within the manifest. `CnPageRenderer` uses `$route.name === page.id` for matching — no path matching.
 
-The `type` field MUST be a closed enum. Adding new types requires a library schema release. Subsequent extensions: `manifest-page-type-extensions` (schema v1.1) added `logs`, `settings`, `chat`, `files` to the enum and shipped matching default components — see `nextcloud-vue/openspec/changes/manifest-page-type-extensions/specs/manifest-page-type-extensions/spec.md`.
+The `type` field MUST be a closed enum. Adding new types requires a library schema release. Subsequent extensions: `manifest-page-type-extensions` (schema v1.1) added `logs`, `settings`, `chat`, `files` to the enum and shipped matching default components — see `nextcloud-vue/openspec/changes/manifest-page-type-extensions/specs/manifest-page-type-extensions/spec.md`. The `manifest-resolve-sentinel` change extended the loader (not the schema) with the `@resolve:<key>` substitution mechanic for `pages[].config.*` strings — see `nextcloud-vue/openspec/changes/manifest-resolve-sentinel/specs/manifest-resolve-sentinel/spec.md`.
 
 #### Scenario: Schema validates a minimal valid manifest
 
@@ -626,13 +626,9 @@ All slots are independently overridable by the consuming app.
 
 ---
 
-## MODIFIED Requirements
+## Notes — Non-delta sections
 
-None — this capability is entirely new. No existing spec requirements are changed. Note: `CnIndexPage` and `CnDetailPage` gain additive `#header` and `#actions` slots (see task 3.4); no existing consumers are affected.
-
-## REMOVED Requirements
-
-None.
+This capability is entirely new — no existing spec requirements are MODIFIED or REMOVED. The lib's `CnIndexPage` and `CnDetailPage` gain additive `#header` and `#actions` slots (see task 3.4) but those land via their own ADDED Requirements in this change; no existing consumers are affected.
 
 ---
 

@@ -1,1 +1,4 @@
-export { default as CnRegisterMapping } from './CnRegisterMapping.vue'
+import CnRegisterMapping from './CnRegisterMapping.vue'
+
+export default CnRegisterMapping
+export { CnRegisterMapping }

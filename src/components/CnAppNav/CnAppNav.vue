@@ -18,10 +18,18 @@
   also be passed as props for standalone use without CnAppRoot. Props
   win over inject when both are present.
 
+  Items can opt out of routing in favour of a built-in action by
+  setting `action: "user-settings"` on the manifest entry: clicking
+  the item invokes the `cnOpenUserSettings` provide-injected by
+  CnAppRoot, which opens the host app's NcAppSettingsDialog modal
+  instead of navigating. Both `route` and `href` are ignored when
+  `action` is set. The inject defaults to a no-op so CnAppNav stays
+  usable standalone (without a CnAppRoot ancestor).
+
   See REQ-JMR-004 of the json-manifest-renderer specification.
 -->
 <template>
-	<NcAppNavigation>
+	<NcAppNavigation data-testid="cn-nav">
 		<template #list>
 			<NcAppNavigationItem
 				v-for="item in mainItems"
@@ -31,6 +39,7 @@
 				:exact="isExact(item)"
 				:icon="item.icon"
 				:active="isActive(item)"
+				:data-testid="`cn-nav-entry-${item.id}`"
 				@click="onItemClick(item, $event)">
 				<NcAppNavigationItem
 					v-for="child in visibleChildren(item)"
@@ -40,11 +49,12 @@
 					:exact="isExact(child)"
 					:icon="child.icon"
 					:active="isActive(child)"
+					:data-testid="`cn-nav-entry-${child.id}`"
 					@click="onItemClick(child, $event)" />
 			</NcAppNavigationItem>
 		</template>
 		<template v-if="settingsItems.length" #footer>
-			<ul class="cn-app-nav__footer-list">
+			<ul class="cn-app-nav__footer-list" data-testid="cn-nav-footer">
 				<NcAppNavigationItem
 					v-for="item in settingsItems"
 					:key="item.id"
@@ -53,6 +63,7 @@
 					:exact="isExact(item)"
 					:icon="item.icon"
 					:active="isActive(item)"
+					:data-testid="`cn-nav-entry-${item.id}`"
 					@click="onItemClick(item, $event)" />
 			</ul>
 		</template>
@@ -61,6 +72,8 @@
 
 <script>
 import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
 export default {
 	name: 'CnAppNav',
@@ -73,6 +86,14 @@ export default {
 	inject: {
 		cnManifest: { default: null },
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * Provided by CnAppRoot — opens the host app's
+		 * NcAppSettingsDialog. Defaults to a no-op so CnAppNav is
+		 * still usable when mounted outside a CnAppRoot ancestor;
+		 * the click silently does nothing in that case rather than
+		 * throwing.
+		 */
+		cnOpenUserSettings: { default: () => () => {} },
 	},
 
 	props: {
@@ -118,15 +139,15 @@ export default {
 			return this.translate ?? this.cnTranslate
 		},
 		/**
-		 * All visible items (filtered by permission, sorted by order).
-		 * Retained for backwards-compat with the previous public API and
-		 * tests that read this computed; new code should use
+		 * All visible items (filtered by permission and visibleIf conditions,
+		 * sorted by order). Retained for backwards-compat with the previous
+		 * public API and tests that read this computed; new code should use
 		 * `mainItems` / `settingsItems` instead.
 		 */
 		visibleItems() {
 			const items = this.effectiveManifest?.menu ?? []
 			return items
-				.filter((item) => this.passesPermission(item))
+				.filter((item) => this.passesPermission(item) && this.passesVisibleIf(item))
 				.slice()
 				.sort((a, b) => {
 					const aHas = typeof a.order === 'number'
@@ -159,9 +180,50 @@ export default {
 			if (!this.permissions || this.permissions.length === 0) return true
 			return this.permissions.includes(item.permission)
 		},
+		/**
+		 * Evaluate a menu item's `visibleIf` condition block.
+		 *
+		 * Returns `true` (visible) when:
+		 *  - No `visibleIf` is declared (backwards-compatible default).
+		 *  - `visibleIf.appInstalled` is set AND the named app is
+		 *    installed / enabled (checked via `OC.appswebroots` then the
+		 *    capabilities fallback, cached per page load by `isAppInstalled`).
+		 *  - Context-path predicates (any key that is a dot-separated path
+		 *    into `manifest.runtime`) all pass against the current runtime
+		 *    data. Predicates are evaluated by `passesContextPredicates`.
+		 *    Example: `{ "user.primaryRole": { "in": ["hr", "compliance"] } }`
+		 *    hides the entry unless `manifest.runtime.user.primaryRole` is
+		 *    `"hr"` or `"compliance"`. When the runtime block is absent the
+		 *    entry is hidden (fail-safe: never show role-gated items to
+		 *    unidentified users).
+		 *
+		 * All conditions are combined with implicit AND — every condition
+		 * must pass for the item to render. Returns `false` when any fails.
+		 *
+		 * @param {object} item Menu item (or child) to evaluate.
+		 * @return {boolean} Whether the item should render.
+		 */
+		passesVisibleIf(item) {
+			const condition = item.visibleIf
+			if (!condition || typeof condition !== 'object') return true
+
+			// Specialised condition: appInstalled.
+			if (condition.appInstalled) {
+				if (!isAppInstalled(condition.appInstalled)) return false
+			}
+
+			// Context-path predicates: any non-reserved key is a dot-path
+			// into manifest.runtime evaluated by passesContextPredicates.
+			const runtime = this.effectiveManifest?.runtime ?? null
+			if (!passesContextPredicates(condition, runtime)) return false
+
+			return true
+		},
 		visibleChildren(item) {
 			if (!Array.isArray(item.children)) return []
-			return item.children.filter((c) => this.passesPermission(c))
+			return item.children.filter(
+				(c) => this.passesPermission(c) && this.passesVisibleIf(c),
+			)
 		},
 		resolveLabel(item) {
 			return this.effectiveTranslate(item.label)
@@ -198,29 +260,41 @@ export default {
 			return page?.route === '/'
 		},
 		/**
-		 * Build the `:to` value for an `NcAppNavigationItem`. External
-		 * (`href`) items return `null` so the underlying anchor falls
-		 * through to a click handler instead of vue-router; route items
+		 * Build the `:to` value for an `NcAppNavigationItem`. Action
+		 * items (`action: "user-settings"`) and external (`href`)
+		 * items return `null` so the underlying anchor falls through
+		 * to the click handler instead of vue-router; route items
 		 * return a named route.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {object|null} A `{ name }` route object, or null for
-		 *   external / route-less items.
+		 *   action / external / route-less items.
 		 */
 		itemTo(item) {
+			if (item.action) return null
 			if (item.href) return null
 			return item.route ? { name: item.route } : null
 		},
 		/**
-		 * Click handler. For external (`href`) items, opens the URL in a
-		 * new tab with safe rel attributes. Route items are handled by
-		 * `:to` and skip this path.
+		 * Click handler. Dispatch order: action keyword → external href
+		 * → route. For `action: "user-settings"` invokes the injected
+		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
+		 * default. For `href` items, opens the URL in a new tab with
+		 * safe rel attributes. Route items are handled by `:to` and
+		 * skip this path.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
-		 *   preventDefault for external links).
+		 *   preventDefault for action / external links).
 		 */
 		onItemClick(item, event) {
+			if (item.action === 'user-settings') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnOpenUserSettings()
+				return
+			}
 			if (!item.href) return
 			if (event && typeof event.preventDefault === 'function') {
 				event.preventDefault()

@@ -5,7 +5,7 @@
   based on which Nextcloud apps are installed (Talk, Mail, Calendar).
 -->
 <template>
-	<span class="cn-user-action-menu">
+	<span class="cn-user-action-menu" data-testid="cn-user-action-menu">
 		<span
 			ref="trigger"
 			class="cn-user-action-menu__trigger"

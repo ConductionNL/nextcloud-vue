@@ -1,1 +1,4 @@
-export { default as CnDataTable } from './CnDataTable.vue'
+import CnDataTable from './CnDataTable.vue'
+
+export default CnDataTable
+export { CnDataTable }

@@ -12,6 +12,10 @@ module.exports = {
 
 	components: `${ROOT}/src/components/**/*.vue`,
 
+	styleguideComponents: {
+		Logo: path.join(__dirname, 'components/LogoRenderer.js'),
+	},
+
 	getExampleFilename(componentPath) {
 		const name = path.basename(componentPath, '.vue')
 		const kebab = name.replace(/([A-Z])/g, (_, l, offset) => (offset > 0 ? '-' : '') + l.toLowerCase())
@@ -42,15 +46,36 @@ module.exports = {
 		return findInDir(docsRoot) || inComponents
 	},
 
+	template: {
+        head: {
+            raw: `<script>
+                window.OC = { config: { version: '30.0.0' } };
+                window.appName = 'nextcloud-vue-styleguide';
+            </script>`,
+        },
+    },
+
 	usageMode: 'collapse',
 	exampleMode: 'collapse',
 	pagePerSection: true,
 
-	// Buble (live-example transpiler) config: pass async/await and object spread through natively.
+	/* Buble (the live-example transpiler) config. Two transforms are
+	   left unimplemented (`asyncAwait`, `moduleExport`) so buble
+	   passes the source straight through without trying to translate
+	   modern syntax it doesn't fully support:
+	     - asyncAwait: false  — buble's translation drops generator
+	       semantics; modern browsers run async/await natively, no
+	       need to transpile.
+	     - moduleExport: false — buble fails any `<script>` block
+	       containing `export default { … }` with "Transforming export
+	       is not implemented". Component .md examples have used the
+	       `<script>export default {…}</script>` pattern since day
+	       one; webpack picks the export up downstream. */
 	compilerConfig: {
 		objectAssign: 'Object.assign',
 		transforms: {
 			asyncAwait: false,
+			moduleExport: false,
 		},
 	},
 
@@ -61,6 +86,7 @@ module.exports = {
 	require: [
 		path.join(__dirname, 'setup.js'),
 		path.join(__dirname, 'nextcloud-tokens.css'),
+		path.join(__dirname, 'nextcloud-animations.css'),
 		path.join(__dirname, 'nextcloud-globals.css'),
 		path.join(__dirname, 'theme.css'),
 	],
@@ -162,6 +188,22 @@ module.exports = {
 				// p-queue 7+ only ships an "exports" map with no "main" field;
 				// webpack 4 doesn't understand "exports", so we point it directly.
 				'p-queue': path.resolve(__dirname, 'node_modules/p-queue/dist/index.js'),
+				// @nextcloud/notify_push@1.x ships only `exports.import` (no `main` /
+				// `module`); webpack 4 can't resolve it. Live updates aren't
+				// functional in the styleguide sandbox anyway (no Nextcloud server
+				// to connect to), so point it at the package's dist file directly
+				// — components that bundle the live-updates plugin still build, and
+				// the listen() call no-ops harmlessly when there's no server.
+				'@nextcloud/notify_push': path.resolve(__dirname, 'node_modules/@nextcloud/notify_push/dist/index.js'),
+				// marked@15 uses optional-chaining (`cells.at(-1)?.trim()`)
+				// which webpack 4's parser doesn't recognise; node_modules
+				// isn't transpiled by babel-loader in this config. Markdown
+				// rendering only matters inside CnWikiPage at runtime in a
+				// real Nextcloud server — the styleguide demo just needs
+				// the component to mount, so a no-op stub keeps the build
+				// green. Sites consuming the lib pull marked from the lib
+				// root's package.json normally.
+				marked: path.resolve(__dirname, 'mocks/empty.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
@@ -274,6 +316,7 @@ module.exports = {
 				`${ROOT}/src/components/CnWidgetRenderer/CnWidgetRenderer.vue`,
 				`${ROOT}/src/components/CnTileWidget/CnTileWidget.vue`,
 				`${ROOT}/src/components/CnChartWidget/CnChartWidget.vue`,
+				`${ROOT}/src/components/CnWidgetRefItem/CnWidgetRefItem.vue`,
 			],
 		},
 		{

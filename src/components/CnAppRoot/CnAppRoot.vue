@@ -3,36 +3,103 @@
 
   Provides the manifest, custom-component registry, and translate
   function to descendants via Vue's `provide`/`inject`. Orchestrates
-  three rendering phases:
+  four rendering phases:
 
-    1. Loading        — while useAppManifest.isLoading is true.
-                        Default: <CnAppLoading />. Override: #loading slot.
-    2. Dependency     — after loading; when any entry in
-                        manifest.dependencies is not installed/enabled.
-                        Default: <CnDependencyMissing />. Override:
-                        #dependency-missing slot.
-    3. Shell          — manifest loaded + dependencies satisfied.
-                        Renders #menu (default <CnAppNav />) + the
-                        consuming app's <router-view>, plus optional
-                        #header-actions, #sidebar, and #footer slots.
+    0. Capabilities  — checks the Nextcloud capabilities API for any
+                       app id listed in `requiresApps` (default
+                       `['openregister']`). When a required app is
+                       missing, default content is <NcEmptyContent>
+                       with an OR-store action; consumers may replace
+                       the surface entirely via the #or-missing slot.
+                       Apps that do not need the guard pass
+                       `:requires-apps="[]"`.
+    1. Loading       — while useAppManifest.isLoading is true.
+                       Default: <CnAppLoading />. Override: #loading slot.
+    2. Dependency    — after loading; when any entry in
+                       manifest.dependencies is not installed/enabled.
+                       Default: <CnDependencyMissing />. Override:
+                       #dependency-missing slot.
+    3. Shell         — manifest loaded + dependencies satisfied.
+                       Renders #menu (default <CnAppNav />) + the
+                       consuming app's <router-view>, plus optional
+                       #header-actions, #sidebar, and #footer slots.
 
   Consuming apps that want manifest-driven pages but their own root
   layout can skip CnAppRoot entirely and use CnPageRenderer / CnAppNav
   with explicit props (the props-vs-inject fallback). CnAppRoot is the
   full-shell convenience.
 
-  See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec.
+  Hosts a single `NcAppSettingsDialog` that any descendant can open
+  via the injected `cnOpenUserSettings()` method. CnAppNav binds the
+  inject to manifest entries with `action: "user-settings"`. Apps
+  populate the modal by passing `NcAppSettingsSection`s into the
+  `#user-settings` slot; the slot falls back to a single placeholder
+  section when no content is supplied.
+
+  See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec,
+  and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appId">
-		<!-- Loading phase -->
-		<template v-if="phase === 'loading'">
+	<NcContent :app-name="appId" data-testid="cn-app-root">
+		<!-- Phase 0a: capabilities check in flight -->
+		<template v-if="capabilitiesLoading">
+			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
+				<NcLoadingIcon :size="32" />
+			</div>
+		</template>
+
+		<!--
+		  @slot or-missing
+		  @description Custom missing-app screen used when one or more
+		  entries in `requiresApps` are absent from the Nextcloud
+		  capabilities payload. Receives `{ missingApps: string[] }`.
+		  Default content: an `<NcEmptyContent>` with the OpenRegister
+		  database icon, i18n title/description, and a primary action
+		  linking to the OpenRegister integration page. Override when
+		  the consumer needs a custom CTA (e.g. softwarecatalog linking
+		  to its public landing page). See REQ-OR-4.
+		-->
+		<template v-else-if="missingApps.length > 0">
+			<slot name="or-missing" :missing-apps="missingApps">
+				<div class="cn-app-root__or-missing">
+					<NcEmptyContent
+						:name="translate('app-availability.title')"
+						:description="translate('app-availability.description')">
+						<template #icon>
+							<DatabaseSearchOutline :size="64" />
+						</template>
+						<template #action>
+							<a
+								class="cn-app-root__or-missing-action"
+								:href="orStoreLink">
+								{{ translate('app-availability.action') }}
+							</a>
+						</template>
+					</NcEmptyContent>
+				</div>
+			</slot>
+		</template>
+
+		<!--
+		  @slot loading
+		  @description Loading screen rendered while the manifest
+		  fetch is in flight (REQ-JMR-013). Default content is a
+		  `<CnAppLoading />` brand spinner. Override when the consumer
+		  needs a custom skeleton or branded loader.
+		-->
+		<template v-else-if="phase === 'loading'">
 			<slot name="loading">
 				<CnAppLoading />
 			</slot>
 		</template>
 
-		<!-- Dependency-check phase -->
+		<!--
+		  @slot dependency-missing
+		  @description Empty-state surface rendered when one or more
+		  entries in `manifest.dependencies` are not installed/enabled.
+		  Receives `{ dependencies }` (the unresolved list). Default:
+		  `<CnDependencyMissing>`. See REQ-JMR-011.
+		-->
 		<template v-else-if="phase === 'dependency-missing'">
 			<slot name="dependency-missing" :dependencies="unresolvedDependencies">
 				<CnDependencyMissing
@@ -41,14 +108,32 @@
 			</slot>
 		</template>
 
-		<!-- Shell phase -->
+		<!-- Phase 3: shell -->
 		<template v-else>
+			<!--
+			  @slot menu
+			  @description Left-rail navigation surface. Default:
+			  `<CnAppNav>` reading `manifest.menu` and filtering by
+			  `permissions`. Override to ship a hand-rolled menu while
+			  keeping the rest of CnAppRoot's shell.
+			-->
 			<slot name="menu">
 				<CnAppNav :permissions="permissions" />
 			</slot>
 			<NcAppContent>
 				<router-view />
+				<!--
+				  @slot header-actions
+				  @description Optional action buttons rendered in the
+				  page header alongside the router-view. Empty by
+				  default; consumer apps fill it with toolbar buttons.
+				-->
 				<slot name="header-actions" />
+				<!--
+				  @slot footer
+				  @description Optional footer surface rendered below the
+				  router-view inside `NcAppContent`. Empty by default.
+				-->
 				<slot name="footer" />
 			</NcAppContent>
 			<!--
@@ -60,28 +145,147 @@
 			  when no `CnPageRenderer` ancestor exists) is `true`, so
 			  apps that mount their own page components without the
 			  renderer keep rendering the slot exactly as today.
+
+			  Default content: when `cnPageSidebarComponent.value` is a
+			  Vue component (set by the renderer when the current page
+			  declares a `sidebarComponent` registry name), it renders
+			  here as the slot's DEFAULT content. The consumer's
+			  `#sidebar` slot override (when supplied) wins via Vue's
+			  standard slot mechanic; the resolved component is the
+			  fallback. See manifest-named-view-sidebar spec.
 			-->
-			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar" />
+			<!--
+			  @slot sidebar
+			  @description Right-rail sidebar surface. Gated by the
+			  `cnPageSidebarVisible` inject (provided by `CnPageRenderer`)
+			  so manifest pages can suppress the sidebar via
+			  `pages[].sidebar.show: false`. Default content: when
+			  `cnPageSidebarComponent.value` is set (provided by
+			  `CnPageRenderer` for `pages[].sidebarComponent`), that
+			  component renders here; otherwise empty. Consumer-supplied
+			  slot content always wins over the resolved component.
+			-->
+			<slot v-if="cnPageSidebarVisible.value !== false" name="sidebar">
+				<component
+					:is="cnPageSidebarComponent.value"
+					v-if="cnPageSidebarComponent.value" />
+			</slot>
+			<!--
+			  Hoisted index-page sidebar. CnIndexPage publishes its
+			  embedded CnIndexSidebar config (component + props +
+			  listeners) into the `cnIndexSidebarConfig` holder so it
+			  mounts at NcContent level — the only place where Nextcloud's
+			  NcAppSidebar slides correctly from the right. Rendering
+			  alongside the consumer's `#sidebar` slot is safe because
+			  the embedded sidebar only sets the holder when the page is
+			  an index AND `sidebar.enabled !== false`; detail-page
+			  sidebars (CnObjectSidebar) keep owning the slot.
+			-->
+			<component
+				v-if="cnIndexSidebarConfig.value"
+				:is="cnIndexSidebarConfig.value.component"
+				v-bind="cnIndexSidebarConfig.value.props"
+				v-on="cnIndexSidebarConfig.value.listeners" />
+
+			<!--
+			  Hoisted detail-page object sidebar. Symmetric with the
+			  index-sidebar block above, but the channel is the
+			  injected `objectSidebarState` holder that `CnDetailPage`
+			  publishes into via `syncSidebarState()`. Renders only
+			  when (a) the consumer didn't fill `#sidebar` themselves
+			  AND (b) no ancestor already owns the holder (decidesk's
+			  / procest's pattern — those keep their own
+			  `<CnObjectSidebar>` mount). Manifest-only apps
+			  (openbuilt, mydash) get the sidebar for free; ADR-017
+			  compliant because the component mounts here at
+			  `NcContent` level, not inside `NcAppContent`.
+			-->
+			<CnObjectSidebar
+				v-if="shouldAutoMountObjectSidebar"
+				:title="resolvedObjectSidebarState.title"
+				:subtitle="resolvedObjectSidebarState.subtitle"
+				:object-type="resolvedObjectSidebarState.objectType"
+				:object-id="resolvedObjectSidebarState.objectId"
+				:register="resolvedObjectSidebarState.register"
+				:schema="resolvedObjectSidebarState.schema"
+				:hidden-tabs="resolvedObjectSidebarState.hiddenTabs"
+				:tabs="resolvedObjectSidebarState.tabs"
+				:custom-components="customComponents"
+				:open="resolvedObjectSidebarState.open"
+				@update:open="resolvedObjectSidebarState.open = $event" />
+
+			<!--
+			  AI Chat Companion — auto-mounted at the END of NcContent's
+			  children so its embedded NcAppSidebar slides in from the right
+			  edge (positioning relies on being the last NcContent sibling,
+			  same trick the hoisted index-page sidebar above uses).
+			  Gating (health probe, pageKind overrides) happens inside the
+			  component. No per-app wiring required.
+			-->
+			<CnAiCompanion />
+			<!--
+			  User-settings modal. Always mounted so descendants can
+			  open it via the `cnOpenUserSettings` inject (CnAppNav
+			  wires this to manifest entries with
+			  `action: "user-settings"`). The `#user-settings` slot
+			  hosts NcAppSettingsSection children; the placeholder
+			  fallback below renders when no slot content is supplied.
+			-->
+			<NcAppSettingsDialog
+				:open="userSettingsOpen"
+				:show-navigation="true"
+				:name="resolvedUserSettingsTitle"
+				@update:open="userSettingsOpen = $event">
+				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to a single placeholder section when omitted. -->
+				<slot name="user-settings">
+					<NcAppSettingsSection
+						id="general"
+						:name="translate('User preferences')">
+						<p>{{ translate('User preferences will appear here.') }}</p>
+					</NcAppSettingsSection>
+				</slot>
+			</NcAppSettingsDialog>
 		</template>
 	</NcContent>
 </template>
 
 <script>
-import { NcAppContent, NcContent } from '@nextcloud/vue'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCapabilities } from '@nextcloud/capabilities'
+import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import Vue from 'vue'
+
+/**
+ * Default URL for the OpenRegister integration page. The empty-state
+ * action links here so users can install / enable OpenRegister with one
+ * click. Override per-environment by replacing the default empty-state
+ * via the `#or-missing` slot.
+ */
+const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
 
 export default {
 	name: 'CnAppRoot',
 
 	components: {
 		NcAppContent,
+		NcAppSettingsDialog,
+		NcAppSettingsSection,
 		NcContent,
+		NcEmptyContent,
+		NcLoadingIcon,
+		DatabaseSearchOutline,
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnAiCompanion,
+		CnObjectSidebar,
 	},
 
 	provide() {
@@ -90,22 +294,104 @@ export default {
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
+			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
+			cnCellWidgets: this.cellWidgets,
+			/**
+			 * Open the host app's NcAppSettingsDialog. Bound to
+			 * `this` so descendants don't have to. Used by CnAppNav
+			 * to dispatch `action: "user-settings"` clicks; consumer
+			 * apps can also call it directly via inject for custom
+			 * triggers (e.g. an avatar-menu entry).
+			 */
+			cnOpenUserSettings: () => {
+				this.userSettingsOpen = true
+			},
+			/**
+			 * Reactive AI context holder. Page components (CnIndexPage,
+			 * CnDetailPage, CnDashboardPage) overwrite fields on this object
+			 * in created() and watch() so the widget sees live context.
+			 * The same object reference is stable for the lifetime of CnAppRoot.
+			 */
+			cnAiContext: this.cnAiContext,
+			/**
+			 * Reactive holder that descendants — specifically
+			 * CnIndexPage — write to in order to mount their embedded
+			 * sidebar at NcContent level. The Vue 2 reactive idiom is
+			 * `{ value }` so descendants assign `holder.value = config`.
+			 * `config` is `{ component, props, listeners }`.
+			 *
+			 * Default null. CnIndexPage clears it on unmount so the
+			 * hoisted sidebar disappears when the user navigates away.
+			 */
+			cnIndexSidebarConfig: this.cnIndexSidebarConfig,
+			/**
+			 * Sentinel that CnIndexPage checks to decide whether to
+			 * publish its embedded sidebar to the hoist (true) or
+			 * render it inline (false, default for non-CnAppRoot
+			 * hosts).
+			 */
+			cnHostsIndexSidebar: true,
+			/**
+			 * `objectSidebarState` reactive holder. Resolution order:
+			 *
+			 *   1. **Ancestor-provided** — when an outer wrapper
+			 *      (decidesk's / procest's `App.vue` pattern) already
+			 *      exposes one via its own `provide()`, we hand that
+			 *      holder back down so CnDetailPage descendants under
+			 *      this CnAppRoot subtree write to the same object the
+			 *      consumer's `#sidebar` slot reads from. Preserves the
+			 *      pre-change behaviour for those apps with zero change.
+			 *   2. **Local fallback** — manifest-only apps (openbuilt,
+			 *      mydash) hit this branch; CnAppRoot's own observable
+			 *      holder backs the auto-mounted `<CnObjectSidebar>`
+			 *      below and the CnDetailPage publish path. ADR-017
+			 *      compliant — sidebar mounts at NcContent level.
+			 *
+			 * Resolved once at provide-time so the same reference flows
+			 * to every descendant inject for the lifetime of this
+			 * CnAppRoot instance.
+			 */
+			objectSidebarState: this.ancestorObjectSidebarState || this.localObjectSidebarState,
 		}
 	},
 
 	/**
-	 * Inject the current page's sidebar-visibility flag. The provider
-	 * is `CnPageRenderer` (a typical descendant via `<router-view>`).
-	 * The default — used when no `CnPageRenderer` ancestor exists
-	 * (e.g. apps mounting their own page components without the
-	 * renderer) — is `{ value: true }` so the `#sidebar` slot
-	 * renders unchanged.
+	 * Inject the current page's sidebar-visibility flag and
+	 * sidebar-component override. The provider is `CnPageRenderer`
+	 * (a typical descendant via `<router-view>`).
 	 *
-	 * The shape `{ value: boolean }` is a hand-rolled reactive holder
-	 * (Vue 2 options API) — see `CnPageRenderer.data().pageSidebarVisible`.
+	 * `cnPageSidebarVisible` default — used when no `CnPageRenderer`
+	 * ancestor exists (e.g. apps mounting their own page components
+	 * without the renderer) — is `{ value: true }` so the `#sidebar`
+	 * slot renders unchanged.
+	 *
+	 * `cnPageSidebarComponent` default is `{ value: null }` so the
+	 * slot's default content stays empty unless the manifest
+	 * explicitly opts in via `pages[].sidebarComponent`. Apps that
+	 * already provide a `#sidebar` slot override see no behaviour
+	 * change either way — the override wins over the slot default.
+	 *
+	 * The shape `{ value: T }` is a hand-rolled reactive holder
+	 * (Vue 2 options API) — see `CnPageRenderer.data()`.
 	 */
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
+		cnPageSidebarComponent: { default: () => ({ value: null }) },
+		/**
+		 * Optional ancestor-provided `objectSidebarState` holder. When an
+		 * outer wrapper already exposes one (decidesk's / procest's
+		 * `App.vue` patterns), CnAppRoot reuses that holder so the
+		 * outer-rendered `<CnObjectSidebar>` stays in lock-step with
+		 * CnDetailPage writes. When no ancestor provides it, the local
+		 * fallback in `data().objectSidebarState` kicks in (see the
+		 * resolution in `provide()` and `resolvedObjectSidebarState`)
+		 * so the manifest-only consumer pattern works without any
+		 * per-app boilerplate.
+		 *
+		 * Aliased to `ancestorObjectSidebarState` so the local data
+		 * property can keep the shorter name without colliding.
+		 */
+		ancestorObjectSidebarState: { from: 'objectSidebarState', default: null },
 	},
 
 	props: {
@@ -153,6 +439,39 @@ export default {
 			default: () => ({}),
 		},
 		/**
+		 * Cell-formatter registry. Map of formatter-id →
+		 * `(value, row, property) => string|number`. Resolves the
+		 * `pages[].config.columns[].formatter` ids that index/logs pages
+		 * declare, so per-column value formatting (status-label maps,
+		 * "days in step", currency, …) lives in small pure data functions
+		 * instead of bespoke `type:"custom"` table views. Provided to
+		 * descendant CnDataTable / CnCellRenderer via inject (`cnFormatters`).
+		 * Empty by default — a column with no `formatter`, or an app that
+		 * passes no `formatters`, renders exactly as before.
+		 *
+		 * @type {object}
+		 */
+		formatters: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Cell-widget registry. Map of widget-id → Vue component, rendered
+		 * for a column that declares `pages[].config.columns[].widget`. The
+		 * component receives `{ value, row, property, formatted, ...widgetProps }`.
+		 * The library ships one built-in id, `"badge"` (renders `CnStatusBadge`);
+		 * consumer entries cover everything else (status pills with custom
+		 * colour maps, inline toggles, link cells, …). Provided to descendant
+		 * `CnDataTable` / `CnCellRenderer` via inject (`cnCellWidgets`). Empty
+		 * by default — a column with no `widget` renders as before.
+		 *
+		 * @type {object}
+		 */
+		cellWidgets: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
 		 * Translate function provided by the consuming app. The library
 		 * never imports `t()` from a specific app, so the consumer
 		 * passes its own translator. Typically a closure over the
@@ -196,9 +515,186 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Required Nextcloud apps for this Conduction app to function.
+		 * Default `['openregister']` — every fleet app stores its data
+		 * in OpenRegister, so the guard is on by default. Consumer apps
+		 * that don't need OpenRegister (the styleguide, the docs site,
+		 * future utility apps) opt out via `:requires-apps="[]"`.
+		 *
+		 * On `mounted()`, CnAppRoot calls `getCapabilities()` from
+		 * `@nextcloud/capabilities` exactly once and compares the
+		 * returned capability keys against this list. When ANY entry
+		 * is missing, CnAppRoot renders an `<NcEmptyContent>` (the
+		 * default) or the consumer's `#or-missing` slot.
+		 *
+		 * Multi-app future-proofing free: a future docudesk-derived app
+		 * needing both can declare
+		 * `:requires-apps="['openregister', 'openconnector']"`.
+		 *
+		 * Network failure on `getCapabilities()` (admin-restricted,
+		 * offline, CORS) falls through to the renderer rather than
+		 * blocking the app on a flaky check — the data layer surfaces
+		 * the actual failure when API calls hit OpenRegister.
+		 *
+		 * See REQ-OR-1..REQ-OR-7 of cnapproot-app-availability-guard.
+		 *
+		 * @type {Array<string>}
+		 */
+		requiresApps: {
+			type: Array,
+			default: () => ['openregister'],
+		},
+		/**
+		 * Title rendered at the top of the user-settings modal
+		 * (NcAppSettingsDialog `name` prop). Defaults to the
+		 * translated string "User settings"; pass a custom label
+		 * (e.g. "Decidesk preferences") to override per app.
+		 *
+		 * @type {string}
+		 */
+		userSettingsTitle: {
+			type: String,
+			default: '',
+		},
+	},
+
+	/**
+	 * Component-instance state for the capabilities guard.
+	 *
+	 * - `capabilitiesLoading`: `true` only when the prop says we need
+	 *   to check (i.e. `requiresApps.length > 0`). Apps that opt out
+	 *   via `:requires-apps="[]"` see this initialise to `false`, so
+	 *   no spinner flashes and the renderer mounts on the first
+	 *   render. Apps that need the guard see `true` initially; the
+	 *   `mounted()` hook runs the check and flips to `false`.
+	 * - `missingApps`: the list of `requiresApps` entries NOT
+	 *   present in the capabilities payload. When empty, the
+	 *   renderer mounts; when non-empty, the empty-state renders.
+	 * - `guardError`: stores the caught error so consumers
+	 *   inspecting the component instance can introspect failures.
+	 *   The error path falls through to the renderer regardless.
+	 */
+	data() {
+		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
+		return {
+			capabilitiesLoading: willCheck,
+			missingApps: [],
+			guardError: null,
+			/**
+			 * Reactive holder that descendants write into to mount
+			 * their embedded index sidebar at NcContent level. Shared
+			 * via provide(); see the `cnIndexSidebarConfig` provide
+			 * docs for the contract.
+			 */
+			cnIndexSidebarConfig: { value: null },
+			/**
+			 * Local fallback `objectSidebarState` — used only when no
+			 * ancestor provides one (i.e. manifest-only apps that
+			 * haven't hand-rolled a holder in their `App.vue`). Vue 2
+			 * needs `Vue.observable()` to make plain-object property
+			 * writes from `CnDetailPage.syncSidebarState()` reactive.
+			 * The shape mirrors what `CnDetailPage` writes into
+			 * (`active`, `open`, `objectType`, `objectId`, `title`,
+			 * `subtitle`, `register`, `schema`, `hiddenTabs`, `tabs`)
+			 * so the consumer's `<CnObjectSidebar>` — whether
+			 * auto-mounted by CnAppRoot or rendered from a custom
+			 * `#sidebar` slot — sees the full set of fields it
+			 * expects on mount.
+			 */
+			localObjectSidebarState: Vue.observable({
+				active: false,
+				open: true,
+				objectType: '',
+				objectId: '',
+				title: '',
+				subtitle: '',
+				register: '',
+				schema: '',
+				hiddenTabs: [],
+				tabs: undefined,
+			}),
+			/**
+			 * Reactive AI context. Provided to all descendants via
+			 * provide('cnAiContext'). Page components overwrite fields
+			 * in their created() + watch() to give the companion
+			 * per-page context. The same object reference is stable
+			 * across the lifetime of CnAppRoot.
+			 *
+			 * Shape: CnAiContext (hydra-locked TypeScript interface)
+			 *   { appId, pageKind, objectUuid?, registerSlug?,
+			 *     schemaSlug?, route? }
+			 */
+			cnAiContext: Vue.observable({
+				appId: this.appId || 'unknown',
+				pageKind: 'custom',
+				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
+			}),
+			/**
+			 * Open state of the host NcAppSettingsDialog. Toggled
+			 * to `true` by the provided `cnOpenUserSettings()`
+			 * method (CnAppNav binds this to manifest entries with
+			 * `action: "user-settings"`); the dialog flips it back
+			 * via its `update:open` event.
+			 */
+			userSettingsOpen: false,
+		}
+	},
+
+	mounted() {
+		// Opt-out fast-path: empty `requiresApps` already initialised
+		// `capabilitiesLoading` to `false` in data(); skip the check.
+		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			return
+		}
+
+		try {
+			const capabilities = getCapabilities()
+			const keys = (capabilities && typeof capabilities === 'object')
+				? Object.keys(capabilities)
+				: []
+			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
+		} catch (err) {
+			// Capabilities API failure — log and fall through to the
+			// renderer. The data layer will surface the actual problem
+			// if OR is genuinely missing.
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
+				err,
+			)
+			this.guardError = err
+			this.missingApps = []
+		} finally {
+			this.capabilitiesLoading = false
+		}
 	},
 
 	computed: {
+		/**
+		 * Resolved `objectSidebarState` for template + descendant use.
+		 * Returns the ancestor-provided holder when present, else the
+		 * local observable fallback. Reading it in the template lets
+		 * the auto-mount block stay declarative.
+		 */
+		resolvedObjectSidebarState() {
+			return this.ancestorObjectSidebarState || this.localObjectSidebarState
+		},
+		/**
+		 * True when CnAppRoot should render its own
+		 * `<CnObjectSidebar>` auto-mount. Suppressed when (a) the
+		 * consumer fills the `#sidebar` slot — slot content always
+		 * wins — or (b) an ancestor already provides the holder
+		 * AND the consumer is presumed to render its own sidebar
+		 * upstream (e.g. decidesk's App.vue). In that case the
+		 * ancestor is the source of truth; CnAppRoot stays out of
+		 * the way.
+		 */
+		shouldAutoMountObjectSidebar() {
+			return !this.$slots.sidebar
+				&& !this.ancestorObjectSidebarState
+				&& this.resolvedObjectSidebarState.active === true
+		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the
@@ -221,6 +717,54 @@ export default {
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
 			return 'shell'
 		},
+		/**
+		 * Default link surfaced by the missing-app empty-state action.
+		 * Points at the OpenRegister integration page in the Nextcloud
+		 * app store. Replaceable per consumer via the `#or-missing`
+		 * slot.
+		 */
+		orStoreLink() {
+			return OR_STORE_LINK
+		},
+		resolvedUserSettingsTitle() {
+			return this.userSettingsTitle || this.translate('User settings')
+		},
 	},
 }
 </script>
+
+<style>
+.cn-app-root__capabilities-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 100vh;
+	background: var(--color-main-background);
+}
+
+.cn-app-root__or-missing {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 100vh;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-app-root__or-missing-action {
+	display: inline-block;
+	padding: calc(1.5 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+	border-radius: var(--border-radius);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	text-decoration: none;
+}
+
+.cn-app-root__or-missing-action:hover,
+.cn-app-root__or-missing-action:focus {
+	background: var(--color-primary-element-hover);
+	text-decoration: underline;
+}
+</style>

@@ -49,7 +49,10 @@
 .cn-timeline-stages--horizontal .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
 	content: '';
 	position: absolute;
-	top: 16px; /* half of 32px indicator */
+	/* Indicator sits below the stage's top padding (4px), so its vertical
+	   center is at padding-top + indicator-radius = 4px + 16px = 20px.
+	   Subtract 1px (half the line height) to center the 2px line on it. */
+	top: calc(var(--default-grid-baseline, 4px) * 1 + 16px - 1px);
 	right: calc(50% + 16px + 4px);
 	left: calc(-50% + 16px + 4px);
 	height: 2px;
@@ -64,12 +67,20 @@
 }
 
 /* ---------- Track line (vertical) ---------- */
+/* Connect this indicator's center to the previous indicator's center.
+   With align-items: center on the stage row, the indicator center aligns
+   with the stage's vertical midpoint. Spanning from -50% (one half-stage
+   above this stage's top) down to 50% (this stage's center) reaches the
+   previous indicator's center when neighboring stages share the same
+   height — close enough for the typical row of similar labels. The gap
+   (12px) between stages is bridged because the line starts at -50% minus
+   the gap distance. */
 .cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
 	content: '';
 	position: absolute;
-	left: 15px; /* center of 32px indicator */
-	top: -6px;
-	height: 6px;
+	left: calc(var(--default-grid-baseline, 4px) * 1 + 16px - 1px); /* center of 32px indicator, minus half line width */
+	top: calc(-50% - var(--default-grid-baseline, 4px) * 3); /* reach previous indicator's center, plus the 12px gap */
+	bottom: 50%;
 	width: 2px;
 	background-color: var(--color-border, #ededed);
 	z-index: 0;
@@ -187,16 +198,14 @@
 
 /* Small horizontal track line offset */
 .cn-timeline-stages--small.cn-timeline-stages--horizontal .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
-	top: 10px; /* half of 20px */
+	top: calc(var(--default-grid-baseline, 4px) * 1 + 10px - 1px); /* padding + indicator radius, minus half line height */
 	right: calc(50% + 10px + 4px);
 	left: calc(-50% + 10px + 4px);
 }
 
 /* Small vertical track line offset */
 .cn-timeline-stages--small.cn-timeline-stages--vertical .cn-timeline-stages__stage + .cn-timeline-stages__stage::before {
-	left: 9px; /* center of 20px indicator */
-	top: -6px;
-	height: 6px;
+	left: calc(var(--default-grid-baseline, 4px) * 1 + 10px - 1px); /* center of 20px indicator, minus half line width */
 }
 
 /* ---------- Clickable mode ---------- */

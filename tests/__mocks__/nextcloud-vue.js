@@ -36,6 +36,8 @@ export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
 export const NcAppSidebarTab = createStub('NcAppSidebarTab')
 export const NcPopover = createStub('NcPopover')
+export const NcRichText = createStub('NcRichText')
+export const NcAppContent = createStub('NcAppContent')
 
 export default {
 	NcDialog,
@@ -55,4 +57,6 @@ export default {
 	NcAppSidebar,
 	NcAppSidebarTab,
 	NcPopover,
+	NcRichText,
+	NcAppContent,
 }

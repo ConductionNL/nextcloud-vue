@@ -39,6 +39,7 @@ const {
 | `options.defaultPageSize` | `number` | Initial `_limit`. Default `20`. |
 | `options.debounceMs` | `number` | Search debounce. Default `300`. |
 | `options.defaultSort` | `{ key, order }` | Applied on mount. `order` is `'asc'` or `'desc'`. |
+| `options.fixedFilters` | `object \| () => object` | A filter map (or a getter returning one) merged into **every** fetch *after* the user's `activeFilters`, so the fixed entries always win over a colliding facet filter. A getter is re-read on each fetch — pass one to derive the map from reactive sources (e.g. route params). Default `{}` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. |
 
 ### Return value
 
@@ -70,6 +71,7 @@ Event handlers (all trigger a re-fetch, most reset to page 1):
 | `_search` | `searchTerm` (only when non-empty) |
 | `_order` | `{ [sortKey]: sortOrder }` (only when `sortKey` is set) |
 | `{filterKey}` | `activeFilters[filterKey]` — scalar when the array has one value, array otherwise |
+| `{fixedKey}` | `fixedFilters` resolved last (skipping `undefined`/`null`/`''`), so it overrides any colliding `activeFilters` entry |
 
 ### Sidebar wiring
 

@@ -5,6 +5,7 @@
 		:force-menu="true"
 		class="cn-context-menu"
 		container="body"
+		data-testid="cn-context-menu"
 		@close="onClose">
 		<!-- Dynamic actions from array prop -->
 		<NcActionButton
@@ -13,6 +14,7 @@
 			:title="resolveTitle(action)"
 			:disabled="resolveDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
+			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
 			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
@@ -158,6 +160,22 @@ export default {
 				return action.title(this.targetItem) || undefined
 			}
 			return action.title || undefined
+		},
+
+		/**
+		 * Slugify an action label for use in stable `data-testid` selectors.
+		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
+		 * `:data-testid` binding on NcActionButton — does not affect runtime
+		 * behaviour or rendered text.
+		 *
+		 * @param {string} label The action's display label.
+		 * @return {string} kebab-case slug suitable for a testid suffix.
+		 */
+		slugifyLabel(label) {
+			return String(label || '')
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-+|-+$/g, '')
 		},
 
 		onAction(action) {

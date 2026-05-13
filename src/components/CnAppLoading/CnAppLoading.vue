@@ -9,7 +9,7 @@
   See REQ-JMR-010 of the json-manifest-renderer specification.
 -->
 <template>
-	<div class="cn-app-loading">
+	<div class="cn-app-loading" data-testid="cn-app-loading">
 		<div class="cn-app-loading__inner">
 			<slot name="logo">
 				<img
@@ -68,7 +68,7 @@ export default {
 	align-items: center;
 	justify-content: center;
 	width: 100%;
-	min-height: 100vh;
+	min-height: 100%;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 }

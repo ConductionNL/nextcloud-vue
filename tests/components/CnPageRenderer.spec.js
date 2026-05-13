@@ -27,6 +27,13 @@ const sampleManifest = {
 		{ id: 'home', route: '/', type: 'index', title: 'app.home', config: { schema: { name: 's1' }, columns: [] } },
 		{ id: 'home-detail', route: '/items/:id', type: 'detail', title: 'app.detail' },
 		{ id: 'overview', route: '/overview', type: 'dashboard', title: 'app.overview' },
+		{
+			id: 'cases-map',
+			route: '/map',
+			type: 'map',
+			title: 'app.map',
+			config: { center: [52.13, 5.29], zoom: 7, layers: [] },
+		},
 		{ id: 'settings', route: '/settings', type: 'custom', title: 'app.settings', component: 'SettingsPage' },
 		{ id: 'broken', route: '/broken', type: 'custom', title: 'app.broken', component: 'NonExistent' },
 		{
@@ -73,6 +80,17 @@ const sampleManifest = {
 			title: 'app.home',
 			slots: {
 				'create-dialog': 'NonExistent',
+			},
+		},
+		{
+			id: 'public-survey',
+			route: '/public/survey/:token',
+			type: 'form',
+			title: 'app.survey',
+			config: {
+				fields: [{ key: 'rating', type: 'number', label: 'Rating' }],
+				submitHandler: 'submitSurvey',
+				mode: 'public',
 			},
 		},
 	],
@@ -161,6 +179,25 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.resolvedComponent).not.toBeNull()
 		})
 
+		it('returns an async component wrapper for type=form (manifest-form-page-type)', () => {
+			const wrapper = mountRenderer('public-survey')
+			const component = wrapper.vm.resolvedComponent
+			expect(component).not.toBeNull()
+			expect(['function', 'object']).toContain(typeof component)
+			// Form pages get their config spread as props by the renderer
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				submitHandler: 'submitSurvey',
+				mode: 'public',
+			})
+		})
+
+		it('returns an async component wrapper for type=map', () => {
+			// REQ-MMW-* — manifest-map-widget — type=map resolves to CnMapPage
+			const wrapper = mountRenderer('cases-map')
+			expect(wrapper.vm.resolvedComponent).not.toBeNull()
+			expect(['function', 'object']).toContain(typeof wrapper.vm.resolvedComponent)
+		})
+
 		it('renders the resolved custom component synchronously', () => {
 			const wrapper = mountRenderer('settings')
 			expect(wrapper.vm.resolvedComponent).toBe(SettingsPageStub)
@@ -179,14 +216,65 @@ describe('CnPageRenderer', () => {
 	})
 
 	describe('config forwarding', () => {
-		it('forwards page.config as resolvedProps', () => {
+		it('forwards page.config + page-level title/description/icon as resolvedProps', () => {
 			const wrapper = mountRenderer('home')
-			expect(wrapper.vm.resolvedProps).toEqual(sampleManifest.pages[0].config)
+			// Top-level title is forwarded too — the schema-driven detail
+			// surface relies on this; existing config fields keep flowing
+			// through identically.
+			expect(wrapper.vm.resolvedProps).toMatchObject(sampleManifest.pages[0].config)
+			expect(wrapper.vm.resolvedProps.title).toBe('app.home')
 		})
 
-		it('returns an empty object when page has no config', () => {
+		it('returns title-only when page has no config', () => {
 			const wrapper = mountRenderer('home-detail')
-			expect(wrapper.vm.resolvedProps).toEqual({})
+			// `home-detail` has a top-level title but no config — the
+			// renderer surfaces the title as a default so manifest-only
+			// detail pages render their header without duplicating into
+			// config.
+			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'app.detail' })
+		})
+
+		it('config.title overrides page-level title on collision', () => {
+			// Simulate a manifest entry that legacy-shadows title via config.
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+			}
+			const $route = { name: 'shadow', params: {} }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps.title).toBe('Config-level')
+		})
+
+		it('$route.params override both config and page-level fields', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+			}
+			const $route = { name: 'shadow', params: { title: 'Route-level' } }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps.title).toBe('Route-level')
+		})
+
+		it('forwards description and icon from page top-level', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'iconed', route: '/iconed', type: 'index', title: 'T', description: 'D', icon: 'IconName' }],
+			}
+			const $route = { name: 'iconed', params: {} }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'T', description: 'D', icon: 'IconName' })
 		})
 	})
 
@@ -299,6 +387,8 @@ describe('CnPageRenderer', () => {
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.settings)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.chat)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.files)
+			// manifest-wiki-page-type addition:
+			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.wiki)
 		})
 	})
 
@@ -333,6 +423,82 @@ describe('CnPageRenderer', () => {
 			expect(warnSpy).toHaveBeenCalledWith(
 				expect.stringContaining('slot "create-dialog"'),
 			)
+		})
+	})
+
+	describe('config.readOnly:true shorthand (REQ-MIPFU-4)', () => {
+		// Stub the index page type so the dispatched component is a
+		// no-op `<div />` — keeps CnIndexPage's setup (which needs
+		// pinia) out of the picture; we only assert on `resolvedProps`.
+		const IndexStub = { name: 'IndexStub', template: '<div class="index-stub" />' }
+		const readOnlyPageTypes = { index: IndexStub }
+
+		const readOnlyManifest = {
+			version: '1.0.0',
+			menu: [],
+			pages: [
+				{
+					id: 'reports',
+					route: '/reports',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report', readOnly: true },
+				},
+				{
+					id: 'reports-overridden',
+					route: '/reports-overridden',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report', readOnly: true, showAdd: true },
+				},
+				{
+					id: 'reports-rw',
+					route: '/reports-rw',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report' },
+				},
+			],
+		}
+
+		it('expands to the nine read-only flags', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.selectable).toBe(false)
+			expect(props.showAdd).toBe(false)
+			expect(props.showFormDialog).toBe(false)
+			expect(props.showEditAction).toBe(false)
+			expect(props.showCopyAction).toBe(false)
+			expect(props.showDeleteAction).toBe(false)
+			expect(props.showMassImport).toBe(false)
+			expect(props.showMassCopy).toBe(false)
+			expect(props.showMassDelete).toBe(false)
+			expect(props.readOnly).toBeUndefined()
+		})
+
+		it('an explicit config.showAdd:true overrides the shorthand', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports-overridden', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.showAdd).toBe(true)
+			expect(props.showEditAction).toBe(false)
+			expect(props.selectable).toBe(false)
+		})
+
+		it('readOnly omitted leaves resolvedProps as the plain config', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports-rw', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.showAdd).toBeUndefined()
+			expect(props.selectable).toBeUndefined()
+			expect(props.register).toBe('x')
 		})
 	})
 

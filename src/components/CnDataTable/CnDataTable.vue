@@ -1,13 +1,13 @@
 <template>
-	<div class="cn-table-container" :class="{ 'cn-table-container--scrollable': scrollable }">
+	<div class="cn-table-container" data-testid="cn-object-list" :class="{ 'cn-table-container--scrollable': scrollable }">
 		<!-- Loading State -->
-		<div v-if="loading" class="cn-table-loading">
+		<div v-if="loading" class="cn-table-loading" data-testid="cn-object-list-loading">
 			<NcLoadingIcon :size="32" />
 			<p>{{ loadingText }}</p>
 		</div>
 
 		<!-- Table -->
-		<table v-else class="cn-data-table">
+		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
 			<thead>
 				<tr>
 					<!-- Checkbox column -->
@@ -45,7 +45,7 @@
 
 			<tbody>
 				<!-- Empty state -->
-				<tr v-if="rows.length === 0" class="cn-table-empty">
+				<tr v-if="rows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 					<td :colspan="totalColumns">
 						<slot name="empty">
 							{{ emptyText }}
@@ -59,6 +59,8 @@
 					v-else
 					:key="row[rowKey]"
 					class="cn-table-row"
+					data-testid="cn-object-row"
+					:data-testid-row-id="row[rowKey]"
 					:class="[
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
@@ -78,16 +80,22 @@
 						:key="col.key"
 						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
-						<slot :name="'column-' + col.key" :row="row" :value="getCellValue(row, col.key)">
-							<!-- Schema-driven: use CnCellRenderer -->
+						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+							<!-- Every column renders through CnCellRenderer: it resolves
+							     col.formatter / col.widget against the injected registries
+							     (cnFormatters / cnCellWidgets), uses the schema property when
+							     one is available (else {}) for type-aware rendering, and
+							     falls back to formatValue(). Columns with `aggregate` get a
+							     count of related objects (see cellValue/loadAggregates). The
+							     #column-{key} slot still wins. -->
 							<CnCellRenderer
-								v-if="isSchemaColumn(col)"
-								:value="getCellValue(row, col.key)"
-								:property="getSchemaProperty(col.key)" />
-							<!-- Manual: plain text -->
-							<template v-else>
-								{{ getCellValue(row, col.key) }}
-							</template>
+								:value="cellValue(row, col)"
+								:property="getSchemaProperty(col.key)"
+								:formatter="col.formatter || null"
+								:widget="col.widget || null"
+								:widget-props="col.widgetProps || undefined"
+								:row="row"
+								:row-key="rowKey" />
 						</slot>
 					</td>
 
@@ -104,6 +112,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 
@@ -254,6 +264,23 @@ export default {
 		},
 	},
 
+	data() {
+		return {
+			/**
+			 * Resolved aggregate-column values, keyed by `String(row[rowKey])`
+			 * then by column key. Populated by `loadAggregates()` for columns
+			 * that declare `aggregate` (see CnIndexPage's manifest config).
+			 *
+			 * @type {Object<string, Object<string, number>>}
+			 */
+			aggregateValues: {},
+			/** True while a batch of aggregate-count requests is in flight. */
+			aggregateLoading: false,
+			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
+			aggregateRequestId: 0,
+		}
+	},
+
 	computed: {
 		/**
 		 * Effective columns: schema-generated or manually provided.
@@ -287,6 +314,20 @@ export default {
 		},
 	},
 
+	watch: {
+		rows: {
+			handler() { this.loadAggregates() },
+		},
+		effectiveColumns: {
+			handler() { this.loadAggregates() },
+			deep: false,
+		},
+	},
+
+	mounted() {
+		this.loadAggregates()
+	},
+
 	methods: {
 		/**
 		 * Get a cell value from a row using dot-notation key.
@@ -302,21 +343,108 @@ export default {
 		},
 
 		/**
-		 * Check if a column was generated from schema (has type info).
-		 * @param {object} col Column definition
-		 * @return {boolean}
-		 */
-		isSchemaColumn(col) {
-			return !!(this.schema && col.type)
-		},
-
-		/**
-		 * Get the schema property definition for a column key.
+		 * Get the schema property definition for a column key, or `{}` when
+		 * there is no schema (manual mode) or no matching property. The result
+		 * is handed to `CnCellRenderer` for type-aware rendering; an empty
+		 * object makes it fall back to `formatValue()` (plain truncated text).
+		 *
 		 * @param {string} key Column key
-		 * @return {object} Property definition
+		 * @return {object} Property definition (possibly empty).
 		 */
 		getSchemaProperty(key) {
 			return this.schema?.properties?.[key] || {}
+		},
+
+		/**
+		 * Value to render in a cell. For a column that declares `aggregate`
+		 * (a count of related objects), returns the cached count once
+		 * `loadAggregates()` has resolved it (or `'…'` while pending, `'—'`
+		 * if it failed / there's nothing to count). Otherwise the row's
+		 * property value via `getCellValue`.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {*} The value handed to the slot / CnCellRenderer.
+		 */
+		cellValue(row, col) {
+			if (col && col.aggregate) {
+				const cached = this.aggregateValues[String(row[this.rowKey])]
+				const v = cached ? cached[col.key] : undefined
+				if (v === undefined) return this.aggregateLoading ? '…' : '—'
+				return v
+			}
+			return this.getCellValue(row, col.key)
+		},
+
+		/**
+		 * Interpolate a column's `aggregate.where` map for one row: any string
+		 * value of the form `"@self.<path>"` is replaced with
+		 * `getCellValue(row, path)`; everything else is passed through.
+		 *
+		 * @param {object} where The `aggregate.where` map (may be undefined).
+		 * @param {object} row The parent row.
+		 * @return {object} The resolved filter map.
+		 */
+		resolveAggregateWhere(where, row) {
+			const out = {}
+			for (const [k, v] of Object.entries(where || {})) {
+				if (typeof v === 'string' && v.startsWith('@self.')) {
+					out[k] = this.getCellValue(row, v.slice('@self.'.length))
+				} else {
+					out[k] = v
+				}
+			}
+			return out
+		},
+
+		/**
+		 * For every column that declares `aggregate` (currently `op: "count"`),
+		 * issue one `_limit=0` count request per visible row against the related
+		 * OpenRegister collection and cache the totals in `aggregateValues`.
+		 * Batched with `Promise.all`; a per-request failure degrades that one
+		 * cell to `'—'` (logged), never the page. A monotonic request id
+		 * discards a stale batch when `rows` / columns change mid-flight.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadAggregates() {
+			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
+			if (aggCols.length === 0) {
+				if (Object.keys(this.aggregateValues).length > 0) this.aggregateValues = {}
+				this.aggregateLoading = false
+				return
+			}
+			const id = ++this.aggregateRequestId
+			this.aggregateLoading = true
+			const next = {}
+			const jobs = []
+			for (const row of this.rows) {
+				const rowKey = String(row[this.rowKey])
+				next[rowKey] = {}
+				for (const col of aggCols) {
+					const agg = col.aggregate
+					if (!agg.register || !agg.schema) continue
+					const where = this.resolveAggregateWhere(agg.where, row)
+					jobs.push(
+						axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
+							params: { ...where, _limit: 0 },
+						})
+							.then((res) => {
+								const d = res && res.data
+								next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+							})
+							.catch((e) => {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
+								next[rowKey][col.key] = undefined
+							}),
+					)
+				}
+			}
+			await Promise.all(jobs)
+			if (id !== this.aggregateRequestId) return
+			this.aggregateValues = next
+			this.aggregateLoading = false
 		},
 
 		isSelected(row) {

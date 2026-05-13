@@ -10,7 +10,9 @@
 		{ "id": "settings-menu", "label": "myapp.menu.settings", "route": "app-settings", "order": 90, "section": "settings" },
 		{ "id": "chat-menu", "label": "myapp.menu.chat", "route": "chat-thread", "order": 40 },
 		{ "id": "files-menu", "label": "myapp.menu.files", "route": "files-browser", "order": 50 },
-		{ "id": "custom-menu", "label": "myapp.menu.custom", "route": "custom-page", "order": 99 }
+		{ "id": "custom-menu", "label": "myapp.menu.custom", "route": "custom-page", "order": 99 },
+		{ "id": "map-menu", "label": "myapp.menu.map", "route": "cases-map", "order": 60 },
+		{ "id": "compliance-menu", "label": "myapp.menu.compliance", "route": "compliance-dashboard", "order": 70 }
 	],
 	"pages": [
 		{
@@ -93,6 +95,47 @@
 			"type": "custom",
 			"title": "myapp.custom.title",
 			"component": "MyCustomPage"
+		},
+		{
+			"id": "cases-map",
+			"route": "/map",
+			"type": "map",
+			"title": "myapp.map.title",
+			"config": {
+				"center": [52.1326, 5.2913],
+				"zoom": 7,
+				"layers": [
+					{
+						"type": "tile",
+						"url": "https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png",
+						"options": { "attribution": "© Kadaster", "maxZoom": 19 }
+					},
+					{
+						"type": "wms",
+						"url": "https://service.pdok.nl/lv/bag/wms/v2_0",
+						"options": { "layers": "pand", "transparent": true, "opacity": 0.6 }
+					}
+				],
+				"markers": {
+					"dataSource": { "url": "/index.php/apps/myapp/api/markers" },
+					"latField": "lat",
+					"lngField": "lng",
+					"popupField": "title",
+					"clustering": true
+				}
+			}
+		},
+		{
+			"id": "compliance-dashboard",
+			"route": "/compliance",
+			"type": "dashboard",
+			"title": "myapp.compliance.title",
+			"config": {
+				"content": [
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/coverageGrid" },
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/boardProof" }
+				]
+			}
 		}
 	]
 }

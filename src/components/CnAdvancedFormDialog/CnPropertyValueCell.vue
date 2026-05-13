@@ -227,7 +227,15 @@ export default {
 		CnJsonViewer,
 		CnColorPicker,
 		// Lazy-required to break the circular dep with CnAdvancedFormDialog.
-		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue'),
+		// `.then(m => m.default)` unwraps the dynamic-import module namespace
+		// before Vue receives it. With rollup's `inlineDynamicImports: true`
+		// the namespace is frozen (`Object.freeze({__proto__: null, default:
+		// component})`), and Vue 2's `Vue.extend()` against that wrapper
+		// trips "Cannot add property _Ctor, object is not extensible" when
+		// downstream code (Vue Router, `<component :is>`) attaches its
+		// internal `_Ctor` cache. Pre-unwrapping yields the raw component
+		// options object, which is extensible.
+		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then(m => m.default),
 	},
 
 	props: {

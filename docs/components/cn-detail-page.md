@@ -27,8 +27,11 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `loadingLabel` | String | `'Loading...'` | Message shown during loading |
 | `sidebar` | Boolean \| Object | `false` | Sidebar configuration. Accepts EITHER the legacy Boolean form (deprecated) OR the new Object form mirroring `CnIndexPage.sidebar`. See [Sidebar config object](#sidebar-config-object) below. |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is active) |
-| `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`) |
-| `objectId` | String\|Number | `''` | Object ID passed to the sidebar |
+| `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`). Used by legacy direct mounts; manifest-driven detail pages prefer the `register` + `schema` pair below and let the page fuse them. |
+| `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |
+| `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
+| `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
+| `sidebarTabs` | Array | `[]` | Tab definitions for the host App's `CnObjectSidebar`. Forwarded via the injected `objectSidebarState`; mirrors `sidebar.tabs` / `sidebarProps.tabs` but lives at the top level so the manifest's `config.sidebarTabs` flows in directly. Empty array → the consumer's `CnObjectSidebar` falls back to its default tab set. |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`, `tabs`). Set `sidebarProps.tabs` to an open-enum tab array to drive the host app's mounted `CnObjectSidebar` from `manifest.json` — see [CnObjectSidebar custom tabs](./cn-object-sidebar.md#custom-tabs). The array flows through the existing `objectSidebarState` provide/inject channel. **Note:** when both `sidebar` (Object) AND `sidebarProps` set the same field, the Object form wins and a `console.warn` lists the conflicting fields once per component instance. |
 | `error` | Boolean | `false` | Error state |
 | `errorMessage` | String | `'An error occurred'` | Message shown in error state |
@@ -113,6 +116,58 @@ With:
 both `sidebar` (Object) and `sidebarProps` are set with overlapping
 fields, the Object form wins and a `console.warn` fires once per
 component instance listing the conflicting fields.
+
+## Schema-driven mode
+
+Setting `register` + `schema` + `objectId` (typically from a manifest
+`type: "detail"` page entry — `CnPageRenderer` forwards them as props
+from `page.config` and `$route.params`) opts CnDetailPage into the
+**schema-driven contract**:
+
+1. The page lazy-resolves `useObjectStore()` (or honours an explicit
+   `objectStore` prop) and registers the type slug
+   `${register}-${schema}` with the canonical 4-arg signature
+   (`slug, schemaId, registerId, { registerSlug, schemaSlug }`).
+2. On mount and on every `register` / `schema` / `objectId` change, it
+   calls `objectStore.fetchObject(slug, objectId)` and
+   `objectStore.fetchSchema(slug)` in parallel.
+3. When the object has loaded AND the default slot is empty AND the
+   grid-layout mode is not active, the body auto-renders
+   `<CnObjectDataWidget>` followed by `<CnObjectMetadataWidget>` for
+   the loaded object — no further wiring required.
+4. The `sidebarTabs` prop is forwarded via the injected
+   `objectSidebarState` to whatever `<CnObjectSidebar>` the host App
+   renders (or the one `CnAppRoot` auto-mounts at NcContent level when
+   the consumer doesn't provide their own).
+
+Manifest authors get a working detail surface from a single config
+block:
+
+```json
+{
+  "id": "VirtualAppDetail",
+  "route": "/applications/:objectId",
+  "type": "detail",
+  "title": "Virtual app",
+  "config": {
+    "register": "openbuilt",
+    "schema": "application",
+    "actionsComponent": "ApplicationDetailActions",
+    "sidebarTabs": [
+      { "id": "overview", "label": "Overview", "widgets": [{"type": "data"}, {"type": "metadata"}] },
+      { "id": "manifest", "label": "Manifest", "component": "ApplicationManifestTab" }
+    ]
+  }
+}
+```
+
+To override the auto-body, pass content in the default slot — slot
+content always wins and the auto-widgets are suppressed.
+
+To override the auto-fetched object, pass an explicit `objectStore`
+prop (e.g. an app-scoped store with custom interceptors). The page
+calls the same `registerObjectType` + `fetchObject` lifecycle against
+your store.
 
 ## Usage
 
@@ -204,6 +259,28 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 | **CnDetailPage** | Displaying detail info, stats tables, charts, card overviews — no multi-object CRUD |
 | **CnIndexPage** | Listing objects with table/cards, pagination, search, mass actions, CRUD dialogs |
 | **CnDashboardPage** | Building a widget-based dashboard with drag-and-drop grid layout |
+
+## Collaborative editing defaults
+
+`CnDetailPage` auto-subscribes to live updates for the current object when both `objectStore` and (`objectType` + `objectId`) are provided. This wires [`useObjectSubscription`](../utilities/composables/use-object-subscription.md) into the page lifecycle so users see remote changes without polling — including remote pessimistic locks.
+
+When the cached `@self.locked` block indicates another user holds the lock, `CnDetailPage` mounts [`CnLockedBanner`](./cn-locked-banner.md) above the content. The banner renders only when `lockedByMe === false`.
+
+Two opt-out props:
+
+| Prop | Default | Behaviour |
+|------|---------|-----------|
+| `subscribe` | `true` | When `false`, skips the auto-subscribe (useful for read-only / archive views). |
+| `objectStore` | `null` | Pinia store instance. When omitted, both subscribe and lock-state are skipped. Pass the result of `useObjectStore()` from your app. |
+
+See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock state contract; the lib does not yet auto-acquire on edit-mode toggle (planned for a follow-up cycle that wires the form dialogs).
+
+## Integration props (AD-19)
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `surface` | String | `'detail-page'` | Rendering surface forwarded to integration widgets in the grid layout (widget defs with `type === 'integration'`). Drives the AD-19 surface fallback. |
+| `integrationContext` (`integration-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. When omitted it is derived from `sidebarProps.register` / `sidebarProps.schema` (or `objectType`) and `objectId`. |
 
 ## Reference (auto-generated)
 

@@ -69,8 +69,7 @@ Boolean `false` MUST normalise to `{ show: false, enabled: false }`.
 
 ### Requirement: Boolean `sidebar` form MUST log a one-shot deprecation warning
 
-When `CnDetailPage.sidebar` is observed in Boolean form, the
-component MUST log a `console.warn` ONCE per component instance
+When `CnDetailPage.sidebar` is observed in Boolean form, the component MUST log a `console.warn` ONCE per component instance
 (not once per render) with text including `[CnDetailPage]` and
 `deprecated`. Subsequent boolean toggles MUST NOT spam the
 console.
@@ -92,8 +91,7 @@ console.
 
 ### Requirement: `sidebar.show` on Object form MUST gate the external sidebar
 
-When `CnDetailPage.sidebar` is the Object form and
-`sidebar.show === false`, the component MUST NOT activate the
+When `CnDetailPage.sidebar` is the Object form and `sidebar.show === false`, the component MUST NOT activate the
 external sidebar via `objectSidebarState`, regardless of other
 fields. `objectSidebarState.active` MUST remain `false` and
 `objectSidebarState.tabs` MUST be `undefined`.
@@ -278,8 +276,7 @@ path (e.g. `/pages/2/sidebar/show`).
 
 ### Requirement: All additions MUST be backwards compatible
 
-Every prop, event, slot, schema field, and validator rule added
-by this change MUST be optional with a non-breaking default.
+Every prop, event, slot, schema field, and validator rule added by this change MUST be optional with a non-breaking default.
 Specifically:
 
 - `<CnDetailPage :sidebar="true">` and `<CnDetailPage :sidebar="false">`

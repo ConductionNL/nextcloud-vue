@@ -12,7 +12,7 @@
   thread renderers and consumer-built chat UIs).
 -->
 <template>
-	<div class="cn-chat-page">
+	<div class="cn-chat-page" data-testid="cn-chat-page">
 		<!-- Header — overridable via #header slot -->
 		<slot
 			name="header"

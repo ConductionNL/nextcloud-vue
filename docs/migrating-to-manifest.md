@@ -93,6 +93,30 @@ export default {
 
 **Custom menu instead?** Skip `CnAppNav` entirely. Either keep your existing menu component, or use `CnAppRoot` (tier 4) and override the `#menu` slot — see below.
 
+### Dynamic per-tenant menu entries
+
+Apps whose top-level navigation depends on runtime data (catalogues, organisations, registers) populate the `menu[]` array from their backend `/api/manifest` endpoint. The bundled manifest declares a static placeholder; the backend resolves per-tenant data and returns the fully-populated list; `useAppManifest`'s deep-merge replaces the bundled `menu[]` with the resolved one (arrays are replaced, not concatenated).
+
+For example, an app like opencatalogi that previously rendered one nav entry per catalogue with `v-for="catalogus in catalogs"` keeps a single placeholder in `src/manifest.json` and lets the backend ship the resolved list:
+
+```json
+// src/manifest.json (bundled)
+{ "menu": [{ "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index" }] }
+
+// /index.php/apps/opencatalogi/api/manifest (backend response)
+{
+  "menu": [{
+    "id": "catalogs", "label": "menu.catalogs", "route": "catalogs-index",
+    "children": [
+      { "id": "catalog-tax", "label": "menu.catalog.tax", "route": "catalog-detail" },
+      { "id": "catalog-housing", "label": "menu.catalog.housing", "route": "catalog-detail" }
+    ]
+  }]
+}
+```
+
+The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour — lives in the [`useAppManifest` reference docs](./utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
+
 ---
 
 ## Tier 4 — `+ CnAppRoot`
@@ -150,6 +174,47 @@ Override the `#menu` slot:
 
 `CnAppRoot` also exposes `#loading`, `#dependency-missing`, `#header-actions`, `#sidebar`, and `#footer` — each independently overridable.
 
+### App-availability guard
+
+`CnAppRoot` ships with an always-on guard that checks the Nextcloud capabilities API on mount and renders an empty-state when a required app is missing. By default the guard checks for **OpenRegister** — every fleet app stores its data there, so the convention is encoded in the library rather than duplicated per app.
+
+```vue
+<!-- Default: guard is on, requires OpenRegister automatically -->
+<CnAppRoot :manifest="manifest" app-id="myapp" :translate="t" />
+
+<!-- Multi-app future-proofing: require both OR and openconnector -->
+<CnAppRoot
+  :manifest="manifest"
+  app-id="docudesk"
+  :translate="t"
+  :requires-apps="['openregister', 'openconnector']" />
+
+<!-- Opt out: docs site, styleguide, or any utility app that doesn't need OR -->
+<CnAppRoot :manifest="manifest" app-id="docs" :translate="t" :requires-apps="[]" />
+```
+
+When the guard fires, the default surface is an `<NcEmptyContent>` with the OpenRegister database icon, an i18n title and description, and a primary action linking to the Nextcloud integration page (`/index.php/settings/apps/integration/openregister`). The translation keys used:
+
+- `app-availability.title` — fallback "OpenRegister is required"
+- `app-availability.description` — fallback "This app stores its data in OpenRegister. Install or enable OpenRegister from the Nextcloud app store to continue."
+- `app-availability.action` — fallback "Open app store"
+
+Apps that want a fully custom empty-state replace it via the `#or-missing` scoped slot, which receives `{ missingApps }`:
+
+```vue
+<CnAppRoot :manifest="manifest" app-id="myapp" :translate="t">
+  <template #or-missing="{ missingApps }">
+    <MyCustomMissingState :missing-apps="missingApps" />
+  </template>
+</CnAppRoot>
+```
+
+While the capabilities check is in flight, `CnAppRoot` renders a centered `<NcLoadingIcon :size="32" />` so slow connections don't flash the renderer briefly before the empty state replaces it.
+
+If `getCapabilities()` rejects (admin-restricted, offline, CORS), the guard falls through to the renderer and a `console.warn` is logged — the data layer surfaces the actual problem if OpenRegister is genuinely missing. The guard never blocks the app on a transient capabilities-API failure.
+
+This guard is independent of `manifest.dependencies`, which continues to power the per-app dependency declarations in your manifest. The two coexist: `requiresApps` is the prop-level "this app cannot function without these capabilities" check, while `manifest.dependencies` covers app-level dependency declarations resolved through `useAppStatus`.
+
 ---
 
 ## What goes in `manifest.json`
@@ -161,9 +226,42 @@ Key fields:
 - **`version`** — semver of the manifest content. Bump when meaningful changes land.
 - **`dependencies`** — Nextcloud app ids that must be installed and enabled. CnAppRoot's dependency-check phase blocks the shell when any are missing.
 - **`menu[]`** — top-level nav entries. `id`, `label` (i18n key), optional `icon`, `route` (vue-router route name = page.id), `order`, `permission`, one level of `children[]`.
-- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | logs | settings | chat | files | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
+- **`pages[]`** — page definitions. `id` (the vue-router route name), `route` (path pattern), `type` (`index | detail | dashboard | logs | settings | chat | files | form | custom`), `title` (i18n key), `config` (type-specific), `component` (when `type: "custom"`), optional `headerComponent` / `actionsComponent` slot overrides.
 
 The closed `type` enum is the main defense against DSL creep. Anything bespoke goes in a `type: "custom"` page that resolves a component name from the registry you pass to `CnAppRoot`.
+
+## Per-tenant config slugs — the `@resolve:` sentinel
+
+Most apps have one or two `pages[].config.register` / `config.schema` values that vary per tenant — `theme_register`, `listing_schema`, `voorzieningen_register`, etc. — typically configured by the admin via `IAppConfig`. Hardcoding the slug in `manifest.json` defeats per-tenant configurability; reading the slug at component-mount time defeats the manifest's static-validation property.
+
+The canonical solution is the `@resolve:<key>` sentinel: a load-time-resolved string that the manifest renderer substitutes via `IAppConfig` before validation runs.
+
+```json
+{
+  "pages": [
+    {
+      "id": "voorzieningen-index",
+      "route": "/voorzieningen",
+      "type": "index",
+      "title": "softwarecatalog.voorzieningen.title",
+      "config": {
+        "register": "@resolve:voorzieningen_register",
+        "schema": "voorziening"
+      }
+    }
+  ]
+}
+```
+
+When `useAppManifest('softwarecatalog', bundled)` runs, `pages[0].config.register` is replaced with the value of `IAppConfig::getValue('softwarecatalog', 'voorzieningen_register')` — typically `"voorzieningen"` after the admin has run the install wizard. **Softwarecatalog's 12-page manifest is the canonical reference consumer**: every register slug is a sentinel so the same bundle ships to every tenant.
+
+Rules of thumb:
+
+- **Use `@resolve:` whenever a `pages[].config.*` value would otherwise be a per-tenant string.** Most often `config.register`, `config.schema`, occasionally `config.source` for `type: "logs"`.
+- **DO NOT use `@resolve:` outside `pages[].config`.** The validator rejects sentinels in `pages[].id`, `pages[].route`, `pages[].component`, `menu[].route`, `version`, `dependencies[]`, etc. Those are router invariants or registry keys; a dynamic value would break vue-router or the customComponents registry.
+- **Surface `unresolvedSentinels` to your admin UI.** When a tenant has not yet set the IAppConfig key, the sentinel resolves to `null`. The composable returns the unresolved key list so you can render a "n settings unconfigured — visit Admin → My App" banner.
+
+See [`resolveManifestSentinels`](./utilities/resolve-manifest-sentinels.md) for the resolution source chain (initial-state → runtime fetch → null) and [`useAppManifest`](./utilities/composables/use-app-manifest.md) for the integrated four-phase load flow.
 
 ## Type-selection guide
 
@@ -176,7 +274,8 @@ When a consumer faces a new page, the choice tree is:
 5. **Is it admin / system config?** → `settings`.
 6. **Is it a conversation thread?** → `chat`.
 7. **Is it a file browser?** → `files`.
-8. **None of the above** → `custom` + a registry component.
+8. **Is it an end-user runtime form (single submit, declarable fields)?** → `form`.
+9. **None of the above** → `custom` + a registry component.
 
 The criterion separating built-in from custom is: **does the page have a declarative data shape?** Built-ins do; customs don't. Reach for a built-in whenever your page's data shape fits one — the manifest stays declarative, and the App Builder admin UI can reason about the page automatically. Pick `custom` only when none of the seven shapes fit.
 
@@ -324,8 +423,58 @@ methods: {
 1. **Several flat IAppConfig keys?** → `fields: [...]`.
 2. **One whole-section pre-built library widget (version, register-mapping)?** → `widgets: [{ type }]`.
 3. **Several whole-section widgets stacked?** → `widgets: [...]` with multiple entries.
-4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props`.
+4. **One bespoke component the library doesn't know about?** → `component: <registry-name>` + `props` (whole-section body) OR `widgets: [{ type: "component", componentName: <registry-name>, props }]` (one of several widgets in a section).
 5. **Mostly flat fields with one bespoke input?** → `fields: [...]` plus a `#field-<key>` slot override.
+
+### Multi-tab admin pages (`tabs[]` orchestration)
+
+When a settings page has more than ~4 logical groups (think softwarecatalog's `General`, `Catalogue`, `Sync`, `Connections`, `Mappings`, `Notifications`, `Branding`, `Advanced`), a flat `sections[]` stack becomes a long scroll. Use `tabs[]` to group sections under tab buttons:
+
+```jsonc
+{
+  "id": "Settings",
+  "type": "settings",
+  "title": "myapp.settings.title",
+  "config": {
+    "saveEndpoint": "/index.php/apps/myapp/api/settings",
+    "tabs": [
+      { "id": "general",  "label": "myapp.settings.tab.general",  "sections": [ /* same shape as the flat case */ ] },
+      { "id": "about",    "label": "myapp.settings.tab.about",    "sections": [
+        { "title": "myapp.settings.section.about", "widgets": [
+          { "type": "version-info", "props": { "appName": "MyApp", "appVersion": "0.1.0" } }
+        ] }
+      ] },
+      { "id": "advanced", "label": "myapp.settings.tab.advanced", "sections": [ /* … */ ] }
+    ]
+  }
+}
+```
+
+Rules:
+
+- `sections[]` and `tabs[]` are XOR — a page declares one or the other. The validator rejects manifests with both at the page-`config` level.
+- Each tab MUST have non-empty `id` and `label`, plus a non-empty `sections: [...]`. Tab IDs MUST be unique within the page.
+- The first tab is active by default. Override via the `initialTab` prop on `CnSettingsPage` (typically wired through `CnPageRenderer.pageTypeProps`).
+- The page emits `@tab-change` with `{ tabId, tabIndex }` when the user clicks a different tab — wire it to your preference store or URL hash if you want the active tab to survive a reload.
+
+### Custom component widgets (`{ type: "component", componentName }`)
+
+When a settings section needs to host a bespoke consumer Vue component as one of several widgets in the section, use the explicit `component` discriminator with `componentName`:
+
+```jsonc
+{
+  "title": "myapp.settings.section.workflow",
+  "widgets": [
+    {
+      "type": "component",
+      "componentName": "WorkflowEditor",
+      "props": { "schemaSlug": "workflow" }
+    }
+  ]
+}
+```
+
+`componentName` resolves against the customComponents registry passed to `CnAppRoot`. The legacy `widget.type === <registry-name>` fallback path is kept for back-compat with `manifest-settings-rich-sections` consumers, but is JSDoc-deprecated — `{ type: "component", componentName }` is the recommended way going forward because it makes the manifest reader aware that the widget body is NOT a built-in.
 
 ### `custom` → `chat`
 
@@ -368,11 +517,40 @@ After:
 
 The default listing is read-only. If you need upload / rename / delete, fill the `#files-view` slot with your existing file-picker — the slot scope (`{ folder, allowedTypes, files, loading, error, refresh }`) gives you everything the manifest declared without re-reading it.
 
+### `custom` → `form` (runtime form rendering)
+
+`type: "form"` mounts `CnFormPage` and renders a flat `fields[]` array plus a submit button. Use it for **end-user runtime forms** — public surveys, "request a quote" pages, contact forms — where the entire route is "render this list of fields, send the result somewhere."
+
+```json
+{
+  "id": "PublicSurvey",
+  "route": "/public/survey/:token",
+  "type": "form",
+  "title": "Survey",
+  "config": {
+    "fields": [
+      { "key": "rating",  "label": "Rating",   "type": "number" },
+      { "key": "comment", "label": "Comments", "type": "string", "widget": "textarea" }
+    ],
+    "submitHandler": "submitPublicSurvey",
+    "mode": "public"
+  }
+}
+```
+
+Submit dispatch picks one of two paths based on which field is set in `config`:
+
+- `submitHandler: "<registryName>"` — looks the name up in your `customComponents` registry and calls it with `(formData, $route, $router)`. Use this when the submit needs auth, CSRF tokens, or non-trivial URL building.
+- `submitEndpoint: "<url>"` — the page calls `axios[method](url, formData)` directly. URL `:paramName` segments resolve from `$route.params` (so `/api/survey/:token` works automatically).
+
+Stay on `type: "custom"` when the route is a **form *builder*** (drag-drop questions, branching logic, per-field validation panel) — the manifest's declarative shape doesn't fit a builder UI. See `CnFormPage` docs for the full prop reference.
+
 ### When to stick with `custom`
 
 Some shapes don't fit any built-in:
 
 - **Drag-and-drop kanban / pipeline editors** (Pipelinq) — defer to a future `kanban` type.
+- **Form *builder* / authoring UIs** — drag-drop question ordering, branching logic editors, submission tables. The runtime *renderer* lives on `type: "form"`; the builder stays bespoke.
 - **Org-tree / org-chart views** — no built-in today.
 - **Map views** (geographic data) — no built-in today.
 - **Multi-step wizards** — keep custom; wizards are too app-specific for a closed shape.
@@ -392,6 +570,271 @@ const customComponents = {
 ```
 
 Pass it to `CnAppRoot` (Tier 4) or to `CnPageRenderer` (Tier 2/3). The library statically imports nothing app-specific — your registry is the audit point for "what custom code does this app actually have?".
+
+## Column formatters
+
+When a `type: "index"` (or `type: "logs"`) page needs a column rendered through app-specific logic — a status-label map, "days in step", a currency/locale format, a human label for an enum-ish code — you don't need a bespoke `type: "custom"` table view just for that. Declare a `formatter` id on the column and register the function:
+
+```jsonc
+// manifest.json
+{
+  "id": "automations",
+  "route": "/automations",
+  "type": "index",
+  "title": "myapp.automations.title",
+  "config": {
+    "register": "myapp",
+    "schema": "automation",
+    "columns": [
+      "name",
+      { "key": "trigger", "label": "myapp.automations.trigger", "formatter": "automationTrigger" },
+      { "key": "@self.updated", "label": "myapp.automations.daysIdle", "formatter": "daysSince", "align": "right" },
+      "isActive",
+      "runCount"
+    ]
+  }
+}
+```
+
+```js
+// src/formatters.js — small pure data functions, no Vue
+export default {
+  // (value, row, property) => string | number
+  automationTrigger: (value) => ({
+    'lead.created': t('myapp', 'Lead created'),
+    'request.received': t('myapp', 'Request received'),
+  }[value] ?? value),
+  daysSince: (value) => value ? Math.floor((Date.now() - new Date(value)) / 86400000) : '—',
+}
+```
+
+```js
+// main.js — pass it through CnAppRoot
+import formatters from './formatters.js'
+// …
+render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatters } }),
+```
+
+```vue
+<!-- App.vue — forward to CnAppRoot -->
+<CnAppRoot :manifest="manifest" :custom-components="customComponents" :page-types="pageTypes" :formatters="formatters" … />
+```
+
+`CnAppRoot` provides the registry as `cnFormatters`; `CnDataTable` / `CnCellRenderer` resolve `columns[].formatter` against it (and pass the formatter the full `row`, so it can be a function of the whole record). A column with no `formatter`, or an app that passes no `formatters`, renders exactly as before; a formatter that throws degrades that one cell (logged) and falls back to the type-aware rendering. Like `customComponents`, `src/formatters.js` is the audit point for "what app-specific data shaping does this app do?" — keep the Vue layer abstract, push the per-row logic here.
+
+## Column widgets
+
+When a column needs a *component* per cell — a status pill, a link, an inline toggle, a sparkline — declare a `widget` id (and optional `widgetProps`). The library ships one built-in id, `"badge"` (renders `CnStatusBadge`); everything else resolves against the `cellWidgets` registry you pass to `CnAppRoot`:
+
+```jsonc
+// manifest.json
+"columns": [
+  "name",
+  { "key": "status", "label": "myapp.status", "widget": "badge", "widgetProps": { "variant": "warning" } },
+  { "key": "isActive", "label": "myapp.active", "widget": "active-toggle" },
+  { "key": "trigger", "label": "myapp.trigger", "formatter": "automationTrigger", "widget": "badge" }
+]
+```
+
+```js
+// src/cellWidgets.js — small components, registered by id
+import ActiveToggle from './components/cells/ActiveToggle.vue'
+export default { 'active-toggle': ActiveToggle }
+// each widget receives { value, row, property, formatted, ...widgetProps }
+```
+
+```js
+// main.js
+import cellWidgets from './cellWidgets.js'
+render: (h) => h(App, { props: { manifest, customComponents, pageTypes, formatters, cellWidgets } }),
+```
+
+```vue
+<!-- App.vue -->
+<CnAppRoot … :formatters="formatters" :cell-widgets="cellWidgets" />
+```
+
+`CnDataTable` renders **every** column through `CnCellRenderer`, which resolves `widget` (consumer registry, then the built-in `badge`), then `formatter`, then the schema-type-aware rendering, then a plain `formatValue()` fallback. When both `formatter` and `widget` are set the widget receives the formatter-shaped value as `formatted`. A column with no `widget`/`formatter` renders exactly as before — except that, because cells now always flow through `CnCellRenderer`, **manual-mode** columns (a `columns` array with no `schema`) pick up the same niceties (boolean cell values render as the check-icon, long strings truncate at 100 chars with a hover title); pass a `#column-{key}` scoped slot if you need the raw text.
+
+> `actions[].route` (declarative navigation row-actions) is already available — set `handler:"navigate"` + `route` on an action (schema 1.3.0). `CnIndexPage` also **self-fetches** in the manifest path (so a `type:"index"` page renders its object collection without a wrapper) and accepts a `config.filter` route-param-interpolated base filter — see [Self-fetch index pages](#self-fetch-index-pages) below.
+
+## Aggregate columns
+
+A column can render a **count of related objects** instead of a property of the row — give it an `aggregate` block:
+
+```jsonc
+// manifest.json — a type:"index" page's config.columns[]
+{ "key": "submitCount", "label": "Submissions",
+  "aggregate": { "schema": "intakeSubmission", "op": "count",
+                 "where": { "intakeForm": "@self.id" } } },
+{ "key": "agentCount", "label": "Agents", "align": "right",
+  "aggregate": { "register": "pipelinq", "schema": "agentProfile", "op": "count",
+                 "where": { "queue": "@self.id" } } }
+```
+
+`CnDataTable` reads `aggregate` off each column: for every visible row it issues one
+`GET /apps/openregister/api/objects/{register}/{schema}?{where…}&_limit=0` (reading
+`data.total`), batched with `Promise.all`. String values in `where` of the form
+`"@self.<path>"` are replaced per-row with `getCellValue(row, path)` (so
+`{ "intakeForm": "@self.id" }` filters the related collection on `intakeForm == row.id`);
+everything else is a literal. `register` defaults to the page's `config.register`
+(`CnIndexPage` fills it in before handing the columns to `CnDataTable` — so most
+manifests can omit it). The cell shows `…` while the count is loading and `—` if the
+request fails (logged); a failed cell never blanks the page, and a stale batch is
+discarded when the rows change. `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
+each needing a `field`, are a planned follow-up — the column-config shape is forward-compatible).
+
+> `aggregate` columns light up on a manifest `type:"index"` page because `CnIndexPage` self-fetches its `register`+`schema` collection (see below) — and also work on any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly, or via `CnTableWidget`'s self-fetch mode.
+
+## Self-fetch index pages
+
+A manifest `type:"index"` page dispatches to `CnIndexPage`, and `CnPageRenderer` spreads `pages[].config` onto it (`register`, `schema`, `columns`, `sidebar`, `actions`, `filter`) plus `$route.params` — but never an `objects` prop. So **when `register` and `schema` are both set and no `objects` prop is passed**, `CnIndexPage` self-fetches: it derives `objectType = '${register}-${schema}'`, registers it in the object store, and drives the whole list (collection fetch, `_search`/`_order`/`_page`/`_limit`, facet filters, schema load, sidebar wiring, the `@search`/`@sort`/`@page-changed`/`@filter-change`/`@refresh` handlers) through `useListView` against the store an ancestor `CnAppRoot` provides. No wrapper component, no App.vue wiring:
+
+```jsonc
+{
+  "id": "decisions",
+  "route": "/decisions",
+  "type": "index",
+  "title": "myapp.decisions.title",
+  "config": {
+    "register": "decidesk",
+    "schema": "decision",
+    "sidebar": { "enabled": true }
+  }
+}
+```
+
+`config.schema` is a **slug** here — `CnIndexPage`'s `schema` prop accepts `Object | String`, and the slug's resolved schema object drives column generation. (Passing an `objects` prop — every current consumer — keeps the existing consumer-managed behaviour: no store touched, props win.)
+
+### Scoping a list to a parent — `config.filter`
+
+`config.filter` (an object, spread onto `CnIndexPage` as the `filter` prop) is merged into **every** fetch as a *fixed* filter — the user's facet selection for the same key can't override it. String values of the form `"@route.<name>"` or `":<name>"` resolve against `$route.params`; everything else is literal. The filter re-resolves when `$route.params` change, so a list nested under a parent route is a fully declarative page:
+
+```jsonc
+{
+  "id": "form-submissions",
+  "route": "/forms/:id/submissions",
+  "type": "index",
+  "title": "myapp.submissions.title",
+  "config": {
+    "register": "pipelinq",
+    "schema": "intakeSubmission",
+    "filter": { "intakeForm": "@route.id", "archived": false }
+  }
+}
+```
+
+`config.filter` needs no schema change — `pages[].config` is `additionalProperties: true`. In consumer-managed mode (`objects` prop supplied) `filter` has no effect.
+
+> Under the hood: `useListView('<objectType>', { …, fixedFilters })` gained an `opts.fixedFilters` — a plain object or a getter returning one — spread into the fetch params *after* the user's `activeFilters` so the fixed entries always win. `CnIndexPage` passes a getter that re-interpolates `filter` from `$route.params` on every fetch.
+
+### Quick-filter tabs (`config.quickFilters`)
+
+When a list page wants **clickable tab toggles** that change the active filter (e.g. *Open / Closed / All*, or *Mine / Team / Everyone*), declare `config.quickFilters`:
+
+```jsonc
+{
+  "id": "Tasks",
+  "type": "index",
+  "config": {
+    "register": "app",
+    "schema": "task",
+    "quickFilters": [
+      { "label": "Open",   "filter": { "status": "open" }, "default": true },
+      { "label": "Closed", "filter": { "status": "closed" } },
+      { "label": "Mine",   "filter": { "assignee": "@route.userId" } }
+    ]
+  }
+}
+```
+
+`CnIndexPage` renders `CnQuickFilterBar` above the table (pill-shaped buttons; active one filled with `--color-primary-element`). The active tab's `filter` is merged into every fetch **after** `config.filter` (so the tab wins on a colliding key) and **before** the user's facet `activeFilters` (which still narrow within the active tab). String values resolve `@route.<name>` / `:<name>` from `$route.params` the same way `config.filter` does. The first entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change` for observers. Omit `quickFilters` for the current no-tab behaviour.
+
+### Read-only shorthand (`config.readOnly`)
+
+When an index page is purely read-only (a log view, a generated report, an audit trail), spelling out `selectable:false, showAdd:false, showFormDialog:false, showEditAction:false, showCopyAction:false, showDeleteAction:false, showMassImport:false, showMassCopy:false, showMassDelete:false` is tedious. Declare `config.readOnly: true` and `CnPageRenderer` expands it to those nine defaults — merged **under** the explicit `config.*` props so any explicit override still wins:
+
+```jsonc
+{
+  "id": "AutomationHistory",
+  "type": "index",
+  "config": {
+    "register": "app",
+    "schema": "automationLog",
+    "filter": { "automation": "@route.id" },
+    "readOnly": true
+  }
+}
+```
+
+If you want a few of the read-only defaults overridden, mix them in:
+
+```jsonc
+"config": {
+  "readOnly": true,
+  "selectable": true   // ← keep selection on; everything else still falsy
+}
+```
+
+## Built-in cell formatters / widgets
+
+`CnAppRoot` ships a few built-in `cnFormatters` / `cnCellWidgets` so common manifest cell-rendering needs work without per-app boilerplate. Consumer-registered entries with the same id win on collision (override path).
+
+### Formatters
+
+| id | What |
+|---|---|
+| `date` | `Intl.DateTimeFormat` `dateStyle:"medium"` — locale-aware date, no time. |
+| `datetime` | Date + `timeStyle:"short"`. |
+| `relative-time` | `Intl.RelativeTimeFormat` — "3 days ago" / "in 2 hours". |
+
+```jsonc
+"columns": [
+  { "key": "createdAt", "label": "Created", "formatter": "date" },
+  { "key": "lastSeenAt", "label": "Last seen", "formatter": "relative-time" }
+]
+```
+
+All three are safe against `null` / `""` / non-parseable values — they return an empty string or the original value rather than throwing.
+
+### Widgets
+
+| id | What |
+|---|---|
+| `badge` | Renders the value as a `CnStatusBadge` pill. `widgetProps.variant` picks the colour (default `"default"`). |
+| `link` | Renders the value as a navigable link. Resolution order: `widgetProps.route` (a manifest page id) → `<router-link>` to `{name: route, params: {id: row[rowKey]}}`; else `widgetProps.href` → `<a target="_blank" rel="noopener">` (with `{key}` placeholders substituted from the row); else plain text + a once-per-session `console.warn` (silence with `widgetProps.fallback: "silent"`). For non-`id` route params, pass `widgetProps.params: { routeParamName: "rowFieldName" }`. |
+
+```jsonc
+"columns": [
+  { "key": "title", "label": "Title", "widget": "link", "widgetProps": { "route": "ContactDetail" } },
+  { "key": "status", "label": "Status", "widget": "badge", "widgetProps": { "variant": "warning" } }
+]
+```
+
+`widget` is checked AFTER any consumer registry entry, so an app can override `"link"` / `"badge"` by registering same-named components on `CnAppRoot`'s `:cell-widgets`.
+
+## `pages[].permission` (schema-only)
+
+A `pages[]` entry may carry an optional `permission: <string>` — a permission identifier for consumer-side access control:
+
+```jsonc
+{ "id": "AdminPage", "route": "/admin", "type": "index", "title": "Admin", "permission": "admin", "config": {…} }
+```
+
+The library does **not** currently enforce `permission` (it ignores the field at render time). Consumers that want enforcement filter the manifest themselves before passing it to `CnAppRoot`:
+
+```js
+const filtered = {
+  ...manifest,
+  pages: manifest.pages.filter((p) => !p.permission || perms.includes(p.permission)),
+  menu: manifest.menu.filter((m) => {
+    const page = manifest.pages.find((p) => p.id === m.route)
+    return !page?.permission || perms.includes(page.permission)
+  }),
+}
+```
+
+Adding `permission` to a page is safe — `validate-manifest.js` accepts it.
 
 ## Sidebar (manifest-driven)
 
@@ -498,6 +941,84 @@ Every page entry MAY declare a top-level `sidebar` field (sibling of `config`) w
 ```
 
 This avoids the older "drop into `type: 'custom'` and re-implement the shell just to hide a sidebar" workaround. Apps shelling via `CnAppRoot` get this for free — `CnAppRoot` already gates `<slot name="sidebar" />` on the `cnPageSidebarVisible` inject. Apps that mount their own sidebar without `CnAppRoot` need to inject `cnPageSidebarVisible` themselves and gate accordingly (one inject + a `v-if`).
+
+### Per-route sidebar swap (`pages[].sidebarComponent`)
+
+Some routes need a **completely different** sidebar component than the rest of the app — typically a search filter pane, a chat reading pane, a map's layer panel, etc. In Vue Router this is the named-view pattern (`<router-view name="sidebar">`), where each route declares co-mounted components and the host renders sibling `<router-view>` and `<router-view name="sidebar">` elements.
+
+The manifest expresses the same idea declaratively via `pages[].sidebarComponent` — a string referencing a key in the `customComponents` registry. When set, `CnPageRenderer` resolves the name and `CnAppRoot` mounts the resolved component as the **default content** of its `#sidebar` slot for that page only:
+
+```jsonc
+{
+  "id": "search",
+  "route": "/search",
+  "type": "custom",
+  "title": "menu.search",
+  "component": "SearchPage",
+  "sidebarComponent": "SearchSideBar"
+}
+```
+
+```js
+// customComponents passed to CnAppRoot
+import SearchPage from './views/search/SearchIndex.vue'
+import SearchSideBar from './sidebars/search/SearchSideBar.vue'
+
+createApp({ /* ... */ }).provide('customComponents', { SearchPage, SearchSideBar })
+```
+
+Every other page renders the host's default sidebar (whatever the consumer wired into the `#sidebar` slot — typically a sibling `CnIndexSidebar` / `CnObjectSidebar` pair). The consumer's slot override (when supplied) wins over the resolved component via Vue's slot mechanic — apps can adopt incrementally.
+
+Composes deterministically with `sidebar.show`:
+
+- `sidebar.show: false` ALWAYS wins. The slot does not render at all and the resolved component is suppressed.
+- A page declaring both `sidebar.show: false` AND `sidebarComponent` triggers a one-line `console.warn` so manifest authors notice the dead config.
+
+#### When to use which sidebar field
+
+| Goal | Field |
+|------|-------|
+| Hide the sidebar entirely on this page | `pages[].sidebar.show: false` |
+| Per-tab content on the built-in `CnObjectSidebar` (Files / Notes / Tags / Tasks / Audit Trail + custom tabs) | `pages[].config.sidebar.tabs[]` (detail) or `pages[].config.sidebarProps.tabs[]` (legacy) |
+| Per-page **full-sidebar swap** (this page renders a completely different sidebar component) | `pages[].sidebarComponent` |
+| Index-page columns / facets / search panel | `pages[].config.sidebar` (Object form, `enabled: true`) |
+
+#### Migrating from `<router-view name="sidebar">`
+
+Before:
+
+```js
+// router/index.js — named-view binding
+{ path: '/search', name: 'Search', components: { default: SearchPage, sidebar: SearchSideBar } }
+```
+
+```vue
+<!-- App.vue — sibling render slot -->
+<router-view />
+<router-view name="sidebar" />
+```
+
+After:
+
+```js
+// router/index.js — back to a single component per route
+{ path: '/search', name: 'Search', component: SearchPage }
+```
+
+```jsonc
+// manifest.json — sidebar declared at the page level
+{ "id": "Search", "route": "/search", "type": "custom",
+  "component": "SearchPage", "sidebarComponent": "SearchSideBar" }
+```
+
+```vue
+<!-- App.vue — CnAppRoot's #sidebar slot handles the rendering -->
+<CnAppRoot ...>
+  <template #default><router-view /></template>
+</CnAppRoot>
+```
+
+Apps that already wire sibling sidebars (`CnObjectSidebar` + `CnIndexSidebar` next to `<router-view>` in App.vue) can adopt this incrementally — the slot override wins over the resolved component until the consumer is ready to remove the override.
 
 ## i18n
 

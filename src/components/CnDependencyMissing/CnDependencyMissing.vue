@@ -9,7 +9,7 @@
   See REQ-JMR-011 of the json-manifest-renderer specification.
 -->
 <template>
-	<div class="cn-dependency-missing">
+	<div class="cn-dependency-missing" data-testid="cn-dependency-missing">
 		<div class="cn-dependency-missing__inner">
 			<h1 class="cn-dependency-missing__heading">
 				{{ heading }}
@@ -102,7 +102,7 @@ export default {
 	align-items: center;
 	justify-content: center;
 	width: 100%;
-	min-height: 100vh;
+	min-height: 100%;
 	background: var(--color-main-background);
 	color: var(--color-main-text);
 }

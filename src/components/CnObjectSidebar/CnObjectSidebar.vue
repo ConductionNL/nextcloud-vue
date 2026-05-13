@@ -11,19 +11,49 @@
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
 		:active.sync="activeTab"
+		data-testid="cn-object-sidebar"
 		@update:open="$emit('update:open', $event)"
 		@close="$emit('update:open', false)">
+		<!-- REGISTRY BRANCH: pluggable integration registry-driven.
+		     Renders one tab per provider registered on
+		     `window.OCA.OpenRegister.integrations`. `hiddenTabs` /
+		     `excludeIntegrations` filter the set; the `#extra-tabs`
+		     slot still appends consumer-supplied tabs. Per-integration
+		     slot overrides aren't supported in registry mode — apps
+		     that need to override a built-in tab should register their
+		     own provider with the same id (collision policy: first
+		     wins) before OpenRegister's bundle loads. -->
+		<template v-if="isRegistryMode">
+			<NcAppSidebarTab
+				v-for="(provider, idx) in filteredRegistryIntegrations"
+				:id="provider.id"
+				:key="provider.id"
+				:name="provider.label"
+				:order="provider.order != null ? provider.order : idx + 1"
+				:data-testid="`cn-object-sidebar-tab-${provider.id}`">
+				<template #icon>
+					<CnIcon v-if="provider.icon" :name="provider.icon" :size="20" />
+				</template>
+				<component
+					:is="resolveRegistryTab(provider)"
+					v-bind="sharedTabProps" />
+			</NcAppSidebarTab>
+			<slot name="extra-tabs" />
+		</template>
+
 		<!-- BACKWARDS-COMPATIBLE BRANCH: hard-coded built-in tabs.
-		     Used when no custom `tabs` prop is provided. The slot
-		     overrides (#tab-files etc.) and `hiddenTabs` filtering
-		     remain unchanged. -->
-		<template v-if="!hasCustomTabs">
+		     Used when no custom `tabs` prop is provided and the
+		     registry mode is not active. The slot overrides
+		     (#tab-files etc.) and `hiddenTabs` filtering remain
+		     unchanged. -->
+		<template v-else-if="!hasCustomTabs">
 			<!-- Files Tab -->
 			<NcAppSidebarTab
 				v-if="!isTabHidden('files')"
 				id="files"
 				:name="filesLabel"
-				:order="1">
+				:order="1"
+				data-testid="cn-object-sidebar-tab-files">
 				<template #icon>
 					<Paperclip :size="20" />
 				</template>
@@ -41,7 +71,8 @@
 				v-if="!isTabHidden('notes')"
 				id="notes"
 				:name="notesLabel"
-				:order="2">
+				:order="2"
+				data-testid="cn-object-sidebar-tab-notes">
 				<template #icon>
 					<CommentTextOutline :size="20" />
 				</template>
@@ -59,7 +90,8 @@
 				v-if="!isTabHidden('tags')"
 				id="tags"
 				:name="tagsLabel"
-				:order="3">
+				:order="3"
+				data-testid="cn-object-sidebar-tab-tags">
 				<template #icon>
 					<TagOutline :size="20" />
 				</template>
@@ -77,7 +109,8 @@
 				v-if="!isTabHidden('tasks')"
 				id="tasks"
 				:name="tasksLabel"
-				:order="4">
+				:order="4"
+				data-testid="cn-object-sidebar-tab-tasks">
 				<template #icon>
 					<CheckboxMarkedOutline :size="20" />
 				</template>
@@ -95,7 +128,8 @@
 				v-if="!isTabHidden('auditTrail')"
 				id="auditTrail"
 				:name="auditTrailLabel"
-				:order="5">
+				:order="5"
+				data-testid="cn-object-sidebar-tab-audit-trail">
 				<template #icon>
 					<History :size="20" />
 				</template>
@@ -124,7 +158,8 @@
 				:id="tab.id"
 				:key="tab.id"
 				:name="tab.label"
-				:order="tab.order != null ? tab.order : idx + 1">
+				:order="tab.order != null ? tab.order : idx + 1"
+				:data-testid="`cn-object-sidebar-tab-${tab.id}`">
 				<template v-if="tab.icon" #icon>
 					<CnIcon :name="tab.icon" :size="20" />
 				</template>
@@ -161,6 +196,8 @@ import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
@@ -241,6 +278,31 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 	},
 
+	setup(props) {
+		const exposed = {}
+		// Integration registry: opt-in via `useRegistry` prop. We
+		// always wire the composable up so consumers can toggle
+		// `useRegistry` reactively without a remount.
+		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		exposed.registryIntegrations = registryIntegrations
+		exposed.resolveRegistryWidget = resolveWidget
+
+		// Auto-subscribe to live updates for the active object. No-op
+		// when `objectStore` is null (no Pinia active) or when the
+		// consumer disabled it via `subscribe: false`. The
+		// composable's reactive `id` argument keeps the subscription
+		// in sync as the user navigates between sidebar objects.
+		if (props.objectStore && props.subscribe) {
+			useObjectSubscription(
+				props.objectStore,
+				() => props.objectType,
+				() => props.objectId,
+				{ enabled: () => Boolean(props.objectType && props.objectId) },
+			)
+		}
+		return exposed
+	},
+
 	props: {
 		/** The entity type (e.g., "pipelinq_lead", "procest_case") */
 		objectType: {
@@ -264,6 +326,33 @@ export default {
 		},
 		/** Array of tab IDs to hide: 'files', 'notes', 'tags', 'tasks', 'auditTrail' */
 		hiddenTabs: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Opt into the pluggable integration registry. When `true`,
+		 * the hardcoded built-in tabs are replaced by one tab per
+		 * provider registered on `window.OCA.OpenRegister.integrations`
+		 * (and via `useIntegrationRegistry()`). Slot overrides
+		 * `#tab-<id>` and `hiddenTabs` / `excludeIntegrations` still
+		 * apply.
+		 *
+		 * Mutually exclusive with the open-enum `tabs` prop — when
+		 * both are set, `tabs` wins and a console.warn is logged.
+		 *
+		 * @type {boolean}
+		 */
+		useRegistry: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Integration ids to exclude when rendering registry-driven
+		 * tabs. Mirrors `hiddenTabs` for the legacy mode.
+		 *
+		 * @type {string[]}
+		 */
+		excludeIntegrations: {
 			type: Array,
 			default: () => [],
 		},
@@ -291,6 +380,29 @@ export default {
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
+		},
+		/**
+		 * Whether to auto-subscribe to live updates for the
+		 * current object. Defaults to true. The sidebar calls
+		 * `objectStore.subscribe(objectType, objectId)` on mount and
+		 * unsubscribes on unmount via `tryOnScopeDispose`.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Optional explicit Pinia store instance. When omitted,
+		 * the sidebar skips auto-subscribe (Pinia not yet active
+		 * in the consumer context).
+		 *
+		 * @type {object|null}
+		 */
+		objectStore: {
+			type: Object,
+			default: null,
 		},
 
 		// --- Pre-translated labels ---
@@ -359,6 +471,27 @@ export default {
 		hasCustomTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
 		},
+		/**
+		 * Whether registry mode is active. Custom `tabs` always wins
+		 * (with a warning at mount) so consumers don't get a surprise
+		 * mode switch.
+		 */
+		isRegistryMode() {
+			return this.useRegistry === true && this.hasCustomTabs === false
+		},
+		/**
+		 * Filtered registry snapshot: drops providers whose id is in
+		 * `excludeIntegrations` or `hiddenTabs`. Stays reactive on
+		 * the underlying registry's `onChange` notifications.
+		 */
+		filteredRegistryIntegrations() {
+			const excluded = new Set([
+				...(this.excludeIntegrations || []),
+				...(this.hiddenTabs || []),
+			])
+			const all = this.registryIntegrations || []
+			return all.filter((p) => excluded.has(p.id) === false)
+		},
 		/** Effective customComponents registry: prop wins, inject fallback. */
 		effectiveCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
@@ -391,9 +524,32 @@ export default {
 		},
 	},
 
+	mounted() {
+		if (this.useRegistry === true && this.hasCustomTabs === true) {
+			// eslint-disable-next-line no-console
+			console.warn('[CnObjectSidebar] `useRegistry` is true but `tabs` is also set — falling back to `tabs` (registry mode ignored). Pass one or the other.')
+		}
+	},
+
 	methods: {
 		isTabHidden(tabId) {
 			return this.hiddenTabs.includes(tabId)
+		},
+
+		/**
+		 * Resolve a registry provider's tab component. Returns the
+		 * registered `tab` Vue component, or null when the provider is
+		 * malformed (the parity gate normally prevents this, but
+		 * third-party registrations might slip through).
+		 *
+		 * @param {object} provider Normalised registry entry.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveRegistryTab(provider) {
+			if (provider && provider.tab) {
+				return provider.tab
+			}
+			return null
 		},
 
 		/**

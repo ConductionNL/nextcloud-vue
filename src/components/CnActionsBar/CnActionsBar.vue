@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-actions-bar">
+	<div class="cn-actions-bar" data-testid="cn-actions-bar">
 		<div class="cn-actions-bar__info">
 			<span v-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
@@ -34,6 +34,7 @@
 			<NcButton v-if="showAdd"
 				type="primary"
 				:disabled="addDisabled"
+				data-testid="cn-cta-primary"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
@@ -48,7 +49,8 @@
 			<NcActions
 				:force-name="true"
 				:inline="inlineActionCount"
-				menu-name="Actions">
+				menu-name="Actions"
+				data-testid="cn-actions">
 				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
 						<NcLoadingIcon v-if="refreshing" :size="20" />

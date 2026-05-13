@@ -2,8 +2,8 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
-	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema.",
-	"version": "1.2.0",
+	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
+	"version": "1.5.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -23,6 +23,18 @@
 			"default": [],
 			"items": { "type": "string" },
 			"description": "Nextcloud app IDs that MUST be installed and enabled for this app to function. CnAppRoot checks each via useAppStatus(appId)."
+		},
+		"runtime": {
+			"type": "object",
+			"description": "Runtime context data injected into the manifest by the backend (e.g. OpenRegister) at serve time. Carries per-user fields that `visibleIf` context-path predicates resolve against. The canonical sub-object is `user`, which exposes user-specific flags and role information. Example: `{ \"user\": { \"primaryRole\": \"compliance-officer\", \"isOverdueOnMandatoryTraining\": false } }`. Consumer apps MUST NOT assume any field is present; the FE evaluator returns `false` (hidden) when a referenced path resolves to `undefined`.",
+			"additionalProperties": true,
+			"properties": {
+				"user": {
+					"type": "object",
+					"description": "Per-user runtime context. Populated by the backend for authenticated requests. All fields are optional; the FE predicate evaluator treats missing fields as `undefined`.",
+					"additionalProperties": true
+				}
+			}
 		},
 		"menu": {
 			"type": "array",
@@ -76,6 +88,15 @@
 					"type": "string",
 					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
 				},
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"],
+					"description": "Built-in action to invoke when the entry is clicked, instead of routing or opening a URL. Closed enum: \"user-settings\" opens the host app's NcAppSettingsDialog modal (provided by CnAppRoot via the `cnOpenUserSettings` inject). When `action` is set, both `route` and `href` are ignored. Added in schema 1.5.0."
+				},
+				"visibleIf": {
+					"$ref": "#/$defs/visibleIfCondition",
+					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"mydash\" }` — hides when mydash is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
+				},
 				"children": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/menuItemLeaf" },
@@ -100,7 +121,15 @@
 					"enum": ["main", "settings"],
 					"default": "main"
 				},
-				"href": { "type": "string" }
+				"href": { "type": "string" },
+				"action": {
+					"type": "string",
+					"enum": ["user-settings"]
+				},
+				"visibleIf": {
+					"$ref": "#/$defs/visibleIfCondition",
+					"description": "Optional display condition for a nested menu entry. Same semantics as the top-level `menuItem.visibleIf` — see that field's description for the full predicate reference."
+				}
 			}
 		},
 		"page": {
@@ -119,15 +148,19 @@
 				},
 				"type": {
 					"type": "string",
-					"description": "Page type. Must match a key in the renderer's `pageTypes` registry (library defaults: \"index\", \"detail\", \"dashboard\", \"logs\", \"settings\", \"chat\", \"files\") OR be \"custom\" — in which case `component` resolves against the customComponents registry. Library extensions add their built-in types to `defaultPageTypes`; consumer apps pass a merged map via the `pageTypes` prop on CnAppRoot / CnPageRenderer."
+					"description": "Page type. Must match a key in the renderer's `pageTypes` registry (library defaults: \"index\", \"detail\", \"dashboard\", \"logs\", \"settings\", \"chat\", \"files\", \"form\", \"wiki\", \"map\") OR be \"custom\" — in which case `component` resolves against the customComponents registry. Library extensions add their built-in types to `defaultPageTypes`; consumer apps pass a merged map via the `pageTypes` prop on CnAppRoot / CnPageRenderer. The \"form\" type was added by `manifest-form-page-type` and renders a manifest-declared field set with submit/save handlers — see the type='form' note in `pages[].config` for the dispatch contract. The \"wiki\" type was added by `manifest-wiki-page-type` and renders a markdown article + optional sidebar tree — see the type='wiki' note in `pages[].config` for the dispatch contract. The \"map\" type was added by `manifest-map-widget` and renders a Leaflet map with declarative tile/WMS/WFS/GeoJSON layers + markers — see the type='map' note in `pages[].config` for the dispatch contract."
 				},
 				"title": {
 					"type": "string",
 					"description": "i18n translation key for the page title."
 				},
+				"permission": {
+					"type": "string",
+					"description": "Optional permission identifier required to access this page. Consumer-side enforcement only — CnPageRenderer / CnAppRoot do NOT currently gate the page on it; consumers that want enforcement filter the manifest themselves before passing it to CnAppRoot. Added (schema-only) so the multiple apps that declare page-level permissions (procest's WmsLayers* / LhsMatrices*) validate clean."
+				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions, sidebar? }. The optional `sidebar` is an object `{ enabled: boolean, show?: boolean, columnGroups?: array, facets?: object, showMetadata?: boolean, search?: object }` that, when `enabled`, makes CnIndexPage auto-mount its embedded CnIndexSidebar. `show` (default true) suppresses the embedded sidebar without removing config when set false. For type='detail': { register, schema, sidebar?, sidebarProps? }. The `sidebar` field accepts EITHER a Boolean (legacy: true/false toggles the external CnObjectSidebar) OR an Object mirroring the index shape plus detail-specific fields `{ show?: boolean, enabled?: boolean, register?, schema?, hiddenTabs?, title?, subtitle?, tabs? }`. `config.sidebar.show: false` suppresses the embedded sidebar on either index or detail pages. The optional `sidebarProps.tabs` is an open-enum array of tab definitions `{ id, label, icon?, widgets?, component?, order? }` that overrides CnObjectSidebar's hard-coded built-in tab set; each tab declares either a list of widgets (`type: 'data' | 'metadata' | <registry-name>`) or a registry component name. For type='dashboard': { widgets, layout }. For type='logs': { register?, schema?, source?, columns? } — one of register+schema OR source MUST be set. For type='settings': { sections: array<Section>, saveEndpoint? } where each Section declares EXACTLY ONE of `fields[]` (back-compat flat-field body), `component: <registry-name>` + optional `props` (mounts a customComponents-resolved component as the section body), OR `widgets: array<{ type, props? }>` (mounts one or more widgets in sequence; built-in widget types `version-info` → CnVersionInfoCard and `register-mapping` → CnRegisterMapping resolve first, falling back to the customComponents registry). Widget events bubble through CnSettingsPage's `@widget-event` so consumers wire one page-level handler (see manifest-settings-rich-sections spec). For type='chat': { conversationSource?, postUrl?, schema? } — one of conversationSource OR postUrl MUST be set. For type='files': { folder, allowedTypes? }. For type='custom': any shape the custom component expects. As of schema version 1.2.0, the recurring sub-shapes (`columns[]`, `actions[]`, `widgets[]`, `layout[]`, `sections[].fields[]`, `sidebar.columnGroups[]`, `sidebar.tabs[]`, `sidebarProps.tabs[]`) `$ref` the seven `$defs` (`column`, `action`, `widgetDef`, `layoutItem`, `formField`, `sidebarSection`, `sidebarTab`). The OUTER `config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, …) and consumer-app extension keys remain free-form.",
+					"description": "Type-specific configuration. For type='index': { register, schema, columns, actions, sidebar?, cardComponent? }. The optional `cardComponent` is a string referencing a key in the consuming app's `customComponents` registry (the same registry that powers `type:'custom'` pages). When set AND the page is in card-grid view mode AND the parent has not provided a `#card` scoped slot, CnIndexPage mounts the registry-resolved component for each row instead of the schema-driven CnObjectCard, passing `{ item, object, schema, register, selected }` props and forwarding `click` + `select` events. An unknown name logs a console warning and falls back to CnObjectCard so a misconfigured manifest never blanks the grid. The optional `sidebar` is an object `{ enabled: boolean, show?: boolean, columnGroups?: array, facets?: object, showMetadata?: boolean, search?: object }` that, when `enabled`, makes CnIndexPage auto-mount its embedded CnIndexSidebar. `show` (default true) suppresses the embedded sidebar without removing config when set false. For type='detail': { register, schema, sidebar?, sidebarProps? }. The `sidebar` field accepts EITHER a Boolean (legacy: true/false toggles the external CnObjectSidebar) OR an Object mirroring the index shape plus detail-specific fields `{ show?: boolean, enabled?: boolean, register?, schema?, hiddenTabs?, title?, subtitle?, tabs? }`. `config.sidebar.show: false` suppresses the embedded sidebar on either index or detail pages. The optional `sidebarProps.tabs` is an open-enum array of tab definitions `{ id, label, icon?, widgets?, component?, order? }` that overrides CnObjectSidebar's hard-coded built-in tab set; each tab declares either a list of widgets (`type: 'data' | 'metadata' | <registry-name>`) or a registry component name. For type='dashboard': { widgets, layout, content? }. The optional `content[]` array is an alternative to the `widgets` + `layout` pair — each item is a `widgetRefItem` with `type: \"widget-ref\"` and a `ref` URI (`openregister://widget/<schemaSlug>/<widgetSlug>`) that CnDashboardPage resolves from OR's widget registry at runtime. For type='logs': { register?, schema?, source?, columns? } — one of register+schema OR source MUST be set. For type='settings': { sections?: array<Section>, tabs?: array<Tab>, saveEndpoint? } where EXACTLY ONE of `sections` or `tabs` MUST be set (XOR — see manifest-settings-orchestration spec). Each Section declares EXACTLY ONE of `fields[]` (back-compat flat-field body), `component: <registry-name>` + optional `props` (mounts a customComponents-resolved component as the section body), OR `widgets: array<{ type, props?, componentName? }>` (mounts one or more widgets in sequence; built-in widget types `version-info` → CnVersionInfoCard, `register-mapping` → CnRegisterMapping, and `component` (with `componentName: <registry-name>`) → customComponents-resolved component). Each Tab is `{ id, label, icon?, sections: array<Section> }` and CnSettingsPage renders a tab strip switching between them. Widget events bubble through CnSettingsPage's `@widget-event` so consumers wire one page-level handler (see manifest-settings-rich-sections spec). For type='chat': { conversationSource?, postUrl?, schema? } — one of conversationSource OR postUrl MUST be set. For type='files': { folder, allowedTypes? }. For type='form': { fields: array<formField>, submitHandler? OR submitEndpoint?, submitMethod?, mode?, submitLabel?, successMessage?, initialValue? }. Exactly one of `submitHandler` (registry name resolved against customComponents) OR `submitEndpoint` (URL string; `:paramName` segments resolve against `$route.params`) MUST be set. `submitMethod` (default POST) MUST be one of POST | PUT | PATCH when set. `mode` (default public) MUST be one of edit | create | public when set. The `fields[]` array `$ref`s the same `formField` $def `pages[].config.sections[].fields[]` consumes for type='settings'. See manifest-form-page-type spec. For type='wiki': { register, schema, contentField?, titleField?, idParam?, sidebarSchema?, sidebarRegister?, treeField?, sidebarTitleField? } — `register` and `schema` MUST be non-empty strings; `contentField` (default 'body') names the markdown property on the article record; `titleField` (default 'title') names the H1 property; `idParam` (default 'id') names the `$route.params` key holding the article id; `sidebarSchema` enables an in-page tree sidebar fed by the `tree` prop; `sidebarRegister` (default = `register`), `treeField` (default 'children'), and `sidebarTitleField` (default = `titleField`) tune the tree shape. See manifest-wiki-page-type spec. For type='map': { center: [lat, lng], zoom?, layers?: array<{ type: 'tile'|'wms'|'wfs'|'geojson', url?, data?, options?, attribution? }>, markers?: { features?: array, dataSource?: { url } | { register, schema }, latField?, lngField?, popupField?, clustering?, iconColor?, iconUrl? }, height?, clustering?, autoFit? } — `center` MUST be a length-2 array of finite numbers; layer `type` values are validated against the closed enum; `markers.dataSource` MUST declare exactly one of `url` OR `register + schema`. See manifest-map-widget spec. For type='custom': any shape the custom component expects. As of schema version 1.2.0, the recurring sub-shapes (`columns[]`, `actions[]`, `widgets[]`, `layout[]`, `sections[].fields[]`, `sidebar.columnGroups[]`, `sidebar.tabs[]`, `sidebarProps.tabs[]`) `$ref` the seven `$defs` (`column`, `action`, `widgetDef`, `layoutItem`, `formField`, `sidebarSection`, `sidebarTab`). The OUTER `config` block keeps `additionalProperties: true` so per-type scalars (`register`, `schema`, `source`, `folder`, `saveEndpoint`, …) and consumer-app extension keys remain free-form.",
 					"additionalProperties": true,
 					"properties": {
 						"columns": {
@@ -145,19 +178,49 @@
 							"description": "Row / bulk actions consumed by CnRowActions / CnActionsBar (for type='index'). Each item references the `action` $def.",
 							"items": { "$ref": "#/$defs/action" }
 						},
+						"quickFilters": {
+							"type": "array",
+							"description": "Clickable filter tabs rendered above the table on a type='index' page. Each tab carries a `filter` map merged into the useListView fetch — spread AFTER `config.filter` (so the active tab overrides a colliding fixed entry) and BEFORE the user's facet `activeFilters` (so user facets still narrow within the active tab). Tab `filter` values follow the same syntax as `config.filter`: literals pass through; string values of the form `\"@route.<name>\"` or `\":<name>\"` resolve from `$route.params`. The first tab with `default:true` (else index 0) is active on mount; clicking a different tab refetches at page 1. Omitting the array is a no-op (no tab strip rendered).",
+							"items": {
+								"type": "object",
+								"required": ["label", "filter"],
+								"additionalProperties": false,
+								"properties": {
+									"label": { "type": "string", "description": "i18n key or plain text rendered on the tab." },
+									"filter": { "type": "object", "additionalProperties": true, "description": "Filter map merged into the fetch when this tab is active." },
+									"default": { "type": "boolean", "default": false, "description": "Pre-selected on mount." },
+									"icon": { "type": "string", "description": "Optional MDI icon name displayed alongside the label." }
+								}
+							}
+						},
+						"readOnly": {
+							"type": "boolean",
+							"default": false,
+							"description": "Shorthand on a type='index' page: when true, CnPageRenderer merges read-only defaults UNDER the explicit props before mounting CnIndexPage — `selectable:false`, `showAdd:false`, `showFormDialog:false`, `showEditAction:false`, `showCopyAction:false`, `showDeleteAction:false`, `showMassImport:false`, `showMassCopy:false`, `showMassDelete:false`. An explicit `config.showAdd:true` (etc.) still wins. Omitting (or false) is the default behaviour."
+						},
 						"widgets": {
 							"type": "array",
 							"description": "Dashboard widgets consumed by CnDashboardPage (for type='dashboard'). Each item references the `widgetDef` $def. NOT consumed for type='settings'; settings widgets use a different (thinner `{ type, props? }`) shape — see `sections[].widgets[]`.",
 							"items": { "$ref": "#/$defs/widgetDef" }
+						},
+						"content": {
+							"type": "array",
+							"description": "Declarative content items for a page (currently: type='dashboard'). Each item references the `widgetRefItem` $def. A `widget-ref` item points at an OR-declared widget via its `ref` URI (`openregister://widget/<schemaSlug>/<widgetSlug>`); CnDashboardPage resolves and renders each widget at runtime. Graceful loading state and error fallback are applied for unknown widgets. Composes with `widgets` + `layout` — set `content` instead of `widgets`/`layout` when OR owns the widget definitions.",
+							"items": { "$ref": "#/$defs/widgetRefItem" }
 						},
 						"layout": {
 							"type": "array",
 							"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
 							"items": { "$ref": "#/$defs/layoutItem" }
 						},
+						"fields": {
+							"type": "array",
+							"description": "Form fields consumed by CnFormPage (for type='form'). Each item references the `formField` $def — the same shape `pages[].config.sections[].fields[]` uses for type='settings'.",
+							"items": { "$ref": "#/$defs/formField" }
+						},
 						"sections": {
 							"type": "array",
-							"description": "Settings sections consumed by CnSettingsPage (for type='settings'). Each section declares EXACTLY ONE of `fields[]` / `component` / `widgets[]` (FE-validated mutual exclusion). The outer section object keeps `additionalProperties: true`; only `fields[]` is typed via $ref formField. Settings widgets use a thinner shape `{ type, props? }` (NOT the same as dashboard widgetDef) and are NOT typed by this schema.",
+							"description": "Settings sections consumed by CnSettingsPage (for type='settings'). Each section declares EXACTLY ONE of `fields[]` / `component` / `widgets[]` (FE-validated mutual exclusion). The outer section object keeps `additionalProperties: true`; only `fields[]` is typed via $ref formField. Settings widgets use a thinner shape `{ type, props?, componentName? }` (NOT the same as dashboard widgetDef) and are NOT typed by this schema. Mutually exclusive with `tabs[]` at the page level — see manifest-settings-orchestration.",
 							"items": {
 								"type": "object",
 								"additionalProperties": true,
@@ -166,6 +229,44 @@
 										"type": "array",
 										"description": "Flat field-body for this section. Each item references the `formField` $def.",
 										"items": { "$ref": "#/$defs/formField" }
+									}
+								}
+							}
+						},
+						"tabs": {
+							"type": "array",
+							"description": "Settings tabs consumed by CnSettingsPage (for type='settings'). When set, CnSettingsPage renders a tab strip and the active tab's `sections[]` flow into the same renderer used by the flat shape. Mutually exclusive with `sections[]` at the page level (XOR). Each tab is `{ id: string, label: string, icon?: string, sections: array<Section> }`. See manifest-settings-orchestration spec.",
+							"items": {
+								"type": "object",
+								"additionalProperties": true,
+								"required": ["id", "label", "sections"],
+								"properties": {
+									"id": {
+										"type": "string",
+										"description": "Tab identifier — addressable by `initialTab` and emitted in `@tab-change`. MUST be non-empty and unique within the page."
+									},
+									"label": {
+										"type": "string",
+										"description": "Tab button label (i18n translation key — passed through `translate()` if a translate prop is wired on CnSettingsPage)."
+									},
+									"icon": {
+										"type": "string",
+										"description": "Optional MDI component name prepended to the tab button (e.g. \"Cog\")."
+									},
+									"sections": {
+										"type": "array",
+										"description": "Sections rendered when this tab is active. Same shape and rules as the flat `sections[]` case.",
+										"items": {
+											"type": "object",
+											"additionalProperties": true,
+											"properties": {
+												"fields": {
+													"type": "array",
+													"description": "Flat field-body for this section. Each item references the `formField` $def.",
+													"items": { "$ref": "#/$defs/formField" }
+												}
+											}
+										}
 									}
 								}
 							}
@@ -229,6 +330,11 @@
 					"type": "string",
 					"description": "Optional registry name for a component injected into the page's #actions slot. Enables partial bailout without going full type='custom'. Equivalent to `slots.actions`; takes precedence when both are set."
 				},
+				"sidebarComponent": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Optional registry name resolved against the consuming app's customComponents registry. When set, CnPageRenderer publishes the resolved component on the `cnPageSidebarComponent` reactive provide channel; CnAppRoot mounts it as the DEFAULT content of its `#sidebar` slot for the lifetime of this page mount. The consumer's `#sidebar` slot override (when supplied) wins over the resolved component via Vue's standard slot mechanic — apps that already wire a sibling `<CnObjectSidebar>` keep working unchanged. Composes with `sidebar.show`: when `show: false`, the slot does not render at all and the resolved component is suppressed (visibility wins; CnPageRenderer logs a console.warn about the dead config). Use this field for the per-page full-sidebar swap pattern (Vue Router named-view equivalent — e.g. opencatalogi's Search route swapping in a SearchSideBar). For per-tab content on the built-in CnObjectSidebar use `pages[].config.sidebar.tabs[]` instead. Unknown registry names log a console.warn and fall through to the consumer's slot content."
+				},
 				"slots": {
 					"type": "object",
 					"description": "Generic slot-override map. Each key is the name of a scoped slot exposed by the dispatched page component (e.g. 'create-dialog', 'form-fields', 'row-actions', 'empty'); each value is a registry component name resolved against the customComponents registry passed to CnAppRoot. CnPageRenderer creates a scoped-slot template for each entry and forwards all slot-scope props to the resolved component. Use this to preserve every slot override the underlying Cn*Page supports without writing a wrapper component.",
@@ -270,7 +376,38 @@
 				},
 				"widget": {
 					"type": "string",
-					"description": "Optional cell-widget hint (e.g. \"badge\", \"link\"). Resolves against the consuming app's cell-widget registry; free-form for the same reason as `formatter`."
+					"description": "Optional cell-widget id (e.g. \"badge\", or a consumer-registered name). When it resolves in the app's cell-widget registry (`CnAppRoot`'s `cellWidgets` prop → `cnCellWidgets`) the cell renders that component with `{ value, row, property, formatted, ...widgetProps }`; the built-in id \"badge\" renders `CnStatusBadge`. Takes precedence over `formatter` / the type-aware rendering. Free-form because widget sets vary per app."
+				},
+				"widgetProps": {
+					"type": "object",
+					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
+					"additionalProperties": true
+				},
+				"aggregate": {
+					"type": "object",
+					"required": ["schema", "op"],
+					"additionalProperties": false,
+					"description": "Render this cell as a count of related objects rather than a property of the row. The cell value is the number of `schema` objects matching `where` — string values in `where` of the form \"@self.<path>\" are interpolated per-row from the parent row (e.g. `{ \"intakeForm\": \"@self.id\" }` filters the related collection on `intakeForm == row.id`). `register` defaults to the page's `config.register` (CnIndexPage fills it in before passing columns to CnDataTable). `op` is \"count\" for now; \"sum\"/\"min\"/\"max\"/\"avg\" (each needing a `field`) are a planned follow-up. CnDataTable issues one `_limit=0` count request per visible row for each aggregate column (batched); failures degrade that one cell, not the page.",
+					"properties": {
+						"register": {
+							"type": "string",
+							"description": "OpenRegister register slug of the related collection. Defaults to the page's `config.register`."
+						},
+						"schema": {
+							"type": "string",
+							"description": "OpenRegister schema slug of the related collection to count."
+						},
+						"op": {
+							"type": "string",
+							"enum": ["count"],
+							"description": "Aggregation operation. Closed enum — \"count\" only for now."
+						},
+						"where": {
+							"type": "object",
+							"additionalProperties": true,
+							"description": "Filter applied to the related collection. String values \"@self.<path>\" are replaced per-row with `getCellValue(row, path)`; everything else is a literal."
+						}
+					}
 				},
 				"hidden": {
 					"type": "boolean",
@@ -310,6 +447,15 @@
 					"type": "boolean",
 					"default": false,
 					"description": "When true the consumer SHOULD show a confirmation dialog before invoking the action. Useful for destructive actions; defaults to false."
+				},
+				"handler": {
+					"type": "string",
+					"description": "Optional dispatch target for the action. Either (a) one of the reserved keywords \"navigate\" / \"emit\" / \"none\", or (b) a registry name resolving to a function in the customComponents map passed to CnAppRoot. When the registry name resolves to a function, CnIndexPage / CnDetailPage call it with `{ actionId, item }` on row-action click. The reserved keywords short-circuit the registry lookup: \"navigate\" calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`; \"emit\" emits `@action` only (semantic-explicit no-op); \"none\" disables the click entirely. When unset (the default), the action only emits `@action` and the page-level listener decides the side-effect — preserves v1.2 behaviour. Added in schema 1.3.0.",
+					"pattern": "^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$"
+				},
+				"route": {
+					"type": "string",
+					"description": "Vue-router route name dispatched when `handler === \"navigate\"`. Required for the navigate keyword; ignored for other handler values. CnIndexPage uses it as `$router.push({ name: action.route, params: { id: row[rowKey] } })`. Added in schema 1.3.0."
 				}
 			}
 		},
@@ -348,6 +494,53 @@
 					"type": "object",
 					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type; not constrained here.",
 					"additionalProperties": true
+				},
+				"dataSource": {
+					"type": "object",
+					"description": "Optional data binding for widgets that fetch via OpenRegister's GraphQL endpoint. Two forms: (a) shorthand `{ register, schema, filter?, aggregate: 'count' }` — the lib builds `{ <schemaSlug>(filter: …) { totalCount } }` and resolves to `{ count }`. (b) raw `{ graphql: { query, variables?, selectors } }` — the lib issues `query` + `variables` and runs each value of `selectors` (a dot-path with optional `[]` array hops, e.g. `data.foo[].count`) against the response, building a result map keyed by the selector keys. Consumed by `type: 'stats-block'` (uses `count`) and `type: 'chart'` (uses `series`/`categories`/`labels`).",
+					"additionalProperties": true,
+					"properties": {
+						"register": {
+							"type": "string",
+							"description": "Shorthand: register slug. Decorative — included for symmetry with index/detail pages; the GraphQL field name is the schema slug."
+						},
+						"schema": {
+							"type": "string",
+							"description": "Shorthand: schema slug. Used as the connection field name in the generated GraphQL query."
+						},
+						"filter": {
+							"type": "object",
+							"description": "Shorthand: filter map inlined into the generated `filter:` arg.",
+							"additionalProperties": true
+						},
+						"aggregate": {
+							"type": "string",
+							"enum": ["count"],
+							"description": "Shorthand aggregation. Currently only `count` is supported; richer aggregates land with OpenRegister #1455."
+						},
+						"graphql": {
+							"type": "object",
+							"description": "Raw GraphQL form. Use when the shorthand is too narrow.",
+							"additionalProperties": false,
+							"required": ["query", "selectors"],
+							"properties": {
+								"query": {
+									"type": "string",
+									"description": "GraphQL query document."
+								},
+								"variables": {
+									"type": "object",
+									"description": "Variables map passed alongside `query`.",
+									"additionalProperties": true
+								},
+								"selectors": {
+									"type": "object",
+									"description": "Map of result-prop name → dot-path selector. `[]` segments flat-map across arrays, e.g. `data.foo[].count`.",
+									"additionalProperties": { "type": "string" }
+								}
+							}
+						}
+					}
 				}
 			}
 		},
@@ -472,6 +665,23 @@
 				}
 			}
 		},
+		"widgetRefItem": {
+			"type": "object",
+			"required": ["type", "ref"],
+			"additionalProperties": false,
+			"description": "A declarative widget-reference content item. Used in `pages[].config.content[]` for type='dashboard' pages. CnDashboardPage resolves the widget at runtime by calling GET /index.php/apps/openregister/api/schemas/<schemaSlug>/widgets/<widgetSlug> and renders the returned component. A graceful loading skeleton and error fallback are rendered when the ref cannot be resolved.",
+			"properties": {
+				"type": {
+					"const": "widget-ref",
+					"description": "Discriminator — MUST be the literal string \"widget-ref\"."
+				},
+				"ref": {
+					"type": "string",
+					"pattern": "^openregister://widget/[a-z0-9-]+/[a-zA-Z][a-zA-Z0-9-]+$",
+					"description": "URI of the OR-declared widget. Format: openregister://widget/<schemaSlug>/<widgetSlug>. The schemaSlug uses lowercase letters, digits, and hyphens. The widgetSlug MUST start with a letter (upper or lower) and may contain letters, digits, and hyphens (camelCase is supported, e.g. `coverageGrid`)."
+				}
+			}
+		},
 		"sidebarTab": {
 			"type": "object",
 			"required": ["id", "label"],
@@ -501,6 +711,18 @@
 				"component": {
 					"type": "string",
 					"description": "Optional registry component name. When set the tab body renders the resolved component. Mutually exclusive with `widgets` at runtime."
+				}
+			}
+		},
+		"visibleIfCondition": {
+			"type": "object",
+			"description": "A `visibleIf` condition block. Each key is either a reserved specialised condition (`appInstalled`) OR a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`). The value for a context-path key is a predicate expression — either a scalar (strict equality shorthand) or an operator object (`{ eq }`, `{ in }`, `{ notIn }`, `{ gt }`, `{ gte }`, `{ lt }`, `{ lte }`, `{ truthy }`). All conditions across all keys are combined with implicit AND — every condition must pass for the item to render. As of schema 1.4.0 this $def is referenced by both `menuItem.visibleIf` and `menuItemLeaf.visibleIf`.",
+			"additionalProperties": true,
+			"properties": {
+				"appInstalled": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in mydash' link should only show when mydash is enabled)."
 				}
 			}
 		}

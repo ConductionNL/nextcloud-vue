@@ -30,6 +30,7 @@ export {
 	CnRowActions,
 	CnContextMenu,
 	CnIndexPage,
+	CnQuickFilterBar,
 	CnMassActionBar,
 	CnDeleteDialog,
 	CnCopyDialog,
@@ -57,6 +58,9 @@ export {
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
+	CnFilesCard,
+	CnTagsCard,
+	CnAuditTrailCard,
 	CnDetailCard,
 	CnDetailPage,
 	CnCard,
@@ -66,6 +70,8 @@ export {
 	CnDetailGrid,
 	CnProgressBar,
 	CnChartWidget,
+	CnStatsBlockWidget,
+	CnLockedBanner,
 	CnObjectSidebar,
 	CnInfoWidget,
 	CnTableWidget,
@@ -79,14 +85,25 @@ export {
 	CnSettingsPage,
 	CnChatPage,
 	CnFilesPage,
+	CnWikiPage,
 	CnPageRenderer,
 	defaultPageTypes,
 	CnAppNav,
 	CnAppLoading,
 	CnDependencyMissing,
 	CnAppRoot,
+	CnFeaturesAndRoadmapLink,
+	CnFeaturesAndRoadmapView,
+	CnFeaturesTab,
+	CnRoadmapTab,
+	CnRoadmapItem,
+	CnSuggestFeatureModal,
 	registerIcons,
 } from './components/index.js'
+
+// AI Chat Companion component family
+export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
+export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
@@ -110,7 +127,19 @@ export {
 } from './store/plugins/index.js'
 
 // Composables
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus } from './composables/index.js'
+export { useAiContext, useAiChatStream } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry } from './composables/index.js'
+
+// Integration registry (pluggable integrations — sidebar tabs and widgets)
+export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations } from './integrations/index.js'
+
+// Composables — Features & roadmap menu (add-features-roadmap-menu)
+export { useSpecRef } from './composables/useSpecRef.js'
+export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
+
+// Utilities — Features & roadmap menu (add-features-roadmap-menu)
+export { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from './utils/safeMarkdownDompurifyConfig.js'
+export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 
 // Localization
 export { registerTranslations } from './l10n/index.js'
@@ -119,4 +148,5 @@ export { registerTranslations } from './l10n/index.js'
 export { buildHeaders, buildQueryString, parseResponseError, networkError, genericError } from './utils/index.js'
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 export { validateManifest } from './utils/validateManifest.js'
+export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'

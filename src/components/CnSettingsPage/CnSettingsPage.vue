@@ -1,8 +1,12 @@
 <!--
   CnSettingsPage — Admin / config surface.
 
-  Renders manifest-driven config sections. Each section in
-  `config.sections[]` is a CnSettingsCard wrapping a CnSettingsSection.
+  Renders manifest-driven config sections. The page MAY declare
+  EITHER a flat `sections[]` array (back-compat) OR a `tabs[]` array
+  (each tab owns its own `sections[]`) — XOR, never both. See
+  manifest-settings-orchestration spec.
+
+  Each section is a CnSettingsCard wrapping a CnSettingsSection.
   A section MUST declare exactly one of three body kinds:
 
     1. `fields[]`   — flat form fields (back-compat, default)
@@ -12,6 +16,8 @@
   Built-in widget types (resolved BEFORE the customComponents registry):
     - `version-info`     → CnVersionInfoCard
     - `register-mapping` → CnRegisterMapping
+    - `component`        → discriminator; `widget.componentName`
+                           resolves against customComponents
 
   Saves via `axios.put(saveEndpoint, formData)` with the consumer's
   settings controller URL. Widget events bubble up through
@@ -25,7 +31,7 @@
   `slots[]` slots exposed here.
 -->
 <template>
-	<div class="cn-settings-page">
+	<div class="cn-settings-page" data-testid="cn-settings-page">
 		<!-- Header — overridable via #header slot -->
 		<slot
 			name="header"
@@ -44,10 +50,35 @@
 			<slot name="actions" />
 		</div>
 
-		<!-- Sections -->
+		<!-- Tab strip — only rendered when `tabs[]` is set
+			 (manifest-settings-orchestration REQ-MSO-5). Built with
+			 native <button role="tab"> + ARIA wiring; uses Nextcloud
+			 CSS variables only (no hex literals). -->
+		<div
+			v-if="hasTabs"
+			class="cn-settings-page__tabs"
+			role="tablist"
+			data-testid="cn-settings-page-tabs">
+			<button
+				v-for="(tab, tabIndex) in tabs"
+				:key="`tab-${tab.id}`"
+				role="tab"
+				type="button"
+				class="cn-settings-page__tab"
+				:class="{ 'cn-settings-page__tab--active': activeTabId === tab.id }"
+				:aria-selected="activeTabId === tab.id ? 'true' : 'false'"
+				:aria-controls="`cn-settings-tab-panel-${tab.id}`"
+				:data-testid="`cn-settings-page-tab-${tab.id}`"
+				@click="onTabClick(tab, tabIndex)">
+				{{ resolveLabel(tab.label) }}
+			</button>
+		</div>
+
+		<!-- Sections — rendered for the active tab when `tabs[]` is
+			 set, otherwise the flat `sections[]` (back-compat). -->
 		<CnSettingsCard
-			v-for="(section, sectionIndex) in sections"
-			:key="`section-${sectionIndex}`"
+			v-for="(section, sectionIndex) in activeSections"
+			:key="`section-${activeTabId || 'flat'}-${sectionIndex}`"
 			:title="resolveLabel(section.title)"
 			:icon="section.icon || ''"
 			:collapsible="section.collapsible || false">
@@ -199,6 +230,15 @@ import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
 import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
 
 /**
+ * Sentinel value used in the built-in widget registry to mark the
+ * `'component'` discriminator (manifest-settings-orchestration
+ * REQ-MSO-6). The discriminator does NOT resolve to a fixed
+ * component — instead, the resolver detects this sentinel and looks
+ * up `widget.componentName` in the customComponents registry.
+ */
+const COMPONENT_DISCRIMINATOR = Symbol('cn-settings-component-widget')
+
+/**
  * Built-in widget registry. Used by `CnSettingsPage` to resolve
  * `widgets[].type` to a component BEFORE consulting the
  * consumer-provided customComponents registry.
@@ -206,13 +246,19 @@ import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
  * The order matters — built-ins win on collision so consumers can't
  * accidentally shadow `version-info` with their own component. If a
  * consumer needs to truly replace one of these, they can render their
- * own component via `section.component` instead of `widgets[]`.
+ * own component via `section.component` or
+ * `{ type: "component", componentName: <name> }` instead of `widgets[]`.
  *
- * Spec: REQ-MSRS-2 (manifest-settings-rich-sections).
+ * Spec:
+ *  - REQ-MSRS-2 (manifest-settings-rich-sections) — fixed-component
+ *    built-ins (`version-info`, `register-mapping`).
+ *  - REQ-MSO-6 (manifest-settings-orchestration) — `'component'`
+ *    discriminator (sentinel value, resolved via componentName).
  */
 const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
 	'version-info': CnVersionInfoCard,
 	'register-mapping': CnRegisterMapping,
+	component: COMPONENT_DISCRIMINATOR,
 })
 
 /**
@@ -320,18 +366,49 @@ export default {
 			default: '',
 		},
 		/**
-		 * Section definitions. Each section MUST declare EXACTLY ONE of:
+		 * Section definitions (flat shape — back-compat). Each section
+		 * MUST declare EXACTLY ONE of:
 		 *  - `fields: Array<Field>` (back-compat flat-field body)
 		 *  - `component: <registry-name>` + optional `props`
-		 *  - `widgets: Array<{ type, props? }>`
+		 *  - `widgets: Array<{ type, props?, componentName? }>`
 		 *
 		 * Common keys: `{ title, description?, icon?, collapsible?, docUrl? }`.
+		 *
+		 * Mutually exclusive with `tabs[]` (XOR — see
+		 * manifest-settings-orchestration REQ-MSO-1).
 		 *
 		 * @type {Array<object>}
 		 */
 		sections: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Tab definitions (orchestration shape — manifest-settings-
+		 * orchestration REQ-MSO-2). When set, CnSettingsPage renders
+		 * a tab strip above the section area; the active tab's
+		 * `sections[]` flow into the same renderer used by the flat
+		 * shape. Mutually exclusive with `sections[]`.
+		 *
+		 * Each tab MUST be `{ id: string, label: string,
+		 * icon?: string, sections: array<Section> }`.
+		 *
+		 * @type {Array<object>}
+		 */
+		tabs: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Optional ID of the tab to activate on mount. When empty AND
+		 * `tabs[]` is non-empty, the first tab is active by default.
+		 * Unknown IDs fall back to the first tab.
+		 *
+		 * @type {string}
+		 */
+		initialTab: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * Initial values keyed by `field.key`. Defaults to an empty
@@ -394,14 +471,30 @@ export default {
 		},
 	},
 
-	emits: ['save', 'error', 'input', 'widget-event'],
+	emits: ['save', 'error', 'input', 'widget-event', 'tab-change'],
 
 	data() {
+		// Resolve the initial active-tab id synchronously so the very
+		// first render has the correct tab active (otherwise tests
+		// that mount + assert without an `await tick` see the empty
+		// default). Mirrors the logic in `resolveInitialTabId` (the
+		// watcher path); keep them aligned.
+		let activeTabId = ''
+		const tabs = Array.isArray(this.tabs) ? this.tabs : []
+		if (tabs.length > 0) {
+			if (typeof this.initialTab === 'string' && this.initialTab.length > 0
+				&& tabs.some(t => t && t.id === this.initialTab)) {
+				activeTabId = this.initialTab
+			} else if (tabs[0] && typeof tabs[0].id === 'string') {
+				activeTabId = tabs[0].id
+			}
+		}
 		return {
 			formData: this.cloneInitial(),
 			originalData: this.cloneInitial(),
 			saving: false,
 			lastError: null,
+			activeTabId,
 		}
 	},
 
@@ -420,6 +513,35 @@ export default {
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
+		/**
+		 * Whether the page is in tabs orchestration mode. True when
+		 * `tabs[]` is non-empty — drives the tab-strip render gate
+		 * (manifest-settings-orchestration REQ-MSO-5).
+		 *
+		 * @return {boolean}
+		 */
+		hasTabs() {
+			return Array.isArray(this.tabs) && this.tabs.length > 0
+		},
+		/**
+		 * The sections to render right now. In flat mode, this is the
+		 * `sections` prop directly. In tabs mode, this is the
+		 * `sections[]` array of the currently active tab. Centralising
+		 * this in one computed keeps the template's `v-for` simple
+		 * and decouples it from the body kind dispatcher (which
+		 * applies per-section, not per-mode).
+		 *
+		 * @return {Array<object>}
+		 */
+		activeSections() {
+			if (!this.hasTabs) return this.sections || []
+			const active = this.tabs.find(t => t && t.id === this.activeTabId)
+			if (active && Array.isArray(active.sections)) return active.sections
+			// Defensive fallback — should not happen because
+			// `resolveInitialTabId` always lands on a known tab.
+			const first = this.tabs[0]
+			return first && Array.isArray(first.sections) ? first.sections : []
+		},
 	},
 
 	watch: {
@@ -429,6 +551,22 @@ export default {
 				this.formData = this.cloneInitial()
 				this.originalData = this.cloneInitial()
 			},
+		},
+		// When `tabs[]` changes (e.g. consumer swaps manifests at
+		// runtime), re-resolve the active tab so the page doesn't get
+		// stuck on a removed id.
+		tabs: {
+			handler() {
+				this.activeTabId = this.resolveInitialTabId()
+			},
+		},
+		// When `initialTab` changes (consumer-controlled tab
+		// activation), follow it.
+		initialTab(next) {
+			if (typeof next === 'string' && next.length > 0) {
+				const exists = this.tabs.some(t => t && t.id === next)
+				if (exists) this.activeTabId = next
+			}
 		},
 	},
 
@@ -475,11 +613,20 @@ export default {
 		},
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
-			// Pre-populate any field with a `default` if no value is set yet.
-			// Only flat-field sections contribute defaults; component and
-			// widgets sections own their own state.
-			for (const section of this.sections || []) {
-				if (!Array.isArray(section.fields)) continue
+			// Collect every section across both modes (flat
+			// `sections[]` AND `tabs[].sections[]`) so default values
+			// are applied regardless of orchestration shape.
+			// Only flat-field sections contribute defaults; component
+			// and widgets sections own their own state.
+			const allSections = []
+			for (const section of this.sections || []) allSections.push(section)
+			for (const tab of this.tabs || []) {
+				if (tab && Array.isArray(tab.sections)) {
+					for (const section of tab.sections) allSections.push(section)
+				}
+			}
+			for (const section of allSections) {
+				if (!section || !Array.isArray(section.fields)) continue
 				for (const field of section.fields) {
 					if (field.default !== undefined && merged[field.key] === undefined) {
 						merged[field.key] = field.default
@@ -545,23 +692,55 @@ export default {
 		},
 
 		/**
-		 * Resolve a `widgets[].type` string to a Vue component. Lookup
-		 * order:
+		 * Resolve a single `widgets[]` entry to a concrete Vue
+		 * component. Lookup order:
 		 *
 		 *   1. Built-in widget map (`version-info`, `register-mapping`).
-		 *   2. `effectiveCustomComponents` registry.
+		 *   2. `'component'` discriminator (REQ-MSO-6) — resolves
+		 *      `widget.componentName` against `effectiveCustomComponents`.
+		 *   3. Legacy fallback — looks up `widget.type` against
+		 *      `effectiveCustomComponents`. Kept for back-compat with
+		 *      manifest-settings-rich-sections consumers; flagged as
+		 *      deprecated in JSDoc — manifest authors should migrate to
+		 *      the explicit `{ type: "component", componentName }` shape.
 		 *
-		 * Returns `null` (and warns) when neither resolves. Built-ins
-		 * win on collision so consumers can't accidentally shadow them
-		 * (REQ-MSRS-2).
+		 * Returns `null` (and warns) when nothing resolves. Built-ins
+		 * win on collision so consumers can't accidentally shadow them.
 		 *
-		 * @param {string} type The widget type string.
+		 * @param {object} widget A `widgets[]` entry, e.g. `{ type, props?, componentName? }`.
 		 * @return {object|null} Vue component or null.
 		 */
-		resolveWidgetComponent(type) {
+		resolveWidgetComponent(widget) {
+			const type = widget && typeof widget.type === 'string' ? widget.type : ''
+			if (!type) return null
 			if (Object.prototype.hasOwnProperty.call(BUILTIN_SETTINGS_WIDGETS, type)) {
-				return BUILTIN_SETTINGS_WIDGETS[type]
+				const builtin = BUILTIN_SETTINGS_WIDGETS[type]
+				if (builtin === COMPONENT_DISCRIMINATOR) {
+					// REQ-MSO-6: discriminator — look up `componentName`.
+					const name = widget.componentName
+					if (typeof name !== 'string' || name.length === 0) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							'[CnSettingsPage] Widget {type:"component"} requires a non-empty `componentName`. Widget will be skipped.',
+						)
+						return null
+					}
+					const resolved = this.effectiveCustomComponents[name]
+					if (!resolved) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnSettingsPage] Widget component "${name}" not found in customComponents registry. Widget will be skipped.`,
+						)
+						return null
+					}
+					return resolved
+				}
+				return builtin
 			}
+			// Legacy fallback (manifest-settings-rich-sections REQ-MSRS-2).
+			// Deprecated — manifest authors should migrate to
+			// `{ type: "component", componentName: <X> }`. Kept here so
+			// existing consumers continue working unchanged.
 			const resolved = this.effectiveCustomComponents[type]
 			if (!resolved) {
 				// eslint-disable-next-line no-console
@@ -580,6 +759,11 @@ export default {
 		 * has already logged a warn. The filter happens here so the
 		 * template can use a clean `v-for` without nested `v-if`.
 		 *
+		 * The `widgetType` carried on the bubbled `@widget-event`
+		 * payload is the widget's `componentName` (when the
+		 * discriminator is `'component'`) or `widget.type` otherwise —
+		 * giving consumers a stable identifier for the dispatch.
+		 *
 		 * @param {object} section A section entry with `widgets[]`.
 		 * @param {number} sectionIndex Index in `sections[]`.
 		 * @return {Array<{key: string, component: object, props: object, widgetType: string, widgetIndex: number}>}
@@ -589,17 +773,55 @@ export default {
 			const widgets = Array.isArray(section.widgets) ? section.widgets : []
 			for (let widgetIndex = 0; widgetIndex < widgets.length; widgetIndex++) {
 				const widget = widgets[widgetIndex] || {}
-				const component = this.resolveWidgetComponent(widget.type)
+				const component = this.resolveWidgetComponent(widget)
 				if (!component) continue
+				const widgetType = widget.type === 'component' && typeof widget.componentName === 'string'
+					? widget.componentName
+					: widget.type
 				entries.push({
 					key: `widget-${sectionIndex}-${widgetIndex}`,
 					component,
 					props: widget.props || {},
-					widgetType: widget.type,
+					widgetType,
 					widgetIndex,
 				})
 			}
 			return entries
+		},
+
+		/**
+		 * Resolve the active-tab id on mount / when `tabs[]` changes.
+		 * Lookup order: explicit `initialTab` prop → first tab in
+		 * `tabs[]` → empty string. Unknown `initialTab` values fall
+		 * back to the first tab so the page never gets stuck.
+		 * (manifest-settings-orchestration REQ-MSO-5.)
+		 *
+		 * @return {string} The resolved tab id (empty in flat mode).
+		 */
+		resolveInitialTabId() {
+			if (!this.hasTabs) return ''
+			if (typeof this.initialTab === 'string' && this.initialTab.length > 0) {
+				const exists = this.tabs.some(t => t && t.id === this.initialTab)
+				if (exists) return this.initialTab
+			}
+			const first = this.tabs[0]
+			return first && typeof first.id === 'string' ? first.id : ''
+		},
+
+		/**
+		 * Handle a tab button click. Switches the active tab and
+		 * emits `@tab-change` so consumers can react (e.g. persist the
+		 * active tab in their preference store, update the URL hash).
+		 * (manifest-settings-orchestration REQ-MSO-5.)
+		 *
+		 * @param {object} tab The clicked tab definition.
+		 * @param {number} tabIndex The tab's index in `tabs[]`.
+		 */
+		onTabClick(tab, tabIndex) {
+			if (!tab || typeof tab.id !== 'string') return
+			if (this.activeTabId === tab.id) return
+			this.activeTabId = tab.id
+			this.$emit('tab-change', { tabId: tab.id, tabIndex })
 		},
 
 		/**
@@ -651,6 +873,65 @@ export default {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
+}
+
+/*
+ * Tab strip for the orchestration shape (manifest-settings-
+ * orchestration REQ-MSO-5). Uses Nextcloud CSS variables only — no
+ * hex literals, no rgba overrides on the elements themselves.
+ */
+.cn-settings-page__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	border-bottom: 1px solid var(--color-border);
+	padding-bottom: 0;
+	margin-bottom: 8px;
+}
+
+.cn-settings-page__tab {
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	padding: 8px 16px;
+	margin: 0;
+	cursor: pointer;
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
+	border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
+	transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.cn-settings-page__tab:hover,
+.cn-settings-page__tab:focus-visible {
+	background-color: var(--color-background-hover);
+	color: var(--color-main-text);
+	outline: none;
+}
+
+.cn-settings-page__tab--active {
+	color: var(--color-primary-element);
+	border-bottom-color: var(--color-primary-element);
+	font-weight: bold;
+}
+
+@media (max-width: 768px) {
+	.cn-settings-page__tabs {
+		flex-direction: column;
+		gap: 0;
+		border-bottom: 0;
+	}
+
+	.cn-settings-page__tab {
+		border-bottom: 1px solid var(--color-border);
+		border-radius: 0;
+		text-align: left;
+	}
+
+	.cn-settings-page__tab--active {
+		border-bottom-width: 1px;
+		background-color: var(--color-background-hover);
+	}
 }
 
 .cn-settings-page__fields {
