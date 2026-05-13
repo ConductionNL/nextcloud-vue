@@ -127,6 +127,24 @@ The hoist is automatic — apps using `CnAppRoot` get correct positioning the mo
 
 Apps mounting `CnIndexPage` standalone (without `CnAppRoot`) keep the legacy inline rendering — the `cnHostsIndexSidebar` sentinel defaults to `false` in that case, so `CnIndexPage` renders the sidebar in-tree as before.
 
+## Hoisted detail-page object sidebar
+
+Symmetric with the index-sidebar hoist above: `CnAppRoot` auto-mounts a `<CnObjectSidebar>` at NcContent level (ADR-017 compliant) driven by the injected `objectSidebarState` reactive holder that [`CnDetailPage`](./cn-detail-page.md) publishes into via `syncSidebarState()`. Result: a `type: "detail"` manifest page works end-to-end with zero per-app sidebar wiring.
+
+Resolution order for the holder:
+
+1. **Ancestor-provided** — when an outer wrapper (decidesk's / procest's existing `App.vue` pattern) already exposes an `objectSidebarState` via its own `provide()`, `CnAppRoot` re-uses that holder. `CnDetailPage` writes are visible to the consumer's hand-rendered `<CnObjectSidebar>` exactly as before; the auto-mount **stays out of the way** so two sidebars don't stack.
+2. **Local fallback** — manifest-only apps (openbuilt, mydash) hit this branch: `CnAppRoot` creates an observable holder in its own `data()` and provides it down to descendants. The auto-mount renders from this holder.
+
+The auto-mount is also suppressed when the consumer fills the `#sidebar` slot — slot content always wins. Apps that want a custom sidebar layout fill the slot and CnAppRoot defers; the existing `objectSidebarState` channel still works inside their slot.
+
+| Condition | Auto-mount | Where `<CnObjectSidebar>` renders |
+|-----------|------------|-----------------------------------|
+| Manifest-only app, no `#sidebar` slot, no ancestor provide | ✅ on | CnAppRoot, at NcContent level |
+| Consumer fills `#sidebar` slot | ❌ off | Consumer's slot content |
+| Ancestor `App.vue` provides `objectSidebarState` | ❌ off (assumes ancestor renders) | Ancestor's own template |
+| `objectSidebarState.active === false` | ❌ off | — |
+
 ## Mounting virtual apps with an in-memory manifest
 
 Most CnAppRoot consumers ship a static `manifest.json` and let `useAppManifest('myapp', bundled)` fetch the optional `/index.php/apps/myapp/api/manifest` override. Some consumers — notably the OpenBuilt app builder — render **virtual apps** whose manifest is constructed in memory at runtime, with no static file and no backend route.

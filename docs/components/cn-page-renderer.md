@@ -84,7 +84,8 @@ const routes = manifest.pages.map((page) => ({
 |----------|-----------|
 | `page.id` | Matched against `$route.name`. The instance's `$options.name` is set to `CnPageRenderer:<id>` for cleaner Vue devtools / stack traces |
 | `page.type` | Looked up in `pageTypes`. Special-case: `"custom"` resolves `page.component` in `customComponents` instead |
-| `page.config` | Spread as props onto the resolved component |
+| `page.title` / `page.description` / `page.icon` | Forwarded as props onto the resolved component (defaults — `page.config.*` and `$route.params.*` still win on collision). Lets a manifest entry render its header from a single top-level field without duplicating into `config`. |
+| `page.config` | Spread as props onto the resolved component. Overrides any collision with the top-level `title`/`description`/`icon` defaults above. |
 | `page.slots` | `{ slotName: registryName }` map — each entry resolves a `customComponents` entry and mounts it inside the corresponding scoped slot |
 | `page.headerComponent` | Sugar for `slots.header` (sugar wins when both are set) |
 | `page.actionsComponent` | Sugar for `slots.actions` (sugar wins when both are set) |

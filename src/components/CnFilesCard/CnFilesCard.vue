@@ -41,7 +41,7 @@
 			</li>
 		</ul>
 		<template v-if="files.length > maxDisplay" #footer>
-			<button class="cn-files-card__show-all" @click="$emit('show-all')">
+			<button class="cn-files-card__show-all" @click="emitShowAll">
 				{{ showAllLabel }} ({{ files.length }})
 			</button>
 		</template>
@@ -68,6 +68,10 @@ import { buildHeaders } from '../../utils/index.js'
  *   :object-id="objectId"
  *   surface="detail-page" />
  * ```
+ *
+ * @event {void} show-all — User clicked the "show all" footer button.
+ *   Emitted with no payload; parent components typically open the host
+ *   app's full files view in response.
  */
 export default {
 	name: 'CnFilesCard',
@@ -128,6 +132,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Bubble the footer button's click up so parents can open the
+		 * host app's full files view.
+		 */
+		emitShowAll() {
+			/**
+			 * User clicked the "show all" footer button — emitted with
+			 * no payload. Parents typically open the host app's full
+			 * files view in response.
+			 *
+			 * @event show-all
+			 */
+			this.$emit('show-all')
+		},
+
 		async fetchFiles() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return

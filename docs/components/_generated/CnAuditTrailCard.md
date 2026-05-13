@@ -18,6 +18,6 @@
 
 ### Events
 
-| Name       | Payload | Description |
-| ---------- | ------- | ----------- |
-| `show-all` | —       |             |
+| Name       | Payload | Description                                                                                                                                   |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `show-all` | —       | User clicked the "show all" footer button — emitted with no payload. Parents typically open the host app's full audit-trail view in response. |

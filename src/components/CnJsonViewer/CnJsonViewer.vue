@@ -123,6 +123,13 @@ export default {
 			get() { return this.internalValue },
 			set(v) {
 				this.internalValue = v
+				/**
+				 * @event update:value Fired whenever the editor's text
+				 *   content changes — drives v-model usage. Payload is
+				 *   the new raw string (not parsed); use the `format`
+				 *   event for the parsed object.
+				 * @type {string}
+				 */
 				this.$emit('update:value', v)
 			},
 		},
@@ -225,6 +232,17 @@ export default {
 		resolvedLanguage: {
 			immediate: true,
 			handler(lang) {
+				/**
+				 * @event detected-language Fired when the resolved
+				 *   language for syntax highlighting changes — either
+				 *   because the `language` prop was set explicitly OR
+				 *   because the auto-detector flipped between
+				 *   'json' / 'xml' / 'html' / 'text' as the content
+				 *   changed. Lets parent components surface a language
+				 *   indicator without re-implementing the detection
+				 *   heuristic.
+				 * @type {'json'|'xml'|'html'|'text'}
+				 */
 				this.$emit('detected-language', lang)
 			},
 		},
@@ -242,6 +260,14 @@ export default {
 					const formatted = JSON.stringify(parsed, null, 2)
 					this.internalValue = formatted
 					this.$emit('update:value', formatted)
+					/**
+					 * @event format Fired after a successful manual
+					 *   reformat (`formatJson()`) — payload is the
+					 *   parsed object, useful for parents that want to
+					 *   pick up the structured value alongside the
+					 *   formatted string.
+					 * @type {object|Array|string|number|boolean|null}
+					 */
 					this.$emit('format', parsed)
 				}
 			} catch {

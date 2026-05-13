@@ -75,6 +75,14 @@ export default {
 		 */
 		onClick(i) {
 			if (i === this.activeIndex) return
+			/**
+			 * Fired when the user clicks a different tab. Drives
+			 * `v-model:active-index` on the parent; payload is the
+			 * zero-based index of the newly active tab.
+			 *
+			 * @event update:active-index
+			 * @type {number}
+			 */
 			this.$emit('update:active-index', i)
 		},
 	},

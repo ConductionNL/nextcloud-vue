@@ -216,14 +216,65 @@ describe('CnPageRenderer', () => {
 	})
 
 	describe('config forwarding', () => {
-		it('forwards page.config as resolvedProps', () => {
+		it('forwards page.config + page-level title/description/icon as resolvedProps', () => {
 			const wrapper = mountRenderer('home')
-			expect(wrapper.vm.resolvedProps).toEqual(sampleManifest.pages[0].config)
+			// Top-level title is forwarded too — the schema-driven detail
+			// surface relies on this; existing config fields keep flowing
+			// through identically.
+			expect(wrapper.vm.resolvedProps).toMatchObject(sampleManifest.pages[0].config)
+			expect(wrapper.vm.resolvedProps.title).toBe('app.home')
 		})
 
-		it('returns an empty object when page has no config', () => {
+		it('returns title-only when page has no config', () => {
 			const wrapper = mountRenderer('home-detail')
-			expect(wrapper.vm.resolvedProps).toEqual({})
+			// `home-detail` has a top-level title but no config — the
+			// renderer surfaces the title as a default so manifest-only
+			// detail pages render their header without duplicating into
+			// config.
+			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'app.detail' })
+		})
+
+		it('config.title overrides page-level title on collision', () => {
+			// Simulate a manifest entry that legacy-shadows title via config.
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+			}
+			const $route = { name: 'shadow', params: {} }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps.title).toBe('Config-level')
+		})
+
+		it('$route.params override both config and page-level fields', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+			}
+			const $route = { name: 'shadow', params: { title: 'Route-level' } }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps.title).toBe('Route-level')
+		})
+
+		it('forwards description and icon from page top-level', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{ id: 'iconed', route: '/iconed', type: 'index', title: 'T', description: 'D', icon: 'IconName' }],
+			}
+			const $route = { name: 'iconed', params: {} }
+			const wrapper = shallowMount(CnPageRenderer, {
+				mocks: { $route },
+				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			})
+			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'T', description: 'D', icon: 'IconName' })
 		})
 	})
 

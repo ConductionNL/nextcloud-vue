@@ -166,8 +166,25 @@
 
 			<!-- Default vertical stacking mode -->
 			<div v-else class="cn-detail-page__content">
+				<!-- Schema-driven auto-body: fires when the manifest passed
+				     register+schema+objectId, the object resolved, and no
+				     consumer-supplied slot content is present. Renders the
+				     data + metadata widgets stacked so a `type: "detail"`
+				     manifest page is meaningful without per-app code. The
+				     consumer's slot below short-circuits the auto-body
+				     when present. -->
+				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
+					<CnObjectDataWidget
+						v-if="currentSchema"
+						:schema="currentSchema"
+						:object-data="currentObject"
+						:object-type="resolvedObjectType"
+						:store="effectiveObjectStore" />
+					<CnObjectMetadataWidget :object-data="currentObject" />
+				</div>
+
 				<!-- Default content -->
-				<div class="cn-detail-page__content">
+				<div v-else class="cn-detail-page__content">
 					<slot />
 				</div>
 
@@ -196,7 +213,10 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectStore } from '../../store/index.js'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
+import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -284,6 +304,8 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnLockedBanner,
+		CnObjectDataWidget,
+		CnObjectMetadataWidget,
 	},
 
 	mixins: [gridLayout],
@@ -315,18 +337,23 @@ export default {
 		if (!props.objectStore || !props.subscribe) {
 			return { ...registryExposed, _lockState: null }
 		}
+		// Resolve the effective object-type slug the same way `computed.resolvedObjectType`
+		// does — the explicit `objectType` prop wins, else fuse `register` + `schema`.
+		// The composables take getter functions so the resolution stays reactive when
+		// `register` / `schema` / `objectType` change at runtime.
+		const resolveType = () => props.objectType || (props.register && props.schema ? `${props.register}-${props.schema}` : '')
 		const subscription = useObjectSubscription(
 			props.objectStore,
-			() => props.objectType,
+			resolveType,
 			() => props.objectId,
-			{ enabled: () => Boolean(props.objectType && props.objectId) },
+			{ enabled: () => Boolean(resolveType() && props.objectId) },
 		)
-		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || ''
-		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || ''
+		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || props.register || ''
+		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || props.schema || ''
 		const lock = useObjectLock(
 			props.objectStore,
 			() => sidebarReg,
-			() => props.objectType || sidebarSchema,
+			() => resolveType() || sidebarSchema,
 			() => props.objectId,
 		)
 		return {
@@ -537,9 +564,162 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * OpenRegister register slug. Pair with `schema` to opt into the
+		 * schema-driven mode: the page fuses the two into an internal
+		 * `${register}-${schema}` object-type slug, registers it on the
+		 * store, fetches the object identified by `objectId`, and auto-
+		 * renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when no
+		 * default-slot content is supplied. Compatible with the existing
+		 * `objectType` prop — `objectType` wins on collision, so legacy
+		 * direct mounts are unaffected.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * OpenRegister schema slug. See `register` for the schema-driven
+		 * contract.
+		 *
+		 * @type {string}
+		 */
+		schema: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Tab definitions forwarded to the host App's `CnObjectSidebar`
+		 * via the injected `objectSidebarState`. Each entry follows the
+		 * `CnObjectSidebar` tab shape (see that component for the exact
+		 * fields). When empty (default) the sidebar falls back to its
+		 * own default tab set. The actual `<CnObjectSidebar>` is rendered
+		 * at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar
+		 * pattern); this page only publishes the tabs.
+		 *
+		 * @type {Array<object>}
+		 */
+		sidebarTabs: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	computed: {
+		/**
+		 * Effective object-type slug, used for subscription, lock, store
+		 * registration, fetch, and sidebar state. Explicit `objectType`
+		 * prop wins (existing direct-mount call sites stay untouched);
+		 * otherwise `${register}-${schema}` fuses the schema-driven props
+		 * the manifest renderer passes. Returns `''` when neither path
+		 * yields a slug — the schema-driven gates downstream key off that.
+		 */
+		resolvedObjectType() {
+			if (this.objectType) {
+				return this.objectType
+			}
+			if (this.register && this.schema) {
+				return `${this.register}-${this.schema}`
+			}
+			return ''
+		},
+		/**
+		 * True when this mount is wired for the manifest's schema-driven
+		 * contract: `register`, `schema`, and `objectId` are all set, so
+		 * the page should fetch the object + schema, register the type
+		 * on the store, and render the auto-body widgets when no slot
+		 * content is supplied. Legacy direct mounts (which pass an
+		 * explicit `objectType` instead) return `false` here and skip
+		 * the fetch path entirely.
+		 */
+		hasSchemaDrivenFetch() {
+			return Boolean(this.register && this.schema && this.objectId)
+		},
+		/**
+		 * Pinia store instance used for the schema-driven fetch.
+		 * Mirrors `CnLogsPage.objectStore`: explicit `objectStore` prop
+		 * wins; otherwise falls back to the library's default
+		 * `useObjectStore()`. The composable is invoked lazily inside a
+		 * computed so test mounts that never activate Pinia don't crash.
+		 *
+		 * @return {object|null} The resolved store, or null when the page
+		 *   is not in schema-driven mode (no need to touch Pinia at all).
+		 */
+		effectiveObjectStore() {
+			if (this.objectStore) {
+				return this.objectStore
+			}
+			if (!this.hasSchemaDrivenFetch) {
+				return null
+			}
+			try {
+				return useObjectStore()
+			} catch (err) {
+				// Pinia not active in this consumer — fall back to no-op
+				// and let the page render as if no store-driven content
+				// were available. Real consumers (CnAppRoot-hosted apps)
+				// always have Pinia active, so this branch only protects
+				// stand-alone test mounts.
+				// eslint-disable-next-line no-console
+				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
+				return null
+			}
+		},
+		/**
+		 * The fetched OR object for the schema-driven mode. Read straight
+		 * from the store's normalised `objects[type][id]` cache so any
+		 * other component fetching the same object (sidebar widgets,
+		 * locked-banner) shares state with no second request.
+		 *
+		 * @return {object|null}
+		 */
+		currentObject() {
+			const store = this.effectiveObjectStore
+			if (!store) return null
+			const type = this.resolvedObjectType
+			if (!type || !this.objectId) return null
+			return store.objects?.[type]?.[this.objectId] ?? null
+		},
+		/**
+		 * The fetched JSON Schema for the schema-driven mode. Read from
+		 * the store's `schemas[type]` cache populated by `fetchSchema`.
+		 * Required to render `CnObjectDataWidget` (which takes a schema
+		 * Object, not a slug).
+		 *
+		 * @return {object|null}
+		 */
+		currentSchema() {
+			const store = this.effectiveObjectStore
+			if (!store) return null
+			const type = this.resolvedObjectType
+			if (!type) return null
+			return store.schemas?.[type] ?? null
+		},
+		/**
+		 * True when no consumer-supplied default slot content is
+		 * present. Treats whitespace-only / empty vnodes as no content
+		 * so a stray newline in the template doesn't accidentally
+		 * suppress the auto-body.
+		 */
+		hasDefaultSlotContent() {
+			const nodes = this.$slots.default
+			if (!nodes || !nodes.length) return false
+			return nodes.some(vnode => !(vnode.text !== undefined && vnode.text.trim() === ''))
+		},
+		/**
+		 * True when the auto-body (CnObjectDataWidget + CnObjectMetadataWidget)
+		 * should render. Conditions: schema-driven mount, the object has
+		 * loaded, no consumer slot wins, and the grid-layout mode is not
+		 * active (grid mode owns the body when present).
+		 */
+		shouldRenderAutoBody() {
+			return this.hasSchemaDrivenFetch
+				&& this.currentObject
+				&& !this.hasDefaultSlotContent
+				&& !this.hasGridLayout
+		},
 		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
@@ -596,9 +776,28 @@ export default {
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
+		// Schema-driven props feed both the sidebar state (via
+		// resolvedObjectType) and the auto-fetch path. Re-sync + re-fetch
+		// whenever any of the three move so the page stays consistent if
+		// a parent component swaps the active object.
+		register() {
+			this.syncSidebarState()
+			this.pushAiContext()
+			this.fetchObjectIfNeeded()
+		},
+		schema() {
+			this.syncSidebarState()
+			this.pushAiContext()
+			this.fetchObjectIfNeeded()
+		},
 		objectId() {
 			this.syncSidebarState()
 			this.pushAiContext()
+			this.fetchObjectIfNeeded()
+		},
+		sidebarTabs: {
+			deep: true,
+			handler() { this.syncSidebarState() },
 		},
 		sidebarProps: {
 			deep: true,
@@ -610,9 +809,19 @@ export default {
 		this.pushAiContext()
 	},
 
+	mounted() {
+		// Kick the schema-driven fetch once the component has mounted —
+		// `effectiveObjectStore` relies on a live Pinia context, which
+		// is guaranteed by mounted() but not by created().
+		this.fetchObjectIfNeeded()
+	},
+
 	beforeDestroy() {
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
+			// Clear manifest-driven tabs so the next mount starts fresh
+			// rather than inheriting the previous page's tab strip.
+			this.objectSidebarState.tabs = undefined
 		}
 		// Reset AI context fields so stale detail context doesn't leak
 		if (this.cnAiContext) {
@@ -624,6 +833,52 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Schema-driven fetch entry point — no-op outside the
+		 * `register`+`schema`+`objectId` mode. Registers the type on
+		 * the store with the canonical 4-arg signature (matches what
+		 * `CnIndexPage` does), then fetches the object and its schema
+		 * in parallel. Errors land on `this._fetchError` (exposed via
+		 * the `error` template gate); the loading flag is intentionally
+		 * left to the store's own per-type `loading[type]` so it
+		 * cooperates with parallel fetches from sibling components.
+		 *
+		 * Called from `mounted()` and from the `register` / `schema` /
+		 * `objectId` watchers — every prop change re-runs in one
+		 * place so the request lifecycle stays predictable.
+		 */
+		async fetchObjectIfNeeded() {
+			if (!this.hasSchemaDrivenFetch) return
+			const store = this.effectiveObjectStore
+			if (!store) return
+			const type = this.resolvedObjectType
+			// (slug, schemaId, registerId, slugs) — same shape as the
+			// CnIndexPage / CnLogsPage fix. Passing the slug strings into
+			// the positional id slots is intentional (OR's REST accepts
+			// either numeric ids or kebab slugs there), and the 4th-arg
+			// hints feed the live-updates transport.
+			if (typeof store.registerObjectType === 'function') {
+				store.registerObjectType(
+					type,
+					this.schema,
+					this.register,
+					{ registerSlug: this.register, schemaSlug: this.schema },
+				)
+			}
+			try {
+				const tasks = []
+				if (typeof store.fetchObject === 'function') {
+					tasks.push(store.fetchObject(type, this.objectId))
+				}
+				if (typeof store.fetchSchema === 'function') {
+					tasks.push(store.fetchSchema(type))
+				}
+				await Promise.all(tasks)
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnDetailPage] schema-driven fetch failed:', err)
+			}
+		},
 		/**
 		 * Whether a grid-layout item resolves to an integration-typed
 		 * widget — `def.type === 'integration'` with a string
@@ -666,8 +921,8 @@ export default {
 			const def = this.findWidget(item)
 			const resolved = this.resolvedSidebar || {}
 			const derivedContext = {
-				register: resolved.register || this.sidebarProps?.register || '',
-				schema: resolved.schema || this.objectType || this.sidebarProps?.schema || '',
+				register: resolved.register || this.sidebarProps?.register || this.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
 				objectId: this.objectId ? String(this.objectId) : '',
 			}
 			return {
@@ -687,8 +942,8 @@ export default {
 			const resolved = this.resolvedSidebar || {}
 			this.cnAiContext.pageKind = 'detail'
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
-			this.cnAiContext.registerSlug = resolved.register || this.sidebarProps?.register || undefined
-			this.cnAiContext.schemaSlug = resolved.schema || this.objectType || this.sidebarProps?.schema || undefined
+			this.cnAiContext.registerSlug = resolved.register || this.register || this.sidebarProps?.register || undefined
+			this.cnAiContext.schemaSlug = resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || undefined
 		},
 
 		/**
@@ -708,22 +963,27 @@ export default {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
 			const r = this.resolvedSidebar
-			if (this.sidebarActive && this.objectType && this.objectId) {
+			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				this.objectSidebarState.active = true
 				this.objectSidebarState.open = this.sidebarOpen
-				this.objectSidebarState.objectType = this.objectType
+				this.objectSidebarState.objectType = this.resolvedObjectType
 				this.objectSidebarState.objectId = this.objectId
 				this.objectSidebarState.title = merged.title || this.title || ''
 				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || ''
-				this.objectSidebarState.schema = merged.schema || ''
+				this.objectSidebarState.register = merged.register || this.register || ''
+				this.objectSidebarState.schema = merged.schema || this.schema || ''
 				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
-				// app's mounted CnObjectSidebar via inject). Undefined when
-				// not set so the consumer's CnObjectSidebar falls back to
-				// the built-in tab set.
-				this.objectSidebarState.tabs = merged.tabs
+				// app's mounted CnObjectSidebar via inject). When the
+				// top-level `sidebarTabs` prop is non-empty it provides
+				// the tabs (manifest pattern); otherwise the merged
+				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
+				// Falls back to `undefined` so the host's CnObjectSidebar
+				// renders its built-in tab set.
+				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
+					? this.sidebarTabs
+					: merged.tabs
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined

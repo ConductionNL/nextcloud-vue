@@ -183,10 +183,13 @@ export default {
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts expanded |
-| `objectType` | String | `''` | Registered object type slug for the sidebar |
-| `objectId` | String\|Number | `''` | Object ID to display in the sidebar |
+| `objectType` | String | `''` | Registered object type slug for the sidebar. Legacy direct-mount path; manifest-driven pages prefer the `register` + `schema` pair below. |
+| `objectId` | String\|Number | `''` | Object ID to display in the sidebar (and to fetch in schema-driven mode). |
 | `subtitle` | String | `''` | Subtitle shown in the sidebar header |
-| `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
+| `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. Paired with `schema` + `objectId` makes the page fetch the object via `useObjectStore` and auto-render `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. |
+| `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. Fused with `register` into the canonical `${register}-${schema}` object-type slug. |
+| `sidebarTabs` | Array | `[]` | Tab definitions forwarded to the host App's `CnObjectSidebar` via the injected `objectSidebarState`. Manifest pattern: declare on `pages[].config.sidebarTabs`. Empty array → consumer's `CnObjectSidebar` falls back to its default tab set. |
+| `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) — legacy companion to the top-level `register` / `schema` / `sidebarTabs` props above. |
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |

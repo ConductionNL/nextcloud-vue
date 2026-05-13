@@ -188,6 +188,33 @@
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
 			<!--
+			  Hoisted detail-page object sidebar. Symmetric with the
+			  index-sidebar block above, but the channel is the
+			  injected `objectSidebarState` holder that `CnDetailPage`
+			  publishes into via `syncSidebarState()`. Renders only
+			  when (a) the consumer didn't fill `#sidebar` themselves
+			  AND (b) no ancestor already owns the holder (decidesk's
+			  / procest's pattern — those keep their own
+			  `<CnObjectSidebar>` mount). Manifest-only apps
+			  (openbuilt, mydash) get the sidebar for free; ADR-017
+			  compliant because the component mounts here at
+			  `NcContent` level, not inside `NcAppContent`.
+			-->
+			<CnObjectSidebar
+				v-if="shouldAutoMountObjectSidebar"
+				:title="resolvedObjectSidebarState.title"
+				:subtitle="resolvedObjectSidebarState.subtitle"
+				:object-type="resolvedObjectSidebarState.objectType"
+				:object-id="resolvedObjectSidebarState.objectId"
+				:register="resolvedObjectSidebarState.register"
+				:schema="resolvedObjectSidebarState.schema"
+				:hidden-tabs="resolvedObjectSidebarState.hiddenTabs"
+				:tabs="resolvedObjectSidebarState.tabs"
+				:custom-components="customComponents"
+				:open="resolvedObjectSidebarState.open"
+				@update:open="resolvedObjectSidebarState.open = $event" />
+
+			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
 			  children so its embedded NcAppSidebar slides in from the right
 			  edge (positioning relies on being the last NcContent sibling,
@@ -230,6 +257,7 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import Vue from 'vue'
@@ -257,6 +285,7 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnAiCompanion,
+		CnObjectSidebar,
 	},
 
 	provide() {
@@ -302,6 +331,27 @@ export default {
 			 * hosts).
 			 */
 			cnHostsIndexSidebar: true,
+			/**
+			 * `objectSidebarState` reactive holder. Resolution order:
+			 *
+			 *   1. **Ancestor-provided** — when an outer wrapper
+			 *      (decidesk's / procest's `App.vue` pattern) already
+			 *      exposes one via its own `provide()`, we hand that
+			 *      holder back down so CnDetailPage descendants under
+			 *      this CnAppRoot subtree write to the same object the
+			 *      consumer's `#sidebar` slot reads from. Preserves the
+			 *      pre-change behaviour for those apps with zero change.
+			 *   2. **Local fallback** — manifest-only apps (openbuilt,
+			 *      mydash) hit this branch; CnAppRoot's own observable
+			 *      holder backs the auto-mounted `<CnObjectSidebar>`
+			 *      below and the CnDetailPage publish path. ADR-017
+			 *      compliant — sidebar mounts at NcContent level.
+			 *
+			 * Resolved once at provide-time so the same reference flows
+			 * to every descendant inject for the lifetime of this
+			 * CnAppRoot instance.
+			 */
+			objectSidebarState: this.ancestorObjectSidebarState || this.localObjectSidebarState,
 		}
 	},
 
@@ -327,6 +377,21 @@ export default {
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
+		/**
+		 * Optional ancestor-provided `objectSidebarState` holder. When an
+		 * outer wrapper already exposes one (decidesk's / procest's
+		 * `App.vue` patterns), CnAppRoot reuses that holder so the
+		 * outer-rendered `<CnObjectSidebar>` stays in lock-step with
+		 * CnDetailPage writes. When no ancestor provides it, the local
+		 * fallback in `data().objectSidebarState` kicks in (see the
+		 * resolution in `provide()` and `resolvedObjectSidebarState`)
+		 * so the manifest-only consumer pattern works without any
+		 * per-app boilerplate.
+		 *
+		 * Aliased to `ancestorObjectSidebarState` so the local data
+		 * property can keep the shorter name without colliding.
+		 */
+		ancestorObjectSidebarState: { from: 'objectSidebarState', default: null },
 	},
 
 	props: {
@@ -524,6 +589,32 @@ export default {
 			 */
 			cnIndexSidebarConfig: { value: null },
 			/**
+			 * Local fallback `objectSidebarState` — used only when no
+			 * ancestor provides one (i.e. manifest-only apps that
+			 * haven't hand-rolled a holder in their `App.vue`). Vue 2
+			 * needs `Vue.observable()` to make plain-object property
+			 * writes from `CnDetailPage.syncSidebarState()` reactive.
+			 * The shape mirrors what `CnDetailPage` writes into
+			 * (`active`, `open`, `objectType`, `objectId`, `title`,
+			 * `subtitle`, `register`, `schema`, `hiddenTabs`, `tabs`)
+			 * so the consumer's `<CnObjectSidebar>` — whether
+			 * auto-mounted by CnAppRoot or rendered from a custom
+			 * `#sidebar` slot — sees the full set of fields it
+			 * expects on mount.
+			 */
+			localObjectSidebarState: Vue.observable({
+				active: false,
+				open: true,
+				objectType: '',
+				objectId: '',
+				title: '',
+				subtitle: '',
+				register: '',
+				schema: '',
+				hiddenTabs: [],
+				tabs: undefined,
+			}),
+			/**
 			 * Reactive AI context. Provided to all descendants via
 			 * provide('cnAiContext'). Page components overwrite fields
 			 * in their created() + watch() to give the companion
@@ -580,6 +671,30 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Resolved `objectSidebarState` for template + descendant use.
+		 * Returns the ancestor-provided holder when present, else the
+		 * local observable fallback. Reading it in the template lets
+		 * the auto-mount block stay declarative.
+		 */
+		resolvedObjectSidebarState() {
+			return this.ancestorObjectSidebarState || this.localObjectSidebarState
+		},
+		/**
+		 * True when CnAppRoot should render its own
+		 * `<CnObjectSidebar>` auto-mount. Suppressed when (a) the
+		 * consumer fills the `#sidebar` slot — slot content always
+		 * wins — or (b) an ancestor already provides the holder
+		 * AND the consumer is presumed to render its own sidebar
+		 * upstream (e.g. decidesk's App.vue). In that case the
+		 * ancestor is the source of truth; CnAppRoot stays out of
+		 * the way.
+		 */
+		shouldAutoMountObjectSidebar() {
+			return !this.$slots.sidebar
+				&& !this.ancestorObjectSidebarState
+				&& this.resolvedObjectSidebarState.active === true
+		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the

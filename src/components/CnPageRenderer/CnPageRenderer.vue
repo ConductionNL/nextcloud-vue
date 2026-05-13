@@ -249,11 +249,23 @@ export default {
 			return component
 		},
 		/**
-		 * Props forwarded to the dispatched page component. Merges:
+		 * Props forwarded to the dispatched page component. Merges three
+		 * sources in precedence order (later sources win on collision):
 		 *
-		 *   1. The page's static `config` object — manifest-authored data
-		 *      shared across every visit to this route.
-		 *   2. The router's `$route.params` — dynamic placeholders captured
+		 *   1. The manifest entry's top-level header fields —
+		 *      `page.title`, `page.description`, `page.icon`. These exist
+		 *      on every manifest entry and were the missing wire that left
+		 *      manifest-only detail pages with blank headers. Forwarding
+		 *      them here means a `type: "detail"` page with just
+		 *      `"title": "Virtual app"` renders that title without the
+		 *      manifest author having to duplicate it into `config`.
+		 *
+		 *   2. The page's static `config` object — manifest-authored data
+		 *      shared across every visit to this route. Overrides the
+		 *      top-level fields on collision (so an explicit
+		 *      `config.title` keeps its existing meaning).
+		 *
+		 *   3. The router's `$route.params` — dynamic placeholders captured
 		 *      from the URL (e.g. `/meetings/:id/live` → `{ id: '...' }`).
 		 *      Without this merge, children that declare a route-derived
 		 *      prop (`props: { id: { type: String, required: true } }`)
@@ -261,24 +273,29 @@ export default {
 		 *      value, because the generated route definition's `props: true`
 		 *      only binds params to `CnPageRenderer` itself, not the
 		 *      dispatched child component. Params take precedence over
-		 *      `config` collisions so URL truth wins; config keeps acting
-		 *      as a default-overrides layer.
+		 *      `config` collisions so URL truth wins.
 		 *
 		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			const config = this.currentPage?.config ?? {}
+			const page = this.currentPage
+			const config = page?.config ?? {}
 			const params = this.$route?.params ?? {}
+			const headerDefaults = {
+				title: page?.title,
+				description: page?.description,
+				icon: page?.icon,
+			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
 			// expand to the nine read-only flags MERGED UNDER `config.*`
 			// so explicit `config.showAdd:true` still wins. Strip the
 			// `readOnly` key before forwarding — CnIndexPage has no
 			// `readOnly` prop.
-			if (this.currentPage?.type === 'index' && config.readOnly === true) {
+			if (page?.type === 'index' && config.readOnly === true) {
 				const { readOnly, ...rest } = config
-				return { ...READ_ONLY_DEFAULTS, ...rest, ...params }
+				return { ...headerDefaults, ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
-			return { ...config, ...params }
+			return { ...headerDefaults, ...config, ...params }
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.

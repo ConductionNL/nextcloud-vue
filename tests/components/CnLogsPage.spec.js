@@ -124,9 +124,16 @@ describe('CnLogsPage', () => {
 			stubs,
 		})
 		expect(axios.get).not.toHaveBeenCalled()
-		expect(fakeStore.registerObjectType).toHaveBeenCalledWith('audit-event', {
-			register: 'audit',
-			schema: 'event',
-		})
+		// 4-arg signature `(slug, schemaId, registerId, slugs)` mirrors
+		// CnIndexPage; the manifest's `register`/`schema` slug strings
+		// go into the positional id slots AND into the 4th-arg slug
+		// hints used by the live-updates transport. Passing the slugs
+		// as a single object via the second arg broke fetch URLs.
+		expect(fakeStore.registerObjectType).toHaveBeenCalledWith(
+			'audit-event',
+			'event',
+			'audit',
+			{ registerSlug: 'audit', schemaSlug: 'event' },
+		)
 	})
 })

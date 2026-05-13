@@ -944,10 +944,24 @@ export default {
 			const objectType = `${props.register}-${props.schema}`
 			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 			const objectStore = useObjectStore()
-			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
-			// store has a slot for it before `useListView` issues the first fetch.
+			// Register the `${register}-${schema}` type so the store has a slot
+			// for it before `useListView` issues the first fetch. The store's
+			// signature is `(slug, schemaId, registerId, slugs)` and it builds
+			// the fetch URL as `${baseUrl}/${registerId}/${schemaId}` —
+			// OpenRegister's REST accepts either numeric ids or kebab slugs in
+			// those segments, so the manifest's slug strings go into the
+			// positional id slots AND into the 4th-arg slug hints used by the
+			// live-updates transport. Previously we passed `{register, schema}`
+			// as the second arg, which the store stored under `config.schema`
+			// (an object) with `config.register` undefined — fetch URLs went to
+			// `/api/objects/undefined/[object Object]` and 404'd.
 			if (typeof objectStore.registerObjectType === 'function') {
-				objectStore.registerObjectType(objectType, { register: props.register, schema: props.schema })
+				objectStore.registerObjectType(
+					objectType,
+					props.schema,
+					props.register,
+					{ registerSlug: props.register, schemaSlug: props.schema },
+				)
 			}
 			list = useListView(objectType, {
 				objectStore,
