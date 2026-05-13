@@ -352,6 +352,23 @@ export default {
 			 * CnAppRoot instance.
 			 */
 			objectSidebarState: this.ancestorObjectSidebarState || this.localObjectSidebarState,
+			/**
+			 * Dedicated `sidebarState` holder for CnIndexPage's
+			 * `inject('sidebarState', null) ?? inject('objectSidebarState', null)`.
+			 * Provided so the preferred inject resolves to a holder
+			 * with the right shape (CnIndexPage writes
+			 * `searchValue`/`activeFilters`/`facetData`/`schema`-as-JSON-
+			 * schema), and the fallback to `objectSidebarState` (which
+			 * carries CnDetailPage's per-object publish) never fires.
+			 *
+			 * Before this fix the fallback resolved to
+			 * `localObjectSidebarState` and CnIndexPage's writes were
+			 * setting `active: true` on it — so the auto-mounted
+			 * `<CnObjectSidebar>` rendered alongside `<CnIndexSidebar>`
+			 * on index pages. See the openbuilt index-page double-
+			 * sidebar regression that surfaced after PR #227.
+			 */
+			sidebarState: this.localIndexPageSidebarState,
 		}
 	},
 
@@ -615,6 +632,28 @@ export default {
 				tabs: undefined,
 			}),
 			/**
+			 * Local `sidebarState` holder for `CnIndexPage`. Distinct from
+			 * `localObjectSidebarState` above because CnIndexPage writes
+			 * search / filter / column / schema-metadata state into it,
+			 * which has a different shape from CnDetailPage's object-
+			 * sidebar publish. CnIndexPage's `inject('sidebarState') ??
+			 * inject('objectSidebarState')` would have fallen through to
+			 * the object holder once CnAppRoot started providing one —
+			 * that conflated the two channels and made `CnObjectSidebar`
+			 * render with `active: true` on index pages alongside
+			 * `CnIndexSidebar`. Providing this dedicated holder makes the
+			 * preferred inject resolve, so the fallback never fires.
+			 */
+			localIndexPageSidebarState: Vue.observable({
+				active: false,
+				open: true,
+				schema: null,
+				hiddenTabs: [],
+				searchValue: '',
+				activeFilters: {},
+				facetData: {},
+			}),
+			/**
 			 * Reactive AI context. Provided to all descendants via
 			 * provide('cnAiContext'). Page components overwrite fields
 			 * in their created() + watch() to give the companion
@@ -682,18 +721,28 @@ export default {
 		},
 		/**
 		 * True when CnAppRoot should render its own
-		 * `<CnObjectSidebar>` auto-mount. Suppressed when (a) the
-		 * consumer fills the `#sidebar` slot — slot content always
-		 * wins — or (b) an ancestor already provides the holder
-		 * AND the consumer is presumed to render its own sidebar
-		 * upstream (e.g. decidesk's App.vue). In that case the
-		 * ancestor is the source of truth; CnAppRoot stays out of
-		 * the way.
+		 * `<CnObjectSidebar>` auto-mount. Suppressed when:
+		 *
+		 *   - the consumer fills the `#sidebar` slot — slot content
+		 *     always wins;
+		 *   - an ancestor already provides the holder (decidesk's /
+		 *     procest's `App.vue` pattern) — the ancestor renders its
+		 *     own sidebar, so CnAppRoot stays out of the way;
+		 *   - the holder hasn't published a real per-object context
+		 *     (`objectType` AND `objectId` both non-empty). Defense in
+		 *     depth: if some other code path (e.g. CnIndexPage falling
+		 *     through to objectSidebarState as a legacy inject) flips
+		 *     `active: true` without populating those fields, we still
+		 *     refuse to render an empty object sidebar.
 		 */
 		shouldAutoMountObjectSidebar() {
-			return !this.$slots.sidebar
-				&& !this.ancestorObjectSidebarState
-				&& this.resolvedObjectSidebarState.active === true
+			if (this.$slots.sidebar) return false
+			if (this.ancestorObjectSidebarState) return false
+			const s = this.resolvedObjectSidebarState
+			if (s.active !== true) return false
+			if (typeof s.objectType !== 'string' || s.objectType === '') return false
+			if (s.objectId === null || s.objectId === undefined || String(s.objectId) === '') return false
+			return true
 		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
