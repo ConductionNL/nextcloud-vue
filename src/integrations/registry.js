@@ -21,6 +21,7 @@
  * @module integrations/registry
  */
 
+// eslint-disable-next-line no-undef
 const DEV = process.env.NODE_ENV !== 'production'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -47,7 +48,6 @@ export function createIntegrationRegistry() {
 				// One bad subscriber shouldn't take down the rest of
 				// the chain. Surface in dev so it gets noticed.
 				if (DEV) {
-					// eslint-disable-next-line no-console
 					console.error('[integrations] onChange subscriber threw', e)
 				}
 			}
@@ -98,7 +98,7 @@ export function createIntegrationRegistry() {
 			if (DEV) {
 				throw new Error(message)
 			}
-			// eslint-disable-next-line no-console
+
 			console.warn(message)
 			return null
 		}
@@ -192,7 +192,6 @@ export function createIntegrationRegistry() {
 			return null
 		}
 		if (DEV && !VALID_SURFACES.includes(surface)) {
-			// eslint-disable-next-line no-console
 			console.warn(`[integrations] unknown surface "${surface}" — falling back to default widget`)
 		}
 		if (surface === 'user-dashboard' && entry.widgetCompact !== null) {
@@ -291,7 +290,6 @@ export function installIntegrationRegistry(globalRef) {
 				integrations.register(queued)
 			} catch (e) {
 				if (DEV) {
-					// eslint-disable-next-line no-console
 					console.error('[integrations] failed to replay queued registration', queued, e)
 				}
 			}

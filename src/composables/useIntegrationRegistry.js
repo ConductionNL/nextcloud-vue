@@ -19,7 +19,7 @@
  * }
  */
 
-import { onBeforeUnmount, shallowRef, computed } from 'vue'
+import { computed, onBeforeUnmount, shallowRef } from 'vue'
 import { integrations as defaultRegistry } from '../integrations/registry.js'
 
 /**

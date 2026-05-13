@@ -71,10 +71,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { CnSettingsSection } from '../CnSettingsSection/index.js'
-import { NcLoadingIcon, NcButton } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Update from 'vue-material-design-icons/Update.vue'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
  * CnVersionInfoCard - App version information card for admin settings pages.
@@ -131,51 +131,61 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Version information'),
 		},
+
 		/** Section description */
 		description: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Information about the current application installation'),
 		},
+
 		/** Documentation URL (shows info icon next to title) */
 		docUrl: {
 			type: String,
 			default: '',
 		},
+
 		/** Card heading text */
 		cardTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Application information'),
 		},
+
 		/** Application name to display */
 		appName: {
 			type: String,
 			required: true,
 		},
+
 		/** Application version string */
 		appVersion: {
 			type: String,
 			required: true,
 		},
+
 		/** Configured version (optional, for apps that track configuration versions separately) */
 		configuredVersion: {
 			type: String,
 			default: '',
 		},
+
 		/** Whether the app configuration is up to date */
 		isUpToDate: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the update button */
 		showUpdateButton: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether an update is currently in progress */
 		updating: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Additional key-value items to display.
 		 * Format: [{ label: 'Label', value: 'Value', statusClass: 'cn-version-info__status--ok' }]
@@ -184,11 +194,13 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether version info is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Custom labels for the standard fields */
 		labels: {
 			type: Object,

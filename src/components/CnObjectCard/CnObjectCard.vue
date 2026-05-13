@@ -6,7 +6,7 @@
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:checked="selected"
+				:model-value="selected"
 				@update:checked="$emit('select', object)" />
 		</div>
 
@@ -61,8 +61,8 @@
 
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { formatValue } from '../../utils/schema.js'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.
@@ -92,21 +92,25 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Schema definition with properties and configuration */
 		schema: {
 			type: Object,
 			required: true,
 		},
+
 		/** Whether this card is selected */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show selection checkbox */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,

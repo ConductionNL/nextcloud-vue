@@ -127,10 +127,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
-import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import Alert from 'vue-material-design-icons/Alert.vue'
-import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
+import AlertCircle from 'vue-material-design-icons/AlertCircle.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+import PencilOutline from 'vue-material-design-icons/PencilOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPropertyValueCell from './CnPropertyValueCell.vue'
 
@@ -148,13 +148,21 @@ export default {
 	},
 
 	props: {
+		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
+		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/** Current form data object */
 		formData: { type: Object, default: () => ({}) },
+		/** Key of the currently selected property */
 		selectedProperty: { type: String, default: null },
+		/** JSON Schema types that can be edited inline */
 		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean', 'array', 'object'] },
+		/** How to display validation results: "indicator" or "none" */
 		validationDisplay: { type: String, default: 'indicator' },
+		/** Field keys to hide from the form */
 		excludeFields: { type: Array, default: () => [] },
+		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
 		/**
 		 * When false (default), properties whose schema entry has `const`
@@ -178,19 +186,22 @@ export default {
 		 * Any other CSS color string is applied directly.
 		 */
 		propCellColor: { type: String, default: null },
+		/** Whether this is a new item (create mode) */
 		isNew: { type: Boolean, default: false },
 	},
 
 	computed: {
 		hasUnsavedChanges() {
 			if (this.isNew) return false
-			return Object.keys(this.formData).some(key => this.isValueChanged(key))
+			return Object.keys(this.formData).some((key) => this.isValueChanged(key))
 		},
+
 		propCellStyle() {
 			if (this.propCellColor === null) return undefined
 			if (this.propCellColor === 'none') return { boxShadow: 'none' }
 			return { boxShadow: `inset 3px 0 0 0 ${this.propCellColor}` }
 		},
+
 		objectProperties() {
 			const schemaProps = this.schema?.properties || {}
 			const obj = this.item || {}
@@ -207,7 +218,7 @@ export default {
 			const missing = []
 			for (const [key, prop] of Object.entries(schemaProps)) {
 				if (!filterKey(key)) continue
-				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (!Object.hasOwn(obj, key)) {
 					missing.push([key, this.defaultForProperty(prop)])
 				}
 			}
@@ -298,6 +309,7 @@ export default {
 
 		/**
 		 * The effective value for a key: formData override or the object's own value
+		 *
 		 * @param {string} key - The property key to look up
 		 * @param {*} objectValue - The fallback value from the object
 		 */
@@ -309,6 +321,7 @@ export default {
 		 * Initial display value for a schema property that doesn't yet exist on the
 		 * object. Honors `default` and `const` first, then falls back to the
 		 * type-appropriate empty value.
+		 *
 		 * @param {object} prop - The schema property entry.
 		 */
 		defaultForProperty(prop) {
@@ -316,13 +329,13 @@ export default {
 			if (prop.default !== undefined) return prop.default
 			if (prop.const !== undefined) return prop.const
 			switch (prop.type) {
-			case 'string': return ''
-			case 'number':
-			case 'integer': return 0
-			case 'boolean': return false
-			case 'array': return []
-			case 'object': return {}
-			default: return ''
+				case 'string': return ''
+				case 'number':
+				case 'integer': return 0
+				case 'boolean': return false
+				case 'array': return []
+				case 'object': return {}
+				default: return ''
 			}
 		},
 
@@ -334,6 +347,7 @@ export default {
 		 * Whether a property is marked required either via `schema.required: [...]`
 		 * (the JSON-Schema-canonical place) or via `prop.required: true` on the
 		 * property entry itself (a non-standard but commonly seen variant).
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
@@ -348,6 +362,7 @@ export default {
 		 * should be hide-able via the show/hide toggle. Note: `immutable` /
 		 * `readOnly` are NOT considered constant — they're set on creation
 		 * and locked afterward, but should remain visible in the form.
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
@@ -356,6 +371,7 @@ export default {
 		 * for this property — i.e. the prop is settable on creation but
 		 * locks once persisted, AND it isn't already locked. Once locked the
 		 * lock icon takes over and the badge would be redundant.
+		 *
 		 * @param {string} key - Property key.
 		 * @return {boolean}
 		 */
@@ -377,8 +393,7 @@ export default {
 		// `value` is intentionally unused — kept in the signature for callers
 		// that already pass it (slot consumers, the cell, the row click
 		// handler). Editability is now driven by the persisted `item`.
-		// eslint-disable-next-line no-unused-vars
-		isPropertyEditable(key, value) {
+		isPropertyEditable(key, _value) {
 			const prop = this.schema?.properties?.[key]
 			if (!prop) return true
 			if (prop.const !== undefined) return false
@@ -389,7 +404,7 @@ export default {
 			const lockOnce = prop.immutable === true || prop.readOnly === true
 			if (lockOnce) {
 				const persisted = this.item && this.item[key]
-				if (persisted != null && persisted !== '') return false
+				if (persisted !== null && persisted !== undefined && persisted !== '') return false
 			}
 			const type = prop.type || 'string'
 			return this.editableTypes.includes(type)
@@ -413,17 +428,17 @@ export default {
 		getPropertyValidationClass(key, value) {
 			const state = this.getPropertyValidationState(key, value)
 			switch (state) {
-			case 'invalid': return 'cn-advanced-form-dialog__table-row--invalid'
-			case 'warning': return 'cn-advanced-form-dialog__table-row--warning'
-			case 'new': return 'cn-advanced-form-dialog__table-row--new'
-			case 'valid': return 'cn-advanced-form-dialog__table-row--valid'
-			default: return ''
+				case 'invalid': return 'cn-advanced-form-dialog__table-row--invalid'
+				case 'warning': return 'cn-advanced-form-dialog__table-row--warning'
+				case 'new': return 'cn-advanced-form-dialog__table-row--new'
+				case 'valid': return 'cn-advanced-form-dialog__table-row--valid'
+				default: return ''
 			}
 		},
 
 		getPropertyValidationState(key, value) {
 			const prop = this.schema?.properties?.[key]
-			const existsInObject = this.item ? Object.prototype.hasOwnProperty.call(this.item, key) : false
+			const existsInObject = this.item ? Object.hasOwn(this.item, key) : false
 			if (!prop) return 'warning'
 			if (!existsInObject) return 'new'
 			if (this.isValidPropertyValue(key, value, prop)) return 'valid'
@@ -437,23 +452,23 @@ export default {
 			}
 			const type = schemaProperty?.type || 'string'
 			switch (type) {
-			case 'string':
-				if (typeof value !== 'string') return false
-				if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) return false
-				if (schemaProperty?.format === 'email' && !this.isValidEmail(value)) return false
-				if (schemaProperty?.format === 'uri' && !this.isValidUri(value)) return false
-				if (schemaProperty?.const && value !== schemaProperty.const) return false
-				return true
-			case 'number':
-				return typeof value === 'number' && !Number.isNaN(value)
-			case 'boolean':
-				return typeof value === 'boolean'
-			case 'array':
-				return Array.isArray(value)
-			case 'object':
-				return typeof value === 'object' && value !== null && !Array.isArray(value)
-			default:
-				return true
+				case 'string':
+					if (typeof value !== 'string') return false
+					if (schemaProperty?.format === 'date-time' && !this.isValidDate(value)) return false
+					if (schemaProperty?.format === 'email' && !this.isValidEmail(value)) return false
+					if (schemaProperty?.format === 'uri' && !this.isValidUri(value)) return false
+					if (schemaProperty?.const && value !== schemaProperty.const) return false
+					return true
+				case 'number':
+					return typeof value === 'number' && !Number.isNaN(value)
+				case 'boolean':
+					return typeof value === 'boolean'
+				case 'array':
+					return Array.isArray(value)
+				case 'object':
+					return typeof value === 'object' && value !== null && !Array.isArray(value)
+				default:
+					return true
 			}
 		},
 

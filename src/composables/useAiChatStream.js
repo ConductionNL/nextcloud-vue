@@ -16,9 +16,9 @@
  * - Sends the active cnAiContext snapshot in every outgoing request body.
  */
 
-import Vue from 'vue'
-import axios from '@nextcloud/axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
+import axios from '@nextcloud/axios'
+import Vue from 'vue'
 import { useAiContext } from './useAiContext.js'
 
 const STREAM_URL = '/index.php/apps/openregister/api/chat/stream'
@@ -61,6 +61,7 @@ export function useAiChatStream(contextInstance) {
 
 	/**
 	 * Get the current cnAiContext snapshot for inclusion in request bodies.
+	 *
 	 * @returns {object}
 	 */
 	function getContextSnapshot() {
@@ -77,6 +78,7 @@ export function useAiChatStream(contextInstance) {
 
 	/**
 	 * Handle an individual SSE message frame.
+	 *
 	 * @param {object} msg - { event, data } from fetchEventSource
 	 */
 	function handleSseMessage(msg) {
@@ -89,55 +91,56 @@ export function useAiChatStream(contextInstance) {
 		}
 
 		switch (event) {
-		case 'token':
-			state.currentText += (parsed.delta || '')
-			break
+			case 'token':
+				state.currentText += (parsed.delta || '')
+				break
 
-		case 'tool_call':
-			state.toolCalls.push({
-				toolId: parsed.toolId,
-				arguments: parsed.arguments,
-				result: undefined,
-				isError: false,
-			})
-			break
+			case 'tool_call':
+				state.toolCalls.push({
+					toolId: parsed.toolId,
+					arguments: parsed.arguments,
+					result: undefined,
+					isError: false,
+				})
+				break
 
-		case 'tool_result': {
-			const entry = state.toolCalls.find((tc) => tc.toolId === parsed.toolId)
-			if (entry) {
-				entry.result = parsed.result
-				entry.isError = Boolean(parsed.isError)
+			case 'tool_result': {
+				const entry = state.toolCalls.find((tc) => tc.toolId === parsed.toolId)
+				if (entry) {
+					entry.result = parsed.result
+					entry.isError = Boolean(parsed.isError)
+				}
+				break
 			}
-			break
-		}
 
-		case 'heartbeat':
+			case 'heartbeat':
 			// Liveness signal only — no UI update
-			break
+				break
 
-		case 'final':
+			case 'final':
 			// Commit the streamed text as a finalised assistant message.
 			// If no `token` events arrived (non-streaming-provider fallback path —
 			// the contract allows the server to emit only the terminal `final`
 			// event with `fullText` for providers that don't stream), seed
 			// `currentText` from the payload so the assistant bubble renders.
-			if (state.currentText === '' && typeof parsed.fullText === 'string') {
-				state.currentText = parsed.fullText
-			}
-			finalise(parsed.messageId)
-			break
+				if (state.currentText === '' && typeof parsed.fullText === 'string') {
+					state.currentText = parsed.fullText
+				}
+				finalise(parsed.messageId)
+				break
 
-		case 'error':
-			fail(parsed.code || 'unknown', parsed.message || 'Unknown error')
-			break
+			case 'error':
+				fail(parsed.code || 'unknown', parsed.message || 'Unknown error')
+				break
 
-		default:
-			break
+			default:
+				break
 		}
 	}
 
 	/**
 	 * Push the completed assistant message into state.messages and resolve send().
+	 *
 	 * @param {string|undefined} messageId - Server-supplied id from the final event;
 	 *   when empty/missing we synthesise a stable client-side id so Vue's :key
 	 *   stays unique within the conversation.
@@ -162,7 +165,12 @@ export function useAiChatStream(contextInstance) {
 		}
 	}
 
-	/** Handle an error event or transport failure. */
+	/**
+	 * Handle an error event or transport failure.
+	 *
+	 * @param code
+	 * @param message
+	 */
 	function fail(code, message) {
 		state.isStreaming = false
 		state.currentText = ''
@@ -180,6 +188,7 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Non-streaming fallback: POST to /api/chat/send via axios, then synthesise
 	 * a single "final" event from the JSON response.
+	 *
 	 * @param {string} content
 	 * @param {object} body
 	 */
@@ -339,14 +348,13 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Load an existing conversation's messages into the state.
 	 * Used by CnAiHistoryDialog when the user selects a past conversation.
+	 *
 	 * @param {string} conversationUuid
 	 * @returns {Promise<void>}
 	 */
 	async function loadConversation(conversationUuid) {
 		try {
-			const response = await axios.get(
-				`/index.php/apps/openregister/api/chat/conversations/${conversationUuid}`,
-			)
+			const response = await axios.get(`/index.php/apps/openregister/api/chat/conversations/${conversationUuid}`)
 			const data = response.data
 			const messages = Array.isArray(data.messages) ? data.messages : (data.results || [])
 			state.messages = messages.map((m) => ({
@@ -357,7 +365,6 @@ export function useAiChatStream(contextInstance) {
 			// Don't force a new thread — resume this conversation
 			state._newThread = false
 		} catch (err) {
-			// eslint-disable-next-line no-console
 			console.info('[useAiChatStream] Could not load conversation:', err?.message)
 		}
 	}

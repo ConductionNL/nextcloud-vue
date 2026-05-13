@@ -29,7 +29,7 @@
 		"test": "jest",
 		"test:types": "tsd",
 		"lint": "eslint src/",
-		"lint-fix": "npm run lint -- --fix",
+		"lint-fix": "npm run lint -- --fix; rc=$?; node scripts/sync-l10n-ellipsis.js; exit $rc",
 		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
 		"check:docs": "node scripts/check-docs.js",
 		"check:jsdoc": "node scripts/check-jsdoc.js",

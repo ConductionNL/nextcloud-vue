@@ -118,9 +118,7 @@ export function registerMappingPlugin() {
 							if (Array.isArray(reg.schemas) && reg.schemas.length > 0) {
 								this.registerSchemas = {
 									...this.registerSchemas,
-									[String(reg.id)]: reg.schemas.filter(
-										(s) => s && typeof s === 'object' && s.id,
-									),
+									[String(reg.id)]: reg.schemas.filter((s) => s && typeof s === 'object' && s.id),
 								}
 							}
 						}
@@ -153,9 +151,7 @@ export function registerMappingPlugin() {
 				// Check registers array for expanded schemas
 				const register = this.registers.find((r) => String(r.id) === id)
 				if (register?.schemas?.length > 0) {
-					const schemas = register.schemas.filter(
-						(s) => s && typeof s === 'object' && s.id,
-					)
+					const schemas = register.schemas.filter((s) => s && typeof s === 'object' && s.id)
 					if (schemas.length > 0) {
 						this.registerSchemas = { ...this.registerSchemas, [id]: schemas }
 						return schemas
@@ -171,9 +167,7 @@ export function registerMappingPlugin() {
 					if (!response.ok) return []
 
 					const data = await response.json()
-					const schemas = (data.schemas || []).filter(
-						(s) => s && typeof s === 'object' && s.id,
-					)
+					const schemas = (data.schemas || []).filter((s) => s && typeof s === 'object' && s.id)
 					this.registerSchemas = { ...this.registerSchemas, [id]: schemas }
 					return schemas
 				} catch {

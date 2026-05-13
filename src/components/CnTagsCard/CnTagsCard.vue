@@ -66,6 +66,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Whether the card collapses. */
@@ -93,7 +94,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchTags() } },
+			handler(id) {
+				if (id) {
+					this.fetchTags()
+				}
+			},
 		},
 	},
 
@@ -115,7 +120,6 @@ export default {
 					this.tags = []
 				}
 			} catch (err) {
-				// eslint-disable-next-line no-console
 				console.error('[CnTagsCard] failed to fetch tags', err)
 				this.tags = []
 			} finally {

@@ -1,14 +1,14 @@
 <template>
 	<div class="cn-schema-form__form-editor">
-		<NcTextArea :disabled="loading"
-			:label="t('nextcloud-vue', 'Description')"
-			:value.sync="schema.description" />
-		<NcTextArea :disabled="loading"
-			:label="t('nextcloud-vue', 'Summary')"
-			:value.sync="schema.summary" />
-		<NcTextField :disabled="loading"
-			:label="t('nextcloud-vue', 'Slug')"
-			:value.sync="schema.slug" />
+		<NcTextArea v-model="schema.description"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Description')" />
+		<NcTextArea v-model="schema.summary"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Summary')" />
+		<NcTextField v-model="schema.slug"
+			:disabled="loading"
+			:label="t('nextcloud-vue', 'Slug')" />
 
 		<!-- Schema Composition Section -->
 		<div>
@@ -21,7 +21,7 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:close-on-select="false"
+				keep-open
 				label="title"
 				track-by="id"
 				:input-label="t('nextcloud-vue', 'allOf - Inherits from ALL schemas (Recommended)')"
@@ -54,7 +54,7 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:close-on-select="false"
+				keep-open
 				label="title"
 				track-by="id"
 				:input-label="t('nextcloud-vue', 'oneOf - Exactly one schema must match')"
@@ -78,7 +78,7 @@
 				:options="availableSchemas"
 				:multiple="true"
 				:clearable="true"
-				:close-on-select="false"
+				keep-open
 				label="title"
 				track-by="id"
 				:input-label="t('nextcloud-vue', 'anyOf - At least one schema must match')"
@@ -124,13 +124,13 @@
 			:input-label="t('nextcloud-vue', 'Object summary field')"
 			:placeholder="t('nextcloud-vue', 'Select a property to use as object summary. e.g. summary, abstract, or excerpt')" />
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			:checked.sync="schema.configuration.allowFiles">
+			v-model="schema.configuration.allowFiles"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Allow files') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			:checked.sync="schema.configuration.autoPublish">
+			v-model="schema.configuration.autoPublish"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Auto-publish objects') }}
 		</NcCheckboxRadioSwitch>
 		<NcTextField
@@ -140,22 +140,22 @@
 			:placeholder="t('nextcloud-vue', 'image, document, audio, video')"
 			@update:value="updateAllowedTags" />
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			:checked.sync="schema.hardValidation">
+			v-model="schema.hardValidation"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Hard validation') }}
 		</NcCheckboxRadioSwitch>
-		<NcTextField :disabled="loading"
-			:label="t('nextcloud-vue', 'Max depth')"
-			type="number"
-			:value.sync="schema.maxDepth" />
-		<NcCheckboxRadioSwitch
+		<NcTextField v-model="schema.maxDepth"
 			:disabled="loading"
-			:checked.sync="schema.immutable">
+			:label="t('nextcloud-vue', 'Max depth')"
+			type="number" />
+		<NcCheckboxRadioSwitch
+			v-model="schema.immutable"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			:disabled="loading"
-			:checked.sync="schema.searchable">
+			v-model="schema.searchable"
+			:disabled="loading">
 			{{ t('nextcloud-vue', 'Searchable in SOLR') }}
 		</NcCheckboxRadioSwitch>
 	</div>
@@ -164,11 +164,11 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcTextField,
-	NcTextArea,
-	NcNoteCard,
 	NcCheckboxRadioSwitch,
+	NcNoteCard,
 	NcSelect,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 
 /**
@@ -186,6 +186,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcSelect,
 	},
+
 	props: {
 		/** The full schema item — mutated directly */
 		schemaItem: { type: Object, required: true },
@@ -198,17 +199,20 @@ export default {
 		/** Pre-computed names for allOf note card display */
 		allOfSchemaNames: { type: Array, default: () => [] },
 	},
+
 	data() {
 		return {
 			allowedTagsInput: '',
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
 		},
 	},
+
 	watch: {
 		'schema.configuration.allowedTags': {
 			immediate: true,
@@ -217,13 +221,14 @@ export default {
 			},
 		},
 	},
+
 	methods: {
 		t,
 		updateAllowedTags(value) {
 			if (!value || value.trim() === '') {
 				this.$set(this.schema.configuration, 'allowedTags', [])
 			} else {
-				const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+				const tags = value.split(',').map((tag) => tag.trim()).filter((tag) => tag !== '')
 				this.$set(this.schema.configuration, 'allowedTags', tags)
 			}
 		},

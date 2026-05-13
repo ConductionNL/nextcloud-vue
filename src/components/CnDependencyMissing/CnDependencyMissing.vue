@@ -50,12 +50,14 @@ export default {
 		 *   set; otherwise the default Nextcloud apps page is used
 		 * - `enabled` discriminates the link label: `false` means the
 		 *   app is installed but disabled; otherwise it's not installed
+		 *
 		 * @type {Array<{id: string, name: string, installUrl: string, enabled: boolean}>}
 		 */
 		dependencies: {
 			type: Array,
 			required: true,
 		},
+
 		/**
 		 * Optional name of the host app, included in the default heading.
 		 *
@@ -65,21 +67,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Heading text. Override for localisation. */
 		heading: {
 			type: String,
 			default: 'Required apps are missing',
 		},
+
 		/** Introductory text under the heading. */
 		intro: {
 			type: String,
 			default: 'This app needs the following Nextcloud apps to be installed and enabled.',
 		},
+
 		/** Label for the install link. */
 		installLabel: {
 			type: String,
 			default: 'Install',
 		},
+
 		/** Label for the enable link (used when dep.enabled === false). */
 		enableLabel: {
 			type: String,

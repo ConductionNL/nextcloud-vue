@@ -1,8 +1,8 @@
-import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { validateManifest } from '../utils/validateManifest.js'
+import { ref } from 'vue'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
+import { validateManifest } from '../utils/validateManifest.js'
 
 /**
  * Composable that loads, resolves, and validates a Conduction app manifest.
@@ -148,7 +148,7 @@ function loadInMemory(input) {
 		const result = validateManifest(input.manifest)
 		if (!result.valid) {
 			validationErrors.value = result.errors
-			// eslint-disable-next-line no-console
+
 			console.warn(
 				'[useAppManifest] In-memory manifest failed schema validation; manifest is mounted unchanged (validation is informational).',
 				result.errors,
@@ -203,7 +203,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 			const result = validateManifest(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors
-				// eslint-disable-next-line no-console
+
 				console.warn(
 					'[useAppManifest] Backend manifest failed schema validation; falling back to bundled manifest.',
 					result.errors,
@@ -211,7 +211,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 				return
 			}
 			manifest.value = resolved
-		} catch (err) {
+		} catch (_err) {
 			// Silent fallback on 404, network errors, non-200 responses.
 			// Apps without a backend endpoint should keep working.
 		} finally {

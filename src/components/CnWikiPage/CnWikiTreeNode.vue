@@ -44,11 +44,13 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/** Property holding the node label. */
 		titleField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Property holding the children array. */
 		treeField: {
 			type: String,
@@ -71,11 +73,13 @@ export default {
 			const value = this.node?.[this.titleField]
 			return typeof value === 'string' ? value : ''
 		},
+
 		/** Children array, or empty for leaves. */
 		children() {
 			const value = this.node?.[this.treeField]
 			return Array.isArray(value) ? value : []
 		},
+
 		/** Whether the node has children. */
 		hasChildren() {
 			return this.children.length > 0
@@ -87,6 +91,7 @@ export default {
 		onClick() {
 			this.$emit('click', this.node)
 		},
+
 		/**
 		 * Bubble a child's click event up unchanged so the original
 		 * leaf node arrives at the CnWikiPage `@tree-click` listener.
@@ -96,6 +101,7 @@ export default {
 		bubble(node) {
 			this.$emit('click', node)
 		},
+
 		/**
 		 * Stable v-for key for nested children.
 		 *

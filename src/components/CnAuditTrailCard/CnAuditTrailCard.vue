@@ -80,6 +80,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -110,6 +111,7 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Audit trail')
 		},
+
 		displayedEntries() {
 			return this.entries.slice(0, this.maxDisplay)
 		},
@@ -118,7 +120,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchEntries() } },
+			handler(id) {
+				if (id) {
+					this.fetchEntries()
+				}
+			},
 		},
 	},
 
@@ -156,7 +162,6 @@ export default {
 					this.entries = []
 				}
 			} catch (err) {
-				// eslint-disable-next-line no-console
 				console.error('[CnAuditTrailCard] failed to fetch audit trail', err)
 				this.entries = []
 			} finally {

@@ -117,8 +117,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
-import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import CnWikiTreeNode from './CnWikiTreeNode.vue'
+import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 
 /**
  * CnWikiPage — Manifest-driven markdown article surface.
@@ -144,6 +144,7 @@ import CnWikiTreeNode from './CnWikiTreeNode.vue'
  *     :article="article"
  *     :tree="categoryTree"
  *     :sidebar-schema="'category'"
+ *
  *     @tree-click="onCategoryClick" />
  */
 export default {
@@ -168,6 +169,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * The (optional) sidebar tree. Each node:
 		 * `{ id, [titleField], children?: [...] }`. Empty array hides
@@ -179,6 +181,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * OpenRegister register slug. Informational at this layer
 		 * (the consumer does the fetch); declared as a prop so the
@@ -189,6 +192,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * OpenRegister schema slug. Informational at this layer —
 		 * see `register` above.
@@ -197,6 +201,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Property on `article` holding the markdown body. Defaults
 		 * to `'body'`.
@@ -205,6 +210,7 @@ export default {
 			type: String,
 			default: 'body',
 		},
+
 		/**
 		 * Property on `article` holding the page title. Defaults
 		 * to `'title'`.
@@ -213,6 +219,7 @@ export default {
 			type: String,
 			default: 'title',
 		},
+
 		/**
 		 * `$route.params` key holding the article id. Informational at
 		 * this layer; declared so the consumer's data store can wire
@@ -222,6 +229,7 @@ export default {
 			type: String,
 			default: 'id',
 		},
+
 		/**
 		 * Schema slug for the sidebar tree. When set AND `tree` is
 		 * non-empty the sidebar renders. Unset suppresses the sidebar
@@ -231,6 +239,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Register slug for the sidebar tree. Defaults to `register`
 		 * when unset (the common case).
@@ -239,6 +248,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Property on each sidebar node holding its child array.
 		 * Defaults to `'children'`.
@@ -247,6 +257,7 @@ export default {
 			type: String,
 			default: 'children',
 		},
+
 		/**
 		 * Property on each sidebar node holding its label. Defaults
 		 * to `titleField` (so `'title'` unless overridden).
@@ -255,21 +266,25 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** Empty-state heading when `article` is null. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Article not found'),
 		},
+
 		/** Empty-state description when `article` is null. */
 		emptyDescription: {
 			type: String,
 			default: () => t('nextcloud-vue', 'The requested article could not be found.'),
 		},
+
 		/** Empty-body heading when the article has no `contentField`. */
 		emptyBodyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No content'),
 		},
+
 		/** Empty-body description when the article has no `contentField`. */
 		emptyBodyDescription: {
 			type: String,
@@ -301,6 +316,7 @@ export default {
 		effectiveSidebarTitleField() {
 			return this.sidebarTitleField || this.titleField
 		},
+
 		/**
 		 * Whether the sidebar should render. Both a non-empty tree
 		 * AND an explicit `sidebarSchema` are required — the schema
@@ -310,12 +326,14 @@ export default {
 		hasSidebar() {
 			return Boolean(this.sidebarSchema) && Array.isArray(this.tree) && this.tree.length > 0
 		},
+
 		/** Article title resolved through `titleField`. */
 		resolvedTitle() {
 			if (!this.article) return ''
 			const value = this.article[this.titleField]
 			return typeof value === 'string' ? value : ''
 		},
+
 		/**
 		 * Article body parsed to HTML through `cnRenderMarkdown`.
 		 * Empty string when the article is null or has no body.
@@ -341,6 +359,7 @@ export default {
 		onTreeClick(node) {
 			this.$emit('tree-click', node)
 		},
+
 		/**
 		 * Stable v-for key for tree nodes — prefer `id`, fall back
 		 * to the title field, finally to JSON-stringified shape.

@@ -9,7 +9,7 @@
 				v-if="resolvedWidget === 'boolean'"
 				class="cn-advanced-form-dialog__boolean-input-row">
 				<NcCheckboxRadioSwitch
-					:checked="!!value"
+					:model-value="!!value"
 					type="switch"
 					class="cn-advanced-form-dialog__boolean-input-row__input"
 					@update:checked="emit($event)">
@@ -31,13 +31,13 @@
 					@input="onChromeColorInput" />
 				<NcTextField
 					ref="inputRef"
-					:value="colorTextValue"
+					:model-value="colorTextValue"
 					:placeholder="colorPlaceholder"
 					@update:value="onColorTextInput($event)" />
 			</div>
 			<NcDateTimePicker
 				v-else-if="resolvedWidget === 'datetime'"
-				:value="datetimeValue"
+				:model-value="datetimeValue"
 				:type="datetimePickerType"
 				:placeholder="displayName"
 				:input-label="displayName"
@@ -45,7 +45,7 @@
 			<NcTextArea
 				v-else-if="resolvedWidget === 'textarea'"
 				ref="inputRef"
-				:value="stringValue"
+				:model-value="stringValue"
 				:placeholder="displayName"
 				:rows="textareaRows"
 				:maxlength="maxLengthAttr"
@@ -53,12 +53,12 @@
 				@update:value="emit($event)" />
 			<NcSelect
 				v-else-if="resolvedWidget === 'select'"
-				:value="effectiveSelectValue"
+				:model-value="effectiveSelectValue"
 				:options="effectiveSelectOptions"
 				:multiple="effectiveSelectMultiple"
 				:taggable="effectiveSelectTaggable"
 				:push-tags="effectiveSelectTaggable"
-				:close-on-select="!effectiveSelectMultiple"
+				:keep-open="effectiveSelectMultiple"
 				:input-label="displayName"
 				:placeholder="displayName"
 				@input="emitSelect($event)" />
@@ -81,7 +81,7 @@
 						@click.stop="openObjectArrayItem(idx)">
 						<span class="cn-advanced-form-dialog__object-array-chip-label">{{ objectArrayItemLabel(item, idx) }}</span>
 						<NcButton
-							type="tertiary-no-background"
+							variant="tertiary-no-background"
 							:aria-label="t('nextcloud-vue', 'Remove item')"
 							:title="t('nextcloud-vue', 'Remove item')"
 							class="cn-advanced-form-dialog__object-array-chip-remove"
@@ -93,7 +93,7 @@
 					</button>
 				</div>
 				<NcButton
-					type="secondary"
+					variant="secondary"
 					class="cn-advanced-form-dialog__object-array-add"
 					@click.stop="openObjectArrayItem(null)">
 					<template #icon>
@@ -113,7 +113,7 @@
 			<NcTextField
 				v-else
 				ref="inputRef"
-				:value="stringValue"
+				:model-value="stringValue"
 				:type="inputType"
 				:placeholder="displayName"
 				:min="minimum"
@@ -172,27 +172,34 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcTextField,
-	NcTextArea,
-	NcCheckboxRadioSwitch,
-	NcSelect,
 	NcButton,
+	NcCheckboxRadioSwitch,
 	NcDateTimePicker,
+	NcSelect,
+	NcTextArea,
+	NcTextField,
 	Tooltip,
 } from '@nextcloud/vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import { formatValue, validateValue } from '../../utils/schema.js'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import { formatValue, validateValue } from '../../utils/schema.js'
 
 const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'objectArray', 'color']
 
 /** String formats that map to HTML5 `<input type="url">`. */
 const URL_FORMATS = new Set([
-	'url', 'uri', 'uri-reference', 'iri', 'iri-reference', 'uri-template',
-	'accessUrl', 'shareUrl', 'downloadUrl',
+	'url',
+	'uri',
+	'uri-reference',
+	'iri',
+	'iri-reference',
+	'uri-template',
+	'accessUrl',
+	'shareUrl',
+	'downloadUrl',
 ])
 
 /** All color-related string formats — rendered with the `color` widget (swatch + text input). */
@@ -235,7 +242,7 @@ export default {
 		// downstream code (Vue Router, `<component :is>`) attaches its
 		// internal `_Ctor` cache. Pre-unwrapping yields the raw component
 		// options object, which is extensible.
-		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then(m => m.default),
+		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then((m) => m.default),
 	},
 
 	props: {
@@ -244,7 +251,7 @@ export default {
 		/** Full JSON schema object */
 		schema: { type: Object, default: null },
 		/** Resolved current value (formData[key] ?? objectValue) */
-		value: { type: [String, Number, Boolean, Object, Array], default: null },
+		value: { type: [Boolean, String, Number, Object, Array], default: null },
 		/** Whether this property is editable at all */
 		isEditable: { type: Boolean, default: true },
 		/** Whether this row is currently selected for editing */
@@ -264,6 +271,7 @@ export default {
 			default: null,
 			validator: (v) => v === null || SUPPORTED_WIDGETS.includes(v),
 		},
+
 		/** Options for the `select` widget. Each option may be a string, or `{ id, label }`. */
 		selectOptions: { type: Array, default: null },
 		/** Whether the `select` widget allows multiple values. */
@@ -301,6 +309,7 @@ export default {
 		 * Resolved widget after applying explicit override + schema auto-detection.
 		 * Arrays and string-with-enum become a `select` widget; the array/enum
 		 * shape is inferred from the schema by the `effectiveSelect*` computeds.
+		 *
 		 * @return {string} one of SUPPORTED_WIDGETS
 		 */
 		resolvedWidget() {
@@ -349,13 +358,13 @@ export default {
 		colorPlaceholder() {
 			const fmt = this.schemaProp?.format
 			switch (fmt) {
-			case 'color-hex': return '#rrggbb'
-			case 'color-hex-alpha': return '#rrggbbaa'
-			case 'color-rgb': return 'rgb(0, 0, 0)'
-			case 'color-rgba': return 'rgba(0, 0, 0, 1)'
-			case 'color-hsl': return 'hsl(0, 0%, 0%)'
-			case 'color-hsla': return 'hsla(0, 0%, 0%, 1)'
-			default: return this.displayName || '#rrggbb'
+				case 'color-hex': return '#rrggbb'
+				case 'color-hex-alpha': return '#rrggbbaa'
+				case 'color-rgb': return 'rgb(0, 0, 0)'
+				case 'color-rgba': return 'rgba(0, 0, 0, 1)'
+				case 'color-hsl': return 'hsl(0, 0%, 0%)'
+				case 'color-hsla': return 'hsla(0, 0%, 0%, 1)'
+				default: return this.displayName || '#rrggbb'
 			}
 		},
 
@@ -472,7 +481,11 @@ export default {
 			const ex = this.schemaProp?.example
 			if (ex === undefined || ex === null || ex === '') return ''
 			if (typeof ex === 'object') {
-				try { return JSON.stringify(ex) } catch { return '' }
+				try {
+					return JSON.stringify(ex)
+				} catch {
+					return ''
+				}
 			}
 			return String(ex)
 		},
@@ -527,7 +540,7 @@ export default {
 				if (!Array.isArray(v)) return []
 				return v.map(lookup)
 			}
-			if (v == null || v === '') return null
+			if (v === null || v === undefined || v === '') return null
 			return lookup(v)
 		},
 
@@ -574,7 +587,7 @@ export default {
 
 		stringValue() {
 			const v = this.value
-			if (v == null) return ''
+			if (v === null || v === undefined) return ''
 			if (typeof v === 'string') return v
 			if (typeof v === 'object') return JSON.stringify(v)
 			return String(v)
@@ -582,7 +595,7 @@ export default {
 
 		objectJsonString() {
 			const v = this.value
-			if (v == null) return ''
+			if (v === null || v === undefined) return ''
 			if (typeof v === 'string') return v
 			try {
 				return JSON.stringify(v, null, 2)
@@ -655,19 +668,19 @@ export default {
 			let converted = newVal
 			if (prop) {
 				switch (prop.type) {
-				case 'number':
-					converted = newVal === '' ? null : parseFloat(newVal)
-					if (Number.isNaN(converted)) converted = null
-					break
-				case 'integer':
-					converted = newVal === '' ? null : parseInt(newVal, 10)
-					if (Number.isNaN(converted)) converted = null
-					break
-				case 'boolean':
-					converted = Boolean(newVal)
-					break
-				default:
-					converted = newVal
+					case 'number':
+						converted = newVal === '' ? null : parseFloat(newVal)
+						if (Number.isNaN(converted)) converted = null
+						break
+					case 'integer':
+						converted = newVal === '' ? null : parseInt(newVal, 10)
+						if (Number.isNaN(converted)) converted = null
+						break
+					case 'boolean':
+						converted = Boolean(newVal)
+						break
+					default:
+						converted = newVal
 				}
 			}
 			this.$emit('update:value', converted)
@@ -676,6 +689,7 @@ export default {
 		/**
 		 * Emit a `Date` from NcDateTimePicker as the schema-appropriate string:
 		 * `date` → `YYYY-MM-DD`, `time` → `HH:MM:SS`, `date-time` → ISO 8601.
+		 *
 		 * @param {Date|null} date - Date emitted by the picker.
 		 */
 		emitDatetime(date) {
@@ -734,7 +748,7 @@ export default {
 				this.$emit('update:value', coerced)
 				return
 			}
-			this.$emit('update:value', selected == null ? null : toId(selected))
+			this.$emit('update:value', selected === null || selected === undefined ? null : toId(selected))
 		},
 
 		/**
@@ -742,6 +756,7 @@ export default {
 		 * taggable NcSelect) into the array's declared `items.type`. Returns
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
+		 *
 		 * @param {*} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
 		 * @return {*}
@@ -777,6 +792,7 @@ export default {
 		/**
 		 * Open the sub-dialog to add a new object item or edit an existing
 		 * one. `idx === null` means add.
+		 *
 		 * @param {number|null} idx - Index of the item to edit, or `null`.
 		 */
 		openObjectArrayItem(idx) {
@@ -796,6 +812,7 @@ export default {
 		/**
 		 * Confirmed object from the sub-dialog. Replace the existing item or
 		 * append a new one, then emit the updated array.
+		 *
 		 * @param {object} formData - Form data emitted by CnAdvancedFormDialog.
 		 */
 		onObjectArrayConfirm(formData) {
@@ -811,6 +828,7 @@ export default {
 
 		/**
 		 * Remove an item from the object array.
+		 *
 		 * @param {number} idx - Index of the item to remove.
 		 */
 		removeObjectArrayItem(idx) {
@@ -823,6 +841,7 @@ export default {
 		 * Pick a human-readable label for an item chip. Tries the schema-
 		 * declared name field first, then the first non-empty primitive
 		 * property, then falls back to "Item N".
+		 *
 		 * @param {object} item - The array item.
 		 * @param {number} idx - Index of the item (used for fallback label).
 		 * @return {string}
@@ -831,12 +850,12 @@ export default {
 			const items = this.schemaProp?.items
 			const nameField = items?.objectConfiguration?.objectNameField
 				|| items?.configuration?.objectNameField
-			if (nameField && item && item[nameField] != null && item[nameField] !== '') {
+			if (nameField && item && item[nameField] !== null && item[nameField] !== undefined && item[nameField] !== '') {
 				return String(item[nameField])
 			}
 			if (item && typeof item === 'object') {
 				for (const v of Object.values(item)) {
-					if (v == null || v === '') continue
+					if (v === null || v === undefined || v === '') continue
 					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
 						return String(v)
 					}
@@ -855,6 +874,7 @@ export default {
 		 * Convert any CSS-recognized color string to a 6-digit hex string by
 		 * round-tripping through a detached DOM node. Returns null when the
 		 * browser cannot parse the input.
+		 *
 		 * @param {string} cssValue - The CSS color value to convert.
 		 * @return {string|null}
 		 */
@@ -881,6 +901,7 @@ export default {
 		 * swatch + text input synchronously via `pendingColor`, but debounces
 		 * the upstream `update:value` emit so validation and parent re-renders
 		 * don't fire on every drag tick.
+		 *
 		 * @param {object} color - vue-color emitted color object.
 		 * @param {string} color.hex - `#rrggbb`.
 		 * @param {string} [color.hex8] - `#rrggbbaa`, when alpha is enabled.
@@ -897,6 +918,7 @@ export default {
 		/**
 		 * Translate vue-color's emitted color object into the schema-declared
 		 * color format string.
+		 *
 		 * @param {object} color - vue-color color object.
 		 * @return {string}
 		 */
@@ -940,6 +962,7 @@ export default {
 		/**
 		 * Manual text-field edit for a color value. Cancels any in-flight
 		 * picker debounce so the typed value isn't immediately overwritten.
+		 *
 		 * @param {string} v - The new text value.
 		 */
 		onColorTextInput(v) {
@@ -953,6 +976,7 @@ export default {
 
 		/**
 		 * Format an alpha 0–1 for CSS output (max 2 decimals, drops trailing zeros).
+		 *
 		 * @param {number} a - Alpha in 0–1 range.
 		 * @return {string}
 		 */
@@ -973,9 +997,15 @@ export default {
 				const d = max - min
 				s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
 				switch (max) {
-				case rN: h = (gN - bN) / d + (gN < bN ? 6 : 0); break
-				case gN: h = (bN - rN) / d + 2; break
-				case bN: h = (rN - gN) / d + 4; break
+					case rN:
+						h = (gN - bN) / d + (gN < bN ? 6 : 0)
+						break
+					case gN:
+						h = (bN - rN) / d + 2
+						break
+					case bN:
+						h = (rN - gN) / d + 4
+						break
 				}
 				h /= 6
 			}

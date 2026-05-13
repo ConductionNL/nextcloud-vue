@@ -13,7 +13,7 @@
 
 		<div v-if="loadingGroups" class="cn-schema-form__loading-groups">
 			<NcLoadingIcon :size="20" />
-			<span>{{ t('nextcloud-vue', 'Loading user groups...') }}</span>
+			<span>{{ t('nextcloud-vue', 'Loading user groups…') }}</span>
 		</div>
 
 		<div v-else class="cn-schema-form__rbac-table-container">
@@ -34,40 +34,40 @@
 							<span class="cn-schema-form__group-badge cn-schema-form__public">public</span>
 							<small>{{ t('nextcloud-vue', 'Unauthenticated users') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'create')" @update:checked="updateGroupPermission('public', 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'read')" @update:checked="updateGroupPermission('public', 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'update')" @update:checked="updateGroupPermission('public', 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('public', 'delete')" @update:checked="updateGroupPermission('public', 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'create')" @update:checked="updateGroupPermission('public', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'read')" @update:checked="updateGroupPermission('public', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'update')" @update:checked="updateGroupPermission('public', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('public', 'delete')" @update:checked="updateGroupPermission('public', 'delete', $event)" /></td>
 					</tr>
 					<tr class="cn-schema-form__user-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__user">authenticated</span>
 							<small>{{ t('nextcloud-vue', 'Authenticated users') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'create')" @update:checked="updateGroupPermission('authenticated', 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'read')" @update:checked="updateGroupPermission('authenticated', 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'update')" @update:checked="updateGroupPermission('authenticated', 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission('authenticated', 'delete')" @update:checked="updateGroupPermission('authenticated', 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'create')" @update:checked="updateGroupPermission('authenticated', 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'read')" @update:checked="updateGroupPermission('authenticated', 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'update')" @update:checked="updateGroupPermission('authenticated', 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission('authenticated', 'delete')" @update:checked="updateGroupPermission('authenticated', 'delete', $event)" /></td>
 					</tr>
 					<tr v-for="group in sortedUserGroups" :key="group.id">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge">{{ group.displayname || group.id }}</span>
 							<small v-if="group.displayname && group.displayname !== group.id">{{ group.id }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'create')" @update:checked="updateGroupPermission(group.id, 'create', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'read')" @update:checked="updateGroupPermission(group.id, 'read', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'update')" @update:checked="updateGroupPermission(group.id, 'update', $event)" /></td>
-						<td><NcCheckboxRadioSwitch :checked="hasGroupPermission(group.id, 'delete')" @update:checked="updateGroupPermission(group.id, 'delete', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'create')" @update:checked="updateGroupPermission(group.id, 'create', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'read')" @update:checked="updateGroupPermission(group.id, 'read', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'update')" @update:checked="updateGroupPermission(group.id, 'update', $event)" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="hasGroupPermission(group.id, 'delete')" @update:checked="updateGroupPermission(group.id, 'delete', $event)" /></td>
 					</tr>
 					<tr class="cn-schema-form__admin-row">
 						<td class="cn-schema-form__group-name">
 							<span class="cn-schema-form__group-badge cn-schema-form__admin">admin</span>
 							<small>{{ t('nextcloud-vue', 'Always has full access') }}</small>
 						</td>
-						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
-						<td><NcCheckboxRadioSwitch :checked="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
+						<td><NcCheckboxRadioSwitch :model-value="true" :disabled="true" /></td>
 					</tr>
 				</tbody>
 			</table>
@@ -141,13 +141,13 @@
 							</span>
 							<div class="cn-schema-form__cond-rule-group-select">
 								<NcSelect
-									:value="getGroupOption(rule.group)"
+									:model-value="getGroupOption(rule.group)"
 									:options="allGroupOptions"
 									:clearable="false"
 									:aria-label-combobox="t('nextcloud-vue', 'Group')"
 									@input="setRuleGroup(action, originalIndex, $event)" />
 							</div>
-							<NcButton type="error"
+							<NcButton variant="error"
 								@click="removeConditionalRule(action, originalIndex)">
 								<template #icon>
 									<TrashCanOutline :size="16" />
@@ -181,7 +181,7 @@
 										</td>
 										<td>{{ formatConditionValue(Object.values(condObj)[0]) }}</td>
 										<td class="cn-schema-form__cond-match-actions">
-											<NcButton type="error"
+											<NcButton variant="error"
 												size="small"
 												:aria-label="t('nextcloud-vue', 'Remove condition')"
 												@click="removeCondition(action, originalIndex, propKey)">
@@ -243,7 +243,7 @@
 								<NcButton @click="confirmAddCondition(action, originalIndex)">
 									{{ t('nextcloud-vue', 'Add') }}
 								</NcButton>
-								<NcButton type="tertiary" @click="cancelAddCondition()">
+								<NcButton variant="tertiary" @click="cancelAddCondition()">
 									{{ t('nextcloud-vue', 'Cancel') }}
 								</NcButton>
 							</div>
@@ -264,7 +264,7 @@
 				<!-- Inherit-from-public toggle -->
 				<div class="cn-schema-form__inherit-from-public">
 					<NcCheckboxRadioSwitch
-						:checked="inheritFromPublic"
+						:model-value="inheritFromPublic"
 						@update:checked="setInheritFromPublic">
 						{{ t('nextcloud-vue', 'Authenticated users inherit `public` group rights') }}
 					</NcCheckboxRadioSwitch>
@@ -278,7 +278,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
@@ -286,13 +285,13 @@ import {
 	NcLoadingIcon,
 	NcSelect,
 } from '@nextcloud/vue'
-import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
-
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import _ from 'lodash'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 
 /**
  * CnSchemaSecurityTab — RBAC permissions table + conditional access rules tab for CnSchemaFormDialog.
@@ -318,6 +317,7 @@ export default {
 		ChevronDown,
 		ChevronRight,
 	},
+
 	props: {
 		/** The full schema item — mutates authorization directly */
 		schemaItem: { type: Object, required: true },
@@ -334,6 +334,7 @@ export default {
 		/** Properties inherited from parent schemas (allOf) */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
+
 	data() {
 		return {
 			actions: ['create', 'read', 'update', 'delete'],
@@ -348,6 +349,7 @@ export default {
 			},
 		}
 	},
+
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
@@ -369,10 +371,10 @@ export default {
 		},
 
 		propertyOptions() {
-			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
-			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter((k) => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter((k) => k !== '')
 			const allKeys = [...new Set([...inheritedKeys, ...ownKeys])]
-			const schemaProps = allKeys.map(key => ({ id: key, label: key }))
+			const schemaProps = allKeys.map((key) => ({ id: key, label: key }))
 			const systemProps = [
 				{ id: '_organisation', label: t('nextcloud-vue', '_organisation (system)') },
 				{ id: '_owner', label: t('nextcloud-vue', '_owner (system)') },
@@ -402,7 +404,7 @@ export default {
 			return [
 				{ id: 'public', label: 'public' },
 				{ id: 'authenticated', label: 'authenticated' },
-				...this.sortedUserGroups.map(g => ({ id: g.id, label: g.displayname || g.id })),
+				...this.sortedUserGroups.map((g) => ({ id: g.id, label: g.displayname || g.id })),
 			]
 		},
 
@@ -429,6 +431,7 @@ export default {
 			return Boolean(auth.inheritFromPublic)
 		},
 	},
+
 	methods: {
 		t,
 		capitalize: _.capitalize,
@@ -456,13 +459,13 @@ export default {
 			const currentRule = rules[ruleIdx]
 			if (!currentRule || !currentRule.rule.match) return this.propertyOptions
 			const used = Object.keys(currentRule.rule.match)
-			return this.propertyOptions.filter(opt => !used.includes(opt.id))
+			return this.propertyOptions.filter((opt) => !used.includes(opt.id))
 		},
 
 		// ─── Operator / value helpers ─────────────────────────────────────
 
 		getOperatorLabel(opId) {
-			const op = this.operatorOptions.find(o => o.id === opId)
+			const op = this.operatorOptions.find((o) => o.id === opId)
 			return op ? op.label : opId
 		},
 
@@ -472,7 +475,7 @@ export default {
 		},
 
 		getGroupOption(groupId) {
-			return this.allGroupOptions.find(opt => opt.id === groupId)
+			return this.allGroupOptions.find((opt) => opt.id === groupId)
 				|| { id: groupId, label: groupId }
 		},
 
@@ -580,7 +583,7 @@ export default {
 			this.addingCondition = { action, ruleIdx }
 			this.newCondition = {
 				propertyOption: null,
-				operatorOption: this.operatorOptions.find(o => o.id === '$lte'),
+				operatorOption: this.operatorOptions.find((o) => o.id === '$lte'),
 				valueOption: null,
 				customValue: null,
 				existsOption: this.existsOptions[0],

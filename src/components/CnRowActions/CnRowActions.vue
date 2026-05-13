@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
 
 /**
  * CnRowActions — Action menu wrapper for table rows and cards.
@@ -58,22 +58,26 @@ export default {
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
+		 *
 		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The row/object data (passed to action handlers) */
 		row: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether to use primary styling for the action menu trigger */
 		primary: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Label shown on the action menu trigger button */
 		menuName: {
 			type: String,
@@ -85,6 +89,7 @@ export default {
 		/**
 		 * Filter actions by their `visible` predicate. An action without a
 		 * `visible` field is always shown (backwards compatible).
+		 *
 		 * @return {Array} Visible actions for the current row.
 		 */
 		visibleActions() {
@@ -101,6 +106,7 @@ export default {
 	methods: {
 		/**
 		 * Resolve disabled state for an action — supports both boolean and function.
+		 *
 		 * @param {object} action - The action definition
 		 * @return {boolean} Whether the action is disabled
 		 */
@@ -110,10 +116,12 @@ export default {
 			}
 			return !!action.disabled
 		},
+
 		/**
 		 * Resolve the title (native tooltip) for an action — supports both
 		 * string and function forms. Returns undefined when no title is
 		 * provided so the attribute is not rendered.
+		 *
 		 * @param {object} action - The action definition
 		 * @return {string|undefined} The resolved tooltip text, or undefined.
 		 */
@@ -123,17 +131,20 @@ export default {
 			}
 			return action.title || undefined
 		},
+
 		onAction(action) {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
 			}
 			this.$emit('action', { action: action.label, row: this.row })
 		},
+
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
 		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
 		 * `:data-testid` binding on NcActionButton — does not affect runtime
 		 * behaviour or rendered text.
+		 *
 		 * @param {string} label - The action's display label
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */

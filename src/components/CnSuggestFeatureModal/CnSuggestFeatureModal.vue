@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!submitting"
+		:no-close="submitting"
 		@closing="$emit('close')">
 		<div class="cn-suggest-feature-modal" data-testid="cn-modal" data-testid-modal="cn-suggest-feature-modal">
 			<NcTextField
@@ -23,7 +23,7 @@
 				:rows="6" />
 
 			<div class="cn-suggest-feature-modal__preview-toggle">
-				<NcCheckboxRadioSwitch :checked.sync="showPreview" type="switch">
+				<NcCheckboxRadioSwitch v-model="showPreview" type="switch">
 					{{ previewLabel }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -40,7 +40,7 @@
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit || submitting"
 				@click="submit">
 				<template v-if="submitting" #icon>
@@ -65,14 +65,18 @@
  * Spec: features-roadmap-component — Requirement "SuggestFeatureModal".
  */
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import {
-	NcDialog, NcButton, NcTextField, NcTextArea,
-	NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch,
+	NcButton,
+	NcCheckboxRadioSwitch,
+	NcDialog,
+	NcLoadingIcon,
+	NcNoteCard,
+	NcTextArea,
+	NcTextField,
 } from '@nextcloud/vue'
 import DOMPurify from 'dompurify'
-
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
@@ -97,6 +101,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Optional kebab-case capability slug. When non-null, becomes the
 		 * `specRef` field in the POST body so the issue gets a `specRef:<slug>`
@@ -124,6 +129,7 @@ export default {
 			const html = cnRenderMarkdown(this.form.body)
 			return DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
 		},
+
 		titleError() {
 			const len = this.form.title.trim().length
 			if (len === 0) return ''
@@ -131,17 +137,20 @@ export default {
 			if (len > 200) return t('nextcloud-vue', 'Title must be at most 200 characters.')
 			return ''
 		},
+
 		bodyError() {
 			const len = this.form.body.trim().length
 			if (len === 0) return ''
 			if (len < 10) return t('nextcloud-vue', 'Body must be at least 10 characters.')
 			return ''
 		},
+
 		canSubmit() {
 			return this.form.title.trim().length >= 3
 				&& this.form.title.trim().length <= 200
 				&& this.form.body.trim().length >= 10
 		},
+
 		dialogTitle() { return t('nextcloud-vue', 'Suggest a feature') },
 		titleLabel() { return t('nextcloud-vue', 'Title') },
 		titleHelper() { return t('nextcloud-vue', 'A short summary of what you would like built.') },

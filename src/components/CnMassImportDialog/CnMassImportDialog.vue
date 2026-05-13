@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Success/error messages -->
 		<NcNoteCard v-if="result && result.success && !hasErrors" type="success">
@@ -135,7 +135,7 @@
 				<NcCheckboxRadioSwitch
 					v-for="opt in options"
 					:key="opt.key"
-					:checked="optionValues[opt.key]"
+					:model-value="optionValues[opt.key]"
 					type="switch"
 					@update:checked="setOption(opt.key, $event)">
 					{{ opt.label }}
@@ -157,7 +157,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!result"
-				type="primary"
+				variant="primary"
 				:disabled="loading || !selectedFile || !canSubmit"
 				@click="executeImport">
 				<template #icon>
@@ -172,10 +172,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
-import ImportIcon from 'vue-material-design-icons/Import.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ImportIcon from 'vue-material-design-icons/Import.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 
 /**
  * CnMassImportDialog — File import dialog with options and results summary.
@@ -239,16 +239,19 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import data'),
 		},
+
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {
 			type: String,
 			default: '.json,.xlsx,.xls,.csv',
 		},
+
 		/** Import option definitions */
 		options: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** File type help entries */
 		fileTypeHelp: {
 			type: Array,
@@ -258,37 +261,54 @@ export default {
 				{ label: 'CSV', description: 'Single table of objects data.' },
 			],
 		},
+
 		/** Whether the form is ready to submit (parent can control via slot logic) */
 		canSubmit: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Success text when all rows imported without errors */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import completed successfully!'),
 		},
+
 		/** Text when import partially succeeded */
 		partialSuccessText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Import completed with errors. Check the details below.'),
 		},
+
 		/** Text shown while importing */
 		loadingText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
+			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files…'),
 		},
+
+		/** Title for the import summary section */
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
+		/** Label listing supported file formats */
 		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
+		/** Label for the file selection control */
 		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select file') },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		/** Label for the spreadsheet sheet selector */
 		sheetLabel: { type: String, default: () => t('nextcloud-vue', 'Sheet') },
+		/** Label for the "found" count in import results */
 		foundLabel: { type: String, default: () => t('nextcloud-vue', 'Found') },
+		/** Label for the "created" count in import results */
 		createdLabel: { type: String, default: () => t('nextcloud-vue', 'Created') },
+		/** Label for the "updated" count in import results */
 		updatedLabel: { type: String, default: () => t('nextcloud-vue', 'Updated') },
+		/** Label for the "unchanged" count in import results */
 		unchangedLabel: { type: String, default: () => t('nextcloud-vue', 'Unchanged') },
+		/** Label for the "errors" count in import results */
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
 
@@ -309,9 +329,7 @@ export default {
 	computed: {
 		hasErrors() {
 			if (!this.result || !this.result.summary) return false
-			return Object.values(this.result.summary).some(
-				(sheet) => sheet.errors && sheet.errors.length > 0,
-			)
+			return Object.values(this.result.summary).some((sheet) => sheet.errors && sheet.errors.length > 0)
 		},
 	},
 
@@ -353,6 +371,7 @@ export default {
 
 		/**
 		 * Set the result of the import operation.
+		 *
 		 * @param {{ success?: boolean, error?: string, summary?: object }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

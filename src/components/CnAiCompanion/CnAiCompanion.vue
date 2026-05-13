@@ -33,9 +33,9 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { useAiChatStream } from '../../composables/useAiChatStream.js'
-import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import CnAiChatPanel from './CnAiChatPanel.vue'
+import CnAiFloatingButton from './CnAiFloatingButton.vue'
+import { useAiChatStream } from '../../composables/useAiChatStream.js'
 
 const HEALTH_URL = '/index.php/apps/openregister/api/chat/health'
 const HEALTH_TIMEOUT = 5000
@@ -55,6 +55,7 @@ export default {
 	props: {
 		/**
 		 * Default position for the FAB.
+		 *
 		 * @type {'bottom-right'|'bottom-left'|'top-right'|'top-left'}
 		 */
 		position: {
@@ -91,7 +92,6 @@ export default {
 				})
 				this.probeSucceeded = response.status >= 200 && response.status < 300
 			} catch {
-				// eslint-disable-next-line no-console
 				console.info('[CnAiCompanion] OpenRegister health probe did not return 2xx — widget hidden')
 				this.probeSucceeded = false
 			}
@@ -113,7 +113,7 @@ export default {
 		onSend(text) {
 			this.stream.send(text).catch((err) => {
 				// Stream errors are tracked in stream.state.error — no extra handling needed
-				// eslint-disable-next-line no-console
+
 				console.info('[CnAiCompanion] send error:', err?.message)
 			})
 		},

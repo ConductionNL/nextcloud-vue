@@ -1,6 +1,6 @@
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
+import { networkError, parseResponseError } from '../utils/errors.js'
 import { buildHeaders, buildQueryString } from '../utils/headers.js'
-import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
  * Standalone composable for fetching sub-resources outside the Pinia store.

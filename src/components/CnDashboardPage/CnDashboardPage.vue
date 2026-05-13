@@ -33,7 +33,7 @@
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
-					:type="isEditing ? 'primary' : 'secondary'"
+					:variant="isEditing ? 'primary' : 'secondary'"
 					@click="toggleEdit">
 					<template #icon>
 						<Pencil v-if="!isEditing" :size="20" />
@@ -208,16 +208,16 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
-import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
-import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
-import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -339,28 +339,19 @@ export default {
 		cnAiContext: { default: null },
 	},
 
-	setup() {
-		// Wire the pluggable integration registry so widgets of type
-		// `integration` resolve their component reactively. No-op cost
-		// when no integration widgets are configured.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
-		return {
-			registryIntegrations,
-			resolveRegistryWidget: resolveWidget,
-		}
-	},
-
 	props: {
 		/** Page title */
 		title: {
 			type: String,
 			default: '',
 		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Widget definitions array. Each widget defines metadata for rendering.
 		 *
@@ -370,24 +361,28 @@ export default {
 		 * Chart widgets: `{ id: 'sla', type: 'chart', title: 'SLA trend',
 		 *   props: { chartKind: 'line', series: [{ name: 'SLA %', data: [82, 88, 91] }],
 		 *            categories: ['Q1', 'Q2', 'Q3'], options: { stroke: { width: 3 } } } }`
+		 *
 		 * @type {Array<{ id: string, title: string, type: string, iconUrl: string, iconClass: string, buttons: Array, itemApiVersions: number[], reloadInterval: number, props: object }>}
 		 */
 		widgets: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Layout array defining widget positions in the grid.
 		 *
 		 * Each item: `{ id: 'unique-id', widgetId: 'my-widget', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }`
 		 *
 		 * Additional properties (showTitle, styleConfig, tile config) are passed through.
+		 *
 		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Declarative content items. Each item is a `widget-ref` entry from the
 		 * manifest's `pages[].config.content[]` array:
@@ -409,51 +404,61 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the dashboard is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the edit toggle button */
 		allowEdit: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Number of grid columns */
 		columns: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Grid cell height in pixels */
 		cellHeight: {
 			type: Number,
 			default: 80,
 		},
+
 		/** Grid margin in pixels */
 		gridMargin: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Label for the edit button */
 		editLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Edit'),
 		},
+
 		/** Label for the done button (when editing) */
 		doneLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Done'),
 		},
+
 		/** Label for the empty state */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No widgets configured'),
 		},
+
 		/** Label for unavailable widgets */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget not available'),
 		},
+
 		/**
 		 * Rendering surface forwarded to integration widgets (widgets
 		 * whose `type === 'integration'`). Drives the AD-19 surface
@@ -466,6 +471,7 @@ export default {
 			default: 'app-dashboard',
 			validator: (value) => INTEGRATION_SURFACES.includes(value),
 		},
+
 		/**
 		 * Object context forwarded to integration widgets:
 		 * `{ register, schema, objectId }`. Optional — most dashboards
@@ -482,6 +488,17 @@ export default {
 	},
 
 	emits: ['layout-change', 'edit-toggle'],
+
+	setup() {
+		// Wire the pluggable integration registry so widgets of type
+		// `integration` resolve their component reactively. No-op cost
+		// when no integration widgets are configured.
+		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		return {
+			registryIntegrations,
+			resolveRegistryWidget: resolveWidget,
+		}
+	},
 
 	data() {
 		return {
@@ -521,10 +538,7 @@ export default {
 				if (item.type === 'widget-ref') {
 					out.push(item)
 				} else {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`,
-					)
+					console.warn(`[CnDashboardPage] Unknown content item type "${item.type}" — only "widget-ref" is supported. Item will be skipped.`)
 				}
 			}
 			return out

@@ -30,6 +30,7 @@
 
 <script>
 import { GridStack } from 'gridstack'
+
 import 'gridstack/dist/gridstack.min.css'
 
 /**
@@ -59,31 +60,37 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Whether drag and resize are enabled */
 		editable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Number of grid columns */
 		columns: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Cell height in pixels */
 		cellHeight: {
 			type: Number,
 			default: 80,
 		},
+
 		/** Grid margin in pixels */
 		margin: {
 			type: Number,
 			default: 12,
 		},
+
 		/** Minimum widget width in grid units */
 		minWidth: {
 			type: Number,
 			default: 2,
 		},
+
 		/** Minimum widget height in grid units */
 		minHeight: {
 			type: Number,
@@ -151,8 +158,8 @@ export default {
 		handleGridChange(items) {
 			if (!items || items.length === 0) return
 
-			const updated = this.layout.map(item => {
-				const gridItem = items.find(gi => String(gi.id) === String(item.id))
+			const updated = this.layout.map((item) => {
+				const gridItem = items.find((gi) => String(gi.id) === String(item.id))
 				if (gridItem) {
 					return {
 						...item,
@@ -171,9 +178,7 @@ export default {
 		syncGridItems(newLayout) {
 			// Add items that don't exist in grid yet
 			for (const item of newLayout) {
-				const exists = this.grid.engine.nodes.find(
-					n => String(n.id) === String(item.id),
-				)
+				const exists = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 				if (!exists) {
 					this.$nextTick(() => {
 						const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
@@ -185,10 +190,8 @@ export default {
 			}
 
 			// Remove items no longer in layout
-			const ids = newLayout.map(i => String(i.id))
-			const toRemove = this.grid.engine.nodes.filter(
-				n => !ids.includes(String(n.id)),
-			)
+			const ids = newLayout.map((i) => String(i.id))
+			const toRemove = this.grid.engine.nodes.filter((n) => !ids.includes(String(n.id)))
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {

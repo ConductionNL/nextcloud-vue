@@ -18,11 +18,11 @@
  */
 
 import { integrations as defaultRegistry } from '../registry.js'
+import { auditTrailIntegration } from './audit-trail.js'
 import { filesIntegration } from './files.js'
 import { notesIntegration } from './notes.js'
 import { tagsIntegration } from './tags.js'
 import { tasksIntegration } from './tasks.js'
-import { auditTrailIntegration } from './audit-trail.js'
 
 /**
  * Ordered list of the built-in integration descriptors.
@@ -62,4 +62,4 @@ export function registerBuiltinIntegrations(registry) {
 	return registered
 }
 
-export { filesIntegration, notesIntegration, tagsIntegration, tasksIntegration, auditTrailIntegration }
+export { auditTrailIntegration, filesIntegration, notesIntegration, tagsIntegration, tasksIntegration }

@@ -98,11 +98,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget'),
 		},
+
 		/** Whether to show the header with title */
 		showTitle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
@@ -111,6 +113,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Remove content padding — allows content to go edge-to-edge.
 		 * Useful for list-style widgets where items should span the full width.
@@ -119,16 +122,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Icon URL (image) */
 		iconUrl: {
 			type: String,
 			default: null,
 		},
+
 		/** Icon CSS class (e.g., Nextcloud icon class) */
 		iconClass: {
 			type: String,
 			default: null,
 		},
+
 		/**
 		 * Position of the title-icon slot in the header.
 		 * 'left' places it before the title; 'right' places it after the actions.
@@ -138,18 +144,22 @@ export default {
 			default: 'right',
 			validator: (v) => ['left', 'right'].includes(v),
 		},
+
 		/** CSS color value applied to the title-icon slot container */
 		titleIconColor: {
 			type: String,
 			default: null,
 		},
+
 		/** Footer action buttons: [{ text, link }] */
 		buttons: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Style configuration for the wrapper.
+		 *
 		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
 		styleConfig: {

@@ -51,8 +51,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -91,6 +91,7 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
+
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -119,6 +120,7 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Files')
 		},
+
 		displayedFiles() {
 			return this.files.slice(0, this.maxDisplay)
 		},
@@ -127,7 +129,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) { this.fetchFiles() } },
+			handler(id) {
+				if (id) {
+					this.fetchFiles()
+				}
+			},
 		},
 	},
 
@@ -165,7 +171,6 @@ export default {
 					this.files = []
 				}
 			} catch (err) {
-				// eslint-disable-next-line no-console
 				console.error('[CnFilesCard] failed to fetch files', err)
 				this.files = []
 			} finally {

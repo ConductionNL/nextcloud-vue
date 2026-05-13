@@ -89,7 +89,6 @@ export async function resolveManifestSentinels(manifest, appId, options = {}) {
 
 	const getAppConfigValue = options.getAppConfigValue ?? defaultGetAppConfigValue
 	const warn = options.warn ?? ((...args) => {
-		// eslint-disable-next-line no-console
 		console.warn(...args)
 	})
 
@@ -222,7 +221,7 @@ async function defaultGetAppConfigValue(appId, key) {
 				if (isPlainObject(data) && 'value' in data) return data.value
 				return data
 			}
-		} catch (e) {
+		} catch (_e) {
 			// Silent — caller treats as "unset".
 		}
 		return null
@@ -246,12 +245,12 @@ function readInitialState(appId, key) {
 		// may not provision the slot at all. We resolve via require so
 		// jest mocks the import; bundle-side, the package is treeshaken
 		// when no caller pulls it in.
-		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
+		// eslint-disable-next-line no-undef
 		const mod = require('@nextcloud/initial-state')
 		if (typeof mod.loadState === 'function') {
 			return mod.loadState(appId, key, undefined)
 		}
-	} catch (e) {
+	} catch (_e) {
 		// Package not installed or no slot provisioned — fall through.
 	}
 	return undefined

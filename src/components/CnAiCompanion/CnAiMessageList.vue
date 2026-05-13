@@ -17,7 +17,8 @@
 		<div
 			v-for="(message, index) in messages"
 			:key="index"
-			:class="['cn-ai-message-list__item', `cn-ai-message-list__item--${message.role}`]">
+			class="cn-ai-message-list__item"
+			:class="[`cn-ai-message-list__item--${message.role}`]">
 			<!-- System message -->
 			<div v-if="message.role === 'system'" class="cn-ai-message-list__system-text">
 				{{ message.content }}
@@ -43,7 +44,8 @@
 				<div
 					v-for="(tool, tIdx) in (message.toolCalls || [])"
 					:key="tIdx"
-					:class="['cn-ai-message-list__tool', { 'cn-ai-message-list__tool--error': tool.isError }]">
+					class="cn-ai-message-list__tool"
+					:class="[{ 'cn-ai-message-list__tool--error': tool.isError }]">
 					<button
 						type="button"
 						class="cn-ai-message-list__tool-summary"
@@ -51,7 +53,8 @@
 						@click="toggleTool(index, tIdx)">
 						<ChevronDown
 							:size="16"
-							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
+							class="cn-ai-message-list__tool-chevron"
+							:class="[{ 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
 						{{ cnTranslate('Tool: {toolId}').replace('{toolId}', tool.toolId) }}
 					</button>
 					<div v-if="tool._expanded" class="cn-ai-message-list__tool-detail">
@@ -94,6 +97,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Partial streaming text from the current token stream.
 		 */

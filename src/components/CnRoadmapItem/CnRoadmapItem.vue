@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import { NcAvatar } from '@nextcloud/vue'
 /**
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
@@ -65,12 +66,10 @@
  * Spec: features-roadmap-component — Requirement "RoadmapItem".
  */
 import DOMPurify from 'dompurify'
-import { NcAvatar } from '@nextcloud/vue'
 import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
-
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 export default {
 	name: 'CnRoadmapItem',
@@ -83,7 +82,8 @@ export default {
 		 * Shape: {number, title, body, html_url, user.{login, avatar_url},
 		 *        reactions.{total_count, +1}, created_at, updated_at,
 		 *        labels[].{name, color}}.
-		 * @type {Object}
+		 *
+		 * @type {object}
 		 */
 		item: {
 			type: Object,
@@ -103,9 +103,7 @@ export default {
 
 		visibleLabels() {
 			const labels = Array.isArray(this.item.labels) ? this.item.labels : []
-			return labels.filter(
-				(label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name))
-			)
+			return labels.filter((label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name)))
 		},
 
 		relativeCreatedAt() {
@@ -132,6 +130,7 @@ export default {
 				color: this.contrastTextColor(label.color),
 			}
 		},
+
 		contrastTextColor(hexColor) {
 			// Simple luminance check — dark text on bright bg, white on dark.
 			const r = parseInt(hexColor.slice(0, 2), 16)

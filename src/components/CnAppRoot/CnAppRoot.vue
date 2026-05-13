@@ -182,8 +182,8 @@
 			  sidebars (CnObjectSidebar) keep owning the slot.
 			-->
 			<component
-				v-if="cnIndexSidebarConfig.value"
 				:is="cnIndexSidebarConfig.value.component"
+				v-if="cnIndexSidebarConfig.value"
 				v-bind="cnIndexSidebarConfig.value.props"
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
@@ -250,17 +250,17 @@
 </template>
 
 <script>
-import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCapabilities } from '@nextcloud/capabilities'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import Vue from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
-import CnAppNav from '../CnAppNav/CnAppNav.vue'
-import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
-import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
+import CnAppNav from '../CnAppNav/CnAppNav.vue'
+import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
-import Vue from 'vue'
 
 /**
  * Default URL for the OpenRegister integration page. The empty-state
@@ -306,6 +306,7 @@ export default {
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
 			},
+
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
 			 * CnDetailPage, CnDashboardPage) overwrite fields on this object
@@ -423,6 +424,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
@@ -433,6 +435,7 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Whether the manifest is still loading from the backend.
 		 * Typically wired to `useAppManifest().isLoading`. Defaults to
@@ -445,6 +448,7 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Custom-component registry consumed by CnPageRenderer for
 		 * `type: "custom"` pages and slot overrides. Empty by default.
@@ -455,6 +459,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Cell-formatter registry. Map of formatter-id →
 		 * `(value, row, property) => string|number`. Resolves the
@@ -472,6 +477,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Cell-widget registry. Map of widget-id → Vue component, rendered
 		 * for a column that declares `pages[].config.columns[].widget`. The
@@ -488,6 +494,7 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Translate function provided by the consuming app. The library
 		 * never imports `t()` from a specific app, so the consumer
@@ -509,6 +516,7 @@ export default {
 			type: Function,
 			default: (key) => key,
 		},
+
 		/**
 		 * List of permission strings the current user holds. Forwarded
 		 * to CnAppNav's permission filter.
@@ -519,6 +527,7 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Page-type registry. Map of `pages[].type` → Vue component.
 		 * Provided to descendant CnPageRenderer instances via inject.
@@ -532,6 +541,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Required Nextcloud apps for this Conduction app to function.
 		 * Default `['openregister']` — every fleet app stores its data
@@ -562,6 +572,7 @@ export default {
 			type: Array,
 			default: () => ['openregister'],
 		},
+
 		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
@@ -631,6 +642,7 @@ export default {
 				hiddenTabs: [],
 				tabs: undefined,
 			}),
+
 			/**
 			 * Local `sidebarState` holder for `CnIndexPage`. Distinct from
 			 * `localObjectSidebarState` above because CnIndexPage writes
@@ -653,6 +665,7 @@ export default {
 				activeFilters: {},
 				facetData: {},
 			}),
+
 			/**
 			 * Reactive AI context. Provided to all descendants via
 			 * provide('cnAiContext'). Page components overwrite fields
@@ -669,6 +682,7 @@ export default {
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
+
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -677,35 +691,6 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
-		}
-	},
-
-	mounted() {
-		// Opt-out fast-path: empty `requiresApps` already initialised
-		// `capabilitiesLoading` to `false` in data(); skip the check.
-		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
-			return
-		}
-
-		try {
-			const capabilities = getCapabilities()
-			const keys = (capabilities && typeof capabilities === 'object')
-				? Object.keys(capabilities)
-				: []
-			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
-		} catch (err) {
-			// Capabilities API failure — log and fall through to the
-			// renderer. The data layer will surface the actual problem
-			// if OR is genuinely missing.
-			// eslint-disable-next-line no-console
-			console.warn(
-				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
-				err,
-			)
-			this.guardError = err
-			this.missingApps = []
-		} finally {
-			this.capabilitiesLoading = false
 		}
 	},
 
@@ -719,6 +704,7 @@ export default {
 		resolvedObjectSidebarState() {
 			return this.ancestorObjectSidebarState || this.localObjectSidebarState
 		},
+
 		/**
 		 * True when CnAppRoot should render its own
 		 * `<CnObjectSidebar>` auto-mount. Suppressed when:
@@ -744,6 +730,7 @@ export default {
 			if (s.objectId === null || s.objectId === undefined || String(s.objectId) === '') return false
 			return true
 		},
+
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the
@@ -756,16 +743,19 @@ export default {
 				: []
 			return deps.map((id) => ({ id, status: useAppStatus(id) }))
 		},
+
 		unresolvedDependencies() {
 			return this.dependencyStatuses
 				.filter(({ status }) => !status.installed.value || !status.enabled.value)
 				.map(({ id }) => ({ id, name: id, enabled: false }))
 		},
+
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
 			return 'shell'
 		},
+
 		/**
 		 * Default link surfaced by the missing-app empty-state action.
 		 * Points at the OpenRegister integration page in the Nextcloud
@@ -775,9 +765,39 @@ export default {
 		orStoreLink() {
 			return OR_STORE_LINK
 		},
+
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
 		},
+	},
+
+	mounted() {
+		// Opt-out fast-path: empty `requiresApps` already initialised
+		// `capabilitiesLoading` to `false` in data(); skip the check.
+		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			return
+		}
+
+		try {
+			const capabilities = getCapabilities()
+			const keys = (capabilities && typeof capabilities === 'object')
+				? Object.keys(capabilities)
+				: []
+			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
+		} catch (err) {
+			// Capabilities API failure — log and fall through to the
+			// renderer. The data layer will surface the actual problem
+			// if OR is genuinely missing.
+
+			console.warn(
+				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
+				err,
+			)
+			this.guardError = err
+			this.missingApps = []
+		} finally {
+			this.capabilitiesLoading = false
+		}
 	},
 }
 </script>

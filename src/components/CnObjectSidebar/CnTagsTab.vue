@@ -10,7 +10,7 @@
 					@keyup.enter="addTag"
 					@focus="showSuggestions = true" />
 				<NcButton
-					type="primary"
+					variant="primary"
 					:aria-label="addTagPlaceholder"
 					:disabled="!newTagName.trim() || saving"
 					@click="addTag">
@@ -58,10 +58,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -70,11 +70,17 @@ export default {
 	components: { NcButton, NcTextField, NcLoadingIcon, TagOutline, Plus, Close },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag...') },
+		/** Placeholder text for the tag input */
+		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag…') },
+		/** Text shown when no tags are present */
 		noTagsLabel: { type: String, default: () => t('nextcloud-vue', 'No tags') },
 	},
 
@@ -136,12 +142,10 @@ export default {
 		filterSuggestions() {
 			const query = this.newTagName.trim().toLowerCase()
 			if (!query) {
-				this.filtered = this.availableTags.filter(t => !this.tags.includes(t))
+				this.filtered = this.availableTags.filter((t) => !this.tags.includes(t))
 				return
 			}
-			this.filtered = this.availableTags.filter(
-				t => t.toLowerCase().includes(query) && !this.tags.includes(t),
-			)
+			this.filtered = this.availableTags.filter((t) => t.toLowerCase().includes(query) && !this.tags.includes(t))
 		},
 
 		selectSuggestion(tagName) {

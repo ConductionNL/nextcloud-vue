@@ -11,7 +11,8 @@
 			type="button"
 			role="tab"
 			:aria-selected="i === activeIndex ? 'true' : 'false'"
-			:class="['cn-quick-filter-bar__tab', { 'cn-quick-filter-bar__tab--active': i === activeIndex }]"
+			class="cn-quick-filter-bar__tab"
+			:class="[{ 'cn-quick-filter-bar__tab--active': i === activeIndex }]"
 			@click="onClick(i)">
 			<CnIcon
 				v-if="tab.icon"
@@ -59,6 +60,7 @@ export default {
 			required: true,
 			validator: (arr) => Array.isArray(arr) && arr.every((t) => t && typeof t.label === 'string'),
 		},
+
 		/** Index of the currently active tab, or `null` for none active. */
 		activeIndex: {
 			type: Number,

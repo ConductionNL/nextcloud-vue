@@ -1,6 +1,6 @@
-import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
+import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
 import { buildHeaders, buildQueryString } from '../../utils/headers.js'
-import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
+import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
 
 /**
  * Audit trails plugin for the object store.

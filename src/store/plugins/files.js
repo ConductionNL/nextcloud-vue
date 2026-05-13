@@ -1,6 +1,6 @@
-import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
+import { networkError, parseResponseError } from '../../utils/errors.js'
 import { buildHeaders } from '../../utils/headers.js'
-import { parseResponseError, networkError } from '../../utils/errors.js'
+import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
 
 /**
  * Files plugin for the object store.

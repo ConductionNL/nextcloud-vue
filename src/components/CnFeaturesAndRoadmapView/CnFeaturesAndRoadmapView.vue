@@ -12,7 +12,7 @@
 				<h2 class="cn-features-and-roadmap-view__title">
 					{{ viewTitle }}
 				</h2>
-				<NcButton type="primary" @click="openSuggestModal">
+				<NcButton variant="primary" @click="openSuggestModal">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -67,7 +67,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
@@ -94,15 +93,17 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/**
 		 * Build-time feature manifest (alphabetical list rendered by CnFeaturesTab).
+		 *
 		 * @type {Array<{slug: string, title: string, summary: string, docsUrl: string}>}
 		 */
 		features: {
 			type: Array,
-			required: true,
 			default: () => [],
 		},
+
 		/**
 		 * Admin opt-out flag — when true the entire view collapses to a
 		 * single "disabled by admin" empty state.
@@ -135,6 +136,7 @@ export default {
 			this.suggestModalSpecRef = useSpecRef(this)
 			this.showSuggestModal = true
 		},
+
 		onSubmitted(payload) {
 			this.showSuggestModal = false
 			/**

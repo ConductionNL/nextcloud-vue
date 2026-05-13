@@ -51,9 +51,9 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import axios from '@nextcloud/axios'
 
 /**
  * Pattern for `openregister://widget/<schemaSlug>/<widgetSlug>`.
@@ -161,7 +161,7 @@ export default {
 			if (!parsed) {
 				this.loading = false
 				this.error = `[CnWidgetRefItem] Invalid ref URI: "${this.refUri}". Expected openregister://widget/<schemaSlug>/<widgetSlug>.`
-				// eslint-disable-next-line no-console
+
 				console.warn(this.error)
 				return
 			}
@@ -169,7 +169,7 @@ export default {
 			const { schemaSlug, widgetSlug } = parsed
 			const url = `/index.php/apps/openregister/api/schemas/${schemaSlug}/widgets/${widgetSlug}`
 
-			let apiData = {}
+			let apiData
 			try {
 				const response = await axios.get(url)
 				apiData = response.data ?? {}
@@ -177,7 +177,7 @@ export default {
 				this.loading = false
 				const status = err?.response?.status ?? 'network error'
 				this.error = `[CnWidgetRefItem] Could not fetch widget "${schemaSlug}/${widgetSlug}" (${status}).`
-				// eslint-disable-next-line no-console
+
 				console.warn(this.error, err)
 				return
 			}
@@ -186,7 +186,7 @@ export default {
 			if (!componentName) {
 				this.loading = false
 				this.error = `[CnWidgetRefItem] Widget "${schemaSlug}/${widgetSlug}" API response is missing the "component" field.`
-				// eslint-disable-next-line no-console
+
 				console.warn(this.error)
 				return
 			}
@@ -196,7 +196,7 @@ export default {
 			if (!component) {
 				this.loading = false
 				this.error = `[CnWidgetRefItem] Component "${componentName}" for widget "${schemaSlug}/${widgetSlug}" not found in customComponents registry.`
-				// eslint-disable-next-line no-console
+
 				console.warn(this.error)
 				return
 			}

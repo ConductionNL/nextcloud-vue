@@ -37,6 +37,7 @@ export function selectionPlugin() {
 		state: () => ({
 			/**
 			 * IDs of currently selected objects.
+			 *
 			 * @type {string[]}
 			 */
 			selectedObjects: [],
@@ -56,7 +57,7 @@ export function selectionPlugin() {
 				if (!collection.length) return false
 				return collection.every((r) => {
 					const id = r.id ?? r['@self']?.id
-					return id != null && state.selectedObjects.includes(id)
+					return id !== null && id !== undefined && state.selectedObjects.includes(id)
 				})
 			},
 		},

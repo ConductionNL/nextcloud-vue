@@ -90,6 +90,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * External row data. When provided, no API calls are made.
 		 *
@@ -99,14 +100,17 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Column definitions for CnDataTable.
+		 *
 		 * @type {{ key: string, label: string, sortable: boolean }[]}
 		 */
 		columns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * OpenRegister register ID for self-fetch mode.
 		 *
@@ -116,6 +120,7 @@ export default {
 			type: [String, Number],
 			default: null,
 		},
+
 		/**
 		 * OpenRegister schema ID for self-fetch mode.
 		 *
@@ -125,6 +130,7 @@ export default {
 			type: [String, Number],
 			default: null,
 		},
+
 		/**
 		 * Maximum number of rows to display. When total exceeds this,
 		 * a "View all" link appears.
@@ -135,6 +141,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Vue Router route for the "View all" link.
 		 *
@@ -144,6 +151,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Function that returns a route object for row click navigation.
 		 * Receives the row data as argument.
@@ -154,11 +162,13 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/** Pre-translated "View all" label. */
 		viewAllLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'View all'),
 		},
+
 		/** Pre-translated empty state text. */
 		emptyText: {
 			type: String,

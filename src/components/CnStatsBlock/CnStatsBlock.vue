@@ -115,67 +115,80 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/** The main count number to display prominently */
 		count: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Label displayed next to the count */
 		countLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'objects'),
 		},
+
 		/** Detailed breakdown object (key-value pairs) */
 		breakdown: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is currently loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Text shown while loading */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
+			default: () => t('nextcloud-vue', 'Loading…'),
 		},
+
 		/** Text shown when count is 0 */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
+
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,
 			default: 24,
 		},
+
 		/** Color variant: 'default', 'primary', 'success', 'warning', 'error' */
 		variant: {
 			type: String,
 			default: 'default',
 			validator: (v) => ['default', 'primary', 'success', 'warning', 'error'].includes(v),
 		},
+
 		/** Use horizontal layout (icon left, content right) */
 		horizontal: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the card is clickable */
 		clickable: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to display 0 as a count value instead of the empty label */
 		showZeroCount: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Vue Router location object for declarative navigation.
 		 * When set, the card renders as a <router-link> and clickable styles are implied.

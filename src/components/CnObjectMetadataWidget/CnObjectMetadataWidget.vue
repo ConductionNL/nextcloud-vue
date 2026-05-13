@@ -96,11 +96,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+
 		/** Optional MDI icon component for the header */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
+
 		/**
 		 * The object data containing metadata.
 		 * Supports flat objects and objects with `@self` metadata block.
@@ -109,6 +111,7 @@ export default {
 			type: Object,
 			required: true,
 		},
+
 		/**
 		 * Layout mode for the grid: 'grid' or 'horizontal'.
 		 */
@@ -116,6 +119,7 @@ export default {
 			type: String,
 			default: 'horizontal',
 		},
+
 		/**
 		 * Number of grid columns (only for layout='grid').
 		 */
@@ -123,6 +127,7 @@ export default {
 			type: Number,
 			default: 0,
 		},
+
 		/**
 		 * Min width for labels in horizontal layout.
 		 */
@@ -130,40 +135,49 @@ export default {
 			type: Number,
 			default: 150,
 		},
+
 		/**
 		 * Additional metadata items to display.
+		 *
 		 * @type {Array<{ label: string, value: string|number }>}
 		 */
 		extraItems: {
 			type: Array,
 			default: () => [],
 		},
+
 		/**
 		 * Metadata fields to include (whitelist). If null, all available are shown.
+		 *
 		 * @type {string[]|null}
 		 */
 		include: {
 			type: Array,
 			default: null,
 		},
+
 		/**
 		 * Metadata fields to exclude.
+		 *
 		 * @type {string[]}
 		 */
 		exclude: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Whether the card can be collapsed */
 		collapsible: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Initial collapsed state */
 		collapsed: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Label shown when no metadata available */
 		emptyLabel: {
 			type: String,
@@ -178,6 +192,7 @@ export default {
 
 		/**
 		 * Merged metadata source: combines @self block with top-level fields.
+		 *
 		 * @self fields take priority over top-level for shared keys.
 		 */
 		metadataSource() {
@@ -218,6 +233,7 @@ export default {
 	methods: {
 		/**
 		 * Format a metadata value for display.
+		 *
 		 * @param {*} value - The raw metadata value.
 		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */

@@ -9,14 +9,14 @@
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					keep-open
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					keep-open
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -96,7 +96,7 @@
 				<!-- Load more -->
 				<NcButton
 					v-if="hasMore"
-					type="tertiary"
+					variant="tertiary"
 					:wide="true"
 					:disabled="loadingMore"
 					class="cn-sidebar-tab__load-more"
@@ -116,7 +116,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
+import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -126,16 +126,27 @@ export default {
 	components: { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Text shown when there are no audit trail entries */
 		noAuditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'No audit trail entries') },
+		/** Text shown when no entries match the current filter */
 		noMatchLabel: { type: String, default: () => t('nextcloud-vue', 'No matching entries') },
+		/** Label for the action filter control */
 		actionFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Action') },
+		/** Label for the user filter control */
 		userFilterLabel: { type: String, default: () => t('nextcloud-vue', 'User') },
+		/** Label for the date-from filter */
 		fromLabel: { type: String, default: () => t('nextcloud-vue', 'From') },
+		/** Label for the date-to filter */
 		toLabel: { type: String, default: () => t('nextcloud-vue', 'To') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
@@ -168,6 +179,7 @@ export default {
 			immediate: true,
 			handler(id) { if (id) this.fetchAuditTrails() },
 		},
+
 		filterAction() { this.resetAndFetch() },
 		filterUser() { this.resetAndFetch() },
 		filterDateFrom() { this.resetAndFetch() },
@@ -217,7 +229,7 @@ export default {
 					}
 					this.total = data.total || this.entries.length
 					// Build user options from all seen entries
-					const users = new Set(this.entries.map(e => e.userName || e.user).filter(Boolean))
+					const users = new Set(this.entries.map((e) => e.userName || e.user).filter(Boolean))
 					this.userOptions = [...users].sort()
 				}
 			} catch (err) {

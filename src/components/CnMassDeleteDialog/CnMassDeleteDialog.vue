@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
 		<div v-if="result === null"
@@ -23,7 +23,7 @@
 						{{ getItemName(item) }}
 					</span>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="removeLabel"
 						@click="removeItem(item.id)">
 						<template #icon>
@@ -58,7 +58,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="error"
+				variant="error"
 				:disabled="loading || localItems.length === 0"
 				@click="executeDelete">
 				<template #icon>
@@ -73,9 +73,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 /**
  * CnMassDeleteDialog — Two-phase mass delete confirmation dialog.
@@ -124,39 +124,50 @@ export default {
 			type: Array,
 			required: true,
 		},
+
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Delete items'),
 		},
+
 		/** Warning text shown above the item list */
 		warningText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'The following items will be permanently deleted. Remove any items you want to keep.'),
 		},
+
 		/** Text when all items removed from list */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items selected for deletion.'),
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully deleted.'),
 		},
+
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Label for the remove button */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 

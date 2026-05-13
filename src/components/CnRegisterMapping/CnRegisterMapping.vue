@@ -12,7 +12,7 @@
 		<template #actions>
 			<NcButton
 				v-if="showSaveButton"
-				type="primary"
+				variant="primary"
 				:disabled="saving || !hasChanges"
 				@click="handleSave">
 				<template #icon>
@@ -23,7 +23,7 @@
 			</NcButton>
 			<NcButton
 				v-if="showReimportButton"
-				type="secondary"
+				variant="secondary"
 				:disabled="reimporting"
 				@click="$emit('reimport')">
 				<template #icon>
@@ -65,7 +65,7 @@
 				<div class="cn-register-mapping__register-select">
 					<label class="cn-register-mapping__label">{{ labels.register }}</label>
 					<NcSelect
-						:value="selectedRegister(groupIdx)"
+						:model-value="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
 						:input-label="labels.register"
@@ -118,7 +118,7 @@
 									{{ type.description }}
 								</p>
 								<NcSelect
-									:value="selectedSchema(groupIdx, type)"
+									:model-value="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
 									:input-label="labels.schema"
@@ -153,13 +153,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildHeaders } from '../../utils/headers.js'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
  * CnRegisterMapping - OpenRegister register/schema configuration component.
@@ -218,18 +218,22 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Register configuration'),
 		},
+
 		/** Section description */
 		description: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Configure OpenRegister schema mappings for your object types'),
 		},
+
 		/** Documentation URL */
 		docUrl: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Groups of object types that share a register.
+		 *
 		 * @type {Array<{ name: string, description: string, registerConfigKey: string, types: Array<{ slug: string, label: string, description: string, configKey: string }> }>}
 		 */
 		groups: {
@@ -238,46 +242,55 @@ export default {
 			validator: (groups) => groups.length > 0
 				&& groups.every((g) => g.name && Array.isArray(g.types) && g.types.length > 0),
 		},
+
 		/** Current configuration values: { register: '5', client_schema: '28', ... } */
 		configuration: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Show save button */
 		showSaveButton: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether save is in progress */
 		saving: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Show reimport button */
 		showReimportButton: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether reimport is in progress */
 		reimporting: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Save button text */
 		saveButtonText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save configuration'),
 		},
+
 		/** Reimport button text */
 		reimportButtonText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Re-import configuration'),
 		},
+
 		/** Auto-match schema titles to type slugs on register change */
 		autoMatch: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** UI labels (i18n) */
 		labels: {
 			type: Object,
@@ -330,6 +343,7 @@ export default {
 			handler(newVal) {
 				this.localConfig = { ...newVal }
 			},
+
 			immediate: true,
 			deep: true,
 		},

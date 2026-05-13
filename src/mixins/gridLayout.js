@@ -110,7 +110,7 @@ export const gridLayout = {
 		 * @return {object|undefined} The matching widget definition.
 		 */
 		findWidget(item) {
-			return this.widgets.find(w => w.id === item.widgetId)
+			return this.widgets.find((w) => w.id === item.widgetId)
 		},
 	},
 }

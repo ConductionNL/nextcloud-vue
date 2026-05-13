@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Conduction B.V.
 
 import { computed, isRef } from 'vue'
-import { useGraphQL, selectByPath } from './useGraphQL.js'
+import { selectByPath, useGraphQL } from './useGraphQL.js'
 
 /**
  * Resolve a manifest-driven `dataSource` block into reactive

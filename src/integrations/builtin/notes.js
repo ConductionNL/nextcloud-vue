@@ -14,8 +14,8 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnNotesTab from '../../components/CnObjectSidebar/CnNotesTab.vue'
 import CnNotesCard from '../../components/CnNotesCard/CnNotesCard.vue'
+import CnNotesTab from '../../components/CnObjectSidebar/CnNotesTab.vue'
 
 /**
  * Adapter component: forwards `register` → `registerId`,

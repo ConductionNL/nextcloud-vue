@@ -10,12 +10,12 @@
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
-					type="tertiary"
+					variant="tertiary"
 					@click="cancelEdit">
 					{{ cancelLabel }}
 				</NcButton>
 				<NcButton
-					type="primary"
+					variant="primary"
 					:disabled="!newNoteText.trim() || saving"
 					@click="editingNoteId ? saveEdit() : addNote()">
 					<template #icon>
@@ -68,11 +68,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Send from 'vue-material-design-icons/Send.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Send from 'vue-material-design-icons/Send.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -81,16 +81,27 @@ export default {
 	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CommentTextOutline, Send, Pencil, Delete },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Label for the add note button */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
-		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		/** Placeholder text for the note input field */
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note…') },
+		/** Label for the edit action */
 		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		/** Label for the save action */
 		saveLabel: { type: String, default: () => t('nextcloud-vue', 'Save') },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 	},
 
@@ -194,7 +205,7 @@ export default {
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.notes = this.notes.filter(n => n.id !== note.id)
+				this.notes = this.notes.filter((n) => n.id !== note.id)
 			} catch (err) {
 				console.error('CnNotesTab: Failed to delete note', err)
 			}

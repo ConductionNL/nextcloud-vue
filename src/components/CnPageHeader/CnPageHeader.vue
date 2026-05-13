@@ -40,16 +40,19 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Optional MDI icon name (rendered via CnIcon) */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,

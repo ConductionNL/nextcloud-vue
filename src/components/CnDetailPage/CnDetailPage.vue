@@ -79,7 +79,7 @@
 						<AlertCircleOutline :size="48" />
 					</template>
 					<template #action>
-						<NcButton v-if="onRetry" type="primary" @click="onRetry">
+						<NcButton v-if="onRetry" variant="primary" @click="onRetry">
 							<template #icon>
 								<Refresh :size="20" />
 							</template>
@@ -205,18 +205,18 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { CnIcon } from '../CnIcon/index.js'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
-import { gridLayout } from '../../mixins/gridLayout.js'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import { useObjectLock } from '../../composables/useObjectLock.js'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { useObjectStore } from '../../store/index.js'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { gridLayout } from '../../mixins/gridLayout.js'
+import { useObjectStore } from '../../store/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -320,6 +320,279 @@ export default {
 		cnAiContext: { default: null },
 	},
 
+	props: {
+		/** Page title */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/** Page description (shown below title) */
+		description: {
+			type: String,
+			default: '',
+		},
+
+		/** Optional MDI icon name (rendered via CnIcon) */
+		icon: {
+			type: String,
+			default: '',
+		},
+
+		/** Icon size in pixels */
+		iconSize: {
+			type: Number,
+			default: 28,
+		},
+
+		/** Whether the page is in a loading state */
+		loading: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Message shown during loading */
+		loadingLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Loading…'),
+		},
+
+		/**
+		 * Sidebar configuration. Accepts EITHER form:
+		 *
+		 *   - **Boolean (legacy, deprecated):** `true` activates the
+		 *     external sidebar, `false` deactivates. The first time this
+		 *     form is observed per component instance a one-shot
+		 *     `console.warn` is logged pointing at the migration path.
+		 *     Continues to work in v1.x for back-compat.
+		 *
+		 *   - **Object (preferred):** mirrors `CnIndexPage.sidebar` plus
+		 *     the detail-specific fields previously on `sidebarProps`:
+		 *     ```ts
+		 *     {
+		 *       show?: boolean,        // default true; false suppresses sidebar
+		 *       enabled?: boolean,     // default true; false bypasses external sidebar
+		 *       register?: string,
+		 *       schema?: string,
+		 *       hiddenTabs?: string[],
+		 *       title?: string,
+		 *       subtitle?: string,
+		 *       tabs?: Array<TabDef>,  // see manifest-abstract-sidebar
+		 *     }
+		 *     ```
+		 *     When BOTH `sidebar` (Object) and `sidebarProps` are set
+		 *     with overlapping fields, the Object form wins and a
+		 *     `console.warn` lists the conflicting fields once per
+		 *     component instance.
+		 *
+		 * @type {boolean | object}
+		 */
+		sidebar: {
+			type: [Boolean, Object],
+			default: false,
+		},
+
+		/** Whether the sidebar is open (expanded) */
+		sidebarOpen: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** The registered object type slug for the sidebar */
+		objectType: {
+			type: String,
+			default: '',
+		},
+
+		/** The object ID to display in the sidebar */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
+		/** Subtitle shown in the sidebar header */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+
+		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle) */
+		sidebarProps: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Rendering surface forwarded to integration widgets in the
+		 * grid layout (widget defs with `type === 'integration'`).
+		 * Drives the AD-19 surface fallback. Defaults to
+		 * `'detail-page'` — the surface this page represents.
+		 *
+		 * @type {'user-dashboard'|'app-dashboard'|'detail-page'|'single-entity'}
+		 */
+		surface: {
+			type: String,
+			default: 'detail-page',
+			validator: (value) => INTEGRATION_SURFACES.includes(value),
+		},
+
+		/**
+		 * Object context forwarded to integration widgets:
+		 * `{ register, schema, objectId }`. When omitted it is derived
+		 * from `sidebarProps.register` / `sidebarProps.schema` (or
+		 * `objectType`) and `objectId`, so `CnFilesCard` etc. can
+		 * fetch the right object's sub-resources without extra wiring.
+		 *
+		 * @type {object|null}
+		 */
+		integrationContext: {
+			type: Object,
+			default: null,
+		},
+
+		/** Whether the page is in an error state */
+		error: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Error message shown in error state */
+		errorMessage: {
+			type: String,
+			default: () => t('nextcloud-vue', 'An error occurred'),
+		},
+
+		/** Callback for retry button in error state. If null, no retry button is shown. */
+		onRetry: {
+			type: Function,
+			default: null,
+		},
+
+		/** Label for the retry button */
+		retryLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Retry'),
+		},
+
+		/** Whether the page has no data to show */
+		empty: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Message shown when page is empty */
+		emptyLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'No data available'),
+		},
+
+		/** Title shown above the statistics table */
+		statsTitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Column definitions for the statistics table.
+		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
+		 *
+		 * @type {Array<{ key: string, label: string, align: string }>}
+		 */
+		statsColumns: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Row data for the statistics table. Each row is an object keyed by
+		 * column keys. Set `indent: true` on a row for sub-row styling.
+		 *
+		 * @type {Array<object>}
+		 */
+		statsRows: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Maximum width of the page content */
+		maxWidth: {
+			type: String,
+			default: '1200px',
+		},
+
+		/**
+		 * Whether to auto-subscribe to live updates for this object.
+		 * Defaults to true. When `useObjectStore` and `objectType` +
+		 * `objectId` are both available, the page calls
+		 * `objectStore.subscribe(objectType, objectId)` on mount and
+		 * unsubscribes on unmount via `tryOnScopeDispose`. Set
+		 * `false` for read-only / archive views.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Optional explicit Pinia store instance to subscribe / lock
+		 * against. When omitted, the page resolves `useObjectStore()`
+		 * lazily so consumer apps that haven't activated Pinia yet
+		 * (e.g. tests) don't crash.
+		 *
+		 * @type {object|null}
+		 */
+		objectStore: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * OpenRegister register slug. Pair with `schema` to opt into the
+		 * schema-driven mode: the page fuses the two into an internal
+		 * `${register}-${schema}` object-type slug, registers it on the
+		 * store, fetches the object identified by `objectId`, and auto-
+		 * renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when no
+		 * default-slot content is supplied. Compatible with the existing
+		 * `objectType` prop — `objectType` wins on collision, so legacy
+		 * direct mounts are unaffected.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * OpenRegister schema slug. See `register` for the schema-driven
+		 * contract.
+		 *
+		 * @type {string}
+		 */
+		schema: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Tab definitions forwarded to the host App's `CnObjectSidebar`
+		 * via the injected `objectSidebarState`. Each entry follows the
+		 * `CnObjectSidebar` tab shape (see that component for the exact
+		 * fields). When empty (default) the sidebar falls back to its
+		 * own default tab set. The actual `<CnObjectSidebar>` is rendered
+		 * at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar
+		 * pattern); this page only publishes the tabs.
+		 *
+		 * @type {Array<object>}
+		 */
+		sidebarTabs: {
+			type: Array,
+			default: () => [],
+		},
+	},
+
 	setup(props) {
 		// Pluggable integration registry — used to resolve `type:
 		// 'integration'` widgets in the grid layout to their Vue
@@ -363,250 +636,6 @@ export default {
 		}
 	},
 
-	props: {
-		/** Page title */
-		title: {
-			type: String,
-			default: '',
-		},
-		/** Page description (shown below title) */
-		description: {
-			type: String,
-			default: '',
-		},
-		/** Optional MDI icon name (rendered via CnIcon) */
-		icon: {
-			type: String,
-			default: '',
-		},
-		/** Icon size in pixels */
-		iconSize: {
-			type: Number,
-			default: 28,
-		},
-		/** Whether the page is in a loading state */
-		loading: {
-			type: Boolean,
-			default: false,
-		},
-		/** Message shown during loading */
-		loadingLabel: {
-			type: String,
-			default: () => t('nextcloud-vue', 'Loading...'),
-		},
-		/**
-		 * Sidebar configuration. Accepts EITHER form:
-		 *
-		 *   - **Boolean (legacy, deprecated):** `true` activates the
-		 *     external sidebar, `false` deactivates. The first time this
-		 *     form is observed per component instance a one-shot
-		 *     `console.warn` is logged pointing at the migration path.
-		 *     Continues to work in v1.x for back-compat.
-		 *
-		 *   - **Object (preferred):** mirrors `CnIndexPage.sidebar` plus
-		 *     the detail-specific fields previously on `sidebarProps`:
-		 *     ```ts
-		 *     {
-		 *       show?: boolean,        // default true; false suppresses sidebar
-		 *       enabled?: boolean,     // default true; false bypasses external sidebar
-		 *       register?: string,
-		 *       schema?: string,
-		 *       hiddenTabs?: string[],
-		 *       title?: string,
-		 *       subtitle?: string,
-		 *       tabs?: Array<TabDef>,  // see manifest-abstract-sidebar
-		 *     }
-		 *     ```
-		 *     When BOTH `sidebar` (Object) and `sidebarProps` are set
-		 *     with overlapping fields, the Object form wins and a
-		 *     `console.warn` lists the conflicting fields once per
-		 *     component instance.
-		 *
-		 * @type {Boolean|Object}
-		 */
-		sidebar: {
-			type: [Boolean, Object],
-			default: false,
-		},
-		/** Whether the sidebar is open (expanded) */
-		sidebarOpen: {
-			type: Boolean,
-			default: true,
-		},
-		/** The registered object type slug for the sidebar */
-		objectType: {
-			type: String,
-			default: '',
-		},
-		/** The object ID to display in the sidebar */
-		objectId: {
-			type: [String, Number],
-			default: '',
-		},
-		/** Subtitle shown in the sidebar header */
-		subtitle: {
-			type: String,
-			default: '',
-		},
-		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle) */
-		sidebarProps: {
-			type: Object,
-			default: () => ({}),
-		},
-		/**
-		 * Rendering surface forwarded to integration widgets in the
-		 * grid layout (widget defs with `type === 'integration'`).
-		 * Drives the AD-19 surface fallback. Defaults to
-		 * `'detail-page'` — the surface this page represents.
-		 *
-		 * @type {'user-dashboard'|'app-dashboard'|'detail-page'|'single-entity'}
-		 */
-		surface: {
-			type: String,
-			default: 'detail-page',
-			validator: (value) => INTEGRATION_SURFACES.includes(value),
-		},
-		/**
-		 * Object context forwarded to integration widgets:
-		 * `{ register, schema, objectId }`. When omitted it is derived
-		 * from `sidebarProps.register` / `sidebarProps.schema` (or
-		 * `objectType`) and `objectId`, so `CnFilesCard` etc. can
-		 * fetch the right object's sub-resources without extra wiring.
-		 *
-		 * @type {object|null}
-		 */
-		integrationContext: {
-			type: Object,
-			default: null,
-		},
-		/** Whether the page is in an error state */
-		error: {
-			type: Boolean,
-			default: false,
-		},
-		/** Error message shown in error state */
-		errorMessage: {
-			type: String,
-			default: () => t('nextcloud-vue', 'An error occurred'),
-		},
-		/** Callback for retry button in error state. If null, no retry button is shown. */
-		onRetry: {
-			type: Function,
-			default: null,
-		},
-		/** Label for the retry button */
-		retryLabel: {
-			type: String,
-			default: () => t('nextcloud-vue', 'Retry'),
-		},
-		/** Whether the page has no data to show */
-		empty: {
-			type: Boolean,
-			default: false,
-		},
-		/** Message shown when page is empty */
-		emptyLabel: {
-			type: String,
-			default: () => t('nextcloud-vue', 'No data available'),
-		},
-		/** Title shown above the statistics table */
-		statsTitle: {
-			type: String,
-			default: '',
-		},
-		/**
-		 * Column definitions for the statistics table.
-		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
-		 * @type {Array<{ key: string, label: string, align: string }>}
-		 */
-		statsColumns: {
-			type: Array,
-			default: () => [],
-		},
-		/**
-		 * Row data for the statistics table. Each row is an object keyed by
-		 * column keys. Set `indent: true` on a row for sub-row styling.
-		 *
-		 * @type {Array<object>}
-		 */
-		statsRows: {
-			type: Array,
-			default: () => [],
-		},
-		/** Maximum width of the page content */
-		maxWidth: {
-			type: String,
-			default: '1200px',
-		},
-		/**
-		 * Whether to auto-subscribe to live updates for this object.
-		 * Defaults to true. When `useObjectStore` and `objectType` +
-		 * `objectId` are both available, the page calls
-		 * `objectStore.subscribe(objectType, objectId)` on mount and
-		 * unsubscribes on unmount via `tryOnScopeDispose`. Set
-		 * `false` for read-only / archive views.
-		 *
-		 * @type {boolean}
-		 */
-		subscribe: {
-			type: Boolean,
-			default: true,
-		},
-		/**
-		 * Optional explicit Pinia store instance to subscribe / lock
-		 * against. When omitted, the page resolves `useObjectStore()`
-		 * lazily so consumer apps that haven't activated Pinia yet
-		 * (e.g. tests) don't crash.
-		 *
-		 * @type {object|null}
-		 */
-		objectStore: {
-			type: Object,
-			default: null,
-		},
-		/**
-		 * OpenRegister register slug. Pair with `schema` to opt into the
-		 * schema-driven mode: the page fuses the two into an internal
-		 * `${register}-${schema}` object-type slug, registers it on the
-		 * store, fetches the object identified by `objectId`, and auto-
-		 * renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when no
-		 * default-slot content is supplied. Compatible with the existing
-		 * `objectType` prop — `objectType` wins on collision, so legacy
-		 * direct mounts are unaffected.
-		 *
-		 * @type {string}
-		 */
-		register: {
-			type: String,
-			default: '',
-		},
-		/**
-		 * OpenRegister schema slug. See `register` for the schema-driven
-		 * contract.
-		 *
-		 * @type {string}
-		 */
-		schema: {
-			type: String,
-			default: '',
-		},
-		/**
-		 * Tab definitions forwarded to the host App's `CnObjectSidebar`
-		 * via the injected `objectSidebarState`. Each entry follows the
-		 * `CnObjectSidebar` tab shape (see that component for the exact
-		 * fields). When empty (default) the sidebar falls back to its
-		 * own default tab set. The actual `<CnObjectSidebar>` is rendered
-		 * at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar
-		 * pattern); this page only publishes the tabs.
-		 *
-		 * @type {Array<object>}
-		 */
-		sidebarTabs: {
-			type: Array,
-			default: () => [],
-		},
-	},
-
 	computed: {
 		/**
 		 * Effective object-type slug, used for subscription, lock, store
@@ -625,6 +654,7 @@ export default {
 			}
 			return ''
 		},
+
 		/**
 		 * True when this mount is wired for the manifest's schema-driven
 		 * contract: `register`, `schema`, and `objectId` are all set, so
@@ -637,6 +667,7 @@ export default {
 		hasSchemaDrivenFetch() {
 			return Boolean(this.register && this.schema && this.objectId)
 		},
+
 		/**
 		 * Pinia store instance used for the schema-driven fetch.
 		 * Mirrors `CnLogsPage.objectStore`: explicit `objectStore` prop
@@ -662,11 +693,12 @@ export default {
 				// were available. Real consumers (CnAppRoot-hosted apps)
 				// always have Pinia active, so this branch only protects
 				// stand-alone test mounts.
-				// eslint-disable-next-line no-console
+
 				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
 				return null
 			}
 		},
+
 		/**
 		 * The fetched OR object for the schema-driven mode. Read straight
 		 * from the store's normalised `objects[type][id]` cache so any
@@ -682,6 +714,7 @@ export default {
 			if (!type || !this.objectId) return null
 			return store.objects?.[type]?.[this.objectId] ?? null
 		},
+
 		/**
 		 * The fetched JSON Schema for the schema-driven mode. Read from
 		 * the store's `schemas[type]` cache populated by `fetchSchema`.
@@ -697,6 +730,7 @@ export default {
 			if (!type) return null
 			return store.schemas?.[type] ?? null
 		},
+
 		/**
 		 * True when no consumer-supplied default slot content is
 		 * present. Treats whitespace-only / empty vnodes as no content
@@ -706,8 +740,9 @@ export default {
 		hasDefaultSlotContent() {
 			const nodes = this.$slots.default
 			if (!nodes || !nodes.length) return false
-			return nodes.some(vnode => !(vnode.text !== undefined && vnode.text.trim() === ''))
+			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
 		},
+
 		/**
 		 * True when the auto-body (CnObjectDataWidget + CnObjectMetadataWidget)
 		 * should render. Conditions: schema-driven mount, the object has
@@ -720,6 +755,7 @@ export default {
 				&& !this.hasDefaultSlotContent
 				&& !this.hasGridLayout
 		},
+
 		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
@@ -728,6 +764,7 @@ export default {
 		hasExternalSidebar() {
 			return !!this.objectSidebarState
 		},
+
 		/**
 		 * Normalised sidebar config object regardless of input shape.
 		 *
@@ -753,6 +790,7 @@ export default {
 			}
 			return { show: false, enabled: false }
 		},
+
 		/**
 		 * True when the sidebar should be wired into the external
 		 * `objectSidebarState` channel. Both `show` and `enabled`
@@ -763,6 +801,7 @@ export default {
 			const r = this.resolvedSidebar
 			return r.show !== false && r.enabled !== false
 		},
+
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
@@ -773,6 +812,7 @@ export default {
 			immediate: true,
 			handler() { this.syncSidebarState() },
 		},
+
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
@@ -785,20 +825,24 @@ export default {
 			this.pushAiContext()
 			this.fetchObjectIfNeeded()
 		},
+
 		schema() {
 			this.syncSidebarState()
 			this.pushAiContext()
 			this.fetchObjectIfNeeded()
 		},
+
 		objectId() {
 			this.syncSidebarState()
 			this.pushAiContext()
 			this.fetchObjectIfNeeded()
 		},
+
 		sidebarTabs: {
 			deep: true,
 			handler() { this.syncSidebarState() },
 		},
+
 		sidebarProps: {
 			deep: true,
 			handler() { this.syncSidebarState() },
@@ -875,10 +919,10 @@ export default {
 				}
 				await Promise.all(tasks)
 			} catch (err) {
-				// eslint-disable-next-line no-console
 				console.error('[CnDetailPage] schema-driven fetch failed:', err)
 			}
 		},
+
 		/**
 		 * Whether a grid-layout item resolves to an integration-typed
 		 * widget — `def.type === 'integration'` with a string
@@ -989,6 +1033,7 @@ export default {
 				this.objectSidebarState.tabs = undefined
 			}
 		},
+
 		/**
 		 * Merge the Object-form `sidebar` fields with the legacy
 		 * `sidebarProps` fields. Object form wins on conflict; first
@@ -1014,10 +1059,7 @@ export default {
 				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`,
-					)
+					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)
 					this.__sidebarConflictWarned = true
 				}
 			}
@@ -1025,6 +1067,7 @@ export default {
 			// the returned object to reflect the normalised shape.
 			return { ...resolved, ...merged }
 		},
+
 		/**
 		 * Log a one-shot deprecation warning when the legacy Boolean
 		 * form of the `sidebar` prop is observed. Tracked via a
@@ -1035,10 +1078,8 @@ export default {
 			if (typeof this.sidebar !== 'boolean') return
 			if (this.__sidebarBooleanWarned) return
 			this.__sidebarBooleanWarned = true
-			// eslint-disable-next-line no-console
-			console.warn(
-				'[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.',
-			)
+
+			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')
 		},
 	},
 }

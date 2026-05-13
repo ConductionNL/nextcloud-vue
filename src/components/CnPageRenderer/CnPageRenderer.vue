@@ -30,7 +30,8 @@
 		:data-page-id="currentPage.id"
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
-		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		class="cn-page-renderer"
+		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<component
 			:is="resolvedComponent"
 			v-if="resolvedComponent"
@@ -117,6 +118,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Custom-component registry. Keys are the names referenced by
 		 * `page.component` (for `type: "custom"` pages). When omitted,
@@ -128,6 +130,7 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/**
 		 * Translate function. When omitted, falls back to the injected
 		 * `cnTranslate`. Currently not used directly by the renderer
@@ -141,6 +144,7 @@ export default {
 			type: Function,
 			default: null,
 		},
+
 		/**
 		 * Page-type registry. Map of `pages[].type` value → Vue
 		 * component to mount. Consumers extend the library defaults by
@@ -181,14 +185,17 @@ export default {
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
 		},
+
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
 		},
+
 		/** Effective custom-component registry. */
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
+
 		/**
 		 * Effective page-type registry. Prop wins over inject; both
 		 * fall back to the library's `defaultPageTypes`. Apps that want
@@ -198,6 +205,7 @@ export default {
 		effectivePageTypes() {
 			return this.pageTypes ?? this.cnPageTypes ?? defaultPageTypes
 		},
+
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
 			const manifest = this.effectiveManifest
@@ -210,6 +218,7 @@ export default {
 			}
 			return manifest.pages.find((page) => page.id === routeName) ?? null
 		},
+
 		/**
 		 * Component to render for the current page. Looked up in
 		 * `effectivePageTypes` for built-in / library / consumer-extended
@@ -230,24 +239,19 @@ export default {
 				const name = page.component
 				const resolved = this.effectiveCustomComponents[name]
 				if (!resolved) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`,
-					)
+					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
 					return null
 				}
 				return resolved
 			}
 			const component = this.effectivePageTypes[page.type]
 			if (!component) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`,
-				)
+				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
 				return null
 			}
 			return component
 		},
+
 		/**
 		 * Props forwarded to the dispatched page component. Merges three
 		 * sources in precedence order (later sources win on collision):
@@ -297,6 +301,7 @@ export default {
 			}
 			return { ...headerDefaults, ...config, ...params }
 		},
+
 		/**
 		 * Combined slot-override map for the dispatched page component.
 		 * Sources:
@@ -322,6 +327,7 @@ export default {
 			}
 			return entries
 		},
+
 		/**
 		 * Per-page sidebar visibility flag derived from the page
 		 * entry's top-level `sidebar.show` field (sibling of `config`).
@@ -336,6 +342,7 @@ export default {
 			}
 			return page.sidebar.show !== false
 		},
+
 		/**
 		 * Per-page sidebar component derived from the page entry's
 		 * top-level `sidebarComponent` field (sibling of `config`).
@@ -359,14 +366,12 @@ export default {
 			const name = page.sidebarComponent
 			const resolved = this.effectiveCustomComponents[name]
 			if (!resolved) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in customComponents registry.`,
-				)
+				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in customComponents registry.`)
 				return null
 			}
 			return resolved
 		},
+
 		/**
 		 * @deprecated Use `resolvedSlotEntries` for general slot
 		 * resolution. Retained for compatibility with code that read the
@@ -375,6 +380,7 @@ export default {
 		headerOverride() {
 			return this.resolvedSlotEntries.find((e) => e.name === 'header')?.component ?? null
 		},
+
 		/**
 		 * @deprecated See `headerOverride`.
 		 */
@@ -397,13 +403,11 @@ export default {
 				// component holder still carries the resolved value
 				// for downstream consumers that inspect it directly.
 				if (visible === false && this.currentPage?.sidebarComponent) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnPageRenderer] Page id "${this.currentPage.id}" declares both sidebar.show: false and sidebarComponent "${this.currentPage.sidebarComponent}". Visibility wins; the sidebarComponent will not render.`,
-					)
+					console.warn(`[CnPageRenderer] Page id "${this.currentPage.id}" declares both sidebar.show: false and sidebarComponent "${this.currentPage.sidebarComponent}". Visibility wins; the sidebarComponent will not render.`)
 				}
 			},
 		},
+
 		currentPageSidebarComponent: {
 			immediate: true,
 			handler(component) {
@@ -423,10 +427,8 @@ export default {
 			this.$options.name = `CnPageRenderer:${this.currentPage.id}`
 		} else if (this.$route) {
 			// Router is present but no page matches — warn so developers notice misconfigured routes.
-			// eslint-disable-next-line no-console
-			console.warn(
-				`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`,
-			)
+
+			console.warn(`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`)
 		}
 	},
 
@@ -444,10 +446,7 @@ export default {
 		resolveRegistryName(registryName, slotName) {
 			const resolved = this.effectiveCustomComponents[registryName]
 			if (!resolved) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`,
-				)
+				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
 				return null
 			}
 			return resolved
