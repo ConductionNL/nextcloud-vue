@@ -40,10 +40,10 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appId">
+	<NcContent :app-name="appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
-			<div class="cn-app-root__capabilities-loading">
+			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
 				<NcLoadingIcon :size="32" />
 			</div>
 		</template>

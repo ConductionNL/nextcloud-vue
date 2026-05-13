@@ -11,6 +11,7 @@
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
 		:active.sync="activeTab"
+		data-testid="cn-object-sidebar"
 		@update:open="$emit('update:open', $event)"
 		@close="$emit('update:open', false)">
 		<!-- REGISTRY BRANCH: pluggable integration registry-driven.
@@ -28,7 +29,8 @@
 				:id="provider.id"
 				:key="provider.id"
 				:name="provider.label"
-				:order="provider.order != null ? provider.order : idx + 1">
+				:order="provider.order != null ? provider.order : idx + 1"
+				:data-testid="`cn-object-sidebar-tab-${provider.id}`">
 				<template #icon>
 					<CnIcon v-if="provider.icon" :name="provider.icon" :size="20" />
 				</template>
@@ -50,7 +52,8 @@
 				v-if="!isTabHidden('files')"
 				id="files"
 				:name="filesLabel"
-				:order="1">
+				:order="1"
+				data-testid="cn-object-sidebar-tab-files">
 				<template #icon>
 					<Paperclip :size="20" />
 				</template>
@@ -68,7 +71,8 @@
 				v-if="!isTabHidden('notes')"
 				id="notes"
 				:name="notesLabel"
-				:order="2">
+				:order="2"
+				data-testid="cn-object-sidebar-tab-notes">
 				<template #icon>
 					<CommentTextOutline :size="20" />
 				</template>
@@ -86,7 +90,8 @@
 				v-if="!isTabHidden('tags')"
 				id="tags"
 				:name="tagsLabel"
-				:order="3">
+				:order="3"
+				data-testid="cn-object-sidebar-tab-tags">
 				<template #icon>
 					<TagOutline :size="20" />
 				</template>
@@ -104,7 +109,8 @@
 				v-if="!isTabHidden('tasks')"
 				id="tasks"
 				:name="tasksLabel"
-				:order="4">
+				:order="4"
+				data-testid="cn-object-sidebar-tab-tasks">
 				<template #icon>
 					<CheckboxMarkedOutline :size="20" />
 				</template>
@@ -122,7 +128,8 @@
 				v-if="!isTabHidden('auditTrail')"
 				id="auditTrail"
 				:name="auditTrailLabel"
-				:order="5">
+				:order="5"
+				data-testid="cn-object-sidebar-tab-audit-trail">
 				<template #icon>
 					<History :size="20" />
 				</template>
@@ -151,7 +158,8 @@
 				:id="tab.id"
 				:key="tab.id"
 				:name="tab.label"
-				:order="tab.order != null ? tab.order : idx + 1">
+				:order="tab.order != null ? tab.order : idx + 1"
+				:data-testid="`cn-object-sidebar-tab-${tab.id}`">
 				<template v-if="tab.icon" #icon>
 					<CnIcon :name="tab.icon" :size="20" />
 				</template>

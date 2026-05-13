@@ -32,7 +32,7 @@
   Spec: REQ-MWPT-* (manifest-wiki-page-type).
 -->
 <template>
-	<div class="cn-wiki-page" :class="{ 'cn-wiki-page--has-sidebar': hasSidebar }">
+	<div class="cn-wiki-page" data-testid="cn-wiki-page" :class="{ 'cn-wiki-page--has-sidebar': hasSidebar }">
 		<!--
 			@slot sidebar
 			@description Replaces the default sidebar tree. Scoped props `{ tree, onClick }` —

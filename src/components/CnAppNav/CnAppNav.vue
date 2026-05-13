@@ -29,7 +29,7 @@
   See REQ-JMR-004 of the json-manifest-renderer specification.
 -->
 <template>
-	<NcAppNavigation>
+	<NcAppNavigation data-testid="cn-nav">
 		<template #list>
 			<NcAppNavigationItem
 				v-for="item in mainItems"
@@ -39,6 +39,7 @@
 				:exact="isExact(item)"
 				:icon="item.icon"
 				:active="isActive(item)"
+				:data-testid="`cn-nav-entry-${item.id}`"
 				@click="onItemClick(item, $event)">
 				<NcAppNavigationItem
 					v-for="child in visibleChildren(item)"
@@ -48,11 +49,12 @@
 					:exact="isExact(child)"
 					:icon="child.icon"
 					:active="isActive(child)"
+					:data-testid="`cn-nav-entry-${child.id}`"
 					@click="onItemClick(child, $event)" />
 			</NcAppNavigationItem>
 		</template>
 		<template v-if="settingsItems.length" #footer>
-			<ul class="cn-app-nav__footer-list">
+			<ul class="cn-app-nav__footer-list" data-testid="cn-nav-footer">
 				<NcAppNavigationItem
 					v-for="item in settingsItems"
 					:key="item.id"
@@ -61,6 +63,7 @@
 					:exact="isExact(item)"
 					:icon="item.icon"
 					:active="isActive(item)"
+					:data-testid="`cn-nav-entry-${item.id}`"
 					@click="onItemClick(item, $event)" />
 			</ul>
 		</template>

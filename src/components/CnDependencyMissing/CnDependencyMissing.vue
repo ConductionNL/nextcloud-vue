@@ -9,7 +9,7 @@
   See REQ-JMR-011 of the json-manifest-renderer specification.
 -->
 <template>
-	<div class="cn-dependency-missing">
+	<div class="cn-dependency-missing" data-testid="cn-dependency-missing">
 		<div class="cn-dependency-missing__inner">
 			<h1 class="cn-dependency-missing__heading">
 				{{ heading }}

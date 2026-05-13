@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
-		<div v-if="result === null" class="cn-mass-copy__review">
+		<div v-if="result === null"
+			class="cn-mass-copy__review"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-copy-dialog"
+			data-testid-phase="review">
 			<div class="cn-mass-copy__pattern">
 				<label for="cn-mass-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect
@@ -43,7 +47,11 @@
 		</div>
 
 		<!-- Result phase -->
-		<div v-else class="cn-mass-copy__result">
+		<div v-else
+			class="cn-mass-copy__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-copy-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>

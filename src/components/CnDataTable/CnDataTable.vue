@@ -1,13 +1,13 @@
 <template>
-	<div class="cn-table-container" :class="{ 'cn-table-container--scrollable': scrollable }">
+	<div class="cn-table-container" data-testid="cn-object-list" :class="{ 'cn-table-container--scrollable': scrollable }">
 		<!-- Loading State -->
-		<div v-if="loading" class="cn-table-loading">
+		<div v-if="loading" class="cn-table-loading" data-testid="cn-object-list-loading">
 			<NcLoadingIcon :size="32" />
 			<p>{{ loadingText }}</p>
 		</div>
 
 		<!-- Table -->
-		<table v-else class="cn-data-table">
+		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
 			<thead>
 				<tr>
 					<!-- Checkbox column -->
@@ -45,7 +45,7 @@
 
 			<tbody>
 				<!-- Empty state -->
-				<tr v-if="rows.length === 0" class="cn-table-empty">
+				<tr v-if="rows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 					<td :colspan="totalColumns">
 						<slot name="empty">
 							{{ emptyText }}
@@ -59,6 +59,8 @@
 					v-else
 					:key="row[rowKey]"
 					class="cn-table-row"
+					data-testid="cn-object-row"
+					:data-testid-row-id="row[rowKey]"
 					:class="[
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',

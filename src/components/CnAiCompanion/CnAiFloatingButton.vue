@@ -16,6 +16,7 @@
 		]"
 		:aria-label="cnTranslate('Open AI chat')"
 		type="button"
+		data-testid="cn-ai-fab"
 		@click="$emit('click')">
 		<span class="cn-ai-floating-button__hex">
 			<Creation :size="26" class="cn-ai-floating-button__icon" />

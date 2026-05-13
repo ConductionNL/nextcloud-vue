@@ -18,7 +18,7 @@
   breaking the app shell.
 -->
 <template>
-	<div class="cn-logs-page">
+	<div class="cn-logs-page" data-testid="cn-logs-page">
 		<!-- Header — overridable via #header slot (renderer fills via headerComponent or slots.header) -->
 		<slot
 			name="header"

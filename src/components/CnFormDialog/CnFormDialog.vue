@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-form-dialog__result">
+		<div v-if="result !== null"
+			class="cn-form-dialog__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-form-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ resolvedSuccessText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-form-dialog__form">
+		<div v-else
+			class="cn-form-dialog__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-form-dialog"
+			data-testid-phase="form">
 			<!-- Full form override slot -->
 			<slot
 				v-if="$scopedSlots.form"

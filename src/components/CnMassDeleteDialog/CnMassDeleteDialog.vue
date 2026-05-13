@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
-		<div v-if="result === null" class="cn-mass-delete__review">
+		<div v-if="result === null"
+			class="cn-mass-delete__review"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-delete-dialog"
+			data-testid-phase="review">
 			<NcNoteCard type="warning">
 				{{ warningText }}
 			</NcNoteCard>
@@ -35,7 +39,11 @@
 		</div>
 
 		<!-- Result phase -->
-		<div v-else class="cn-mass-delete__result">
+		<div v-else
+			class="cn-mass-delete__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-delete-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>

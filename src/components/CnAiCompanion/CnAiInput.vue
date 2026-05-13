@@ -7,7 +7,7 @@
   - Send button disabled when textarea is empty or whitespace-only.
 -->
 <template>
-	<div class="cn-ai-input">
+	<div class="cn-ai-input" data-testid="cn-ai-input">
 		<textarea
 			ref="textarea"
 			v-model="inputText"
@@ -16,6 +16,7 @@
 			:disabled="disabled"
 			:placeholder="cnTranslate('Message input')"
 			rows="1"
+			data-testid="cn-ai-input-textarea"
 			@keydown.enter.exact.prevent="handleEnter"
 			@keydown.shift.enter.exact="handleShiftEnter"
 			@input="autoGrow" />
@@ -24,6 +25,7 @@
 			type="button"
 			:aria-label="cnTranslate('Send message')"
 			:disabled="disabled || isTextEmpty"
+			data-testid="cn-ai-input-send"
 			@click="handleSend">
 			<NcLoadingIcon
 				v-if="disabled"

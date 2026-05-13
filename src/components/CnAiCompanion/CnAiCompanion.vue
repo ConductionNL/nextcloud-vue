@@ -14,7 +14,7 @@
   FAB and panel both hidden when cnAiContext.pageKind === 'chat'.
 -->
 <template>
-	<div v-if="probeSucceeded && !isChatPage" class="cn-ai-companion">
+	<div v-if="probeSucceeded && !isChatPage" class="cn-ai-companion" data-testid="cn-ai-companion">
 		<CnAiFloatingButton
 			:visible="!isPanelOpen"
 			:position="position"

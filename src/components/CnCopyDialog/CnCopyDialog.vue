@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-copy__result">
+		<div v-if="result !== null"
+			class="cn-copy__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-copy-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-copy__form">
+		<div v-else
+			class="cn-copy__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-copy-dialog"
+			data-testid-phase="form">
 			<div class="cn-copy__pattern">
 				<label for="cn-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect

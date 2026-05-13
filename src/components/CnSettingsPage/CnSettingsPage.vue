@@ -31,7 +31,7 @@
   `slots[]` slots exposed here.
 -->
 <template>
-	<div class="cn-settings-page">
+	<div class="cn-settings-page" data-testid="cn-settings-page">
 		<!-- Header — overridable via #header slot -->
 		<slot
 			name="header"
@@ -57,7 +57,8 @@
 		<div
 			v-if="hasTabs"
 			class="cn-settings-page__tabs"
-			role="tablist">
+			role="tablist"
+			data-testid="cn-settings-page-tabs">
 			<button
 				v-for="(tab, tabIndex) in tabs"
 				:key="`tab-${tab.id}`"
@@ -67,6 +68,7 @@
 				:class="{ 'cn-settings-page__tab--active': activeTabId === tab.id }"
 				:aria-selected="activeTabId === tab.id ? 'true' : 'false'"
 				:aria-controls="`cn-settings-tab-panel-${tab.id}`"
+				:data-testid="`cn-settings-page-tab-${tab.id}`"
 				@click="onTabClick(tab, tabIndex)">
 				{{ resolveLabel(tab.label) }}
 			</button>

@@ -28,6 +28,8 @@
 	<div
 		v-if="currentPage"
 		:data-page-id="currentPage.id"
+		data-testid="cn-page"
+		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 		<component
 			:is="resolvedComponent"
