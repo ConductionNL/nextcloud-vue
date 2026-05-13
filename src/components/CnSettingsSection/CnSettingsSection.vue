@@ -3,6 +3,7 @@
 		:name="name"
 		:description="description"
 		:doc-url="docUrl"
+		data-testid="cn-settings-section"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->
 		<div v-if="$slots.actions" class="cn-settings-section__actions">

@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-index-page">
+	<div class="cn-index-page" data-testid="cn-index-page">
 		<!-- Header — overridable via #header slot. Default renders CnPageHeader
 		     when showTitle is true (existing behaviour, hidden by default). -->
 		<slot

@@ -20,7 +20,11 @@
 		@update:open="$emit('update:open', $event)">
 		<template #default>
 			<!-- Loading state -->
-			<div v-if="loading" class="cn-ai-history-dialog__loading">
+			<div v-if="loading"
+				class="cn-ai-history-dialog__loading"
+				data-testid="cn-modal"
+				data-testid-modal="cn-ai-history-dialog"
+				data-testid-phase="loading">
 				<NcLoadingIcon :size="32" />
 				<span>{{ cnTranslate('Loading conversations...') }}</span>
 			</div>
@@ -44,7 +48,11 @@
 			</NcEmptyContent>
 
 			<!-- Conversation list -->
-			<ul v-else class="cn-ai-history-dialog__list">
+			<ul v-else
+				class="cn-ai-history-dialog__list"
+				data-testid="cn-modal"
+				data-testid-modal="cn-ai-history-dialog"
+				data-testid-phase="list">
 				<li
 					v-for="conv in conversations"
 					:key="conv.uuid"

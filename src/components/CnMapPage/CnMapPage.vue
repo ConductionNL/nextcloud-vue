@@ -27,7 +27,7 @@
   Spec: REQ-MMW-* (manifest-map-widget).
 -->
 <template>
-	<div class="cn-map-page">
+	<div class="cn-map-page" data-testid="cn-map-page">
 		<!--
 			@slot header
 			@description Replaces the default `CnPageHeader`. Receives `{ title, description }`.

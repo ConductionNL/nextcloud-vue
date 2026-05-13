@@ -37,7 +37,7 @@
   Spec: REQ-MFPT-* (manifest-form-page-type).
 -->
 <template>
-	<div class="cn-form-page" :data-mode="mode">
+	<div class="cn-form-page" :data-mode="mode" data-testid="cn-form-page">
 		<!--
 			@slot header
 			@description Replaces the default `CnPageHeader`. Receives `{ title, description }` as scoped props

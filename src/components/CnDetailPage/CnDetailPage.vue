@@ -21,9 +21,9 @@
   - Content sections via slots
 -->
 <template>
-	<div class="cn-detail-page" :style="{ maxWidth: maxWidth }">
+	<div class="cn-detail-page" data-testid="cn-detail-page" :style="{ maxWidth: maxWidth }">
 		<!-- Header -->
-		<div class="cn-detail-page__header">
+		<div class="cn-detail-page__header" data-testid="cn-detail-page-header">
 			<!-- Header (left block) — overridable via #header slot. Default
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and

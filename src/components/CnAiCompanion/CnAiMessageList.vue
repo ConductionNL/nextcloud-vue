@@ -8,7 +8,7 @@
   The assistant message container has aria-live="polite" for screen-reader streaming.
 -->
 <template>
-	<div class="cn-ai-message-list">
+	<div class="cn-ai-message-list" data-testid="cn-ai-message-list">
 		<!-- Empty state -->
 		<div v-if="messages.length === 0" class="cn-ai-message-list__empty">
 			<slot name="empty" />

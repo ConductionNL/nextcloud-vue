@@ -16,7 +16,11 @@
 		</NcNoteCard>
 
 		<!-- Results summary table -->
-		<div v-if="result && result.summary" class="cn-mass-import__results">
+		<div v-if="result && result.summary"
+			class="cn-mass-import__results"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="result">
 			<h3>{{ summaryTitle }}</h3>
 			<table class="cn-mass-import__summary-table">
 				<thead>
@@ -88,7 +92,11 @@
 		</div>
 
 		<!-- Upload form -->
-		<div v-if="!result" class="cn-mass-import__form">
+		<div v-if="!result"
+			class="cn-mass-import__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="form">
 			<input
 				ref="fileInput"
 				type="file"

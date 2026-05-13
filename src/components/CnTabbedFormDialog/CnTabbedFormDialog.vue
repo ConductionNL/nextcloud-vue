@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase (standard mode, not create-another) -->
-		<div v-if="result !== null && !createAnother" class="cn-tabbed-form-dialog__result">
+		<div v-if="result !== null && !createAnother"
+			class="cn-tabbed-form-dialog__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-tabbed-form-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ resolvedSuccessText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase (or create-another mode where form stays visible) -->
-		<div v-if="createAnother || result === null" class="cn-tabbed-form-dialog__form">
+		<div v-if="createAnother || result === null"
+			class="cn-tabbed-form-dialog__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-tabbed-form-dialog"
+			data-testid-phase="form">
 			<!-- Inline notifications for create-another mode -->
 			<NcNoteCard v-if="createAnother && result && result.success" type="success">
 				{{ resolvedSuccessText }}

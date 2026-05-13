@@ -20,6 +20,7 @@
 		:title="agentName"
 		:active="activeTab"
 		:force-menu="true"
+		data-testid="cn-ai-panel"
 		@close="onClose"
 		@update:active="activeTab = $event">
 		<template #description>
@@ -50,7 +51,8 @@
 		<NcAppSidebarTab
 			id="chat"
 			:name="cnTranslate('Chat')"
-			:order="1">
+			:order="1"
+			data-testid="cn-ai-panel-tab-chat">
 			<template #icon>
 				<Creation :size="20" />
 			</template>

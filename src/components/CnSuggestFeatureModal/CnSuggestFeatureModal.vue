@@ -4,7 +4,7 @@
 		size="normal"
 		:can-close="!submitting"
 		@closing="$emit('close')">
-		<div class="cn-suggest-feature-modal">
+		<div class="cn-suggest-feature-modal" data-testid="cn-modal" data-testid-modal="cn-suggest-feature-modal">
 			<NcTextField
 				v-model="form.title"
 				:label="titleLabel"

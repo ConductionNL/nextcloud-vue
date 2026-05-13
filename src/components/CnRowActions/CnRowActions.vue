@@ -1,11 +1,15 @@
 <template>
-	<NcActions :force-menu="visibleActions.length > 3" :primary="primary" :menu-name="menuName">
+	<NcActions :force-menu="visibleActions.length > 3"
+		:primary="primary"
+		:menu-name="menuName"
+		data-testid="cn-row-actions">
 		<NcActionButton
 			v-for="action in visibleActions"
 			:key="action.label"
 			:title="getTitle(action)"
 			:disabled="isDisabled(action)"
 			:class="{ 'cn-row-action--destructive': action.destructive }"
+			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
 			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
@@ -124,6 +128,20 @@ export default {
 				action.handler(this.row)
 			}
 			this.$emit('action', { action: action.label, row: this.row })
+		},
+		/**
+		 * Slugify an action label for use in stable `data-testid` selectors.
+		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
+		 * `:data-testid` binding on NcActionButton — does not affect runtime
+		 * behaviour or rendered text.
+		 * @param {string} label - The action's display label
+		 * @return {string} kebab-case slug suitable for a testid suffix.
+		 */
+		slugifyLabel(label) {
+			return String(label || '')
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-+|-+$/g, '')
 		},
 	},
 }

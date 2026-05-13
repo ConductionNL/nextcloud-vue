@@ -9,7 +9,7 @@
   See REQ-JMR-010 of the json-manifest-renderer specification.
 -->
 <template>
-	<div class="cn-app-loading">
+	<div class="cn-app-loading" data-testid="cn-app-loading">
 		<div class="cn-app-loading__inner">
 			<slot name="logo">
 				<img

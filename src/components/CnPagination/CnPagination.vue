@@ -1,5 +1,5 @@
 <template>
-	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination">
+	<div v-if="totalPages > 1 || totalItems > minItemsToShow" class="cn-pagination" data-testid="cn-pagination">
 		<!-- Page info -->
 		<div class="cn-pagination__info">
 			<span class="cn-pagination__page-info">

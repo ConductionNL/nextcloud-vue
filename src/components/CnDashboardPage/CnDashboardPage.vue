@@ -10,9 +10,9 @@
   - Header with title, actions, and edit toggle
 -->
 <template>
-	<div class="cn-dashboard-page">
+	<div class="cn-dashboard-page" data-testid="cn-dashboard-page">
 		<!-- Header -->
-		<div class="cn-dashboard-page__header">
+		<div class="cn-dashboard-page__header" data-testid="cn-dashboard-page-header">
 			<div class="cn-dashboard-page__header-left">
 				<h2 v-if="title" class="cn-dashboard-page__title">
 					{{ title }}

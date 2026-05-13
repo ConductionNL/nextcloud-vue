@@ -12,7 +12,8 @@
 	<div
 		class="cn-locked-banner"
 		role="status"
-		aria-live="polite">
+		aria-live="polite"
+		data-testid="cn-locked-banner">
 		<LockOutline :size="20" class="cn-locked-banner__icon" />
 		<div class="cn-locked-banner__body">
 			<p class="cn-locked-banner__message">

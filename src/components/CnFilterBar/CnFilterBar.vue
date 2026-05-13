@@ -1,7 +1,7 @@
 <template>
-	<div class="cn-filter-bar">
+	<div class="cn-filter-bar" data-testid="cn-filter-bar">
 		<!-- Search input -->
-		<div class="cn-filter-bar__search">
+		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
 				:value="searchValue"
 				:placeholder="searchPlaceholder"

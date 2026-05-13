@@ -16,7 +16,7 @@
   WebDAV-backed listing).
 -->
 <template>
-	<div class="cn-files-page">
+	<div class="cn-files-page" data-testid="cn-files-page">
 		<!-- Header — overridable via #header slot -->
 		<slot
 			name="header"
