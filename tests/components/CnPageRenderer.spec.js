@@ -375,6 +375,82 @@ describe('CnPageRenderer', () => {
 		})
 	})
 
+	describe('config.readOnly:true shorthand (REQ-MIPFU-4)', () => {
+		// Stub the index page type so the dispatched component is a
+		// no-op `<div />` — keeps CnIndexPage's setup (which needs
+		// pinia) out of the picture; we only assert on `resolvedProps`.
+		const IndexStub = { name: 'IndexStub', template: '<div class="index-stub" />' }
+		const readOnlyPageTypes = { index: IndexStub }
+
+		const readOnlyManifest = {
+			version: '1.0.0',
+			menu: [],
+			pages: [
+				{
+					id: 'reports',
+					route: '/reports',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report', readOnly: true },
+				},
+				{
+					id: 'reports-overridden',
+					route: '/reports-overridden',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report', readOnly: true, showAdd: true },
+				},
+				{
+					id: 'reports-rw',
+					route: '/reports-rw',
+					type: 'index',
+					title: 'app.reports',
+					config: { register: 'x', schema: 'report' },
+				},
+			],
+		}
+
+		it('expands to the nine read-only flags', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.selectable).toBe(false)
+			expect(props.showAdd).toBe(false)
+			expect(props.showFormDialog).toBe(false)
+			expect(props.showEditAction).toBe(false)
+			expect(props.showCopyAction).toBe(false)
+			expect(props.showDeleteAction).toBe(false)
+			expect(props.showMassImport).toBe(false)
+			expect(props.showMassCopy).toBe(false)
+			expect(props.showMassDelete).toBe(false)
+			expect(props.readOnly).toBeUndefined()
+		})
+
+		it('an explicit config.showAdd:true overrides the shorthand', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports-overridden', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.showAdd).toBe(true)
+			expect(props.showEditAction).toBe(false)
+			expect(props.selectable).toBe(false)
+		})
+
+		it('readOnly omitted leaves resolvedProps as the plain config', () => {
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: { manifest: readOnlyManifest, pageTypes: readOnlyPageTypes },
+				mocks: { $route: { name: 'reports-rw', params: {} } },
+			})
+			const props = wrapper.vm.resolvedProps
+			expect(props.showAdd).toBeUndefined()
+			expect(props.selectable).toBeUndefined()
+			expect(props.register).toBe('x')
+		})
+	})
+
 	describe('defensive handling', () => {
 		it('returns null currentPage when manifest is missing pages array', () => {
 			const wrapper = shallowMount(CnPageRenderer, {

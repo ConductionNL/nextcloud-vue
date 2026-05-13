@@ -48,6 +48,24 @@
 <script>
 import { defaultPageTypes } from './pageTypes.js'
 
+/**
+ * Read-only defaults applied when a type='index' page declares
+ * `config.readOnly: true` (REQ-MIPFU-4 of manifest-index-page-followups).
+ * Merged UNDER the explicit `config.*` props by `resolvedProps`, so
+ * any explicit prop the manifest sets still wins.
+ */
+const READ_ONLY_DEFAULTS = Object.freeze({
+	selectable: false,
+	showAdd: false,
+	showFormDialog: false,
+	showEditAction: false,
+	showCopyAction: false,
+	showDeleteAction: false,
+	showMassImport: false,
+	showMassCopy: false,
+	showMassDelete: false,
+})
+
 export default {
 	name: 'CnPageRenderer',
 
@@ -247,10 +265,18 @@ export default {
 		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			return {
-				...(this.currentPage?.config ?? {}),
-				...(this.$route?.params ?? {}),
+			const config = this.currentPage?.config ?? {}
+			const params = this.$route?.params ?? {}
+			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
+			// expand to the nine read-only flags MERGED UNDER `config.*`
+			// so explicit `config.showAdd:true` still wins. Strip the
+			// `readOnly` key before forwarding — CnIndexPage has no
+			// `readOnly` prop.
+			if (this.currentPage?.type === 'index' && config.readOnly === true) {
+				const { readOnly, ...rest } = config
+				return { ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
+			return { ...config, ...params }
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.

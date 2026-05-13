@@ -162,6 +162,15 @@
 				@close="closeFormDialog" />
 		</slot>
 
+		<!-- Quick-filter tabs (REQ-MIPFU-1) — rendered above the body when
+		     the manifest declares `config.quickFilters`. Switching tabs
+		     re-fetches with the merged filter; @event quick-filter-change. -->
+		<CnQuickFilterBar
+			v-if="quickFilters && quickFilters.length > 0"
+			:tabs="quickFilters"
+			:active-index="activeQuickFilterIndex"
+			@update:active-index="onQuickFilterChange" />
+
 		<!-- Body -->
 		<div class="cn-index-page__body">
 			<div class="cn-index-page__main">
@@ -323,6 +332,7 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
+import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -338,7 +348,7 @@ import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { getCurrentInstance, inject } from 'vue'
+import { getCurrentInstance, inject, ref, watch } from 'vue'
 import { useContextMenu, useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 
@@ -423,6 +433,7 @@ export default {
 		NcEmptyContent,
 		DatabaseSearch,
 		CnPageHeader,
+		CnQuickFilterBar,
 		CnActionsBar,
 		CnIcon,
 		CnDataTable,
@@ -528,6 +539,22 @@ export default {
 		 */
 		filter: {
 			type: Object,
+			default: null,
+		},
+		/**
+		 * Self-fetch mode only — an array of clickable filter tabs rendered as
+		 * a strip above the table. Each entry is `{label, filter, default?, icon?}`;
+		 * clicking a tab merges its `filter` into the fetch — spread AFTER
+		 * `filter` (so the active tab wins) and BEFORE the user's `activeFilters`
+		 * (so user facets still narrow within the active tab). String values
+		 * in a tab's `filter` resolve `@route.<name>` / `:<name>` from
+		 * `$route.params` just like the `filter` prop. The first tab with
+		 * `default:true` (else index 0) is active on mount; changing tabs
+		 * re-fetches at page 1. Omit (or `null`) → no tab strip, behaviour
+		 * unchanged.
+		 */
+		quickFilters: {
+			type: Array,
 			default: null,
 		},
 		/** Manual column definitions (used instead of schema when provided) */
@@ -879,6 +906,39 @@ export default {
 		)
 		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
 
+		// ── Quick-filter tabs (REQ-MIPFU-1) ─────────────────────────────────
+		// `props.quickFilters` declares clickable tabs above the table; the
+		// active tab's `filter` is merged into the useListView fetch (after
+		// `props.filter` so the tab wins). Initial active index: first entry
+		// with `default:true`, else 0 if non-empty, else null.
+		const quickInit = (() => {
+			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			if (!tabs || tabs.length === 0) return null
+			const di = tabs.findIndex((t) => t && t.default === true)
+			return di >= 0 ? di : 0
+		})()
+		const activeQuickFilterIndex = ref(quickInit)
+
+		/**
+		 * Resolve a single filter map's values: `@route.<name>` / `:<name>`
+		 * pull from `$route.params`; literals pass through. Returns `{}` for
+		 * a non-object input (so callers can safely spread the result).
+		 *
+		 * @param {object|null|undefined} filterMap
+		 * @param {object} params Current `$route.params`.
+		 * @return {object}
+		 */
+		function resolveFilterMap(filterMap, params) {
+			if (!filterMap || typeof filterMap !== 'object') return {}
+			const out = {}
+			for (const [k, v] of Object.entries(filterMap)) {
+				if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
+				else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
+				else out[k] = v
+			}
+			return out
+		}
+
 		let list = null
 		if (isSelfFetch) {
 			const objectType = `${props.register}-${props.schema}`
@@ -894,22 +954,28 @@ export default {
 				sidebarState,
 				defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
 				defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
-				// Re-read on every fetch so a same-component route-param change
-				// (e.g. /forms/:id/submissions) is picked up; CnIndexPage also
-				// watches $route.params → list.refresh() (see watch:).
+				// Re-read on every fetch so route-param changes (`/forms/:id/...`)
+				// AND quick-filter switches both flow into the next fetch. CnIndexPage
+				// also watches $route.params → list.refresh() (see watch:); changing
+				// `activeQuickFilterIndex` triggers a refresh below.
 				fixedFilters: () => {
-					const f = props.filter
-					if (!f || typeof f !== 'object') return {}
 					const route = instance && instance.proxy && instance.proxy.$route
 					const params = (route && route.params) || {}
-					const out = {}
-					for (const [k, v] of Object.entries(f)) {
-						if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
-						else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
-						else out[k] = v
-					}
-					return out
+					const base = resolveFilterMap(props.filter, params)
+					// Active quick-filter tab spread LAST so it overrides a
+					// colliding `props.filter` entry (intentional — the tab is
+					// the user's intent).
+					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+					const activeIdx = activeQuickFilterIndex.value
+					const tabFilter = (tabs && activeIdx != null) ? tabs[activeIdx]?.filter : null
+					return { ...base, ...resolveFilterMap(tabFilter, params) }
 				},
+			})
+
+			// Refresh when the user switches tabs. Reset to page 1 so the
+			// new filter starts from the top of its result set.
+			watch(activeQuickFilterIndex, () => {
+				if (list && typeof list.refresh === 'function') list.refresh(1)
 			})
 		}
 
@@ -920,6 +986,7 @@ export default {
 			closeContextMenu,
 			isSelfFetch,
 			list,
+			activeQuickFilterIndex,
 		}
 	},
 
@@ -1292,6 +1359,20 @@ export default {
 		onSearchEvent(value) {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
 			this.$emit('search', value)
+		},
+		/**
+		 * Quick-filter tab change. Updates the active index — the `setup()`
+		 * watcher then triggers `list.refresh(1)` so the new tab's filter
+		 * flows into the next fetch.
+		 *
+		 * @param {number} index Zero-based tab index (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterChange(index) {
+			// `activeQuickFilterIndex` is a setup-returned ref; the
+			// Vue 2 ref-unwrap proxy makes plain assignment work.
+			this.activeQuickFilterIndex = index
+			this.$emit('quick-filter-change', index)
 		},
 		/**
 		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.

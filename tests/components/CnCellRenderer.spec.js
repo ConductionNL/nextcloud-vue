@@ -135,3 +135,98 @@ describe('CnCellRenderer — column widgets', () => {
 		expect(wrapper.text()).toBe('42')
 	})
 })
+
+describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
+	// Stub vue-router's RouterLink globally so `<router-link>` resolves
+	// in the test environment (CnCellRenderer renders one for the
+	// `widgetProps.route` case).
+	const RouterLinkStub = {
+		name: 'RouterLink',
+		props: ['to'],
+		render(h) {
+			return h('a', { attrs: { 'data-test': 'router-link', 'data-to': JSON.stringify(this.to) } }, this.$slots.default)
+		},
+	}
+
+	function mountLink(propsData) {
+		return mount(CnCellRenderer, {
+			propsData,
+			stubs: { 'router-link': RouterLinkStub, RouterLink: RouterLinkStub },
+		})
+	}
+
+	it('renders a router-link when widgetProps.route is set (default param id from rowKey)', () => {
+		const wrapper = mountLink({
+			value: 'Acme',
+			property: { type: 'string' },
+			widget: 'link',
+			widgetProps: { route: 'ContactDetail' },
+			row: { id: 'abc-123', title: 'Acme' },
+		})
+		const link = wrapper.find('[data-test="router-link"]')
+		expect(link.exists()).toBe(true)
+		expect(JSON.parse(link.attributes('data-to'))).toEqual({ name: 'ContactDetail', params: { id: 'abc-123' } })
+		expect(link.text()).toBe('Acme')
+	})
+
+	it('honours an explicit widgetProps.params map', () => {
+		const wrapper = mountLink({
+			value: 'C1',
+			property: { type: 'string' },
+			widget: 'link',
+			widgetProps: { route: 'CohortTimetable', params: { cohortId: 'id' } },
+			row: { id: 'cohort-7', title: 'C1' },
+		})
+		const link = wrapper.find('[data-test="router-link"]')
+		expect(JSON.parse(link.attributes('data-to'))).toEqual({ name: 'CohortTimetable', params: { cohortId: 'cohort-7' } })
+	})
+
+	it('renders an external anchor when widgetProps.href is set (with {key} substitution)', () => {
+		const wrapper = mountLink({
+			value: 'X',
+			property: { type: 'string' },
+			widget: 'link',
+			widgetProps: { href: 'https://x.example/{id}' },
+			row: { id: '42', title: 'X' },
+		})
+		const a = wrapper.find('a[target="_blank"]')
+		expect(a.exists()).toBe(true)
+		expect(a.attributes('href')).toBe('https://x.example/42')
+		expect(a.attributes('rel')).toContain('noopener')
+		expect(a.text()).toBe('X')
+	})
+
+	it('falls back to plain text + warns once when no target resolves', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		try {
+			const wrapper = mountLink({
+				value: 'no-target',
+				property: { type: 'string', title: 'NoTargetCol' },
+				widget: 'link',
+			})
+			expect(wrapper.find('[data-test="router-link"]').exists()).toBe(false)
+			expect(wrapper.find('a[target="_blank"]').exists()).toBe(false)
+			expect(wrapper.text()).toBe('no-target')
+			const calls = warn.mock.calls.filter((c) => String(c[0]).includes('widget:"link"'))
+			expect(calls.length).toBeGreaterThanOrEqual(1)
+		} finally {
+			warn.mockRestore()
+		}
+	})
+
+	it('uses the formatter-shaped value as the link text when formatter is also set', () => {
+		const wrapper = mount(CnCellRenderer, {
+			propsData: {
+				value: 'raw',
+				property: { type: 'string' },
+				widget: 'link',
+				widgetProps: { route: 'X' },
+				row: { id: '1' },
+				formatter: 'upper',
+			},
+			provide: { cnFormatters: { upper: (v) => String(v).toUpperCase() } },
+			stubs: { 'router-link': RouterLinkStub, RouterLink: RouterLinkStub },
+		})
+		expect(wrapper.find('[data-test="router-link"]').text()).toBe('RAW')
+	})
+})

@@ -92,7 +92,8 @@
 								:formatter="col.formatter || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
-								:row="row" />
+								:row="row"
+								:row-key="rowKey" />
 						</slot>
 					</td>
 

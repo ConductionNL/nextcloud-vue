@@ -16,6 +16,28 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
+		     as a router-link (when widgetProps.route is a manifest page id) or an
+		     external anchor (when widgetProps.href is set). Falls back to plain
+		     text + a once-per-session console.warn when neither resolves. -->
+		<template v-else-if="widget === 'link'">
+			<router-link
+				v-if="linkRoute"
+				:to="linkRoute"
+				class="cn-cell-renderer__link">
+				{{ formattedValue }}
+			</router-link>
+			<a
+				v-else-if="linkHref"
+				:href="linkHref"
+				target="_blank"
+				rel="noopener"
+				class="cn-cell-renderer__link">
+				{{ formattedValue }}
+			</a>
+			<span v-else :title="rawTitle">{{ formattedValue }}</span>
+		</template>
+
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
@@ -52,6 +74,13 @@
 import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
+
+/**
+ * Module-level set of column keys already warned about for a
+ * `widget:"link"` declaration with no resolvable target — guarantees
+ * one warning per (page, column-key) rather than per row × render.
+ */
+const WARNED_LINK_KEYS = new Set()
 
 /**
  * CnCellRenderer — Type-aware cell renderer for schema-driven tables.
@@ -142,6 +171,16 @@ export default {
 			type: Number,
 			default: 100,
 		},
+		/**
+		 * Row identifier field — used by the built-in `widget:"link"` when
+		 * the manifest doesn't specify an explicit `widgetProps.params`
+		 * map. Defaults to `'id'` so router-link param resolution works
+		 * with the manifest convention (`/x/:id`).
+		 */
+		rowKey: {
+			type: String,
+			default: 'id',
+		},
 	},
 
 	computed: {
@@ -175,6 +214,47 @@ export default {
 		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
 		badgeVariant() {
 			return (this.widgetProps && this.widgetProps.variant) || 'default'
+		},
+
+		/**
+		 * Resolved router-link target for the built-in `widget:"link"`. When
+		 * `widgetProps.route` is set (a manifest page id), returns
+		 * `{ name: route, params }`. Param map is `widgetProps.params`
+		 * (a map of route-param-name → row-field-name); when omitted,
+		 * defaults to `{ id: row[rowKey] }`. Returns null when `route`
+		 * isn't set (the template falls through to `linkHref` or plain
+		 * text).
+		 *
+		 * @return {object|null}
+		 */
+		linkRoute() {
+			if (this.widget !== 'link') return null
+			const route = this.widgetProps && this.widgetProps.route
+			if (!route) return null
+			const paramMap = (this.widgetProps && this.widgetProps.params)
+				|| { id: this.rowKey || 'id' }
+			const params = {}
+			for (const [routeParam, rowField] of Object.entries(paramMap)) {
+				params[routeParam] = this.row && this.row[rowField]
+			}
+			return { name: route, params }
+		},
+
+		/**
+		 * Resolved external href for the built-in `widget:"link"` when
+		 * `widgetProps.href` is set. `{key}` placeholders in the href
+		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
+		 * → `"/x/42"`). Returns null when `href` isn't set.
+		 *
+		 * @return {string|null}
+		 */
+		linkHref() {
+			if (this.widget !== 'link') return null
+			const href = this.widgetProps && this.widgetProps.href
+			if (!href) return null
+			return String(href).replace(/\{(\w+)\}/g, (_, key) =>
+				this.row && this.row[key] != null ? String(this.row[key]) : '',
+			)
 		},
 
 		/**
@@ -227,6 +307,27 @@ export default {
 			}
 			return classes
 		},
+	},
+
+	mounted() {
+		// Warn once per column-property-name when `widget:"link"` resolves
+		// to neither a `route` nor an `href` — silent fallback hides
+		// manifest mistakes, an every-row warn is too noisy.
+		if (
+			this.widget === 'link'
+			&& !this.linkRoute
+			&& !this.linkHref
+			&& this.widgetProps?.fallback !== 'silent'
+		) {
+			const key = this.property?.title || String(this.value).slice(0, 20)
+			if (!WARNED_LINK_KEYS.has(key)) {
+				WARNED_LINK_KEYS.add(key)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`,
+				)
+			}
+		}
 	},
 }
 </script>
