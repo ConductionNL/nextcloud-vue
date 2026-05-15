@@ -421,7 +421,7 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle) */
+		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle, useRegistry, excludeIntegrations) */
 		sidebarProps: {
 			type: Object,
 			default: () => ({}),
@@ -724,9 +724,17 @@ export default {
 				// not set so the consumer's CnObjectSidebar falls back to
 				// the built-in tab set.
 				this.objectSidebarState.tabs = merged.tabs
+				// Pluggable-integration-registry (ADR-019) — host
+				// CnObjectSidebar reads useRegistry to flip into registry
+				// mode; excludeIntegrations filters specific provider ids
+				// out without disabling registry mode entirely.
+				this.objectSidebarState.useRegistry = merged.useRegistry === true
+				this.objectSidebarState.excludeIntegrations = merged.excludeIntegrations || []
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined
+				this.objectSidebarState.useRegistry = false
+				this.objectSidebarState.excludeIntegrations = []
 			}
 		},
 		/**
@@ -749,9 +757,17 @@ export default {
 				schema: objectForm?.schema ?? props.schema,
 				hiddenTabs: objectForm?.hiddenTabs ?? props.hiddenTabs,
 				tabs: objectForm?.tabs ?? props.tabs,
+				// Pluggable-integration-registry forwarding (ADR-019):
+				// CnObjectSidebar reads these from objectSidebarState to
+				// flip into registry mode and filter the surfaced
+				// providers. Without them the sidebar falls back to the
+				// legacy hardcoded built-in tabs and `useRegistry: true`
+				// on the manifest is silently ignored.
+				useRegistry: objectForm?.useRegistry ?? props.useRegistry,
+				excludeIntegrations: objectForm?.excludeIntegrations ?? props.excludeIntegrations,
 			}
 			if (objectForm && !this.__sidebarConflictWarned) {
-				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
+				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs', 'useRegistry', 'excludeIntegrations']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
 					// eslint-disable-next-line no-console

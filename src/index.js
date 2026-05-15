@@ -61,6 +61,8 @@ export {
 	CnFilesCard,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnIntegrationTab,
+	CnIntegrationCard,
 	CnDetailCard,
 	CnDetailPage,
 	CnCard,
@@ -131,7 +133,7 @@ export { useAiContext, useAiChatStream } from './composables/index.js'
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
-export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations } from './integrations/index.js'
+export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations } from './integrations/index.js'
 
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
