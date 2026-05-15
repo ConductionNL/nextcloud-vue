@@ -39,6 +39,7 @@
 				v-else-if="resolvedWidget === 'datetime'"
 				:model-value="datetimeValue"
 				:type="datetimePickerType"
+				:formatter="datetimeFormatter"
 				:placeholder="displayName"
 				:input-label="displayName"
 				@input="emitDatetime($event)" />
@@ -170,7 +171,7 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translate as t, getCanonicalLocale } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -575,14 +576,19 @@ export default {
 			// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the spec,
 			// which shifts to the previous day in positive-UTC-offset timezones when
 			// fed to a picker that renders in local time. Parse them as local midnight.
+			let d
 			if (this.schemaProp?.format === 'date'
 				&& typeof v === 'string'
 				&& /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				return new Date(year, month - 1, day)
+				d = new Date(year, month - 1, day)
+			} else {
+				d = new Date(v)
 			}
-			const d = new Date(v)
-			return Number.isNaN(d.getTime()) ? null : d
+			if (Number.isNaN(d.getTime())) return null
+			// 1970-01-01 is treated as "no value" — see isValidDate for rationale.
+			if (this.isEpochDate(d)) return null
+			return d
 		},
 
 		stringValue() {
@@ -625,15 +631,43 @@ export default {
 			if (!v) return ''
 			const fmt = this.schemaProp?.format
 			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
+			let d
 			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				return new Date(year, month - 1, day).toLocaleDateString()
+				d = new Date(year, month - 1, day)
+			} else if (fmt === 'time' && typeof v === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(v)) {
+				const [h, m, s] = v.split(':').map(Number)
+				d = new Date()
+				d.setHours(h, m, s || 0, 0)
+			} else {
+				d = new Date(v)
 			}
-			const d = new Date(v)
 			if (Number.isNaN(d.getTime())) return String(v)
-			if (fmt === 'date') return d.toLocaleDateString()
-			if (fmt === 'time') return d.toLocaleTimeString()
-			return d.toLocaleString()
+			return this.formatDateForLocale(d, fmt)
+		},
+
+		/**
+		 * Formatter passed to NcDateTimePicker so the input field renders dates
+		 * in the user's Nextcloud language instead of the picker's default
+		 * `YYYY-MM-DD` token format. Without this, the displayed value in the
+		 * cell (locale-aware) and the picker input (ISO) disagree.
+		 *
+		 * `parse` keeps typed-input editing working by deferring to the native
+		 * `Date` parser; the calendar popup remains the primary interaction.
+		 */
+		datetimeFormatter() {
+			const fmt = this.schemaProp?.format
+			return {
+				stringify: (date) => {
+					if (!date || Number.isNaN(date.getTime?.())) return ''
+					return this.formatDateForLocale(date, fmt)
+				},
+				parse: (text) => {
+					if (!text) return null
+					const parsed = new Date(text)
+					return Number.isNaN(parsed.getTime()) ? null : parsed
+				},
+			}
 		},
 	},
 
@@ -867,7 +901,42 @@ export default {
 		isValidDate(v) {
 			if (!v) return false
 			const d = new Date(v)
-			return d instanceof Date && !Number.isNaN(d.getTime())
+			if (!(d instanceof Date) || Number.isNaN(d.getTime())) return false
+			// Treat any 1970-01-01 calendar date as "no value set". Frontend
+			// defaults for unset date fields often resolve to it
+			// (`new Date(0)`, `new Date(null)`, the string "1970-01-01"
+			// rendered in either UTC or local time), and showing
+			// "01-01-1970" for a never-set field is confusing — the user
+			// expects "—" until they pick a real date. We compare against
+			// both local and UTC components so any timezone offset still hits.
+			if (this.isEpochDate(d)) return false
+			return true
+		},
+
+		isEpochDate(d) {
+			const isLocalEpoch = d.getFullYear() === 1970 && d.getMonth() === 0 && d.getDate() === 1
+			const isUtcEpoch = d.getUTCFullYear() === 1970 && d.getUTCMonth() === 0 && d.getUTCDate() === 1
+			return isLocalEpoch || isUtcEpoch
+		},
+
+		/**
+		 * Format a Date using the user's Nextcloud language (via
+		 * `getCanonicalLocale`) rather than the browser/OS locale. Keeps the
+		 * cell's read-mode display and the picker's input field in agreement.
+		 *
+		 * @param {Date} d - The date to format.
+		 * @param {string} [fmt] - Schema format hint: `date`, `time`, or `date-time`.
+		 * @return {string}
+		 */
+		formatDateForLocale(d, fmt) {
+			const locale = getCanonicalLocale()
+			if (fmt === 'date') {
+				return new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(d)
+			}
+			if (fmt === 'time') {
+				return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(d)
+			}
+			return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(d)
 		},
 
 		/**
