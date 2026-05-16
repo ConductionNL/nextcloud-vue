@@ -16,7 +16,11 @@
 		</NcNoteCard>
 
 		<!-- Results summary table -->
-		<div v-if="result && result.summary" class="cn-mass-import__results">
+		<div v-if="result && result.summary"
+			class="cn-mass-import__results"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="result">
 			<h3>{{ summaryTitle }}</h3>
 			<table class="cn-mass-import__summary-table">
 				<thead>
@@ -88,7 +92,11 @@
 		</div>
 
 		<!-- Upload form -->
-		<div v-if="!result" class="cn-mass-import__form">
+		<div v-if="!result"
+			class="cn-mass-import__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-import-dialog"
+			data-testid-phase="form">
 			<input
 				ref="fileInput"
 				type="file"
@@ -180,7 +188,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  * with the file and options. The parent handles the API call and calls
  * `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnMassImportDialog
  *   v-if="showImportDialog"
  *   ref="importDialog"
@@ -191,6 +199,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *     <NcSelect v-if="file" :options="schemas" @input="selectedSchema = $event" />
  *   </template>
  * </CnMassImportDialog>
+ * ```
  *
  * // In data:
  * importOptions: [
@@ -228,7 +237,7 @@ export default {
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
-			default: 'Import Data',
+			default: () => t('nextcloud-vue', 'Import data'),
 		},
 		/** Accepted file types (input accept attribute) */
 		acceptedTypes: {
@@ -271,7 +280,7 @@ export default {
 		},
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
 		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
-		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select File') },
+		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select file') },
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },

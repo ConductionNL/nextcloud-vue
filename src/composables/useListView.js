@@ -19,6 +19,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {number} [options.defaultPageSize] Default `_limit` sent to the API
  * @param {number} [options.debounceMs] Search debounce in milliseconds
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
+ * @param {object|Function} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -73,6 +74,18 @@ export function useListView(objectTypeOrOptions, options) {
 	// ── Param construction ───────────────────────────────────────────────
 
 	/**
+	 * Resolve `opts.fixedFilters` to a plain map. Accepts a plain object OR a
+	 * function/getter returning one (so callers can derive it from reactive
+	 * sources — e.g. route params — and have it re-read on every fetch).
+	 *
+	 * @return {object} The fixed-filter map (may be empty).
+	 */
+	function resolveFixedFilters() {
+		const f = typeof opts.fixedFilters === 'function' ? opts.fixedFilters() : opts.fixedFilters
+		return (f && typeof f === 'object') ? f : {}
+	}
+
+	/**
 	 * Build API fetch params from current reactive state.
 	 *
 	 * @param {number} page Page number to request
@@ -93,6 +106,14 @@ export function useListView(objectTypeOrOptions, options) {
 			if (values && values.length > 0) {
 				// Single-value arrays are unwrapped to scalar params
 				params[key] = values.length === 1 ? values[0] : values
+			}
+		}
+
+		// Fixed filters (e.g. a route-param-scoped `pages[].config.filter`) are
+		// merged LAST so they always win over a colliding facet `activeFilter`.
+		for (const [key, value] of Object.entries(resolveFixedFilters())) {
+			if (value !== undefined && value !== null && value !== '') {
+				params[key] = value
 			}
 		}
 

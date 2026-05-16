@@ -13,11 +13,12 @@
 		<component
 			:is="chartComponent"
 			v-if="chartComponent"
+			ref="chart"
 			:type="type"
 			:height="computedHeight"
 			:width="computedWidth"
 			:options="mergedOptions"
-			:series="series" />
+			:series="resolvedSeries" />
 		<div v-else class="cn-chart-widget__fallback">
 			<slot name="fallback">
 				<p class="cn-chart-widget__error">
@@ -29,32 +30,42 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import VueApexCharts from 'vue-apexcharts'
+import { useDataSource } from '../../composables/useDataSource.js'
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
  *
  * Wraps ApexCharts with sensible defaults for Nextcloud theming.
  * Apps must install `apexcharts` and `vue-apexcharts` as dependencies.
- *
- * @example Basic area chart
+ * Basic area chart
+ * ```vue
  * <CnChartWidget
  *   type="area"
  *   :series="[{ name: 'Searches', data: [10, 41, 35, 51] }]"
  *   :categories="['Mon', 'Tue', 'Wed', 'Thu']"
  *   :height="250" />
- *
- * @example Pie chart
+ * Pie chart
  * <CnChartWidget
  *   type="pie"
  *   :series="[44, 55, 13]"
  *   :labels="['Active', 'Pending', 'Closed']" />
- *
- * @example With custom options
+ * With custom options
  * <CnChartWidget
  *   type="bar"
  *   :series="barSeries"
  *   :options="{ plotOptions: { bar: { horizontal: true } } }" />
+ * ```
+ *
+ * Manifest usage — when CnDashboardPage's widget dispatcher sees
+ * `widgetDef.type === 'chart'` it mounts CnChartWidget automatically,
+ * forwarding `widgetDef.props.chartKind` as the `type` prop and
+ * `series` / `categories` / `labels` / `options` / `colors` / `toolbar` /
+ * `legend` / `height` / `width` / `unavailableLabel` directly. Manifest
+ * authors do NOT mount this component themselves — declare a chart
+ * widget in `pages[].config.widgets[]` instead. See CnDashboardPage's
+ * leading docblock for the manifest example.
  */
 export default {
 	name: 'CnChartWidget',
@@ -149,8 +160,37 @@ export default {
 		 */
 		unavailableLabel: {
 			type: String,
-			default: 'Chart library not available',
+			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
+		/**
+		 * Manifest dataSource block. When set, `series` /
+		 * `categories` / `labels` are resolved from the GraphQL
+		 * response via the dataSource selectors and override the
+		 * static props of the same names. Static props remain the
+		 * fallback while the query is loading or when no
+		 * dataSource is configured.
+		 *
+		 * @type {{
+		 *   register?: string,
+		 *   schema?: string,
+		 *   filter?: object,
+		 *   aggregate?: 'count',
+		 *   graphql?: { query: string, variables?: object, selectors: object }
+		 * }|null}
+		 */
+		dataSource: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	setup(props) {
+		// useDataSource is a no-op when `dataSource` is null/undefined
+		// — it never fires a request and always resolves `data.value`
+		// to null, so the static `series`/`categories`/`labels` props
+		// remain the source of truth in that case.
+		const { data } = useDataSource(() => props.dataSource)
+		return { dsData: data }
 	},
 
 	data() {
@@ -165,6 +205,25 @@ export default {
 		},
 		computedWidth() {
 			return this.width
+		},
+		/**
+		 * Series shown to ApexCharts. Pulls from `dsData.series`
+		 * when a `dataSource` is configured AND has resolved a
+		 * non-undefined value; otherwise falls back to the static
+		 * `series` prop. Same fallback rule applies to `categories`
+		 * and `labels`.
+		 */
+		resolvedSeries() {
+			const fromDs = this.dsData?.series
+			return fromDs !== undefined ? fromDs : this.series
+		},
+		resolvedCategories() {
+			const fromDs = this.dsData?.categories
+			return fromDs !== undefined ? fromDs : this.categories
+		},
+		resolvedLabels() {
+			const fromDs = this.dsData?.labels
+			return fromDs !== undefined ? fromDs : this.labels
 		},
 		defaultColors() {
 			if (this.colors.length > 0) return this.colors
@@ -226,9 +285,9 @@ export default {
 			}
 
 			// Add categories for cartesian charts
-			if (!isPieType && this.categories.length > 0) {
+			if (!isPieType && this.resolvedCategories.length > 0) {
 				defaults.xaxis = {
-					categories: this.categories,
+					categories: this.resolvedCategories,
 					labels: {
 						style: {
 							colors: 'var(--color-text-maxcontrast, #767676)',
@@ -245,8 +304,8 @@ export default {
 			}
 
 			// Add labels for pie/donut
-			if (isPieType && this.labels.length > 0) {
-				defaults.labels = this.labels
+			if (isPieType && this.resolvedLabels.length > 0) {
+				defaults.labels = this.resolvedLabels
 			}
 
 			// Bar-specific defaults
@@ -266,6 +325,32 @@ export default {
 
 	created() {
 		this.chartComponent = VueApexCharts
+	},
+
+	mounted() {
+		if (typeof ResizeObserver === 'undefined') return
+		this._lastWidth = this.$el.offsetWidth
+		this._resizeTimer = null
+		this._resizeObserver = new ResizeObserver((entries) => {
+			const newWidth = entries[0]?.contentRect?.width ?? this.$el.offsetWidth
+			if (newWidth === this._lastWidth) return
+			this._lastWidth = newWidth
+			clearTimeout(this._resizeTimer)
+			this._resizeTimer = setTimeout(() => {
+				if (this.$refs.chart?.refresh) {
+					this.$refs.chart.refresh()
+				}
+			}, 100)
+		})
+		this._resizeObserver.observe(this.$el)
+	},
+
+	beforeDestroy() {
+		clearTimeout(this._resizeTimer)
+		if (this._resizeObserver) {
+			this._resizeObserver.disconnect()
+			this._resizeObserver = null
+		}
 	},
 
 	methods: {

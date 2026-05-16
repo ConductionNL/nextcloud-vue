@@ -1,1 +1,4 @@
-export { default as CnWidgetRenderer } from './CnWidgetRenderer.vue'
+import CnWidgetRenderer from './CnWidgetRenderer.vue'
+
+export default CnWidgetRenderer
+export { CnWidgetRenderer }

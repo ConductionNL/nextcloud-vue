@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-actions-bar">
+	<div class="cn-actions-bar" data-testid="cn-actions-bar">
 		<div class="cn-actions-bar__info">
 			<span v-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
@@ -34,6 +34,7 @@
 			<NcButton v-if="showAdd"
 				type="primary"
 				:disabled="addDisabled"
+				data-testid="cn-cta-primary"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
@@ -47,8 +48,9 @@
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
 				:force-name="true"
-				:inline="0"
-				menu-name="Actions">
+				:inline="inlineActionCount"
+				menu-name="Actions"
+				data-testid="cn-actions">
 				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
 						<NcLoadingIcon v-if="refreshing" :size="20" />
@@ -122,7 +124,7 @@ import Export from 'vue-material-design-icons/Export.vue'
 /**
  * CnActionsBar — Reusable actions toolbar with count, mass actions, and primary actions.
  *
- * @example
+ * ```vue
  * <CnActionsBar
  *   :pagination="pagination"
  *   :object-count="items.length"
@@ -130,6 +132,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  *   add-icon="AccountGroup"
  *   @add="createNew"
  *   @refresh="reload" />
+ * ```
  */
 export default {
 	name: 'CnActionsBar',
@@ -184,7 +187,7 @@ export default {
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
-			default: 2,
+			default: 0,
 		},
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
@@ -248,6 +251,8 @@ export default {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
 	},
+
+	methods: { t },
 }
 </script>
 

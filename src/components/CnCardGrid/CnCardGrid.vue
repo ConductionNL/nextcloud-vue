@@ -48,6 +48,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
 import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
 import { CnObjectCard } from '../CnObjectCard/index.js'
@@ -58,7 +59,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  * Displays objects in a responsive CSS grid layout using schema-driven cards.
  * Supports selection, loading/empty states, and custom card rendering via slots.
  *
- * @example
+ * ```vue
  * <CnCardGrid
  *   :objects="publications"
  *   :schema="pubSchema"
@@ -70,6 +71,7 @@ import { CnObjectCard } from '../CnObjectCard/index.js'
  *     <NcActions><NcActionButton>Edit</NcActionButton></NcActions>
  *   </template>
  * </CnCardGrid>
+ * ```
  */
 export default {
 	name: 'CnCardGrid',
@@ -115,7 +117,7 @@ export default {
 		/** Text shown when there are no objects */
 		emptyText: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 	},
 

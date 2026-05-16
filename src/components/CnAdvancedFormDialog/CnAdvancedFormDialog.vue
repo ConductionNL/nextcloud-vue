@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-advanced-form-dialog__result">
+		<div v-if="result !== null"
+			class="cn-advanced-form-dialog__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-advanced-form-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ resolvedSuccessText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-advanced-form-dialog__form">
+		<div v-else
+			class="cn-advanced-form-dialog__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-advanced-form-dialog"
+			data-testid-phase="form">
 			<!-- Full form override slot -->
 			<slot
 				v-if="$scopedSlots.form"
@@ -37,8 +45,13 @@
 				<!-- Main tabs -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
 					<BTabs v-model="activeTab" content-class="mt-3" justified>
-						<!-- Properties tab -->
-						<BTab v-if="showPropertiesTable" title="Properties">
+						<!-- Properties tab — disabled when the active schema has no
+						     properties to render (a bare JSON blob is still
+						     editable via the Data tab). -->
+						<BTab
+							v-if="showPropertiesTable"
+							title="Properties"
+							:disabled="!hasSchemaProperties">
 							<slot
 								name="tab-properties"
 								:form-data="formData"
@@ -114,6 +127,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcDialog,
 	NcButton,
@@ -129,7 +143,7 @@ import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
-const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean']
+const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
 
 /**
  * CnAdvancedFormDialog — Create/edit dialog with properties table (click-to-edit), JSON tab, and optional store integration.
@@ -165,8 +179,8 @@ export default {
 		dialogTitle: { type: String, default: '' },
 		nameField: { type: String, default: 'title' },
 		successText: { type: String, default: '' },
-		cancelLabel: { type: String, default: 'Cancel' },
-		closeLabel: { type: String, default: 'Close' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		confirmLabel: { type: String, default: '' },
 		excludeFields: { type: Array, default: () => [] },
 		includeFields: { type: Array, default: null },
@@ -199,7 +213,7 @@ export default {
 		},
 
 		schemaTitle() {
-			return (this.schema && this.schema.title) || 'Item'
+			return (this.schema && this.schema.title) || t('nextcloud-vue', 'Item')
 		},
 
 		currentSchema() {
@@ -209,23 +223,41 @@ export default {
 		resolvedTitle() {
 			if (this.dialogTitle) return this.dialogTitle
 			return this.isCreateMode
-				? `Create ${this.schemaTitle}`
-				: `Edit ${this.schemaTitle}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.schemaTitle })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.schemaTitle })
 		},
 
 		resolvedConfirmLabel() {
 			if (this.confirmLabel) return this.confirmLabel
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 
 		resolvedSuccessText() {
 			if (this.successText) return this.successText
-			return `${this.schemaTitle} saved successfully.`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
 		resolvedShowMetadataTab() {
 			if (this.showMetadataTab !== null) return this.showMetadataTab
 			return !!this.item
+		},
+
+		/**
+		 * True when the active schema declares at least one (non-metadata)
+		 * property the Properties tab can render. Used to disable the tab
+		 * when there's nothing for it to show — the Data tab still works.
+		 */
+		hasSchemaProperties() {
+			const props = this.schema?.properties || {}
+			const exclude = this.excludeFields || []
+			const include = this.includeFields
+			for (const key of Object.keys(props)) {
+				if (key === '@self' || key === 'id') continue
+				if (exclude.includes(key)) continue
+				if (include && !include.includes(key)) continue
+				return true
+			}
+			return false
 		},
 
 		resolvedFields() {
@@ -294,6 +326,16 @@ export default {
 			immediate: true,
 			handler(newItem) {
 				this.initFormData(newItem)
+			},
+		},
+		hasSchemaProperties: {
+			immediate: true,
+			handler(hasProps) {
+				// When the Properties tab is disabled, skip past it so we
+				// don't land on a non-interactive tab on first render.
+				if (!hasProps && this.activeTab === 0 && this.showPropertiesTable) {
+					this.activeTab = this.resolvedShowMetadataTab ? 1 : (this.showJsonTab ? 1 : 0)
+				}
 			},
 		},
 		jsonData(newVal) {

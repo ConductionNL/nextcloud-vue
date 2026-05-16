@@ -2,11 +2,18 @@
 sidebar_position: 2
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnIndexPage.md'
+
 # CnIndexPage
 
 The main list page component. Combines a data table (or card grid), filter bar, pagination, mass actions, CRUD dialogs, and a right-click context menu into a single schema-driven page.
 
 **Wraps**: NcEmptyContent, NcLoadingIcon (from @nextcloud/vue), CnContextMenu
+
+## Try it
+
+<Playground component="CnIndexPage" />
 
 ![CnIndexPage showing the full list page with filter bar, data table, and right sidebar](/img/screenshots/cn-index-page.png)
 
@@ -18,8 +25,12 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 |------|------|---------|-------------|
 | `title` | String | *(required)* | Page title |
 | `description` | String | `''` | Optional subtitle |
-| `schema` | Object | `null` | OpenRegister schema for auto-generating columns, filters, and form fields |
-| `objects` | Array | `[]` | Row data |
+| `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
+| `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
+| `schema` | Object \| String | `null` | OpenRegister schema for auto-generating columns, filters, and form fields. In [self-fetch mode](#self-fetch-mode) a String is the schema **slug** — the resolved schema object then drives column generation. |
+| `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
+| `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
+| `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
@@ -32,7 +43,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
 | `columnOverrides` | Object | `\{\}` | Per-column overrides |
-| `actions` | Array | `[]` | Custom row action definitions |
+| `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through `customComponents` — see "Action handlers" below. |
+| `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). |
 | `emptyText` | String | `'No items found'` | Empty state message |
 | `rowClass` | Function | `null` | CSS class provider for rows |
 | `addLabel` | String | `''` | Add button label |
@@ -47,6 +59,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
+| `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
 | `showDeleteAction` | Boolean | `true` | Show delete row action |
@@ -59,6 +72,13 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
+| `sidebar` | Object | `null` | Manifest-driven sidebar configuration. When set with `enabled: true`, CnIndexPage auto-mounts an embedded `CnIndexSidebar` and forwards its props. Shape: `\{ enabled, show?, columnGroups?, facets?, showMetadata?, search? \}`. `show` (default `true`) is the visibility gate — set `false` to hide the configured sidebar without removing config. When unset (the default), the legacy slot-based pattern is preserved — consumers wire their own `CnIndexSidebar` at the App.vue level. See [Manifest-driven sidebar](#manifest-driven-sidebar) below. |
+| `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
+| `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
+| `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
+| `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
 ## Events
 
@@ -74,12 +94,17 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked |
+| `row-click` | `row` | Row or card clicked. Conceptually distinct from `view` — handle row interaction here (selection, expand, drilldown). |
+| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row"; bind alongside `row-click` (with the same handler) when click-to-view is desired. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
 | `select` | `ids[]` | Selection changed |
 | `action` | `\{ action, row \}` | Custom row action triggered |
+| `search` | `term` | Search input changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `columns-change` | `keys[]` | Visible columns changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `filter-change` | `\{ key, values \}` | Facet filter changed in the embedded sidebar (only emitted when `sidebar.enabled`). |
+| `quick-filter-change` | `index` | Zero-based active tab index changed (only emitted when `quickFilters` is set). The fetch is automatically triggered — listen for observability / analytics. |
 
 ## Slots
 
@@ -91,7 +116,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `#header-actions` | — | Extra header buttons |
 | `#delete-dialog` | `\{ item, close \}` | Replace single-item delete dialog |
 | `#copy-dialog` | `\{ item, close \}` | Replace single-item copy dialog |
-| `#form-dialog` | `\{ item, schema, close \}` | Replace create/edit dialog (any variant) |
+| `#form-dialog` | `\{ show, item, schema, close \}` | Replace create/edit dialog (any variant). Use `show` as a `v-if` guard so the dialog unmounts after `close`; otherwise an always-mounted override re-opens when its internal close animation finishes. |
 | `#form-fields` | `\{ fields, formData, errors, updateField \}` | Form content override (CnFormDialog only; ignored when `useAdvancedFormDialog` is true) |
 | `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select field (forwarded to NcSelect `#option`) |
 | `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select field (forwarded to NcSelect `#selected-option`) |
@@ -219,6 +244,45 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
   @page-changed="onPageChanged" />
 ```
 
+## Self-fetch mode
+
+A manifest `type:"index"` page dispatches to `CnIndexPage` via `CnPageRenderer`, which spreads `pages[].config` (`register`, `schema`, `columns`, `sidebar`, `actions`, `filter`) plus `$route.params` — but **never an `objects` prop**. So when `register` **and** `schema` are both set **and** the caller did not pass `objects`, `CnIndexPage` self-fetches: it derives `objectType = '${register}-${schema}'`, registers it in the object store, and drives the whole list (collection fetch, `_search`/`_order`/`_page`/`_limit`, facet filters, schema load, sidebar wiring, the `on*` handlers) through [`useListView`](../utilities/composables/use-list-view.md) against the store provided by an ancestor `CnAppRoot`.
+
+```json
+{
+  "type": "index",
+  "title": "Decisions",
+  "config": {
+    "register": "decidesk",
+    "schema": "decision",
+    "sidebar": { "enabled": true }
+  }
+}
+```
+
+In this mode the page's rows, loading, pagination, schema, sort and search term all come from the `useListView` instance rather than from props; `@search` / `@sort` / `@page-changed` / `@filter-change` / `@refresh` route to its handlers (and still `$emit` for observers).
+
+### Scoping a list to a parent — `config.filter`
+
+`config.filter` becomes the [`filter` prop](#props) and is applied to **every** fetch as a *fixed* filter (a user's facet selection for the same key cannot override it). String values of the form `"@route.<name>"` or `":<name>"` resolve against `$route.params`; everything else is passed through literally. The filter re-resolves when `$route.params` change, so a list nested under a parent route (`/forms/:id/submissions`, `/automations/:id/history`) is a fully declarative `type:"index"` page:
+
+```json
+{
+  "type": "index",
+  "title": "Submissions",
+  "route": "/forms/:id/submissions",
+  "config": {
+    "register": "pipelinq",
+    "schema": "intakeSubmission",
+    "filter": { "intakeForm": "@route.id", "archived": false }
+  }
+}
+```
+
+### Consumer-managed mode is unchanged
+
+When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
+
 ## Context Menu
 
 Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
@@ -229,6 +293,182 @@ Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContex
 - Destructive actions are styled with `--color-error`
 - The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
 - Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
+
+## Manifest-driven sidebar
+
+Set the `sidebar` prop to an object to auto-mount an embedded `CnIndexSidebar`. This keeps the sidebar reachable from `manifest.json` (`pages[].config.sidebar`) without consumer apps wiring it manually.
+
+```vue
+<CnIndexPage
+  title="Decisions"
+  :schema="schema"
+  :objects="decisions"
+  :sidebar="{
+    enabled: true,
+    columnGroups: extraColumnGroups,
+    facets: facetData,
+    showMetadata: true,
+    search: { searchPlaceholder: 'Find decisions...', filtersLabel: 'Refine' },
+  }"
+  :search-value="searchTerm"
+  :visible-columns="visibleColumns"
+  :active-filters="activeFilters"
+  @search="onSearch"
+  @columns-change="onColumnsChange"
+  @filter-change="onFilterChange" />
+```
+
+| `sidebar` field | Forwarded to `CnIndexSidebar` as | Notes |
+|------------------|----------------------------------|-------|
+| `enabled` | (existence gate) | When `false` (or missing), the embedded sidebar is NOT mounted — the legacy slot-based pattern still works. |
+| `show` | (visibility gate) | Defaults to `true`. When `false`, the embedded sidebar is suppressed even if `enabled: true`. See [show vs enabled](#show-vs-enabled) below. |
+| `columnGroups` | `columnGroups` | Extra column groups beyond schema properties + Metadata. |
+| `facets` | `facetData` | Live facet data `\{ fieldName: \{ values: [\{value, count\}] \} \}`. |
+| `showMetadata` | `showMetadata` | Defaults to `true`. |
+| `search` | (spread via `v-bind`) | Sub-fields like `searchPlaceholder`, `searchTabLabel`, `searchLabel`, `filtersLabel` map 1:1 onto matching `CnIndexSidebar` props. |
+
+`@search`, `@columns-change`, and `@filter-change` from the embedded sidebar re-emit on `CnIndexPage`, so consumer event handling stays at the page level.
+
+If you prefer to mount your own `CnIndexSidebar` (e.g. at the App.vue level for cross-page state), simply leave `sidebar` unset — the legacy slot-based pattern is unchanged.
+
+### show vs enabled
+
+`enabled` and `show` answer different questions and are intentionally
+kept distinct:
+
+- **`enabled`** — *existence gate*: does this page configure an
+  embedded sidebar at all? When `false` (or unset), the auto-mount
+  code path is bypassed entirely — no `<CnIndexSidebar>` is
+  rendered, and the consumer's slot-based pattern stays active.
+- **`show`** — *visibility gate*: should the configured sidebar be
+  rendered right now? Defaults to `true`. When `false`, the sidebar
+  config is preserved (so a parent watcher / feature flag can flip
+  back to `true` later) but the visible surface is suppressed.
+
+Concrete example: a consumer wants the sidebar on `wide` viewports
+and hidden on `narrow` ones. Keep `enabled: true, columnGroups: [...]`
+static and toggle `show` from a layout watcher — the
+`columnGroups` / `facets` / `search` config is retained across
+flips.
+
+## Action handlers (manifest-actions-dispatch)
+
+`actions[]` items declared in `pages[].config.actions` (manifest path) accept a string `handler` that resolves through the `customComponents` registry passed to `CnAppRoot` / `CnPageRenderer`. The same registry already used to resolve `headerComponent` / `actionsComponent` / slot overrides.
+
+### Registry-name handler
+
+Manifest declaration:
+
+```jsonc
+{
+  "id": "Queues",
+  "route": "/queues",
+  "type": "index",
+  "title": "Queues",
+  "config": {
+    "register": "pipelinq",
+    "schema": "queue",
+    "actions": [
+      { "id": "process", "label": "Process queue", "handler": "queueProcessHandler" }
+    ]
+  }
+}
+```
+
+Registry entry (e.g. `src/customComponents.js`):
+
+```js
+export function queueProcessHandler({ actionId, item }) {
+  // open the right modal, dispatch a store action, etc.
+  store.processQueue(item.id)
+}
+
+export default {
+  // …existing component entries…
+  queueProcessHandler,
+}
+```
+
+When the user clicks "Process queue" on a row, CnIndexPage looks up `queueProcessHandler` in the registry, sees a function, and calls it with `{ actionId: "process", item: row }`. The page's `@action` event still fires for any external listeners.
+
+### Reserved keywords
+
+Three keywords short-circuit the registry lookup:
+
+- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. The `route` field is required when this keyword is set.
+- `"emit"` — explicit no-op handler that just bubbles `@action`. Identical to leaving `handler` unset, but makes intent visible in the manifest.
+- `"none"` — disables the action click entirely (no handler call, no `@action` emit).
+
+Example:
+
+```jsonc
+{
+  "actions": [
+    { "id": "view", "label": "Open", "handler": "navigate", "route": "QueueDetail" },
+    { "id": "z",    "label": "Z",    "handler": "emit" },
+    { "id": "x",    "label": "X",    "handler": "none" }
+  ]
+}
+```
+
+### Fallback semantics
+
+- Missing handler name in the registry → silent fall-through to `@action`-only (no warning; preserves v1.2 manifests).
+- Non-function entry in the registry (e.g. a Vue component) → console.warn + fall-through to `@action`-only.
+- Function-typed `handler` (passed via the runtime prop, NOT through the manifest) keeps working unchanged — used by the built-in `view` / `edit` / `copy` / `delete` actions.
+
+## Bespoke card-grid via `cardComponent`
+
+The default card-grid view renders `CnObjectCard` for each row using
+the page's schema. When that's not enough — e.g. softwarecatalog's
+`Organisaties` page needs a profile-style card with a logo,
+contactpersoon block, and a CTA button — point the manifest at a
+consumer-provided card component:
+
+```js
+// src/customComponents.js
+import OrganisatieCard from './components/cards/OrganisatieCard.vue'
+export const customComponents = \{ OrganisatieCard \}
+```
+
+```vue
+<!-- App.vue -->
+<CnAppRoot
+  :manifest="manifest"
+  app-id="softwarecatalog"
+  :custom-components="customComponents">
+  <router-view />
+</CnAppRoot>
+```
+
+```jsonc
+// src/manifest.json — pages[]
+\{
+  "id": "organisaties",
+  "route": "/organisaties",
+  "type": "index",
+  "title": "Organisaties",
+  "config": \{
+    "register": "softwarecatalog",
+    "schema": "organisation",
+    "cardComponent": "OrganisatieCard"
+  \}
+\}
+```
+
+The resolved card component receives `\{ item, object, schema, register, selected \}`
+props and emits `click` (forwarded as `row-click` on the page) and
+`select` (forwarded as `select` on the page). `item` and `object` are
+aliases of each other; pick whichever feels natural.
+
+Resolution priority (highest first):
+
+1. `#card` scoped slot — App.vue overrides always win.
+2. `cardComponent` registry entry — manifest-driven dispatch.
+3. `CnObjectCard` — the schema-driven library default.
+
+Unknown `cardComponent` names log `console.warn` once and fall back
+to the default so a misconfigured manifest never blanks the grid.
 
 ## Two-Phase Pattern
 
@@ -258,3 +498,9 @@ export default {
 }
 </script>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexPage/CnIndexPage.vue) — props, events, and named slots — and update automatically whenever the component changes (see [CLAUDE.md "Documenting components"](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced)).
+
+<GeneratedRef />

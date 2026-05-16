@@ -1,6 +1,13 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnWidgetWrapper.md'
+
 # CnWidgetWrapper
 
 Container shell around a dashboard widget. Provides a header with icon and title, a scrollable content area, and an optional footer with action links. Accepts a `styleConfig` object for runtime style overrides (background, border, padding). Used internally by `CnDashboardPage` for all non-tile widgets.
+
+## Try it
+
+<Playground component="CnWidgetWrapper" />
 
 ## Usage
 
@@ -26,7 +33,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 
 <!-- With custom footer and header actions -->
 <CnWidgetWrapper title="Tasks">
-  <template #header-actions>
+  <template #actions>
     <NcButton type="tertiary" @click="refresh">Refresh</NcButton>
   </template>
   <TaskList :items="tasks" />
@@ -46,6 +53,8 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
 | `iconUrl` | String | `null` | Image URL for the header icon |
 | `iconClass` | String | `null` | CSS class for the header icon (e.g. Nextcloud icon class) |
+| `titleIconPosition` | String | `'right'` | Position of the `title-icon` slot in the header: `'left'` places it before the title group; `'right'` places it after the actions |
+| `titleIconColor` | String | `null` | CSS color value applied to the `title-icon` slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | `[]` | Footer button links: `[{ text, link }]` |
 | `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left } }` |
 
@@ -54,5 +63,12 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | Slot | Description |
 |------|-------------|
 | default | Widget content rendered in the scrollable body area |
-| `header-actions` | Buttons or controls placed in the right side of the header |
+| `actions` | Buttons or controls placed in the right side of the header |
+| `title-icon` | Extra icon element rendered in the header at the position controlled by `titleIconPosition` (left of title or right of actions) |
 | `footer` | Custom footer content (replaces the `buttons` prop rendering) |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnWidgetWrapper.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnWidgetWrapper/CnWidgetWrapper.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

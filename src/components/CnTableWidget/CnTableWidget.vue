@@ -51,25 +51,30 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 
 /**
  * CnTableWidget — Data table widget with card wrapper and dual data sourcing.
  *
- * @example External data mode
+ * External data mode
+ * ```vue
  * <CnTableWidget
  *   title="Related Skills"
  *   :rows="skillRows"
  *   :columns="skillColumns"
  *   :view-all-route="{ name: 'Skills' }" />
+ * ```
  *
- * @example Self-fetch mode
+ * Self-fetch mode
+ * ```vue
  * <CnTableWidget
  *   title="Documents"
  *   register="9"
  *   schema-id="42"
  *   :limit="5" />
+ * ```
  */
 export default {
 	name: 'CnTableWidget',
@@ -96,8 +101,7 @@ export default {
 		},
 		/**
 		 * Column definitions for CnDataTable.
-		 *
-		 * @type {{ key: string, label: string, sortable?: boolean }[]}
+		 * @type {{ key: string, label: string, sortable: boolean }[]}
 		 */
 		columns: {
 			type: Array,
@@ -153,12 +157,12 @@ export default {
 		/** Pre-translated "View all" label. */
 		viewAllLabel: {
 			type: String,
-			default: 'View all',
+			default: () => t('nextcloud-vue', 'View all'),
 		},
 		/** Pre-translated empty state text. */
 		emptyText: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 

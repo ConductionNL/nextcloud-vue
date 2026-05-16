@@ -164,6 +164,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover, NcButton } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import FormatColumns from 'vue-material-design-icons/FormatColumns.vue'
@@ -183,15 +184,6 @@ import { METADATA_COLUMNS } from '../../constants/metadata.js'
  *
  * Must be rendered at the App.vue level as a sibling of NcAppContent.
  * Use provide/inject to connect it to page components.
- *
- * @example
- * <!-- Minimal usage — schema drives everything -->
- * <CnIndexSidebar
- *   :schema="schema"
- *   :visible-columns="visibleCols"
- *   :search-value="search"
- *   @search="onSearch"
- *   @columns-change="onColumnsChange" />
  *
  * @slot search-above - Content rendered above the search field in the Search tab (e.g. hints, quick actions).
  * @slot search-extra - Content rendered below the search field and filters in the Search tab (e.g. saved searches).
@@ -272,37 +264,37 @@ export default {
 		/** Search input placeholder */
 		searchPlaceholder: {
 			type: String,
-			default: 'Type to search...',
+			default: () => t('nextcloud-vue', 'Type to search...'),
 		},
 		/** Search tab label */
 		searchTabLabel: {
 			type: String,
-			default: 'Search',
+			default: () => t('nextcloud-vue', 'Search'),
 		},
 		/** Columns tab label */
 		columnsTabLabel: {
 			type: String,
-			default: 'Columns',
+			default: () => t('nextcloud-vue', 'Columns'),
 		},
 		/** Search section heading */
 		searchLabel: {
 			type: String,
-			default: 'Search',
+			default: () => t('nextcloud-vue', 'Search'),
 		},
 		/** Filters section heading */
 		filtersLabel: {
 			type: String,
-			default: 'Filters',
+			default: () => t('nextcloud-vue', 'Filters'),
 		},
 		/** Columns section heading */
 		columnsHeading: {
 			type: String,
-			default: 'Column Visibility',
+			default: () => t('nextcloud-vue', 'Column visibility'),
 		},
 		/** Columns section description */
 		columnsDescription: {
 			type: String,
-			default: 'Select which columns to display in the table',
+			default: () => t('nextcloud-vue', 'Select which columns to display in the table'),
 		},
 		/** Override label for the schema properties group. Defaults to schema.title. */
 		propertiesGroupLabel: {

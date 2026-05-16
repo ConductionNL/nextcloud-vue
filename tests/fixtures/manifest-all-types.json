@@ -1,0 +1,141 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.1.0",
+	"dependencies": ["openregister"],
+	"menu": [
+		{ "id": "decisions", "label": "myapp.menu.decisions", "icon": "icon-checkmark", "route": "decisions-index", "order": 10 },
+		{ "id": "decisions-detail", "label": "myapp.menu.detail", "route": "decisions-detail", "order": 11 },
+		{ "id": "overview", "label": "myapp.menu.overview", "route": "overview", "order": 20 },
+		{ "id": "logs", "label": "myapp.menu.logs", "route": "audit-logs", "order": 30 },
+		{ "id": "settings-menu", "label": "myapp.menu.settings", "route": "app-settings", "order": 90, "section": "settings" },
+		{ "id": "chat-menu", "label": "myapp.menu.chat", "route": "chat-thread", "order": 40 },
+		{ "id": "files-menu", "label": "myapp.menu.files", "route": "files-browser", "order": 50 },
+		{ "id": "custom-menu", "label": "myapp.menu.custom", "route": "custom-page", "order": 99 },
+		{ "id": "map-menu", "label": "myapp.menu.map", "route": "cases-map", "order": 60 },
+		{ "id": "compliance-menu", "label": "myapp.menu.compliance", "route": "compliance-dashboard", "order": 70 }
+	],
+	"pages": [
+		{
+			"id": "decisions-index",
+			"route": "/decisions",
+			"type": "index",
+			"title": "myapp.decisions.title",
+			"config": {
+				"register": "decisions",
+				"schema": "decision",
+				"columns": ["title", "status", "deadline"]
+			}
+		},
+		{
+			"id": "decisions-detail",
+			"route": "/decisions/:id",
+			"type": "detail",
+			"title": "myapp.decisions.detail",
+			"config": { "register": "decisions", "schema": "decision" }
+		},
+		{
+			"id": "overview",
+			"route": "/",
+			"type": "dashboard",
+			"title": "myapp.overview.title",
+			"config": {
+				"widgets": [{ "id": "kpis", "title": "KPIs", "type": "custom" }],
+				"layout": []
+			}
+		},
+		{
+			"id": "audit-logs",
+			"route": "/logs",
+			"type": "logs",
+			"title": "myapp.logs.title",
+			"config": {
+				"register": "audit-trail-immutable",
+				"schema": "audit-event"
+			}
+		},
+		{
+			"id": "app-settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "myapp.settings.title",
+			"config": {
+				"sections": [
+					{
+						"title": "myapp.settings.general",
+						"fields": [
+							{ "key": "feature_x_enabled", "type": "boolean", "label": "myapp.settings.feature_x" }
+						]
+					}
+				],
+				"saveEndpoint": "/index.php/apps/myapp/api/settings"
+			}
+		},
+		{
+			"id": "chat-thread",
+			"route": "/chat/:id",
+			"type": "chat",
+			"title": "myapp.chat.title",
+			"config": {
+				"conversationSource": "/index.php/apps/spreed/embed/abc123"
+			}
+		},
+		{
+			"id": "files-browser",
+			"route": "/files",
+			"type": "files",
+			"title": "myapp.files.title",
+			"config": {
+				"folder": "/myapp/uploads",
+				"allowedTypes": ["application/pdf", "image/*"]
+			}
+		},
+		{
+			"id": "custom-page",
+			"route": "/custom",
+			"type": "custom",
+			"title": "myapp.custom.title",
+			"component": "MyCustomPage"
+		},
+		{
+			"id": "cases-map",
+			"route": "/map",
+			"type": "map",
+			"title": "myapp.map.title",
+			"config": {
+				"center": [52.1326, 5.2913],
+				"zoom": 7,
+				"layers": [
+					{
+						"type": "tile",
+						"url": "https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png",
+						"options": { "attribution": "© Kadaster", "maxZoom": 19 }
+					},
+					{
+						"type": "wms",
+						"url": "https://service.pdok.nl/lv/bag/wms/v2_0",
+						"options": { "layers": "pand", "transparent": true, "opacity": 0.6 }
+					}
+				],
+				"markers": {
+					"dataSource": { "url": "/index.php/apps/myapp/api/markers" },
+					"latField": "lat",
+					"lngField": "lng",
+					"popupField": "title",
+					"clustering": true
+				}
+			}
+		},
+		{
+			"id": "compliance-dashboard",
+			"route": "/compliance",
+			"type": "dashboard",
+			"title": "myapp.compliance.title",
+			"config": {
+				"content": [
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/coverageGrid" },
+					{ "type": "widget-ref", "ref": "openregister://widget/regulation/boardProof" }
+				]
+			}
+		}
+	]
+}

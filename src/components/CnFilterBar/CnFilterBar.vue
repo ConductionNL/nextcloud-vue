@@ -1,7 +1,7 @@
 <template>
-	<div class="cn-filter-bar">
+	<div class="cn-filter-bar" data-testid="cn-filter-bar">
 		<!-- Search input -->
-		<div class="cn-filter-bar__search">
+		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
 				:value="searchValue"
 				:placeholder="searchPlaceholder"
@@ -63,6 +63,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 
@@ -73,7 +74,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  * LeadList, RequestList across Pipelinq and Procest. Supports text search,
  * select dropdowns, text inputs, and checkbox filters.
  *
- * @example
+ * ```vue
  * <CnFilterBar
  *   :search-value="searchTerm"
  *   search-placeholder="Search clients..."
@@ -84,6 +85,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
  *   @search="onSearch"
  *   @filter-change="onFilterChange"
  *   @clear-all="clearFilters" />
+ * ```
  */
 export default {
 	name: 'CnFilterBar',
@@ -98,8 +100,9 @@ export default {
 
 	props: {
 		/**
-		 * Filter definitions.
-		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options?: Array, value?: *}>}
+		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
+		 * optional `options` (for select), and optional `value`.
+		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,
@@ -113,7 +116,7 @@ export default {
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
-			default: 'Search...',
+			default: () => t('nextcloud-vue', 'Search...'),
 		},
 		/** Whether to show the "Clear all" button */
 		showClearAll: {
@@ -123,7 +126,7 @@ export default {
 		/** Clear all button label */
 		clearAllLabel: {
 			type: String,
-			default: 'Clear filters',
+			default: () => t('nextcloud-vue', 'Clear filters'),
 		},
 	},
 
@@ -143,7 +146,7 @@ export default {
 		onFilterChange(key, value) {
 			/**
 			 * @event filter-change Emitted when any filter changes.
-			 * @type {{ key: string, value: * }}
+			 * @type {{ key: string, value: any }}
 			 */
 			this.$emit('filter-change', { key, value })
 		},

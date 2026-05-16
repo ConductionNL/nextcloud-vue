@@ -2,11 +2,18 @@
 sidebar_position: 24
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnSettingsSection.md'
+
 # CnSettingsSection
 
 Admin settings section with loading and error states. Wraps NcSettingsSection with async data fetching patterns.
 
 **Wraps**: NcSettingsSection, NcLoadingIcon, NcButton, NcNoteCard
+
+## Try it
+
+<Playground component="CnSettingsSection" />
 
 ![CnSettingsSection showing admin settings with Version and Register Configuration sections](/img/screenshots/cn-settings-section.png)
 
@@ -16,19 +23,18 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `title` | String | `''` | Section title |
-| `description` | String | `''` | Section description |
-| `loading` | Boolean | `false` | Loading state |
-| `error` | String | `null` | Error message to display |
-| `saveLabel` | String | `'Save'` | Save button label |
-| `saving` | Boolean | `false` | Save in progress |
-
-## Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `save` | — | Save button clicked |
-| `retry` | — | Retry button clicked (on error) |
+| `name` | String | *(required)* | Section title (passed to `NcSettingsSection`) |
+| `description` | String | `''` | Brief section description shown under the title |
+| `detailedDescription` | String | `''` | Longer description rendered in a separate block below the title |
+| `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the title |
+| `loading` | Boolean | `false` | Loading state — shows a loading indicator instead of content |
+| `loadingMessage` | String | `'Loading...'` | Message shown during loading |
+| `error` | Boolean | `false` | Error state — shows an error card with optional retry button |
+| `errorMessage` | String | `'An error occurred'` | Message shown in error state |
+| `onRetry` | Function | `null` | Callback for the retry button. When `null`, no retry button is shown. |
+| `retryButtonText` | String | `'Retry'` | Label for the retry button |
+| `empty` | Boolean | `false` | Empty state — shows an empty message instead of content |
+| `emptyMessage` | String | `'No data available'` | Message shown when the section has no data |
 
 ## Slots
 
@@ -36,18 +42,27 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 |------|-------------|
 | `default` | Section content |
 | `#actions` | Extra action buttons |
+| `#description` | Custom description content (replaces `description` prop) |
+| `#footer` | Footer content rendered below the section body |
+| `#empty` | Custom empty state (replaces the default empty message) |
 
 ## Usage
 
 ```vue
 <CnSettingsSection
-  title="API Configuration"
+  name="API Configuration"
+  description="Configure the external API connection"
   :loading="loading"
-  :error="error"
-  :saving="saving"
-  @save="onSave"
-  @retry="fetchSettings">
+  :error="hasError"
+  error-message="Could not load settings"
+  :on-retry="fetchSettings">
   <NcTextField label="API URL" v-model="apiUrl" />
   <NcTextField label="API Key" v-model="apiKey" type="password" />
 </CnSettingsSection>
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsSection.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsSection/CnSettingsSection.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

@@ -3,6 +3,7 @@
 		:name="name"
 		:description="description"
 		:doc-url="docUrl"
+		data-testid="cn-settings-section"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->
 		<div v-if="$slots.actions" class="cn-settings-section__actions">
@@ -60,6 +61,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcSettingsSection, NcLoadingIcon, NcButton } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -74,15 +76,18 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  * Extracted from OpenRegister's SettingsSection. Designed for reuse across all
  * Conduction Nextcloud apps.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnSettingsSection name="Cache Management" description="Manage application caches">
  *   <template #actions>
  *     <NcButton @click="clearCache">Clear Cache</NcButton>
  *   </template>
  *   <p>Cache hit rate: 94%</p>
  * </CnSettingsSection>
+ * ```
  *
- * @example With loading and error states
+ * With loading and error states
+ * ```vue
  * <CnSettingsSection
  *   name="Statistics"
  *   :loading="isLoading"
@@ -92,11 +97,14 @@ import InformationOutline from 'vue-material-design-icons/InformationOutline.vue
  *   :on-retry="loadStats">
  *   <StatsTable :data="stats" />
  * </CnSettingsSection>
+ * ```
  *
- * @example With empty state
+ * With empty state
+ * ```vue
  * <CnSettingsSection name="API Tokens" :empty="tokens.length === 0" empty-message="No tokens configured">
  *   <TokenList :tokens="tokens" />
  * </CnSettingsSection>
+ * ```
  */
 export default {
 	name: 'CnSettingsSection',
@@ -140,7 +148,7 @@ export default {
 		/** Message shown during loading */
 		loadingMessage: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 		/** Whether the section is in an error state */
 		error: {
@@ -150,7 +158,7 @@ export default {
 		/** Message shown when in error state */
 		errorMessage: {
 			type: String,
-			default: 'An error occurred',
+			default: () => t('nextcloud-vue', 'An error occurred'),
 		},
 		/** Callback function for retry button (shown in error state). If null, no retry button is shown. */
 		onRetry: {
@@ -160,7 +168,7 @@ export default {
 		/** Text for the retry button */
 		retryButtonText: {
 			type: String,
-			default: 'Retry',
+			default: () => t('nextcloud-vue', 'Retry'),
 		},
 		/** Whether the section has no data to show */
 		empty: {
@@ -170,7 +178,7 @@ export default {
 		/** Message shown when section is empty */
 		emptyMessage: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 }

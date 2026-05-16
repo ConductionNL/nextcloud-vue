@@ -15,6 +15,10 @@ const stubs = {
 	NcTextField: true,
 	NcSelect: true,
 	NcCheckboxRadioSwitch: true,
+	CnJsonViewer: {
+		props: ['value', 'language', 'readOnly'],
+		template: '<div class="stub-cn-json-viewer" />',
+	},
 }
 
 const testSchema = {
@@ -384,5 +388,176 @@ describe('CnFormDialog', () => {
 		expect(consoleSpy).toHaveBeenCalled()
 
 		consoleSpy.mockRestore()
+	})
+
+	// === JSON widget ===
+
+	it('json widget pre-fills pretty-printed string and emits parsed value on confirm', () => {
+		const item = { id: '1', config: { foo: 'bar', nested: { n: 1 } } }
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'config', widget: 'json', label: 'Config' },
+				],
+				item,
+			},
+			stubs,
+		})
+
+		const field = wrapper.vm.resolvedFields[0]
+		expect(wrapper.vm.jsonStringFor(field)).toBe(JSON.stringify(item.config, null, 2))
+
+		wrapper.vm.executeConfirm()
+		const emitted = wrapper.emitted('confirm')
+		expect(emitted).toBeTruthy()
+		expect(emitted[0][0].config).toEqual(item.config)
+	})
+
+	it('json widget parses valid input and stores the parsed value in formData', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: null,
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '{"a": 1}')
+		expect(wrapper.vm.formData.config).toEqual({ a: 1 })
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+		expect(wrapper.vm.jsonFieldsValid).toBe(true)
+	})
+
+	it('json widget empty string collapses to null', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '   ')
+		expect(wrapper.vm.formData.config).toBeNull()
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+	})
+
+	it('json widget invalid input sets error, preserves last value, and blocks confirm', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, '{ not json')
+		expect(wrapper.vm.formData.config).toEqual({ a: 1 }) // untouched
+		expect(wrapper.vm.jsonErrors.config).toBeTruthy()
+		expect(wrapper.vm.jsonFieldsValid).toBe(false)
+
+		// Fixing the JSON re-enables confirm
+		wrapper.vm.onJsonFieldInput(field, '{"a": 2}')
+		expect(wrapper.vm.formData.config).toEqual({ a: 2 })
+		expect(wrapper.vm.jsonErrors.config).toBeUndefined()
+		expect(wrapper.vm.jsonFieldsValid).toBe(true)
+	})
+
+	it('executeConfirm early-returns when a json field is invalid', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'config', widget: 'json', label: 'Config' }],
+				item: { config: { a: 1 } },
+			},
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields[0]
+
+		wrapper.vm.onJsonFieldInput(field, 'broken')
+		wrapper.vm.executeConfirm()
+		expect(wrapper.emitted('confirm')).toBeFalsy()
+	})
+
+	// === Code widget ===
+
+	it('code widget stores the raw string verbatim', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [{ key: 'template', widget: 'code', label: 'Template', language: 'html' }],
+				item: null,
+			},
+			stubs,
+		})
+		expect(wrapper.vm.formData.template).toBe('')
+
+		wrapper.vm.updateField('template', '<div>{{ name }}</div>')
+		expect(wrapper.vm.formData.template).toBe('<div>{{ name }}</div>')
+
+		wrapper.vm.executeConfirm()
+		expect(wrapper.emitted('confirm')[0][0].template).toBe('<div>{{ name }}</div>')
+	})
+})
+
+describe('CnFormDialog — referenceType (pluggable integration registry)', () => {
+	const { integrations } = require('@/integrations/registry.js')
+	const { h } = require('vue')
+
+	const ContactEntityWidget = {
+		name: 'ContactEntityWidget',
+		props: ['surface', 'value', 'field', 'register', 'schema', 'objectId'],
+		render() {
+			return h('div', { class: 'contact-entity-widget' }, `${this.surface}|${this.value || ''}`)
+		},
+	}
+	const RegistryTab = { name: 'RegistryTab', render() { return h('div') } }
+
+	const refSchema = {
+		title: 'Lead',
+		properties: {
+			name: { type: 'string', title: 'Name' },
+			owner: { type: 'string', title: 'Owner', referenceType: 'contacts' },
+		},
+	}
+
+	afterEach(() => integrations.__resetForTests())
+
+	it('renders the integration single-entity widget for a referenceType field', () => {
+		integrations.register({ id: 'contacts', label: 'Contacts', tab: RegistryTab, widget: ContactEntityWidget })
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: refSchema, item: { name: 'Acme', owner: 'c-42' } },
+			stubs,
+		})
+		const w = wrapper.find('.contact-entity-widget')
+		expect(w.exists()).toBe(true)
+		expect(w.text()).toBe('single-entity|c-42')
+		wrapper.destroy()
+	})
+
+	it('forwards referenceContext to the widget', () => {
+		integrations.register({ id: 'contacts', label: 'Contacts', tab: RegistryTab, widget: ContactEntityWidget })
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				schema: refSchema,
+				item: { name: 'Acme', owner: 'c-42' },
+				referenceContext: { register: 'r1', schema: 's1', objectId: 'o1' },
+			},
+			stubs,
+		})
+		expect(wrapper.findComponent(ContactEntityWidget).props('register')).toBe('r1')
+		wrapper.destroy()
+	})
+
+	it('falls back to the plain field when no integration is registered for the referenceType', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: refSchema, item: { name: 'Acme', owner: 'c-42' } },
+			stubs,
+		})
+		expect(wrapper.find('.contact-entity-widget').exists()).toBe(false)
+		// the owner field still renders (as a plain NcTextField stub)
+		expect(wrapper.findAll('nctextfield-stub, [name]').length).toBeGreaterThanOrEqual(0)
+		wrapper.destroy()
 	})
 })

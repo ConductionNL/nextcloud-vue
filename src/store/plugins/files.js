@@ -9,7 +9,7 @@ import { parseResponseError, networkError } from '../../utils/errors.js'
  * upload (multipart), publish, unpublish, and delete.
  *
  * State: files, filesLoading, filesError, tags, tagsLoading, tagsError
- * Actions: fetchFiles, uploadFiles, publishFile, unpublishFile, deleteFile, clearFiles, fetchTags
+ * Actions: fetchFiles, uploadFiles, publishFile, unpublishFile, deleteFile, batchFiles, clearFiles, fetchTags
  * Getters: getFiles, isFilesLoading, getFilesError, getTags, isTagsLoading, getTagsError
  *
  * @param {object} [options={}] Plugin options
@@ -241,6 +241,58 @@ export function filesPlugin(options = {}) {
 				} catch (error) {
 					this.filesError = networkError(error)
 					return false
+				} finally {
+					this.filesLoading = false
+				}
+			},
+
+			/**
+			 * Apply a batch action across multiple files in ONE request.
+			 *
+			 * Replaces the N-sequential-call pattern (loop calling
+			 * publishFile/unpublishFile/deleteFile per id) with a single POST
+			 * to /files/batch. The backend returns 200 when every operation
+			 * succeeds, or 207 (multi-status) when some fail; the per-file
+			 * outcomes live in `data.results` and the aggregate counts in
+			 * `data.summary` (`{ succeeded, failed, total }`).
+			 *
+			 * @param {string} type The registered object type slug
+			 * @param {string} objectId The parent object ID
+			 * @param {('publish'|'depublish'|'delete'|'label')} action The batch action to apply
+			 * @param {(string|number)[]} fileIds File IDs to act on (max 100, validated server-side)
+			 * @param {object} [params] Action-specific parameters (e.g. labels for the 'label' action)
+			 * @return {Promise<object|null>} Response body `{ results, summary }`, or null on transport error
+			 */
+			async batchFiles(type, objectId, action, fileIds, params = {}) {
+				this.filesLoading = true
+				this.filesError = null
+
+				try {
+					const url = this._buildUrl(type, objectId) + '/files/batch'
+
+					const response = await fetch(url, {
+						method: 'POST',
+						headers: buildHeaders(),
+						body: JSON.stringify({
+							action,
+							fileIds,
+							...params,
+						}),
+					})
+
+					// 200 = all succeeded, 207 = partial success — both are
+					// valid responses; the caller inspects data.summary.
+					if (!response.ok && response.status !== 207) {
+						this.filesError = await parseResponseError(response, 'files')
+						return null
+					}
+
+					const data = await response.json()
+					await this.fetchFiles(type, objectId)
+					return data
+				} catch (error) {
+					this.filesError = networkError(error)
+					return null
 				} finally {
 					this.filesLoading = false
 				}

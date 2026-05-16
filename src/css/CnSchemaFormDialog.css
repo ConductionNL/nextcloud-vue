@@ -152,6 +152,11 @@
   background-color: var(--color-primary-light);
 }
 
+/* Applied to each td of the row currently being edited so inputs sit at the same baseline */
+.cn-schema-form__editing-cell {
+  vertical-align: baseline !important;
+}
+
 .cn-schema-form__viewTable tbody tr.cn-schema-form__modified-row {
   background-color: var(--color-warning);
   border-left: 3px solid var(--color-element-warning);
@@ -161,9 +166,22 @@
   background-color: var(--color-warning);
 }
 
-.cn-schema-form__viewTable tbody tr.cn-schema-form__modified-row.cn-schema-form__selected-row {
+.cn-schema-form__viewTable
+  tbody
+  tr.cn-schema-form__modified-row.cn-schema-form__selected-row {
   background-color: var(--color-primary-light);
   border-left: 3px solid var(--color-primary);
+}
+
+.cn-schema-form__viewTable tbody tr.cn-schema-form__inherited-row {
+  background-color: var(--color-background-dark);
+  border-left: 3px solid var(--color-text-maxcontrast);
+  cursor: default;
+  opacity: 0.8;
+}
+
+.cn-schema-form__viewTable tbody tr.cn-schema-form__inherited-row:hover {
+  background-color: var(--color-background-dark);
 }
 
 /* Form editor */
@@ -183,6 +201,11 @@
 
 .cn-schema-form__warning-icon {
   color: var(--color-warning-text);
+  flex-shrink: 0;
+}
+
+.cn-schema-form__lock-icon {
+  color: var(--color-text-maxcontrast);
   flex-shrink: 0;
 }
 
@@ -379,6 +402,20 @@
   margin-top: 20px;
 }
 
+.cn-schema-form__inherit-from-public {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: var(--color-background-hover);
+  border-radius: var(--border-radius);
+}
+
+.cn-schema-form__inherit-from-public-description {
+  margin-top: 4px;
+  margin-left: 28px;
+  font-size: 0.85rem;
+  color: var(--color-text-maxcontrast);
+}
+
 /* Property-level RBAC Styling - Action Menu Based */
 .cn-schema-form__property-permission-text {
   font-family: monospace;
@@ -505,6 +542,12 @@
   color: var(--color-success-text);
 }
 
+.cn-schema-form__chip-inherited {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-maxcontrast);
+  border: 1px solid var(--color-border);
+}
+
 .cn-schema-form__properties-warning {
   margin-top: 15px;
 }
@@ -524,6 +567,255 @@
   color: var(--color-info-text);
 }
 
+/* Advanced: Conditional Access Rules — accordion + rule cards */
+.cn-schema-form__conditional-section {
+  margin-top: 32px;
+}
+
+.cn-schema-form__cond-accordion-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-background-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-element);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-main-text);
+  text-align: left;
+  transition: background var(--animation-quick) ease;
+}
+
+.cn-schema-form__cond-accordion-header:hover {
+  background: var(--color-background-hover);
+}
+
+.cn-schema-form__cond-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-maxcontrast);
+}
+
+.cn-schema-form__cond-count-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: var(--color-primary-element);
+  color: var(--color-primary-element-text);
+  border-radius: var(--border-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cn-schema-form__cond-accordion-body {
+  margin-top: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-element);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Per-action container — same border/radius pattern as the RBAC table container */
+.cn-schema-form__cond-action {
+  margin-top: 16px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius-element);
+  /* overflow visible so NcSelect dropdowns (appendToBody:true) can position correctly */
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(var(--color-box-shadow-rgb), 0.06);
+}
+
+.cn-schema-form__cond-action:first-of-type {
+  margin-top: 12px;
+}
+
+/* Action header — matches RBAC table <th> row */
+.cn-schema-form__cond-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--color-background-dark);
+  border-bottom: 2px solid var(--color-border-dark);
+  border-radius: var(--border-radius-element) var(--border-radius-element) 0 0;
+}
+
+.cn-schema-form__cond-action-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-main-text);
+  text-transform: capitalize;
+}
+
+.cn-schema-form__cond-empty {
+  padding: 12px 16px;
+  color: var(--color-text-maxcontrast);
+  font-style: italic;
+  font-size: 13px;
+  background: var(--color-main-background);
+}
+
+/* Rule card — standalone card so each rule is visually distinct */
+.cn-schema-form__cond-rule-card {
+  margin: 8px;
+  padding: 14px 16px;
+  background: var(--color-main-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-element);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
+  box-shadow: 0 1px 4px rgba(var(--color-box-shadow-rgb), 0.08);
+  transition: background var(--animation-quick) ease,
+    box-shadow var(--animation-quick) ease;
+}
+
+/* Group-based left border — same color variables as the group badges in the RBAC table */
+.cn-schema-form__cond-rule-card--public {
+  border-left: 3px solid var(--color-info);
+}
+.cn-schema-form__cond-rule-card--authenticated {
+  border-left: 3px solid var(--color-warning);
+}
+.cn-schema-form__cond-rule-card--admin {
+  border-left: 3px solid var(--color-success);
+}
+
+/* Rule header row: group badge + select + remove button */
+.cn-schema-form__cond-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Suppress the badge text since the select already shows the group */
+.cn-schema-form__cond-rule-header .cn-schema-form__group-badge {
+  display: none;
+}
+
+.cn-schema-form__cond-rule-group-select {
+  flex: 1;
+  max-width: 260px;
+}
+
+/* Remove extra spacing from vue-select so the group select aligns with the Remove rule button */
+.cn-schema-form__cond-rule-group-select .v-select {
+  margin: 0;
+}
+.cn-schema-form__cond-rule-group-select .vs__dropdown-toggle {
+  padding-bottom: 0;
+}
+
+/* Conditions list */
+.cn-schema-form__cond-match-list {
+  padding-left: 4px;
+}
+
+.cn-schema-form__cond-match-empty {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-text-maxcontrast);
+  padding: 4px 0;
+  margin: 0;
+}
+
+.cn-schema-form__cond-match-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius-element);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(var(--color-box-shadow-rgb), 0.1);
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.cn-schema-form__cond-match-table th {
+  background: var(--color-background-dark);
+  color: var(--color-main-text);
+  font-weight: 600;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 2px solid var(--color-border-dark);
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.cn-schema-form__cond-match-table td {
+  padding: 10px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cn-schema-form__cond-match-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cn-schema-form__cond-match-actions {
+  width: 44px;
+  text-align: right;
+}
+
+/* Add-condition inline form */
+.cn-schema-form__cond-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-background-hover);
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--color-border-dark);
+}
+
+/* Three equal columns for Property / Operator / Value selects */
+.cn-schema-form__cond-add-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.cn-schema-form__cond-add-field {
+  min-width: 0;
+}
+
+/* NcSelect (vue-select) must fill its grid cell */
+.cn-schema-form__cond-add-field .v-select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Custom value input — full width below the three selects, never displaces them */
+.cn-schema-form__cond-custom-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cn-schema-form__cond-custom-input {
+  width: 100%;
+  height: 34px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.cn-schema-form__cond-custom-input:focus {
+  outline: 2px solid var(--color-primary-element);
+  outline-offset: -1px;
+}
+
+.cn-schema-form__cond-add-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* Copied from openregister/SolrWarmupModal — also used in other files */
 .cn-schema-form__schema-option {
   display: flex;
@@ -541,6 +833,6 @@
   word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;  
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }

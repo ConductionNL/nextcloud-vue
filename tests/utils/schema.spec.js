@@ -289,8 +289,14 @@ describe('formatValue', () => {
 		expect(result.length).toBeLessThanOrEqual(23) // 20 + '...'
 	})
 
-	it('formats objects as [Object]', () => {
-		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('[Object]')
+	it('formats objects as JSON', () => {
+		expect(formatValue({ a: 1 }, { type: 'object' })).toBe('{\n  "a": 1\n}')
+	})
+
+	it('falls back to [Object] when JSON cannot be produced', () => {
+		const circular = {}
+		circular.self = circular
+		expect(formatValue(circular, { type: 'object' })).toBe('[Object]')
 	})
 
 	it('works without property definition', () => {
@@ -540,6 +546,22 @@ describe('fieldsFromSchema', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const keys = fields.map((f) => f.key)
 		expect(keys).not.toContain('metadata')
+	})
+
+	it('includes object-type properties when an explicit widget opts in', () => {
+		const schemaWithJsonWidget = {
+			title: 'Thing',
+			properties: {
+				config: { type: 'object', title: 'Config', widget: 'json' },
+				other: { type: 'object', title: 'Other' }, // no widget → still filtered
+			},
+		}
+		const fields = fieldsFromSchema(schemaWithJsonWidget)
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('config')
+		expect(keys).not.toContain('other')
+		const configField = fields.find((f) => f.key === 'config')
+		expect(configField.widget).toBe('json')
 	})
 
 	it('applies exclude option', () => {

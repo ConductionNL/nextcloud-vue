@@ -8,6 +8,8 @@ Syntax-highlighted code viewer and editor powered by CodeMirror 6. Supports JSON
 
 Use **read-only mode** to display structured data with syntax highlighting in detail views, audit logs, or API response previews. Use **editable mode** for JSON input fields with live validation and formatting.
 
+This component also backs the `json` and `code` widgets of [`CnFormDialog`](cn-form-dialog.md), so schema-driven forms get a rich JSON/code editor for free — you rarely need to embed `CnJsonViewer` directly inside a form.
+
 ## Props
 
 | Prop | Type | Default | Description |
@@ -16,6 +18,7 @@ Use **read-only mode** to display structured data with syntax highlighting in de
 | `readOnly` | Boolean | `false` | When `true`, the editor is non-editable and the format button and validation error are hidden. |
 | `height` | String | `'300px'` | CSS height for the editor container (e.g. `'200px'`, `'50vh'`). |
 | `language` | String | `'auto'` | Content language for syntax highlighting. See [Language modes](#language-modes) below. |
+| `errorText` | String | `null` | Custom text for the error banner below the editor. `null` keeps the built-in behavior (renders "Invalid JSON format" when `language === 'json'` and content fails to parse). Any string lets the caller own the banner — rendered when non-empty, hidden when empty — useful for surfacing richer parse errors. |
 
 ## Language Modes
 
@@ -33,6 +36,7 @@ Use **read-only mode** to display structured data with syntax highlighting in de
 |-------|---------|-------------|
 | `update:value` | `string` | Emitted when the content changes (editable mode) or after formatting. Use with `.sync` for two-way binding. |
 | `format` | `object` | Emitted after a successful format with the parsed JSON object. Only relevant in JSON mode. |
+| `detected-language` | `string` | Emitted with the resolved language (`'json'`, `'html'`, `'xml'`, or `'text'`) whenever it changes — including once on mount. When `language` is set explicitly the payload mirrors that prop; in `'auto'` mode it reports the detection result. |
 
 ## Usage
 

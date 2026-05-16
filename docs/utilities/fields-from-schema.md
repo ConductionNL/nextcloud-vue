@@ -73,7 +73,7 @@ Properties are dropped when:
 - `prop.visible === false`
 - `prop.readOnly === true` and `includeReadOnly !== true`
 - key in `exclude`, or not in `include` (when provided)
-- `prop.type === 'object'` (auto-forms don't render nested objects)
+- `prop.type === 'object'` **unless** `prop.widget` is set (auto-forms don't render nested objects by default; set `widget: 'json'` or `widget: 'code'` to opt an object property back in and let `CnFormDialog` render a `CnJsonViewer` for it).
 
 ## Sorting
 

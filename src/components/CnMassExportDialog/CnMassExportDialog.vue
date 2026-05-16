@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-mass-export__result">
+		<div v-if="result !== null"
+			class="cn-mass-export__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-export-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase -->
-		<div v-else class="cn-mass-export__form">
+		<div v-else
+			class="cn-mass-export__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-mass-export-dialog"
+			data-testid-phase="form">
 			<p v-if="description" class="cn-mass-export__description">
 				{{ description }}
 			</p>
@@ -62,13 +70,14 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  * The parent handles the actual download. Based on the OpenRegister
  * ExportRegister pattern.
  *
- * @example
+ * ```vue
  * <CnMassExportDialog
  *   v-if="showExportDialog"
  *   ref="exportDialog"
  *   description="Export 42 objects from Cases"
  *   @confirm="onExportConfirm"
  *   @close="showExportDialog = false" />
+ * ```
  *
  * // In methods:
  * async onExportConfirm({ format }) {

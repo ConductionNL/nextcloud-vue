@@ -24,13 +24,14 @@
 			:tabindex="clickable ? (focusedIndex === index ? 0 : -1) : undefined"
 			@click="onStageClick(stage, index)"
 			@keydown="onKeydown($event, stage, index)">
-			<!-- Indicator -->
-			<slot
-				name="indicator"
-				:stage="stage"
-				:index="index"
-				:state="stageStates[index]">
-				<span class="cn-timeline-stages__indicator">
+			<!-- Indicator: wrapper provides consistent 32px (or 20px for small) circle.
+			     Slot replaces only the inner content, so custom indicators inherit sizing. -->
+			<span class="cn-timeline-stages__indicator">
+				<slot
+					name="indicator"
+					:stage="stage"
+					:index="index"
+					:state="stageStates[index]">
 					<!-- Completed: checkmark SVG -->
 					<svg
 						v-if="stageStates[index] === 'completed'"
@@ -45,8 +46,8 @@
 					<span
 						v-else-if="stageStates[index] === 'current'"
 						class="cn-timeline-stages__dot" />
-				</span>
-			</slot>
+				</slot>
+			</span>
 			<!-- Label + Subtitle -->
 			<slot
 				name="label"
@@ -67,6 +68,8 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+
 /**
  * CnTimelineStages — Timeline/progress stages component.
  *
@@ -74,7 +77,8 @@
  * connected by a track line. Supports horizontal and vertical layout,
  * small and medium sizes, clickable stages, keyboard navigation, and ARIA roles.
  *
- * @example Basic horizontal timeline
+ * Basic horizontal timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="[
  *     { id: 'new', label: 'New' },
@@ -82,14 +86,17 @@
  *     { id: 'done', label: 'Done' },
  *   ]"
  *   currentStage="review" />
+ * ```
  *
- * @example Vertical clickable timeline
+ * Vertical clickable timeline
+ * ```vue
  * <CnTimelineStages
  *   :stages="pipelineStages"
  *   :currentStage="deal.stage"
  *   orientation="vertical"
  *   :clickable="true"
  *   v-on:stage-click="onStageClick" />
+ * ```
  */
 export default {
 	name: 'CnTimelineStages',
@@ -98,7 +105,7 @@ export default {
 		/**
 		 * Array of stage objects. Each must have `id` (unique) and `label` (display text).
 		 * Optional `subtitle` for secondary text below the label.
-		 * @type {{ id: string, label: string, subtitle?: string }[]}
+		 * @type {{ id: string, label: string, subtitle: string }[]}
 		 */
 		stages: {
 			type: Array,
@@ -148,7 +155,7 @@ export default {
 		 */
 		ariaLabel: {
 			type: String,
-			default: 'Progress stages',
+			default: () => t('nextcloud-vue', 'Progress stages'),
 		},
 	},
 

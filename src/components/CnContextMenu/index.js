@@ -1,1 +1,4 @@
-export { default as CnContextMenu } from './CnContextMenu.vue'
+import CnContextMenu from './CnContextMenu.vue'
+
+export default CnContextMenu
+export { CnContextMenu }

@@ -1,12 +1,36 @@
 name: Documentation
 
+# Deploys the full Docusaurus + Styleguidist site to gh-pages root.
+# Triggers on push to BOTH `main` and `beta` so the new site can ship
+# without waiting for a beta -> main release. `main` and `beta` push to
+# the same gh-pages root; the most recent push wins (idempotent for
+# identical sources, and Docusaurus is built fresh each time).
 on:
   push:
     branches:
       - main
+      - beta
   pull_request:
     branches:
       - main
+      - beta
+  # Allow manual deploy from the Actions UI or `gh workflow run`. Useful
+  # when a previous run was cancelled by GitHub's pending-cancel logic.
+  workflow_dispatch:
+
+# Serialize against same-workflow runs only. The previous version used a
+# shared `gh-pages-deploy` group across documentation.yml +
+# documentation-beta.yml + documentation-dev.yml — that turned out to be
+# wrong: when multiple events queue simultaneously (e.g. a push event on
+# the merge commit + a pull_request event for an open PR against beta),
+# GitHub's "any previously pending job or workflow in the concurrency
+# group will be cancelled" rule cancels the push run. Now each workflow
+# only serializes with itself; the parallel beta+main+dev jobs may race
+# the gh-pages branch but `peaceiris/actions-gh-pages@v3` with
+# `keep_files: true` force-pushes, and the latest push wins.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -21,10 +45,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
+
+      - name: Install and build component styleguide
+        timeout-minutes: 10
+        run: |
+          cd styleguide
+          npm ci --legacy-peer-deps
+          npm run build
 
       - name: Clear build cache and install dependencies
         timeout-minutes: 3
@@ -43,6 +74,12 @@ jobs:
             exit 1
           fi
 
+      - name: Copy styleguide into Docusaurus build
+        run: |
+          mkdir -p docusaurus/build/styleguide
+          cp -r styleguide/build/. docusaurus/build/styleguide/
+
+
       - name: Create .nojekyll file
         run: |
           cd docusaurus/build
@@ -58,7 +95,7 @@ jobs:
           user_email: 'github-actions[bot]@users.noreply.github.com'
           force_orphan: false
           allow_empty_commit: true
-          keep_files: false
+          keep_files: true
 
       - name: Verify deployment
         run: |

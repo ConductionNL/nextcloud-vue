@@ -2,9 +2,16 @@
 sidebar_position: 18
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnFormDialog.md'
+
 # CnFormDialog
 
 Schema-driven create/edit form dialog. Auto-generates form fields from a schema, supports multiple widget types, and follows the two-phase confirm/result pattern.
+
+## Try it
+
+<Playground component="CnFormDialog" />
 
 **Wraps**: NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch
 
@@ -29,6 +36,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
+| `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
 
 ## Widget Types
 
@@ -45,6 +53,8 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `checkbox` | Boolean toggle |
 | `date` | Date picker |
 | `datetime` | Date-time picker |
+| `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
+| `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
 
 ## Events
 
@@ -91,6 +101,48 @@ When using the `fields` prop (manual field definitions), each field object suppo
 | `items` | Object | For `multiselect`: `{ enum: [...] }` or `{ enum: asyncFn }` |
 | `debounce` | Number | Debounce delay in ms for async enum search (default: 300) |
 | `validation` | Object | `{ minLength, maxLength, minimum, maximum, pattern }` |
+| `language` | String | For `code`: `'json' \| 'xml' \| 'html' \| 'text' \| 'auto'` (default `'auto'`) |
+
+## JSON and code fields
+
+For structured-data editing, use `widget: 'json'`; for freeform highlighted code, use `widget: 'code'`. Both render a [`CnJsonViewer`](cn-json-viewer.md) inline.
+
+### `widget: 'json'`
+
+Use when the schema property holds a structured value (object, array, primitive, or `null`). `fieldsFromSchema` skips `type: 'object'` by default — setting an explicit `widget` opts the property back in, so object-shaped values flow through.
+
+```js
+// schema
+{
+  title: 'Consumer',
+  required: ['name'],
+  properties: {
+    name: { type: 'string', title: 'Name', required: true },
+    authorizationConfiguration: {
+      type: 'object',
+      widget: 'json',
+      title: 'Authorization configuration',
+    },
+  },
+}
+```
+
+The editor shows pretty-printed JSON. On every keystroke the content is parsed: on success `formData.authorizationConfiguration` updates to the parsed value; on failure the previous value is preserved, an inline error appears, and the Confirm button is disabled until the JSON is valid. An empty editor resolves to `null`.
+
+### `widget: 'code'`
+
+Stores the raw string as-is — no parse, no validation.
+
+```js
+{
+  type: 'string',
+  widget: 'code',
+  title: 'Template',
+  language: 'html',
+}
+```
+
+`language` may be `'json'`, `'xml'`, `'html'`, `'text'`, or `'auto'` (default `'auto'` — CnJsonViewer sniffs the content).
 
 ## Async Select
 
@@ -145,11 +197,48 @@ fieldOverrides: {
 
 The `enumLabels` object maps each enum value to its display label. Values without a mapping fall back to the raw value.
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">New contact</button>
+    <CnFormDialog
+      v-if="open"
+      ref="dlg"
+      dialog-title="New contact"
+      :fields="fields"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: false,
+      fields: [
+        { key: 'name', label: 'Name', widget: 'text', required: true },
+        { key: 'email', label: 'Email', widget: 'email' },
+        { key: 'notes', label: 'Notes', widget: 'textarea' },
+      ],
+    }
+  },
+  methods: {
+    async onConfirm(formData) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
 ## Usage
 
 ### Basic (schema-driven)
 
-```vue
+```vue {static}
 <CnFormDialog
   :schema="schema"
   :item="editItem"
@@ -165,7 +254,7 @@ The `enumLabels` object maps each enum value to its display label. Values withou
 
 ### Async select with custom option rendering
 
-```vue
+```vue {static}
 <CnFormDialog
   :fields="fields"
   dialog-title="Add User to Organisation"
@@ -198,7 +287,7 @@ The `enumLabels` object maps each enum value to its display label. Values withou
 </CnFormDialog>
 ```
 
-```js
+```js {static}
 // In setup / data:
 const fields = [
   {
@@ -223,3 +312,9 @@ const fields = [
   },
 ]
 ```
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

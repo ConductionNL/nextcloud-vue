@@ -29,14 +29,18 @@
 /**
  * CnInfoWidget — Renders label-value pairs in a responsive CSS grid.
  *
- * @example Manual fields
+ * Manual fields
+ * ```vue
  * <CnInfoWidget :fields="[
  *   { label: 'Email', value: 'test@example.com' },
  *   { label: 'Phone', value: '+31 6 12345678' },
  * ]" :columns="2" />
+ * ```
  *
- * @example Auto-generated from schema
+ * Auto-generated from schema
+ * ```vue
  * <CnInfoWidget :object="myObject" :schema="mySchema" :columns="3" />
+ * ```
  */
 export default {
 	name: 'CnInfoWidget',
@@ -156,7 +160,6 @@ export default {
 		 * Format a field value for display based on its schema type.
 		 *
 		 * @param {*} value - The raw value.
-		 * @param {object} schemaProp - The JSON Schema property definition.
 		 * @return {string} Formatted display value.
 		 */
 		formatFieldValue(value) {

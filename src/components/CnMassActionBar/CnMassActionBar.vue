@@ -68,34 +68,8 @@ import Export from 'vue-material-design-icons/Export.vue'
  * Import, Export, Copy, and Delete actions plus a slot for custom actions.
  * Place this in the header/action bar of your index page.
  *
- * ## Adding Custom Mass Actions
- *
- * Use the `#actions` scoped slot to add app-specific mass actions.
- * Slot content should use `NcActionButton` components:
- *
- * ```vue
- * <CnMassActionBar :selected-ids="selectedIds" :count="selectedIds.length">
- *   <template #actions="{ count, selectedIds }">
- *     <NcActionButton @click="migrateSelected(selectedIds)">
- *       <template #icon><SwapHorizontal :size="20" /></template>
- *       Migrate
- *     </NcActionButton>
- *     <NcActionButton @click="publishSelected(selectedIds)">
- *       <template #icon><Publish :size="20" /></template>
- *       Publish
- *     </NcActionButton>
- *   </template>
- * </CnMassActionBar>
- * ```
- *
- * @example Basic usage
- * <CnMassActionBar
- *   :selected-ids="selectedIds"
- *   :count="selectedIds.length"
- *   @mass-copy="openCopyDialog"
- *   @mass-delete="openDeleteDialog"
- *   @mass-import="openImportDialog"
- *   @mass-export="openExportDialog" />
+ * Use the `#actions` scoped slot to add app-specific mass actions
+ * (use `NcActionButton` for slot content).
  */
 export default {
 	name: 'CnMassActionBar',
@@ -144,7 +118,7 @@ export default {
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Mass Actions ({count})'),
+			default: () => t('nextcloud-vue', 'Mass actions ({count})'),
 		},
 		importLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
 		exportLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },

@@ -1,11 +1,19 @@
 <template>
-	<div class="cn-index-page">
-		<!-- Header (hidden by default — shown in sidebar instead) -->
-		<CnPageHeader
-			v-if="showTitle"
+	<div class="cn-index-page" data-testid="cn-index-page">
+		<!-- Header — overridable via #header slot. Default renders CnPageHeader
+		     when showTitle is true (existing behaviour, hidden by default). -->
+		<slot
+			name="header"
 			:title="title"
 			:description="description"
-			:icon="resolvedIcon" />
+			:icon="resolvedIcon"
+			:show-title="showTitle">
+			<CnPageHeader
+				v-if="showTitle"
+				:title="title"
+				:description="description"
+				:icon="resolvedIcon" />
+		</slot>
 
 		<!-- Optional content below header, above actions bar -->
 		<div v-if="$scopedSlots['below-header']" class="cn-index-page__below-header">
@@ -14,8 +22,8 @@
 
 		<!-- Actions bar -->
 		<CnActionsBar
-			:pagination="pagination"
-			:object-count="objects.length"
+			:pagination="effectivePagination"
+			:object-count="effectiveObjects.length"
 			:selectable="selectable"
 			:selected-ids="internalSelectedIds"
 			:add-label="resolvedAddLabel"
@@ -32,7 +40,7 @@
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			@add="onAddClick"
-			@refresh="$emit('refresh')"
+			@refresh="onRefreshEvent"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -122,13 +130,14 @@
 		<!-- Form dialog for create/edit (overridable via slot) -->
 		<slot
 			name="form-dialog"
+			:show="showFormDialogVisible"
 			:item="editItem"
-			:schema="schema"
+			:schema="effectiveSchema"
 			:close="closeFormDialog">
 			<CnFormDialog
 				v-if="showFormDialogVisible && !useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="schema"
+				:schema="effectiveSchema"
 				:item="editItem"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
@@ -143,7 +152,7 @@
 			<CnAdvancedFormDialog
 				v-if="showFormDialogVisible && useAdvancedFormDialog"
 				ref="formDialog"
-				:schema="schema"
+				:schema="effectiveSchema"
 				:item="editItem"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
@@ -153,16 +162,25 @@
 				@close="closeFormDialog" />
 		</slot>
 
+		<!-- Quick-filter tabs (REQ-MIPFU-1) — rendered above the body when
+		     the manifest declares `config.quickFilters`. Switching tabs
+		     re-fetches with the merged filter; @event quick-filter-change. -->
+		<CnQuickFilterBar
+			v-if="quickFilters && quickFilters.length > 0"
+			:tabs="quickFilters"
+			:active-index="activeQuickFilterIndex"
+			@update:active-index="onQuickFilterChange" />
+
 		<!-- Body -->
 		<div class="cn-index-page__body">
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
-				<div v-if="loading" class="cn-index-page__loading">
+				<div v-if="effectiveLoading" class="cn-index-page__loading">
 					<NcLoadingIcon :size="32" />
 				</div>
 
 				<!-- Empty state -->
-				<div v-else-if="objects.length === 0" class="cn-index-page__empty">
+				<div v-else-if="effectiveObjects.length === 0" class="cn-index-page__empty">
 					<slot name="empty">
 						<NcEmptyContent :name="emptyText">
 							<template #icon>
@@ -176,11 +194,11 @@
 				<!-- Table view -->
 				<CnDataTable
 					v-else-if="currentViewMode === 'table'"
-					:schema="schema"
-					:columns="columns"
-					:rows="objects"
-					:sort-key="sortKey"
-					:sort-order="sortOrder"
+					:schema="effectiveSchema"
+					:columns="tableColumns"
+					:rows="effectiveObjects"
+					:sort-key="effectiveSortKey"
+					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
@@ -189,7 +207,7 @@
 					:include-columns="includeColumns"
 					:column-overrides="columnOverrides"
 					:row-class="rowClass"
-					@sort="$emit('sort', $event)"
+					@sort="onSortEvent"
 					@select="onSelect"
 					@row-click="onRowClick"
 					@row-context-menu="onRowContextMenu">
@@ -206,7 +224,7 @@
 							<CnRowActions
 								:actions="mergedActions"
 								:row="row"
-								@action="$emit('action', $event)" />
+								@action="onRowAction" />
 						</slot>
 					</template>
 				</CnDataTable>
@@ -214,23 +232,41 @@
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
-					:objects="objects"
-					:schema="schema"
+					:objects="effectiveObjects"
+					:schema="effectiveSchema"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
 					@click="onRowClick"
 					@select="onSelect">
+					<!--
+						Card slot resolution priority (highest first):
+						1. Parent-provided `#card` scoped slot — App.vue overrides win.
+						2. `cardComponent` prop (or manifest `pages[].config.cardComponent`)
+						   resolved against the customComponents registry.
+						3. CnCardGrid's default CnObjectCard.
+					-->
 					<template v-if="$scopedSlots.card" #card="{ object, selected }">
 						<slot name="card" :object="object" :selected="selected" />
+					</template>
+					<template v-else-if="resolvedCardComponent" #card="{ object, selected }">
+						<component
+							:is="resolvedCardComponent"
+							:item="object"
+							:object="object"
+							:schema="effectiveSchema"
+							:register="register"
+							:selected="selected"
+							@click="onRowClick(object)"
+							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
 					</template>
 					<template v-if="hasRowActions" #card-actions="{ object }">
 						<slot name="row-actions" :row="object">
 							<CnRowActions
 								:actions="mergedActions"
 								:row="object"
-								@action="$emit('action', $event)" />
+								@action="onRowAction" />
 						</slot>
 					</template>
 				</CnCardGrid>
@@ -240,21 +276,50 @@
 					:open.sync="contextMenuOpen"
 					:actions="mergedActions"
 					:target-item="contextMenuRow"
-					@action="$emit('action', $event)"
+					@action="onRowAction"
 					@close="closeContextMenu" />
 
 				<!-- Pagination -->
 				<CnPagination
-					v-if="pagination && pagination.pages > 1"
-					:current-page="pagination.page || 1"
-					:total-pages="pagination.pages || 1"
-					:total-items="pagination.total || 0"
-					:current-page-size="pagination.limit || 20"
+					v-if="effectivePagination && effectivePagination.pages > 1"
+					:current-page="effectivePagination.page || 1"
+					:total-pages="effectivePagination.pages || 1"
+					:total-items="effectivePagination.total || 0"
+					:current-page-size="effectivePagination.limit || 20"
 					class="cn-index-page__pagination"
-					@page-changed="$emit('page-changed', $event)"
+					@page-changed="onPageEvent"
 					@page-size-changed="$emit('page-size-changed', $event)" />
 			</div>
 		</div>
+
+		<!-- Manifest-driven sidebar — auto-mounted when sidebar.enabled
+		     AND sidebar.show !== false.
+
+		     When CnAppRoot is the host, the sidebar config is
+		     PUBLISHED to the `cnIndexSidebarConfig` provide (see
+		     mounted/beforeDestroy), and CnAppRoot mounts the
+		     CnIndexSidebar at NcContent level — the only place where
+		     Nextcloud's NcAppSidebar slides correctly from the right.
+
+		     When no CnAppRoot ancestor exists (legacy apps mounting
+		     CnIndexPage standalone), the inject default is the no-op
+		     `{ value: null }` and we fall back to inline rendering
+		     here so the legacy contract still works. -->
+		<CnIndexSidebar
+			v-if="shouldRenderInlineSidebar"
+			:schema="effectiveSchema"
+			:title="title"
+			:icon="resolvedIcon"
+			:search-value="effectiveSearchValue"
+			:visible-columns="effectiveVisibleColumns"
+			:active-filters="effectiveActiveFilters"
+			:column-groups="resolvedSidebar.columnGroups || []"
+			:facet-data="resolvedSidebar.facets || {}"
+			:show-metadata="resolvedSidebar.showMetadata !== false"
+			v-bind="sidebarSearchProps"
+			@search="onSearchEvent"
+			@columns-change="onColumnsEvent"
+			@filter-change="onFilterEvent" />
 	</div>
 </template>
 
@@ -267,6 +332,7 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
+import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -281,7 +347,10 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
-import { useContextMenu } from '../../composables/index.js'
+import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { getCurrentInstance, inject, ref, watch } from 'vue'
+import { useContextMenu, useListView } from '../../composables/index.js'
+import { useObjectStore } from '../../store/index.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -298,12 +367,13 @@ import { useContextMenu } from '../../composables/index.js'
  *
  * Use the `useAdvancedFormDialog` prop to use CnAdvancedFormDialog for create/edit (properties table, JSON tab, optional metadata).
  *
- * @example Minimal usage (auto-generated dialogs from schema)
+ * Minimal usage (auto-generated dialogs from schema)
+ * ```vue
  * <CnIndexPage
  *   title="Clients"
- *   :schema="schema"
+ *   :schema="effectiveSchema"
  *   :objects="clients"
- *   :pagination="pagination"
+ *   :pagination="effectivePagination"
  *   :loading="loading"
  *   @create="onCreate"
  *   @edit="onEdit"
@@ -311,13 +381,16 @@ import { useContextMenu } from '../../composables/index.js'
  *   @refresh="fetchClients"
  *   @row-click="openClient"
  *   @page-changed="onPage" />
+ * ```
  *
- * @example With custom form dialog
+ * With custom form dialog
+ * ```vue
  * <CnIndexPage ...>
  *   <template #form-dialog="{ item, schema, close }">
  *     <MyCustomFormDialog :item="item" @close="close" />
  *   </template>
  * </CnIndexPage>
+ * ```
  *
  * @event {void} add — Add button clicked (backward compat, only if listener attached)
  * @event {object} create — Form dialog create confirmed. Payload: formData object
@@ -335,6 +408,9 @@ import { useContextMenu } from '../../composables/index.js'
  * @event {number} page-size-changed — Pagination page size changed
  * @event {string[]} select — Selection changed. Payload: array of selected IDs
  * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -357,6 +433,7 @@ export default {
 		NcEmptyContent,
 		DatabaseSearch,
 		CnPageHeader,
+		CnQuickFilterBar,
 		CnActionsBar,
 		CnIcon,
 		CnDataTable,
@@ -372,6 +449,49 @@ export default {
 		CnFormDialog,
 		CnAdvancedFormDialog,
 		CnContextMenu,
+		CnIndexSidebar,
+	},
+
+	/**
+	 * Inject the customComponents registry from a CnAppRoot ancestor.
+	 * Used by:
+	 * - REQ-MAD-3 / REQ-MAD-8 (manifest-actions-dispatch): resolves
+	 *   `actions[].handler` registry names to functions called on
+	 *   row-action click.
+	 * - The cardComponent + form-dialog override paths: when set, the
+	 *   prop-level `customComponents` wins, but the inject is the
+	 *   default. See `effectiveCustomComponents`.
+	 *
+	 * Falls back to an empty object so `CnIndexPage` works standalone
+	 * (unit tests, isolated mount) without `CnAppRoot`.
+	 */
+	inject: {
+		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Reactive holder provided by CnAppRoot for hoisting the
+		 * embedded CnIndexSidebar to NcContent level. The default
+		 * `{ value: null }` is what we get when no CnAppRoot
+		 * ancestor exists; in that case we fall back to inline
+		 * rendering inside the cn-index-page wrapper. See
+		 * `shouldRenderInlineSidebar` and the mounted/beforeDestroy
+		 * hooks below.
+		 */
+		cnIndexSidebarConfig: { default: () => ({ value: null }) },
+		/**
+		 * Sentinel set to `true` when a CnAppRoot ancestor exists.
+		 * The default `false` is used for legacy apps that mount
+		 * CnIndexPage standalone — those keep the inline sidebar
+		 * render. See `shouldRenderInlineSidebar` for the gate.
+		 */
+		cnHostsIndexSidebar: { default: false },
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. This page
+		 * component writes pageKind, registerSlug, schemaSlug in
+		 * created() and watches props for subsequent changes. On
+		 * beforeDestroy(), fields are reset to avoid stale context on
+		 * subsequent custom pages.
+		 */
+		cnAiContext: { default: null },
 	},
 
 	props: {
@@ -398,9 +518,43 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Schema definition */
+		/**
+		 * Schema. Either a resolved schema object (consumer-managed path) OR a
+		 * schema-slug string — when a string is given together with `register`
+		 * and no `objects` prop, the page enters self-fetch mode: it drives the
+		 * list via `useListView('${register}-${schema}', …)` and the column
+		 * generation uses the schema object that composable loads. Backwards-
+		 * compatible: `[Object, String]` still accepts an object.
+		 */
 		schema: {
+			type: [Object, String],
+			default: null,
+		},
+		/**
+		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
+		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
+		 * are interpolated from `$route.params`; everything else is a literal.
+		 * Applied as a FIXED filter — always wins over the user's facet filters.
+		 * No effect in consumer-managed mode (the consumer owns the fetch).
+		 */
+		filter: {
 			type: Object,
+			default: null,
+		},
+		/**
+		 * Self-fetch mode only — an array of clickable filter tabs rendered as
+		 * a strip above the table. Each entry is `{label, filter, default?, icon?}`;
+		 * clicking a tab merges its `filter` into the fetch — spread AFTER
+		 * `filter` (so the active tab wins) and BEFORE the user's `activeFilters`
+		 * (so user facets still narrow within the active tab). String values
+		 * in a tab's `filter` resolve `@route.<name>` / `:<name>` from
+		 * `$route.params` just like the `filter` prop. The first tab with
+		 * `default:true` (else index 0) is active on mount; changing tabs
+		 * re-fetches at page 1. Omit (or `null`) → no tab strip, behaviour
+		 * unchanged.
+		 */
+		quickFilters: {
+			type: Array,
 			default: null,
 		},
 		/** Manual column definitions (used instead of schema when provided) */
@@ -492,7 +646,7 @@ export default {
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
-			default: 2,
+			default: 0,
 		},
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
@@ -546,6 +700,17 @@ export default {
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Whether to add a View action to row actions. The action emits a
+		 * dedicated `view` event — independent of `row-click`. Bind `@view`
+		 * to handle "open detail" and `@row-click` to handle row click
+		 * (selection, expand, etc.); they may share a handler when the app
+		 * wants click-to-view, but they are conceptually distinct.
+		 */
+		showViewAction: {
+			type: Boolean,
+			default: true,
 		},
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
@@ -614,9 +779,108 @@ export default {
 		 * Required when store is set — a console warning is emitted if missing.
 		 */
 		objectType: { type: String, default: '' },
+		/**
+		 * Manifest-driven sidebar configuration. When set with
+		 * `enabled: true`, CnIndexPage auto-mounts an embedded
+		 * CnIndexSidebar wired to the page's schema, search, columns,
+		 * and facet props. When unset or `enabled: false`, the
+		 * legacy slot-based interface is preserved — consumers
+		 * mount their own CnIndexSidebar at the App.vue level.
+		 *
+		 * Shape:
+		 * - `enabled` (boolean) — **existence gate**. Whether the
+		 *   page configures an embedded sidebar at all. When `false`
+		 *   or unset, the auto-mount path is bypassed (no
+		 *   `<CnIndexSidebar>` rendered) and the consumer's slot
+		 *   pattern stays active.
+		 * - `show` (boolean, default `true`) — **visibility gate**.
+		 *   Even when `enabled: true`, `show: false` SUPPRESSES
+		 *   rendering for this page so manifest authors can hide
+		 *   the sidebar declaratively without removing the config.
+		 *   Distinct from `enabled` so config can be retained
+		 *   (e.g. for a watcher / responsive layout) while the
+		 *   visible surface is hidden.
+		 * - `columnGroups` (array) — extra column groups beyond schema + Metadata.
+		 * - `facets` (object) — live facet data { fieldName: { values: [...] } }.
+		 * - `showMetadata` (boolean) — include the built-in Metadata column group (defaults true).
+		 * - `search` (object) — search-related label overrides forwarded to CnIndexSidebar.
+		 *
+		 * @type {{ enabled: boolean, show?: boolean, columnGroups?: Array, facets?: object, showMetadata?: boolean, search?: object }|null}
+		 */
+		sidebar: {
+			type: Object,
+			default: null,
+		},
+		/** Current search term (forwarded to the embedded sidebar when sidebar.enabled). */
+		searchValue: {
+			type: String,
+			default: '',
+		},
+		/** Currently visible column keys (forwarded to the embedded sidebar). */
+		visibleColumns: {
+			type: Array,
+			default: null,
+		},
+		/** Currently active facet filters: { fieldName: [values] } (forwarded to the embedded sidebar). */
+		activeFilters: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Effective register slug for the page. Forwarded as a prop to
+		 * the resolved card component (when `cardComponent` is set) so
+		 * bespoke card UIs can match the schema → register pair.
+		 *
+		 * Manifest-driven path: `pages[].config.register` flows in via
+		 * CnPageRenderer's `v-bind="resolvedProps"` spread.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional name of a consumer-provided card component (registered
+		 * in the `customComponents` registry on `CnAppRoot`) to render in
+		 * place of the default `CnObjectCard` when the page is in
+		 * card-grid view mode.
+		 *
+		 * Resolution priority (highest first):
+		 *   1. The parent's `#card` scoped slot (always wins).
+		 *   2. The component resolved from `cardComponent` against the
+		 *      effective customComponents registry.
+		 *   3. The library default (`CnObjectCard`).
+		 *
+		 * Unknown names log `console.warn` once and fall back to the
+		 * default so a misconfigured manifest never blanks the grid.
+		 *
+		 * @type {string}
+		 */
+		cardComponent: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional explicit customComponents registry. When set, this
+		 * overrides the registry injected from `CnAppRoot` via
+		 * `cnCustomComponents`. Provided primarily so unit tests can
+		 * pass a registry without mounting `CnAppRoot`.
+		 *
+		 * Used by:
+		 * - `cardComponent` resolution (REQ-MCI from manifest-card-index)
+		 * - `actions[].handler` registry name resolution (REQ-MAD-3 from
+		 *   manifest-actions-dispatch — handler funcs called on row-action click)
+		 *
+		 * @type {object|null}
+		 */
+		customComponents: {
+			type: Object,
+			default: null,
+		},
 	},
 
-	setup() {
+	setup(props) {
 		const {
 			isOpen: contextMenuOpen,
 			targetItem: contextMenuRow,
@@ -624,11 +888,110 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
+		// ── Self-fetch mode ──────────────────────────────────────────────────
+		// A manifest `type:"index"` page reaches CnIndexPage with `register` and
+		// `schema` from `config` but NEVER an `objects` prop (CnPageRenderer
+		// spreads `config`, not runtime data). So when `register` + `schema` are
+		// set AND the caller did not pass `objects`, we self-fetch: drive the
+		// list via `useListView('${register}-${schema}', …)` (which itself
+		// registers the object type, fetches the collection with
+		// _search/_order/_page/_limit/activeFilters, loads the schema, wires the
+		// sidebar and returns the search/sort/page/filter handlers). When
+		// `objects` IS passed (every existing consumer), nothing changes — the
+		// props win, no store is touched, the @events bubble as before.
+		const instance = getCurrentInstance()
+		const objectsProvided = !!(
+			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
+			&& Object.prototype.hasOwnProperty.call(instance.proxy.$options.propsData, 'objects')
+		)
+		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
+
+		// ── Quick-filter tabs (REQ-MIPFU-1) ─────────────────────────────────
+		// `props.quickFilters` declares clickable tabs above the table; the
+		// active tab's `filter` is merged into the useListView fetch (after
+		// `props.filter` so the tab wins). Initial active index: first entry
+		// with `default:true`, else 0 if non-empty, else null.
+		const quickInit = (() => {
+			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			if (!tabs || tabs.length === 0) return null
+			const di = tabs.findIndex((t) => t && t.default === true)
+			return di >= 0 ? di : 0
+		})()
+		const activeQuickFilterIndex = ref(quickInit)
+
+		/**
+		 * Resolve a single filter map's values: `@route.<name>` / `:<name>`
+		 * pull from `$route.params`; literals pass through. Returns `{}` for
+		 * a non-object input (so callers can safely spread the result).
+		 *
+		 * @param {object|null|undefined} filterMap
+		 * @param {object} params Current `$route.params`.
+		 * @return {object}
+		 */
+		function resolveFilterMap(filterMap, params) {
+			if (!filterMap || typeof filterMap !== 'object') return {}
+			const out = {}
+			for (const [k, v] of Object.entries(filterMap)) {
+				if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
+				else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
+				else out[k] = v
+			}
+			return out
+		}
+
+		let list = null
+		if (isSelfFetch) {
+			const objectType = `${props.register}-${props.schema}`
+			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
+			const objectStore = useObjectStore()
+			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
+			// store has a slot for it before `useListView` issues the first fetch.
+			if (typeof objectStore.registerObjectType === 'function') {
+				// useObjectStore.registerObjectType signature is positional:
+				// (slug, schemaId, registerId, slugs?). Passing an object as
+				// the second argument made schemaId === {register, schema} and
+				// registerId === undefined, which produced URLs like
+				// /apps/openregister/api/schemas/[object Object] at fetch time.
+				objectStore.registerObjectType(objectType, props.schema, props.register)
+			}
+			list = useListView(objectType, {
+				objectStore,
+				sidebarState,
+				defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
+				defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+				// Re-read on every fetch so route-param changes (`/forms/:id/...`)
+				// AND quick-filter switches both flow into the next fetch. CnIndexPage
+				// also watches $route.params → list.refresh() (see watch:); changing
+				// `activeQuickFilterIndex` triggers a refresh below.
+				fixedFilters: () => {
+					const route = instance && instance.proxy && instance.proxy.$route
+					const params = (route && route.params) || {}
+					const base = resolveFilterMap(props.filter, params)
+					// Active quick-filter tab spread LAST so it overrides a
+					// colliding `props.filter` entry (intentional — the tab is
+					// the user's intent).
+					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+					const activeIdx = activeQuickFilterIndex.value
+					const tabFilter = (tabs && activeIdx != null) ? tabs[activeIdx]?.filter : null
+					return { ...base, ...resolveFilterMap(tabFilter, params) }
+				},
+			})
+
+			// Refresh when the user switches tabs. Reset to page 1 so the
+			// new filter starts from the top of its result set.
+			watch(activeQuickFilterIndex, () => {
+				if (list && typeof list.refresh === 'function') list.refresh(1)
+			})
+		}
+
 		return {
 			contextMenuOpen,
 			contextMenuRow,
 			openContextMenu,
 			closeContextMenu,
+			isSelfFetch,
+			list,
+			activeQuickFilterIndex,
 		}
 	},
 
@@ -652,10 +1015,47 @@ export default {
 	},
 
 	computed: {
+		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
+		//    list datum is the useListView instance in self-fetch mode, the
+		//    prop otherwise. The template binds to these.
+		/** True when self-fetch mode is active and the useListView instance exists. */
+		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
+		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
+		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
+		/** Resolved schema OBJECT (for column generation / icons / labels). */
+		effectiveSchema() {
+			if (this.isSelfFetchMode) return this.list.schema.value
+			return (this.schema && typeof this.schema === 'object') ? this.schema : null
+		},
+		/** Sort key / order: list state in self-fetch mode, else the props. */
+		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
+		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
+		/** Search term / visible columns / active facet filters for the embedded sidebar. */
+		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
+		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
+		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+		/**
+		 * Columns handed to CnDataTable — same as the `columns` prop, except any
+		 * `aggregate` block lacking a `register` is defaulted to this page's
+		 * `register` slug (so manifests can omit `aggregate.register`).
+		 */
+		tableColumns() {
+			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
+			if (!reg) return this.columns || []
+			return (this.columns || []).map((c) => (
+				c && c.aggregate && !c.aggregate.register
+					? { ...c, aggregate: { ...c.aggregate, register: reg } }
+					: c
+			))
+		},
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
-			return this.schema?.icon || ''
+			return this.effectiveSchema?.icon || ''
 		},
 
 		/** Resolved schema icon component for View action */
@@ -669,12 +1069,12 @@ export default {
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
 			const builtIn = []
-			if (this.$listeners && this.$listeners['row-click']) {
+			if (this.showViewAction) {
 				builtIn.push({
 					label: 'View',
 					icon: this.schemaIconComponent,
 					handler: (row) => {
-						this.onRowClick(row)
+						this.onView(row)
 					},
 				})
 			}
@@ -712,9 +1112,56 @@ export default {
 			return builtIn
 		},
 
-		/** Merged actions: app-provided first, then built-in defaults */
+		/**
+		 * Effective customComponents registry — explicit prop wins over
+		 * the injected ancestor registry. Used to:
+		 * - Resolve `actions[].handler` registry names (REQ-MAD-3,
+		 *   manifest-actions-dispatch).
+		 * - Resolve the `cardComponent` name for card-grid view (REQ-MCI,
+		 *   manifest-card-index).
+		 *
+		 * @return {object}
+		 */
+		effectiveCustomComponents() {
+			return this.customComponents ?? this.cnCustomComponents ?? {}
+		},
+
+		/**
+		 * Merged actions: app-provided first, then built-in defaults.
+		 *
+		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
+		 * (manifest-actions-dispatch) — for any action whose `handler`
+		 * is a string, resolve it through `resolveHandler()` so
+		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
+		 * for built-in defaults. Function-typed handlers (the existing
+		 * runtime path) pass through untouched.
+		 */
 		mergedActions() {
-			return [...this.actions, ...this.defaultActions]
+			const dispatched = this.actions.map((action) => {
+				if (typeof action.handler === 'function') {
+					// Back-compat: programmatic function handler — keep as-is.
+					return action
+				}
+				if (typeof action.handler !== 'string' || action.handler.length === 0) {
+					// No handler → emit-only path (existing default).
+					return action
+				}
+				const isNone = action.handler === 'none'
+				const resolved = this.resolveHandler(action)
+				if (resolved) {
+					// `none` returns a sentinel no-op handler AND must
+					// suppress the `@action` emit; flag it so onRowAction
+					// can drop the bubbled event.
+					return isNone
+						? { ...action, handler: resolved, _dispatchSuppress: true }
+						: { ...action, handler: resolved }
+				}
+				// Either reserved keyword "emit" / unknown name / non-function
+				// registry entry → page emits @action only; no handler call.
+				const { handler, ...rest } = action
+				return rest
+			})
+			return [...dispatched, ...this.defaultActions]
 		},
 
 		hasRowActions() {
@@ -723,13 +1170,13 @@ export default {
 
 		/** Whether all visible items are selected */
 		allSelected() {
-			if (this.objects.length === 0 || this.internalSelectedIds.length === 0) return false
-			return this.objects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
+			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) return false
+			return this.effectiveObjects.every((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Full objects for the selected IDs (used by mass action dialogs) */
 		selectedObjects() {
-			return this.objects.filter((o) => this.internalSelectedIds.includes(o[this.rowKey]))
+			return this.effectiveObjects.filter((o) => this.internalSelectedIds.includes(o[this.rowKey]))
 		},
 
 		/** Column slot names that the parent has provided (for pass-through) */
@@ -742,7 +1189,86 @@ export default {
 		/** Add button label — derived from schema.title if not explicitly set */
 		resolvedAddLabel() {
 			if (this.addLabel) return this.addLabel
-			return 'Add ' + (this.schema?.title || 'Item')
+			return 'Add ' + (this.effectiveSchema?.title || 'Item')
+		},
+
+		/**
+		 * Effective sidebar configuration. Returns the sidebar config object
+		 * when `sidebar.enabled === true`, otherwise an `{ enabled: false }`
+		 * stub so the embedded CnIndexSidebar is not mounted.
+		 */
+		resolvedSidebar() {
+			if (this.sidebar && this.sidebar.enabled !== false) {
+				return this.sidebar
+			}
+			return { enabled: false }
+		},
+
+		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
+		sidebarSearchProps() {
+			return (this.sidebar && this.sidebar.search) || {}
+		},
+
+		/**
+		 * Whether the embedded sidebar should render inline inside the
+		 * cn-index-page wrapper. False when CnAppRoot has provided a
+		 * real `cnIndexSidebarConfig` holder — in that case CnAppRoot
+		 * mounts the sidebar at NcContent level (correct NcAppSidebar
+		 * parent). True when no CnAppRoot ancestor exists (legacy
+		 * apps), so the embedded sidebar still renders even though
+		 * its visual position is sub-optimal.
+		 */
+		shouldRenderInlineSidebar() {
+			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
+				return false
+			}
+			// CnAppRoot ancestor present → hoist takes over.
+			return !this.cnHostsIndexSidebar
+		},
+
+		/**
+		 * Snapshot of every prop the hoisted CnIndexSidebar needs.
+		 * Reactive — the sidebar in CnAppRoot re-renders whenever
+		 * any of these change.
+		 */
+		hoistedSidebarProps() {
+			return {
+				schema: this.effectiveSchema,
+				title: this.title,
+				icon: this.resolvedIcon,
+				searchValue: this.effectiveSearchValue,
+				visibleColumns: this.effectiveVisibleColumns,
+				activeFilters: this.effectiveActiveFilters,
+				columnGroups: this.resolvedSidebar.columnGroups || [],
+				facetData: this.resolvedSidebar.facets || {},
+				showMetadata: this.resolvedSidebar.showMetadata !== false,
+				...this.sidebarSearchProps,
+			}
+		},
+
+		/**
+		 * Resolved card component for card-grid view mode. Returns
+		 * `null` when `cardComponent` is empty OR when the name is not
+		 * in the registry (the latter also logs `console.warn`).
+		 *
+		 * `null` makes the template fall through to `CnCardGrid`'s
+		 * default `CnObjectCard` rendering — exactly the legacy path.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedCardComponent() {
+			if (!this.cardComponent) {
+				return null
+			}
+			const resolved = this.effectiveCustomComponents[this.cardComponent]
+			if (!resolved) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`,
+				)
+				return null
+			}
+			return resolved
 		},
 	},
 
@@ -753,15 +1279,268 @@ export default {
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
+		/**
+		 * Keep the hoisted sidebar in sync with reactive props.
+		 * The watcher fires whenever any of the props snapshot
+		 * (`hoistedSidebarProps`) changes; we re-write the entire
+		 * config so Vue's NcAppSidebar in CnAppRoot picks up the
+		 * new values. Cheap because it's just an object swap.
+		 */
+		hoistedSidebarProps: {
+			handler() {
+				this.publishHoistedSidebar()
+			},
+			deep: false,
+		},
+		shouldRenderInlineSidebar() {
+			// When the gate flips (e.g. sidebar.show toggled), keep
+			// the hoist in sync.
+			this.publishHoistedSidebar()
+		},
+		// Re-push AI context when relevant props change
+		register() { this.pushAiContext() },
+		schema() { this.pushAiContext() },
+		// In self-fetch mode, a same-component route-param change (e.g. the
+		// `:id` of `/forms/:id/submissions`) must re-resolve `config.filter`
+		// and re-fetch. useListView's `fixedFilters` getter re-reads $route on
+		// each fetch; this watcher triggers the re-fetch.
+		'$route.params': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
+	},
+
+	mounted() {
+		this.publishHoistedSidebar()
+		this.pushAiContext()
+	},
+
+	created() {
+		this.pushAiContext()
+	},
+
+	beforeDestroy() {
+		// Clear the holder so the hoisted sidebar disappears when
+		// the user navigates away from the index page.
+		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
+			this.cnIndexSidebarConfig.value = null
+		}
+		// Reset AI context so the companion doesn't see stale index context
+		// when the user navigates to a custom page.
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+			this.cnAiContext.objectUuid = undefined
+		}
 	},
 
 	methods: {
+		/**
+		 * Push pageKind + register/schema context into the reactive cnAiContext
+		 * holder so the AI Chat Companion knows what the user is looking at.
+		 * Called from created(), mounted(), and via watchers when props change.
+		 */
+		pushAiContext() {
+			if (!this.cnAiContext) return
+			this.cnAiContext.pageKind = 'index'
+			this.cnAiContext.registerSlug = this.register || undefined
+			this.cnAiContext.schemaSlug = (typeof this.schema === 'string' && this.schema)
+				|| this.effectiveSchema?.id || this.effectiveSchema?.slug
+				|| (this.schema && (this.schema.id || this.schema.slug)) || undefined
+			this.cnAiContext.objectUuid = undefined
+		},
+
+		// ── List-event handlers ──────────────────────────────────────────────
+		// In self-fetch mode each routes to the useListView instance (re-fetch);
+		// in every mode the event still bubbles via $emit so a host that wants
+		// to observe (or take over) keeps working — unchanged for consumers.
+		/**
+		 * @param {string} value Search term from the sidebar / header.
+		 * @return {void}
+		 */
+		onSearchEvent(value) {
+			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
+			this.$emit('search', value)
+		},
+		/**
+		 * Quick-filter tab change. Updates the active index — the `setup()`
+		 * watcher then triggers `list.refresh(1)` so the new tab's filter
+		 * flows into the next fetch.
+		 *
+		 * @param {number} index Zero-based tab index (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterChange(index) {
+			// `activeQuickFilterIndex` is a setup-returned ref; the
+			// Vue 2 ref-unwrap proxy makes plain assignment work.
+			this.activeQuickFilterIndex = index
+			this.$emit('quick-filter-change', index)
+		},
+		/**
+		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
+		 * @return {void}
+		 */
+		onSortEvent(payload) {
+			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
+			this.$emit('sort', payload)
+		},
+		/**
+		 * @param {number} page Requested page from CnPagination.
+		 * @return {void}
+		 */
+		onPageEvent(page) {
+			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
+			this.$emit('page-changed', page)
+		},
+		/**
+		 * @param {{key: string, values: Array}} payload Facet-filter change from the sidebar.
+		 * @return {void}
+		 */
+		onFilterEvent(payload) {
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
+			this.$emit('filter-change', payload)
+		},
+		/**
+		 * @param {Array} columns Visible-column change from the sidebar.
+		 * @return {void}
+		 */
+		onColumnsEvent(columns) {
+			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
+			this.$emit('columns-change', columns)
+		},
+		/** @return {void} */
+		onRefreshEvent() {
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
+			this.$emit('refresh')
+		},
+
+		/**
+		 * Publish (or clear) the embedded CnIndexSidebar config to
+		 * the `cnIndexSidebarConfig` holder so CnAppRoot can mount
+		 * it at NcContent level. No-op when no CnAppRoot ancestor
+		 * exists — in that case `shouldRenderInlineSidebar` keeps
+		 * the inline render alive.
+		 */
+		publishHoistedSidebar() {
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) return
+			if (!this.resolvedSidebar.enabled || this.resolvedSidebar.show === false) {
+				this.cnIndexSidebarConfig.value = null
+				return
+			}
+			this.cnIndexSidebarConfig.value = {
+				component: CnIndexSidebar,
+				props: this.hoistedSidebarProps,
+				listeners: {
+					search: (event) => this.onSearchEvent(event),
+					'columns-change': (event) => this.onColumnsEvent(event),
+					'filter-change': (event) => this.onFilterEvent(event),
+				},
+			}
+		},
+
+		/**
+		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
+		 * (manifest-actions-dispatch) — Resolve a manifest-declared
+		 * action's `handler` string into a `(row) => void` invocation
+		 * function. Returns null when the action should fall back to
+		 * the page's `@action`-event-only path.
+		 *
+		 *   - Reserved keyword `"navigate"` → push the configured route
+		 *     with `params: { id: row[rowKey] }`.
+		 *   - Reserved keyword `"emit"` → null (page still bubbles
+		 *     `@action`; explicit no-op).
+		 *   - Reserved keyword `"none"` → returns a no-op function that
+		 *     suppresses both the handler and the `@action` emit. The
+		 *     suppression happens via the special `_dispatchSuppress`
+		 *     flag on the cloned action; see mergedActions for the
+		 *     detail.
+		 *   - Registry name → look up in `effectiveCustomComponents`;
+		 *     when it's a function, wrap as
+		 *     `(row) => fn({ actionId: action.id, item: row })`. When
+		 *     it's a non-function, console.warn and return null.
+		 *   - Unknown registry name → silent fall-through (null).
+		 *
+		 * @param {object} action The manifest-shaped action object.
+		 * @return {Function|null}
+		 */
+		resolveHandler(action) {
+			const name = action.handler
+			if (typeof name !== 'string' || name.length === 0) return null
+			if (name === 'navigate') {
+				const route = action.route
+				if (typeof route !== 'string' || route.length === 0) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @action-only.',
+					)
+					return null
+				}
+				return (row) => {
+					this.$router.push({
+						name: route,
+						params: { id: row[this.rowKey] },
+					})
+				}
+			}
+			if (name === 'emit') return null
+			if (name === 'none') {
+				// Returns a sentinel that CnRowActions will treat as a
+				// no-op; we additionally short-circuit @action emit in
+				// `onRowAction` via the action's id.
+				return () => {}
+			}
+			const fn = this.effectiveCustomComponents[name]
+			if (typeof fn === 'function') {
+				return (row) => fn({ actionId: action.id, item: row })
+			}
+			if (fn !== undefined) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
+					+ 'customComponents — components belong to slot overrides; falling '
+					+ 'back to @action-only.',
+				)
+			}
+			return null
+		},
+
+		/**
+		 * REQ-MAD-6 (manifest-actions-dispatch) — `handler: "none"`
+		 * blocks the `@action` emit entirely. CnRowActions emits
+		 * `@action` with `{ action: action.label, row }` and the page
+		 * forwards via `@action="$emit('action', $event)"`. This handler
+		 * intercepts so the `none`-flagged action is dropped before
+		 * re-emit.
+		 *
+		 * @param {{action: string, row: object}} payload The CnRowActions emit.
+		 */
+		onRowAction(payload) {
+			const matched = this.mergedActions.find((a) => a.label === payload.action)
+			if (matched && matched._dispatchSuppress) return
+			this.$emit('action', payload)
+		},
+
 		/**
 		 * Handle row click — emits row-click event for the parent to handle navigation.
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
 			this.$emit('row-click', row)
+		},
+
+		/**
+		 * Handle the built-in View action — emits a dedicated `view` event.
+		 * Kept distinct from `row-click` because the two are conceptually
+		 * different: a row click might mean select/expand/drilldown, while
+		 * View always means "open the detail view of this row".
+		 * @param {object} row The row whose View action was triggered
+		 */
+		onView(row) {
+			this.$emit('view', row)
 		},
 
 		/**
@@ -972,6 +1751,23 @@ export default {
 		openDeleteDialog(item) {
 			this.actionTargetItem = item
 			this.showSingleDeleteDialog = true
+		},
+
+		/**
+		 * Pure helper used by the cardComponent dispatch path to toggle
+		 * an id in the selected-ids array. Kept inline rather than
+		 * pulled into a util because the only call site is the
+		 * cardComponent `@select` listener template above.
+		 *
+		 * @param {Array} ids Current selection
+		 * @param {string|number} id The id to toggle
+		 * @return {Array} New array with `id` toggled in/out
+		 */
+		toggleIdInArray(ids, id) {
+			if (ids.includes(id)) {
+				return ids.filter((existing) => existing !== id)
+			}
+			return [...ids, id]
 		},
 	},
 }

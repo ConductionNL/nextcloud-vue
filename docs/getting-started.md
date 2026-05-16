@@ -104,6 +104,28 @@ registerIcons({
 
 Icons are resolved by PascalCase name. If a schema references `icon: "AccountGroupOutline"`, it renders the registered component. Unregistered icons fall back to `HelpCircleOutline`.
 
+## Register Library Translations (required)
+
+The library ships its own translation bundles (currently English + Dutch) and registers them under the `nextcloud-vue` namespace at runtime. Call `registerTranslations()` **once** during bootstrap in `main.js`, before mounting your root Vue instance:
+
+```js
+// main.js
+import Vue from 'vue'
+import { registerIcons, registerTranslations } from '@conduction/nextcloud-vue'
+import '@conduction/nextcloud-vue/css/index.css'
+
+registerIcons({ /* ...your icons */ })
+registerTranslations()
+
+new Vue({ /* ...router, pinia, etc. */ }).$mount('#content')
+```
+
+:::danger This is not optional
+Without `registerTranslations()`, **every library-rendered string stays in English** — even when the user's Nextcloud language is Dutch. Labels like "Delete", "Cancel", "Items per page:", etc. will *not* pick up translations automatically, because Nextcloud's server-side l10n discovery only scans each app's own `l10n/` directory and cannot see an npm package's bundles.
+:::
+
+See [Internationalisation (i18n)](./integrations/i18n.md) for details on overriding individual strings via props, and how to contribute a new language to the library bundles.
+
 ## Create the Object Store
 
 Use `createObjectStore` with plugins for your data needs:
@@ -250,9 +272,23 @@ export default {
 
 That's it — you have a working list page with sorting, pagination, faceted filtering, and CRUD dialogs, all driven by your OpenRegister schema.
 
+## Design principles
+
+The four ideas every `Cn*` component is built on:
+
+- **Nextcloud-native** — components consume Nextcloud CSS variables (`var(--color-primary-element)`, `var(--color-border)`, etc.) and integrate with the Nextcloud shell without any custom theming. No `--cn-*` tokens, no hardcoded colors. See [Design tokens](/docs/design-tokens) for the full variable reference.
+- **Slot-first** — every component exposes named slots. Dialogs in particular support three override levels: full replacement (`#form`), form-content override (`#form-fields`), and per-field override (`#field-{key}`).
+- **Backwards compatible** — props, events, and slots are deprecated with a `console.warn` and at least one minor release before removal. Minor bumps never break existing consumers.
+- **Schema-driven** — `columnsFromSchema`, `filtersFromSchema`, and `fieldsFromSchema` generate UI directly from JSON Schema so you describe your data model once and reuse it for tables, filters, and forms.
+
+## Consumer apps
+
+`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **MyDash**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
+
 ## Next Steps
 
-- [Layouts](./layouts/) — how the List, Detail, and Settings page layouts work
-- [Component Reference](./components/) — browse all Cn* components
+- [Layouts](/docs/layouts) — how the List, Detail, and Settings page layouts work
+- [Component Reference](/docs/components) — browse all Cn* components
+- [Design tokens](/docs/design-tokens) — Nextcloud CSS variables every component consumes
 - [OpenRegister Integration](./integrations/openregister.md) — deep dive into the backend connection
 - [Architecture Overview](./architecture/overview.md) — understand the three-layer design

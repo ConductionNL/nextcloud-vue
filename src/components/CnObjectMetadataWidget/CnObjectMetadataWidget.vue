@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 
@@ -58,10 +59,13 @@ const METADATA_FIELDS = [
  * Understands both flat objects (where metadata is at the top level) and
  * objects with a `@self` metadata block.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnObjectMetadataWidget :object-data="publication" />
+ * ```
  *
- * @example With extra items
+ * With extra items
+ * ```vue
  * <CnObjectMetadataWidget
  *   title="System Info"
  *   :object-data="entity"
@@ -69,11 +73,14 @@ const METADATA_FIELDS = [
  *     { label: 'Source', value: entity.source },
  *     { label: 'Catalog', value: entity.catalog },
  *   ]" />
+ * ```
  *
- * @example Selective display
+ * Selective display
+ * ```vue
  * <CnObjectMetadataWidget
  *   :object-data="entity"
  *   :include="['id', 'uuid', 'created', 'updated', 'owner']" />
+ * ```
  */
 export default {
 	name: 'CnObjectMetadataWidget',
@@ -87,7 +94,7 @@ export default {
 		/** Widget title shown in the card header */
 		title: {
 			type: String,
-			default: 'Metadata',
+			default: () => t('nextcloud-vue', 'Metadata'),
 		},
 		/** Optional MDI icon component for the header */
 		icon: {
@@ -160,7 +167,7 @@ export default {
 		/** Label shown when no metadata available */
 		emptyLabel: {
 			type: String,
-			default: 'No metadata available',
+			default: () => t('nextcloud-vue', 'No metadata available'),
 		},
 	},
 
@@ -211,8 +218,8 @@ export default {
 	methods: {
 		/**
 		 * Format a metadata value for display.
-		 * @param value
-		 * @param def
+		 * @param {*} value - The raw metadata value.
+		 * @param {object} def - The metadata field definition (format, label, etc.).
 		 */
 		formatMetadataValue(value, def) {
 			if (value === null || value === undefined) return '-'

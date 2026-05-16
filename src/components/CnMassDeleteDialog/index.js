@@ -1,1 +1,4 @@
-export { default as CnMassDeleteDialog } from './CnMassDeleteDialog.vue'
+import CnMassDeleteDialog from './CnMassDeleteDialog.vue'
+
+export default CnMassDeleteDialog
+export { CnMassDeleteDialog }

@@ -1,16 +1,48 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDashboardPage.md'
+
 # CnDashboardPage
 
 Top-level dashboard page component — the dashboard equivalent of `CnIndexPage`. Assembles a complete dashboard from a `widgets` definition array and a `layout` array. Supports custom widgets via scoped slots, Nextcloud Dashboard API widgets, tile widgets, and an optional drag-and-drop edit mode.
 
 **Wraps**: CnDashboardGrid, CnWidgetWrapper, CnWidgetRenderer, CnTileWidget
 
+## Try it
+
+<Playground component="CnDashboardPage" />
+
 ## Widget types
 
 | Type | How to use |
 |------|-----------|
-| **Custom** | Provide a `#widget-{widgetId}` scoped slot |
-| **NC Dashboard API** | Widget def has `itemApiVersions` — auto-rendered via `CnWidgetRenderer` |
 | **Tile** | Widget def has `type: 'tile'` — renders as a quick-access link tile |
+| **Custom** | Provide a `#widget-{widgetId}` scoped slot (escape hatch — beats every built-in branch when a slot exists) |
+| **Chart** | Widget def has `type: 'chart'` — declarative apexcharts mount via `CnChartWidget`; chart inputs ride `widgetDef.props` |
+| **NC Dashboard API** | Widget def has `itemApiVersions` — auto-rendered via `CnWidgetRenderer` |
+
+The dispatcher resolves widgets in that order. The custom-slot branch beats the chart branch so apps that need bespoke apexcharts behaviour outside the manifest contract can fall back to `#widget-{id}` without losing the rest of the manifest.
+
+### Chart widget
+
+```js
+const WIDGETS = [{
+  id: 'sla-trend',
+  title: 'SLA trend',
+  type: 'chart',
+  props: {
+    chartKind: 'line',                   // line | bar | donut | area | pie | radialBar
+    series: [{ name: 'SLA %', data: [82, 88, 91, 93] }],
+    categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+    options: { stroke: { width: 3 } },   // deep-merged with CnChartWidget defaults
+    height: 280,
+    // Reserved for a future cycle — not read at render time today:
+    // dataSource: { url: '/index.php/apps/myapp/api/charts/sla' }
+    // dataSource: { register: 'cases', schema: 'case', groupBy: 'caseType', aggregate: 'count' }
+  },
+}]
+```
+
+Forwarded `props` keys (everything else is ignored): `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`.
 
 ## Usage
 
@@ -95,9 +127,12 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |-------|------|-------------|
 | `id` | String | Unique widget identifier |
 | `title` | String | Widget title shown in the wrapper header |
-| `type` | String | `'custom'` (default) or `'tile'` |
+| `type` | String | `'custom'` (default), `'tile'`, or `'chart'`. `'chart'` mounts CnChartWidget; chart inputs ride `props` |
+| `props` | Object | Free-form widget-specific props. For chart widgets: `{ chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, unavailableLabel, dataSource? }` |
 | `iconUrl` | String | Header icon image URL |
 | `iconClass` | String | Header icon CSS class |
+| `titleIconPosition` | String | Position of the `widget-{id}-title-icon` slot: `'left'` (before title) or `'right'` (after actions, default) |
+| `titleIconColor` | String | CSS color applied to the title-icon slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | Footer buttons: `[{ text, link }]` |
 | `itemApiVersions` | Number[] | NC Dashboard API versions — triggers auto-rendering |
 | `reloadInterval` | Number | Auto-refresh interval in seconds (NC widgets) |
@@ -129,4 +164,11 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `header-actions` | — | Extra buttons in the page header (right side) |
 | `widget-{widgetId}` | `{ item, widget }` | Custom content for a specific widget |
 | `widget-{widgetId}-actions` | `{ item, widget }` | Header action buttons for a specific widget |
+| `widget-{widgetId}-title-icon` | `{ item, widget }` | Extra icon in the widget header; position and color controlled by `titleIconPosition` / `titleIconColor` on the widget definition |
 | `empty` | — | Custom empty state when no layout items exist |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardPage/CnDashboardPage.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

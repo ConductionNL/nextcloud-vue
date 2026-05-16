@@ -6,7 +6,7 @@ module.exports = {
 		'^.+\\.vue$': '@vue/vue2-jest',
 	},
 	transformIgnorePatterns: [
-		'/node_modules/(?!(@nextcloud|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|vue-codemirror6|codemirror|@codemirror)/)',
 	],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
@@ -16,6 +16,12 @@ module.exports = {
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
+		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
+		'^@microsoft/fetch-event-source$': '<rootDir>/tests/__mocks__/fetch-event-source.js',
+		'^@nextcloud/notify_push$': '<rootDir>/tests/__mocks__/nextcloud-notify-push.js',
+		'^@vueuse/core$': '<rootDir>/tests/__mocks__/vueuse-core.js',
+		'^gridstack$': '<rootDir>/tests/__mocks__/gridstack.js',
+		'^gridstack/dist/gridstack\\.min\\.css$': 'jest-transform-stub',
 	},
 	testMatch: [
 		'<rootDir>/tests/**/*.spec.js',

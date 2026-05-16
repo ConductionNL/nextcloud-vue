@@ -18,13 +18,22 @@ import { useObjectStore } from '@conduction/nextcloud-vue'
 import '@conduction/nextcloud-vue/src/css/index.css'
 ```
 
+Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongside `registerIcons({})`) **before** `new Vue().$mount(...)` — without it, library-rendered strings stay in English even when the user's Nextcloud language is Dutch. See [docs/getting-started.md](docs/getting-started.md#register-library-translations-required).
+
 ### Available Components
 
 **Layout & Pages**
-- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs)
-- `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots (simpler alternative to CnIndexPage)
+- `CnIndexPage` — Top-level schema-driven index page (table/cards, pagination, mass actions, dialogs). Overridable via `#header` and `#actions` slots.
+- `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots. Overridable via `#header` and `#actions` slots.
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+
+**Manifest Renderer (JSON-driven app shell)**
+- `CnAppRoot` — Top-level app wrapper. Orchestrates loading → dependency-check → shell phases. Provides `cnManifest`, `cnCustomComponents`, `cnTranslate` to descendants. Slots: `#loading`, `#dependency-missing`, `#menu`, `#header-actions`, `#sidebar`, `#footer` — each independently overridable. Use this when adopting the full manifest pattern; lower tiers (just `useAppManifest`, or `+ CnPageRenderer`, or `+ CnAppNav`) are also supported.
+- `CnAppNav` — Manifest-driven `NcAppNavigation`. Reads `manifest.menu[]`; sorts by `order`; filters by `permission`; one level of `children[]`. Accepts `manifest`, `translate`, `permissions` as props (with inject fallback) for standalone use.
+- `CnPageRenderer` — Type dispatcher mounted inside `<router-view>`. Matches `$route.name === page.id`, dispatches by `page.type` (`index | detail | dashboard | custom`) using `defineAsyncComponent` for tree-shaking. Forwards `page.config` as props; resolves `page.headerComponent` / `page.actionsComponent` against the customComponents registry.
+- `CnAppLoading` — Default loading screen (logo slot + NcLoadingIcon + message). Used by CnAppRoot's `#loading` phase.
+- `CnDependencyMissing` — Default dependency-missing screen (lists missing apps with install/enable links). Used by CnAppRoot's `#dependency-missing` phase.
 
 **Data Display**
 - `CnDetailGrid` — Data-driven label-value grid with grid and horizontal layout modes
@@ -92,6 +101,7 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `buildQueryString(params)` — Build URL query string from params object
 - `parseResponseError(response)` — Extract error message from API response
 - `networkError()` / `genericError()` — Standard error message helpers
+- `validateManifest(manifest)` — Validate an app manifest against the JSON Schema. Returns `{ valid, errors }`. Use at build time or in test fixtures; the same validator runs at runtime inside `useAppManifest`.
 
 ### Available Store
 - `useObjectStore` — Generic Pinia store for OpenRegister objects (CRUD, pagination, search, caching)
@@ -103,6 +113,72 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 - `useFileSelection(options)` — File upload/drop handling
 - `useDashboardView(options)` — Dashboard state: widget defs, layout, NC widget loading, add/remove/persist
 - `useContextMenu()` — Right-click context menu positioning and state (cursor CSS vars, open/close, action helpers)
+- `useAppManifest(appId, bundledManifest, options?)` — Load + validate the app manifest. Returns `{ manifest, isLoading, validationErrors }`. Synchronous bundled load + async backend-merge stub (silent fallback on 4xx / network errors); validates via `validateManifest`. Pass `options.endpoint` or `options.fetcher` to override the backend URL or inject a mock.
+- `useAppStatus(appId)` — Check whether a Nextcloud app is installed and enabled via `@nextcloud/capabilities`. Returns `{ installed, enabled, loading }`. Cached per appId for the page lifetime. CnAppRoot calls this once per `manifest.dependencies` entry to drive the dependency-check phase.
+- `useIntegrationRegistry()` — Reactive view onto the pluggable integration registry. Returns `{ integrations, getById, resolveWidget, registry }`. `integrations` is a `ComputedRef<object[]>` sorted by `order` ascending then `id`. Used by `CnObjectSidebar`, `CnDashboardPage`, and `CnDetailPage` to render integration tabs/widgets that consuming apps register at bootstrap. See "Pluggable Integration Registry" below.
+
+### Pluggable Integration Registry
+
+OpenRegister exposes a JS registry on `window.OCA.OpenRegister.integrations`. Consuming apps register tabs and widgets that surface in `CnObjectSidebar` (per-object tab strip), `CnDashboardPage` (configurable widget grid), and `CnDetailPage` (object detail). Registration is reactive — late-loaded apps still cause mounted components to re-render.
+
+**Where it lives:**
+- `src/integrations/registry.js` — `createIntegrationRegistry()` factory + default `integrations` singleton + `installIntegrationRegistry(window)` for installing onto the global plus draining queued stub registrations
+- `src/composables/useIntegrationRegistry.js` — Vue 2.7 composable wrapping the singleton in a reactive snapshot
+
+**Registering an integration (from a consuming app's bootstrap):**
+```js
+import CnCalendarTab from './CnCalendarTab.vue'
+import CnCalendarCard from './CnCalendarCard.vue'
+
+OCA.OpenRegister.integrations.register({
+    id: 'calendar',
+    label: t('myapp', 'Meetings'),
+    icon: 'Calendar',              // MDI name
+    requiredApp: 'calendar',
+    order: 10,
+    group: 'comms',                // optional: 'core' | 'comms' | 'docs' | 'workflow' | 'external'
+    referenceType: 'calendar',     // marker for schema reference properties (AD-18)
+    tab: CnCalendarTab,            // REQUIRED — sidebar tab component
+    widget: CnCalendarCard,        // REQUIRED — receives `surface` prop at render
+    widgetCompact: CnCalendarMini, // optional override for surface='user-dashboard'
+    widgetExpanded: CnCalendarFull,// optional override for surface='detail-page'
+    widgetEntity: CnCalendarChip,  // optional override for surface='single-entity'
+    defaultSize: { w: 3, h: 3 },
+})
+```
+
+**Surface fallback (AD-19):** any surface without a dedicated component falls back to `widget` with `surface` passed as a prop, so simple integrations don't need three components. Surface registry: `'user-dashboard' | 'app-dashboard' | 'detail-page' | 'single-entity'`.
+
+**Collision policy (AD-13):** duplicate `id` throws synchronously in development (`NODE_ENV !== 'production'`) and warns + keeps the first registration in production.
+
+**Parity contract:** `tab` and `widget` are required. Registering without them throws. A CI parity gate (`scripts/check-integration-parity.sh`) catches missing declarations pre-merge.
+
+**Bootstrap-order safety:** if a consuming app's bundle loads before OpenRegister's, install a stub before any `register()` calls and OpenRegister will replay the queue when its main bundle initialises:
+```js
+window.OCA = window.OCA || {}
+window.OCA.OpenRegister = window.OCA.OpenRegister || {}
+window.OCA.OpenRegister.integrations = window.OCA.OpenRegister.integrations || {
+    _queue: [],
+    register(entry) { this._queue.push(entry) },
+}
+```
+
+**Reading the registry (in components):**
+```js
+import { useIntegrationRegistry } from '@conduction/nextcloud-vue'
+
+setup() {
+    const { integrations, getById, resolveWidget } = useIntegrationRegistry()
+    return { integrations, getById, resolveWidget }
+}
+```
+The `integrations` ref is sorted and reactive. Use `resolveWidget(id, surface)` to apply the AD-19 fallback rule when rendering a specific surface.
+
+**Surface components consume the registry (all opt-in, backwards-compatible):**
+
+- **`CnObjectSidebar`** — `useRegistry` (Boolean, default `false`): replace the hardcoded built-in tabs with one tab per registered provider. `excludeIntegrations` (`string[]`) and `hiddenTabs` filter the set. Mutually exclusive with the open-enum `tabs` prop (`tabs` wins, with a console.warn). Per-integration slot overrides aren't supported in registry mode — override a built-in by registering your own provider with the same id (collision policy: first wins).
+- **`CnDashboardPage`** / **`CnDetailPage`** — add an `integration` widget type to the layout: `{ id, title, type: 'integration', integrationId, props? }`. The component is resolved from the registry via `resolveWidget(integrationId, surface)`. `surface` prop defaults to `'app-dashboard'` (dashboard) / `'detail-page'` (detail). `integrationContext` prop (`{ register, schema, objectId }`) is forwarded to the widget — `CnDetailPage` derives it from `sidebarProps` + `objectId` when not given.
+- **`CnFormDialog`** / **`CnDetailGrid`** — a schema property (or detail item) carrying `referenceType: '<integration-id>'` (AD-18) renders that integration's single-entity widget (AD-19 fallback to its main `widget`) instead of a plain input/value. `referenceContext` prop (`{ register, schema, objectId }`) is forwarded. A consumer `#field-<key>` / `#item-<index>` slot still overrides it.
 
 ### CnIndexPage Dialog Override System
 
@@ -113,7 +189,7 @@ CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **o
    - `#copy-dialog="{ item, close }"` — Replace copy dialog
    - `#form-dialog="{ item, schema, close }"` — Replace create/edit dialog (use CnFormDialog or CnAdvancedFormDialog)
 2. **Form content override** — `#form-fields` replaces the form inside the built-in CnFormDialog
-3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field
+3. **Per-field override** — `#field-{key}` inside CnFormDialog replaces a single field. For JSON / code-editor fields this slot is rarely needed: set `widget: 'json'` (structured value, parses on input) or `widget: 'code'` (raw string + `field.language` for highlighting) on the schema property and CnFormDialog renders `CnJsonViewer` automatically.
 4. **Per-field option rendering** — `#field-{key}-option` and `#field-{key}-selected-option` customize dropdown option display for select/multiselect/tags fields
 
 Key events emitted by CnIndexPage:
@@ -175,6 +251,34 @@ const DEFAULT_LAYOUT = [
 </CnDashboardPage>
 ```
 
+### JSON Manifest Renderer
+
+Apps can declare their entire shell — routes, navigation, page configuration, dependencies — in a single `src/manifest.json`. The library reads it and renders the app. Adoption is incremental (four tiers from "just `useAppManifest`" to "full `CnAppRoot` shell"); a custom menu component can replace the default `CnAppNav` via the `#menu` slot.
+
+Minimal manifest:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+  "version": "1.0.0",
+  "dependencies": ["openregister"],
+  "menu": [
+    { "id": "decisions", "label": "myapp.menu.decisions", "icon": "icon-checkmark", "route": "decisions-index", "order": 10 }
+  ],
+  "pages": [
+    { "id": "decisions-index", "route": "/decisions", "type": "index", "title": "myapp.decisions.title",
+      "config": { "register": "decisions", "schema": "decision", "columns": ["title", "status"] } },
+    { "id": "decisions-detail", "route": "/decisions/:id", "type": "detail", "title": "myapp.decisions.detail",
+      "config": { "register": "decisions", "schema": "decision" } },
+    { "id": "settings", "route": "/settings", "type": "custom", "title": "myapp.settings.title", "component": "SettingsPage" }
+  ]
+}
+```
+
+`page.id` is also the vue-router route name; CnPageRenderer matches by `$route.name === page.id`. The `type` enum is closed (`index | detail | dashboard | custom`) — bespoke pages use `type: "custom"` with a registry component.
+
+See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migrating-to-manifest.md` for tier-by-tier adoption guidance.
+
 ## Rules for Modifying Components
 
 1. **NEVER break existing prop interfaces** — new props MUST have defaults
@@ -184,7 +288,7 @@ const DEFAULT_LAYOUT = [
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
-8. **Translation**: Components accept pre-translated strings via props with English defaults. Never import `t()` from a specific app.
+8. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
 
 ## Adding New Components
 
@@ -246,6 +350,62 @@ npm run check:docs      # exits 0 when every export is covered, 1 otherwise
 
 Output is a per-category coverage summary followed by a list of missing exports with the exact file path the script expects, so the fix is always to either create that file or rename an existing one.
 
+## Documenting components (enforced)
+
+The library's docs site auto-generates per-component reference tables (props / events / slots) from JSDoc on the SFCs via `vue-docgen-cli`. **Components update → docs update automatically** — but only when the JSDoc is rich enough to be useful. Two CI gates enforce this:
+
+1. **Freshness** — `cd docusaurus && npm run prebuild:docs` is run in CI; if it produces a diff against `docs/components/_generated/`, the build fails. Solution: run the same command locally and commit the diff.
+2. **Completeness ratchet** — `npm run check:jsdoc` scores each `Cn*` on prop / event / slot JSDoc coverage and compares against the per-component baseline at [scripts/.jsdoc-baselines.json](scripts/.jsdoc-baselines.json). CI fails on any regression. New components require 100% coverage from day one. Improving coverage is a normal PR — bump the baseline with `npm run jsdoc-baselines:update`.
+
+### Three canonical JSDoc shapes
+
+**Prop:** leading `/** ... */` block. For non-trivial union or generic types, an `@type {...}` tag (vue-docgen-cli infers simple types from the `type:` field).
+
+```vue
+<script>
+export default {
+  props: {
+    /**
+     * Column definitions (manual mode). Not required when `schema` is provided.
+     * @type {Array<{key: string, label: string, sortable: boolean, width: string}>}
+     */
+    columns: { type: Array, default: () => [] },
+  },
+}
+</script>
+```
+
+**Event:** JSDoc above the `$emit` site. The `@event` tag preserves the event's name across vue-docgen-api's parser; payload shape goes in `@type`.
+
+```vue
+/**
+ * @event sort Emitted when a sortable column header is clicked.
+ * @type {{ key: string|null, order: 'asc'|'desc'|null }}
+ */
+this.$emit('sort', { key: newKey, order })
+```
+
+**Named slot:** template comment immediately above the `<slot>` declaration. Scoped slots add `@binding` per scope key.
+
+```vue
+<template>
+  <!-- @slot row-actions Per-row action menu cell. Receives the row object. -->
+  <!-- @binding {object} row The row data passed to slot consumers. -->
+  <slot name="row-actions" :row="row" />
+</template>
+```
+
+### Workflow when adding or modifying a component
+
+1. Edit the SFC. Add / update JSDoc as you touch each prop, event, or slot.
+2. `git add src/components/CnX/CnX.vue` then `git commit`.
+   The **husky pre-commit hook** (`.husky/pre-commit` → `scripts/precommit-regenerate-partials.sh`) detects the staged Cn* SFC, runs `npm run prebuild:docs` for you, and auto-stages the regenerated `docs/components/_generated/<name>.md`. The commit lands SFC + partial atomically.
+3. If the hook is skipped (e.g. `cd docusaurus && npm install --legacy-peer-deps` hasn't run yet — the script prints a one-line hint and exits 0), CI's freshness gate in `code-quality.yml` still catches the stale partial. Run `cd docusaurus && npm run prebuild:docs && git add docs/components/_generated/` manually before pushing.
+4. Run `npm run check:jsdoc` locally to confirm no regression below the baseline.
+5. If you intentionally improved coverage, `npm run jsdoc-baselines:update` and commit the bumped baseline.
+
+The CI failure messages cite the component name, the missing items by `kind:name`, and the file path — so the fix is always "open the SFC, add the JSDoc, commit."
+
 ## Project Structure
 
 ```
@@ -268,3 +428,13 @@ scripts/
 
 This library is used by: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash.
 Changes here affect all of them. Test carefully.
+
+Every consumer's `main.js` must include:
+
+```js
+import { registerIcons, registerTranslations } from '@conduction/nextcloud-vue'
+registerIcons({ /* app-specific icons */ })
+registerTranslations()
+```
+
+`registerTranslations()` is a required bootstrap call — without it, the library falls back to English regardless of the user's Nextcloud language.

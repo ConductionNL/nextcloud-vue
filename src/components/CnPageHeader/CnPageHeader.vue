@@ -1,15 +1,15 @@
 <template>
-	<div class="cn-page-header">
+	<div class="cn-page-header" data-testid="cn-page-header">
 		<div v-if="icon || $slots.icon" class="cn-page-header__icon">
 			<slot name="icon">
 				<CnIcon :name="icon" :size="iconSize" />
 			</slot>
 		</div>
 		<div class="cn-page-header__text">
-			<h1 class="cn-page-header__title">
+			<h1 class="cn-page-header__title" data-testid="cn-page-title">
 				{{ title }}
 			</h1>
-			<p v-if="description" class="cn-page-header__description">
+			<p v-if="description" class="cn-page-header__description" data-testid="cn-page-description">
 				{{ description }}
 			</p>
 		</div>
@@ -23,8 +23,9 @@ import { CnIcon } from '../CnIcon/index.js'
 /**
  * CnPageHeader — Reusable page header with optional icon, title, and description.
  *
- * @example
+ * ```vue
  * <CnPageHeader title="Clients" description="Manage your clients" icon="AccountGroup" />
+ * ```
  */
 export default {
 	name: 'CnPageHeader',

@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase (standard mode, not create-another) -->
-		<div v-if="result !== null && !createAnother" class="cn-tabbed-form-dialog__result">
+		<div v-if="result !== null && !createAnother"
+			class="cn-tabbed-form-dialog__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-tabbed-form-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ resolvedSuccessText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Form phase (or create-another mode where form stays visible) -->
-		<div v-if="createAnother || result === null" class="cn-tabbed-form-dialog__form">
+		<div v-if="createAnother || result === null"
+			class="cn-tabbed-form-dialog__form"
+			data-testid="cn-modal"
+			data-testid-modal="cn-tabbed-form-dialog"
+			data-testid-phase="form">
 			<!-- Inline notifications for create-another mode -->
 			<NcNoteCard v-if="createAnother && result && result.success" type="success">
 				{{ resolvedSuccessText }}
@@ -86,8 +94,10 @@
 			<!-- Primary action button (Save / Create) -->
 			<NcButton
 				v-if="createAnother || result === null"
+				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				type="primary"
 				:disabled="loading || disableSave"
+				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				@click="executeConfirm">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -102,6 +112,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcDialog,
@@ -134,8 +145,7 @@ export default {
 		 * Array of tab definitions. Each tab must have at least an `id` and `title`.
 		 * The optional `icon` field should be a Vue component reference (e.g. an imported MDI icon).
 		 * The optional `disabled` field prevents tab selection.
-		 *
-		 * @type {Array<{ id: string, title: string, icon?: object, disabled?: boolean }>}
+		 * @type {Array<{ id: string, title: string, icon: object, disabled: boolean }>}
 		 */
 		tabs: {
 			type: Array,
@@ -143,8 +153,9 @@ export default {
 			validator: (tabs) => tabs.length > 0 && tabs.every(t => t.id && t.title),
 		},
 		/**
-		 * Existing item for edit mode. Pass null or undefined for create mode.
-		 * The component only checks for truthiness to determine create vs edit mode.
+		 * Existing item for edit mode. Pass null or undefined for plain create
+		 * mode. A non-null object without an `id` is also treated as create mode
+		 * — useful for pre-filled payloads (extend, clone, duplicate flows).
 		 *
 		 * @type {object|null}
 		 */
@@ -171,7 +182,7 @@ export default {
 		 */
 		entityName: {
 			type: String,
-			default: 'Item',
+			default: () => t('nextcloud-vue', 'Item'),
 		},
 		/**
 		 * NcDialog size. One of 'small', 'normal', 'large', 'full'.
@@ -204,6 +215,16 @@ export default {
 			default: false,
 		},
 		/**
+		 * Tooltip shown on the save button when it is disabled.
+		 * Also used as aria-label so screen readers can explain the blocked state (WCAG 2.1 AA).
+		 *
+		 * @type {string}
+		 */
+		disableSaveTooltip: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * Custom success message shown in the result NcNoteCard.
 		 * Defaults to "{entityName} saved successfully".
 		 *
@@ -220,7 +241,7 @@ export default {
 		 */
 		cancelLabel: {
 			type: String,
-			default: 'Cancel',
+			default: () => t('nextcloud-vue', 'Cancel'),
 		},
 		/**
 		 * Close button label shown in the result phase.
@@ -229,7 +250,7 @@ export default {
 		 */
 		closeLabel: {
 			type: String,
-			default: 'Close',
+			default: () => t('nextcloud-vue', 'Close'),
 		},
 		/**
 		 * Primary confirm button label. Defaults to "Create" in create mode
@@ -248,7 +269,7 @@ export default {
 		 */
 		createAnotherLabel: {
 			type: String,
-			default: 'Create another',
+			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
 	data() {
@@ -262,8 +283,7 @@ export default {
 			/**
 			 * Result of the last operation.
 			 * null = form phase, { success: true } = success, { error: 'msg' } = error
-			 *
-			 * @type {{ success?: boolean, error?: string }|null}
+			 * @type {{ success: boolean, error: string }|null}
 			 */
 			result: null,
 			/** @type {number|null} Timeout ID for auto-close after success */
@@ -274,12 +294,16 @@ export default {
 	},
 	computed: {
 		/**
-		 * Whether the dialog is in create mode (no existing item).
+		 * Whether the dialog is in create mode (no existing persisted item).
+		 *
+		 * An item is considered "existing" only when it has an `id`. A non-null
+		 * item without an `id` (e.g. a pre-filled payload for extend/clone flows)
+		 * is treated as create mode.
 		 *
 		 * @return {boolean}
 		 */
 		isCreateMode() {
-			return !this.item
+			return !this.item || !this.item.id
 		},
 		/**
 		 * Resolved dialog title. Uses dialogTitle prop if provided,
@@ -292,8 +316,8 @@ export default {
 				return this.dialogTitle
 			}
 			return this.isCreateMode
-				? `Create ${this.entityName}`
-				: `Edit ${this.entityName}`
+				? t('nextcloud-vue', 'Create {title}', { title: this.entityName })
+				: t('nextcloud-vue', 'Edit {title}', { title: this.entityName })
 		},
 		/**
 		 * Resolved success text for NcNoteCard.
@@ -304,7 +328,7 @@ export default {
 			if (this.successText) {
 				return this.successText
 			}
-			return `${this.entityName} saved successfully`
+			return t('nextcloud-vue', '{title} saved successfully.', { title: this.entityName })
 		},
 		/**
 		 * Resolved primary button label.
@@ -315,7 +339,7 @@ export default {
 			if (this.confirmLabel) {
 				return this.confirmLabel
 			}
-			return this.isCreateMode ? 'Create' : 'Save'
+			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 	},
 	beforeDestroy() {

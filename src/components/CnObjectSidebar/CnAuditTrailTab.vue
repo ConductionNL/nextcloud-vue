@@ -104,7 +104,7 @@
 					<template v-if="loadingMore" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
-					{{ loadingMore ? '' : loadMoreLabel }}
+					{{ loadMoreLabel }}
 				</NcButton>
 			</div>
 		</template>
@@ -115,6 +115,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -129,13 +130,13 @@ export default {
 		register: { type: String, default: '' },
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		noAuditTrailLabel: { type: String, default: 'No audit trail entries' },
-		noMatchLabel: { type: String, default: 'No matching entries' },
-		actionFilterLabel: { type: String, default: 'Action' },
-		userFilterLabel: { type: String, default: 'User' },
-		fromLabel: { type: String, default: 'From' },
-		toLabel: { type: String, default: 'To' },
-		loadMoreLabel: { type: String, default: 'Load more' },
+		noAuditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'No audit trail entries') },
+		noMatchLabel: { type: String, default: () => t('nextcloud-vue', 'No matching entries') },
+		actionFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Action') },
+		userFilterLabel: { type: String, default: () => t('nextcloud-vue', 'User') },
+		fromLabel: { type: String, default: () => t('nextcloud-vue', 'From') },
+		toLabel: { type: String, default: () => t('nextcloud-vue', 'To') },
+		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 
 	data() {

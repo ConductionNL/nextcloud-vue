@@ -5,7 +5,11 @@
 		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
-		<div v-if="result !== null" class="cn-delete__result">
+		<div v-if="result !== null"
+			class="cn-delete__result"
+			data-testid="cn-modal"
+			data-testid-modal="cn-delete-dialog"
+			data-testid-phase="result">
 			<NcNoteCard v-if="result.success" type="success">
 				{{ successText }}
 			</NcNoteCard>
@@ -15,7 +19,11 @@
 		</div>
 
 		<!-- Confirm phase -->
-		<div v-else class="cn-delete__confirm">
+		<div v-else
+			class="cn-delete__confirm"
+			data-testid="cn-modal"
+			data-testid-modal="cn-delete-dialog"
+			data-testid-phase="confirm">
 			<NcNoteCard type="warning">
 				{{ resolvedWarningText }}
 			</NcNoteCard>
@@ -52,13 +60,14 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * itself — it emits a `confirm` event with the item ID. The parent performs
  * the actual API call and calls `setResult()` via a ref.
  *
- * @example
+ * ```vue
  * <CnDeleteDialog
  *   v-if="showDeleteDialog"
  *   ref="deleteDialog"
  *   :item="itemToDelete"
  *   @confirm="onDeleteConfirm"
  *   @close="showDeleteDialog = false" />
+ * ```
  *
  * // In methods:
  * async onDeleteConfirm(id) {
@@ -128,7 +137,7 @@ export default {
 	computed: {
 		itemName() {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
-			return this.item[this.nameField] || this.item.name || this.item.title || this.item.id
+			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)

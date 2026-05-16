@@ -6,3 +6,7 @@ dist/
 # Docusaurus build output
 docusaurus/build
 .docusaurus
+
+# Styleguide build output
+styleguide/build
+.styleguide

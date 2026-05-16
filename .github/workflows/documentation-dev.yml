@@ -1,0 +1,46 @@
+name: Documentation (Dev)
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-dev:
+    name: Deploy Dev Styleguide
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install and build component styleguide
+        timeout-minutes: 10
+        run: |
+          cd styleguide
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Deploy styleguide to /dev/ on GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./styleguide/build
+
+          publish_branch: gh-pages
+          destination_dir: dev/styleguide
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          keep_files: true

@@ -10,6 +10,7 @@
 				<NcButton
 					v-if="editingTaskId"
 					type="tertiary"
+					:aria-label="cancelLabel"
 					@click="cancelEdit">
 					<template #icon>
 						<Close :size="20" />
@@ -17,6 +18,7 @@
 				</NcButton>
 				<NcButton
 					type="primary"
+					:aria-label="editingTaskId ? saveLabel : addTaskPlaceholder"
 					:disabled="!newTaskSummary.trim() || saving"
 					@click="editingTaskId ? saveEdit() : addTask()">
 					<template #icon>
@@ -119,12 +121,13 @@
 			<template v-if="loadingMore" #icon>
 				<NcLoadingIcon :size="20" />
 			</template>
-			{{ loadingMore ? '' : loadMoreLabel }}
+			{{ loadMoreLabel }}
 		</NcButton>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -160,16 +163,16 @@ export default {
 		register: { type: String, default: '' },
 		schema: { type: String, default: '' },
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTaskPlaceholder: { type: String, default: 'Add task...' },
-		deadlineLabel: { type: String, default: 'Deadline' },
-		assigneeLabel: { type: String, default: 'Assignee' },
-		completeLabel: { type: String, default: 'Complete' },
-		editLabel: { type: String, default: 'Edit' },
-		deleteLabel: { type: String, default: 'Delete' },
-		noTasksLabel: { type: String, default: 'No linked tasks' },
-		loadMoreLabel: { type: String, default: 'Load more' },
-		statusFilterLabel: { type: String, default: 'Status' },
-		assigneeFilterLabel: { type: String, default: 'Assignee' },
+		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task...') },
+		deadlineLabel: { type: String, default: () => t('nextcloud-vue', 'Deadline') },
+		assigneeLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
+		completeLabel: { type: String, default: () => t('nextcloud-vue', 'Complete') },
+		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		noTasksLabel: { type: String, default: () => t('nextcloud-vue', 'No linked tasks') },
+		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		statusFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Status') },
+		assigneeFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
 	},
 
 	data() {
@@ -257,6 +260,7 @@ export default {
 		},
 
 		async fetchUsers() {
+			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
 					headers: buildHeaders(),

@@ -4,36 +4,23 @@
 			<thead>
 				<tr class="cn-advanced-form-dialog__table-row">
 					<th class="cn-advanced-form-dialog__table-col-constrained">
-						Metadata
+						{{ t('nextcloud-vue', 'Metadata') }}
 					</th>
 					<th class="cn-advanced-form-dialog__table-col-expanded">
-						Value
+						{{ t('nextcloud-vue', 'Value') }}
 					</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr class="cn-advanced-form-dialog__table-row">
+				<tr
+					v-for="[label, value] in resolvedRows"
+					:key="label"
+					class="cn-advanced-form-dialog__table-row">
 					<td class="cn-advanced-form-dialog__table-col-constrained">
-						ID
+						{{ label }}
 					</td>
 					<td class="cn-advanced-form-dialog__table-col-expanded">
-						{{ metadataId }}
-					</td>
-				</tr>
-				<tr class="cn-advanced-form-dialog__table-row">
-					<td class="cn-advanced-form-dialog__table-col-constrained">
-						Created
-					</td>
-					<td class="cn-advanced-form-dialog__table-col-expanded">
-						{{ metadataCreated }}
-					</td>
-				</tr>
-				<tr class="cn-advanced-form-dialog__table-row">
-					<td class="cn-advanced-form-dialog__table-col-constrained">
-						Updated
-					</td>
-					<td class="cn-advanced-form-dialog__table-col-expanded">
-						{{ metadataUpdated }}
+						{{ value }}
 					</td>
 				</tr>
 			</tbody>
@@ -42,12 +29,24 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
+
 export default {
 	name: 'CnMetadataTab',
 
 	props: {
 		item: { type: Object, default: null },
 		formData: { type: Object, default: () => ({}) },
+		/**
+		 * Additional `[label, value]` rows appended to (or, when `replaceRows` is true,
+		 * replacing) the default ID/Created/Updated rows. Use this to surface
+		 * domain-specific metadata (version, owner, custom timestamps, etc.).
+		 */
+		extraRows: { type: Array, default: () => [] },
+		/**
+		 * When true, render only `extraRows` and skip the default ID/Created/Updated rows.
+		 */
+		replaceRows: { type: Boolean, default: false },
 	},
 
 	computed: {
@@ -67,7 +66,23 @@ export default {
 			const v = o?.updated
 			return v ? new Date(v).toLocaleString() : '—'
 		},
+
+		defaultRows() {
+			return [
+				[this.t('nextcloud-vue', 'ID'), this.metadataId],
+				[this.t('nextcloud-vue', 'Created'), this.metadataCreated],
+				[this.t('nextcloud-vue', 'Updated'), this.metadataUpdated],
+			]
+		},
+
+		resolvedRows() {
+			const extra = Array.isArray(this.extraRows) ? this.extraRows : []
+			if (this.replaceRows) return extra
+			return [...this.defaultRows, ...extra]
+		},
 	},
+
+	methods: { t },
 }
 </script>
 

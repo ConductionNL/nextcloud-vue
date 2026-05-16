@@ -1,1 +1,4 @@
-export { default as CnStatsBlock } from './CnStatsBlock.vue'
+import CnStatsBlock from './CnStatsBlock.vue'
+
+export default CnStatsBlock
+export { CnStatsBlock }

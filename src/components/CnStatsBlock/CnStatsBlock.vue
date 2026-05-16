@@ -15,7 +15,7 @@
 		<!-- Content -->
 		<div class="cn-stats-block__content">
 			<div class="cn-stats-block__header">
-				<h4>{{ title || 'Objects' }}</h4>
+				<h4>{{ title || t('nextcloud-vue', 'Objects') }}</h4>
 			</div>
 
 			<div v-if="count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 
 /**
@@ -57,10 +58,13 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  * Supports vertical (default) and horizontal layouts, color variants, icons,
  * and clickable state. Use in a CnKpiGrid for responsive dashboard layouts.
  *
- * @example Basic vertical (default)
+ * Basic vertical (default)
+ * ```vue
  * <CnStatsBlock title="Cases" :count="42" count-label="open cases" />
+ * ```
  *
- * @example Horizontal with icon and variant
+ * Horizontal with icon and variant
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
@@ -69,27 +73,34 @@ import { NcLoadingIcon } from '@nextcloud/vue'
  *   horizontal
  *   clickable
  *   @click="goToCases" />
+ * ```
  *
- * @example With route-based navigation (renders as <router-link>)
+ * With route-based navigation (renders as <router-link>)
+ * ```vue
  * <CnStatsBlock
  *   title="Open Cases"
  *   :count="42"
  *   :icon="BriefcaseOutline"
  *   variant="primary"
  *   :route="{ name: 'Cases', query: { status: 'open' } }" />
+ * ```
  *
- * @example With breakdown
+ * With breakdown
+ * ```vue
  * <CnStatsBlock
  *   title="Cases"
  *   :count="42"
  *   :breakdown="{ total: 100, invalid: 3, deleted: 5, published: 92 }" />
+ * ```
  *
- * @example Custom icon slot
+ * Custom icon slot
+ * ```vue
  * <CnStatsBlock title="Files" :count="128">
  *   <template #icon>
  *     <FileDocumentOutline :size="24" />
  *   </template>
  * </CnStatsBlock>
+ * ```
  */
 export default {
 	name: 'CnStatsBlock',
@@ -112,7 +123,7 @@ export default {
 		/** Label displayed next to the count */
 		countLabel: {
 			type: String,
-			default: 'objects',
+			default: () => t('nextcloud-vue', 'objects'),
 		},
 		/** Detailed breakdown object (key-value pairs) */
 		breakdown: {
@@ -127,12 +138,12 @@ export default {
 		/** Text shown while loading */
 		loadingLabel: {
 			type: String,
-			default: 'Loading...',
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 		/** Text shown when count is 0 */
 		emptyLabel: {
 			type: String,
-			default: 'No items found',
+			default: () => t('nextcloud-vue', 'No items found'),
 		},
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {
@@ -168,8 +179,8 @@ export default {
 		/**
 		 * Vue Router location object for declarative navigation.
 		 * When set, the card renders as a <router-link> and clickable styles are implied.
-		 * @example { name: 'Cases', query: { status: 'open' } }
-		 * @example { path: '/catalogi' }
+		 * { name: 'Cases', query: { status: 'open' } }
+		 * { path: '/catalogi' }
 		 */
 		route: {
 			type: Object,
@@ -266,6 +277,24 @@ export default {
 	min-width: 0;
 }
 
+/* Content */
+.cn-stats-block__content {
+	flex: 1;
+	min-width: 0;
+	text-align: center;
+}
+
+.cn-stats-block__count {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.25rem;
+	font-size: 1.2rem;
+	margin-bottom: 0.25rem;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
 .cn-stats-block--horizontal {
 	flex-direction: row;
 	align-items: center;
@@ -335,13 +364,6 @@ export default {
 	color: var(--color-element-error, var(--color-error));
 }
 
-/* Content */
-.cn-stats-block__content {
-	flex: 1;
-	min-width: 0;
-	text-align: center;
-}
-
 .cn-stats-block__header h4 {
 	margin-top: 0;
 	margin-bottom: 0.25rem;
@@ -351,17 +373,6 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.cn-stats-block__count {
-	display: flex;
-	align-items: baseline;
-	justify-content: center;
-	gap: 0.25rem;
-	font-size: 1.2rem;
-	margin-bottom: 0.25rem;
-	white-space: nowrap;
-	overflow: hidden;
 }
 
 .cn-stats-block__count-value {

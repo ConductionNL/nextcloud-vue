@@ -5,7 +5,7 @@
   based on which Nextcloud apps are installed (Talk, Mail, Calendar).
 -->
 <template>
-	<span class="cn-user-action-menu">
+	<span class="cn-user-action-menu" data-testid="cn-user-action-menu">
 		<span
 			ref="trigger"
 			class="cn-user-action-menu__trigger"
@@ -97,6 +97,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcPopover, NcActionButton, NcAvatar } from '@nextcloud/vue'
 
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
@@ -116,10 +117,12 @@ let _capabilitiesPromise = null
  * Shows contextual actions based on installed Nextcloud apps (Talk, Mail, Calendar).
  * Uses @nextcloud/capabilities when available, falls back to OCS API.
  *
- * @example Usage in notes/tasks cards
+ * Usage in notes/tasks cards
+ * ```vue
  * <CnUserActionMenu
  *   :user-id="note.actorId || note.author"
  *   :display-name="note.actorDisplayName || note.author || 'Unknown'" />
+ * ```
  */
 export default {
 	name: 'CnUserActionMenu',
@@ -143,7 +146,7 @@ export default {
 		/** The user's display name */
 		displayName: {
 			type: String,
-			default: 'Unknown',
+			default: () => t('nextcloud-vue', 'Unknown'),
 		},
 		/** Whether the menu is interactive (false for current user or system accounts) */
 		interactive: {
@@ -152,11 +155,11 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		sendMessageLabel: { type: String, default: 'Send message' },
-		startChatLabel: { type: String, default: 'Start chat' },
-		sendEmailLabel: { type: String, default: 'Send email' },
-		planMeetingLabel: { type: String, default: 'Plan meeting' },
-		noActionsLabel: { type: String, default: 'No communication apps available' },
+		sendMessageLabel: { type: String, default: () => t('nextcloud-vue', 'Send message') },
+		startChatLabel: { type: String, default: () => t('nextcloud-vue', 'Start chat') },
+		sendEmailLabel: { type: String, default: () => t('nextcloud-vue', 'Send email') },
+		planMeetingLabel: { type: String, default: () => t('nextcloud-vue', 'Schedule meeting') },
+		noActionsLabel: { type: String, default: () => t('nextcloud-vue', 'No communication apps available') },
 	},
 
 	emits: ['action'],

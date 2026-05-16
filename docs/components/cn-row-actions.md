@@ -2,11 +2,18 @@
 sidebar_position: 14
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnRowActions.md'
+
 # CnRowActions
 
 Per-row action menu for tables and cards. Renders as a `⋯` button that opens a dropdown with the configured actions. Automatically marks destructive actions (e.g., Delete) with a danger style.
 
 **Wraps**: NcActions, NcActionButton
+
+## Try it
+
+<Playground component="CnRowActions" />
 
 ![CnRowActions dropdown showing View, Edit, Copy, and Delete options for the focused row](/img/screenshots/cn-row-actions.png)
 
@@ -36,21 +43,22 @@ trigger button (last cell of every row)
 ```vue
 <CnRowActions
   :actions="[
-    { label: 'View',   icon: 'Eye',         handler: 'view' },
-    { label: 'Edit',   icon: 'Pencil',       handler: 'edit' },
-    { label: 'Copy',   icon: 'ContentCopy',  handler: 'copy' },
-    { label: 'Delete', icon: 'Delete',       handler: 'delete', destructive: true },
+    { label: 'View',   icon: EyeIcon,         handler: (row) => openDetail(row) },
+    { label: 'Edit',   icon: PencilIcon,       handler: (row) => openEditDialog(row) },
+    { label: 'Copy',   icon: ContentCopyIcon,  handler: (row) => copyRow(row) },
+    { label: 'Delete', icon: DeleteIcon,       handler: (row) => confirmDelete(row), destructive: true },
   ]"
   :row="row"
   @action="onAction" />
 ```
 
-Listen for the `action` event to handle the selected action:
+The `action` event can be used as an alternative to `handler` functions:
 
 ```js
 function onAction({ action, row }) {
-  if (action.handler === 'edit') openEditDialog(row)
-  if (action.handler === 'delete') confirmDelete(row)
+  // action is the label string of the clicked action
+  if (action === 'Edit') openEditDialog(row)
+  if (action === 'Delete') confirmDelete(row)
 }
 ```
 
@@ -67,14 +75,34 @@ function onAction({ action, row }) {
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `label` | String | ✓ | Display text for the action item |
-| `icon` | String | — | MDI icon name (e.g., `'Pencil'`) resolved via the CnIcon registry |
-| `handler` | String | ✓ | Identifier string emitted in the `action` event so the parent can switch on it |
-| `disabled` | Boolean | — | When `true`, the action item is rendered but not clickable |
-| `destructive` | Boolean | — | When `true`, renders the action in danger color and adds a divider above it |
+| `label` | String | ✓ | Display text for the action item. Also used as the `action` key in the emitted `action` event. |
+| `icon` | Object | — | Vue component to render as the icon (e.g., a vue-material-design-icons component) |
+| `handler` | Function | — | Called with the `row` value when the action is clicked: `(row) => void` |
+| `disabled` | Boolean\|Function | — | When `true`, or when a function returning `true` for the given row, the item is not clickable |
+| `visible` | Boolean\|Function | — | Controls whether the item appears in the menu at all. Omit for "always shown". Pass `false` or a function returning `false` for the row to hide it. Useful for state-dependent actions (e.g. show *Publish* only when the row is unpublished). |
+| `title` | String\|Function | — | Native tooltip shown on hover. Accepts a string or a function `(row) => string`. Useful for explaining *why* a `disabled` entry is disabled. |
+| `destructive` | Boolean | — | When `true`, renders the action in danger color |
+
+#### Conditional visibility example
+
+```vue
+<CnRowActions
+  :actions="[
+    { label: 'Publish',   icon: PublishIcon,    handler: publishRow,   visible: (row) => !row.published },
+    { label: 'Depublish', icon: PublishOffIcon, handler: depublishRow, visible: (row) =>  row.published },
+    { label: 'Delete',    icon: DeleteIcon,     handler: deleteRow,    destructive: true },
+  ]"
+  :row="row" />
+```
 
 ### Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `action` | `{ action, row }` | Emitted when an action item is clicked; `action` is the full action definition object, `row` is the value of the `row` prop |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRowActions.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnRowActions/CnRowActions.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

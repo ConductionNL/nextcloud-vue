@@ -2,9 +2,16 @@
 sidebar_position: 19
 ---
 
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnAdvancedFormDialog.md'
+
 # CnAdvancedFormDialog
 
 Create/edit dialog with a **properties table** (click-to-edit), **Data (JSON)** tab with CodeMirror, and optional **Metadata** tab. Suited for power users and complex objects. When `item` is `null` the dialog runs in create mode; when `item` is provided it runs in edit mode.
+
+## Try it
+
+<Playground component="CnAdvancedFormDialog" />
 
 **Wraps**: NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcCheckboxRadioSwitch, CodeMirror (vue-codemirror6)
 
@@ -13,7 +20,7 @@ Use **CnAdvancedFormDialog** when you need:
 - Raw JSON view and editing with validation
 - Metadata display (id, created, updated) in edit mode
 
-Use **CnFormDialog** when you need a simpler form with auto-generated fields and standard widgets (text, select, checkbox, etc.) without the table/JSON tabs.
+Use **CnFormDialog** when you need a simpler form with auto-generated fields and standard widgets (text, select, checkbox, etc.) without the table/JSON tabs. CnFormDialog also has native `json` and `code` widgets (backed by [`CnJsonViewer`](cn-json-viewer.md)) for single-field JSON/code editing — reach for those before CnAdvancedFormDialog when the richer properties table and metadata tab aren't needed.
 
 ---
 
@@ -35,7 +42,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 |------|------|---------|-------------|
 | `schema` | Object | `null` | JSON Schema used to derive property list, types, and labels (e.g. `schema.properties`, `schema.required`, `schema.title`) |
 | `item` | Object | `null` | Existing object for edit mode; `null` for create mode |
-| `dialogTitle` | String | `''` | Override dialog title; default is "Create {schemaTitle}" or "Edit {schemaTitle}" |
+| `dialogTitle` | String | `''` | Override dialog title; default is "Create \{schemaTitle\}" or "Edit \{schemaTitle\}" |
 | `nameField` | String | `'title'` | Property used as display name (e.g. in breadcrumbs or other UI) |
 | `successText` | String | `''` | Message shown in result phase on success; default "\{schemaTitle\} saved successfully." |
 | `cancelLabel` | String | `'Cancel'` | Label for cancel button in form phase |
@@ -47,7 +54,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 | `showPropertiesTable` | Boolean | `true` | Show the Properties tab |
 | `showJsonTab` | Boolean | `true` | Show the Data (JSON) tab |
 | `showMetadataTab` | Boolean | `null` | Force show/hide Metadata tab; `null` = show only when `item` is set (edit mode) |
-| `editablePropertyTypes` | Array | `null` | Schema types that are editable in the table; default `['string','number','integer','boolean']` |
+| `editablePropertyTypes` | Array | `null` | Schema types that are editable in the table; default `['string','number','integer','boolean','array','object']` |
 | `validationDisplay` | String | `'indicator'` | `'indicator'` = show validation state on rows (valid/invalid/new/warning); `'none'` = no indicator |
 | `jsonEditorDark` | Boolean | `false` | Use dark theme for the CodeMirror JSON editor |
 
@@ -66,11 +73,11 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| `#form` | formData, updateField, objectProperties, jsonData, updateJsonFromExternal, isValidJson | Replace the entire form content (all tabs). Use for fully custom UI while still using the dialog chrome and confirm/close flow. |
+| `#form` | formData, updateField, objectProperties, jsonData, updateJson, isValidJson | Replace the entire form content (all tabs). Use for fully custom UI while still using the dialog chrome and confirm/close flow. |
 | `#register-schema-selection` | proceed | Optional step before the main tabs (e.g. choose register/schema). When this slot is provided, the main tabs are not shown until the consumer calls `proceed()`. |
 | `#tab-properties` | formData, updateField, objectProperties, selectedProperty, handleRowClick, getPropertyDisplayName, getPropertyValidationClass, isPropertyEditable, validationDisplay | Override the Properties tab content. Default is the built-in properties table. |
 | `#tab-metadata` | item, formData | Override the Metadata tab content. Default is a table with ID, Created, Updated. |
-| `#tab-data` | jsonData, updateJsonFromExternal, isValid, formatJSON | Override the Data (JSON) tab content. Default is CodeMirror + "Format JSON" button. |
+| `#tab-data` | jsonData, updateJson, isValid, formatJSON | Override the Data (JSON) tab content. Default is CodeMirror + "Format JSON" button. |
 | `#actions-left` | — | Content to the left of the Cancel/Close button in the dialog footer |
 | `#actions-right` | — | Content to the right of the primary Confirm button in the dialog footer |
 
@@ -95,7 +102,7 @@ The dialog uses the same **two-phase pattern** as other CRUD dialogs: after the 
 
 ## Properties table behavior
 
-- **Editable types**: By default only `string`, `number`, `integer`, `boolean` are editable in the table; others are read-only and displayed as formatted values or JSON. Use `editablePropertyTypes` to restrict or extend.
+- **Editable types**: By default `string`, `number`, `integer`, `boolean`, `array`, and `object` are editable in the table — strings get type-specific HTML5 inputs from their `format`, arrays get a comma-separated input, and objects get a CodeMirror JSON editor. Use `editablePropertyTypes` to restrict (e.g. lock arrays and objects to read-only).
 - **Row selection**: Clicking a row selects it and shows an inline input for editable properties; clicking outside or on another row commits the value. 
   - **Exception: boolean properties** always render as a visible toggle switch — no row click is needed to activate editing.
 - **Validation**: Rows can get CSS classes for valid/invalid/new/warning when `validationDisplay === 'indicator'`. Properties with `const` or `immutable` (with existing value) are not editable and show a lock icon.
@@ -129,11 +136,52 @@ This means the directive is self-contained — it works even if the consuming ap
 
 ---
 
+## Live demo
+
+```vue
+<template>
+  <div>
+    <button @click="open = true" style="padding: 6px 16px; border-radius: 4px; background: var(--color-primary-element); color: white; border: none; cursor: pointer;">Edit contact</button>
+    <CnAdvancedFormDialog
+      v-if="open"
+      ref="dlg"
+      :schema="schema"
+      :item="item"
+      @confirm="onConfirm"
+      @close="open = false" />
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      open: false,
+      schema: {
+        title: 'Contact',
+        properties: {
+          name: { type: 'string', title: 'Name' },
+          email: { type: 'string', format: 'email', title: 'Email' },
+          notes: { type: 'string', title: 'Notes' },
+        },
+      },
+      item: { id: 1, name: 'Jane Doe', email: 'jane@example.com', notes: '' },
+    }
+  },
+  methods: {
+    async onConfirm(payload) {
+      await new Promise(r => setTimeout(r, 800))
+      this.$refs.dlg.setResult({ success: true })
+    },
+  },
+}
+</script>
+```
+
 ## Usage examples
 
 ### Standalone (emit confirm, parent saves)
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog
   ref="advancedForm"
   :schema="schema"
@@ -156,7 +204,7 @@ async onConfirm(payload) {
 
 ### With CnIndexPage (useAdvancedFormDialog)
 
-```vue
+```vue {static}
 <CnIndexPage
   title="Items"
   :schema="schema"
@@ -172,7 +220,7 @@ async onConfirm(payload) {
 
 ### Custom Properties tab
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog :schema="schema" :item="item" @confirm="onConfirm" @close="close">
   <template #tab-properties="{ formData, updateField, objectProperties }">
     <MyCustomPropertyGrid
@@ -186,11 +234,11 @@ async onConfirm(payload) {
 
 ### Full form override
 
-```vue
+```vue {static}
 <CnAdvancedFormDialog :schema="schema" :item="item" @confirm="onConfirm" @close="close">
-  <template #form="{ formData, updateField, jsonData, updateJsonFromExternal, isValidJson }">
+  <template #form="{ formData, updateField, jsonData, updateJson, isValidJson }">
     <MyCustomForm :data="formData" @update="updateField" />
-    <MyJsonEditor :value="jsonData" :valid="isValidJson" @input="updateJsonFromExternal" />
+    <MyJsonEditor :value="jsonData" :valid="isValidJson" @input="updateJson" />
   </template>
 </CnAdvancedFormDialog>
 ```
@@ -208,3 +256,9 @@ async onConfirm(payload) {
 | Best for | Simple create/edit forms | Complex objects, power users, JSON editing |
 
 Both support the same two-phase confirm/result pattern and `setResult()`.
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnAdvancedFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

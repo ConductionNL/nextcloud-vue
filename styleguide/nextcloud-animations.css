@@ -1,0 +1,35 @@
+/*!
+ * SPDX-FileCopyrightText: 2022 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * Vendored snapshot of Nextcloud server's core/css/animations.css.
+ * Source: nextcloud-docker-dev/workspace/server/core/css/animations.css
+ * Copied: 2026-05-07
+ *
+ * Provides the global @keyframes that components from @nextcloud/vue
+ * (e.g. NcLoadingIcon) reference but don't ship themselves. Without this,
+ * spinners and other animations silently fail in the styleguide because
+ * the keyframes aren't defined anywhere in the bundle.
+ *
+ * To refresh: copy from server/core/css/animations.css and update the date above.
+ */
+@-webkit-keyframes rotate {
+	from {
+		-webkit-transform: rotate(0deg);
+		transform: rotate(0deg);
+	}
+	to {
+		-webkit-transform: rotate(360deg);
+		transform: rotate(360deg);
+	}
+}
+@keyframes rotate {
+	from {
+		-webkit-transform: rotate(0deg);
+		transform: rotate(0deg);
+	}
+	to {
+		-webkit-transform: rotate(360deg);
+		transform: rotate(360deg);
+	}
+}

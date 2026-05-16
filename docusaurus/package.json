@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "prebuild:docs": "vue-docgen --configFile docgen.config.js",
+    "prestart": "npm run prebuild:docs",
+    "prebuild": "npm run prebuild:docs",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
@@ -15,6 +18,7 @@
     "ci": "npm ci --legacy-peer-deps && npm run build"
   },
   "dependencies": {
+    "@conduction/docusaurus-preset": "^2.6.1",
     "@docusaurus/core": "^3.7.0",
     "@docusaurus/preset-classic": "^3.7.0",
     "@docusaurus/theme-mermaid": "^3.7.0",
@@ -25,7 +29,8 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.7.0"
+    "@docusaurus/module-type-aliases": "^3.7.0",
+    "vue-docgen-cli": "^4.79.0"
   },
   "browserslist": {
     "production": [

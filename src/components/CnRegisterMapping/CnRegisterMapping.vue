@@ -68,6 +68,7 @@
 						:value="selectedRegister(groupIdx)"
 						:options="registerSelectOptions"
 						:placeholder="labels.selectRegister"
+						:input-label="labels.register"
 						:loading="registersLoading"
 						label="label"
 						track-by="value"
@@ -120,6 +121,7 @@
 									:value="selectedSchema(groupIdx, type)"
 									:options="schemaSelectOptions(groupIdx)"
 									:placeholder="labels.selectSchema"
+									:input-label="labels.schema"
 									label="label"
 									track-by="value"
 									@input="handleSchemaChange(groupIdx, type, $event)" />
@@ -150,6 +152,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
@@ -166,7 +169,8 @@ import { buildHeaders } from '../../utils/headers.js'
  * Supports multiple register groups (stacked sections) with expandable
  * type rows for manual schema override.
  *
- * @example Single register (Pipelinq)
+ * Single register (Pipelinq)
+ * ```vue
  * <CnRegisterMapping
  *   name="Register Configuration"
  *   :groups="[{
@@ -180,8 +184,10 @@ import { buildHeaders } from '../../utils/headers.js'
  *   :show-reimport-button="true"
  *   @save="saveConfig"
  *   @reimport="reimport" />
+ * ```
  *
- * @example Multi-register (SoftwareCatalog)
+ * Multi-register (SoftwareCatalog)
+ * ```vue
  * <CnRegisterMapping
  *   :groups="[
  *     { name: 'Voorzieningen', registerConfigKey: 'voorzieningen_register', types: [...] },
@@ -189,6 +195,7 @@ import { buildHeaders } from '../../utils/headers.js'
  *   ]"
  *   :configuration="config"
  *   @save="saveConfig" />
+ * ```
  */
 export default {
 	name: 'CnRegisterMapping',
@@ -209,12 +216,12 @@ export default {
 		/** Section title */
 		name: {
 			type: String,
-			default: 'Register Configuration',
+			default: () => t('nextcloud-vue', 'Register configuration'),
 		},
 		/** Section description */
 		description: {
 			type: String,
-			default: 'Configure OpenRegister schema mappings for your object types',
+			default: () => t('nextcloud-vue', 'Configure OpenRegister schema mappings for your object types'),
 		},
 		/** Documentation URL */
 		docUrl: {
@@ -223,7 +230,7 @@ export default {
 		},
 		/**
 		 * Groups of object types that share a register.
-		 * @type {Array<{ name: string, description?: string, registerConfigKey?: string, types: Array<{ slug: string, label: string, description?: string, configKey?: string }> }>}
+		 * @type {Array<{ name: string, description: string, registerConfigKey: string, types: Array<{ slug: string, label: string, description: string, configKey: string }> }>}
 		 */
 		groups: {
 			type: Array,
@@ -259,12 +266,12 @@ export default {
 		/** Save button text */
 		saveButtonText: {
 			type: String,
-			default: 'Save Configuration',
+			default: () => t('nextcloud-vue', 'Save configuration'),
 		},
 		/** Reimport button text */
 		reimportButtonText: {
 			type: String,
-			default: 'Re-import configuration',
+			default: () => t('nextcloud-vue', 'Re-import configuration'),
 		},
 		/** Auto-match schema titles to type slugs on register change */
 		autoMatch: {
@@ -275,15 +282,15 @@ export default {
 		labels: {
 			type: Object,
 			default: () => ({
-				register: 'Register',
-				schema: 'Schema',
-				configured: 'Configured',
-				notConfigured: 'Not configured',
-				noSchemas: 'No schemas available in this register',
-				selectRegister: 'Select a register',
-				selectSchema: 'Select a schema',
-				allConfigured: 'All types configured',
-				partiallyConfigured: 'configured',
+				register: t('nextcloud-vue', 'Register'),
+				schema: t('nextcloud-vue', 'Schema'),
+				configured: t('nextcloud-vue', 'Configured'),
+				notConfigured: t('nextcloud-vue', 'Not configured'),
+				noSchemas: t('nextcloud-vue', 'No schemas available in this register'),
+				selectRegister: t('nextcloud-vue', 'Select a register'),
+				selectSchema: t('nextcloud-vue', 'Select a schema'),
+				allConfigured: t('nextcloud-vue', 'All types configured'),
+				partiallyConfigured: t('nextcloud-vue', 'configured'),
 			}),
 		},
 	},

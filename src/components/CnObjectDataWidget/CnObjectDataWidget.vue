@@ -219,6 +219,7 @@
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -234,7 +235,8 @@ import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
  * as a label-value cell. Editable cells can be clicked to switch to inline editing.
  * Uses the objectStore to persist changes.
  *
- * @example Basic usage
+ * Basic usage
+ * ```vue
  * <CnObjectDataWidget
  *   title="Character Info"
  *   :schema="schema"
@@ -246,13 +248,16 @@ import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
  *     status: { order: 3 },
  *     internalId: { hidden: true },
  *   }" />
+ * ```
  *
- * @example Read-only mode
+ * Read-only mode
+ * ```vue
  * <CnObjectDataWidget
  *   title="Summary"
  *   :schema="schema"
  *   :object-data="item"
  *   :editable="false" />
+ * ```
  */
 export default {
 	name: 'CnObjectDataWidget',
@@ -274,7 +279,7 @@ export default {
 		/** Widget title shown in the card header */
 		title: {
 			type: String,
-			default: 'Data',
+			default: () => t('nextcloud-vue', 'Data'),
 		},
 		/** Optional MDI icon component for the header */
 		icon: {
@@ -325,8 +330,7 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
-		 *
-		 * @type {Object<string, { order?: number, gridColumn?: number, gridRow?: number, hidden?: boolean, editable?: boolean, label?: string, widget?: string }>}
+		 * @type {object}
 		 */
 		overrides: {
 			type: Object,
@@ -366,17 +370,17 @@ export default {
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
-			default: 'Save',
+			default: () => t('nextcloud-vue', 'Save'),
 		},
 		/** Label for the discard button */
 		discardLabel: {
 			type: String,
-			default: 'Discard',
+			default: () => t('nextcloud-vue', 'Discard'),
 		},
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
-			default: 'No data available',
+			default: () => t('nextcloud-vue', 'No data available'),
 		},
 	},
 
@@ -502,7 +506,7 @@ export default {
 	methods: {
 		/**
 		 * Check if a field is editable.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
 			if (!this.editable) return false
@@ -517,7 +521,7 @@ export default {
 
 		/**
 		 * Check if a field's current value is empty.
-		 * @param key
+		 * @param {string} key - Field key to check
 		 */
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
@@ -528,7 +532,7 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
-		 * @param field
+		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		startEdit(field) {
 			// Set working value: dirty value > current object value
@@ -555,8 +559,8 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
-		 * @param key
-		 * @param value
+		 * @param {string} key - Field key to update
+		 * @param {*} value - New value for the field
 		 */
 		updateField(key, value) {
 			this.editData = { ...this.editData, [key]: value }
@@ -662,7 +666,7 @@ export default {
 
 		/**
 		 * Compute CSS grid placement for a field cell.
-		 * @param field
+		 * @param {object} field - The field configuration object.
 		 */
 		cellStyle(field) {
 			const style = {}
@@ -680,7 +684,7 @@ export default {
 		/**
 		 * Normalize an option to { id, label } format.
 		 * Accepts plain strings or objects with id/label properties.
-		 * @param val
+		 * @param {string|object} val - Raw option value to normalize.
 		 */
 		_normalizeOption(val) {
 			if (val && typeof val === 'object' && val.id !== undefined) {

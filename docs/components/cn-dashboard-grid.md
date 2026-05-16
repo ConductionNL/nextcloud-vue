@@ -1,3 +1,6 @@
+import Playground from '@site/src/components/Playground'
+import GeneratedRef from './_generated/CnDashboardGrid.md'
+
 # CnDashboardGrid
 
 Low-level drag-and-drop grid layout engine powered by [GridStack](https://gridstackjs.com/). Manages widget placement, drag, and resize interactions and emits layout changes for persistence. Does **not** handle widget rendering — the parent provides content via the `#widget` scoped slot.
@@ -5,6 +8,10 @@ Low-level drag-and-drop grid layout engine powered by [GridStack](https://gridst
 Used internally by `CnDashboardPage`. Only use this directly if you need fine-grained control over the grid without the full dashboard page shell.
 
 **Requires**: `gridstack` (bundled dependency)
+
+## Try it
+
+<Playground component="CnDashboardGrid" />
 
 ## Usage
 
@@ -57,3 +64,9 @@ function onLayoutChange(updated) {
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `widget` | `{ item }` | Content to render inside each grid cell; `item` is the layout object |
+
+## Reference (auto-generated)
+
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardGrid/CnDashboardGrid.vue) and update automatically whenever the component changes.
+
+<GeneratedRef />

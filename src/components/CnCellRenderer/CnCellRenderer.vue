@@ -1,7 +1,50 @@
 <template>
 	<span class="cn-cell-renderer" :class="cellClass">
+		<!-- Consumer-registered cell widget (cnCellWidgets[column.widget]) -->
+		<component
+			:is="widgetComponent"
+			v-if="widgetComponent"
+			:value="value"
+			:row="row"
+			:property="property"
+			:formatted="formattedValue"
+			v-bind="widgetProps" />
+
+		<!-- Built-in "badge" widget — renders the (possibly formatter-shaped) value as a status pill -->
+		<template v-else-if="widget === 'badge'">
+			<CnStatusBadge v-if="hasValue" :label="String(formattedValue)" :variant="badgeVariant" />
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
+		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
+		     as a router-link (when widgetProps.route is a manifest page id) or an
+		     external anchor (when widgetProps.href is set). Falls back to plain
+		     text + a once-per-session console.warn when neither resolves. -->
+		<template v-else-if="widget === 'link'">
+			<router-link
+				v-if="linkRoute"
+				:to="linkRoute"
+				class="cn-cell-renderer__link">
+				{{ formattedValue }}
+			</router-link>
+			<a
+				v-else-if="linkHref"
+				:href="linkHref"
+				target="_blank"
+				rel="noopener"
+				class="cn-cell-renderer__link">
+				{{ formattedValue }}
+			</a>
+			<span v-else :title="rawTitle">{{ formattedValue }}</span>
+		</template>
+
+		<!-- Explicit column formatter — overrides the type-aware paths below -->
+		<template v-else-if="hasFormatter">
+			<span :title="rawTitle">{{ formattedValue }}</span>
+		</template>
+
 		<!-- Boolean: icon -->
-		<template v-if="propertyType === 'boolean'">
+		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
@@ -33,14 +76,22 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 
 /**
+ * Module-level set of column keys already warned about for a
+ * `widget:"link"` declaration with no resolvable target — guarantees
+ * one warning per (page, column-key) rather than per row × render.
+ */
+const WARNED_LINK_KEYS = new Set()
+
+/**
  * CnCellRenderer — Type-aware cell renderer for schema-driven tables.
  *
  * Renders a single cell value based on its schema property definition.
  * Booleans render as icons, enums as status badges, dates as formatted strings,
  * and everything else as truncated text via `formatValue()`.
  *
- * @example
+ * ```vue
  * <CnCellRenderer :value="row.status" :property="schema.properties.status" />
+ * ```
  */
 export default {
 	name: 'CnCellRenderer',
@@ -48,6 +99,23 @@ export default {
 	components: {
 		CnStatusBadge,
 		CheckBold,
+	},
+
+	inject: {
+		/**
+		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
+		 * Map of formatter-id → `(value, row, property) => string|number`.
+		 * Defaults to an empty object so standalone use (no CnAppRoot
+		 * ancestor) is unaffected.
+		 */
+		cnFormatters: { default: () => ({}) },
+		/**
+		 * Cell-widget registry, provided by CnAppRoot (`cnCellWidgets`).
+		 * Map of widget-id → Vue component. Resolves a column's `widget` id;
+		 * the built-in `"badge"` is handled inline (no registry entry needed).
+		 * Defaults to an empty object.
+		 */
+		cnCellWidgets: { default: () => ({}) },
 	},
 
 	props: {
@@ -61,10 +129,57 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
+		 * When set and resolvable in the injected `cnFormatters` registry,
+		 * the cell renders `cnFormatters[formatter](value, row, property)`
+		 * as text — an explicit override of the type-aware rendering below.
+		 */
+		formatter: {
+			type: String,
+			default: null,
+		},
+		/**
+		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
+		 * name). When it resolves in `cnCellWidgets` the cell renders that
+		 * component with `{ value, row, property, formatted, ...widgetProps }`;
+		 * the built-in id `"badge"` renders `CnStatusBadge`. Takes precedence
+		 * over `formatter`/the type-aware rendering, but the value handed to
+		 * the widget is the formatter-shaped `formatted` when `formatter` is
+		 * also set.
+		 */
+		widget: {
+			type: String,
+			default: null,
+		},
+		/** Extra props spread onto the resolved cell-widget component. */
+		widgetProps: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * The full row object — passed so a formatter can be a function of
+		 * the whole record (e.g. "days since `@self.updated`"), not just
+		 * this one cell value.
+		 */
+		row: {
+			type: Object,
+			default: () => ({}),
+		},
 		/** Maximum string length before truncation */
 		truncate: {
 			type: Number,
 			default: 100,
+		},
+		/**
+		 * Row identifier field — used by the built-in `widget:"link"` when
+		 * the manifest doesn't specify an explicit `widgetProps.params`
+		 * map. Defaults to `'id'` so router-link param resolution works
+		 * with the manifest convention (`/x/:id`).
+		 */
+		rowKey: {
+			type: String,
+			default: 'id',
 		},
 	},
 
@@ -77,7 +192,96 @@ export default {
 			return !!(this.property?.enum && this.property.enum.length > 0)
 		},
 
+		/** True when the cell has a renderable value (not null/undefined/empty string). */
+		hasValue() {
+			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * Resolved cell-widget component for this column, or `null`. A column's
+		 * `widget` id resolves against the injected `cnCellWidgets` registry;
+		 * the built-in `"badge"` is NOT resolved here (handled inline in the
+		 * template) so apps can still override `"badge"` via the registry.
+		 *
+		 * @return {object|Function|null}
+		 */
+		widgetComponent() {
+			if (!this.widget) return null
+			const c = this.cnCellWidgets && this.cnCellWidgets[this.widget]
+			return c || null
+		},
+
+		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
+		badgeVariant() {
+			return (this.widgetProps && this.widgetProps.variant) || 'default'
+		},
+
+		/**
+		 * Resolved router-link target for the built-in `widget:"link"`. When
+		 * `widgetProps.route` is set (a manifest page id), returns
+		 * `{ name: route, params }`. Param map is `widgetProps.params`
+		 * (a map of route-param-name → row-field-name); when omitted,
+		 * defaults to `{ id: row[rowKey] }`. Returns null when `route`
+		 * isn't set (the template falls through to `linkHref` or plain
+		 * text).
+		 *
+		 * @return {object|null}
+		 */
+		linkRoute() {
+			if (this.widget !== 'link') return null
+			const route = this.widgetProps && this.widgetProps.route
+			if (!route) return null
+			const paramMap = (this.widgetProps && this.widgetProps.params)
+				|| { id: this.rowKey || 'id' }
+			const params = {}
+			for (const [routeParam, rowField] of Object.entries(paramMap)) {
+				params[routeParam] = this.row && this.row[rowField]
+			}
+			return { name: route, params }
+		},
+
+		/**
+		 * Resolved external href for the built-in `widget:"link"` when
+		 * `widgetProps.href` is set. `{key}` placeholders in the href
+		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
+		 * → `"/x/42"`). Returns null when `href` isn't set.
+		 *
+		 * @return {string|null}
+		 */
+		linkHref() {
+			if (this.widget !== 'link') return null
+			const href = this.widgetProps && this.widgetProps.href
+			if (!href) return null
+			return String(href).replace(/\{(\w+)\}/g, (_, key) =>
+				this.row && this.row[key] != null ? String(this.row[key]) : '',
+			)
+		},
+
+		/**
+		 * Resolved formatter function for this cell, or `null`. A column's
+		 * `formatter` id resolves against the injected `cnFormatters` registry.
+		 *
+		 * @return {Function|null}
+		 */
+		formatterFn() {
+			const fn = this.formatter && this.cnFormatters && this.cnFormatters[this.formatter]
+			return typeof fn === 'function' ? fn : null
+		},
+
+		/** True when an explicit formatter is in play for this cell. */
+		hasFormatter() {
+			return this.formatterFn !== null
+		},
+
 		formattedValue() {
+			if (this.formatterFn) {
+				try {
+					return this.formatterFn(this.value, this.row, this.property)
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
+				}
+			}
 			return formatValue(this.value, this.property, { truncate: this.truncate })
 		},
 
@@ -103,6 +307,27 @@ export default {
 			}
 			return classes
 		},
+	},
+
+	mounted() {
+		// Warn once per column-property-name when `widget:"link"` resolves
+		// to neither a `route` nor an `href` — silent fallback hides
+		// manifest mistakes, an every-row warn is too noisy.
+		if (
+			this.widget === 'link'
+			&& !this.linkRoute
+			&& !this.linkHref
+			&& this.widgetProps?.fallback !== 'silent'
+		) {
+			const key = this.property?.title || String(this.value).slice(0, 20)
+			if (!WARNED_LINK_KEYS.has(key)) {
+				WARNED_LINK_KEYS.add(key)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`,
+				)
+			}
+		}
 	},
 }
 </script>

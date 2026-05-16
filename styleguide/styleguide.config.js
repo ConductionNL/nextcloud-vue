@@ -1,0 +1,384 @@
+const path = require('path')
+const fs = require('fs')
+const webpack = require('webpack')
+const { VueLoaderPlugin } = require('vue-loader')
+
+// Root of the library — one level up from this styleguide/ directory
+const ROOT = path.resolve(__dirname, '..')
+
+module.exports = {
+	title: '@conduction/nextcloud-vue',
+	version: require('../package.json').version,
+
+	components: `${ROOT}/src/components/**/*.vue`,
+
+	styleguideComponents: {
+		Logo: path.join(__dirname, 'components/LogoRenderer.js'),
+	},
+
+	getExampleFilename(componentPath) {
+		const name = path.basename(componentPath, '.vue')
+		const kebab = name.replace(/([A-Z])/g, (_, l, offset) => (offset > 0 ? '-' : '') + l.toLowerCase())
+		const docsRoot = path.resolve(__dirname, '../docs')
+
+		// Co-located example file takes priority — pure live demos, no narrative prose
+		const colocated = path.join(path.dirname(componentPath), `${name}.md`)
+		if (fs.existsSync(colocated)) return colocated
+
+		// docs/components/ is the fallback for components without a co-located example
+		const inComponents = path.join(docsRoot, 'components', `${kebab}.md`)
+		if (fs.existsSync(inComponents)) return inComponents
+
+		// Last resort: recursive search across all docs/ subdirectories
+		const findInDir = (dir) => {
+			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+				const full = path.join(dir, entry.name)
+				if (entry.isDirectory()) {
+					const found = findInDir(full)
+					if (found) return found
+				} else if (entry.name === `${kebab}.md`) {
+					return full
+				}
+			}
+			return null
+		}
+
+		return findInDir(docsRoot) || inComponents
+	},
+
+	template: {
+        head: {
+            raw: `<script>
+                window.OC = { config: { version: '30.0.0' } };
+                window.appName = 'nextcloud-vue-styleguide';
+            </script>`,
+        },
+    },
+
+	usageMode: 'collapse',
+	exampleMode: 'collapse',
+	pagePerSection: true,
+
+	/* Buble (the live-example transpiler) config. Two transforms are
+	   left unimplemented (`asyncAwait`, `moduleExport`) so buble
+	   passes the source straight through without trying to translate
+	   modern syntax it doesn't fully support:
+	     - asyncAwait: false  — buble's translation drops generator
+	       semantics; modern browsers run async/await natively, no
+	       need to transpile.
+	     - moduleExport: false — buble fails any `<script>` block
+	       containing `export default { … }` with "Transforming export
+	       is not implemented". Component .md examples have used the
+	       `<script>export default {…}</script>` pattern since day
+	       one; webpack picks the export up downstream. */
+	compilerConfig: {
+		objectAssign: 'Object.assign',
+		transforms: {
+			asyncAwait: false,
+			moduleExport: false,
+		},
+	},
+
+	// Build output — relative to this styleguide/ directory
+	styleguideDir: 'build',
+
+	// Run the setup script before every example sandbox
+	require: [
+		path.join(__dirname, 'setup.js'),
+		path.join(__dirname, 'nextcloud-tokens.css'),
+		path.join(__dirname, 'nextcloud-animations.css'),
+		path.join(__dirname, 'nextcloud-globals.css'),
+		path.join(__dirname, 'theme.css'),
+	],
+
+	// Webpack overrides
+	webpackConfig: {
+		devServer: {
+			// Serve static files (favicon.ico, etc.) from this directory
+			contentBase: path.join(__dirname),
+		},
+		module: {
+			rules: [
+				{
+					test: /\.vue$/,
+					loader: 'vue-loader',
+				},
+				{
+					// webpack 4 does not understand .mjs (ES module) files by default.
+					// Mark them as plain JS so webpack stops complaining about module type.
+					test: /\.(mjs|cjs)$/,
+					include: /node_modules/,
+					type: 'javascript/auto',
+				},
+				{
+					test: /\.(js|mjs|cjs)$/,
+					exclude: /node_modules\/(?!(@nextcloud|unified|vfile|lowlight|mdast-util|hast-util|unist-util|remark|rehype|micromark|decode-named-character-reference|bail|is-plain-obj|trim|trough|vfile-message|property-information|vue-codemirror6|codemirror|@codemirror|@lezer|gridstack|axios))/,
+					use: {
+						loader: 'babel-loader',
+						options: {
+							presets: [
+								['@babel/preset-env', {
+									targets: { chrome: '70' },
+									bugfixes: true,
+								}],
+							],
+							plugins: [
+								'@babel/plugin-proposal-optional-chaining',
+								'@babel/plugin-proposal-nullish-coalescing-operator',
+							],
+							cacheDirectory: true,
+						},
+					},
+				},
+				{
+					test: /\.css$/,
+					use: ['style-loader', 'css-loader'],
+				},
+				{
+					test: /\.scss$/,
+					use: [
+						'style-loader',
+						'css-loader',
+						'sass-loader',
+					],
+				},
+				{
+					test: /\.postcss$/,
+					use: ['style-loader', 'css-loader'],
+				},
+			],
+		},
+		plugins: [
+			new VueLoaderPlugin(),
+			// @nextcloud/vue reads `appName` and `appVersion` as bare webpack globals.
+			// Without these, it logs errors and falls back to "missing-app-name".
+			new webpack.DefinePlugin({
+				appName: JSON.stringify('nextcloud-vue-styleguide'),
+				appVersion: JSON.stringify(require('../package.json').version),
+			}),
+		],
+		resolve: {
+			// Force all module imports to resolve from the styleguide's own
+			// node_modules first, falling back to the root node_modules.
+			// This ensures a single Vue instance is used throughout.
+			modules: [
+				path.join(__dirname, 'node_modules'),
+				path.join(ROOT, 'node_modules'),
+			],
+			extensions: ['.mjs', '.vue', '.json', '.js'],
+			mainFields: ['browser', 'main', 'module'],
+			symlinks: false,
+			alias: {
+				// Pin vue to a single instance so vue-styleguidist and the
+				// components share the same Vue runtime.
+				// Use the full build (compiler + runtime) so examples that omit
+				// an explicit <template> wrapper can be compiled on the fly.
+				vue$: path.join(__dirname, 'node_modules/vue/dist/vue.common.js'),
+				// Allow docs examples to import from the library by package name.
+				'@conduction/nextcloud-vue': path.resolve(ROOT, 'src/index.js'),
+				'@nextcloud/sharing/public': path.resolve(__dirname, 'mocks/empty.js'),
+				// webpack 4 cannot resolve "exports" subpath maps; and the real impl crashes without
+				// Nextcloud globals. Stub returns original strings untranslated.
+				'@nextcloud/l10n/gettext': path.resolve(__dirname, 'mocks/l10n-gettext.js'),
+				// Stub the full l10n package — the real impl reads Nextcloud globals
+				// (document.documentElement.dataset.locale etc.) that don't exist in the
+				// styleguide and causes crashes when first loaded by Data Display components.
+				'@nextcloud/l10n': path.resolve(__dirname, 'mocks/l10n.js'),
+				'@nextcloud/dialogs': path.resolve(__dirname, 'mocks/empty.js'),
+				// p-queue 7+ only ships an "exports" map with no "main" field;
+				// webpack 4 doesn't understand "exports", so we point it directly.
+				'p-queue': path.resolve(__dirname, 'node_modules/p-queue/dist/index.js'),
+				// @nextcloud/notify_push@1.x ships only `exports.import` (no `main` /
+				// `module`); webpack 4 can't resolve it. Live updates aren't
+				// functional in the styleguide sandbox anyway (no Nextcloud server
+				// to connect to), so point it at the package's dist file directly
+				// — components that bundle the live-updates plugin still build, and
+				// the listen() call no-ops harmlessly when there's no server.
+				'@nextcloud/notify_push': path.resolve(__dirname, 'node_modules/@nextcloud/notify_push/dist/index.js'),
+				// marked@15 uses optional-chaining (`cells.at(-1)?.trim()`)
+				// which webpack 4's parser doesn't recognise; node_modules
+				// isn't transpiled by babel-loader in this config. Markdown
+				// rendering only matters inside CnWikiPage at runtime in a
+				// real Nextcloud server — the styleguide demo just needs
+				// the component to mount, so a no-op stub keeps the build
+				// green. Sites consuming the lib pull marked from the lib
+				// root's package.json normally.
+				marked: path.resolve(__dirname, 'mocks/empty.js'),
+				'#minpath': require.resolve('path-browserify'),
+				'#minurl': require.resolve('url/'),
+				// #minproc uses a package "imports" map that webpack 4 doesn't support;
+				// point it at the browser stub directly.
+				'#minproc': path.resolve(__dirname, 'node_modules/vfile/lib/minproc.browser.js'),
+				// devlop uses an "exports" map with a "development" condition that
+				// webpack 4 ignores; point it at the production no-op entry directly.
+				devlop: path.resolve(__dirname, 'node_modules/devlop/lib/default.js'),
+				// unist-util-visit-parents exports `color` via a sub-path that webpack 4
+				// can't resolve from the "exports" map; use the source file directly.
+				'unist-util-visit-parents/do-not-use-color': path.resolve(__dirname, 'node_modules/unist-util-visit-parents/lib/color.js'),
+			},
+		},
+	},
+
+	// Component sections — matches the taxonomy in CLAUDE.md
+	sections: [
+		{
+			name: 'Introduction',
+			content: path.join(__dirname, 'Introduction.md'),
+		},
+		{
+			name: 'UI Atoms',
+			description: 'Small building blocks used throughout the library.',
+			components: [
+				`${ROOT}/src/components/CnIcon/CnIcon.vue`,
+				`${ROOT}/src/components/CnStatusBadge/CnStatusBadge.vue`,
+				`${ROOT}/src/components/CnProgressBar/CnProgressBar.vue`,
+				`${ROOT}/src/components/CnCellRenderer/CnCellRenderer.vue`,
+				`${ROOT}/src/components/CnRowActions/CnRowActions.vue`,
+				`${ROOT}/src/components/CnContextMenu/CnContextMenu.vue`,
+			],
+		},
+		{
+			name: 'Data Display',
+			description: 'Components for showing lists, tables, and structured data.',
+			components: [
+				`${ROOT}/src/components/CnDetailGrid/CnDetailGrid.vue`,
+				`${ROOT}/src/components/CnDataTable/CnDataTable.vue`,
+				`${ROOT}/src/components/CnCardGrid/CnCardGrid.vue`,
+				`${ROOT}/src/components/CnObjectCard/CnObjectCard.vue`,
+				`${ROOT}/src/components/CnFilterBar/CnFilterBar.vue`,
+				`${ROOT}/src/components/CnFacetSidebar/CnFacetSidebar.vue`,
+				`${ROOT}/src/components/CnPagination/CnPagination.vue`,
+				`${ROOT}/src/components/CnKpiGrid/CnKpiGrid.vue`,
+				`${ROOT}/src/components/CnStatsPanel/CnStatsPanel.vue`,
+				`${ROOT}/src/components/CnStatsBlock/CnStatsBlock.vue`,
+			],
+		},
+		{
+			name: 'Cards',
+			description: 'Card containers for settings and detail sections.',
+			components: [
+				`${ROOT}/src/components/CnDetailCard/CnDetailCard.vue`,
+				`${ROOT}/src/components/CnCard/CnCard.vue`,
+				`${ROOT}/src/components/CnNoteCard/CnNoteCard.vue`,
+				`${ROOT}/src/components/CnSettingsCard/CnSettingsCard.vue`,
+				`${ROOT}/src/components/CnConfigurationCard/CnConfigurationCard.vue`,
+				`${ROOT}/src/components/CnVersionInfoCard/CnVersionInfoCard.vue`,
+			],
+		},
+		{
+			name: 'Navigation',
+			description: 'Page headers, action bars, and navigation components.',
+			components: [
+				`${ROOT}/src/components/CnPageHeader/CnPageHeader.vue`,
+				`${ROOT}/src/components/CnActionsBar/CnActionsBar.vue`,
+				`${ROOT}/src/components/CnMassActionBar/CnMassActionBar.vue`,
+				`${ROOT}/src/components/CnIndexSidebar/CnIndexSidebar.vue`,
+			],
+		},
+		{
+			name: 'Dialogs',
+			description: 'Single-object and mass-action dialog components.',
+			components: [
+				`${ROOT}/src/components/CnDeleteDialog/CnDeleteDialog.vue`,
+				`${ROOT}/src/components/CnCopyDialog/CnCopyDialog.vue`,
+				`${ROOT}/src/components/CnFormDialog/CnFormDialog.vue`,
+				`${ROOT}/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue`,
+				`${ROOT}/src/components/CnSchemaFormDialog/CnSchemaFormDialog.vue`,
+				`${ROOT}/src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue`,
+				`${ROOT}/src/components/CnMassCopyDialog/CnMassCopyDialog.vue`,
+				`${ROOT}/src/components/CnMassExportDialog/CnMassExportDialog.vue`,
+				`${ROOT}/src/components/CnMassImportDialog/CnMassImportDialog.vue`,
+			],
+		},
+		{
+			name: 'Viewers & Editors',
+			description: 'Code/JSON viewing and color picking.',
+			components: [
+				`${ROOT}/src/components/CnJsonViewer/CnJsonViewer.vue`,
+				`${ROOT}/src/components/CnColorPicker/CnColorPicker.vue`,
+			],
+		},
+		{
+			name: 'Object Widgets',
+			description: 'Editable and read-only widgets for individual OpenRegister objects.',
+			components: [
+				`${ROOT}/src/components/CnObjectDataWidget/CnObjectDataWidget.vue`,
+				`${ROOT}/src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue`,
+			],
+		},
+		{
+			name: 'Dashboard',
+			description: 'Dashboard page and widget components.',
+			components: [
+				`${ROOT}/src/components/CnDashboardPage/CnDashboardPage.vue`,
+				`${ROOT}/src/components/CnDashboardGrid/CnDashboardGrid.vue`,
+				`${ROOT}/src/components/CnWidgetWrapper/CnWidgetWrapper.vue`,
+				`${ROOT}/src/components/CnWidgetRenderer/CnWidgetRenderer.vue`,
+				`${ROOT}/src/components/CnTileWidget/CnTileWidget.vue`,
+				`${ROOT}/src/components/CnChartWidget/CnChartWidget.vue`,
+				`${ROOT}/src/components/CnWidgetRefItem/CnWidgetRefItem.vue`,
+			],
+		},
+		{
+			name: 'Full Pages',
+			description: 'Top-level page components — the starting point for most views.',
+			components: [
+				`${ROOT}/src/components/CnIndexPage/CnIndexPage.vue`,
+				`${ROOT}/src/components/CnDetailPage/CnDetailPage.vue`,
+			],
+		},
+		{
+			name: 'App Shell',
+			description: 'Manifest-driven app shell components.',
+			components: [
+				`${ROOT}/src/components/CnAppRoot/CnAppRoot.vue`,
+				`${ROOT}/src/components/CnAppNav/CnAppNav.vue`,
+				`${ROOT}/src/components/CnPageRenderer/CnPageRenderer.vue`,
+				`${ROOT}/src/components/CnAppLoading/CnAppLoading.vue`,
+				`${ROOT}/src/components/CnDependencyMissing/CnDependencyMissing.vue`,
+			],
+		},
+		{
+			name: 'Settings',
+			description: 'Components for settings and configuration pages.',
+			components: [
+				`${ROOT}/src/components/CnSettingsSection/CnSettingsSection.vue`,
+				`${ROOT}/src/components/CnRegisterMapping/CnRegisterMapping.vue`,
+			],
+		},
+		{
+			name: 'Specialized',
+			description: 'Purpose-built components for specific use cases.',
+			components: [
+				`${ROOT}/src/components/CnTimelineStages/CnTimelineStages.vue`,
+				`${ROOT}/src/components/CnUserActionMenu/CnUserActionMenu.vue`,
+				`${ROOT}/src/components/CnObjectSidebar/CnObjectSidebar.vue`,
+			],
+		},
+	],
+
+	// Component-level style overrides — feeds into the same CSS-in-JS pipeline
+	// so styleguidist applies generated class names to elements (thead, th, td).
+	styles: require('./styles'),
+
+	// Theming — references the Nextcloud CSS variables defined in nextcloud-tokens.css
+	theme: {
+		maxWidth: 900,
+		sidebarWidth: 280,
+		spaceFactor: 20,
+		borderRadius: 8,
+		color: {
+			link: '#0082c9',
+			linkHover: '#0082c9',
+			sidebarBackground: '#ffffff',
+			ribbonBackground: 'var(--color-primary)',
+			errorBackground: 'var(--color-element-error)',
+			border: '#e8e8e8',
+		},
+		fontFamily: {
+			base: 'var(--font-face)',
+		},
+	},
+
+	skipComponentsWithoutExample: false,
+}

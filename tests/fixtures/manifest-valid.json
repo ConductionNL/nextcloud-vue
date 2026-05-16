@@ -1,0 +1,88 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+	"version": "1.0.0",
+	"dependencies": ["openregister"],
+	"menu": [
+		{
+			"id": "decisions",
+			"label": "myapp.menu.decisions",
+			"icon": "icon-checkmark",
+			"route": "decisions-index",
+			"order": 10
+		},
+		{
+			"id": "configuration",
+			"label": "myapp.menu.configuration",
+			"icon": "icon-settings",
+			"order": 90,
+			"children": [
+				{ "id": "users", "label": "myapp.menu.users", "route": "users-index" },
+				{ "id": "audit", "label": "myapp.menu.audit", "route": "audit-index", "permission": "admin" }
+			]
+		},
+		{
+			"id": "settings",
+			"label": "myapp.menu.settings",
+			"icon": "icon-settings",
+			"route": "settings",
+			"order": 99
+		}
+	],
+	"pages": [
+		{
+			"id": "decisions-index",
+			"route": "/decisions",
+			"type": "index",
+			"title": "myapp.decisions.title",
+			"config": {
+				"register": "decisions",
+				"schema": "decision",
+				"columns": ["title", "status", "deadline"]
+			}
+		},
+		{
+			"id": "decisions-detail",
+			"route": "/decisions/:id",
+			"type": "detail",
+			"title": "myapp.decisions.detail",
+			"config": {
+				"register": "decisions",
+				"schema": "decision"
+			}
+		},
+		{
+			"id": "users-index",
+			"route": "/users",
+			"type": "index",
+			"title": "myapp.users.title",
+			"config": { "register": "users", "schema": "user" }
+		},
+		{
+			"id": "audit-index",
+			"route": "/audit",
+			"type": "index",
+			"title": "myapp.audit.title",
+			"config": { "register": "audit", "schema": "audit-event" }
+		},
+		{
+			"id": "overview",
+			"route": "/",
+			"type": "dashboard",
+			"title": "myapp.overview.title",
+			"config": {
+				"widgets": [
+					{ "id": "kpis", "title": "KPIs", "type": "custom" },
+					{ "id": "chart", "title": "Trends", "type": "custom" }
+				],
+				"layout": []
+			}
+		},
+		{
+			"id": "settings",
+			"route": "/settings",
+			"type": "custom",
+			"title": "myapp.settings.title",
+			"component": "SettingsPage"
+		}
+	]
+}
