@@ -244,6 +244,12 @@ export function useAiChatStream(contextInstance) {
 				headers: {
 					'Content-Type': 'application/json',
 					'X-Requested-With': 'XMLHttpRequest',
+					// Nextcloud's CSRF middleware accepts either the
+					// requesttoken header or X-Requested-With. We send
+					// both so the SSE POST works whether or not the
+					// app's controller opts out of CSRF (the orchestrator
+					// keeps CSRF on; see ChatStreamController docblock).
+					requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 				},
 				body: JSON.stringify(body),
 				signal: abortController.signal,
