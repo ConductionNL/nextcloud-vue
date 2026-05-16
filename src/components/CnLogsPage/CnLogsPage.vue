@@ -307,10 +307,8 @@ export default {
 				this.error = null
 				try {
 					if (typeof this.objectStore.registerObjectType === 'function') {
-						this.objectStore.registerObjectType(this.objectType, {
-							register: this.register,
-							schema: this.schema,
-						})
+						// Positional signature: (slug, schemaId, registerId, slugs?).
+						this.objectStore.registerObjectType(this.objectType, this.schema, this.register)
 					}
 					if (typeof this.objectStore.fetchCollection === 'function') {
 						await this.objectStore.fetchCollection(this.objectType)
