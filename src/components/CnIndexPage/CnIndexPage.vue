@@ -947,7 +947,12 @@ export default {
 			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
 			// store has a slot for it before `useListView` issues the first fetch.
 			if (typeof objectStore.registerObjectType === 'function') {
-				objectStore.registerObjectType(objectType, { register: props.register, schema: props.schema })
+				// useObjectStore.registerObjectType signature is positional:
+				// (slug, schemaId, registerId, slugs?). Passing an object as
+				// the second argument made schemaId === {register, schema} and
+				// registerId === undefined, which produced URLs like
+				// /apps/openregister/api/schemas/[object Object] at fetch time.
+				objectStore.registerObjectType(objectType, props.schema, props.register)
 			}
 			list = useListView(objectType, {
 				objectStore,
