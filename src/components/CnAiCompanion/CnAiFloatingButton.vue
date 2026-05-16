@@ -8,8 +8,16 @@
   Keyboard accessible (Tab + Enter/Space). Respects prefers-reduced-motion.
 -->
 <template>
+	<!--
+	  Use v-if (not v-show) because .cn-ai-floating-button sets
+	  `display: flex !important` to override Nextcloud's default button
+	  styles. v-show would set inline `style="display:none"` (without
+	  !important), which !important defeats — leaving the FAB visible
+	  on top of the chat panel and intercepting clicks on the Send
+	  button. v-if removes the element from the DOM, so no overlap.
+	-->
 	<button
-		v-show="visible"
+		v-if="visible"
 		:class="[
 			'cn-ai-floating-button',
 			`cn-ai-floating-button--${position}`,
