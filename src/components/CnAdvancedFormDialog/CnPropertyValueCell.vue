@@ -39,7 +39,7 @@
 				v-else-if="resolvedWidget === 'datetime'"
 				:model-value="datetimeValue"
 				:type="datetimePickerType"
-				:formatter="datetimeFormatter"
+				:format="datetimeFormat"
 				:placeholder="displayName"
 				:input-label="displayName"
 				@input="emitDatetime($event)" />
@@ -171,7 +171,7 @@
 </template>
 
 <script>
-import { translate as t, getCanonicalLocale } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -254,7 +254,7 @@ export default {
 		/** Resolved current value (formData[key] ?? objectValue) */
 		value: { type: [Boolean, String, Number, Object, Array], default: null },
 		/** Whether this property is editable at all */
-		isEditable: { type: Boolean, default: true },
+		isEditable: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: defaults to editable; flipping would silently disable existing consumers
 		/** Whether this row is currently selected for editing */
 		isEditing: { type: Boolean, default: false },
 		/** Display name for the property (used in labels/placeholders) */
@@ -276,7 +276,7 @@ export default {
 		/** Options for the `select` widget. Each option may be a string, or `{ id, label }`. */
 		selectOptions: { type: Array, default: null },
 		/** Whether the `select` widget allows multiple values. */
-		selectMultiple: { type: Boolean, default: true },
+		selectMultiple: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: matches schema-array default; flipping would break consumers relying on multi-select
 		/** Number of rows for the `textarea` widget. */
 		textareaRows: { type: Number, default: 4 },
 		/** CSS height for the `object` widget's CodeMirror editor. */
@@ -647,26 +647,18 @@ export default {
 		},
 
 		/**
-		 * Formatter passed to NcDateTimePicker so the input field renders dates
-		 * in the user's Nextcloud language instead of the picker's default
-		 * `YYYY-MM-DD` token format. Without this, the displayed value in the
-		 * cell (locale-aware) and the picker input (ISO) disagree.
+		 * Stringify function for NcDateTimePicker's `format` prop so the input
+		 * field renders dates in the user's Nextcloud language instead of the
+		 * picker's default `YYYY-MM-DD` token format. Without this, the displayed
+		 * value in the cell (locale-aware) and the picker input (ISO) disagree.
 		 *
-		 * `parse` keeps typed-input editing working by deferring to the native
-		 * `Date` parser; the calendar popup remains the primary interaction.
+		 * @return {(date: Date) => string}
 		 */
-		datetimeFormatter() {
+		datetimeFormat() {
 			const fmt = this.schemaProp?.format
-			return {
-				stringify: (date) => {
-					if (!date || Number.isNaN(date.getTime?.())) return ''
-					return this.formatDateForLocale(date, fmt)
-				},
-				parse: (text) => {
-					if (!text) return null
-					const parsed = new Date(text)
-					return Number.isNaN(parsed.getTime()) ? null : parsed
-				},
+			return (date) => {
+				if (!date || Number.isNaN(date.getTime?.())) return ''
+				return this.formatDateForLocale(date, fmt)
 			}
 		},
 	},
@@ -791,9 +783,9 @@ export default {
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
 		 *
-		 * @param {*} v - The raw value.
+		 * @param {string|number|boolean|null|undefined} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
-		 * @return {*}
+		 * @return {string|number|boolean|null|undefined}
 		 */
 		coerceItem(v, itemType) {
 			if (v === null || v === undefined) return v
