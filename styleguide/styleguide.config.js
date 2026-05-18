@@ -161,9 +161,13 @@ module.exports = {
 			// Force all module imports to resolve from the styleguide's own
 			// node_modules first, falling back to the root node_modules.
 			// This ensures a single Vue instance is used throughout.
+			// The trailing relative 'node_modules' makes webpack walk up the
+			// directory tree from each require site, so nested dependencies
+			// (e.g. @nextcloud/event-bus's own semver@7) resolve correctly.
 			modules: [
 				path.join(__dirname, 'node_modules'),
 				path.join(ROOT, 'node_modules'),
+				'node_modules',
 			],
 			extensions: ['.mjs', '.vue', '.json', '.js'],
 			mainFields: ['browser', 'main', 'module'],
@@ -203,7 +207,7 @@ module.exports = {
 				// the component to mount, so a no-op stub keeps the build
 				// green. Sites consuming the lib pull marked from the lib
 				// root's package.json normally.
-				marked: path.resolve(__dirname, 'mocks/empty.js'),
+				marked: path.resolve(__dirname, 'mocks/marked.js'),
 				'#minpath': require.resolve('path-browserify'),
 				'#minurl': require.resolve('url/'),
 				// #minproc uses a package "imports" map that webpack 4 doesn't support;
