@@ -2,12 +2,12 @@
 
 ### Props
 
-| Name         | Type                 | Required | Default       | Description                         |
-| ------------ | -------------------- | -------- | ------------- | ----------------------------------- |
-| `center`     | `array`              |          | `[52.0, 5.0]` | Map center as [lat, lng].           |
-| `zoom`       | `number`             |          | `7`           | Initial zoom level.                 |
-| `layers`     | `array`              |          | `[]`          | Layer definitions.                  |
-| `markers`    | `object`             |          | `null`        | Marker configuration object.        |
-| `clustering` | `boolean`            |          | `false`       | Enable clustering.                  |
-| `height`     | `string&#124;number` |          | `'400px'`     | Map container height.               |
-| `autoFit`    | `boolean`            |          | `true`        | Auto-fit bounds to loaded features. |
+| Name         | Type      | Required | Default       | Description                         |
+| ------------ | --------- | -------- | ------------- | ----------------------------------- | --------------------- |
+| `center`     | `array`   |          | `[52.0, 5.0]` | Map center as [lat, lng].           |
+| `zoom`       | `number`  |          | `7`           | Initial zoom level.                 |
+| `layers`     | `array`   |          | `[]`          | Layer definitions.                  |
+| `markers`    | `object`  |          | `null`        | Marker configuration object.        |
+| `clustering` | `boolean` |          | `false`       | Enable clustering.                  |
+| `height`     | `string   | number`  |               | `'400px'`                           | Map container height. |
+| `autoFit`    | `boolean` |          | `true`        | Auto-fit bounds to loaded features. |

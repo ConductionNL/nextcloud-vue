@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                                                                                                                                          |
-| -------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `refUri` | `string` | ✓        | —       | The `openregister://widget/&lt;schemaSlug&gt;/&lt;widgetSlug&gt;` URI that identifies the widget to resolve. Corresponds to the `ref` field in a manifest `widget-ref` content item. |
+| Name     | Type     | Required | Default | Description                                                                                                                                                              |
+| -------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `refUri` | `string` | ✓        | —       | The `openregister://widget/<schemaSlug>/<widgetSlug>` URI that identifies the widget to resolve. Corresponds to the `ref` field in a manifest `widget-ref` content item. |
