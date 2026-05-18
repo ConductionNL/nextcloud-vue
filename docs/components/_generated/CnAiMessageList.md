@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name          | Type     | Required | Default | Description                                               |
-| ------------- | -------- | -------- | ------- | --------------------------------------------------------- |
-| `messages`    | `array`  |          | `[]`    | Array of message objects: \{ role, content, toolCalls? \} |
-| `currentText` | `string` |          | `''`    | Partial streaming text from the current token stream.     |
+| Name          | Type      | Required | Default | Description                                                                                                                                                                                                                                                                                 |
+| ------------- | --------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messages`    | `array`   |          | `[]`    | Array of message objects: \{ role, content, toolCalls? \}                                                                                                                                                                                                                                   |
+| `currentText` | `string`  |          | `''`    | Partial streaming text from the current token stream.                                                                                                                                                                                                                                       |
+| `isStreaming` | `boolean` |          | `false` | Streaming/request-in-flight flag. When true AND `currentText` is empty, the component renders a "Thinking..." placeholder bubble with animated dots so users get a visible signal that a slow local LLM is still working. Computed property `isThinking` below combines the two conditions. |
 
 ### Slots
 
