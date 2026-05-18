@@ -60,7 +60,8 @@
 				<div class="cn-ai-chat-tab__messages">
 					<CnAiMessageList
 						:messages="streamState.messages"
-						:current-text="streamState.currentText">
+						:current-text="streamState.currentText"
+						:is-streaming="streamState.isStreaming">
 						<template #empty>
 							<NcEmptyContent :name="cnTranslate('AI assistant')">
 								<template #icon>
