@@ -110,7 +110,7 @@
 				</NcActionButton>
 
 				<!-- Separator between primary and mass actions -->
-				<NcActionSeparator v-if="hasMassActions" />
+				<NcActionSeparator v-if="hasMassActions && $scopedSlots['action-items']" />
 
 				<!-- Mass actions (overflow) -->
 				<NcActionButton
