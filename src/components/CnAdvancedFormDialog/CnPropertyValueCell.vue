@@ -39,6 +39,7 @@
 				v-else-if="resolvedWidget === 'datetime'"
 				:model-value="datetimeValue"
 				:type="datetimePickerType"
+				:format="datetimeFormat"
 				:placeholder="displayName"
 				:input-label="displayName"
 				@input="emitDatetime($event)" />
@@ -170,7 +171,7 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -253,7 +254,7 @@ export default {
 		/** Resolved current value (formData[key] ?? objectValue) */
 		value: { type: [Boolean, String, Number, Object, Array], default: null },
 		/** Whether this property is editable at all */
-		isEditable: { type: Boolean, default: true },
+		isEditable: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: defaults to editable; flipping would silently disable existing consumers
 		/** Whether this row is currently selected for editing */
 		isEditing: { type: Boolean, default: false },
 		/** Display name for the property (used in labels/placeholders) */
@@ -275,7 +276,7 @@ export default {
 		/** Options for the `select` widget. Each option may be a string, or `{ id, label }`. */
 		selectOptions: { type: Array, default: null },
 		/** Whether the `select` widget allows multiple values. */
-		selectMultiple: { type: Boolean, default: true },
+		selectMultiple: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: matches schema-array default; flipping would break consumers relying on multi-select
 		/** Number of rows for the `textarea` widget. */
 		textareaRows: { type: Number, default: 4 },
 		/** CSS height for the `object` widget's CodeMirror editor. */
@@ -575,14 +576,19 @@ export default {
 			// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the spec,
 			// which shifts to the previous day in positive-UTC-offset timezones when
 			// fed to a picker that renders in local time. Parse them as local midnight.
+			let d
 			if (this.schemaProp?.format === 'date'
 				&& typeof v === 'string'
 				&& /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				return new Date(year, month - 1, day)
+				d = new Date(year, month - 1, day)
+			} else {
+				d = new Date(v)
 			}
-			const d = new Date(v)
-			return Number.isNaN(d.getTime()) ? null : d
+			if (Number.isNaN(d.getTime())) return null
+			// 1970-01-01 is treated as "no value" — see isValidDate for rationale.
+			if (this.isEpochDate(d)) return null
+			return d
 		},
 
 		stringValue() {
@@ -625,15 +631,35 @@ export default {
 			if (!v) return ''
 			const fmt = this.schemaProp?.format
 			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
+			let d
 			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				return new Date(year, month - 1, day).toLocaleDateString()
+				d = new Date(year, month - 1, day)
+			} else if (fmt === 'time' && typeof v === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(v)) {
+				const [h, m, s] = v.split(':').map(Number)
+				d = new Date()
+				d.setHours(h, m, s || 0, 0)
+			} else {
+				d = new Date(v)
 			}
-			const d = new Date(v)
 			if (Number.isNaN(d.getTime())) return String(v)
-			if (fmt === 'date') return d.toLocaleDateString()
-			if (fmt === 'time') return d.toLocaleTimeString()
-			return d.toLocaleString()
+			return this.formatDateForLocale(d, fmt)
+		},
+
+		/**
+		 * Stringify function for NcDateTimePicker's `format` prop so the input
+		 * field renders dates in the user's Nextcloud language instead of the
+		 * picker's default `YYYY-MM-DD` token format. Without this, the displayed
+		 * value in the cell (locale-aware) and the picker input (ISO) disagree.
+		 *
+		 * @return {(date: Date) => string}
+		 */
+		datetimeFormat() {
+			const fmt = this.schemaProp?.format
+			return (date) => {
+				if (!date || Number.isNaN(date.getTime?.())) return ''
+				return this.formatDateForLocale(date, fmt)
+			}
 		},
 	},
 
@@ -757,9 +783,9 @@ export default {
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
 		 *
-		 * @param {*} v - The raw value.
+		 * @param {string|number|boolean|null|undefined} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
-		 * @return {*}
+		 * @return {string|number|boolean|null|undefined}
 		 */
 		coerceItem(v, itemType) {
 			if (v === null || v === undefined) return v
@@ -867,7 +893,42 @@ export default {
 		isValidDate(v) {
 			if (!v) return false
 			const d = new Date(v)
-			return d instanceof Date && !Number.isNaN(d.getTime())
+			if (!(d instanceof Date) || Number.isNaN(d.getTime())) return false
+			// Treat any 1970-01-01 calendar date as "no value set". Frontend
+			// defaults for unset date fields often resolve to it
+			// (`new Date(0)`, `new Date(null)`, the string "1970-01-01"
+			// rendered in either UTC or local time), and showing
+			// "01-01-1970" for a never-set field is confusing — the user
+			// expects "—" until they pick a real date. We compare against
+			// both local and UTC components so any timezone offset still hits.
+			if (this.isEpochDate(d)) return false
+			return true
+		},
+
+		isEpochDate(d) {
+			const isLocalEpoch = d.getFullYear() === 1970 && d.getMonth() === 0 && d.getDate() === 1
+			const isUtcEpoch = d.getUTCFullYear() === 1970 && d.getUTCMonth() === 0 && d.getUTCDate() === 1
+			return isLocalEpoch || isUtcEpoch
+		},
+
+		/**
+		 * Format a Date using the user's Nextcloud language (via
+		 * `getCanonicalLocale`) rather than the browser/OS locale. Keeps the
+		 * cell's read-mode display and the picker's input field in agreement.
+		 *
+		 * @param {Date} d - The date to format.
+		 * @param {string} [fmt] - Schema format hint: `date`, `time`, or `date-time`.
+		 * @return {string}
+		 */
+		formatDateForLocale(d, fmt) {
+			const locale = getCanonicalLocale()
+			if (fmt === 'date') {
+				return new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(d)
+			}
+			if (fmt === 'time') {
+				return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(d)
+			}
+			return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(d)
 		},
 
 		/**
