@@ -113,7 +113,7 @@ Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) ov
 
 ### Static manifest with backend override (default)
 
-```js
+```js {static}
 import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
 import bundledManifest from '../manifest.json'
 
