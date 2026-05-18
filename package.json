@@ -2,8 +2,6 @@
 	"name": "@conduction/nextcloud-vue",
 	"version": "1.0.0-beta.4",
 	"description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
-	"license": "EUPL-1.2",
-	"author": "Conduction B.V. <info@conduction.nl>",
 	"homepage": "https://github.com/ConductionNL/nextcloud-vue#readme",
 	"bugs": {
 		"url": "https://github.com/ConductionNL/nextcloud-vue/issues"
@@ -12,44 +10,39 @@
 		"type": "git",
 		"url": "git+https://github.com/ConductionNL/nextcloud-vue.git"
 	},
+	"license": "EUPL-1.2",
+	"author": "Conduction B.V. <info@conduction.nl>",
+	"sideEffects": true,
 	"main": "dist/nextcloud-vue.cjs.js",
 	"module": "dist/nextcloud-vue.esm.js",
-	"style": "dist/nextcloud-vue.css",
 	"types": "src/types/index.d.ts",
+	"style": "dist/nextcloud-vue.css",
 	"files": [
 		"dist/",
 		"src/",
 		"css/",
 		"l10n/"
 	],
-	"sideEffects": true,
 	"scripts": {
 		"build": "rollup -c",
+		"check:docs": "node scripts/check-docs.js",
+		"check:integration-parity": "node scripts/check-integration-parity.js",
+		"check:jsdoc": "node scripts/check-jsdoc.js",
 		"dev": "rollup -c -w",
-		"test": "jest",
-		"test:types": "tsd",
+		"jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
 		"lint": "eslint src/",
 		"lint-fix": "npm run lint -- --fix; rc=$?; node scripts/sync-l10n-ellipsis.js; exit $rc",
-		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
-		"check:docs": "node scripts/check-docs.js",
-		"check:jsdoc": "node scripts/check-jsdoc.js",
-		"check:integration-parity": "node scripts/check-integration-parity.js",
-		"jsdoc-baselines:update": "node scripts/check-jsdoc.js --update",
 		"prepare": "husky || true",
 		"prepublishOnly": "npm run build",
 		"styleguide": "cd styleguide && npm run server",
-		"styleguide:build": "cd styleguide && npm run build"
+		"styleguide:build": "cd styleguide && npm run build",
+		"stylelint": "stylelint 'src/**/*.vue' 'src/**/*.css'",
+		"test": "jest",
+		"test:types": "tsd"
 	},
-	"tsd": {
-		"directory": "test-d",
-		"compilerOptions": {
-			"strict": true,
-			"target": "es2020",
-			"module": "esnext",
-			"moduleResolution": "node",
-			"esModuleInterop": true,
-			"skipLibCheck": true
-		}
+	"overrides": {
+		"json5": "^2.2.3",
+		"loader-utils": "^1.4.2"
 	},
 	"dependencies": {
 		"@codemirror/autocomplete": "^6.0.0",
@@ -80,23 +73,6 @@
 		"vue-codemirror6": "^1.4.3",
 		"vue-color": "^2.8.2",
 		"vue-template-compiler": "^2.7.16"
-	},
-	"peerDependencies": {
-		"@nextcloud/auth": "^2.0.0 || ^3.0.0",
-		"@nextcloud/axios": "^2.0.0",
-		"@nextcloud/capabilities": "^1.2.1",
-		"@nextcloud/l10n": "^2.0.0 || ^3.0.0",
-		"@nextcloud/router": "^2.0.0 || ^3.0.0",
-		"@nextcloud/vue": "^8.0.0",
-		"bootstrap-vue": "^2.23.1",
-		"pinia": "^2.0.0",
-		"vue": "^2.7.0",
-		"vue-frag": "^1.4.3",
-		"vue-material-design-icons": "^5.0.0"
-	},
-	"overrides": {
-		"json5": "^2.2.3",
-		"loader-utils": "^1.4.2"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",
@@ -142,5 +118,29 @@
 		"vue": "^2.7.16",
 		"vue-frag": "^1.4.3",
 		"vue-material-design-icons": "^5.2.0"
+	},
+	"peerDependencies": {
+		"@nextcloud/auth": "^2.0.0 || ^3.0.0",
+		"@nextcloud/axios": "^2.0.0",
+		"@nextcloud/capabilities": "^1.2.1",
+		"@nextcloud/l10n": "^2.0.0 || ^3.0.0",
+		"@nextcloud/router": "^2.0.0 || ^3.0.0",
+		"@nextcloud/vue": "^8.0.0",
+		"bootstrap-vue": "^2.23.1",
+		"pinia": "^2.0.0",
+		"vue": "^2.7.0",
+		"vue-frag": "^1.4.3",
+		"vue-material-design-icons": "^5.0.0"
+	},
+	"tsd": {
+		"directory": "test-d",
+		"compilerOptions": {
+			"strict": true,
+			"target": "es2020",
+			"module": "esnext",
+			"moduleResolution": "node",
+			"esModuleInterop": true,
+			"skipLibCheck": true
+		}
 	}
 }
