@@ -79,6 +79,14 @@ export { CnAppLoading } from './CnAppLoading/index.js'
 export { CnDependencyMissing } from './CnDependencyMissing/index.js'
 export { CnAppRoot } from './CnAppRoot/index.js'
 
+// V2 widget components (manifest-v2-renderer)
+export { default as CnWidgetGrid } from './CnWidgetGrid/CnWidgetGrid.vue'
+export { default as CnWidgetObjectTable } from './CnWidgetObjectTable/CnWidgetObjectTable.vue'
+export { default as CnWidgetFormRenderer } from './CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
+export { default as CnWidgetWikiRenderer } from './CnWidgetWikiRenderer/CnWidgetWikiRenderer.vue'
+export { default as CnWidgetMapViewer } from './CnWidgetMapViewer/CnWidgetMapViewer.vue'
+export { default as CnWidgetCardGrid } from './CnWidgetCardGrid/CnWidgetCardGrid.vue'
+
 // Features & roadmap menu (add-features-roadmap-menu)
 export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
 export { CnFeaturesAndRoadmapView } from './CnFeaturesAndRoadmapView/index.js'
