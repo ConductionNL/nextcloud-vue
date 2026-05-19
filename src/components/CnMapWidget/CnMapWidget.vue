@@ -475,8 +475,15 @@ export default {
 
 			if (this.clusteringEnabled) {
 				try {
+					// `leaflet.markercluster` is a soft optional dep — declared in our
+					// `dependencies` so npm installs it for direct consumers, but the
+					// `webpackIgnore: true` magic comment stops the bundler from trying
+					// to resolve the literal string against `node_modules/@conduction/
+					// nextcloud-vue/dist/` in downstream apps (which would fail with
+					// "Module not found"). The runtime catch handles the case where the
+					// dep genuinely isn't installed.
 					// eslint-disable-next-line import/no-unresolved
-					await import('leaflet.markercluster')
+					await import(/* webpackIgnore: true */ 'leaflet.markercluster')
 					if (typeof L.markerClusterGroup === 'function') {
 						this.clusterGroup = L.markerClusterGroup()
 						this.clusterGroup.addLayer(layer)
