@@ -218,6 +218,19 @@
 					</NcAppSettingsSection>
 				</slot>
 			</NcAppSettingsDialog>
+
+			<!--
+			  V2 registry modal — mounted when cnOpenModal(key, props) is
+			  called by the actions dispatcher. The resolved component is
+			  whatever was registered under that key in the `registry` prop.
+			  Closes by setting activeModalKey to null.
+			-->
+			<component
+				:is="activeModalComponent"
+				v-if="activeModalComponent"
+				v-bind="activeModalProps"
+				@close="activeModalKey = null"
+				@update:open="activeModalKey = null" />
 		</template>
 	</NcContent>
 </template>
@@ -232,7 +245,22 @@ import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import Vue from 'vue'
+
+/**
+ * Recognised registry kinds and their required metadata fields.
+ * An empty array means no additional fields are required beyond `component`.
+ */
+const REGISTRY_KIND_REQUIRED_FIELDS = {
+	widget: ['defaultSize', 'minSize', 'maxSize', 'allowedSlots', 'propsSchema'],
+	modal: ['propsSchema'],
+	page: [],
+	'form-field': ['appliesTo'],
+	'cell-renderer': ['appliesTo'],
+}
+
+const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
 
 /**
  * Default URL for the OpenRegister integration page. The empty-state
@@ -267,6 +295,35 @@ export default {
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
+			/**
+			 * V2 component registry. Provided to all descendants so
+			 * CnWidgetGrid and CnPageRenderer can resolve widget keys.
+			 * The registry prop is passed by reference — mutations
+			 * after mount are NOT tracked; consumers should mount with
+			 * the complete registry.
+			 */
+			cnRegistry: this.registry,
+			/**
+			 * Open a modal registered in the v2 registry. Used by
+			 * the actions dispatcher to open modals declared in the
+			 * manifest's `actions[]` array. Validates `kind === "modal"`
+			 * before delegating to the `cnModalKey` reactive holder.
+			 *
+			 * @param {string} key The registry key of the modal to open.
+			 * @param {object} props Props forwarded to the modal component.
+			 */
+			cnOpenModal: (key, props = {}) => {
+				const entry = this.registry[key]
+				if (!entry || entry.kind !== 'modal') {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`,
+					)
+					return
+				}
+				this.activeModalKey = key
+				this.activeModalProps = props
+			},
 			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to
 			 * `this` so descendants don't have to. Used by CnAppNav
@@ -451,6 +508,22 @@ export default {
 			default: null,
 		},
 		/**
+		 * Component registry for v2 manifests. Map of registry key →
+		 * `{ kind, component, ...kindMetadata }`. Provided to descendants
+		 * via Vue provide under key `cnRegistry`. Validated at `mounted()`
+		 * time — unknown `kind` throws `RegistryKindError`; missing required
+		 * kind-metadata emits `console.warn`.
+		 *
+		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
+		 * `cell-renderer`. See spec REQ-MVR-002.
+		 *
+		 * @type {object}
+		 */
+		registry: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
 		 * Required Nextcloud apps for this Conduction app to function.
 		 * Default `['openregister']` — every fleet app stores its data
 		 * in OpenRegister, so the guard is on by default. Consumer apps
@@ -547,6 +620,19 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
+			/**
+			 * Key of the currently active modal (opened via cnOpenModal).
+			 * null when no modal is open.
+			 *
+			 * @type {string|null}
+			 */
+			activeModalKey: null,
+			/**
+			 * Props forwarded to the active modal component.
+			 *
+			 * @type {object}
+			 */
+			activeModalProps: {},
 		}
 	},
 
@@ -554,6 +640,8 @@ export default {
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			this._validateRegistry()
+			this._warnCustomComponentsDeprecation()
 			return
 		}
 
@@ -577,6 +665,9 @@ export default {
 		} finally {
 			this.capabilitiesLoading = false
 		}
+
+		this._validateRegistry()
+		this._warnCustomComponentsDeprecation()
 	},
 
 	computed: {
@@ -613,6 +704,78 @@ export default {
 		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
+		},
+		/**
+		 * Resolve the active modal's Vue component from the registry.
+		 * Returns null when no modal is open or the key no longer resolves.
+		 *
+		 * @return {object|null}
+		 */
+		activeModalComponent() {
+			if (!this.activeModalKey) return null
+			const entry = (this.registry || {})[this.activeModalKey]
+			return (entry && entry.component) ? entry.component : null
+		},
+	},
+
+	methods: {
+		/**
+		 * Validate every entry in the `registry` prop at mount time.
+		 *
+		 * - Unknown `kind` throws `RegistryKindError` (hard error; developer
+		 *   must fix the registration).
+		 * - Known `kind` with missing required metadata emits `console.warn`
+		 *   (soft error; the widget still renders with defaults).
+		 */
+		_validateRegistry() {
+			const registry = this.registry || {}
+			for (const [key, entry] of Object.entries(registry)) {
+				if (!entry || typeof entry !== 'object') continue
+
+				const kind = entry.kind
+
+				if (!KNOWN_REGISTRY_KINDS.includes(kind)) {
+					throw new RegistryKindError(key, kind)
+				}
+
+				const requiredFields = REGISTRY_KIND_REQUIRED_FIELDS[kind]
+				for (const field of requiredFields) {
+					if (!Object.prototype.hasOwnProperty.call(entry, field)) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnAppRoot] Registry entry "${key}" (kind: "${kind}") is missing required metadata field "${field}".`,
+						)
+					}
+				}
+			}
+		},
+
+		/**
+		 * Emit a single console.warn per mount when both a non-empty
+		 * customComponents prop AND a v2 manifest are present.
+		 *
+		 * Uses an instance flag `_customComponentsWarnedOnce` to prevent
+		 * repeat warnings on re-render.
+		 */
+		_warnCustomComponentsDeprecation() {
+			if (this._customComponentsWarnedOnce) return
+
+			const hasCustomComponents = this.customComponents
+				&& typeof this.customComponents === 'object'
+				&& Object.keys(this.customComponents).length > 0
+
+			const isV2Manifest = this.manifest
+				&& typeof this.manifest.$schema === 'string'
+				&& this.manifest.$schema.includes('app-manifest-v2')
+
+			if (hasCustomComponents && isV2Manifest) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					'CnAppRoot: `customComponents` prop is deprecated when using v2 manifests. '
+					+ 'Use the `registry` prop instead (see ADR-036).',
+				)
+				this._customComponentsWarnedOnce = true
+			}
 		},
 	},
 }
