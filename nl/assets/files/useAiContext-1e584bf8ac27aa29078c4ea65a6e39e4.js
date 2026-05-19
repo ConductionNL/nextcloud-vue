@@ -1,0 +1,1 @@
+import Vue from"vue";const defaultContext=Vue.observable({appId:"unknown",pageKind:"custom",route:{path:""}}),CN_AI_CONTEXT_KEY="cnAiContext";export function useAiContext(t){return t&&void 0!==t.cnAiContext?t.cnAiContext:defaultContext}export{CN_AI_CONTEXT_KEY,defaultContext};

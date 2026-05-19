@@ -1,0 +1,1 @@
+export const ROADMAP_LABEL_BLOCKLIST=Object.freeze([/^build:/,/^code-review:/,/^security-review:/,/^applier:/,/^retry:/,/^rebuild:/,/^fix:/,/^fix-iteration:/,/^build-retry:/,/^ready-/,/^needs-input$/,/^yolo$/,/^openspec$/,/^agent-maxed-out$/,/^pipeline-active$/,/^done$/,/:queued$/,/:running$/,/:pass$/,/:fail$/]);
