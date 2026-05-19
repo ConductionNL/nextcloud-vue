@@ -31,9 +31,47 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+
+		<!-- V2 render path: slot dispatcher via CnWidgetGrid -->
+		<template v-if="isV2Manifest">
+			<!-- body slot -->
+			<CnWidgetGrid
+				v-if="widgetsBySlot.has('body')"
+				:widgets="widgetsBySlot.get('body')"
+				slot-name="body" />
+			<!-- header-actions slot -->
+			<CnWidgetGrid
+				v-if="widgetsBySlot.has('header-actions')"
+				:widgets="widgetsBySlot.get('header-actions')"
+				slot-name="header-actions" />
+			<!-- footer slot -->
+			<CnWidgetGrid
+				v-if="widgetsBySlot.has('footer')"
+				:widgets="widgetsBySlot.get('footer')"
+				slot-name="footer" />
+			<!-- modal slot -->
+			<CnWidgetGrid
+				v-if="widgetsBySlot.has('modal')"
+				:widgets="widgetsBySlot.get('modal')"
+				slot-name="modal" />
+			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
+			<CnWidgetGrid
+				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
+				:widgets="widgetsBySlot.get('sidebar')"
+				slot-name="sidebar" />
+			<!-- dynamic tab:* and section:* slots -->
+			<template v-for="dynamicSlot in dynamicSlotKeys">
+				<CnWidgetGrid
+					:key="dynamicSlot"
+					:widgets="widgetsBySlot.get(dynamicSlot)"
+					:slot-name="dynamicSlot" />
+			</template>
+		</template>
+
+		<!-- V1 render path: unchanged -->
 		<component
+			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
-			v-if="resolvedComponent"
 			v-bind="resolvedProps">
 			<template
 				v-for="entry in resolvedSlotEntries"
@@ -49,6 +87,25 @@
 
 <script>
 import { defaultPageTypes } from './pageTypes.js'
+import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
+
+/** Recognised fixed slot names for v2 manifests. */
+const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
+
+/**
+ * Test whether a slot name is a recognised v2 slot pattern.
+ *
+ * @param {string} slotName
+ * @return {boolean}
+ */
+function isKnownSlot(slotName) {
+	if (!slotName) return false
+	if (KNOWN_SLOTS.has(slotName)) return true
+	if (/^tab:[^\s]+$/.test(slotName)) return true
+	if (/^section:[^\s]+$/.test(slotName)) return true
+	return false
+}
 
 /**
  * Read-only defaults applied when a type='index' page declares
@@ -71,11 +128,17 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 export default {
 	name: 'CnPageRenderer',
 
+	components: {
+		CnWidgetGrid,
+	},
+
 	inject: {
 		cnManifest: { default: null },
 		cnCustomComponents: { default: () => ({}) },
 		cnTranslate: { default: () => (key) => key },
 		cnPageTypes: { default: null },
+		cnRegistry: { default: () => ({}) },
+		cnOpenModal: { default: null },
 	},
 
 	/**
@@ -102,6 +165,22 @@ export default {
 		return {
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
+			/**
+			 * Bound dispatchAction for the v2 render path. Child widget
+			 * components inject `cnDispatchAction` to dispatch manifest
+			 * actions. Context is pre-bound with this component's
+			 * $router and the injected cnRegistry.
+			 *
+			 * @param {object} action The action to dispatch.
+			 */
+			cnDispatchAction: (action) => {
+				dispatchAction(action, {
+					router: this.$router ?? null,
+					registry: this.cnRegistry,
+					handlers: this.effectiveManifest?.actions ?? {},
+					openModal: this._cnOpenModal,
+				})
+			},
 		}
 	},
 
@@ -184,6 +263,70 @@ export default {
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
+		},
+		/**
+		 * True when the effective manifest is a v2 manifest.
+		 * Detected by `manifest.$schema` containing `app-manifest-v2`.
+		 *
+		 * @return {boolean}
+		 */
+		isV2Manifest() {
+			const schema = this.effectiveManifest?.$schema
+			return typeof schema === 'string' && schema.includes('app-manifest-v2')
+		},
+		/**
+		 * Groups the current page's `widgets[]` by slot value into a
+		 * `Map<string, WidgetEntry[]>`. Entries with unrecognised slot
+		 * patterns emit `console.warn` and are excluded.
+		 *
+		 * @return {Map<string, Array>}
+		 */
+		widgetsBySlot() {
+			const page = this.currentPage
+			const map = new Map()
+			if (!page || !Array.isArray(page.widgets)) return map
+
+			for (const widget of page.widgets) {
+				const slot = widget?.slot
+				if (!slot || !isKnownSlot(slot)) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnPageRenderer] Widget "${widget?.widgetKey}" in page "${page.id}" has unrecognised slot "${slot}". Skipping.`,
+					)
+					continue
+				}
+				if (!map.has(slot)) {
+					map.set(slot, [])
+				}
+				map.get(slot).push(widget)
+			}
+
+			return map
+		},
+		/**
+		 * Dynamic slot keys from widgetsBySlot that are not fixed known
+		 * slot names (i.e. `tab:*` and `section:*` patterns).
+		 *
+		 * @return {string[]}
+		 */
+		dynamicSlotKeys() {
+			const FIXED_SLOTS = ['body', 'sidebar', 'header-actions', 'footer', 'modal']
+			const result = []
+			for (const key of this.widgetsBySlot.keys()) {
+				if (!FIXED_SLOTS.includes(key)) {
+					result.push(key)
+				}
+			}
+			return result
+		},
+		/**
+		 * Proxy for the cnOpenModal inject so the provide() closure can
+		 * reference `this._cnOpenModal` without binding issues.
+		 *
+		 * @return {Function|null}
+		 */
+		_cnOpenModal() {
+			return typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null
 		},
 		/** Effective custom-component registry. */
 		effectiveCustomComponents() {

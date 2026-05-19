@@ -101,6 +101,12 @@ export {
 	CnRoadmapItem,
 	CnSuggestFeatureModal,
 	registerIcons,
+	CnWidgetGrid,
+	CnWidgetObjectTable,
+	CnWidgetFormRenderer,
+	CnWidgetWikiRenderer,
+	CnWidgetMapViewer,
+	CnWidgetCardGrid,
 } from './components/index.js'
 
 // AI Chat Companion component family
@@ -130,7 +136,7 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations } from './integrations/index.js'
@@ -152,3 +158,9 @@ export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, va
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
+export { dispatchAction } from './utils/actionsDispatcher.js'
+
+// Errors
+export { RegistryKindError } from './errors/RegistryKindError.js'
+
+// V2 widget components are exported via the components barrel (src/components/index.js)
