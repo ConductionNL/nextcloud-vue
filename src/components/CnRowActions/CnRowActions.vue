@@ -138,14 +138,28 @@ export default {
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			// Trim leading + trailing '-' with two anchored, non-overlapping
-			// replaces instead of `^-+|-+$` (codeql js/redos: the alternation
-			// produces O(n²) backtracking on strings of many '-').
-			return String(label || '')
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+/, '')
-				.replace(/-+$/, '')
+			// Build the slug in a single linear pass: lowercase, fold
+			// non-[a-z0-9] runs into a single '-', then strip leading/trailing
+			// dashes by index instead of by regex (codeql js/redos).
+			const lower = String(label || '').toLowerCase()
+			let out = ''
+			let lastWasDash = false
+			for (let i = 0; i < lower.length; i++) {
+				const c = lower.charCodeAt(i)
+				const isAlnum = (c >= 48 && c <= 57) || (c >= 97 && c <= 122)
+				if (isAlnum) {
+					out += lower[i]
+					lastWasDash = false
+				} else if (!lastWasDash) {
+					out += '-'
+					lastWasDash = true
+				}
+			}
+			let start = 0
+			let end = out.length
+			while (start < end && out.charCodeAt(start) === 45) start++
+			while (end > start && out.charCodeAt(end - 1) === 45) end--
+			return out.slice(start, end)
 		},
 	},
 }
