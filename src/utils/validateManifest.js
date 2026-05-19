@@ -1,3 +1,174 @@
+import Ajv from 'ajv/dist/2020'
+import addFormats from 'ajv-formats'
+import v2Schema from '../schemas/app-manifest-v2.schema.json'
+
+/**
+ * Ajv instance compiled once at module init for v2 manifest validation.
+ * useDefaults: true applies schema defaults (e.g. action.type defaults to "handler").
+ * allErrors: true collects all errors instead of stopping at the first.
+ * strict: false allows unknown keywords in draft 2020-12 schemas.
+ */
+const _ajvV2 = new Ajv({ useDefaults: true, allErrors: true, strict: false })
+addFormats(_ajvV2)
+const _validateV2Schema = _ajvV2.compile(v2Schema)
+
+/** Module-level flag so the unknown-$schema console.warn fires only once. */
+let _unknownSchemaWarned = false
+
+/**
+ * The v2 schema URL suffix used for dispatch detection.
+ */
+const V2_SCHEMA_SUFFIX = '/app-manifest-v2.schema.json'
+
+/**
+ * Convert an Ajv ErrorObject's instancePath + message to a bracket-path
+ * string matching the v1 validator's format (e.g. "pages[0]/...").
+ *
+ * Ajv uses JSON Pointer paths like "/pages/0/widgets/1/gridWidth".
+ * We convert the leading "/pages/0" segment to "pages[0]" and keep
+ * the rest as slash-separated for consistency with v1.
+ *
+ * @param {import('ajv').ErrorObject} err - Ajv error object
+ * @return {string} Formatted error message
+ */
+function ajvErrorToString(err) {
+	// instancePath is like "/pages/0/widgets/1/gridWidth" or ""
+	// keyword-based errors with no instancePath use the schemaPath
+	const path = err.instancePath || err.schemaPath || ''
+
+	// Convert /pages/0/... → pages[0]/...
+	const bracketPath = path.replace(/^\//, '').replace(/\/(\d+)(\/|$)/g, '[$1]$2')
+
+	const message = err.message || 'validation error'
+
+	if (bracketPath) {
+		return `${bracketPath}: ${message}`
+	}
+	return message
+}
+
+/**
+ * Validate a v2 manifest using the Ajv-compiled `app-manifest-v2.schema.json`.
+ *
+ * In addition to JSON Schema validation, applies the following post-schema
+ * checks that cannot be expressed in pure JSON Schema:
+ *  - `pages[].id` uniqueness across the array
+ *  - `gridX + gridWidth <= 12` for every widget in every page (only on
+ *    slots where gridColumns is 12 — i.e. all non-sidebar slots)
+ *  - `@resolve:` sentinel REJECTION on registry-key paths (mirrors v1 rules):
+ *    `pages[].id`, `pages[].route`, `pages[].component`,
+ *    `pages[].headerComponent`, `pages[].actionsComponent`,
+ *    `pages[].slots.*`, `menu[].id`, `menu[].route`,
+ *    `dependencies[]`, `version`
+ *
+ * @param {object} manifest The v2 manifest object to validate.
+ * @return {{ valid: boolean, errors: string[] }}
+ */
+export function validateManifestV2(manifest) {
+	// Clone so Ajv useDefaults mutations don't affect the caller's copy.
+	const clone = JSON.parse(JSON.stringify(manifest))
+
+	const ajvValid = _validateV2Schema(clone)
+	const errors = []
+
+	if (!ajvValid && _validateV2Schema.errors) {
+		for (const err of _validateV2Schema.errors) {
+			errors.push(ajvErrorToString(err))
+		}
+	}
+
+	// --- Post-schema checks ---
+
+	// 1. pages[].id uniqueness
+	if (Array.isArray(clone.pages)) {
+		const seenIds = new Set()
+		clone.pages.forEach((page, index) => {
+			if (page && typeof page.id === 'string') {
+				if (seenIds.has(page.id)) {
+					errors.push(`pages[${index}]/id: "${page.id}" must be unique within pages[]`)
+				} else {
+					seenIds.add(page.id)
+				}
+			}
+		})
+	}
+
+	// 2. gridX + gridWidth <= 12 for widget entries (sidebar already
+	//    constrained to gridWidth:1 by schema, so the sum is always ≤12 for
+	//    sidebar; we still run the arithmetic check for clarity).
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget) return
+				const gx = widget.gridX
+				const gw = widget.gridWidth
+				if (typeof gx === 'number' && typeof gw === 'number') {
+					if (gx + gw > 12) {
+						errors.push(
+							`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds 12`,
+						)
+					}
+				}
+			})
+		})
+	}
+
+	// 3. @resolve: sentinel rejection on registry-key paths
+	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
+	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
+		errors.push('/version must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)')
+	}
+	if (Array.isArray(clone.dependencies)) {
+		clone.dependencies.forEach((dep, index) => {
+			if (typeof dep === 'string' && _v2Sentinel.test(dep)) {
+				errors.push(`/dependencies/${index} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+		})
+	}
+	if (Array.isArray(clone.menu)) {
+		clone.menu.forEach((item, index) => {
+			if (!item) return
+			if (typeof item.id === 'string' && _v2Sentinel.test(item.id)) {
+				errors.push(`/menu/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (typeof item.route === 'string' && _v2Sentinel.test(item.route)) {
+				errors.push(`/menu/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+		})
+	}
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, index) => {
+			if (!page) return
+			const _isS = (v) => typeof v === 'string' && _v2Sentinel.test(v)
+			if (_isS(page.id)) {
+				errors.push(`/pages/${index}/id must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (_isS(page.route)) {
+				errors.push(`/pages/${index}/route must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (_isS(page.component)) {
+				errors.push(`/pages/${index}/component must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (_isS(page.headerComponent)) {
+				errors.push(`/pages/${index}/headerComponent must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (_isS(page.actionsComponent)) {
+				errors.push(`/pages/${index}/actionsComponent must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+			}
+			if (page.slots && typeof page.slots === 'object') {
+				for (const [slotName, slotValue] of Object.entries(page.slots)) {
+					if (_isS(slotValue)) {
+						errors.push(`/pages/${index}/slots/${slotName} must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)`)
+					}
+				}
+			}
+		})
+	}
+
+	return { valid: errors.length === 0, errors }
+}
+
 /**
  * Pattern matching the `manifest-resolve-sentinel` capability's
  * sentinel — `@resolve:<key>` where `<key>` is lowercase alphanumeric
@@ -62,6 +233,27 @@ function isSentinel(value) {
  * @return {{ valid: boolean, errors: string[] }}
  */
 export function validateManifest(manifest, options = {}) {
+	// Dispatch to v2 validator when the manifest declares a v2 $schema.
+	if (manifest && typeof manifest === 'object' && typeof manifest.$schema === 'string') {
+		if (manifest.$schema.endsWith(V2_SCHEMA_SUFFIX)) {
+			return validateManifestV2(manifest)
+		}
+		// $schema present but doesn't match any known schema URL —
+		// warn once and fall through to v1 validator.
+		const knownV1Suffix = '/app-manifest.schema.json'
+		if (!manifest.$schema.endsWith(knownV1Suffix)) {
+			if (!_unknownSchemaWarned) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[validateManifest] Unknown $schema URL "${manifest.$schema}". `
+					+ 'Expected one of: app-manifest.schema.json (v1) or app-manifest-v2.schema.json (v2). '
+					+ 'Falling back to v1 validator.',
+				)
+				_unknownSchemaWarned = true
+			}
+		}
+	}
+
 	const errors = []
 
 	if (!isPlainObject(manifest)) {
