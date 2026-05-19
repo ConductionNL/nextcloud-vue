@@ -2,19 +2,19 @@
 
 ### Props
 
-| Name                | Type      | Required | Default                                                     | Description                                                        |
-| ------------------- | --------- | -------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| `selectedIds`       | `array`   |          | `[]`                                                        | Array of selected item IDs                                         |
-| `count`             | `number`  |          | `0`                                                         | Number of selected items                                           |
-| `showImport`        | `boolean` |          | `true`                                                      | Whether to show the built-in Import action                         |
-| `showExport`        | `boolean` |          | `true`                                                      | Whether to show the built-in Export action                         |
-| `showCopy`          | `boolean` |          | `true`                                                      | Whether to show the built-in Copy action                           |
-| `showDelete`        | `boolean` |          | `true`                                                      | Whether to show the built-in Delete action                         |
-| `menuLabelTemplate` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Mass actions (\\{count\\})')` | Label template for the menu button. Use \\{count\\} for the count. |
-| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                     |                                                                    |
-| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                     |                                                                    |
-| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                       |                                                                    |
-| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                     |                                                                    |
+| Name                | Type      | Required | Default                                                   | Description                                                      |
+| ------------------- | --------- | -------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| `selectedIds`       | `array`   |          | `[]`                                                      | Array of selected item IDs                                       |
+| `count`             | `number`  |          | `0`                                                       | Number of selected items                                         |
+| `showImport`        | `boolean` |          | `true`                                                    | Whether to show the built-in Import action                       |
+| `showExport`        | `boolean` |          | `true`                                                    | Whether to show the built-in Export action                       |
+| `showCopy`          | `boolean` |          | `true`                                                    | Whether to show the built-in Copy action                         |
+| `showDelete`        | `boolean` |          | `true`                                                    | Whether to show the built-in Delete action                       |
+| `menuLabelTemplate` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Mass actions (\{count\})')` | Label template for the menu button. Use \{count\} for the count. |
+| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                   |                                                                  |
+| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                   |                                                                  |
+| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                     |                                                                  |
+| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                   |                                                                  |
 
 ### Events
 
