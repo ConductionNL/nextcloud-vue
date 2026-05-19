@@ -1,8 +1,16 @@
 # validateManifestV2
 
-Validate a v2 Conduction app manifest against the v2 JSON Schema. Uses **Ajv** (`ajv` + `ajv-formats`) against `src/schemas/app-manifest-v2.schema.json` and adds runtime post-checks the schema cannot express (cross-field arithmetic, `$id` uniqueness, `@resolve:` sentinel path rejection).
+Validate a v2 Conduction app manifest against the v2 JSON Schema. The schema validation uses a **pre-compiled standalone Ajv validator** (generated at build time from `src/schemas/app-manifest-v2.schema.json`), plus runtime post-checks the schema cannot express (cross-field arithmetic, `$id` uniqueness, `@resolve:` sentinel path rejection).
 
 The v1 validator (`validateManifest`) stays hand-rolled for backward compatibility. The two coexist behind the `$schema` dispatch in `validateManifest()` — most consumers just call `validateManifest(manifest)` and get the correct path automatically.
+
+## CSP compliance
+
+Nextcloud enforces a strict Content Security Policy that does **not** allow `unsafe-eval`. Ajv's default mode JIT-compiles schema validators using `new Function()`, which triggers an `EvalError` and prevents the Vue app from mounting in any v2-adopting app.
+
+To fix this, the v2 schema validator is **pre-compiled at build time** using Ajv's [standalone code generation](https://ajv.js.org/standalone.html) (`ajv/dist/standalone`). The generator script (`scripts/build-validators.js`) is invoked automatically via `npm run prebuild` and `npm run pretest`. The output (`src/utils/validateManifestV2.compiled.js`) is a plain JS module containing static code — no `new Function()` anywhere at runtime.
+
+The compiled file is gitignored and regenerated on every install cycle. If you see an import error for `validateManifestV2.compiled.js`, run `npm run build:validators` once.
 
 ## Signature
 

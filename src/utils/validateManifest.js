@@ -1,16 +1,16 @@
-import Ajv from 'ajv/dist/2020'
-import addFormats from 'ajv-formats'
-import v2Schema from '../schemas/app-manifest-v2.schema.json'
+// The standalone validator is pre-compiled at build time by
+// scripts/build-validators.js. It does NOT use new Function() at
+// runtime, which is required because Nextcloud's CSP blocks unsafe-eval
+// (EvalError on every v2 app boot without this). See ADR-036.
+//
+// The file is regenerated on every `npm run build` and `npm test`
+// via the `build:validators` script, and is gitignored.
+// eslint-disable-next-line import/no-unresolved
+import _compiledValidateV2 from './validateManifestV2.compiled.js'
 
-/**
- * Ajv instance compiled once at module init for v2 manifest validation.
- * useDefaults: true applies schema defaults (e.g. action.type defaults to "handler").
- * allErrors: true collects all errors instead of stopping at the first.
- * strict: false allows unknown keywords in draft 2020-12 schemas.
- */
-const _ajvV2 = new Ajv({ useDefaults: true, allErrors: true, strict: false })
-addFormats(_ajvV2)
-const _validateV2Schema = _ajvV2.compile(v2Schema)
+// CJS/ESM interop: compiled file exports default via module.exports.default
+// in some bundlers. Unwrap when present.
+const _validateV2Schema = _compiledValidateV2.default || _compiledValidateV2
 
 /** Module-level flag so the unknown-$schema console.warn fires only once. */
 let _unknownSchemaWarned = false
