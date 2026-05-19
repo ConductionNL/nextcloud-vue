@@ -2,13 +2,13 @@
 
 ### Props
 
-| Name       | Type      | Required | Default     | Description                                                                                                                                                                                                          |
-| ---------- | --------- | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `label`    | `string`  |          | `''`        | Badge label text                                                                                                                                                                                                     |
-| `variant`  | `string`  |          | `'default'` | Color variant: 'default', 'primary', 'success', 'warning', 'error', 'info'                                                                                                                                           |
-| `size`     | `string`  |          | `'medium'`  | Size: 'small' or 'medium'                                                                                                                                                                                            |
-| `solid`    | `boolean` |          | `false`     | Use solid background with white text instead of light background with colored text. Useful when the badge is placed on a colored background (e.g., an active card).                                                  |
-| `colorMap` | `object`  |          | `null`      | Map of label values to variants. When provided, the variant is resolved from this map using the label (case-insensitive). Falls back to the variant prop. \{ open: 'success', closed: 'default', overdue: 'error' \} |
+| Name       | Type      | Required | Default     | Description                                                                                                                                                                                                            |
+| ---------- | --------- | -------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`    | `string`  |          | `''`        | Badge label text                                                                                                                                                                                                       |
+| `variant`  | `string`  |          | `'default'` | Color variant: 'default', 'primary', 'success', 'warning', 'error', 'info'                                                                                                                                             |
+| `size`     | `string`  |          | `'medium'`  | Size: 'small' or 'medium'                                                                                                                                                                                              |
+| `solid`    | `boolean` |          | `false`     | Use solid background with white text instead of light background with colored text. Useful when the badge is placed on a colored background (e.g., an active card).                                                    |
+| `colorMap` | `object`  |          | `null`      | Map of label values to variants. When provided, the variant is resolved from this map using the label (case-insensitive). Falls back to the variant prop. \\{ open: 'success', closed: 'default', overdue: 'error' \\} |
 
 ### Slots
 

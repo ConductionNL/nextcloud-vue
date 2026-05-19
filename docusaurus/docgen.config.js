@@ -105,9 +105,13 @@ module.exports = {
 
 /**
  * Markdown-table-cell-safe text: collapse newlines, escape pipes, escape MDX braces.
+ *
+ * Backslashes are escaped first so that a literal `\` in the source doesn't
+ * combine with the pipe-escape we inject in the next step (CodeQL js/incomplete-sanitization).
  */
 function cell(text) {
   return escapeMdxBraces(text || '')
+    .replace(/\\/g, '\\\\')
     .replace(/\n/g, ' ')
     .replace(/\|/g, '\\|')
     .trim()

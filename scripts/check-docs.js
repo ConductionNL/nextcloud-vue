@@ -232,7 +232,8 @@ function checkJsAccuracy(exportName, srcPath, docPath) {
 function extractSfcProps(sfcPath) {
 	if (!fs.existsSync(sfcPath)) return []
 	const source = fs.readFileSync(sfcPath, 'utf8')
-	const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/m)
+	// `i` flag so the regex matches case-insensitively (codeql js/bad-tag-filter).
+	const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/im)
 	if (!scriptMatch) return []
 	const script = scriptMatch[1]
 

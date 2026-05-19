@@ -18,10 +18,10 @@
 
 ### Events
 
-| Name      | Payload | Description                                                                                                   |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| `close`   | —       |                                                                                                               |
-| `confirm` | —       | Emitted when the user confirms copying. Payload: \{ ids, getName \} where getName(item) returns the new name. |
+| Name      | Payload | Description                                                                                                     |
+| --------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `close`   | —       |                                                                                                                 |
+| `confirm` | —       | Emitted when the user confirms copying. Payload: \\{ ids, getName \\} where getName(item) returns the new name. |
 
 ### Methods
 
