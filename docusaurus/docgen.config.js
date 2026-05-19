@@ -113,10 +113,16 @@ module.exports = {
  * so the source-backslash escape runs before escapeMdxBraces, not after.
  */
 function cell(text) {
-  const sourceBackslashesEscaped = String(text || '').replace(/\\/g, '\\\\')
-  return escapeMdxBraces(sourceBackslashesEscaped)
+  // Single-pass markdown-cell escape: backslash AND pipe both get
+  // prefixed with a backslash in one substitution so CodeQL
+  // (js/incomplete-sanitization) sees no asymmetry between the two.
+  // This runs BEFORE escapeMdxBraces so the `\{` / `\}` markers MDX
+  // needs verbatim aren't themselves re-escaped — escapeMdxBraces is
+  // append-only on `{`/`}`/`<`/`>` characters and never touches
+  // existing backslashes.
+  const escaped = String(text || '').replace(/[\\|]/g, '\\$&')
+  return escapeMdxBraces(escaped)
     .replace(/\n/g, ' ')
-    .replace(/\|/g, '\\|')
     .trim()
 }
 
