@@ -52,4 +52,16 @@ module.exports = defineConfig([{
 		'@nextcloud/no-deprecations': 'off',
 		'@nextcloud/no-removed-apis': 'off',
 	},
+}, {
+	// CLI scripts are Node.js executables — process.exit(), CJS require(), and
+	// minimal JSDoc are intentional and appropriate for build tools.
+	files: ['src/cli/**/*.js', 'src/cli/**/*.cjs'],
+	rules: {
+		'n/no-process-exit': 'off',
+		'n/no-missing-require': 'off',
+		'import/extensions': 'off',
+		'jsdoc/require-param-description': 'off',
+		'jsdoc/escape-inline-tags': 'off',
+		'jsdoc/reject-function-type': 'off',
+	},
 }])
