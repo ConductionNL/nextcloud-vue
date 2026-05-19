@@ -107,11 +107,9 @@
 
 						<!-- Select (enum, supports async function) -->
 						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveOptions(field)"
 								:model-value="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
@@ -141,11 +139,9 @@
 
 						<!-- Multiselect (array with enum items, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveArrayOptions(field)"
 								:model-value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
@@ -176,12 +172,10 @@
 
 						<!-- Tags (array, freeform, supports async suggestions) -->
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
 								:model-value="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
