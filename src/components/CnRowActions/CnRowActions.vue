@@ -138,10 +138,14 @@ export default {
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
+			// Trim leading + trailing '-' with two anchored, non-overlapping
+			// replaces instead of `^-+|-+$` (codeql js/redos: the alternation
+			// produces O(n²) backtracking on strings of many '-').
 			return String(label || '')
 				.toLowerCase()
 				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '')
+				.replace(/^-+/, '')
+				.replace(/-+$/, '')
 		},
 	},
 }

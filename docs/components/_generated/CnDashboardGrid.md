@@ -2,15 +2,15 @@
 
 ### Props
 
-| Name         | Type      | Required | Default | Description                                                                    |
-| ------------ | --------- | -------- | ------- | ------------------------------------------------------------------------------ |
-| `layout`     | `array`   | ✓        | —       | Array of layout items: \{ id, gridX, gridY, gridWidth, gridHeight, ...extra \} |
-| `editable`   | `boolean` |          | `false` | Whether drag and resize are enabled                                            |
-| `columns`    | `number`  |          | `12`    | Number of grid columns                                                         |
-| `cellHeight` | `number`  |          | `80`    | Cell height in pixels                                                          |
-| `margin`     | `number`  |          | `12`    | Grid margin in pixels                                                          |
-| `minWidth`   | `number`  |          | `2`     | Minimum widget width in grid units                                             |
-| `minHeight`  | `number`  |          | `2`     | Minimum widget height in grid units                                            |
+| Name         | Type      | Required | Default | Description                                                                      |
+| ------------ | --------- | -------- | ------- | -------------------------------------------------------------------------------- |
+| `layout`     | `array`   | ✓        | —       | Array of layout items: \\{ id, gridX, gridY, gridWidth, gridHeight, ...extra \\} |
+| `editable`   | `boolean` |          | `false` | Whether drag and resize are enabled                                              |
+| `columns`    | `number`  |          | `12`    | Number of grid columns                                                           |
+| `cellHeight` | `number`  |          | `80`    | Cell height in pixels                                                            |
+| `margin`     | `number`  |          | `12`    | Grid margin in pixels                                                            |
+| `minWidth`   | `number`  |          | `2`     | Minimum widget width in grid units                                               |
+| `minHeight`  | `number`  |          | `2`     | Minimum widget height in grid units                                              |
 
 ### Events
 

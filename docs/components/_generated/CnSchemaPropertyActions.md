@@ -2,18 +2,18 @@
 
 ### Props
 
-| Name                   | Type      | Required | Default | Description                                                                   |
-| ---------------------- | --------- | -------- | ------- | ----------------------------------------------------------------------------- |
-| `propertyKey`          | `string`  | ✓        | —       | The property name/key in the schema                                           |
-| `property`             | `object`  | ✓        | —       | The property definition object                                                |
-| `schemaItem`           | `object`  | ✓        | —       | Full schemaItem (for direct mutations and required array checks)              |
-| `originalProperties`   | `object`  |          | `\{\}`  | Original properties snapshot for table setting comparison                     |
-| `availableSchemas`     | `array`   |          | `[]`    | Available schemas for $ref selects                                            |
-| `availableRegisters`   | `array`   |          | `[]`    | Available registers for register selects                                      |
-| `availableTagsOptions` | `array`   |          | `[]`    | Available tags for file property configuration, pre-mapped to [\{id, label\}] |
-| `userGroups`           | `array`   |          | `[]`    | User groups for property-level RBAC                                           |
-| `sortedUserGroups`     | `array`   |          | `[]`    | Filtered/sorted user groups (excludes admin/public)                           |
-| `loadingGroups`        | `boolean` |          | `false` | Whether user groups are still loading                                         |
+| Name                   | Type      | Required | Default  | Description                                                                     |
+| ---------------------- | --------- | -------- | -------- | ------------------------------------------------------------------------------- |
+| `propertyKey`          | `string`  | ✓        | —        | The property name/key in the schema                                             |
+| `property`             | `object`  | ✓        | —        | The property definition object                                                  |
+| `schemaItem`           | `object`  | ✓        | —        | Full schemaItem (for direct mutations and required array checks)                |
+| `originalProperties`   | `object`  |          | `\\{\\}` | Original properties snapshot for table setting comparison                       |
+| `availableSchemas`     | `array`   |          | `[]`     | Available schemas for $ref selects                                              |
+| `availableRegisters`   | `array`   |          | `[]`     | Available registers for register selects                                        |
+| `availableTagsOptions` | `array`   |          | `[]`     | Available tags for file property configuration, pre-mapped to [\\{id, label\\}] |
+| `userGroups`           | `array`   |          | `[]`     | User groups for property-level RBAC                                             |
+| `sortedUserGroups`     | `array`   |          | `[]`     | Filtered/sorted user groups (excludes admin/public)                             |
+| `loadingGroups`        | `boolean` |          | `false`  | Whether user groups are still loading                                           |
 
 ### Events
 

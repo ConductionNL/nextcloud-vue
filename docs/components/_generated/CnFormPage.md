@@ -11,7 +11,7 @@
 | `mode`             | `string` |          | `'public'`                                  | Form mode. `public` shows the success banner and hides the form on submit; `edit` and `create` keep the form mounted so the consumer can route away.                                                                                                                                 |
 | `submitLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Submit')`     | i18n key for the submit button label.                                                                                                                                                                                                                                                |
 | `successMessage`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Thank you!')` | i18n key for the success banner.                                                                                                                                                                                                                                                     |
-| `initialValue`     | `object` |          | `\{\}`                                      | Pre-filled form state. Consumed by `mode: "edit"`.                                                                                                                                                                                                                                   |
+| `initialValue`     | `object` |          | `\\{\\}`                                    | Pre-filled form state. Consumed by `mode: "edit"`.                                                                                                                                                                                                                                   |
 | `title`            | `string` |          | `''`                                        | Page title. Forwarded to CnPageHeader.                                                                                                                                                                                                                                               |
 | `description`      | `string` |          | `''`                                        | Page description. Forwarded to CnPageHeader.                                                                                                                                                                                                                                         |
 | `translate`        | `union`  |          | `null`                                      | Optional translation function. When provided, applied to field labels, success messages, etc. Defaults to identity.                                                                                                                                                                  |
@@ -27,9 +27,9 @@
 
 ### Slots
 
-| Name                 | Bindings                             | Description          |
-| -------------------- | ------------------------------------ | -------------------- |
-| `header`             | `title`, `description`               | header               |
-| `actions`            | —                                    |                      |
-| `field-${field.key}` | `name`, `field`, `value`, `on-input` | field-$\{field.key\} |
-| `submit`             | `submitting`, `dirty`, `submit`      |                      |
+| Name                 | Bindings                             | Description            |
+| -------------------- | ------------------------------------ | ---------------------- |
+| `header`             | `title`, `description`               | header                 |
+| `actions`            | —                                    |                        |
+| `field-${field.key}` | `name`, `field`, `value`, `on-input` | field-$\\{field.key\\} |
+| `submit`             | `submitting`, `dirty`, `submit`      |                        |
