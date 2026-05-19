@@ -185,6 +185,14 @@ module.exports = {
 				// styleguide and causes crashes when first loaded by Data Display components.
 				'@nextcloud/l10n': path.resolve(__dirname, 'mocks/l10n.js'),
 				'@nextcloud/dialogs': path.resolve(__dirname, 'mocks/empty.js'),
+				// @microsoft/fetch-event-source is only installed in the
+				// library's root node_modules (CnAiCompanion + useAiChatStream
+				// consume it at runtime). The deploy workflow `npm ci`s only
+				// inside styleguide/, so root/node_modules isn't populated and
+				// webpack can't resolve the import when it walks the library
+				// dep graph. AI streaming has no useful demo in the styleguide
+				// sandbox anyway, so a no-op stub keeps the build green.
+				'@microsoft/fetch-event-source': path.resolve(__dirname, 'mocks/fetch-event-source.js'),
 				// p-queue 7+ only ships an "exports" map with no "main" field;
 				// webpack 4 doesn't understand "exports", so we point it directly.
 				'p-queue': path.resolve(__dirname, 'node_modules/p-queue/dist/index.js'),
