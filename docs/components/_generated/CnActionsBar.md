@@ -4,7 +4,7 @@
 
 | Name                | Type      | Required | Default                              | Description                                                                        |
 | ------------------- | --------- | -------- | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| `pagination`        | `object`  |          | `null`                               | Pagination state: \\{ total, page, pages, limit \\}                                |
+| `pagination`        | `object`  |          | `null`                               | Pagination state: \{ total, page, pages, limit \}                                  |
 | `objectCount`       | `number`  |          | `0`                                  | Number of currently visible objects (for "Showing X of Y")                         |
 | `selectable`        | `boolean` |          | `true`                               | Whether rows/cards can be selected                                                 |
 | `selectedIds`       | `array`   |          | `[]`                                 | Currently selected IDs                                                             |

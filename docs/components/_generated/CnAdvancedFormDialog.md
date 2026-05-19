@@ -14,7 +14,7 @@
 | `confirmLabel`          | `string`  |          | `''`                                    |             |
 | `excludeFields`         | `array`   |          | `[]`                                    |             |
 | `includeFields`         | `array`   |          | `null`                                  |             |
-| `fieldOverrides`        | `object`  |          | `\\{\\}`                                |             |
+| `fieldOverrides`        | `object`  |          | `\{\}`                                  |             |
 | `showPropertiesTable`   | `boolean` |          | `true`                                  |             |
 | `showJsonTab`           | `boolean` |          | `true`                                  |             |
 | `showMetadataTab`       | `boolean` |          | `null`                                  |             |

@@ -5,8 +5,8 @@
 | Name            | Type      | Required | Default                                    | Description                                                                                                         |
 | --------------- | --------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `schema`        | `object`  |          | `null`                                     | Schema definition — reads facetable properties                                                                      |
-| `facetData`     | `object`  |          | `\\{\\}`                                   | Live facet data from API: \\{ fieldName: \\{ values: [\\{value, count\\}] \\} \\}                                   |
-| `activeFilters` | `object`  |          | `\\{\\}`                                   | Current active filters: \\{ fieldName: value \| [values] \\}                                                        |
+| `facetData`     | `object`  |          | `\{\}`                                     | Live facet data from API: \{ fieldName: \{ values: [\{value, count\}] \} \}                                         |
+| `activeFilters` | `object`  |          | `\{\}`                                     | Current active filters: \{ fieldName: value \| [values] \}                                                          |
 | `loading`       | `boolean` |          | `false`                                    | Whether facet data is loading                                                                                       |
 | `title`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Filters')`   | Sidebar title                                                                                                       |
 | `clearLabel`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'Clear all')` | Clear all button label                                                                                              |
