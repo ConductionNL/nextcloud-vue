@@ -279,7 +279,7 @@ export default {
 			const slot = this.$scopedSlots['action-items']
 			if (!slot) return 0
 			const vnodes = slot() || []
-			return vnodes.filter(n => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
+			return vnodes.filter((n) => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
 		},
 
 		/**
