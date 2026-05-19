@@ -113,7 +113,12 @@ Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) ov
 
 ### Static manifest with backend override (default)
 
-```js
+<!-- Fenced as `javascript` (not in styleguide customLangs) so the
+     example renders as syntax-highlighted code without webpack
+     trying to compile the import of `../manifest.json` (which lives
+     in the consuming app, not this library). -->
+
+```javascript
 import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
 import bundledManifest from '../manifest.json'
 
@@ -159,7 +164,7 @@ export default {
 
 Add `validate: true` for synchronous schema validation — failures populate `validationErrors` and emit a `console.warn` prefixed `[useAppManifest]` but never replace the manifest (informational policy, mirroring the legacy branch):
 
-```js
+```javascript
 const { manifest, isLoading, validationErrors } = useAppManifest({
   manifest: builderManifest,
   validate: true,
