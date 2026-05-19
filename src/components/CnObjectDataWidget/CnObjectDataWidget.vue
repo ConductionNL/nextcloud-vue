@@ -227,6 +227,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { useObjectStore } from '../../store/index.js'
 
 /**
  * CnObjectDataWidget — Schema-driven editable data grid widget.
@@ -653,11 +654,12 @@ export default {
 			if (this.store) return this.store
 
 			try {
-				// Dynamic import to avoid hard dependency
+				// useObjectStore is a static import (top of file) — bundler
+				// resolves it at lib build time so consumer apps don't need
+				// to resolve the relative path. The try/catch still guards
+				// the case where the consumer hasn't set up pinia.
 				const pinia = this.$pinia
 				if (!pinia) return null
-				// Try to access the store — it must already be created by the consuming app
-				const { useObjectStore } = require('../../store/index.js')
 				return useObjectStore()
 			} catch {
 				return null
