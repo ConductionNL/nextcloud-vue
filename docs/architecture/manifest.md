@@ -149,12 +149,27 @@ When `type` is omitted, the Ajv instance (compiled with `useDefaults: true`) fil
 
 ### Migration guide
 
-A full step-by-step migration guide (v1 → v2 for existing manifests) is coming in the `manifest-v2-codemod` spec. Until then, you can migrate manually by:
+The `manifest-migrate` CLI codemod automates the mechanical parts of the v1 → v2 migration. See **[Migrating to v2](../migrating-to-v2.md)** for the full guide.
 
-1. Adding `"$schema": "…/app-manifest-v2.schema.json"` to your manifest
-2. Restructuring widget placement onto the top-level `pages[].widgets[]` array using the uniform `widgetEntry` shape
-3. Adding `type` discriminators to any existing `actions[]` entries (or omitting `type` to keep the default `handler` behaviour)
-4. Adding `"_note"` to any `type: "custom"` pages
+Quick start:
+
+```bash
+npx @conduction/nextcloud-vue manifest-migrate \
+  --input src/manifest.json \
+  --report MIGRATION_REPORT.md
+```
+
+What the codemod handles automatically:
+
+1. Sets `"$schema"` to the v2 canonical URL
+2. Merges `config.widgets[]` + `config.layout[]` into the uniform top-level `pages[].widgets[]`
+3. Lifts `sidebarTabs[].widgets[]` to `slot: "sidebar"` widget entries
+4. Flattens settings `sections[].widgets[]` and `tabs[]` to `slot: "section:*"` / `slot: "tab:*"`
+5. Migrates `cardComponent` to a `card-grid` widget entry
+6. Adds explicit `type: "handler"` to action entries where `type` was omitted
+7. Migrates `customComponents` → `registry` map
+
+Items requiring manual attention are listed in the migration report (`--report`).
 
 ## Where to next
 
