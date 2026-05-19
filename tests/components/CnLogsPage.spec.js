@@ -124,9 +124,7 @@ describe('CnLogsPage', () => {
 			stubs,
 		})
 		expect(axios.get).not.toHaveBeenCalled()
-		expect(fakeStore.registerObjectType).toHaveBeenCalledWith('audit-event', {
-			register: 'audit',
-			schema: 'event',
-		})
+		// Positional signature: (slug, schemaId, registerId, slugs?).
+		expect(fakeStore.registerObjectType).toHaveBeenCalledWith('audit-event', 'event', 'audit')
 	})
 })
