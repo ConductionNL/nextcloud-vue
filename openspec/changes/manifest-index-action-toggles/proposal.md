@@ -35,3 +35,4 @@ Unblocks opencatalogi: `CatalogiIndexView`, `OrganizationIndexView`, `ThemeIndex
 - [nextcloud-vue#274](https://github.com/ConductionNL/nextcloud-vue/issues/274) — tracking issue.
 - [opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636) — consuming-app PR documenting the lib gap on each affected page.
 - `CnPageRenderer.resolvedProps()` + `READ_ONLY_DEFAULTS` — existing precedent for the flattening pattern.
+<!-- CI trigger probe 2026-05-20T21:08:53Z -->
