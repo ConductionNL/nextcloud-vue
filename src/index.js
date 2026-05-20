@@ -21,6 +21,7 @@ export {
 	CnSettingsCard,
 	CnSettingsSection,
 	CnStatsBlock,
+	CnStructuredDocReview,
 	CnConfigurationCard,
 	CnVersionInfoCard,
 	CnCellRenderer,
