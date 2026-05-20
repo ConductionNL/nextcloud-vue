@@ -26,8 +26,31 @@
 </template>
 
 <script>
-import { loadState } from '@nextcloud/initial-state'
 import CnFeaturesAndRoadmapView from '../CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
+
+/**
+ * Read a key from `@nextcloud/initial-state`. `@nextcloud/initial-state`
+ * is an optional peer (mirrors resolveManifestSentinels.js); the host
+ * page may not provision the slot at all. Returns the default when the
+ * package is not installed or the slot is missing.
+ *
+ * @param {string} appId Nextcloud app ID.
+ * @param {string} key Initial-state key (full key, not prefixed).
+ * @param {*} fallback Default value when no provisioned slot exists.
+ * @return {*} Provisioned value or the fallback.
+ */
+function readInitialState(appId, key, fallback) {
+	try {
+		// eslint-disable-next-line global-require, import/no-unresolved, n/no-extraneous-require
+		const mod = require('@nextcloud/initial-state')
+		if (typeof mod.loadState === 'function') {
+			return mod.loadState(appId, key, fallback)
+		}
+	} catch (e) {
+		// Package not installed or no slot provisioned — fall through.
+	}
+	return fallback
+}
 
 export default {
 	name: 'CnFeaturesAndRoadmapPage',
@@ -104,7 +127,7 @@ export default {
 			if (this.repo) {
 				return this.repo
 			}
-			return loadState(
+			return readInitialState(
 				this.effectiveAppId,
 				'features_roadmap_repo',
 				`ConductionNL/${this.effectiveAppId}`,
@@ -120,7 +143,7 @@ export default {
 			if (this.features !== null) {
 				return this.features
 			}
-			return loadState(this.effectiveAppId, 'features_roadmap_features', [])
+			return readInitialState(this.effectiveAppId, 'features_roadmap_features', [])
 		},
 
 		/**
@@ -132,7 +155,7 @@ export default {
 			if (this.disabled !== null) {
 				return this.disabled
 			}
-			return loadState(this.effectiveAppId, 'features_roadmap_disabled', false)
+			return readInitialState(this.effectiveAppId, 'features_roadmap_disabled', false)
 		},
 	},
 }
