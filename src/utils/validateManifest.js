@@ -617,12 +617,15 @@ function validateTypeConfig(page, index, errors) {
 			}
 		}
 
-		if (cfg && cfg.mode !== undefined) {
-			const allowedModes = ['edit', 'create', 'public']
-			if (typeof cfg.mode !== 'string' || !allowedModes.includes(cfg.mode)) {
-				errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of edit | create | public`)
-			}
-		}
+		validateConfigMode(cfg, pathSlash, pathBracket, errors)
+		break
+	}
+	case 'detail': {
+		// `manifest-public-mode` — type='detail' supports the same
+		// mode enum (`edit | create | public`) as type='form'. The
+		// 'public' value marks unauthenticated token-scoped detail
+		// pages — pair with @route.<param> token binding.
+		validateConfigMode(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'wiki': {
@@ -937,6 +940,32 @@ function validateColumnsArray(cfg, pathSlash, pathBracket, errors) {
 			errors.push(`${colPath}/label: must be a non-empty string`)
 		}
 	})
+}
+
+/**
+ * Closed enum of valid `config.mode` values for type='form' and
+ * type='detail' pages (`manifest-public-mode`).
+ *
+ * @type {string[]}
+ */
+const ALLOWED_CONFIG_MODES = ['edit', 'create', 'public']
+
+/**
+ * Validate `config.mode` against the closed enum
+ * (`manifest-public-mode`). Shared between type='form' and
+ * type='detail' branches of `validateTypeConfig`. Omitted mode is
+ * tolerated (consumers fall back to the component's default).
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.mode === undefined) return
+	if (typeof cfg.mode !== 'string' || !ALLOWED_CONFIG_MODES.includes(cfg.mode)) {
+		errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of ${ALLOWED_CONFIG_MODES.join(' | ')}`)
+	}
 }
 
 /**

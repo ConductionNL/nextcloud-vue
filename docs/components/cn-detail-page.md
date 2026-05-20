@@ -232,6 +232,27 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 </template>
 ```
 
+## Public (unauthenticated) detail pages
+
+`pages[].config.mode: 'public'` marks a detail route as unauthenticated — token-scoped reader pages like credential verification or shared-link views. Pair with the `@route.<param>` sentinel (see [`resolveRouteSentinels`](../utilities/resolve-route-sentinels.md)) for the token binding:
+
+```json
+{
+  "id": "CredentialVerify",
+  "route": "/credentials/:token/verify",
+  "type": "detail",
+  "title": "Verify credential",
+  "config": {
+    "register": "scholiq",
+    "schema": "credential",
+    "mode": "public",
+    "filter": { "token": "@route.token" }
+  }
+}
+```
+
+The schema's typed `mode` enum (`edit | create | public`) gives consumers IDE completion + sharp validator errors on typos. Today the manifest carries the intent — `CnDetailPage` does not yet branch on `mode` for auth-header bypass; the host app skips auth headers based on the route. A follow-up will wire native public-mode handling into the component so consumers don't have to coordinate auth-bypass externally.
+
 ## When to use CnDetailPage vs other page components
 
 | Component | Use when... |
