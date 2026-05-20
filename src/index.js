@@ -50,6 +50,8 @@ export {
 	CnMassExportDialog,
 	CnMassImportDialog,
 	CnExportWizard,
+	CnWizardDialog,
+	CnRichSubmitDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
 	CnThemePreview,
