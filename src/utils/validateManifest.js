@@ -628,16 +628,19 @@ function validateTypeConfig(page, index, errors) {
 	case 'wiki': {
 		// `manifest-wiki-page-type` REQ-MWPT — wiki pages render a
 		// markdown article sourced from a register/schema property.
-		// Both register and schema MUST be non-empty strings; the
-		// optional fields (contentField, titleField, idParam, sidebar*)
-		// are NOT validated for type — runtime defaults take over and
-		// over-validation here would break consumer manifests with
-		// custom field names.
+		// Both register and schema MUST be non-empty strings.
 		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
 		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
 		if (!hasRegister || !hasSchema) {
 			errors.push(`${pathSlash}: ${pathBracket}: wiki pages must declare register and schema`)
 		}
+		// `manifest-wiki-stabilise` — the 11 optional config fields
+		// (contentField / titleField / idParam / treeField /
+		// sidebarTitleField / sidebarRegister / sidebarSchema /
+		// emptyText / emptyDescription / emptyBodyText /
+		// emptyBodyDescription) MUST be strings when present.
+		// Schema-validated, but cross-check here for typed paths.
+		validateWikiConfigFields(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'map': {
@@ -994,6 +997,28 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
+ * Known optional string fields for `type:'wiki'` config
+ * (`manifest-wiki-stabilise`). Each value MUST be a string when
+ * present; omitted fields are tolerated; unknown keys pass for
+ * forward-compat.
+ *
+ * @type {string[]}
+ */
+const WIKI_OPTIONAL_STRING_FIELDS = [
+	'contentField',
+	'titleField',
+	'idParam',
+	'treeField',
+	'sidebarTitleField',
+	'sidebarRegister',
+	'sidebarSchema',
+	'emptyText',
+	'emptyDescription',
+	'emptyBodyText',
+	'emptyBodyDescription',
+]
+
+/**
  * Validate `config.actionToggles` for index page type
  * (`manifest-index-action-toggles`). The block is OPTIONAL; when
  * present it MUST be a plain object whose values are booleans.
@@ -1110,6 +1135,26 @@ function validateSidebarTabGroupRefs(page, index, errors) {
 			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" must match a declared config.sidebarTabs[].id`)
 		}
 	})
+}
+
+/**
+ * Validate the optional typed string fields on `type:'wiki'` config.
+ * Required fields (register, schema) are checked separately by the
+ * wiki case in `validateTypeConfig`.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateWikiConfigFields(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg) return
+	for (const field of WIKI_OPTIONAL_STRING_FIELDS) {
+		if (cfg[field] === undefined) continue
+		if (typeof cfg[field] !== 'string') {
+			errors.push(`${pathSlash}/${field}: ${pathBracket}.${field}: must be a string when set (got ${typeof cfg[field]})`)
+		}
+	}
 }
 
 /**

@@ -85,6 +85,28 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 }
 ```
 
+### Manifest config reference
+
+`pages[].config` for `type:'wiki'` accepts the following typed fields. Each is a `string` validated by the v2 schema; unknown keys pass for forward-compat.
+
+| Field | Required | Default (in component) | CnWikiPage prop |
+|-------|----------|------------------------|------------------|
+| `register` | ✔ | — | `register` |
+| `schema` | ✔ | — | `schema` |
+| `contentField` | — | `'body'` | `contentField` |
+| `titleField` | — | `'title'` | `titleField` |
+| `idParam` | — | `'id'` | `idParam` |
+| `treeField` | — | `'children'` | `treeField` |
+| `sidebarTitleField` | — | `''` (falls back to `titleField`) | `sidebarTitleField` |
+| `sidebarRegister` | — | `''` (falls back to `register`) | `sidebarRegister` |
+| `sidebarSchema` | — | `''` (hides sidebar when empty) | `sidebarSchema` |
+| `emptyText` | — | `'Article not found'` | `emptyText` |
+| `emptyDescription` | — | `'The requested article could not be found.'` | `emptyDescription` |
+| `emptyBodyText` | — | `'No content'` | `emptyBodyText` |
+| `emptyBodyDescription` | — | `'This article has no content yet.'` | `emptyBodyDescription` |
+
+The validator surfaces typed errors with JSON-pointer paths on missing-required / wrong-type values (`pages[N]/config/contentField: must be a string when set`).
+
 ## Data fetching
 
 CnWikiPage is **stateless** — it does not fetch its own data. The consumer passes `article` and `tree` as props, typically from a register-backed store. This mirrors `CnFilesPage` and keeps the lib zero-dep on a particular OpenRegister fetcher.
