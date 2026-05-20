@@ -433,16 +433,28 @@ export default {
 		resolvedProps() {
 			const config = this.currentPage?.config ?? {}
 			const params = this.$route?.params ?? {}
+			// `config.actionToggles` is a typed object sugaring the nine
+			// show*/selectable toggles on type='index' pages. Flatten
+			// each key into the top-level config namespace UNDER any
+			// explicit config.<key> (so explicit wins). Strip the
+			// container before forwarding — CnIndexPage has no
+			// `actionToggles` prop.
+			const isIndex = this.currentPage?.type === 'index'
+			let normalizedConfig = config
+			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
+				const { actionToggles, ...rest } = config
+				normalizedConfig = { ...actionToggles, ...rest }
+			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
 			// expand to the nine read-only flags MERGED UNDER `config.*`
 			// so explicit `config.showAdd:true` still wins. Strip the
 			// `readOnly` key before forwarding — CnIndexPage has no
 			// `readOnly` prop.
-			if (this.currentPage?.type === 'index' && config.readOnly === true) {
-				const { readOnly, ...rest } = config
+			if (isIndex && normalizedConfig.readOnly === true) {
+				const { readOnly, ...rest } = normalizedConfig
 				return { ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
-			return { ...config, ...params }
+			return { ...normalizedConfig, ...params }
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.
