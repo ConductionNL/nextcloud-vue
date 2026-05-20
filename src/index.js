@@ -27,6 +27,7 @@ export {
 	CnObjectCard,
 	CnCardGrid,
 	CnFacetSidebar,
+	CnFederationStatus,
 	CnRowActions,
 	CnContextMenu,
 	CnIndexPage,
