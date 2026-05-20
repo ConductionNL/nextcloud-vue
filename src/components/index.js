@@ -1,4 +1,5 @@
 export { CnDataTable } from './CnDataTable/index.js'
+export { CnDataMatrix } from './CnDataMatrix/index.js'
 export { CnFilterBar } from './CnFilterBar/index.js'
 export { CnStatusBadge } from './CnStatusBadge/index.js'
 export { CnPagination } from './CnPagination/index.js'
