@@ -158,6 +158,7 @@ export { buildHeaders, buildQueryString, parseResponseError, networkError, gener
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
+export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 

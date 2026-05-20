@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -398,7 +398,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, wiki, map, custom). Config values under pages[].config may use @resolve: sentinels; the loader substitutes them at runtime. Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
+					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, wiki, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
 					"properties": {
 						"register": {

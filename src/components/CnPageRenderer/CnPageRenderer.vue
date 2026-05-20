@@ -110,6 +110,7 @@
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -431,8 +432,15 @@ export default {
 		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			const config = this.currentPage?.config ?? {}
+			const rawConfig = this.currentPage?.config ?? {}
 			const params = this.$route?.params ?? {}
+			// `manifest-route-param-sentinel`: substitute every
+			// `@route.<param>` string in the config subtree with the
+			// matching `$route.params.<param>` value before any other
+			// merge. Unresolved sentinels become null (with a one-shot
+			// console.warn per pageId+sentinel).
+			const pageId = this.currentPage?.id ?? '<unknown>'
+			const config = resolveRouteSentinels(rawConfig, params, pageId)
 			// `config.actionToggles` is a typed object sugaring the nine
 			// show*/selectable toggles on type='index' pages. Flatten
 			// each key into the top-level config namespace UNDER any
