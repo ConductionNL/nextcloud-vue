@@ -68,6 +68,7 @@
   "CnProgressBar": 0.71,
   "CnQuickFilterBar": 0.67,
   "CnRegisterMapping": 0.68,
+  "CnRichSubmitDialog": 1,
   "CnRoadmapItem": 1,
   "CnRoadmapTab": 1,
   "CnRowActions": 0.8,
@@ -95,6 +96,7 @@
   "CnWidgetRenderer": 1,
   "CnWidgetWrapper": 0.71,
   "CnWikiPage": 1,
+  "CnWizardDialog": 1,
   "__schema__": {
     "generatedBy": "scripts/check-jsdoc.js --update",
     "rule": "CI fails if any component score < baseline. New components require 1.0."
