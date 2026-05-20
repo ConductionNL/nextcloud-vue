@@ -453,6 +453,11 @@ function validateTypeConfig(page, index, errors) {
 		// field. Both arrays are OPTIONAL; only validated when present.
 		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
 		validateActionsArray(cfg, pathSlash, pathBracket, errors)
+		// `manifest-index-action-toggles` — typed config.actions block.
+		// Schema-validated, but cross-check structure here for sharp
+		// error paths (consumer typo in actions.<key> surfaces with
+		// the path rather than a JSON Schema enum mismatch).
+		validateIndexActionToggles(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'logs': {
@@ -977,6 +982,35 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
  * the schema's `pattern` on the `handler` property.
  */
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
+ * Validate `config.actionToggles` for index page type
+ * (`manifest-index-action-toggles`). The block is OPTIONAL; when
+ * present it MUST be a plain object whose values are booleans.
+ * Unknown keys pass for forward-compat with future CnIndexPage props.
+ *
+ * Known keys (each maps to a CnIndexPage prop):
+ *   showAdd, showFormDialog, showEditAction, showCopyAction,
+ *   showDeleteAction, showMassImport, showMassExport, showMassCopy,
+ *   showMassDelete, showViewToggle, selectable.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.actionToggles === undefined) return
+	if (!isPlainObject(cfg.actionToggles)) {
+		errors.push(`${pathSlash}/actionToggles: ${pathBracket}.actionToggles: must be an object`)
+		return
+	}
+	for (const [key, value] of Object.entries(cfg.actionToggles)) {
+		if (typeof value !== 'boolean') {
+			errors.push(`${pathSlash}/actionToggles/${key}: ${pathBracket}.actionToggles.${key}: must be a boolean (got ${typeof value})`)
+		}
+	}
+}
 
 /**
  * Validate `config.widgets[]` for dashboard page type

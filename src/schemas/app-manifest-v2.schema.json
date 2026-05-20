@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -500,6 +500,57 @@
 							"items": {
 								"type": "object",
 								"additionalProperties": true
+							}
+						},
+						"actionToggles": {
+							"type": "object",
+							"description": "Built-in action toggles for type='index' pages. Each key is sugar for the matching CnIndexPage prop — manifest authors can hide built-in mass actions / row actions / the Add button without writing a wrapper. Mirrors the CnIndexPage prop names. Explicit config.<key> wins over config.actionToggles.<key> (matches the readOnly precedence rule). Distinct from config.actions[] which is the typed row-actions array.",
+							"additionalProperties": true,
+							"properties": {
+								"showAdd": {
+									"type": "boolean",
+									"description": "Whether to show the Add button in the actions bar. Maps to CnIndexPage `showAdd`."
+								},
+								"showFormDialog": {
+									"type": "boolean",
+									"description": "Whether the built-in create / edit form dialog is enabled. Maps to CnIndexPage `showFormDialog`."
+								},
+								"showEditAction": {
+									"type": "boolean",
+									"description": "Whether to add an Edit action to row actions. Maps to CnIndexPage `showEditAction`."
+								},
+								"showCopyAction": {
+									"type": "boolean",
+									"description": "Whether to add a Copy action to row actions. Maps to CnIndexPage `showCopyAction`."
+								},
+								"showDeleteAction": {
+									"type": "boolean",
+									"description": "Whether to add a Delete action to row actions. Maps to CnIndexPage `showDeleteAction`."
+								},
+								"showMassImport": {
+									"type": "boolean",
+									"description": "Whether to show the built-in mass Import action. Maps to CnIndexPage `showMassImport`."
+								},
+								"showMassExport": {
+									"type": "boolean",
+									"description": "Whether to show the built-in mass Export action. Maps to CnIndexPage `showMassExport`."
+								},
+								"showMassCopy": {
+									"type": "boolean",
+									"description": "Whether to show the built-in mass Copy button. Maps to CnIndexPage `showMassCopy`."
+								},
+								"showMassDelete": {
+									"type": "boolean",
+									"description": "Whether to show the built-in mass Delete button. Maps to CnIndexPage `showMassDelete`."
+								},
+								"showViewToggle": {
+									"type": "boolean",
+									"description": "Whether to show the table/cards view-mode toggle. Maps to CnIndexPage `showViewToggle`."
+								},
+								"selectable": {
+									"type": "boolean",
+									"description": "Whether rows are selectable (driving the mass-action surface). Maps to CnIndexPage `selectable`."
+								}
 							}
 						}
 					}
