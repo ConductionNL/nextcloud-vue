@@ -63,6 +63,7 @@ export {
 	CnSchemaFormDialog,
 	CnTabbedFormDialog,
 	CnTimelineStages,
+	CnTreeView,
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
