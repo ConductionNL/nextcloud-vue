@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.3.0",
+	"version": "2.4.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -589,6 +589,50 @@
 									"description": "Whether rows are selectable (driving the mass-action surface). Maps to CnIndexPage `selectable`."
 								}
 							}
+						},
+						"contentField": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): property on `article` holding the markdown body. Defaults to 'body'. Maps to CnWikiPage `contentField`."
+						},
+						"titleField": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): property on `article` holding the H1 title. Defaults to 'title'. Maps to CnWikiPage `titleField`."
+						},
+						"idParam": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): $route.params key holding the article id. Defaults to 'id'. Maps to CnWikiPage `idParam`."
+						},
+						"treeField": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): property on each sidebar tree node holding its child array. Defaults to 'children'. Maps to CnWikiPage `treeField`."
+						},
+						"sidebarTitleField": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): property on each sidebar tree node holding its label. Defaults to the value of `titleField`. Maps to CnWikiPage `sidebarTitleField`."
+						},
+						"sidebarRegister": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): register slug for the sidebar tree. Defaults to the main `register`. Maps to CnWikiPage `sidebarRegister`."
+						},
+						"sidebarSchema": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): schema slug for the sidebar tree. When set AND `tree` is non-empty the sidebar renders. Maps to CnWikiPage `sidebarSchema`."
+						},
+						"emptyText": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): empty-state heading when `article` is null. Maps to CnWikiPage `emptyText`."
+						},
+						"emptyDescription": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): empty-state description when `article` is null. Maps to CnWikiPage `emptyDescription`."
+						},
+						"emptyBodyText": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): empty-body heading when the article has no `contentField` value. Maps to CnWikiPage `emptyBodyText`."
+						},
+						"emptyBodyDescription": {
+							"type": "string",
+							"description": "Wiki (type='wiki'): empty-body description. Maps to CnWikiPage `emptyBodyDescription`."
 						}
 					}
 				},
