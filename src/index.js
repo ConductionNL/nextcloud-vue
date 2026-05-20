@@ -31,6 +31,7 @@ export {
 	CnContextMenu,
 	CnIndexPage,
 	CnQuickFilterBar,
+	CnMarkdownEditor,
 	CnMassActionBar,
 	CnDeleteDialog,
 	CnCopyDialog,
