@@ -15,6 +15,7 @@ export * from '@nextcloud/vue'
 // Components
 export {
 	CnDataTable,
+	CnDataMatrix,
 	CnFilterBar,
 	CnStatusBadge,
 	CnPagination,
