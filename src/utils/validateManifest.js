@@ -460,6 +460,16 @@ function validateTypeConfig(page, index, errors) {
 		validateIndexActionToggles(cfg, pathSlash, pathBracket, errors)
 		break
 	}
+	case 'detail': {
+		// `manifest-detail-sidebartabs` — typed validation for the
+		// human-authored sidebar-tab declaration. Tab entries lift to
+		// `widgets[]` with `slot:"sidebar"` + `tabGroup` via the CLI
+		// transform; this validator catches authoring mistakes (missing
+		// id/label, duplicate ids, non-array shape) before that.
+		validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
+		validateSidebarTabGroupRefs(page, index, errors)
+		break
+	}
 	case 'logs': {
 		const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
 		const hasSource = cfg && typeof cfg.source === 'string'
@@ -1013,10 +1023,98 @@ function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
 }
 
 /**
+ * Validate `config.sidebarTabs[]` for detail page type
+ * (`manifest-detail-sidebartabs`). The block is OPTIONAL; when
+ * present it MUST be an array of objects each carrying non-empty
+ * `id` and `label` strings. Duplicate `id`s reject; unknown keys
+ * pass for forward-compat (icon, order, component, _note, …).
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.sidebarTabs === undefined) return
+	if (!Array.isArray(cfg.sidebarTabs)) {
+		errors.push(`${pathSlash}/sidebarTabs: ${pathBracket}.sidebarTabs: must be an array`)
+		return
+	}
+	const seenIds = Object.create(null)
+	cfg.sidebarTabs.forEach((tab, tIndex) => {
+		const tabPath = `${pathSlash}/sidebarTabs/${tIndex}`
+		const tabBracket = `${pathBracket}.sidebarTabs[${tIndex}]`
+		if (!isPlainObject(tab)) {
+			errors.push(`${tabPath}: must be an object`)
+			return
+		}
+		if (typeof tab.id !== 'string' || tab.id.length === 0) {
+			errors.push(`${tabPath}/id: ${tabBracket}.id: required, must be a non-empty string`)
+		}
+		if (typeof tab.label !== 'string' || tab.label.length === 0) {
+			errors.push(`${tabPath}/label: ${tabBracket}.label: required, must be a non-empty string`)
+		}
+		if (typeof tab.id === 'string' && tab.id.length > 0) {
+			if (seenIds[tab.id]) {
+				errors.push(`${tabPath}/id: ${tabBracket}.id: duplicate "${tab.id}" — tab IDs must be unique within a page`)
+			} else {
+				seenIds[tab.id] = true
+			}
+		}
+		if (tab.icon !== undefined && typeof tab.icon !== 'string') {
+			errors.push(`${tabPath}/icon: must be a string when set`)
+		}
+		if (tab.order !== undefined && typeof tab.order !== 'number') {
+			errors.push(`${tabPath}/order: must be a number when set`)
+		}
+		if (tab.component !== undefined && (typeof tab.component !== 'string' || tab.component.length === 0)) {
+			errors.push(`${tabPath}/component: must be a non-empty string when set`)
+		}
+	})
+}
+
+/**
+ * Cross-reference check: every `widgets[]` entry with
+ * `slot === 'sidebar'` and a `tabGroup` value MUST match a declared
+ * `config.sidebarTabs[].id`. Catches silent typos where a tab-bound
+ * widget references a non-existent tab.
+ *
+ * Only runs when `widgets` is an array. Tolerates a missing
+ * `sidebarTabs` declaration (the widgets[] can still validate
+ * shape-wise; the cross-ref check is a documentation aid).
+ *
+ * @param {object} page The page object
+ * @param {number} index The page index (for path)
+ * @param {string[]} errors Accumulator
+ */
+function validateSidebarTabGroupRefs(page, index, errors) {
+	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) return
+	const cfg = isPlainObject(page.config) ? page.config : null
+	const declaredIds = new Set()
+	if (cfg && Array.isArray(cfg.sidebarTabs)) {
+		for (const tab of cfg.sidebarTabs) {
+			if (tab && typeof tab.id === 'string' && tab.id.length > 0) {
+				declaredIds.add(tab.id)
+			}
+		}
+	}
+	page.widgets.forEach((widget, wIndex) => {
+		if (!isPlainObject(widget)) return
+		if (widget.slot !== 'sidebar') return
+		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) return
+		if (declaredIds.size === 0) {
+			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" referenced but config.sidebarTabs[] is empty or missing — declare the tab to silence this error`)
+			return
+		}
+		if (!declaredIds.has(widget.tabGroup)) {
+			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" must match a declared config.sidebarTabs[].id`)
+		}
+	})
+}
+
+/**
  * Validate `config.widgets[]` for dashboard page type
- * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
- * non-empty `id`, `title`, `type` strings — matches the `widgetDef`
- * $def's `required: ["id","title","type"]`.
+ * (`manifest-config-refs` REQ-MCR).
  *
  * @param {object} cfg The page's `config` block (or null)
  * @param {string} pathSlash JSON-pointer-style path prefix
