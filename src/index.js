@@ -52,6 +52,7 @@ export {
 	CnExportWizard,
 	CnWizardDialog,
 	CnRichSubmitDialog,
+	CnSignatureCapture,
 	CnIndexSidebar,
 	CnRegisterMapping,
 	CnThemePreview,
