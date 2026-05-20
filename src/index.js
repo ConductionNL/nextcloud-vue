@@ -39,6 +39,7 @@ export {
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnFormBuilder,
 	CnAdvancedFormDialog,
 	CnPropertiesTab,
 	CnMetadataTab,
