@@ -55,6 +55,7 @@ export {
 	CnIndexSidebar,
 	CnRegisterMapping,
 	CnThemePreview,
+	CnRelationshipGraph,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
