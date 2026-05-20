@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -447,6 +447,43 @@
 							"items": {
 								"type": "object",
 								"additionalProperties": true
+							}
+						},
+						"sidebarTabs": {
+							"type": "array",
+							"description": "Sidebar tabs declaration for type='detail' pages. Each entry is the human-authored source of truth for one tab — `id` + `label` (required), optional `icon`, `order`, `component`. Widgets bound to a tab carry `tabGroup: \"<tab-id>\"` on `slot:\"sidebar\"` entries; cross-reference is validated. The CLI manifest-migrate transform lifts `config.sidebarTabs[].widgets[]` into top-level `widgets[]` with `slot:\"sidebar\"` + `tabGroup`; tab entries declaring only a `component` are carried forward as residual sidebarTabs[]. See src/cli/transforms/liftSidebarTabWidgets.js.",
+							"items": {
+								"type": "object",
+								"additionalProperties": true,
+								"required": ["id", "label"],
+								"properties": {
+									"id": {
+										"type": "string",
+										"minLength": 1,
+										"description": "Unique tab identifier within the page. Referenced from widgets[].tabGroup."
+									},
+									"label": {
+										"type": "string",
+										"minLength": 1,
+										"description": "i18n key (or literal) for the tab label."
+									},
+									"icon": {
+										"type": "string",
+										"description": "Optional icon name (CSS class or MDI identifier) shown next to the label."
+									},
+									"order": {
+										"type": "number",
+										"description": "Optional sort key for tab ordering; lower values render first."
+									},
+									"component": {
+										"type": "string",
+										"description": "Optional registry name for a full-tab custom component. When set, the tab renders that component directly instead of the per-tab widgets[] grouping. Resolved against the customComponents registry."
+									},
+									"_note": {
+										"type": "string",
+										"description": "Optional human note (e.g. lib-gap reason for an undecomposable tab)."
+									}
+								}
 							}
 						},
 						"sections": {
