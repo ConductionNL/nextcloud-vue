@@ -44,6 +44,7 @@ export {
 	CnKpiGrid,
 	CnMassExportDialog,
 	CnMassImportDialog,
+	CnExportWizard,
 	CnIndexSidebar,
 	CnRegisterMapping,
 	CnDashboardPage,
