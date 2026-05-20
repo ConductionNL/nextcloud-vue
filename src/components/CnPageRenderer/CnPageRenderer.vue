@@ -32,13 +32,34 @@
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 
-		<!-- V2 render path: slot dispatcher via CnWidgetGrid -->
+		<!-- V2 render path: slot dispatcher via CnWidgetGrid.
+		     Body falls back to the typed-primitive dispatch when no
+		     widgets[] entries target the `body` slot — apps that just
+		     declare `type:"index"` (or any other registered type) with
+		     a `config` payload still get the default page component
+		     (CnIndexPage, CnDetailPage, etc.) mounted, without having
+		     to hand-author a widget entry. An explicit body widget
+		     (e.g. an `object-table` widget in `body`) still wins over
+		     the default. -->
 		<template v-if="isV2Manifest">
-			<!-- body slot -->
+			<!-- body slot — widgets first, default typed component otherwise -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				slot-name="body" />
+			<component
+				v-else-if="resolvedComponent"
+				:is="resolvedComponent"
+				v-bind="resolvedProps">
+				<template
+					v-for="entry in resolvedSlotEntries"
+					#[entry.name]="slotProps">
+					<component
+						:is="entry.component"
+						:key="entry.name"
+						v-bind="slotProps" />
+				</template>
+			</component>
 			<!-- header-actions slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
