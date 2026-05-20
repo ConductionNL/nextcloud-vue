@@ -46,6 +46,7 @@ export {
 	CnMassImportDialog,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnThemePreview,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
