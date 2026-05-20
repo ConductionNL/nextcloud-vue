@@ -63,6 +63,7 @@ export {
 	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnSearchPage,
 	CnTabbedFormDialog,
 	CnTimelineStages,
 	CnTreeView,

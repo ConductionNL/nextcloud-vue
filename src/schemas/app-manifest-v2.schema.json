@@ -4,6 +4,7 @@
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
 	"version": "2.5.0",
+	"version": "2.6.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -353,8 +354,8 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "wiki", "map", "roadmap", "custom"],
-					"description": "Page type. Closed enum of 12 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap, fed by openregister's /api/github/issues proxy). 'custom' requires a _note field explaining why a standard type was not feasible."
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "wiki", "map", "roadmap", "search", "custom"],
+					"description": "Page type. Closed enum of 13 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
