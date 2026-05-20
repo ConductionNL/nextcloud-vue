@@ -14,8 +14,10 @@
 			<g class="cn-relationship-graph__edges">
 				<line v-for="(edge, idx) in resolvedEdges"
 					:key="'edge-' + idx"
-					:x1="edge.x1" :y1="edge.y1"
-					:x2="edge.x2" :y2="edge.y2"
+					:x1="edge.x1"
+					:y1="edge.y1"
+					:x2="edge.x2"
+					:y2="edge.y2"
 					:stroke="edge.colour || edgeColor"
 					:stroke-width="edgeWidth"
 					:stroke-dasharray="edge.dashed ? '4 4' : ''"
@@ -23,7 +25,8 @@
 					:data-edge-id="edge.id" />
 				<text v-for="(edge, idx) in resolvedEdgeLabels"
 					:key="'label-' + idx"
-					:x="edge.lx" :y="edge.ly"
+					:x="edge.lx"
+					:y="edge.ly"
 					class="cn-relationship-graph__edge-label">
 					{{ edge.label }}
 				</text>

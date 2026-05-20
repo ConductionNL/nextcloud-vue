@@ -468,6 +468,11 @@ function validateTypeConfig(page, index, errors) {
 		// id/label, duplicate ids, non-array shape) before that.
 		validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
 		validateSidebarTabGroupRefs(page, index, errors)
+		// `manifest-public-mode` — type='detail' supports the same
+		// mode enum (`edit | create | public`) as type='form'. The
+		// 'public' value marks unauthenticated token-scoped detail
+		// pages — pair with @route.<param> token binding.
+		validateConfigMode(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'logs': {
@@ -617,14 +622,6 @@ function validateTypeConfig(page, index, errors) {
 			}
 		}
 
-		validateConfigMode(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'detail': {
-		// `manifest-public-mode` — type='detail' supports the same
-		// mode enum (`edit | create | public`) as type='form'. The
-		// 'public' value marks unauthenticated token-scoped detail
-		// pages — pair with @route.<param> token binding.
 		validateConfigMode(cfg, pathSlash, pathBracket, errors)
 		break
 	}
