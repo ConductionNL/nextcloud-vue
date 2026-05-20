@@ -55,6 +55,7 @@ export {
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
 	CnTabbedFormDialog,
