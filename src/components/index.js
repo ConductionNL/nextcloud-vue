@@ -89,6 +89,7 @@ export { default as CnWidgetCardGrid } from './CnWidgetCardGrid/CnWidgetCardGrid
 
 // Features & roadmap menu (add-features-roadmap-menu)
 export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
+export { CnFeaturesAndRoadmapPage } from './CnFeaturesAndRoadmapPage/index.js'
 export { CnFeaturesAndRoadmapView } from './CnFeaturesAndRoadmapView/index.js'
 export { CnFeaturesTab } from './CnFeaturesTab/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'

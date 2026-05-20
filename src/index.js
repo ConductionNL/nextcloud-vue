@@ -95,6 +95,7 @@ export {
 	CnDependencyMissing,
 	CnAppRoot,
 	CnFeaturesAndRoadmapLink,
+	CnFeaturesAndRoadmapPage,
 	CnFeaturesAndRoadmapView,
 	CnFeaturesTab,
 	CnRoadmapTab,
