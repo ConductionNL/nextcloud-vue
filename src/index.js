@@ -47,6 +47,7 @@ export {
 	CnExportWizard,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnThemePreview,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
