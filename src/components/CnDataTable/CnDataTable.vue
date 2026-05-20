@@ -336,6 +336,14 @@ export default {
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
+			// Guard against columns reaching cellValue without a `.key`
+			// (e.g. action / checkbox / row-selector columns, or a
+			// malformed column definition). Without this guard,
+			// `key.includes('.')` throws TypeError and breaks every
+			// row render in the table.
+			if (key === undefined || key === null) {
+				return undefined
+			}
 			if (key.includes('.')) {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
