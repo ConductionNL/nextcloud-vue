@@ -353,8 +353,8 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "wiki", "map", "custom"],
-					"description": "Page type. Closed enum of 11 supported types. 'custom' requires a _note field explaining why a standard type was not feasible."
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "wiki", "map", "roadmap", "custom"],
+					"description": "Page type. Closed enum of 12 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap, fed by openregister's /api/github/issues proxy). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
