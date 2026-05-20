@@ -59,6 +59,7 @@ export {
 	CnNotesCard,
 	CnTasksCard,
 	CnFilesCard,
+	CnFileManager,
 	CnTagsCard,
 	CnAuditTrailCard,
 	CnIntegrationTab,
