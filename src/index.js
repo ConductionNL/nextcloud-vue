@@ -87,6 +87,9 @@ export {
 	CnDetailGrid,
 	CnProgressBar,
 	CnChartWidget,
+	CnDateRangePicker,
+	DEFAULT_DATE_RANGE_PRESETS,
+	resolvePresetWindow,
 	CnStatsBlockWidget,
 	CnLockedBanner,
 	CnObjectSidebar,
@@ -152,7 +155,7 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations } from './integrations/index.js'

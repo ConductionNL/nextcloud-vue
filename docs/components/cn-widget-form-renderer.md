@@ -45,6 +45,12 @@ commonly used ones in manifest widgets are:
 | `schema` | `String` | Schema slug for the form's field generation. |
 | `item` | `Object` | Pre-fill the form with an existing object (edit mode). |
 | `disabled` | `Boolean` | Render the form read-only. |
+| `submitHandler` | `Function` | Optional override that receives `(formData)` instead of the default save flow. |
+| `submitEndpoint` | `String` | Override the POST/PUT URL used by the default submit handler (overrides `register`/`schema` derivation). |
+| `submitMethod` | `String` | HTTP method for the submit (`POST` or `PUT`). Defaults to `POST` for create, `PUT` when `item` is set. |
+| `title` | `String` | Optional form title rendered above the fields. |
+| `description` | `String` | Optional descriptive text rendered under the title. |
+| `initialValue` | `Object` | Initial form values (alternative to `item`; merged with the schema's defaults). |
 
 ## Events
 

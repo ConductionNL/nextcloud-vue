@@ -82,7 +82,7 @@ export default {
 		 * (or `:expanded-ids` + `@update:expanded-ids`) to control
 		 * expansion state from the parent.
 		 *
-		 * @type {Array<*>}
+		 * @type {Array<string|number>}
 		 */
 		expandedIds: { type: Array, default: () => [] },
 		/**
