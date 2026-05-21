@@ -15,7 +15,16 @@ const compat = new FlatCompat({
 })
 
 module.exports = defineConfig([{
-	ignores: ['dist/**', 'node_modules/**', 'src/**/*.d.ts'],
+	ignores: [
+		'dist/**',
+		'node_modules/**',
+		'src/**/*.d.ts',
+		// Generated AJV validator bundle (gitignored build artifact from
+		// `npm run build:validators`). Lint chokes on its 100KB+ minified
+		// single line and reports thousands of stylistic errors — they're
+		// not actionable on generated code.
+		'src/utils/validateManifestV2.compiled.js',
+	],
 }, {
 	extends: compat.extends('@nextcloud'),
 
