@@ -3,8 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.5.0",
-	"version": "2.6.0",
+	"version": "2.7.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -240,6 +239,33 @@
 					}
 				}
 			]
+		},
+		"fieldWidget": {
+			"type": "object",
+			"required": ["id", "component"],
+			"additionalProperties": false,
+			"description": "A declarative widget-component slot used inside `form` / `detail` page config. Distinct from the top-level pages[].widgets[] grid placement (which carries widgetKey + grid coordinates). fieldWidget mounts a lib `Cn*` SFC inline as a form field or detail data slot; the renderer resolves `component` against the lib's exported component map, NOT the host-app customComponents registry. Carries serialisable `props` only — handler / function props must be wired via the host App's manifest-level mounts. Replaces the untyped `fieldWidgets[]` key relied on by pipelinq#415 (which rode through on additionalProperties: true). See ConductionNL/nextcloud-vue#314.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"pattern": "^[a-z][a-zA-Z0-9_-]*$",
+					"description": "Unique identifier within the fieldWidgets[] array. Lower-camel-case-ish: must start with a lowercase letter and contain only letters, digits, underscores, or hyphens. Used as the form field key / data binding key by CnFormPage / CnDetailPage."
+				},
+				"component": {
+					"type": "string",
+					"pattern": "^Cn[A-Z]\\w+$",
+					"description": "Name of a lib component (e.g. CnMarkdownEditor, CnSchemaSelect). MUST be Cn-prefixed and resolved against the @conduction/nextcloud-vue exported component map. Host-app SFCs are not allowed here — those go through pages[].component on a type:'custom' page."
+				},
+				"props": {
+					"type": "object",
+					"description": "Serialisable props passed to the resolved component at render time. Shape is component-specific; not constrained here. Handler / function values are not supported through the manifest (the manifest is JSON).",
+					"additionalProperties": true
+				},
+				"_note": {
+					"type": "string",
+					"description": "Optional human-readable note explaining the role of this declarative widget slot."
+				}
+			}
 		},
 		"slotValue": {
 			"description": "Valid slot value. Either a literal slot name (body, sidebar, header-actions, footer, modal) or a tab:<id> / section:<id> pattern string.",
@@ -503,6 +529,11 @@
 								"additionalProperties": true
 							}
 						},
+						"fieldWidgets": {
+							"type": "array",
+							"description": "Declarative widget-component slots for type='form' / type='detail' pages. Each entry mounts a lib `Cn*` SFC inline (e.g. CnMarkdownEditor as a markdown field, CnSchemaSelect as a relation picker). Distinct from top-level pages[].widgets[] which uses widgetKey + grid coordinates against the host customComponents registry. Carries serialisable props only. See $defs/fieldWidget and ConductionNL/nextcloud-vue#314.",
+							"items": { "$ref": "#/$defs/fieldWidget" }
+						},
 						"columns": {
 							"type": "array",
 							"description": "Table columns (for type='index' and type='logs'). Items may be strings (legacy shorthand) or column objects.",
@@ -660,13 +691,28 @@
 			},
 			"allOf": [
 				{
-					"description": "type='custom' requires _note documenting why decomposition into a standard page type was not feasible.",
+					"description": "type='custom' requires _note documenting why decomposition into a standard page type was not feasible. Relaxed by ConductionNL/nextcloud-vue#315: when `component` matches the lib `Cn[A-Z]\\w+` pattern, the component name already documents the choice and _note is optional. When `component` is absent or non-Cn (host-app SFC), _note remains required.",
 					"if": {
 						"properties": { "type": { "const": "custom" } },
 						"required": ["type"]
 					},
 					"then": {
-						"required": ["_note"]
+						"if": {
+							"properties": {
+								"component": {
+									"type": "string",
+									"pattern": "^Cn[A-Z]\\w+$"
+								}
+							},
+							"required": ["component"]
+						},
+						"then": {
+							"description": "Lib-SFC custom page: component is self-documenting, _note is optional."
+						},
+						"else": {
+							"description": "Host-app SFC custom page (or no component): _note is required to document why a standard page type was not feasible.",
+							"required": ["_note"]
+						}
 					}
 				}
 			]
