@@ -35,6 +35,13 @@ Forwarded verbatim to `CnWikiPage`:
 | --- | --- | --- |
 | `article` | `Object` | The article record to render. |
 | `tree` | `Array` | Sidebar tree of articles. |
+| `register` | `String` | Register slug to fetch wiki articles from (self-fetch mode). |
+| `schema` | `String` | Schema slug for the article objects. |
+| `contentField` | `String` | Property name on the article object containing the markdown body. Defaults to `content`. |
+| `titleField` | `String` | Property name on the article object containing the title. Defaults to `title`. |
+| `idParam` | `String` | Route param name used to deep-link a specific article. Defaults to `id`. |
+| `sidebarSchema` | `String` | Schema slug for the sidebar tree's object kind (when different from the body schema). |
+| `sidebarRegister` | `String` | Register slug for the sidebar tree (when different from the body register). |
 
 See the [CnWikiPage docs](./cn-wiki-page.md) for the complete surface
 (layout slots, edit mode, search hooks, etc.).

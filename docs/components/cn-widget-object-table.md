@@ -46,6 +46,8 @@ commonly used ones in manifest widgets are:
 | `columns` | `Array` | Explicit column definitions (overrides schema-derived). |
 | `filter` | `Object` | Server-side filter map. |
 | `objects` | `Array` | Pre-fetched objects (disables self-fetch). |
+| `rows` | `Array` | Alias for `objects` — forwarded directly to CnDataTable's `rows` prop. |
+| `loading` | `Boolean` | Loading flag forwarded to CnDataTable's skeleton state. |
 
 ## Events
 

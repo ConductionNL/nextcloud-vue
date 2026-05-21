@@ -47,6 +47,9 @@ Forwarded to `CnMapWidget`. The commonly used ones:
 | `markers` | `Array` | Marker records `{ id, lat, lng, label?, popup? }`. |
 | `zoom` | `Number` | Initial zoom level. |
 | `center` | `Object` | `{ lat, lng }` center; default `[0, 0]`. |
+| `layers` | `Array` | Additional tile / overlay layer configurations (`{ id, type, url, opacity, attribution }`). |
+| `clustering` | `Boolean` | Group nearby markers into clusters via leaflet.markercluster. Defaults `true` once a threshold is reached. |
+| `autoFit` | `Boolean` | Automatically fit the map bounds to the marker set on mount. Defaults `true`. |
 
 See [CnMapWidget](./cn-map-widget.md) for the complete surface.
 
