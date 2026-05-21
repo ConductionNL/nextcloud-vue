@@ -264,6 +264,78 @@ describe('CnPageRenderer', () => {
 			})
 		})
 
+		it('type=detail maps config.schema → objectType and params.id → objectId for sidebar gating', () => {
+			// CnDetailPage.syncSidebarState gates the external
+			// CnObjectSidebar on `objectType` + `objectId` props.
+			// The manifest declares `config.schema` and `:id` route
+			// param. The renderer bridges the names so the host's
+			// CnObjectSidebar can mount without consumer-side aliasing.
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'client-detail',
+					route: '/clients/:id',
+					type: 'detail',
+					title: 'app.client',
+					config: { register: 'r', schema: 'client' },
+				}],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'client-detail', params: { id: 'abc-123' } } },
+			})
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				schema: 'client',
+				objectType: 'client',
+				id: 'abc-123',
+				objectId: 'abc-123',
+			})
+		})
+
+		it('type=detail does not overwrite explicit objectType or objectId', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'explicit-detail',
+					route: '/things/:id',
+					type: 'detail',
+					title: 'app.t',
+					config: { register: 'r', schema: 'thingSlug', objectType: 'thingExplicit' },
+				}],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'explicit-detail', params: { id: 'abc', objectId: 'xyz' } } },
+			})
+			expect(wrapper.vm.resolvedProps.objectType).toBe('thingExplicit')
+			expect(wrapper.vm.resolvedProps.objectId).toBe('xyz')
+		})
+
+		it('type=detail does not mutate the live $route.params object', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'mut-detail',
+					route: '/x/:id',
+					type: 'detail',
+					title: 'app.x',
+					config: { schema: 's' },
+				}],
+			}
+			const liveParams = { id: 'abc' }
+			const wrapper = shallowMount(CnPageRenderer, {
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'mut-detail', params: liveParams } },
+			})
+			// Touch resolvedProps to trigger the mapping.
+			expect(wrapper.vm.resolvedProps.objectId).toBe('abc')
+			// $route.params must NOT now carry the synthesised alias.
+			expect(liveParams).not.toHaveProperty('objectId')
+		})
+
 		it('config keys override top-level page keys when both are set (per-route override beats default)', () => {
 			const manifest = {
 				version: '1.0.0',
