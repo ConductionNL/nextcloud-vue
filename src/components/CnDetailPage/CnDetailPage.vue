@@ -57,13 +57,13 @@
 			</div>
 		</div>
 
-		<!-- Locked-by-other banner. Renders only when an `_lockState`
+		<!-- Locked-by-other banner. Renders only when an `lockState`
 		     was wired by `setup()` AND a remote lock is active.
 		     Suppressed when the lock is held by the current user. -->
 		<CnLockedBanner
-			v-if="_lockState && _lockState.locked.value && !_lockState.lockedByMe.value"
-			:locked-by="_lockState.lockedBy.value"
-			:expires-at="_lockState.expiresAt.value" />
+			v-if="lockState && lockState.locked.value && !lockState.lockedByMe.value"
+			:locked-by="lockState.lockedBy.value"
+			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
 		<div v-if="loading" class="cn-detail-page__loading">
@@ -313,7 +313,7 @@ export default {
 		// setup() keeps the lifecycle bound to the component scope —
 		// `tryOnScopeDispose` releases the subscription on unmount.
 		if (!props.objectStore || !props.subscribe) {
-			return { ...registryExposed, _lockState: null }
+			return { ...registryExposed, lockState: null }
 		}
 		const subscription = useObjectSubscription(
 			props.objectStore,
@@ -331,8 +331,8 @@ export default {
 		)
 		return {
 			...registryExposed,
-			_subscriptionStatus: subscription.status,
-			_lockState: lock,
+			subscriptionStatus: subscription.status,
+			lockState: lock,
 		}
 	},
 

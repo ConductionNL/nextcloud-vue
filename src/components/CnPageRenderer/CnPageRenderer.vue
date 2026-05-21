@@ -432,22 +432,36 @@ export default {
 		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			const rawConfig = this.currentPage?.config ?? {}
+			const page = this.currentPage
+			const rawConfig = page?.config ?? {}
 			const params = this.$route?.params ?? {}
 			// `manifest-route-param-sentinel`: substitute every
 			// `@route.<param>` string in the config subtree with the
 			// matching `$route.params.<param>` value before any other
 			// merge. Unresolved sentinels become null (with a one-shot
 			// console.warn per pageId+sentinel).
-			const pageId = this.currentPage?.id ?? '<unknown>'
+			const pageId = page?.id ?? '<unknown>'
 			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			// Schema v2 lifts a uniform set of page-level fields out of
+			// `config` so every page type can declare them without
+			// per-type schema branches. Forward those to the dispatched
+			// component so they reach typed props (e.g.
+			// CnDetailPage.title, CnDetailPage.widgets). Listed
+			// explicitly to keep the prop surface minimal — schema
+			// fields not in this list stay private to the renderer.
+			const topLevel = {}
+			for (const key of ['title', 'description', 'icon', 'widgets', 'actions', 'sidebar']) {
+				if (page && page[key] !== undefined) {
+					topLevel[key] = page[key]
+				}
+			}
 			// `config.actionToggles` is a typed object sugaring the nine
 			// show*/selectable toggles on type='index' pages. Flatten
 			// each key into the top-level config namespace UNDER any
 			// explicit config.<key> (so explicit wins). Strip the
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
-			const isIndex = this.currentPage?.type === 'index'
+			const isIndex = page?.type === 'index'
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
 				const { actionToggles, ...rest } = config
@@ -460,9 +474,12 @@ export default {
 			// `readOnly` prop.
 			if (isIndex && normalizedConfig.readOnly === true) {
 				const { readOnly, ...rest } = normalizedConfig
-				return { ...READ_ONLY_DEFAULTS, ...rest, ...params }
+				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
-			return { ...normalizedConfig, ...params }
+			// Precedence (highest wins): route params > config > top-level
+			// page fields. URL truth trumps everything; config trumps
+			// top-level so per-route config still beats the page default.
+			return { ...topLevel, ...normalizedConfig, ...params }
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.
