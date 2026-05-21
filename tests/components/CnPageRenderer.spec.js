@@ -104,17 +104,21 @@ const defaultRegistry = () => ({
 	FormFields: FormFieldsStub,
 })
 
-function mountRenderer(routeName, { useProps = false, customComponents = defaultRegistry() } = {}) {
+function mountRenderer(routeName, {
+	useProps = false,
+	customComponents = defaultRegistry(),
+	manifest = sampleManifest,
+} = {}) {
 	const provide = useProps
 		? {}
 		: {
-				cnManifest: sampleManifest,
+				cnManifest: manifest,
 				cnCustomComponents: customComponents,
 				cnTranslate: (k) => k,
 			}
 	const propsData = useProps
 		? {
-				manifest: sampleManifest,
+				manifest,
 				customComponents,
 				translate: (k) => k,
 			}
@@ -216,14 +220,64 @@ describe('CnPageRenderer', () => {
 	})
 
 	describe('config forwarding', () => {
-		it('forwards page.config as resolvedProps', () => {
+		it('forwards page.config + top-level page.title as resolvedProps', () => {
 			const wrapper = mountRenderer('home')
-			expect(wrapper.vm.resolvedProps).toEqual(sampleManifest.pages[0].config)
+			// schema v2: page.title is lifted to top-level (sibling of
+			// config) so every page type can declare it without
+			// per-type schema branches. The renderer forwards top-level
+			// page fields alongside config.
+			expect(wrapper.vm.resolvedProps).toEqual({
+				...sampleManifest.pages[0].config,
+				title: 'app.home',
+			})
 		})
 
-		it('returns an empty object when page has no config', () => {
+		it('still forwards the top-level title when a page has no config', () => {
 			const wrapper = mountRenderer('home-detail')
-			expect(wrapper.vm.resolvedProps).toEqual({})
+			expect(wrapper.vm.resolvedProps).toEqual({ title: 'app.detail' })
+		})
+
+		it('forwards page.widgets (top-level uniform widget placement array)', () => {
+			const widgets = [
+				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'overview', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
+			]
+			const sidebarTabs = [{ id: 'overview', label: 'Overview' }]
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'detail-with-widgets',
+					route: '/x/:id',
+					type: 'detail',
+					title: 'app.x',
+					config: { register: 'r', schema: 's', sidebarTabs },
+					widgets,
+				}],
+			}
+			const wrapper = mountRenderer('detail-with-widgets', { manifest })
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				title: 'app.x',
+				register: 'r',
+				schema: 's',
+				sidebarTabs,
+				widgets,
+			})
+		})
+
+		it('config keys override top-level page keys when both are set (per-route override beats default)', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'title-override',
+					route: '/o',
+					type: 'index',
+					title: 'page.default',
+					config: { title: 'page.override', schema: { name: 's' }, columns: [] },
+				}],
+			}
+			const wrapper = mountRenderer('title-override', { manifest })
+			expect(wrapper.vm.resolvedProps.title).toBe('page.override')
 		})
 	})
 
