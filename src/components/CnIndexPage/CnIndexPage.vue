@@ -940,10 +940,23 @@ export default {
 		}
 
 		let list = null
+		// Hoisted out of the `if (isSelfFetch)` block so onFormConfirm
+		// (+ future onSingleDeleteConfirm hooks) can reach them as
+		// `this.selfStore` / `this.selfObjectType`. Without this lift,
+		// the manifest-v2 pipeline — which mounts CnIndexPage via
+		// CnPageRenderer with `register` + `schema` from `config` but
+		// NO `store`/`objectType` props — falls through onFormConfirm's
+		// final branch and emits `@create`/`@edit` to a parent
+		// (CnPageRenderer) that doesn't listen, so the dialog Create
+		// click is a silent no-op (no POST fires, dialog stays open).
+		let selfObjectType = ''
+		let selfObjectStore = null
 		if (isSelfFetch) {
 			const objectType = `${props.register}-${props.schema}`
+			selfObjectType = objectType
 			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 			const objectStore = useObjectStore()
+			selfObjectStore = objectStore
 			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
 			// store has a slot for it before `useListView` issues the first fetch.
 			if (typeof objectStore.registerObjectType === 'function') {
@@ -992,6 +1005,10 @@ export default {
 			isSelfFetch,
 			list,
 			activeQuickFilterIndex,
+			// Exposed for onFormConfirm's self-fetch save path — see the
+			// hoist comment above the `if (isSelfFetch)` block.
+			selfObjectStore,
+			selfObjectType,
 		}
 	},
 
@@ -1577,7 +1594,25 @@ export default {
 
 		// --- Mass action handlers ---
 
-		onMassDeleteConfirm(ids) {
+		async onMassDeleteConfirm(ids) {
+			// Self-fetch (manifest-v2) parallel of onFormConfirm — own
+			// the bulk-delete via the internal store so the dialog
+			// closes and the list refreshes without an upstream
+			// `@mass-delete` listener.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
+				if (ok) {
+					this.setMassDeleteResult({ success: true })
+					this.$emit('mass-delete', ids)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setMassDeleteResult({ error: (err && err.message) || 'Mass delete failed' })
+				}
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
@@ -1651,7 +1686,21 @@ export default {
 
 		// --- Single-object dialog handlers ---
 
-		onSingleDeleteConfirm(id) {
+		async onSingleDeleteConfirm(id) {
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
+				if (ok) {
+					this.setSingleDeleteResult({ success: true })
+					this.$emit('delete', id)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			this.$emit('delete', id)
 		},
 
@@ -1660,6 +1709,9 @@ export default {
 		},
 
 		async onFormConfirm(formData) {
+			// Explicit store prop wins — host passed in a custom store
+			// + objectType, e.g. when the manifest binding is overridden
+			// or the consumer is in classic Options-API mode.
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
@@ -1669,8 +1721,32 @@ export default {
 				if (saved) {
 					this.setFormResult({ success: true })
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
+			// Self-fetch (manifest-v2) mode: CnPageRenderer mounts us with
+			// `register` + `schema` from `config` but no `store`/`objectType`
+			// prop. The internal store registered in setup() owns the save
+			// path so the dialog actually POSTs to OR. Without this branch
+			// the click below falls into the `@create` emit which has no
+			// listener through CnPageRenderer (props-only forwarding) and
+			// the dialog is a silent no-op.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
+				if (saved) {
+					this.setFormResult({ success: true })
+					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return
