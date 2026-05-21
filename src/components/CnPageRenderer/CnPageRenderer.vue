@@ -434,7 +434,10 @@ export default {
 		resolvedProps() {
 			const page = this.currentPage
 			const rawConfig = page?.config ?? {}
-			const params = this.$route?.params ?? {}
+			// Clone params — `resolvedProps` MAY add normalised aliases
+			// (e.g. `objectId` for type='detail') and we must not mutate
+			// the live `$route.params` object.
+			const params = { ...(this.$route?.params ?? {}) }
 			// `manifest-route-param-sentinel`: substitute every
 			// `@route.<param>` string in the config subtree with the
 			// matching `$route.params.<param>` value before any other
@@ -466,6 +469,25 @@ export default {
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
 				const { actionToggles, ...rest } = config
 				normalizedConfig = { ...actionToggles, ...rest }
+			}
+			// Type='detail' object-context mapping. The manifest declares
+			// `config.schema` and `:id` route param; CnDetailPage's
+			// sidebar gating needs `objectType` + `objectId` props (see
+			// CnDetailPage.syncSidebarState — `objectSidebarState.active`
+			// stays false without them, so the host's mounted
+			// CnObjectSidebar never renders). Bridge the names here so
+			// every consumer doesn't have to duplicate the alias in its
+			// own customComponents wrapper. Only fills when the typed
+			// prop is unset, so `config.objectType` or
+			// `params.objectId` still wins.
+			const isDetail = page?.type === 'detail'
+			if (isDetail) {
+				if (normalizedConfig.objectType === undefined && typeof normalizedConfig.schema === 'string' && normalizedConfig.schema.length > 0) {
+					normalizedConfig = { ...normalizedConfig, objectType: normalizedConfig.schema }
+				}
+				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
+					params.objectId = params.id
+				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
 			// expand to the nine read-only flags MERGED UNDER `config.*`
