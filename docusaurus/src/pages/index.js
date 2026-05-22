@@ -17,6 +17,10 @@
  *   2. App manifest           → /docs/architecture/manifest
  *   3. Schemas and registers  → /docs/architecture/schemas-and-registers
  *   4. Components             → /docs/components
+ *   5. Configuration over code → /docs/architecture/configuration-over-code
+ *      (the "why JSON, why no Vue" page — also the AI-and-citizen-
+ *      developer story, since the same JSON contract is what we hand
+ *      to LLMs and to OpenBuilt's visual editor)
  */
 
 import React from 'react'
@@ -62,6 +66,14 @@ const CARDS = [
       '43 Cn* components — page shells, data display, dialogs, dashboard widgets, settings panels, design tokens. Every page has a live playground and an auto-generated reference.',
     href: '/docs/components/',
     cta: 'Browse components',
+  },
+  {
+    eyebrow: '05 · For AI',
+    title: 'Configuration over code',
+    body:
+      'Every page, form, list, and dashboard is a row in a JSON file — not a .vue file. That makes the same contract safe for AI agents and citizen developers to author, because the runtime stays the library’s and the sandbox stays the platform’s.',
+    href: '/docs/architecture/configuration-over-code/',
+    cta: 'Read why JSON, not Vue',
   },
 ]
 
@@ -200,13 +212,14 @@ export default function Home() {
 
       <Section>
         <SectionHead
-          eyebrow="Four entry points"
+          eyebrow="Five entry points"
           title="Pick where you want to start."
           lede={
             <>
-              The library has four conceptual layers. Start at the chassis if
-              you're new to the design system; jump straight to the components
-              if you already know the pattern and just need the API.
+              The library has four conceptual layers — chassis, contract, data,
+              components — plus one cross-cutting story: why the whole thing is
+              configuration, not code, and what that unlocks for AI agents and
+              citizen developers. Start anywhere.
             </>
           }
         />
