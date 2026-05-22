@@ -47,13 +47,13 @@ That last point is the one that turns this from "nice architecture" into a deplo
 
 ### Spec-driven development
 
-The discipline of describing what an app *is* (its schemas, its pages, its permissions, its data flows) in machine-readable specs **before** any rendering code exists. The library is the renderer. The spec is the source of truth. Every Conduction app — and every app a citizen developer or AI agent builds — starts at the spec and ends at the runtime, never the other way around.
+You don't describe the app in code — you describe it in **specs** and let an AI agent write the code that satisfies them. This is **OpenSpec**, the method Conduction's pipeline (Hydra) runs in production. A human writes the context: a Markdown spec per feature (RFC 2119 `MUST`/`SHOULD`/`MAY` + GIVEN/WHEN/THEN scenarios) and a set of Architecture Decision Records. The AI reads both and implements to them. The human develops context; the AI develops code.
 
-We teach the full workflow — schemas first, manifest next, slots and integrations last — in the academy:
+Two tiers of ADRs govern how features hang together (*samenhang*): **organisation-wide ADRs** bind every app (data layer, security, i18n, the `src/manifest.json` convention itself), while **per-app ADRs** capture local choices. One feature is one spec; the spec is the source of truth, and the implementation is checked against it before it merges.
 
-→ [Build an app with spec-driven development](https://conduction.nl/academy/spec-driven-development) (tutorial)
+The workflow is a chain of skills. **`/opsx-explore`** is a thinking stance — you bring a vague problem, the agent investigates the codebase and the ADRs, challenges assumptions, and (when asked) captures the result as a proposal. **`/opsx-apply`** is the only skill that writes code: it walks the spec's task list and implements it, leaning on declarative `x-openregister-*` schema-register patches for business logic (ADR-031) and falling back to hand-written code only where the declarative path genuinely can't reach. Where the logic is a workflow, schema hooks fire it into **n8n** or **Windmill** via OpenRegister's `WorkflowEngineInterface` — no PHP. A sequential **quality + gatekeeping harness** (13 mechanical gates + `team-reviewer` + `team-security`) validates every change before `main`.
 
-The tutorial walks a beginner through composing a working app without writing a single line of Vue. The same workflow is what an AI agent follows when it generates a Conduction app: pick the schemas, write the manifest, validate, ship.
+→ [Spec-driven development with OpenSpec](https://conduction.nl/academy/spec-driven-development) (tutorial) — the full workflow: ADRs, the explore and apply skills, the n8n/Windmill codeless path, and the validation harness.
 
 ### App builder
 
@@ -76,5 +76,5 @@ When you next add a feature to a Conduction app, the question to ask is not *"wh
 - **[App manifest](./manifest.md)** — the contract. JSON schema, page types, slot system.
 - **[Schemas and registers](./schemas-and-registers.md)** — the data side. How a single JSON Schema drives forms, columns, filters, and validation.
 - **[App design principles](./app-design-principles.md)** — the chassis and atoms the configuration composes.
-- **[Build an app with spec-driven development](https://conduction.nl/academy/spec-driven-development)** — the tutorial. Schemas first, manifest next, slots last.
+- **[Spec-driven development with OpenSpec](https://conduction.nl/academy/spec-driven-development)** — the tutorial. ADRs, the explore and apply skills, the n8n/Windmill codeless path, and the validation harness.
 - **[OpenBuilt](https://conduction.nl/apps/openbuilt)** — visual app builder. Same contract, no JSON editor.
