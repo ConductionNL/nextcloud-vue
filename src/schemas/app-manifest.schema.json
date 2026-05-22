@@ -178,6 +178,11 @@
 							"description": "Row / bulk actions consumed by CnRowActions / CnActionsBar (for type='index'). Each item references the `action` $def.",
 							"items": { "$ref": "#/$defs/action" }
 						},
+						"headerActions": {
+							"type": "array",
+							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]`, but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
+							"items": { "$ref": "#/$defs/action" }
+						},
 						"quickFilters": {
 							"type": "array",
 							"description": "Clickable filter tabs rendered above the table on a type='index' page. Each tab carries a `filter` map merged into the useListView fetch — spread AFTER `config.filter` (so the active tab overrides a colliding fixed entry) and BEFORE the user's facet `activeFilters` (so user facets still narrow within the active tab). Tab `filter` values follow the same syntax as `config.filter`: literals pass through; string values of the form `\"@route.<name>\"` or `\":<name>\"` resolve from `$route.params`. The first tab with `default:true` (else index 0) is active on mount; clicking a different tab refetches at page 1. Omitting the array is a no-op (no tab strip rendered).",

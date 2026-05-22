@@ -910,10 +910,15 @@ export default {
 		 * Build the v-bind payload for CnStatsBlockWidget from a
 		 * stats-block widget definition. Forwards `props.countLabel`,
 		 * `props.variant`, `props.showZeroCount`, `props.horizontal`,
-		 * and `props.route` plus the widgetDef's `title`. The
-		 * `dataSource` is bound separately by the template (see
-		 * `getWidgetDataSource`) so the prop appears clearly in
+		 * `props.route`, and `props.iconClass` plus the widgetDef's
+		 * `title`. The `dataSource` is bound separately by the template
+		 * (see `getWidgetDataSource`) so the prop appears clearly in
 		 * the template even when it lives on the widgetDef root.
+		 *
+		 * `iconClass` is a Nextcloud core CSS class (`icon-link`, …)
+		 * applied to the widget's wrapping `<div>` — a lightweight icon
+		 * path that doesn't require MDI dynamic-import. See
+		 * CnStatsBlockWidget for usage notes.
 		 *
 		 * @param {object} item Layout item
 		 * @return {object} v-bind payload for CnStatsBlockWidget
@@ -922,7 +927,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const props = def?.props || {}
 			const out = { title: def?.title || item.widgetId }
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route']) {
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
 			return out
