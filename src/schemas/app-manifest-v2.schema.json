@@ -571,6 +571,11 @@
 								"additionalProperties": true
 							}
 						},
+						"headerActions": {
+							"type": "array",
+							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]` ($ref action), but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
+							"items": { "$ref": "#/$defs/action" }
+						},
 						"actionToggles": {
 							"type": "object",
 							"description": "Built-in action toggles for type='index' pages. Each key is sugar for the matching CnIndexPage prop — manifest authors can hide built-in mass actions / row actions / the Add button without writing a wrapper. Mirrors the CnIndexPage prop names. Explicit config.<key> wins over config.actionToggles.<key> (matches the readOnly precedence rule). Distinct from config.actions[] which is the typed row-actions array.",
