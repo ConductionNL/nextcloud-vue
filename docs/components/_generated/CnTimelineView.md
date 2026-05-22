@@ -23,7 +23,7 @@
 
 ### Slots
 
-| Name     | Bindings                  | Description                            |
-| -------- | ------------------------- | -------------------------------------- |
-| `header` | —                         |                                        |
-| `event`  | `event`, `formatted-time` | event Per-event body. Scope: \{ event, |
+| Name     | Bindings                  | Description                                                                   |
+| -------- | ------------------------- | ----------------------------------------------------------------------------- |
+| `header` | —                         | header Replaces the default title + description block in the timeline header. |
+| `event`  | `event`, `formatted-time` | event Per-event body. Scope: \{ event,                                        |
