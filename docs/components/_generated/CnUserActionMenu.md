@@ -7,20 +7,20 @@
 | `userId`           | `string`  | ✓        | —                                                                | The Nextcloud user ID                                                       |
 | `displayName`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unknown')`                         | The user's display name                                                     |
 | `interactive`      | `boolean` |          | `true`                                                           | Whether the menu is interactive (false for current user or system accounts) |
-| `sendMessageLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send message')`                    |                                                                             |
-| `startChatLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Start chat')`                      |                                                                             |
-| `sendEmailLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send email')`                      |                                                                             |
-| `planMeetingLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Schedule meeting')`                |                                                                             |
-| `noActionsLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No communication apps available')` |                                                                             |
+| `sendMessageLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send message')`                    | Pre-translated label for the "send message" action.                         |
+| `startChatLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Start chat')`                      | Pre-translated label for the "start chat" action.                           |
+| `sendEmailLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'Send email')`                      | Pre-translated label for the "send email" action.                           |
+| `planMeetingLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Schedule meeting')`                | Pre-translated label for the "schedule meeting" action.                     |
+| `noActionsLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'No communication apps available')` | Pre-translated label shown when no communication apps are available.        |
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `action` | —       |             |
+| Name     | Payload | Description                                            |
+| -------- | ------- | ------------------------------------------------------ |
+| `action` | —       | Emitted when the user triggers a communication action. |
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `default` | —        |             |
+| Name      | Bindings | Description                                                                |
+| --------- | -------- | -------------------------------------------------------------------------- |
+| `default` | —        | default Trigger content for the menu. Defaults to the user's display name. |
