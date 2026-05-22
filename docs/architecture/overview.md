@@ -2,18 +2,47 @@
 sidebar_position: 1
 ---
 
+import BrowserOnly from '@docusaurus/BrowserOnly'
+
 # Architecture Overview
 
 `@conduction/nextcloud-vue` is a **Layer 2** component library that sits between Nextcloud's official Vue components and individual Nextcloud apps.
 
 ## The Three Layers
 
-```mermaid
-graph TD
-    A["Layer 3: Your App<br/>(LarpingApp, Pipelinq, OpenCatalogi, Procest, MyDash...)"] --> B
-    B["Layer 2: @conduction/nextcloud-vue<br/>(Cn* components, createObjectStore, composables)"] --> C
-    C["Layer 1: @nextcloud/vue<br/>(NcAppNavigation, NcAppContent, NcAppSidebar, NcButton, NcDialog...)"]
-```
+The stack reads top-to-bottom: your app composes Conduction's Layer 2 primitives, which in turn compose Nextcloud's Layer 1 primitives. The orange trunk is the layer this docs site is about.
+
+<BrowserOnly>
+{() => {
+  require('@conduction/docusaurus-preset/diagrams')
+  return (
+  <div style={{ background: 'var(--c-cobalt-50)', borderRadius: '12px', padding: '0.5rem 0', margin: '1.5rem 0' }}>
+    <cn-domain-tree>
+      <cn-hex slot="apex" size="xl">Your app</cn-hex>
+      <cn-hex size="md">LarpingApp</cn-hex>
+      <cn-hex size="md">Pipelinq</cn-hex>
+      <cn-hex size="md">OpenCatalogi</cn-hex>
+      <cn-hex size="md">Procest</cn-hex>
+      <cn-hex size="md">MyDash</cn-hex>
+    </cn-domain-tree>
+    <cn-domain-tree compact>
+      <cn-hex slot="apex" size="xl" color="orange">@conduction/nextcloud-vue</cn-hex>
+      <cn-hex size="md" color="orange" variant="outline">Cn* components</cn-hex>
+      <cn-hex size="md" color="orange" variant="outline">createObjectStore</cn-hex>
+      <cn-hex size="md" color="orange" variant="outline">composables</cn-hex>
+    </cn-domain-tree>
+    <cn-domain-tree compact>
+      <cn-hex slot="apex" size="xl" color="nextcloud">@nextcloud/vue</cn-hex>
+      <cn-hex size="md" color="nextcloud" variant="outline">NcAppNavigation</cn-hex>
+      <cn-hex size="md" color="nextcloud" variant="outline">NcAppContent</cn-hex>
+      <cn-hex size="md" color="nextcloud" variant="outline">NcAppSidebar</cn-hex>
+      <cn-hex size="md" color="nextcloud" variant="outline">NcButton</cn-hex>
+      <cn-hex size="md" color="nextcloud" variant="outline">NcDialog</cn-hex>
+    </cn-domain-tree>
+  </div>
+  )
+}}
+</BrowserOnly>
 
 ### Layer 1: Nextcloud Vue
 

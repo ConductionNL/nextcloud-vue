@@ -45,18 +45,91 @@ JSON also means the manifest survives lib upgrades. A breaking change to `CnAppN
 
 ## Page types
 
-Each entry in `pages[]` declares its `type` — that drives which stacked view mounts:
+Each entry in `pages[]` declares its `type` — that drives which stacked view mounts. Every type composes the same [five atoms](./app-design-principles.md#five-atoms-one-chassis) — **Topbar**, **Left navigation**, **Page header**, **Main column**, **Sidebar** — but each type fills the Main column differently and decides whether the Sidebar appears at all. The atom row on each card below shows the composition: bold atoms are present by default, muted atoms are off (and can be flipped on via `sidebar` config).
 
-| `type` | Stacked view | Use it for |
-|---|---|---|
-| `index` | [CnIndexPage](/docs/components/cn-index-page) | Schema-driven list pages with filters, search, CRUD, mass actions |
-| `detail` | [CnDetailPage](/docs/components/cn-detail-page) | Single-object views with stats, cards, audit trail, files |
-| `dashboard` | [CnDashboardPage](/docs/components/cn-dashboard-page) | KPIs, charts, drag-and-drop widget grids |
-| `settings` | [CnSettingsPage](/docs/components/cn-settings-page) | Admin / config forms wired to `IAppConfig` |
-| `logs` | [CnLogsPage](/docs/components/cn-logs-page) | Audit-trail / activity-log views |
-| `chat` | [CnChatPage](/docs/components/cn-chat-page) | NC Talk-backed conversation surfaces |
-| `files` | [CnFilesPage](/docs/components/cn-files-page) | Folder browser surfaces |
-| `custom` | (consumer-supplied component) | Anything that doesn't fit the above |
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', margin: '1.5rem 0' }}>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `index` → [CnIndexPage](/docs/components/cn-index-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · **Sidebar**
+
+Schema-driven list surfaces: sortable/filterable table or card grid, pagination, mass-actions, CRUD dialogs. The Sidebar carries search + facets. Config takes `register` + `schema`; columns and filters are generated from the JSON Schema unless overridden. Use for the most common surface in any app — "show me all decisions / contacts / requests".
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `detail` → [CnDetailPage](/docs/components/cn-detail-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · **Sidebar**
+
+Single-object views: stats panel, cards, charts, audit trail. The Sidebar carries object metadata, attached files, notes, and the activity log. Config takes `register` + `schema`; the `:id` route param identifies the object. Use for "show me *one* thing in depth".
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `dashboard` → [CnDashboardPage](/docs/components/cn-dashboard-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · _Sidebar (off)_
+
+Drag-and-drop widget grids on a 12-column GridStack canvas: KPI tiles, charts, NC Dashboard API widgets, integration widgets. Config takes a `widgets[]` array (or v2's per-page `widgets[]` with `slot: "body"`). Use for high-level overviews and landing pages.
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `settings` → [CnSettingsPage](/docs/components/cn-settings-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · _Sidebar (off)_
+
+Sectioned admin / config forms wired to `IAppConfig`. Config takes a `sections[]` array of cards; in v2 these flatten into `slot: "section:<id>"` widget entries. Use for app-level configuration surfaces — connection settings, defaults, feature toggles.
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `logs` → [CnLogsPage](/docs/components/cn-logs-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · **Sidebar**
+
+Audit-trail / activity-log views: streaming timeline in Main, filter facets (actor, action, date range) in the Sidebar. Config takes `source` (register, schema, or external endpoint) and an optional `columns[]` override. Use for compliance and observability surfaces.
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `chat` → [CnChatPage](/docs/components/cn-chat-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · **Sidebar**
+
+NC Talk-backed conversation surfaces: message thread in Main, room list + participants in the Sidebar. Config takes a Talk `token` (room id) or a route-derived selector. Use for in-app chat features that ride on the workspace's existing Talk install.
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `files` → [CnFilesPage](/docs/components/cn-files-page)
+
+**Atoms:** **Topbar** · **Left nav** · **Page header** · **Main** · **Sidebar**
+
+Folder-browser surfaces: file list in Main, folder tree + preview pane in the Sidebar. Config takes a `root` path inside the user's Nextcloud files. Use for app-scoped document surfaces ("attachments for this register") rather than a full Files replacement.
+
+</div>
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '1rem 1.25rem' }}>
+
+#### `custom` → consumer-supplied component
+
+**Atoms:** **Topbar** · **Left nav** · _Page header (optional)_ · **Main** · _Sidebar (optional)_
+
+Escape hatch for anything the typed views don't cover. Config carries a `component` key resolved against `customComponents`; the component owns its Main column. Page header and Sidebar are opt-in via `headerComponent` / `sidebar` overrides. Use sparingly — every bespoke page is one the chassis can't enforce consistency on.
+
+</div>
+
+</div>
 
 Each type has a known `config` shape — the `index` config takes `register` + `schema`, the `dashboard` config takes a widget array, the `settings` config takes a sections array. The manifest's `$schema` validates these at build time, so a typo surfaces with a clear error path before runtime.
 
