@@ -3,7 +3,6 @@ sidebar_position: 1
 ---
 
 import BrowserOnly from '@docusaurus/BrowserOnly'
-import '@conduction/docusaurus-preset/diagrams'
 
 # Architecture Overview
 
@@ -14,7 +13,9 @@ import '@conduction/docusaurus-preset/diagrams'
 The stack reads top-to-bottom: your app composes Conduction's Layer 2 primitives, which in turn compose Nextcloud's Layer 1 primitives. The orange trunk is the layer this docs site is about.
 
 <BrowserOnly>
-{() => (
+{() => {
+  require('@conduction/docusaurus-preset/diagrams')
+  return (
   <div style={{ background: 'var(--c-cobalt-50)', borderRadius: '12px', padding: '0.5rem 0', margin: '1.5rem 0' }}>
     <cn-domain-tree>
       <cn-hex slot="apex" size="xl">Your app</cn-hex>
@@ -39,7 +40,8 @@ The stack reads top-to-bottom: your app composes Conduction's Layer 2 primitives
       <cn-hex size="md" color="nextcloud" variant="outline">NcDialog</cn-hex>
     </cn-domain-tree>
   </div>
-)}
+  )
+}}
 </BrowserOnly>
 
 ### Layer 1: Nextcloud Vue
