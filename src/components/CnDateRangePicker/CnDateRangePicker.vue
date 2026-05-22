@@ -233,12 +233,19 @@ export default {
 			if (!option) return
 			const win = resolvePresetWindow(option.id, this.presets)
 			if (win) {
+				/**
+				 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
+				 * @type {{ from: string|null, to: string|null, preset: string }}
+				 */
 				this.$emit('input', { from: win.from, to: win.to, preset: option.id })
 			} else {
 				// Custom or null-days preset → keep the existing window,
 				// just change the preset id.
 				const from = this.value?.from || null
 				const to = this.value?.to || null
+				/**
+				 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
+				 */
 				this.$emit('input', { from, to, preset: option.id })
 			}
 		},
@@ -254,6 +261,9 @@ export default {
 		onFromChange(date) {
 			const from = date ? toIsoStartOfDay(date) : null
 			const to = this.value?.to || null
+			/**
+			 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
+			 */
 			this.$emit('input', { from, to, preset: 'custom' })
 		},
 
@@ -265,6 +275,9 @@ export default {
 		onToChange(date) {
 			const from = this.value?.from || null
 			const to = date ? toIsoEndOfDay(date) : null
+			/**
+			 * @event input v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`.
+			 */
 			this.$emit('input', { from, to, preset: 'custom' })
 		},
 	},
