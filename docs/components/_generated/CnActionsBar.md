@@ -25,21 +25,21 @@
 
 ### Events
 
-| Name               | Payload | Description |
-| ------------------ | ------- | ----------- |
-| `view-mode-change` | —       |             |
-| `add`              | —       |             |
-| `refresh`          | —       |             |
-| `show-import`      | —       |             |
-| `show-export`      | —       |             |
-| `show-copy`        | —       |             |
-| `show-delete`      | —       |             |
-| `header-action`    | —       |             |
+| Name               | Payload | Description                                                                                                                                                          |
+| ------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header-action`    | —       | A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention). |
+| `view-mode-change` | —       | View toggle changed. Payload: `'table'` or `'cards'`.                                                                                                                |
+| `add`              | —       | Primary Add button clicked. No payload.                                                                                                                              |
+| `refresh`          | —       | Refresh action clicked from the overflow dropdown. No payload.                                                                                                       |
+| `show-import`      | —       | Built-in mass Import action clicked. No payload.                                                                                                                     |
+| `show-export`      | —       | Built-in mass Export action clicked. No payload.                                                                                                                     |
+| `show-copy`        | —       | Built-in mass Copy action clicked. No payload.                                                                                                                       |
+| `show-delete`      | —       | Built-in mass Delete action clicked. No payload.                                                                                                                     |
 
 ### Slots
 
-| Name           | Bindings                | Description |
-| -------------- | ----------------------- | ----------- |
-| `actions`      | —                       |             |
-| `action-items` | —                       |             |
-| `mass-actions` | `count`, `selected-ids` |             |
+| Name           | Bindings                | Description                                                                                                                                       |
+| -------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actions`      | —                       | actions Inline buttons rendered next to the primary Add button.                                                                                   |
+| `action-items` | —                       | action-items Custom primary action items rendered inside the overflow dropdown, after Refresh + `headerActions[]`, before the mass-actions group. |
+| `mass-actions` | `count`, `selected-ids` | mass-actions Custom mass-action buttons rendered alongside the built-in mass actions. Slot scope: `{ count, selectedIds }`.                       |

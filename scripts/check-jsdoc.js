@@ -87,10 +87,14 @@ async function scoreSfc(sfcPath) {
 
 	// vue-docgen-api emits each $emit site separately AND any @event JSDoc
 	// tag, so the same logical event can appear twice. Dedupe by name and
-	// take the richest description.
+	// take the richest description. The character class allows `:` (e.g.
+	// `update:mode`, `update:expanded-ids`) and `.` (e.g. `field.changed`)
+	// in event names — the original `[\w-]+` regex left those events
+	// permanently flagged as undocumented because the colon couldn't be
+	// captured, see ncv#333.
 	const eventByName = new Map()
 	for (const e of doc.events || []) {
-		const m = e.name.match(/^([\w-]+)\s+(.+)$/s)
+		const m = e.name.match(/^([\w:.-]+)\s+(.+)$/s)
 		const cleanName = m ? m[1] : e.name
 		const inferredDesc = m ? m[2].trim() : ''
 		const desc = ((e.description || '').trim() || inferredDesc).trim()

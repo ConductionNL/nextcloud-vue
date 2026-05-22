@@ -14,6 +14,6 @@
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `input` | —       |             |
+| Name    | Payload | Description                                                                                                                                            |
+| ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `input` | —       | v-model emit. Payload: `{ from, to, preset }` where `from`/`to` are ISO-8601 timestamps (or null) and `preset` is one of the preset ids or `'custom'`. |

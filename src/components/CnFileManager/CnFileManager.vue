@@ -1,6 +1,7 @@
 <template>
 	<div class="cn-file-manager" data-testid="cn-file-manager">
 		<header v-if="title || description || $slots.header" class="cn-file-manager__header">
+			<!-- @slot header Overrides the default title/description header. Defaults to `<h3>{{ title }}</h3>` + `<p>{{ description }}</p>`. -->
 			<slot name="header">
 				<h3 v-if="title" class="cn-file-manager__title">{{ title }}</h3>
 				<p v-if="description" class="cn-file-manager__description">{{ description }}</p>

@@ -2,17 +2,17 @@
 
 ### Props
 
-| Name            | Type     | Required | Default                                                                                        | Description                                      |
-| --------------- | -------- | -------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export objects')`                                                | Dialog title                                     |
-| `description`   | `string` |          | `''`                                                                                           | Description text shown above the format selector |
-| `formats`       | `array`  |          | `[     \{ id: 'excel', label: 'Excel (.xlsx)' \},     \{ id: 'csv', label: 'CSV (.csv)' \}, ]` | Available export formats                         |
-| `defaultFormat` | `string` |          | `'excel'`                                                                                      | Default selected format ID                       |
-| `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export completed successfully.')`                                | Success message                                  |
-| `formatLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export format')`                                                 |                                                  |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                        |                                                  |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                         |                                                  |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Export')`                                                        |                                                  |
+| Name            | Type     | Required | Default                                                                                        | Description                                                    |
+| --------------- | -------- | -------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export objects')`                                                | Dialog title                                                   |
+| `description`   | `string` |          | `''`                                                                                           | Description text shown above the format selector               |
+| `formats`       | `array`  |          | `[     \{ id: 'excel', label: 'Excel (.xlsx)' \},     \{ id: 'csv', label: 'CSV (.csv)' \}, ]` | Available export formats                                       |
+| `defaultFormat` | `string` |          | `'excel'`                                                                                      | Default selected format ID                                     |
+| `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export completed successfully.')`                                | Success message                                                |
+| `formatLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Export format')`                                                 | Label rendered above the export format selector.               |
+| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                        | Label for the cancel button (visible before the export runs).  |
+| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                         | Label for the close button (visible after export completes).   |
+| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Export')`                                                        | Label for the primary confirm button that triggers the export. |
 
 ### Events
 

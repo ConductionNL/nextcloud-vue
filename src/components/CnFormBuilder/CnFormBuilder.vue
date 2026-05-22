@@ -181,17 +181,25 @@ export default {
 		noSelectionLabel: { type: String, default: 'Select a field to edit it.' },
 		/** Untitled-field placeholder shown in the row. */
 		untitledKey: { type: String, default: '(unnamed)' },
-		/** Per-field labels. */
+		/** Field-editor label for the "key" input. */
 		keyLabel: { type: String, default: 'Key' },
+		/** Field-editor label for the "type" selector. */
 		typeLabel: { type: String, default: 'Type' },
+		/** Field-editor label for the "label" input. */
 		labelLabel: { type: String, default: 'Label' },
+		/** Field-editor label for the "placeholder" input. */
 		placeholderLabel: { type: String, default: 'Placeholder' },
+		/** Field-editor label for the "required" toggle. */
 		requiredLabel: { type: String, default: 'Required' },
+		/** Field-editor label for the "options" textarea (select/multiselect). */
 		optionsLabel: { type: String, default: 'Options (one per line)' },
+		/** Placeholder shown inside the empty options textarea. */
 		optionsPlaceholder: { type: String, default: 'choice 1\nchoice 2' },
-		/** Action-button titles. */
+		/** Title/aria label for the per-row "move up" icon button. */
 		moveUpLabel: { type: String, default: 'Move up' },
+		/** Title/aria label for the per-row "move down" icon button. */
 		moveDownLabel: { type: String, default: 'Move down' },
+		/** Title/aria label for the per-row delete icon button. */
 		deleteLabel: { type: String, default: 'Delete' },
 	},
 	data() {

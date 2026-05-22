@@ -29,7 +29,7 @@
 
 ### Slots
 
-| Name           | Bindings | Description                           |
-| -------------- | -------- | ------------------------------------- |
-| `header`       | —        |                                       |
-| `item-actions` | `file`   | item-actions Per-file actions. Scope: |
+| Name           | Bindings | Description                                                                                                             |
+| -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `header`       | —        | header Overrides the default title/description header. Defaults to `<h3>{{ title }}</h3>` + `<p>{{ description }}</p>`. |
+| `item-actions` | `file`   | item-actions Per-file actions. Scope:                                                                                   |

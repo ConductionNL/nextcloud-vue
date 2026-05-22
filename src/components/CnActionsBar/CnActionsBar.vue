@@ -15,7 +15,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'cards')">
+					@update:checked="emitViewModeChange('cards')">
 					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
@@ -25,7 +25,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'table')">
+					@update:checked="emitViewModeChange('table')">
 					{{ t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -35,7 +35,7 @@
 				type="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
-				@click="$emit('add')">
+				@click="emitAdd">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
 					<Plus v-else :size="20" />
@@ -43,6 +43,7 @@
 				{{ addLabel }}
 			</NcButton>
 
+			<!-- @slot actions Inline buttons rendered next to the primary Add button. -->
 			<slot name="actions" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
@@ -51,7 +52,7 @@
 				:inline="inlineActionCount"
 				menu-name="Actions"
 				data-testid="cn-actions">
-				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
+				<NcActionButton :disabled="refreshing || refreshDisabled" @click="emitRefresh">
 					<template #icon>
 						<NcLoadingIcon v-if="refreshing" :size="20" />
 						<Refresh v-else :size="20" />
@@ -77,7 +78,7 @@
 					{{ action.label }}
 				</NcActionButton>
 
-				<!-- Custom primary action items (overflow) -->
+				<!-- @slot action-items Custom primary action items rendered inside the overflow dropdown, after Refresh + `headerActions[]`, before the mass-actions group. -->
 				<slot name="action-items" />
 
 				<!-- Separator between primary and mass actions -->
@@ -86,7 +87,7 @@
 				<!-- Mass actions (overflow) -->
 				<NcActionButton
 					v-if="showMassImport"
-					@click="$emit('show-import')">
+					@click="emitShowImport">
 					<template #icon>
 						<Import :size="20" />
 					</template>
@@ -94,7 +95,7 @@
 				</NcActionButton>
 				<NcActionButton
 					v-if="showMassExport"
-					@click="$emit('show-export')">
+					@click="emitShowExport">
 					<template #icon>
 						<Export :size="20" />
 					</template>
@@ -104,7 +105,7 @@
 					v-if="showMassCopy"
 					:disabled="selectedIds.length < 1"
 					:title="selectedIds.length < 1 ? t('nextcloud-vue', 'Select 1 or more items to copy') : ''"
-					@click="$emit('show-copy')">
+					@click="emitShowCopy">
 					<template #icon>
 						<ContentCopy :size="20" />
 					</template>
@@ -114,14 +115,14 @@
 					v-if="showMassDelete"
 					:disabled="selectedIds.length < 1"
 					:title="selectedIds.length < 1 ? t('nextcloud-vue', 'Select 1 or more items to delete') : ''"
-					@click="$emit('show-delete')">
+					@click="emitShowDelete">
 					<template #icon>
 						<TrashCanOutline :size="20" />
 					</template>
 					{{ t('nextcloud-vue', 'Delete selected') }}
 				</NcActionButton>
 
-				<!-- Custom mass actions (overflow) -->
+				<!-- @slot mass-actions Custom mass-action buttons rendered alongside the built-in mass actions. Slot scope: `{ count, selectedIds }`. -->
 				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
 			</NcActions>
 		</div>
@@ -337,7 +338,95 @@ export default {
 		 */
 		emitHeaderAction(action) {
 			if (!action || !action.id) return
+			/**
+			 * @event header-action A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention).
+			 */
 			this.$emit('header-action', { action: action.id, id: action.id })
+		},
+
+		/**
+		 * Emit the view-mode toggle event.
+		 *
+		 * @param {'cards'|'table'} mode Newly selected view mode.
+		 * @return {void}
+		 */
+		emitViewModeChange(mode) {
+			/**
+			 * @event view-mode-change View toggle changed. Payload: `'table'` or `'cards'`.
+			 */
+			this.$emit('view-mode-change', mode)
+		},
+
+		/**
+		 * Emit the primary Add button click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitAdd() {
+			/**
+			 * @event add Primary Add button clicked. No payload.
+			 */
+			this.$emit('add')
+		},
+
+		/**
+		 * Emit the Refresh action click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitRefresh() {
+			/**
+			 * @event refresh Refresh action clicked from the overflow dropdown. No payload.
+			 */
+			this.$emit('refresh')
+		},
+
+		/**
+		 * Emit the built-in mass Import click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitShowImport() {
+			/**
+			 * @event show-import Built-in mass Import action clicked. No payload.
+			 */
+			this.$emit('show-import')
+		},
+
+		/**
+		 * Emit the built-in mass Export click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitShowExport() {
+			/**
+			 * @event show-export Built-in mass Export action clicked. No payload.
+			 */
+			this.$emit('show-export')
+		},
+
+		/**
+		 * Emit the built-in mass Copy click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitShowCopy() {
+			/**
+			 * @event show-copy Built-in mass Copy action clicked. No payload.
+			 */
+			this.$emit('show-copy')
+		},
+
+		/**
+		 * Emit the built-in mass Delete click. No payload.
+		 *
+		 * @return {void}
+		 */
+		emitShowDelete() {
+			/**
+			 * @event show-delete Built-in mass Delete action clicked. No payload.
+			 */
+			this.$emit('show-delete')
 		},
 	},
 }

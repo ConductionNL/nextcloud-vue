@@ -274,24 +274,35 @@ export default {
 		/** Show "Delete" button */
 		showDelete: { type: Boolean, default: false },
 		// Labels (pre-translated strings with English defaults)
+		/** Label for the cancel button shown while editing. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button shown after a save or error. */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: { type: String, default: '' },
 		/** Success message. Defaults to "Schema saved successfully." */
 		successText: { type: String, default: '' },
+		/** Label for the Extend Schema action button. */
 		extendSchemaLabel: { type: String, default: () => t('nextcloud-vue', 'Extend schema') },
+		/** Label for the Analyze Properties action button. */
 		analyzePropertiesLabel: { type: String, default: () => t('nextcloud-vue', 'Analyze properties') },
+		/** Label for the Validate Objects action button. */
 		validateObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Validate objects') },
+		/** Label for the Delete Objects action button. */
 		deleteObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Delete objects') },
+		/** Label for the Publish Objects action button. */
 		publishObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Publish objects') },
+		/** Label for the Delete schema button shown in edit mode. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Tooltip for the Delete Objects button when objects exist. */
 		deleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Delete all objects in this schema') },
+		/** Tooltip for the Publish Objects button when objects exist. */
 		publishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Publish all objects in this schema') },
 		/** Tooltip for the Delete Objects button when no objects exist */
 		noDeleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to delete') },
 		/** Tooltip for the Publish Objects button when no objects exist */
 		noPublishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to publish') },
+		/** Tooltip for the Delete schema button while objects are still attached. */
 		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
 	data() {

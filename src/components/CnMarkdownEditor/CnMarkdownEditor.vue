@@ -221,8 +221,7 @@ export default {
 			const idx = MODES.indexOf(this.mode)
 			const next = MODES[(idx + 1) % MODES.length]
 			/**
-			 * @event update:mode v-model:mode emit so consumers
-			 *   can bind the layout mode.
+			 * @event update:mode v-model:mode emit so consumers can bind the layout mode.
 			 * @type {'edit'|'split'|'preview'}
 			 */
 			this.$emit('update:mode', next)

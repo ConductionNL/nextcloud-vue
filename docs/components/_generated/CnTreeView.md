@@ -20,15 +20,11 @@
 
 ### Events
 
-| Name                  | Payload | Description |
-| --------------------- | ------- | ----------- |
-| `update:expanded-ids` | —       |             |
-
-| `update:expanded-ids `.sync`of`expandedIds`.
-  Payload is the new full set.` | — | |
-| `update:selected-id `.sync`of`selectedId`.
-  Payload is the new id (or null).` | — | |
-| `select` | — | Emitted on row click. Payload is the selected node object. |
+| Name                                                                         | Payload | Description                                                |
+| ---------------------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `update:expanded-ids `.sync`of`expandedIds`. Payload is the new full set.`   | —       |                                                            |
+| `update:selected-id `.sync`of`selectedId`. Payload is the new id (or null).` | —       |                                                            |
+| `select`                                                                     | —       | Emitted on row click. Payload is the selected node object. |
 
 ### Slots
 

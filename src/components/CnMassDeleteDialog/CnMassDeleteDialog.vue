@@ -105,6 +105,8 @@ import Close from 'vue-material-design-icons/Close.vue'
  *     this.$refs.deleteDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnMassDeleteDialog',
@@ -154,9 +156,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items successfully deleted.'),
 		},
+		/** Label for the cancel button (visible before the delete runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after delete completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the delete. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Aria label for the per-row "remove from list" icon button. */
 		removeLabel: { type: String, default: () => t('nextcloud-vue', 'Remove from list') },
 	},
 

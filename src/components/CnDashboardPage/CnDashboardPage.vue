@@ -22,14 +22,9 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
-				<!-- Public slot. Documented in CLAUDE.md and used by every
-				     existing consumer (decidesk, mydash, opencatalogi,
-				     pipelinq, procest). -->
+				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
-				<!-- Back-compat alias: original slot name shipped before
-				     CLAUDE.md was updated. Render alongside so any
-				     stragglers still work; consumers should prefer
-				     #header-actions. -->
+				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
@@ -64,6 +59,7 @@
 
 		<!-- Empty state -->
 		<div v-else-if="!hasWidgets" class="cn-dashboard-page__empty">
+			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
 				<NcEmptyContent :description="emptyLabel">
 					<template #icon>
@@ -118,14 +114,15 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)">
-						<!-- Per-widget title icon (e.g. #widget-my-work-title-icon) -->
+						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
-						<!-- Per-widget header actions (e.g. #widget-my-work-actions) -->
+						<!-- @slot widget-{widgetId}-actions Per-widget custom header actions (e.g. `#widget-my-work-actions`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #actions>
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
+						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
 					</CnWidgetWrapper>
 				</template>
@@ -687,6 +684,9 @@ export default {
 			if (initial) {
 				this.currentRange = initial
 				this.dashboardDateRange = initial
+				/**
+				 * @event date-range-change Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`.
+				 */
 				this.$emit('date-range-change', { ...initial })
 			}
 		},
@@ -704,6 +704,9 @@ export default {
 			if (this.dateRange?.persistKey) {
 				this.persistRange(this.dateRange.persistKey, value)
 			}
+			/**
+			 * @event date-range-change Fired whenever the dashboard's effective date range changes. Payload: `{ from, to, preset }`.
+			 */
 			this.$emit('date-range-change', { ...value })
 		},
 
@@ -755,10 +758,16 @@ export default {
 
 		toggleEdit() {
 			this.isEditing = !this.isEditing
+			/**
+			 * @event edit-toggle Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.
+			 */
 			this.$emit('edit-toggle', this.isEditing)
 		},
 
 		onLayoutChange(updated) {
+			/**
+			 * @event layout-change Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.
+			 */
 			this.$emit('layout-change', updated)
 		},
 

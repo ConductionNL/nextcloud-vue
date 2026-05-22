@@ -134,6 +134,9 @@ export default {
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
 			this.nodes.forEach(walk)
+			/**
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
+			 */
 			this.$emit('update:expanded-ids', ids)
 		}
 	},
@@ -154,8 +157,7 @@ export default {
 				next.push(id)
 			}
 			/**
-			 * @event update:expanded-ids `.sync` of `expandedIds`.
-			 *   Payload is the new full set.
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
 			this.$emit('update:expanded-ids', next)
 		},
@@ -167,8 +169,7 @@ export default {
 		 */
 		selectNode(node) {
 			/**
-			 * @event update:selected-id `.sync` of `selectedId`.
-			 *   Payload is the new id (or null).
+			 * @event update:selected-id `.sync` of `selectedId`. Payload is the new id (or null).
 			 */
 			this.$emit('update:selected-id', node[this.idKey])
 			/**
@@ -191,6 +192,9 @@ export default {
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
 			this.nodes.forEach(walk)
+			/**
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
+			 */
 			this.$emit('update:expanded-ids', ids)
 		},
 		/**
@@ -199,6 +203,9 @@ export default {
 		 * @return {void}
 		 */
 		collapseAll() {
+			/**
+			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
+			 */
 			this.$emit('update:expanded-ids', [])
 		},
 	},

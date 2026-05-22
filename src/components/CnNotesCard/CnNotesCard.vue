@@ -117,6 +117,10 @@ import { buildHeaders } from '../../utils/index.js'
  *   @note-deleted="refreshNotes"
  *   @show-all="openSidebarNotesTab" />
  * ```
+ *
+ * @event note-added Emitted after a new note is successfully persisted. Payload: the created note object.
+ * @event note-deleted Emitted after a note is successfully deleted. Payload: the deleted note ID.
+ * @event show-all Emitted when the user clicks the "Show all" button — parents typically open a full notes sidebar tab.
  */
 export default {
 	name: 'CnNotesCard',
@@ -163,11 +167,17 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
+		/** Card header title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
+		/** Label for the submit button that creates a new note. */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
+		/** Placeholder shown inside the new-note textarea before any input. */
 		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		/** Empty-state text shown when the object has zero notes. */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
+		/** Label for the "Show all" button rendered when the note list is truncated. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/** Aria label for the per-note delete icon button. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete note') },
 	},
 

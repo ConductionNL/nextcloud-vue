@@ -24,19 +24,19 @@
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `layout-change`     | —       |             |
-| `edit-toggle`       | —       |             |
-| `date-range-change` | —       |             |
+| Name                | Payload | Description                                                                                                                                                |
+| ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layout-change`     | —       | Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.                            |
+| `edit-toggle`       | —       | Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.                                                    |
+| `date-range-change` | —       | Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`. |
 
 ### Slots
 
-| Name                                        | Bindings                 | Description |
-| ------------------------------------------- | ------------------------ | ----------- |
-| `header-actions`                            | —                        |             |
-| `actions`                                   | —                        |             |
-| `empty`                                     | —                        |             |
-| `'widget-' + item.widgetId + '-title-icon'` | `name`, `item`, `widget` |             |
-| `'widget-' + item.widgetId + '-actions'`    | `name`, `item`, `widget` |             |
-| `'widget-' + item.widgetId`                 | `name`, `item`, `widget` |             |
+| Name                                        | Bindings                 | Description                                                                                                                                                                  |
+| ------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `header-actions`                            | —                        | header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). |
+| `actions`                                   | —                        | actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code.                                                                                       |
+| `empty`                                     | —                        | empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block.                                                       |
+| `'widget-' + item.widgetId + '-title-icon'` | `name`, `item`, `widget` |                                                                                                                                                                              |
+| `'widget-' + item.widgetId + '-actions'`    | `name`, `item`, `widget` |                                                                                                                                                                              |
+| `'widget-' + item.widgetId`                 | `name`, `item`, `widget` | widget-\{widgetId\} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`.                                   |
