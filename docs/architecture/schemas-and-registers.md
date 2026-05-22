@@ -1,6 +1,6 @@
 ---
 title: Schemas and registers
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Schemas and registers
