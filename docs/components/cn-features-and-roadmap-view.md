@@ -1,9 +1,13 @@
 # CnFeaturesAndRoadmapView
 
-Route-level container for the Features & Roadmap surface. Renders a card
-grid (Features OR Roadmap) with a state-aware toggle button in the header,
-two Suggest-feature CTAs (header + sidebar), a sidebar with OpenBuilt and
-LLM-skills pitch blocks, and the admin-disabled empty state.
+Route-level container for the Features & Roadmap surface. Body is a card
+grid (Features OR Roadmap). Header carries three buttons: the view-toggle
+("Show roadmap" / "Show features"), the info-sidebar toggle ("Show info"
+/ "Hide info"), and the primary "+ Suggest feature" CTA. The info sidebar
+is a slide-in `NcAppSidebar` with three pitch sections: suggest a feature,
+tweak the app in OpenBuilt, and let an LLM ship the feature using the
+Conduction skill set. The admin-disabled empty state collapses everything
+to a single "disabled by administrator" notice.
 
 ## When to use
 
@@ -14,9 +18,11 @@ as a prop — typically read at runtime from `docs/features.json`, which the
 org-wide Features Extract workflow stage regenerates from
 `openspec/specs/` (see ADR-033).
 
-The view defaults to **Features**. The header toggle button switches to
-**Roadmap** and back; the page title (`Features` / `Roadmap`) reflects the
-active view.
+The view defaults to **Features**. The view-toggle switches to **Roadmap**
+and back; the page title (`Features` / `Roadmap`) reflects the active
+view. The sidebar starts closed; the info toggle opens it as a right-edge
+slide-in panel. Roadmap cards are fully clickable — anywhere on the card
+opens the corresponding GitHub issue in a new tab.
 
 ## Props
 
