@@ -989,6 +989,11 @@ export default {
 	margin-bottom: 20px;
 	flex-wrap: wrap;
 	gap: 12px;
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content). Without this, the
+	   header's first child (the title) is occluded by the toggle on
+	   every page. Mirrors the same fix in CnPageHeader. */
+	padding-inline-start: 44px;
 }
 
 .cn-dashboard-page__header-left {
