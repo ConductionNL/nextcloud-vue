@@ -48,6 +48,33 @@ function ajvErrorToString(err) {
 }
 
 /**
+ * Library built-in v2 widget keys. A `widgetKey` resolving to one of
+ * these is rendered by a library `Cn*` SFC and does NOT count as a
+ * custom registry component for the single-12×12-widget dashboard
+ * rule (see `LIBRARY_BUILT_IN_WIDGET_KEYS` consumer below).
+ *
+ * Canonical list per ADR-036 Decision 1 + the manifest-v2 spec
+ * (`object-table`, `card-grid`, `form-renderer`, `wiki-renderer`,
+ * `map-viewer`, `chart`, `stats-block`). The runtime
+ * `BUILT_IN_WIDGETS` registry in `src/components/CnWidgetGrid/`
+ * currently ships the first five; `chart` and `stats-block` are
+ * reserved here so manifests authored against the spec do not trip
+ * the rule when those widgets ship. New built-ins added to the
+ * library MUST be appended to this list in the same PR.
+ *
+ * @type {ReadonlySet<string>}
+ */
+const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
+	'object-table',
+	'card-grid',
+	'form-renderer',
+	'wiki-renderer',
+	'map-viewer',
+	'chart',
+	'stats-block',
+])
+
+/**
  * Validate a v2 manifest using the Ajv-compiled `app-manifest-v2.schema.json`.
  *
  * In addition to JSON Schema validation, applies the following post-schema
@@ -55,6 +82,10 @@ function ajvErrorToString(err) {
  *  - `pages[].id` uniqueness across the array
  *  - `gridX + gridWidth <= 12` for every widget in every page (only on
  *    slots where gridColumns is 12 — i.e. all non-sidebar slots)
+ *  - Single-12×12-custom-widget dashboard rule (ADR-036 Decision 1): a
+ *    `pages[].type === "dashboard"` with exactly one `widgets[]` entry
+ *    where `slot === "body"`, `gridX/gridY === 0`, `gridWidth/gridHeight
+ *    === 12`, and `widgetKey` does NOT resolve to a library built-in.
  *  - `@resolve:` sentinel REJECTION on registry-key paths (mirrors v1 rules):
  *    `pages[].id`, `pages[].route`, `pages[].component`,
  *    `pages[].headerComponent`, `pages[].actionsComponent`,
@@ -114,7 +145,45 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
-	// 3. @resolve: sentinel rejection on registry-key paths
+	// 3. Single-12×12-custom-widget dashboard rule (ADR-036 Decision 1 /
+	//    manifest-v2 spec). A `type: "dashboard"` page with exactly one
+	//    widget that fills the body grid AND references a custom registry
+	//    component is always a custom page in disguise — the wrapping
+	//    `CnDashboardPage` adds visible nesting on top of the custom view.
+	//    Counts widgets across ALL slots (a sidebar widget makes it
+	//    multi-widget). Built-in widget keys (chart, stats-block, etc.)
+	//    are exempt — those are legitimate full-page library widgets.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'dashboard') return
+			if (!Array.isArray(page.widgets) || page.widgets.length !== 1) return
+			const widget = page.widgets[0]
+			if (!widget) return
+			// Normalise omitted grid coords against the body-slot defaults
+			// (gridX/Y → 0, gridWidth/Height → 12) so authors cannot
+			// circumvent the rule by omitting fields. Required-field
+			// validation upstream means this is mostly defensive, but
+			// keeps the rule correct under future schema relaxations.
+			const slot = widget.slot
+			const gx = typeof widget.gridX === 'number' ? widget.gridX : 0
+			const gy = typeof widget.gridY === 'number' ? widget.gridY : 0
+			const gw = typeof widget.gridWidth === 'number' ? widget.gridWidth : 12
+			const gh = typeof widget.gridHeight === 'number' ? widget.gridHeight : 12
+			if (slot !== 'body' || gx !== 0 || gy !== 0 || gw !== 12 || gh !== 12) return
+			const widgetKey = typeof widget.widgetKey === 'string' ? widget.widgetKey : ''
+			if (!widgetKey || LIBRARY_BUILT_IN_WIDGET_KEYS.has(widgetKey)) return
+			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
+			errors.push(
+				`pages[${pageId}]/widgets[0]: pages[${pageId}] is type:"dashboard" with a single 12×12 custom widget — this is always a custom page in disguise.\n`
+				+ 'Valid alternatives:\n'
+				+ `  (a) declare as type:"custom" with component:"${widgetKey}" and register the component with kind:"page"\n`
+				+ '  (b) split into N>1 widgets if this is genuinely a multi-widget dashboard\n'
+				+ 'See ADR-036 Decision 1 (single-widget dashboard anti-pattern).',
+			)
+		})
+	}
+
+	// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
 		errors.push('/version must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)')
