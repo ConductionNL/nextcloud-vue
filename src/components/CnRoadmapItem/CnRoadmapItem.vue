@@ -146,8 +146,10 @@ export default {
 
 <style scoped>
 .cn-roadmap-item {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-roadmap-item__header {
