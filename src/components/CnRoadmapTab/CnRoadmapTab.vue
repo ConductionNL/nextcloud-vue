@@ -43,11 +43,13 @@
 				</template>
 			</NcEmptyContent>
 		</div>
-		<ul v-else class="cn-roadmap-tab__list">
-			<li v-for="item in sortedItems" :key="item.number">
-				<CnRoadmapItem :item="item" />
-			</li>
-		</ul>
+		<div v-else class="cn-roadmap-tab__grid">
+			<CnRoadmapItem
+				v-for="item in sortedItems"
+				:key="item.number"
+				:item="item"
+				class="cn-roadmap-tab__card" />
+		</div>
 	</div>
 </template>
 
@@ -179,10 +181,22 @@ export default {
 </script>
 
 <style scoped>
-.cn-roadmap-tab__list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
+.cn-roadmap-tab__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 16px;
+}
+
+.cn-roadmap-tab__card {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.cn-roadmap-tab__card:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow, rgba(0, 0, 0, 0.08));
 }
 
 .cn-roadmap-tab__loading {
