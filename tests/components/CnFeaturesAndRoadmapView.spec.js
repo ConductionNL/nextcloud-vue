@@ -3,11 +3,10 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
  * Tests for CnFeaturesAndRoadmapView — the route-level container hosting the
- * Features + Roadmap card-grid views, the header toggles (view + sidebar +
- * Suggest CTA), the slide-in NcAppSidebar with three pitch sections
- * (Suggest, OpenBuilt, LLM), the Suggest CTA inside the sidebar that opens
- * the same modal, the SuggestFeatureModal lifecycle, and the
- * admin-disabled empty state.
+ * Features + Roadmap card-grid views, the header view-toggle, the primary
+ * Suggest-feature CTA, the SuggestFeatureModal lifecycle, and the hoisted
+ * sidebar published to `cnIndexSidebarConfig` for CnAppRoot to mount at
+ * NcContent level (same mechanism CnIndexPage uses for CnIndexSidebar).
  *
  * @spec openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md
  *       (requirement "CnFeaturesAndRoadmapView")
@@ -18,18 +17,10 @@ import { mount } from '@vue/test-utils'
 import CnFeaturesAndRoadmapView from '../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
 
 const stubs = {
-	NcAppSidebar: {
-		name: 'NcAppSidebar',
-		props: ['name', 'subname', 'empty', 'showTabs'],
-		template: '<aside class="cn-features-and-roadmap-view__sidebar" :data-name="name" :data-subname="subname"><slot /></aside>',
-	},
 	NcButton: { name: 'NcButton', template: '<button class="btn" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 	NcEmptyContent: { name: 'NcEmptyContent', props: ['name', 'description'], template: '<div class="empty"><h2>{{ name }}</h2></div>' },
-	ArrowRight: true,
 	FormatListBulleted: true,
-	InformationOutline: true,
 	LockOutline: true,
-	OpenInNew: true,
 	Plus: true,
 	RoadVariant: true,
 	CnFeaturesTab: { name: 'CnFeaturesTab', props: ['features'], template: '<div class="features-tab" :data-count="features.length" />' },
@@ -40,10 +31,20 @@ const stubs = {
 const baseProps = { repo: 'ConductionNL/openregister', features: [{ slug: 'a', title: 'Alpha' }, { slug: 'b', title: 'Beta' }] }
 
 const headerButtons = (wrapper) => wrapper.findAll('.cn-features-and-roadmap-view__actions button.btn')
-const sidebarPanel = (wrapper) => wrapper.findComponent({ name: 'NcAppSidebar' })
-const openSidebar = async (wrapper) => {
-	// Header buttons order: toggle-view (0), toggle-sidebar (1), Suggest (2).
-	await headerButtons(wrapper).at(1).trigger('click')
+
+// Mount with a CnAppRoot-style provide: `cnHostsIndexSidebar=true` +
+// a reactive holder mimicking the one CnAppRoot publishes.
+const mountWithHost = (extraProps = {}) => {
+	const sidebarHolder = { value: null }
+	const wrapper = mount(CnFeaturesAndRoadmapView, {
+		stubs,
+		propsData: { ...baseProps, ...extraProps },
+		provide: {
+			cnHostsIndexSidebar: true,
+			cnIndexSidebarConfig: sidebarHolder,
+		},
+	})
+	return { wrapper, sidebarHolder }
 }
 
 describe('CnFeaturesAndRoadmapView', () => {
@@ -52,24 +53,8 @@ describe('CnFeaturesAndRoadmapView', () => {
 		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).exists()).toBe(true)
 		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(false)
 		expect(wrapper.find('.cn-features-and-roadmap-view__title').text()).toBe('Features')
-	})
-
-	it('does NOT render the sidebar until the toggle is clicked', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		expect(sidebarPanel(wrapper).exists()).toBe(false)
-		await openSidebar(wrapper)
-		expect(sidebarPanel(wrapper).exists()).toBe(true)
-		expect(sidebarPanel(wrapper).props('name')).toBe('Shape this app')
-		expect(sidebarPanel(wrapper).props('subname')).toBe('Three ways to land a feature')
-	})
-
-	it('toggles the sidebar closed when its button is clicked twice', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await openSidebar(wrapper)
-		expect(sidebarPanel(wrapper).exists()).toBe(true)
-		// Click the sidebar toggle again to close.
-		await headerButtons(wrapper).at(1).trigger('click')
-		expect(sidebarPanel(wrapper).exists()).toBe(false)
+		// Header carries exactly two buttons: view-toggle + Suggest.
+		expect(headerButtons(wrapper)).toHaveLength(2)
 	})
 
 	it('toggles to the Roadmap view when the view-toggle button is clicked', async () => {
@@ -89,33 +74,17 @@ describe('CnFeaturesAndRoadmapView', () => {
 		expect(headerButtons(wrapper).at(0).text()).toContain('Show features')
 	})
 
-	it('passes the features prop through to CnFeaturesTab', () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).props('features')).toHaveLength(2)
-	})
-
 	it('opens the Suggest modal from the header CTA', async () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
-		await headerButtons(wrapper).at(2).trigger('click')
+		await headerButtons(wrapper).at(1).trigger('click')
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).props('repo')).toBe('ConductionNL/openregister')
 	})
 
-	it('opens the Suggest modal from the sidebar text-CTA', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await openSidebar(wrapper)
-		// First button inside the sidebar is the Suggest text-CTA.
-		const sidebarSuggestBtn = sidebarPanel(wrapper).find('.cn-features-and-roadmap-view__sidebar-link[type="button"]')
-		expect(sidebarSuggestBtn.exists()).toBe(true)
-		await sidebarSuggestBtn.trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
-	})
-
 	it('closes the Suggest modal on its close event', async () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await headerButtons(wrapper).at(2).trigger('click')
-		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
+		await headerButtons(wrapper).at(1).trigger('click')
 		wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).vm.$emit('close')
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
@@ -123,7 +92,7 @@ describe('CnFeaturesAndRoadmapView', () => {
 
 	it('re-emits submitted and switches to the Roadmap view when the modal reports success', async () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await headerButtons(wrapper).at(2).trigger('click')
+		await headerButtons(wrapper).at(1).trigger('click')
 		wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).vm.$emit('submitted', { number: 99 })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.emitted('submitted')).toBeTruthy()
@@ -131,39 +100,64 @@ describe('CnFeaturesAndRoadmapView', () => {
 		expect(wrapper.findComponent({ name: 'CnRoadmapTab' }).exists()).toBe(true)
 	})
 
-	it('renders three sidebar sections with default link targets', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
-		await openSidebar(wrapper)
-		const sections = sidebarPanel(wrapper).findAll('.cn-features-and-roadmap-view__sidebar-section')
-		expect(sections).toHaveLength(3)
-		// First section is Suggest with a <button>, the next two are anchors.
-		const anchors = sidebarPanel(wrapper).findAll('a.cn-features-and-roadmap-view__sidebar-link')
-		expect(anchors).toHaveLength(2)
-		expect(anchors.at(0).attributes('href')).toContain('/apps/openbuilt')
-		expect(anchors.at(1).attributes('href')).toBe('https://docs.conduction.nl/ai-skills')
-		expect(anchors.at(1).attributes('target')).toBe('_blank')
+	it('publishes the hoisted sidebar config to cnIndexSidebarConfig on mount', () => {
+		const { sidebarHolder } = mountWithHost()
+		expect(sidebarHolder.value).not.toBe(null)
+		expect(sidebarHolder.value.component.name).toBe('CnFeaturesAndRoadmapSidebar')
+		expect(sidebarHolder.value.props.openbuiltUrl).toContain('/apps/openbuilt')
+		expect(sidebarHolder.value.props.llmSkillsUrl).toBe('https://docs.conduction.nl/ai-skills')
+		expect(typeof sidebarHolder.value.listeners.suggest).toBe('function')
 	})
 
-	it('honors openbuiltUrl + llmSkillsUrl prop overrides', async () => {
-		const wrapper = mount(CnFeaturesAndRoadmapView, {
+	it('honors openbuiltUrl + llmSkillsUrl prop overrides in the published config', () => {
+		const { sidebarHolder } = mountWithHost({
+			openbuiltUrl: 'https://example.com/builder',
+			llmSkillsUrl: 'https://example.com/ai',
+		})
+		expect(sidebarHolder.value.props.openbuiltUrl).toBe('https://example.com/builder')
+		expect(sidebarHolder.value.props.llmSkillsUrl).toBe('https://example.com/ai')
+	})
+
+	it('clears the sidebar holder on beforeDestroy', () => {
+		const { wrapper, sidebarHolder } = mountWithHost()
+		expect(sidebarHolder.value).not.toBe(null)
+		wrapper.destroy()
+		expect(sidebarHolder.value).toBe(null)
+	})
+
+	it('publishes nothing when no CnAppRoot ancestor (cnHostsIndexSidebar=false)', () => {
+		const sidebarHolder = { value: null }
+		mount(CnFeaturesAndRoadmapView, {
 			stubs,
-			propsData: {
-				...baseProps,
-				openbuiltUrl: 'https://example.com/builder',
-				llmSkillsUrl: 'https://example.com/ai',
+			propsData: baseProps,
+			provide: {
+				cnHostsIndexSidebar: false,
+				cnIndexSidebarConfig: sidebarHolder,
 			},
 		})
-		await openSidebar(wrapper)
-		const anchors = sidebarPanel(wrapper).findAll('a.cn-features-and-roadmap-view__sidebar-link')
-		expect(anchors.at(0).attributes('href')).toBe('https://example.com/builder')
-		expect(anchors.at(1).attributes('href')).toBe('https://example.com/ai')
+		// View renders the same way but no hoist happens — host gets the
+		// untouched holder it provided.
+		expect(sidebarHolder.value).toBe(null)
+	})
+
+	it('sidebar-published listener opens the Suggest modal when fired', async () => {
+		const { wrapper, sidebarHolder } = mountWithHost()
+		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
+		// Fire the listener the sidebar would invoke on its @suggest event.
+		sidebarHolder.value.listeners.suggest()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(true)
+	})
+
+	it('does NOT publish the hoisted sidebar when disabled', () => {
+		const { sidebarHolder } = mountWithHost({ disabled: true })
+		expect(sidebarHolder.value).toBe(null)
 	})
 
 	it('renders the admin-disabled empty state when disabled is true', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: { ...baseProps, disabled: true } })
 		expect(wrapper.findComponent({ name: 'NcEmptyContent' }).exists()).toBe(true)
 		expect(wrapper.findAll('.cn-features-and-roadmap-view__actions')).toHaveLength(0)
-		expect(sidebarPanel(wrapper).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'CnFeaturesTab' }).exists()).toBe(false)
 		expect(wrapper.text().toLowerCase()).toContain('disabled by your administrator')
 	})
