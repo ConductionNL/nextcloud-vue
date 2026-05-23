@@ -17,10 +17,10 @@
 	flex-wrap: wrap;
 	gap: calc(4 * var(--default-grid-baseline));
 	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
-	   positioned at the left edge of .app-content). Without this, the
-	   header's first child (icon or title) is occluded by the toggle on
-	   every page. Mirrors the same fix in CnPageHeader. */
-	padding-inline-start: 44px;
+	   positioned at the left edge of .app-content) AND leave breathing room
+	   so the title doesn't sit hard against the toggle's right edge.
+	   Mirrors the same fix in CnPageHeader. */
+	padding-inline-start: 56px;
 }
 
 .cn-detail-page__header-left {
