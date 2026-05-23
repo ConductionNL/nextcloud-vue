@@ -218,6 +218,10 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
  *     this.$refs.importDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user clicks the import button. Payload: `{ file: File, options: Record<string, boolean> }`.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
+ * @slot fields Custom form fields rendered between the file picker and the options list. Receives `{ file }` as the slot scope so the parent can react to file selection.
  */
 export default {
 	name: 'CnMassImportDialog',
@@ -278,17 +282,29 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Importing data — this may take a moment for large files...'),
 		},
+		/** Heading rendered above the per-sheet results table. */
 		summaryTitle: { type: String, default: () => t('nextcloud-vue', 'Import summary') },
+		/** Label for the "Supported file types" intro line. */
 		supportedFormatsLabel: { type: String, default: () => t('nextcloud-vue', 'Supported file types:') },
+		/** Label for the file-picker trigger button. */
 		selectFileLabel: { type: String, default: () => t('nextcloud-vue', 'Select file') },
+		/** Label for the cancel button (visible before the import runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button (visible after import completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the primary confirm button that triggers the import. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Import') },
+		/** Column header for the per-sheet results row label. */
 		sheetLabel: { type: String, default: () => t('nextcloud-vue', 'Sheet') },
+		/** Column header for the "rows found" summary count. */
 		foundLabel: { type: String, default: () => t('nextcloud-vue', 'Found') },
+		/** Column header for the "rows created" summary count. */
 		createdLabel: { type: String, default: () => t('nextcloud-vue', 'Created') },
+		/** Column header for the "rows updated" summary count. */
 		updatedLabel: { type: String, default: () => t('nextcloud-vue', 'Updated') },
+		/** Column header for the "rows unchanged" summary count. */
 		unchangedLabel: { type: String, default: () => t('nextcloud-vue', 'Unchanged') },
+		/** Column header / collapsible toggle for the per-sheet errors list. */
 		errorsLabel: { type: String, default: () => t('nextcloud-vue', 'Errors') },
 	},
 

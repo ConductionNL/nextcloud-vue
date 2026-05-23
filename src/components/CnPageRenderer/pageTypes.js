@@ -56,4 +56,6 @@ export const defaultPageTypes = {
 	form: defineAsyncComponent(() => import('../CnFormPage/CnFormPage.vue').then(m => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then(m => m.default)),
 	map: defineAsyncComponent(() => import('../CnMapPage/CnMapPage.vue').then(m => m.default)),
+	roadmap: defineAsyncComponent(() => import('../CnFeaturesAndRoadmapPage/CnFeaturesAndRoadmapPage.vue').then(m => m.default)),
+	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then(m => m.default)),
 }

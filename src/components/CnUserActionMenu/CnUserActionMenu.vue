@@ -16,6 +16,7 @@
 			@click="interactive && openMenu()"
 			@keydown.enter.prevent="interactive && openMenu()"
 			@keydown.space.prevent="interactive && openMenu()">
+			<!-- @slot default Trigger content for the menu. Defaults to the user's display name. -->
 			<slot>{{ displayName }}</slot>
 		</span>
 
@@ -155,10 +156,15 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
+		/** Pre-translated label for the "send message" action. */
 		sendMessageLabel: { type: String, default: () => t('nextcloud-vue', 'Send message') },
+		/** Pre-translated label for the "start chat" action. */
 		startChatLabel: { type: String, default: () => t('nextcloud-vue', 'Start chat') },
+		/** Pre-translated label for the "send email" action. */
 		sendEmailLabel: { type: String, default: () => t('nextcloud-vue', 'Send email') },
+		/** Pre-translated label for the "schedule meeting" action. */
 		planMeetingLabel: { type: String, default: () => t('nextcloud-vue', 'Schedule meeting') },
+		/** Pre-translated label shown when no communication apps are available. */
 		noActionsLabel: { type: String, default: () => t('nextcloud-vue', 'No communication apps available') },
 	},
 
@@ -307,6 +313,10 @@ export default {
 				console.error('CnUserActionMenu: Failed to send message', err)
 				this.showActionError('Failed to create conversation')
 			}
+			/**
+			 * @event action Emitted when the user triggers a communication action.
+			 * @type {{ type: 'message'|'chat'|'email'|'meeting', userId: string }}
+			 */
 			this.$emit('action', { type: 'message', userId: this.userId })
 		},
 

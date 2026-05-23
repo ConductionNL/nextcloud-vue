@@ -114,6 +114,41 @@ both `sidebar` (Object) and `sidebarProps` are set with overlapping
 fields, the Object form wins and a `console.warn` fires once per
 component instance listing the conflicting fields.
 
+## Sidebar tabs from a manifest
+
+Manifest `type:'detail'` pages declare their sidebar tabs in
+`config.sidebarTabs[]` (the human-authored source of truth). Each
+entry has `id` + `label` (required), optional `icon`, `order`,
+`component`, `_note`. Widgets bound to a tab carry
+`tabGroup: "<tab.id>"` on `slot:"sidebar"` entries.
+
+```json
+{
+  "id": "ZaakDetail",
+  "route": "/zaken/:id",
+  "type": "detail",
+  "title": "Case",
+  "config": {
+    "register": "zaakafhandelapp",
+    "schema": "zaak",
+    "sidebarTabs": [
+      { "id": "overview", "label": "Overview", "order": 10 },
+      { "id": "history",  "label": "History",  "order": 20, "icon": "icon-history" }
+    ]
+  },
+  "widgets": [
+    { "widgetKey": "data", "slot": "sidebar", "tabGroup": "overview", "gridX": 0, "gridY": 0, "gridWidth": 1, "gridHeight": 1 }
+  ]
+}
+```
+
+The validator checks two invariants:
+
+1. **Tab shape** — each `sidebarTabs[]` entry MUST have non-empty `id` + `label`; `id`s MUST be unique within the page.
+2. **Cross-reference** — every `widgets[]` entry with `slot:"sidebar"` and a `tabGroup` value MUST match a declared `sidebarTabs[].id`. Catches the silent-typo case where a tab-bound widget references a non-existent tab.
+
+The CLI `manifest-migrate` transform lifts `config.sidebarTabs[].widgets[]` into top-level `widgets[]` with `slot:"sidebar"` + `tabGroup` at build time. Component-only tab entries (declaring only `component`) are carried forward in the residual `sidebarTabs[]` for runtime resolution against the customComponents registry.
+
 ## Usage
 
 ### Basic detail page with statistics table
@@ -196,6 +231,27 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
   </CnDetailPage>
 </template>
 ```
+
+## Public (unauthenticated) detail pages
+
+`pages[].config.mode: 'public'` marks a detail route as unauthenticated — token-scoped reader pages like credential verification or shared-link views. Pair with the `@route.<param>` sentinel (see [`resolveRouteSentinels`](../utilities/resolve-route-sentinels.md)) for the token binding:
+
+```json
+{
+  "id": "CredentialVerify",
+  "route": "/credentials/:token/verify",
+  "type": "detail",
+  "title": "Verify credential",
+  "config": {
+    "register": "scholiq",
+    "schema": "credential",
+    "mode": "public",
+    "filter": { "token": "@route.token" }
+  }
+}
+```
+
+The schema's typed `mode` enum (`edit | create | public`) gives consumers IDE completion + sharp validator errors on typos. Today the manifest carries the intent — `CnDetailPage` does not yet branch on `mode` for auth-header bypass; the host app skips auth headers based on the route. A follow-up will wire native public-mode handling into the component so consumers don't have to coordinate auth-bypass externally.
 
 ## When to use CnDetailPage vs other page components
 

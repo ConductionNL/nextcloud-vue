@@ -38,7 +38,7 @@
 				<slot name="before-fields" />
 
 				<div
-					v-for="field in resolvedFields"
+					v-for="field in visibleFields"
 					:key="field.key"
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
@@ -324,6 +324,7 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { shouldShow } from '../../utils/fieldCondition.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /**
@@ -363,6 +364,24 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
  *   (or any type) to opt a property out of the default object-filter in `fieldsFromSchema`.
  * - `widget: 'code'` — Stores the raw string. Optional `field.language` chooses
  *   syntax highlighting (`'json'|'xml'|'html'|'text'|'auto'`, default `'auto'`).
+ *
+ * ## Conditional visibility (`condition` / `visibleWhen`)
+ *
+ * Any field may declare a `condition` (alias: `visibleWhen`) that gates its
+ * visibility based on another field's current value:
+ *
+ * ```js
+ * {
+ *   key: 'arguments',
+ *   widget: 'json',
+ *   condition: { field: 'jobClass', equals: 'OCA\\OpenConnector\\Action\\SynchronizationAction' }
+ * }
+ * ```
+ *
+ * Supported predicates: `equals`, `notEquals`, `in`, `notIn`, `truthy`, `falsy`.
+ * When a field transitions visible → hidden, its form-data value is cleared so
+ * stale values aren't submitted. Hidden fields also skip the required-fields
+ * and `validate()` checks.
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -559,9 +578,9 @@ export default {
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
-		/** Whether all required fields have a non-empty value */
+		/** Whether all required fields have a non-empty value (hidden fields are skipped) */
 		requiredFieldsFilled() {
-			return this.resolvedFields
+			return this.visibleFields
 				.filter((f) => f.required)
 				.every((f) => {
 					const val = this.formData[f.key]
@@ -587,6 +606,21 @@ export default {
 				overrides: this.fieldOverrides,
 			})
 		},
+
+		/**
+		 * Fields filtered through their per-field `condition` / `visibleWhen`
+		 * descriptor. Fields without a condition are always visible.
+		 *
+		 * The template iterates this computed instead of `resolvedFields`,
+		 * so hidden fields don't render at all. A watcher (below) clears
+		 * the form-data value for any field that transitions from visible
+		 * to hidden, so stale state is never submitted.
+		 *
+		 * @return {object[]} The visible subset of `resolvedFields`.
+		 */
+		visibleFields() {
+			return this.resolvedFields.filter((field) => shouldShow(field, this.formData))
+		},
 	},
 
 	watch: {
@@ -595,6 +629,34 @@ export default {
 			handler(newItem) {
 				this.initFormData(newItem)
 			},
+		},
+
+		/**
+		 * When a field transitions from visible to hidden, clear its
+		 * form-data value so a stale (now-irrelevant) value isn't
+		 * carried into the submitted payload. We diff key lists rather
+		 * than mutating during the computed itself.
+		 *
+		 * @param {object[]} newFields The new visible field set.
+		 * @param {object[]} oldFields The previous visible field set.
+		 */
+		visibleFields(newFields, oldFields) {
+			if (!Array.isArray(oldFields)) return
+			const newKeys = new Set(newFields.map((f) => f.key))
+			for (const oldField of oldFields) {
+				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
+					this.$delete(this.formData, oldField.key)
+					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
+						this.$delete(this.errors, oldField.key)
+					}
+					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
+						this.$delete(this.jsonErrors, oldField.key)
+					}
+					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
+						this.$delete(this.jsonDrafts, oldField.key)
+					}
+				}
+			}
 		},
 	},
 
@@ -972,7 +1034,7 @@ export default {
 		 */
 		validate() {
 			const newErrors = {}
-			for (const field of this.resolvedFields) {
+			for (const field of this.visibleFields) {
 				const value = this.formData[field.key]
 
 				// Required check

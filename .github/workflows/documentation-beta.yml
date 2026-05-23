@@ -34,6 +34,11 @@ jobs:
       - name: Install and build component styleguide
         timeout-minutes: 10
         run: |
+          # Generate the gitignored Ajv-compiled validator
+          # (src/utils/validateManifestV2.compiled.js) the component
+          # sources import, before the styleguide sub-build resolves it.
+          npm ci --legacy-peer-deps
+          npm run build:validators
           cd styleguide
           npm ci --legacy-peer-deps
           npm run build

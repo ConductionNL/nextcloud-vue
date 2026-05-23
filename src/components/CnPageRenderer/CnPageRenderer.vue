@@ -32,13 +32,34 @@
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 
-		<!-- V2 render path: slot dispatcher via CnWidgetGrid -->
+		<!-- V2 render path: slot dispatcher via CnWidgetGrid.
+		     Body falls back to the typed-primitive dispatch when no
+		     widgets[] entries target the `body` slot — apps that just
+		     declare `type:"index"` (or any other registered type) with
+		     a `config` payload still get the default page component
+		     (CnIndexPage, CnDetailPage, etc.) mounted, without having
+		     to hand-author a widget entry. An explicit body widget
+		     (e.g. an `object-table` widget in `body`) still wins over
+		     the default. -->
 		<template v-if="isV2Manifest">
-			<!-- body slot -->
+			<!-- body slot — widgets first, default typed component otherwise -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				slot-name="body" />
+			<component
+				v-else-if="resolvedComponent"
+				:is="resolvedComponent"
+				v-bind="resolvedProps">
+				<template
+					v-for="entry in resolvedSlotEntries"
+					#[entry.name]="slotProps">
+					<component
+						:is="entry.component"
+						:key="entry.name"
+						v-bind="slotProps" />
+				</template>
+			</component>
 			<!-- header-actions slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
@@ -89,6 +110,7 @@
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -410,18 +432,76 @@ export default {
 		 * Per-type prop validation lives on the target components.
 		 */
 		resolvedProps() {
-			const config = this.currentPage?.config ?? {}
-			const params = this.$route?.params ?? {}
+			const page = this.currentPage
+			const rawConfig = page?.config ?? {}
+			// Clone params — `resolvedProps` MAY add normalised aliases
+			// (e.g. `objectId` for type='detail') and we must not mutate
+			// the live `$route.params` object.
+			const params = { ...(this.$route?.params ?? {}) }
+			// `manifest-route-param-sentinel`: substitute every
+			// `@route.<param>` string in the config subtree with the
+			// matching `$route.params.<param>` value before any other
+			// merge. Unresolved sentinels become null (with a one-shot
+			// console.warn per pageId+sentinel).
+			const pageId = page?.id ?? '<unknown>'
+			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			// Schema v2 lifts a uniform set of page-level fields out of
+			// `config` so every page type can declare them without
+			// per-type schema branches. Forward those to the dispatched
+			// component so they reach typed props (e.g.
+			// CnDetailPage.title, CnDetailPage.widgets). Listed
+			// explicitly to keep the prop surface minimal — schema
+			// fields not in this list stay private to the renderer.
+			const topLevel = {}
+			for (const key of ['title', 'description', 'icon', 'widgets', 'actions', 'sidebar']) {
+				if (page && page[key] !== undefined) {
+					topLevel[key] = page[key]
+				}
+			}
+			// `config.actionToggles` is a typed object sugaring the nine
+			// show*/selectable toggles on type='index' pages. Flatten
+			// each key into the top-level config namespace UNDER any
+			// explicit config.<key> (so explicit wins). Strip the
+			// container before forwarding — CnIndexPage has no
+			// `actionToggles` prop.
+			const isIndex = page?.type === 'index'
+			let normalizedConfig = config
+			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
+				const { actionToggles, ...rest } = config
+				normalizedConfig = { ...actionToggles, ...rest }
+			}
+			// Type='detail' object-context mapping. The manifest declares
+			// `config.schema` and `:id` route param; CnDetailPage's
+			// sidebar gating needs `objectType` + `objectId` props (see
+			// CnDetailPage.syncSidebarState — `objectSidebarState.active`
+			// stays false without them, so the host's mounted
+			// CnObjectSidebar never renders). Bridge the names here so
+			// every consumer doesn't have to duplicate the alias in its
+			// own customComponents wrapper. Only fills when the typed
+			// prop is unset, so `config.objectType` or
+			// `params.objectId` still wins.
+			const isDetail = page?.type === 'detail'
+			if (isDetail) {
+				if (normalizedConfig.objectType === undefined && typeof normalizedConfig.schema === 'string' && normalizedConfig.schema.length > 0) {
+					normalizedConfig = { ...normalizedConfig, objectType: normalizedConfig.schema }
+				}
+				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
+					params.objectId = params.id
+				}
+			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
 			// expand to the nine read-only flags MERGED UNDER `config.*`
 			// so explicit `config.showAdd:true` still wins. Strip the
 			// `readOnly` key before forwarding — CnIndexPage has no
 			// `readOnly` prop.
-			if (this.currentPage?.type === 'index' && config.readOnly === true) {
-				const { readOnly, ...rest } = config
-				return { ...READ_ONLY_DEFAULTS, ...rest, ...params }
+			if (isIndex && normalizedConfig.readOnly === true) {
+				const { readOnly, ...rest } = normalizedConfig
+				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
-			return { ...config, ...params }
+			// Precedence (highest wins): route params > config > top-level
+			// page fields. URL truth trumps everything; config trumps
+			// top-level so per-route config still beats the page default.
+			return { ...topLevel, ...normalizedConfig, ...params }
 		},
 		/**
 		 * Combined slot-override map for the dispatched page component.

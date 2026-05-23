@@ -34,6 +34,24 @@ describe('selectByPath', () => {
 	test('null obj returns undefined', () => {
 		expect(selectByPath(null, 'a')).toBeUndefined()
 	})
+
+	test('groups[].value + groups[].key pattern (OR groupBy contract)', () => {
+		// Mirrors OR's GroupBucket return shape so the manifest
+		// bucket shorthand's default selectors keep working.
+		const response = {
+			call_log: {
+				groups: [
+					{ key: '2026-05-01T00:00:00Z', value: 3 },
+					{ key: '2026-05-02T00:00:00Z', value: 1 },
+				],
+			},
+		}
+		expect(selectByPath(response, 'call_log.groups[].value')).toEqual([3, 1])
+		expect(selectByPath(response, 'call_log.groups[].key')).toEqual([
+			'2026-05-01T00:00:00Z',
+			'2026-05-02T00:00:00Z',
+		])
+	})
 })
 
 describe('useGraphQL', () => {

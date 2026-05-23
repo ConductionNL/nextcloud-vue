@@ -30,6 +30,7 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -69,6 +70,22 @@ import { useDataSource } from '../../composables/useDataSource.js'
  */
 export default {
 	name: 'CnChartWidget',
+
+	inject: {
+		/**
+		 * Reactive date-range provided by an ancestor `CnDashboardPage`.
+		 * When the dashboard's `dateRange.enabled` is `true`, the ref's
+		 * value is `{ from, to, preset }`; otherwise it stays `null`.
+		 * The widget passes this through to `useDataSource` so the
+		 * bucket shorthand's `fromVar` / `toVar` GraphQL variables
+		 * track the dashboard's range automatically.
+		 *
+		 * Default factory: `() => ref(null)`. This keeps isolated
+		 * mounts (Storybook, jest with `shallowMount`) safe — there's
+		 * always a ref to inject, even outside a dashboard.
+		 */
+		cnDashboardDateRange: { default: () => ref(null) },
+	},
 
 	props: {
 		/**
@@ -170,11 +187,24 @@ export default {
 		 * fallback while the query is loading or when no
 		 * dataSource is configured.
 		 *
+		 * Supported shapes (one of):
+		 * - Count shorthand: `{ register?, schema, filter?, aggregate: 'count' }`
+		 * - Bucket shorthand: `{ register?, schema, filter?,
+		 *     bucket: { field, interval, metric?, metricField?,
+		 *               fromVar?, toVar?, staticRange? } }` — emits OR's
+		 *     `groupBy` argument. When mounted under a CnDashboardPage
+		 *     with `dateRange.enabled`, `from` / `to` come from the
+		 *     injected `cnDashboardDateRange` ref; otherwise they come
+		 *     from `bucket.staticRange`. If neither is available no
+		 *     query is fired and the chart shows its fallback.
+		 * - Raw GraphQL: `{ graphql: { query, variables?, selectors } }`.
+		 *
 		 * @type {{
 		 *   register?: string,
 		 *   schema?: string,
 		 *   filter?: object,
 		 *   aggregate?: 'count',
+		 *   bucket?: { field: string, interval: string, metric?: string, metricField?: string, fromVar?: string, toVar?: string, staticRange?: { from: string, to: string } },
 		 *   graphql?: { query: string, variables?: object, selectors: object }
 		 * }|null}
 		 */
@@ -189,7 +219,18 @@ export default {
 		// — it never fires a request and always resolves `data.value`
 		// to null, so the static `series`/`categories`/`labels` props
 		// remain the source of truth in that case.
-		const { data } = useDataSource(() => props.dataSource)
+		//
+		// We pipe the injected `cnDashboardDateRange` ref through as
+		// the `range` source; useDataSource only reads it for the
+		// bucket shorthand, so the other shorthand forms are
+		// unaffected.
+		//
+		// Inject is also exposed via Options API (above), but reading
+		// it again here in setup ensures we hand the SAME ref to
+		// useDataSource — Vue treats inject() within setup and the
+		// Options `inject:` declaration as the same resolution.
+		const range = inject('cnDashboardDateRange', null) || ref(null)
+		const { data } = useDataSource(() => props.dataSource, { range })
 		return { dsData: data }
 	},
 

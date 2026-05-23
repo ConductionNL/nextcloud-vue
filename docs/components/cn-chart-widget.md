@@ -60,7 +60,73 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-The dispatcher forwards `props.chartKind` as the apex `type` and passes through `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
+The dispatcher forwards `props.chartKind` as the apex `type` and passes through `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`.
+
+## `dataSource` — resolving series + categories from OpenRegister
+
+`CnChartWidget` accepts a `dataSource` block that resolves `series` / `categories` / `labels` from a GraphQL query against OpenRegister. Three shapes are supported:
+
+### Count shorthand
+
+```js
+dataSource: {
+  schema: 'meeting',
+  filter: { lifecycle: 'review' },
+  aggregate: 'count',
+}
+// → { count: 4 } (use the raw `graphql:` form for chart series)
+```
+
+### Bucket shorthand (time series)
+
+Emits OpenRegister's `groupBy` argument with a time interval and returns `{ series, categories }` ready to feed into a line/bar chart:
+
+```js
+dataSource: {
+  schema: 'call_log',
+  filter: { status: 'error' },
+  bucket: {
+    field: 'created',
+    interval: 'day',                  // case-insensitive → DAY
+    fromVar: 'from',                  // default 'from'
+    toVar: 'to',                      // default 'to'
+    staticRange: {                    // fallback when no dashboard range
+      from: '2026-05-01T00:00:00.000Z',
+      to:   '2026-05-22T00:00:00.000Z',
+    },
+  },
+}
+```
+
+When mounted under a [`CnDashboardPage`](./cn-dashboard-page.md) with `dateRange.enabled`, the widget injects `cnDashboardDateRange` and uses the dashboard's currently-selected `{ from, to }` for the GraphQL variables — every chart on the page tracks the same range. If no dashboard range is available the widget falls back to `bucket.staticRange`; if neither is available no query is fired and the chart shows its fallback / unavailable state.
+
+Non-count metrics are supported via `metric` (`'sum' | 'avg' | 'min' | 'max'`, case-insensitive) + a required `metricField`:
+
+```js
+bucket: {
+  field: 'created',
+  interval: 'week',
+  metric: 'sum',
+  metricField: 'amount',
+  staticRange: { from: '…', to: '…' },
+}
+```
+
+### Raw GraphQL
+
+```js
+dataSource: {
+  graphql: {
+    query: 'query { meeting { groups { key value } } }',
+    selectors: {
+      series:     'meeting.groups[].value',
+      categories: 'meeting.groups[].key',
+    },
+  },
+}
+```
+
+The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`selectByPath`](../utilities/composables/use-graph-q-l.md) for the full path grammar.
 
 ### Props
 
@@ -77,6 +143,7 @@ The dispatcher forwards `props.chartKind` as the apex `type` and passes through 
 | `toolbar` | Boolean | `false` | Show/hide the ApexCharts toolbar (zoom, download) |
 | `legend` | Boolean | `true` | Show/hide the chart legend |
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts is not installed |
+| `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
 
 ### Slots
 

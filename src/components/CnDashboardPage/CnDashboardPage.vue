@@ -22,14 +22,9 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
-				<!-- Public slot. Documented in CLAUDE.md and used by every
-				     existing consumer (decidesk, mydash, opencatalogi,
-				     pipelinq, procest). -->
+				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
-				<!-- Back-compat alias: original slot name shipped before
-				     CLAUDE.md was updated. Render alongside so any
-				     stragglers still work; consumers should prefer
-				     #header-actions. -->
+				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
@@ -44,11 +39,27 @@
 			</div>
 		</div>
 
+		<!-- Date-range header (optional).
+		     Rendered only when `dateRange.enabled === true`. The picker
+		     is wired to `currentRange` (data) which mirrors the provided
+		     `cnDashboardDateRange` ref; all change handling, persistence,
+		     and event emission lives in `onDateRangeChange`. -->
+		<div
+			v-if="dateRangeEnabled"
+			class="cn-dashboard-page__date-range"
+			data-testid="cn-dashboard-page-date-range">
+			<CnDateRangePicker
+				:value="currentRange"
+				:presets="effectivePresets"
+				@input="onDateRangeChange" />
+		</div>
+
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
 		<!-- Empty state -->
 		<div v-else-if="!hasWidgets" class="cn-dashboard-page__empty">
+			<!-- @slot empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block. -->
 			<slot name="empty">
 				<NcEmptyContent :description="emptyLabel">
 					<template #icon>
@@ -103,14 +114,15 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)">
-						<!-- Per-widget title icon (e.g. #widget-my-work-title-icon) -->
+						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
-						<!-- Per-widget header actions (e.g. #widget-my-work-actions) -->
+						<!-- @slot widget-{widgetId}-actions Per-widget custom header actions (e.g. `#widget-my-work-actions`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #actions>
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
+						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
 					</CnWidgetWrapper>
 				</template>
@@ -206,6 +218,7 @@
 </template>
 
 <script>
+import { provide, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -218,6 +231,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -329,6 +343,7 @@ export default {
 		CnChartWidget,
 		CnStatsBlockWidget,
 		CnWidgetRefItem,
+		CnDateRangePicker,
 	},
 
 	inject: {
@@ -344,9 +359,20 @@ export default {
 		// `integration` resolve their component reactively. No-op cost
 		// when no integration widgets are configured.
 		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+
+		// Provide a reactive date-range ref to every descendant widget,
+		// ALWAYS — even when the feature is off. Descendants can then
+		// `inject('cnDashboardDateRange', ref(null))` without a fallback
+		// dance, and the value stays `null` (= no range) until the user
+		// picks one. CnChartWidget reads this via inject() to drive its
+		// bucket-shorthand variables.
+		const dashboardDateRange = ref(null)
+		provide('cnDashboardDateRange', dashboardDateRange)
+
 		return {
 			registryIntegrations,
 			resolveRegistryWidget: resolveWidget,
+			dashboardDateRange,
 		}
 	},
 
@@ -479,17 +505,81 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Optional date-range header descriptor. When `enabled: true`
+		 * the dashboard renders a `CnDateRangePicker` between the
+		 * header and the widget grid, persists the chosen range to
+		 * `localStorage` (when `persistKey` is set), emits
+		 * `@date-range-change` on every change, AND provides a
+		 * reactive `cnDashboardDateRange` ref to every descendant
+		 * widget.
+		 *
+		 * When the prop is `null` (default), `false`, or
+		 * `{ enabled: false }`, the header row is NOT rendered and the
+		 * existing dashboard layout stays unchanged. The provide is
+		 * still installed (always) but its value stays `null` so
+		 * descendant chart widgets fall back to their
+		 * `dataSource.bucket.staticRange` (or skip the query
+		 * entirely).
+		 *
+		 * Shape:
+		 * ```ts
+		 * {
+		 *   enabled: boolean,
+		 *   default?: { from: string, to: string, preset?: string },
+		 *   persistKey?: string,
+		 *   presets?: Array<{ id: string, label: string, days: number|null }>,
+		 * }
+		 * ```
+		 *
+		 * Default preset when no explicit `default` and no persisted
+		 * state is found: `last-7` (`now − 7d → now`).
+		 *
+		 * @type {object|null}
+		 */
+		dateRange: {
+			type: Object,
+			default: null,
+		},
 	},
 
-	emits: ['layout-change', 'edit-toggle'],
+	emits: ['layout-change', 'edit-toggle', 'date-range-change'],
 
 	data() {
 		return {
 			isEditing: false,
+			/**
+			 * Local mirror of the picker's current value. Initialised
+			 * in `created()` from `dateRange.default` → persisted
+			 * state → `last-7` fallback, and kept in sync with the
+			 * provided `dashboardDateRange` ref via a watcher.
+			 *
+			 * @type {{ from: string, to: string, preset: string }|null}
+			 */
+			currentRange: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * True when the date-range header should render. `false`,
+		 * `null`, and `{ enabled: false }` all collapse to `false`.
+		 */
+		dateRangeEnabled() {
+			return !!(this.dateRange && this.dateRange.enabled === true)
+		},
+
+		/**
+		 * The preset list passed to the picker. Falls back to the
+		 * `DEFAULT_DATE_RANGE_PRESETS` constant when the consumer
+		 * doesn't supply one.
+		 */
+		effectivePresets() {
+			return Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
+				? this.dateRange.presets
+				: DEFAULT_DATE_RANGE_PRESETS.map((p) => ({ ...p }))
+		},
+
 		/**
 		 * True when the dashboard has either classic grid widgets (via
 		 * `layout`) or declarative `content[]` widget-ref items to render.
@@ -533,6 +623,7 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		this.initDateRange()
 	},
 
 	beforeDestroy() {
@@ -560,12 +651,123 @@ export default {
 			this.cnAiContext.objectUuid = undefined
 		},
 
+		/**
+		 * Resolve the initial date-range value when the feature is on.
+		 * Priority: explicit `dateRange.default` → persisted
+		 * `localStorage` entry (when `persistKey`) → `last-7` preset.
+		 * No-ops when the feature is disabled. Emits
+		 * `date-range-change` if a non-null value was resolved so
+		 * consumers can wire their initial fetch to the same event.
+		 */
+		initDateRange() {
+			if (!this.dateRangeEnabled) return
+			let initial = null
+			// 1. Persisted state (when a key is set).
+			if (this.dateRange?.persistKey) {
+				initial = this.readPersisted(this.dateRange.persistKey)
+			}
+			// 2. Explicit consumer-supplied default.
+			if (!initial && this.dateRange?.default) {
+				initial = {
+					from: this.dateRange.default.from || null,
+					to: this.dateRange.default.to || null,
+					preset: this.dateRange.default.preset || 'custom',
+				}
+			}
+			// 3. Last-7 fallback.
+			if (!initial) {
+				const win = resolvePresetWindow('last-7', this.effectivePresets)
+				if (win) {
+					initial = { from: win.from, to: win.to, preset: 'last-7' }
+				}
+			}
+			if (initial) {
+				this.currentRange = initial
+				this.dashboardDateRange = initial
+				/**
+				 * @event date-range-change Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`.
+				 */
+				this.$emit('date-range-change', { ...initial })
+			}
+		},
+
+		/**
+		 * Handle a picker change. Persists (when `persistKey` is
+		 * set), updates the provided ref, emits `date-range-change`.
+		 *
+		 * @param {{ from: string, to: string, preset: string }} value
+		 *   The new range, emitted by `CnDateRangePicker`.
+		 */
+		onDateRangeChange(value) {
+			this.currentRange = value
+			this.dashboardDateRange = value
+			if (this.dateRange?.persistKey) {
+				this.persistRange(this.dateRange.persistKey, value)
+			}
+			/**
+			 * @event date-range-change Fired whenever the dashboard's effective date range changes. Payload: `{ from, to, preset }`.
+			 */
+			this.$emit('date-range-change', { ...value })
+		},
+
+		/**
+		 * Read a persisted range from `localStorage`. Returns `null`
+		 * when the key is missing, the stored value isn't valid JSON,
+		 * or the parsed value doesn't have both `from` and `to`
+		 * strings. Storage failures (private windows, opaque iframes)
+		 * are swallowed.
+		 *
+		 * @param {string} key The localStorage key.
+		 * @return {{ from: string, to: string, preset: string }|null}
+		 */
+		readPersisted(key) {
+			try {
+				if (typeof localStorage === 'undefined') return null
+				const raw = localStorage.getItem(key)
+				if (!raw) return null
+				const parsed = JSON.parse(raw)
+				if (!parsed || typeof parsed.from !== 'string' || typeof parsed.to !== 'string') {
+					return null
+				}
+				return {
+					from: parsed.from,
+					to: parsed.to,
+					preset: typeof parsed.preset === 'string' ? parsed.preset : 'custom',
+				}
+			} catch (_e) {
+				return null
+			}
+		},
+
+		/**
+		 * Persist a range to `localStorage`. Swallows errors (quota
+		 * exhaustion, private-window restrictions) — the picker
+		 * keeps working in-memory.
+		 *
+		 * @param {string} key The localStorage key.
+		 * @param {object} value The range to persist.
+		 */
+		persistRange(key, value) {
+			try {
+				if (typeof localStorage === 'undefined') return
+				localStorage.setItem(key, JSON.stringify(value))
+			} catch (_e) {
+				// Intentionally swallowed — non-fatal.
+			}
+		},
+
 		toggleEdit() {
 			this.isEditing = !this.isEditing
+			/**
+			 * @event edit-toggle Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.
+			 */
 			this.$emit('edit-toggle', this.isEditing)
 		},
 
 		onLayoutChange(updated) {
+			/**
+			 * @event layout-change Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.
+			 */
 			this.$emit('layout-change', updated)
 		},
 
@@ -717,10 +919,15 @@ export default {
 		 * Build the v-bind payload for CnStatsBlockWidget from a
 		 * stats-block widget definition. Forwards `props.countLabel`,
 		 * `props.variant`, `props.showZeroCount`, `props.horizontal`,
-		 * and `props.route` plus the widgetDef's `title`. The
-		 * `dataSource` is bound separately by the template (see
-		 * `getWidgetDataSource`) so the prop appears clearly in
+		 * `props.route`, and `props.iconClass` plus the widgetDef's
+		 * `title`. The `dataSource` is bound separately by the template
+		 * (see `getWidgetDataSource`) so the prop appears clearly in
 		 * the template even when it lives on the widgetDef root.
+		 *
+		 * `iconClass` is a Nextcloud core CSS class (`icon-link`, …)
+		 * applied to the widget's wrapping `<div>` — a lightweight icon
+		 * path that doesn't require MDI dynamic-import. See
+		 * CnStatsBlockWidget for usage notes.
 		 *
 		 * @param {object} item Layout item
 		 * @return {object} v-bind payload for CnStatsBlockWidget
@@ -729,7 +936,7 @@ export default {
 			const def = this.getWidgetDef(item.widgetId)
 			const props = def?.props || {}
 			const out = { title: def?.title || item.widgetId }
-			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route']) {
+			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
 			return out

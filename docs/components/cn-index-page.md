@@ -244,6 +244,43 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
   @page-changed="onPageChanged" />
 ```
 
+### Hiding built-in actions from a manifest
+
+Manifest `type:'index'` pages can hide individual built-in actions without writing a wrapper component. The renderer (`CnPageRenderer.resolvedProps`) flattens `config.actionToggles.*` into the matching `show*` / `selectable` props before mounting `CnIndexPage`. Explicit `config.<key>` wins over `config.actionToggles.<key>` (precedence mirrors the existing `config.readOnly` shortcut).
+
+```json
+{
+  "id": "Catalogs",
+  "route": "/catalogi",
+  "type": "index",
+  "title": "Catalogs",
+  "config": {
+    "register": "opencatalogi",
+    "schema": "catalog",
+    "actionToggles": {
+      "showEditAction": false,
+      "showCopyAction": false,
+      "showDeleteAction": false,
+      "showMassImport": false,
+      "showMassExport": false,
+      "showMassCopy": false,
+      "showMassDelete": false
+    }
+  }
+}
+```
+
+Known keys (each maps to the matching `CnIndexPage` prop):
+`showAdd`, `showFormDialog`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showMassImport`, `showMassExport`, `showMassCopy`, `showMassDelete`, `showViewToggle`, `selectable`. Unknown keys pass validation (forward-compat).
+
+For a fully read-only page, prefer the all-or-nothing shortcut:
+
+```json
+"config": { "register": "...", "schema": "...", "readOnly": true }
+```
+
+This expands to nine `show*: false` defaults; explicit `config.showAdd: true` still re-enables a specific button.
+
 ## Self-fetch mode
 
 A manifest `type:"index"` page dispatches to `CnIndexPage` via `CnPageRenderer`, which spreads `pages[].config` (`register`, `schema`, `columns`, `sidebar`, `actions`, `filter`) plus `$route.params` — but **never an `objects` prop**. So when `register` **and** `schema` are both set **and** the caller did not pass `objects`, `CnIndexPage` self-fetches: it derives `objectType = '${register}-${schema}'`, registers it in the object store, and drives the whole list (collection fetch, `_search`/`_order`/`_page`/`_limit`, facet filters, schema load, sidebar wiring, the `on*` handlers) through [`useListView`](../utilities/composables/use-list-view.md) against the store provided by an ancestor `CnAppRoot`.

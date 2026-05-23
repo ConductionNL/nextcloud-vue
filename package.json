@@ -69,8 +69,9 @@
 		"@codemirror/state": "^6.0.0",
 		"@codemirror/view": "^6.0.0",
 		"@microsoft/fetch-event-source": "^2.0.1",
-		"@nextcloud/dialogs": "^7.3.0",
+		"@nextcloud/dialogs": "^6.4.2",
 		"@nextcloud/notify_push": "^1.0.0",
+		"@types/react": "^18.0.0",
 		"@uiw/codemirror-theme-github": "^4.25.8",
 		"@vueuse/core": "^10.0.0",
 		"ajv": "^8.20.0",
@@ -81,6 +82,7 @@
 		"gridstack": "^10.3.1",
 		"leaflet": "^1.9.0",
 		"leaflet.markercluster": "^1.5.3",
+		"linkifyjs": "^4.3.3",
 		"lodash": "^4.17.21",
 		"marked": "^15.0.0",
 		"style-mod": "^4.0.0",
@@ -104,7 +106,8 @@
 	},
 	"overrides": {
 		"json5": "^2.2.3",
-		"loader-utils": "^1.4.2"
+		"loader-utils": "^1.4.2",
+		"postcss": "^8.4.49"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",

@@ -453,6 +453,26 @@ function validateTypeConfig(page, index, errors) {
 		// field. Both arrays are OPTIONAL; only validated when present.
 		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
 		validateActionsArray(cfg, pathSlash, pathBracket, errors)
+		// `manifest-index-action-toggles` — typed config.actions block.
+		// Schema-validated, but cross-check structure here for sharp
+		// error paths (consumer typo in actions.<key> surfaces with
+		// the path rather than a JSON Schema enum mismatch).
+		validateIndexActionToggles(cfg, pathSlash, pathBracket, errors)
+		break
+	}
+	case 'detail': {
+		// `manifest-detail-sidebartabs` — typed validation for the
+		// human-authored sidebar-tab declaration. Tab entries lift to
+		// `widgets[]` with `slot:"sidebar"` + `tabGroup` via the CLI
+		// transform; this validator catches authoring mistakes (missing
+		// id/label, duplicate ids, non-array shape) before that.
+		validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
+		validateSidebarTabGroupRefs(page, index, errors)
+		// `manifest-public-mode` — type='detail' supports the same
+		// mode enum (`edit | create | public`) as type='form'. The
+		// 'public' value marks unauthenticated token-scoped detail
+		// pages — pair with @route.<param> token binding.
+		validateConfigMode(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'logs': {
@@ -602,27 +622,25 @@ function validateTypeConfig(page, index, errors) {
 			}
 		}
 
-		if (cfg && cfg.mode !== undefined) {
-			const allowedModes = ['edit', 'create', 'public']
-			if (typeof cfg.mode !== 'string' || !allowedModes.includes(cfg.mode)) {
-				errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of edit | create | public`)
-			}
-		}
+		validateConfigMode(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'wiki': {
 		// `manifest-wiki-page-type` REQ-MWPT — wiki pages render a
 		// markdown article sourced from a register/schema property.
-		// Both register and schema MUST be non-empty strings; the
-		// optional fields (contentField, titleField, idParam, sidebar*)
-		// are NOT validated for type — runtime defaults take over and
-		// over-validation here would break consumer manifests with
-		// custom field names.
+		// Both register and schema MUST be non-empty strings.
 		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
 		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
 		if (!hasRegister || !hasSchema) {
 			errors.push(`${pathSlash}: ${pathBracket}: wiki pages must declare register and schema`)
 		}
+		// `manifest-wiki-stabilise` — the 11 optional config fields
+		// (contentField / titleField / idParam / treeField /
+		// sidebarTitleField / sidebarRegister / sidebarSchema /
+		// emptyText / emptyDescription / emptyBodyText /
+		// emptyBodyDescription) MUST be strings when present.
+		// Schema-validated, but cross-check here for typed paths.
+		validateWikiConfigFields(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'map': {
@@ -922,6 +940,32 @@ function validateColumnsArray(cfg, pathSlash, pathBracket, errors) {
 }
 
 /**
+ * Closed enum of valid `config.mode` values for type='form' and
+ * type='detail' pages (`manifest-public-mode`).
+ *
+ * @type {string[]}
+ */
+const ALLOWED_CONFIG_MODES = ['edit', 'create', 'public']
+
+/**
+ * Validate `config.mode` against the closed enum
+ * (`manifest-public-mode`). Shared between type='form' and
+ * type='detail' branches of `validateTypeConfig`. Omitted mode is
+ * tolerated (consumers fall back to the component's default).
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.mode === undefined) return
+	if (typeof cfg.mode !== 'string' || !ALLOWED_CONFIG_MODES.includes(cfg.mode)) {
+		errors.push(`${pathSlash}/mode: ${pathBracket}.mode: must be one of ${ALLOWED_CONFIG_MODES.join(' | ')}`)
+	}
+}
+
+/**
  * Validate `config.actions[]` for index page type
  * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
  * non-empty `id` and `label` strings — matches the `action` $def's
@@ -979,10 +1023,169 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
+ * Known optional string fields for `type:'wiki'` config
+ * (`manifest-wiki-stabilise`). Each value MUST be a string when
+ * present; omitted fields are tolerated; unknown keys pass for
+ * forward-compat.
+ *
+ * @type {string[]}
+ */
+const WIKI_OPTIONAL_STRING_FIELDS = [
+	'contentField',
+	'titleField',
+	'idParam',
+	'treeField',
+	'sidebarTitleField',
+	'sidebarRegister',
+	'sidebarSchema',
+	'emptyText',
+	'emptyDescription',
+	'emptyBodyText',
+	'emptyBodyDescription',
+]
+
+/**
+ * Validate `config.actionToggles` for index page type
+ * (`manifest-index-action-toggles`). The block is OPTIONAL; when
+ * present it MUST be a plain object whose values are booleans.
+ * Unknown keys pass for forward-compat with future CnIndexPage props.
+ *
+ * Known keys (each maps to a CnIndexPage prop):
+ *   showAdd, showFormDialog, showEditAction, showCopyAction,
+ *   showDeleteAction, showMassImport, showMassExport, showMassCopy,
+ *   showMassDelete, showViewToggle, selectable.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateIndexActionToggles(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.actionToggles === undefined) return
+	if (!isPlainObject(cfg.actionToggles)) {
+		errors.push(`${pathSlash}/actionToggles: ${pathBracket}.actionToggles: must be an object`)
+		return
+	}
+	for (const [key, value] of Object.entries(cfg.actionToggles)) {
+		if (typeof value !== 'boolean') {
+			errors.push(`${pathSlash}/actionToggles/${key}: ${pathBracket}.actionToggles.${key}: must be a boolean (got ${typeof value})`)
+		}
+	}
+}
+
+/**
+ * Validate `config.sidebarTabs[]` for detail page type
+ * (`manifest-detail-sidebartabs`). The block is OPTIONAL; when
+ * present it MUST be an array of objects each carrying non-empty
+ * `id` and `label` strings. Duplicate `id`s reject; unknown keys
+ * pass for forward-compat (icon, order, component, _note, …).
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg || cfg.sidebarTabs === undefined) return
+	if (!Array.isArray(cfg.sidebarTabs)) {
+		errors.push(`${pathSlash}/sidebarTabs: ${pathBracket}.sidebarTabs: must be an array`)
+		return
+	}
+	const seenIds = Object.create(null)
+	cfg.sidebarTabs.forEach((tab, tIndex) => {
+		const tabPath = `${pathSlash}/sidebarTabs/${tIndex}`
+		const tabBracket = `${pathBracket}.sidebarTabs[${tIndex}]`
+		if (!isPlainObject(tab)) {
+			errors.push(`${tabPath}: must be an object`)
+			return
+		}
+		if (typeof tab.id !== 'string' || tab.id.length === 0) {
+			errors.push(`${tabPath}/id: ${tabBracket}.id: required, must be a non-empty string`)
+		}
+		if (typeof tab.label !== 'string' || tab.label.length === 0) {
+			errors.push(`${tabPath}/label: ${tabBracket}.label: required, must be a non-empty string`)
+		}
+		if (typeof tab.id === 'string' && tab.id.length > 0) {
+			if (seenIds[tab.id]) {
+				errors.push(`${tabPath}/id: ${tabBracket}.id: duplicate "${tab.id}" — tab IDs must be unique within a page`)
+			} else {
+				seenIds[tab.id] = true
+			}
+		}
+		if (tab.icon !== undefined && typeof tab.icon !== 'string') {
+			errors.push(`${tabPath}/icon: must be a string when set`)
+		}
+		if (tab.order !== undefined && typeof tab.order !== 'number') {
+			errors.push(`${tabPath}/order: must be a number when set`)
+		}
+		if (tab.component !== undefined && (typeof tab.component !== 'string' || tab.component.length === 0)) {
+			errors.push(`${tabPath}/component: must be a non-empty string when set`)
+		}
+	})
+}
+
+/**
+ * Cross-reference check: every `widgets[]` entry with
+ * `slot === 'sidebar'` and a `tabGroup` value MUST match a declared
+ * `config.sidebarTabs[].id`. Catches silent typos where a tab-bound
+ * widget references a non-existent tab.
+ *
+ * Only runs when `widgets` is an array. Tolerates a missing
+ * `sidebarTabs` declaration (the widgets[] can still validate
+ * shape-wise; the cross-ref check is a documentation aid).
+ *
+ * @param {object} page The page object
+ * @param {number} index The page index (for path)
+ * @param {string[]} errors Accumulator
+ */
+function validateSidebarTabGroupRefs(page, index, errors) {
+	if (!page || !Array.isArray(page.widgets) || page.widgets.length === 0) return
+	const cfg = isPlainObject(page.config) ? page.config : null
+	const declaredIds = new Set()
+	if (cfg && Array.isArray(cfg.sidebarTabs)) {
+		for (const tab of cfg.sidebarTabs) {
+			if (tab && typeof tab.id === 'string' && tab.id.length > 0) {
+				declaredIds.add(tab.id)
+			}
+		}
+	}
+	page.widgets.forEach((widget, wIndex) => {
+		if (!isPlainObject(widget)) return
+		if (widget.slot !== 'sidebar') return
+		if (typeof widget.tabGroup !== 'string' || widget.tabGroup.length === 0) return
+		if (declaredIds.size === 0) {
+			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" referenced but config.sidebarTabs[] is empty or missing — declare the tab to silence this error`)
+			return
+		}
+		if (!declaredIds.has(widget.tabGroup)) {
+			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" must match a declared config.sidebarTabs[].id`)
+		}
+	})
+}
+
+/**
+ * Validate the optional typed string fields on `type:'wiki'` config.
+ * Required fields (register, schema) are checked separately by the
+ * wiki case in `validateTypeConfig`.
+ *
+ * @param {object} cfg The page's `config` block (or null)
+ * @param {string} pathSlash JSON-pointer-style path prefix
+ * @param {string} pathBracket Bracket-style path prefix
+ * @param {string[]} errors Accumulator
+ */
+function validateWikiConfigFields(cfg, pathSlash, pathBracket, errors) {
+	if (!cfg) return
+	for (const field of WIKI_OPTIONAL_STRING_FIELDS) {
+		if (cfg[field] === undefined) continue
+		if (typeof cfg[field] !== 'string') {
+			errors.push(`${pathSlash}/${field}: ${pathBracket}.${field}: must be a string when set (got ${typeof cfg[field]})`)
+		}
+	}
+}
+
+/**
  * Validate `config.widgets[]` for dashboard page type
- * (`manifest-config-refs` REQ-MCR). Each entry MUST be an object with
- * non-empty `id`, `title`, `type` strings — matches the `widgetDef`
- * $def's `required: ["id","title","type"]`.
+ * (`manifest-config-refs` REQ-MCR).
  *
  * @param {object} cfg The page's `config` block (or null)
  * @param {string} pathSlash JSON-pointer-style path prefix

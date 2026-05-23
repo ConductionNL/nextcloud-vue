@@ -39,8 +39,10 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:header-actions="mergedHeaderActions"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
+			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -353,6 +355,15 @@ import { useContextMenu, useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 
 /**
+ * Reserved `id` values for built-in CnActionsBar overflow items.
+ * Manifest-declared `headerActions[]` entries whose `id` matches one
+ * of these are dropped (with a `console.warn`) so consumers cannot
+ * accidentally shadow the built-in Refresh / Import / Export / Copy /
+ * Delete items.
+ */
+const RESERVED_HEADER_ACTION_IDS = ['refresh', 'import', 'export', 'copy', 'delete']
+
+/**
  * CnIndexPage — Top-level schema-driven index page component.
  *
  * Assembles sub-components (CnPageHeader, CnActionsBar, table, cards,
@@ -392,25 +403,26 @@ import { useObjectStore } from '../../store/index.js'
  * </CnIndexPage>
  * ```
  *
- * @event {void} add — Add button clicked (backward compat, only if listener attached)
- * @event {object} create — Form dialog create confirmed. Payload: formData object
- * @event {object} edit — Form dialog edit confirmed. Payload: formData object (includes id)
- * @event {string} delete — Single delete confirmed. Payload: item ID
- * @event {{ id: string, newName: string }} copy — Single copy confirmed
- * @event {string[]} mass-delete — Mass delete confirmed. Payload: array of IDs
- * @event {object} mass-copy — Mass copy confirmed. Payload: { ids, pattern }
- * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
- * @event {object} mass-import — Mass import confirmed. Payload: import data
- * @event {void} refresh — Refresh button clicked
- * @event {object} row-click — Table row or card clicked. Payload: row object
- * @event {{ key: string, order: string }} sort — Column sort changed
- * @event {number} page-changed — Pagination page changed
- * @event {number} page-size-changed — Pagination page size changed
- * @event {string[]} select — Selection changed. Payload: array of selected IDs
- * @event {object} action — Row action triggered. Payload: { action, row }
- * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event add Add button clicked (backward compat, only if listener attached).
+ * @event create Form dialog create confirmed. Payload: formData object.
+ * @event edit Form dialog edit confirmed. Payload: formData object (includes id).
+ * @event delete Single delete confirmed. Payload: item ID.
+ * @event copy Single copy confirmed. Payload: `{ id, newName }`.
+ * @event mass-delete Mass delete confirmed. Payload: array of IDs.
+ * @event mass-copy Mass copy confirmed. Payload: `{ ids, pattern }`.
+ * @event mass-export Mass export confirmed. Payload: `{ ids, format }`.
+ * @event mass-import Mass import confirmed. Payload: import data.
+ * @event refresh Refresh button clicked.
+ * @event header-action A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention). Emitted after the resolved handler (if any) runs; suppressed only when the action's `handler` is `"none"`.
+ * @event row-click Table row or card clicked. Payload: row object.
+ * @event sort Column sort changed. Payload: `{ key, order }`.
+ * @event page-changed Pagination page changed. Payload: number.
+ * @event page-size-changed Pagination page size changed. Payload: number.
+ * @event select Selection changed. Payload: array of selected IDs.
+ * @event action Row action triggered. Payload: `{ action, row }`.
+ * @event search Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event columns-change Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event filter-change Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`. Payload: `{ key, values }`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -625,6 +637,32 @@ export default {
 		},
 		/** Row action definitions (app-provided, merged with built-in actions) */
 		actions: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Page-level header action definitions rendered inside CnActionsBar's
+		 * overflow dropdown (after the built-in Refresh, before the
+		 * `#action-items` slot). Same `{ id, label, icon, handler, route }`
+		 * shape as the row-level `actions[]`, with one behavioural difference:
+		 * handlers receive no row context (the action is page-level).
+		 *
+		 * Handler dispatch keywords:
+		 * - `navigate` — `$router.push({ name: action.route })` (no `params.id`)
+		 * - `emit` — re-emits `@header-action({ action: id, id })`
+		 * - `none` — no-op + suppresses the emit
+		 * - any other string — looked up in `customComponents`; when a
+		 *   function, called as `fn({ actionId: id })`. When a non-function,
+		 *   `console.warn` + fall-through to emit-only. When unknown, silent
+		 *   fall-through to emit-only.
+		 *
+		 * Reserved built-in ids (`refresh`, `import`, `export`, `copy`,
+		 * `delete`) are dropped with a `console.warn` so manifest authors
+		 * cannot accidentally shadow a built-in.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 */
+		headerActions: {
 			type: Array,
 			default: () => [],
 		},
@@ -940,10 +978,23 @@ export default {
 		}
 
 		let list = null
+		// Hoisted out of the `if (isSelfFetch)` block so onFormConfirm
+		// (+ future onSingleDeleteConfirm hooks) can reach them as
+		// `this.selfStore` / `this.selfObjectType`. Without this lift,
+		// the manifest-v2 pipeline — which mounts CnIndexPage via
+		// CnPageRenderer with `register` + `schema` from `config` but
+		// NO `store`/`objectType` props — falls through onFormConfirm's
+		// final branch and emits `@create`/`@edit` to a parent
+		// (CnPageRenderer) that doesn't listen, so the dialog Create
+		// click is a silent no-op (no POST fires, dialog stays open).
+		let selfObjectType = ''
+		let selfObjectStore = null
 		if (isSelfFetch) {
 			const objectType = `${props.register}-${props.schema}`
+			selfObjectType = objectType
 			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 			const objectStore = useObjectStore()
+			selfObjectStore = objectStore
 			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
 			// store has a slot for it before `useListView` issues the first fetch.
 			if (typeof objectStore.registerObjectType === 'function') {
@@ -992,6 +1043,10 @@ export default {
 			isSelfFetch,
 			list,
 			activeQuickFilterIndex,
+			// Exposed for onFormConfirm's self-fetch save path — see the
+			// hoist comment above the `if (isSelfFetch)` block.
+			selfObjectStore,
+			selfObjectType,
 		}
 	},
 
@@ -1166,6 +1221,57 @@ export default {
 
 		hasRowActions() {
 			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
+		},
+
+		/**
+		 * Merged page-level header actions: drops entries whose `id`
+		 * collides with a built-in (Refresh / Import / Export / Copy /
+		 * Delete), pre-resolves string `handler` keywords to function
+		 * handlers via `resolveHeaderHandler`, and preserves function
+		 * handlers untouched (programmatic path).
+		 *
+		 * Mirrors `mergedActions` for the row-level path; the difference
+		 * is that header handlers receive `{}` (no row context) and the
+		 * suppression sentinel maps to `@header-action` rather than
+		 * `@action`.
+		 *
+		 * @return {Array<object>} Header actions, with handlers resolved.
+		 */
+		mergedHeaderActions() {
+			return this.headerActions
+				.filter((action) => {
+					if (!action || typeof action !== 'object') return false
+					if (RESERVED_HEADER_ACTION_IDS.includes(action.id)) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnIndexPage] headerActions[].id "${action.id}" collides with a built-in `
+							+ 'overflow item (Refresh / Import / Export / Copy / Delete); the manifest entry was dropped.',
+						)
+						return false
+					}
+					return true
+				})
+				.map((action) => {
+					if (typeof action.handler === 'function') {
+						// Programmatic function handler — keep as-is.
+						return action
+					}
+					if (typeof action.handler !== 'string' || action.handler.length === 0) {
+						// No handler → emit-only path.
+						return action
+					}
+					const isNone = action.handler === 'none'
+					const resolved = this.resolveHeaderHandler(action)
+					if (resolved) {
+						return isNone
+							? { ...action, handler: resolved, _dispatchSuppress: true }
+							: { ...action, handler: resolved }
+					}
+					// 'emit' / unknown registry name / non-function registry entry →
+					// strip handler so the click path emits `@header-action` only.
+					const { handler, ...rest } = action
+					return rest
+				})
 		},
 
 		/** Whether all visible items are selected */
@@ -1525,6 +1631,82 @@ export default {
 		},
 
 		/**
+		 * Page-level analogue of `resolveHandler` for `headerActions[]`.
+		 * Resolves a string `handler` into a `() => void` function with
+		 * NO row context (header actions are page-level). Returns null
+		 * when the action should fall back to the page's `@header-action`
+		 * emit-only path.
+		 *
+		 * Keywords mirror the row-level dispatcher:
+		 * - `navigate` → `$router.push({ name: action.route })` (no `params.id`)
+		 * - `emit` → null (page still bubbles `@header-action`)
+		 * - `none` → no-op + sentinel for emit suppression
+		 * - registry name → `() => fn({ actionId: action.id })`
+		 * - unknown / non-function → null
+		 *
+		 * @param {object} action The header action object.
+		 * @return {Function|null}
+		 */
+		resolveHeaderHandler(action) {
+			const name = action.handler
+			if (typeof name !== 'string' || name.length === 0) return null
+			if (name === 'navigate') {
+				const route = action.route
+				if (typeof route !== 'string' || route.length === 0) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnIndexPage] headerActions[].id "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @header-action-only.',
+					)
+					return null
+				}
+				return () => {
+					this.$router.push({ name: route })
+				}
+			}
+			if (name === 'emit') return null
+			if (name === 'none') {
+				return () => {}
+			}
+			const fn = this.effectiveCustomComponents[name]
+			if (typeof fn === 'function') {
+				return () => fn({ actionId: action.id })
+			}
+			if (fn !== undefined) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] headerActions[].handler "${name}" resolved to a non-function in `
+					+ 'customComponents — components belong to slot overrides; falling back to '
+					+ '@header-action-only.',
+				)
+			}
+			return null
+		},
+
+		/**
+		 * Click handler for CnActionsBar `@header-action` events. Looks
+		 * up the matching `mergedHeaderActions` entry, invokes its
+		 * resolved function handler when present, then re-emits
+		 * `@header-action` to the parent (unless the entry is flagged
+		 * `_dispatchSuppress` via `handler: "none"`).
+		 *
+		 * Matches the row-level pattern (`onRowAction` /
+		 * `CnRowActions.handleAction`): handler runs AND `@header-action`
+		 * emits — consumers can wire either. `handler: "none"` is the
+		 * explicit emit-suppression escape hatch.
+		 *
+		 * @param {{action: string, id: string}} payload The CnActionsBar emit.
+		 */
+		onHeaderAction(payload) {
+			const matched = this.mergedHeaderActions.find((a) => a.id === payload.id)
+			if (matched && typeof matched.handler === 'function') {
+				matched.handler()
+			}
+			if (matched && matched._dispatchSuppress) return
+			this.$emit('header-action', payload)
+		},
+
+		/**
 		 * Handle row click — emits row-click event for the parent to handle navigation.
 		 * @param {object} row The clicked row object
 		 */
@@ -1577,7 +1759,25 @@ export default {
 
 		// --- Mass action handlers ---
 
-		onMassDeleteConfirm(ids) {
+		async onMassDeleteConfirm(ids) {
+			// Self-fetch (manifest-v2) parallel of onFormConfirm — own
+			// the bulk-delete via the internal store so the dialog
+			// closes and the list refreshes without an upstream
+			// `@mass-delete` listener.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
+				if (ok) {
+					this.setMassDeleteResult({ success: true })
+					this.$emit('mass-delete', ids)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setMassDeleteResult({ error: (err && err.message) || 'Mass delete failed' })
+				}
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
@@ -1651,7 +1851,21 @@ export default {
 
 		// --- Single-object dialog handlers ---
 
-		onSingleDeleteConfirm(id) {
+		async onSingleDeleteConfirm(id) {
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
+				if (ok) {
+					this.setSingleDeleteResult({ success: true })
+					this.$emit('delete', id)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			this.$emit('delete', id)
 		},
 
@@ -1660,6 +1874,9 @@ export default {
 		},
 
 		async onFormConfirm(formData) {
+			// Explicit store prop wins — host passed in a custom store
+			// + objectType, e.g. when the manifest binding is overridden
+			// or the consumer is in classic Options-API mode.
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
@@ -1669,8 +1886,32 @@ export default {
 				if (saved) {
 					this.setFormResult({ success: true })
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
+			// Self-fetch (manifest-v2) mode: CnPageRenderer mounts us with
+			// `register` + `schema` from `config` but no `store`/`objectType`
+			// prop. The internal store registered in setup() owns the save
+			// path so the dialog actually POSTs to OR. Without this branch
+			// the click below falls into the `@create` emit which has no
+			// listener through CnPageRenderer (props-only forwarding) and
+			// the dialog is a silent no-op.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
+				if (saved) {
+					this.setFormResult({ success: true })
+					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return

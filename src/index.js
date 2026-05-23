@@ -15,26 +15,31 @@ export * from '@nextcloud/vue'
 // Components
 export {
 	CnDataTable,
+	CnDataMatrix,
 	CnFilterBar,
 	CnStatusBadge,
 	CnPagination,
 	CnSettingsCard,
 	CnSettingsSection,
 	CnStatsBlock,
+	CnStructuredDocReview,
 	CnConfigurationCard,
 	CnVersionInfoCard,
 	CnCellRenderer,
 	CnObjectCard,
 	CnCardGrid,
 	CnFacetSidebar,
+	CnFederationStatus,
 	CnRowActions,
 	CnContextMenu,
 	CnIndexPage,
 	CnQuickFilterBar,
+	CnMarkdownEditor,
 	CnMassActionBar,
 	CnDeleteDialog,
 	CnCopyDialog,
 	CnFormDialog,
+	CnFormBuilder,
 	CnAdvancedFormDialog,
 	CnPropertiesTab,
 	CnMetadataTab,
@@ -44,21 +49,31 @@ export {
 	CnKpiGrid,
 	CnMassExportDialog,
 	CnMassImportDialog,
+	CnExportWizard,
+	CnWizardDialog,
+	CnRichSubmitDialog,
+	CnSignatureCapture,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnThemePreview,
+	CnRelationshipGraph,
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
 	CnWidgetRenderer,
 	CnTileWidget,
+	CnTimelineView,
 	CnItemCard,
 	CnSchemaFormDialog,
+	CnSearchPage,
 	CnTabbedFormDialog,
 	CnTimelineStages,
+	CnTreeView,
 	CnUserActionMenu,
 	CnNotesCard,
 	CnTasksCard,
 	CnFilesCard,
+	CnFileManager,
 	CnTagsCard,
 	CnAuditTrailCard,
 	CnIntegrationTab,
@@ -72,6 +87,9 @@ export {
 	CnDetailGrid,
 	CnProgressBar,
 	CnChartWidget,
+	CnDateRangePicker,
+	DEFAULT_DATE_RANGE_PRESETS,
+	resolvePresetWindow,
 	CnStatsBlockWidget,
 	CnLockedBanner,
 	CnObjectSidebar,
@@ -95,6 +113,7 @@ export {
 	CnDependencyMissing,
 	CnAppRoot,
 	CnFeaturesAndRoadmapLink,
+	CnFeaturesAndRoadmapPage,
 	CnFeaturesAndRoadmapView,
 	CnFeaturesTab,
 	CnRoadmapTab,
@@ -136,7 +155,7 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations } from './integrations/index.js'
@@ -157,6 +176,7 @@ export { buildHeaders, buildQueryString, parseResponseError, networkError, gener
 export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, validateValue } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
+export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 
