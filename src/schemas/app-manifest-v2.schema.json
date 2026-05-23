@@ -416,7 +416,7 @@
 				"widgets": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/widgetEntry" },
-					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check."
+					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check. Single-widget dashboards: a type:'dashboard' page with exactly one body widget covering the full 12×12 grid whose widgetKey resolves to a custom (non-library-built-in) registry component is REJECTED — see ADR-036 Decision 1 (single-widget dashboard anti-pattern). Use type:'custom' with component:'<widgetKey>' or split into N>1 widgets instead. Library built-in widget keys (object-table, card-grid, form-renderer, wiki-renderer, map-viewer, chart, stats-block) are exempt from the rule. Enforced by validateManifestV2() post-schema check."
 				},
 				"actions": {
 					"type": "array",
