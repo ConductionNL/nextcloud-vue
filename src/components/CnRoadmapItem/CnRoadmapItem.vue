@@ -157,6 +157,24 @@ export default {
 	flex-direction: column;
 	gap: 8px;
 	padding: 16px;
+	/* Position anchor for the ::after overlay that expands the title link's
+	   click area to the whole card. Inner anchors stay above the overlay
+	   via z-index: 2 so the body's inline links still work. */
+	position: relative;
+}
+
+.cn-roadmap-item__title-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	border-radius: inherit;
+}
+
+.cn-roadmap-item__body :deep(a),
+.cn-roadmap-item__labels {
+	position: relative;
+	z-index: 2;
 }
 
 .cn-roadmap-item__header {

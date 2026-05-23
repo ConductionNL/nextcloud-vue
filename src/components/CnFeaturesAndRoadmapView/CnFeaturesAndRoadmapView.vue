@@ -20,6 +20,12 @@
 						</template>
 						{{ toggleLabel }}
 					</NcButton>
+					<NcButton @click="sidebarOpen = !sidebarOpen">
+						<template #icon>
+							<InformationOutline :size="20" />
+						</template>
+						{{ sidebarToggleLabel }}
+					</NcButton>
 					<NcButton type="primary" @click="openSuggestModal">
 						<template #icon>
 							<Plus :size="20" />
@@ -29,56 +35,67 @@
 				</div>
 			</header>
 
-			<div class="cn-features-and-roadmap-view__body">
-				<main class="cn-features-and-roadmap-view__panel">
-					<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
-					<CnRoadmapTab v-else :repo="repo" />
-				</main>
+			<main class="cn-features-and-roadmap-view__panel">
+				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
+				<CnRoadmapTab v-else :repo="repo" />
+			</main>
 
-				<aside class="cn-features-and-roadmap-view__sidebar">
-					<NcButton
-						type="primary"
-						class="cn-features-and-roadmap-view__sidebar-cta"
+			<NcAppSidebar
+				v-if="sidebarOpen"
+				:name="sidebarTitle"
+				:subname="sidebarSubtitle"
+				:empty="true"
+				:show-tabs="false"
+				class="cn-features-and-roadmap-view__sidebar"
+				@close="sidebarOpen = false">
+				<section class="cn-features-and-roadmap-view__sidebar-section">
+					<h3 class="cn-features-and-roadmap-view__sidebar-section-title">
+						{{ suggestSidebarTitle }}
+					</h3>
+					<p class="cn-features-and-roadmap-view__sidebar-section-body">
+						{{ suggestSidebarBody }}
+					</p>
+					<button
+						type="button"
+						class="cn-features-and-roadmap-view__sidebar-link"
 						@click="openSuggestModal">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ suggestLabel }}
-					</NcButton>
+						{{ suggestSidebarCta }}
+						<ArrowRight :size="16" />
+					</button>
+				</section>
 
-					<section class="cn-features-and-roadmap-view__sidebar-section">
-						<h3 class="cn-features-and-roadmap-view__sidebar-title">
-							{{ openbuiltTitle }}
-						</h3>
-						<p class="cn-features-and-roadmap-view__sidebar-body">
-							{{ openbuiltBody }}
-						</p>
-						<a
-							:href="resolvedOpenbuiltUrl"
-							class="cn-features-and-roadmap-view__sidebar-link">
-							{{ openbuiltCta }}
-							<ArrowRight :size="16" />
-						</a>
-					</section>
+				<section class="cn-features-and-roadmap-view__sidebar-section">
+					<h3 class="cn-features-and-roadmap-view__sidebar-section-title">
+						{{ openbuiltTitle }}
+					</h3>
+					<p class="cn-features-and-roadmap-view__sidebar-section-body">
+						{{ openbuiltBody }}
+					</p>
+					<a
+						:href="resolvedOpenbuiltUrl"
+						class="cn-features-and-roadmap-view__sidebar-link">
+						{{ openbuiltCta }}
+						<ArrowRight :size="16" />
+					</a>
+				</section>
 
-					<section class="cn-features-and-roadmap-view__sidebar-section">
-						<h3 class="cn-features-and-roadmap-view__sidebar-title">
-							{{ llmTitle }}
-						</h3>
-						<p class="cn-features-and-roadmap-view__sidebar-body">
-							{{ llmBody }}
-						</p>
-						<a
-							:href="resolvedLlmSkillsUrl"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="cn-features-and-roadmap-view__sidebar-link">
-							{{ llmCta }}
-							<OpenInNew :size="16" />
-						</a>
-					</section>
-				</aside>
-			</div>
+				<section class="cn-features-and-roadmap-view__sidebar-section">
+					<h3 class="cn-features-and-roadmap-view__sidebar-section-title">
+						{{ llmTitle }}
+					</h3>
+					<p class="cn-features-and-roadmap-view__sidebar-section-body">
+						{{ llmBody }}
+					</p>
+					<a
+						:href="resolvedLlmSkillsUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="cn-features-and-roadmap-view__sidebar-link">
+						{{ llmCta }}
+						<OpenInNew :size="16" />
+					</a>
+				</section>
+			</NcAppSidebar>
 
 			<CnSuggestFeatureModal
 				v-if="showSuggestModal"
@@ -96,23 +113,26 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
  * CnFeaturesAndRoadmapView — route-level container for the Features &
- * Roadmap surface. Renders a card grid (features OR roadmap) with a
- * state-aware toggle button in the header that switches between the two
- * views. A right-hand sidebar carries a second Suggest-feature CTA plus
- * two short pitch blocks: build-it-yourself in OpenBuilt, and let an LLM
- * ship the feature using the Conduction skill set.
+ * Roadmap surface. Header carries the view-toggle, the info-sidebar
+ * toggle, and the primary Suggest-feature CTA. Body is a card grid
+ * (Features OR Roadmap). The slide-in NcAppSidebar (opened from the
+ * header) carries three pitch sections: how to suggest a feature, how
+ * to tweak the app in OpenBuilt, and how to let an LLM ship a feature
+ * using the Conduction skill set.
  *
- * Sidebar link targets are overridable via the `openbuiltUrl` and
- * `llmSkillsUrl` props; defaults point at the in-Nextcloud OpenBuilt
- * route and the public docs.conduction.nl page respectively.
+ * Sidebar starts closed; consumers persist no state. Sidebar link
+ * targets are overridable via the `openbuiltUrl` and `llmSkillsUrl`
+ * props. Defaults: in-instance `/apps/openbuilt` (via `generateUrl`)
+ * and `https://docs.conduction.nl/ai-skills`.
  *
  * Spec: features-roadmap-component — Requirement "CnFeaturesAndRoadmapView".
  */
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcAppSidebar, NcButton, NcEmptyContent } from '@nextcloud/vue'
 import ArrowRight from 'vue-material-design-icons/ArrowRight.vue'
 import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -130,10 +150,12 @@ export default {
 	name: 'CnFeaturesAndRoadmapView',
 
 	components: {
+		NcAppSidebar,
 		NcButton,
 		NcEmptyContent,
 		ArrowRight,
 		FormatListBulleted,
+		InformationOutline,
 		LockOutline,
 		OpenInNew,
 		Plus,
@@ -192,6 +214,7 @@ export default {
 	data() {
 		return {
 			activeView: 'features',
+			sidebarOpen: false,
 			showSuggestModal: false,
 			suggestModalSpecRef: null,
 		}
@@ -208,16 +231,28 @@ export default {
 				? t('nextcloud-vue', 'Show roadmap')
 				: t('nextcloud-vue', 'Show features')
 		},
+		sidebarToggleLabel() {
+			return this.sidebarOpen
+				? t('nextcloud-vue', 'Hide info')
+				: t('nextcloud-vue', 'Show info')
+		},
 		suggestLabel() { return t('nextcloud-vue', 'Suggest feature') },
 		disabledTitle() { return t('nextcloud-vue', 'This feature has been disabled by your administrator') },
 		disabledDescription() { return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.') },
 
+		sidebarTitle() { return t('nextcloud-vue', 'Shape this app') },
+		sidebarSubtitle() { return t('nextcloud-vue', 'Three ways to land a feature') },
+
+		suggestSidebarTitle() { return t('nextcloud-vue', 'Missing something?') },
+		suggestSidebarBody() { return t('nextcloud-vue', 'Tell us what would make your day. Every suggestion lands as a GitHub issue. Other users can +1 it. The maintainers triage it. You watch the status here on the roadmap.') },
+		suggestSidebarCta() { return t('nextcloud-vue', 'Suggest a feature') },
+
 		openbuiltTitle() { return t('nextcloud-vue', 'Tweak it in OpenBuilt') },
-		openbuiltBody() { return t('nextcloud-vue', 'Add a screen, rename a field, wire up a register. OpenBuilt does it without code.') },
+		openbuiltBody() { return t('nextcloud-vue', 'Want a new screen, a renamed field, or a custom register? OpenBuilt is our visual app builder. Drag, drop, save. It runs inside your own Nextcloud, so no code, no deploy, no waiting.') },
 		openbuiltCta() { return t('nextcloud-vue', 'Open OpenBuilt') },
 
 		llmTitle() { return t('nextcloud-vue', 'Let AI add the feature') },
-		llmBody() { return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this code base. You bring the prompt.') },
+		llmBody() { return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You bring the prompt, they write the code. Push the PR, run the tests, and watch your feature land.') },
 		llmCta() { return t('nextcloud-vue', 'Read the AI guide') },
 
 		resolvedOpenbuiltUrl() {
@@ -284,51 +319,31 @@ export default {
 	flex-wrap: wrap;
 }
 
-.cn-features-and-roadmap-view__body {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 280px;
-	gap: 24px;
-	align-items: start;
-}
-
-@media (max-width: 900px) {
-	.cn-features-and-roadmap-view__body {
-		grid-template-columns: 1fr;
-	}
-}
-
 .cn-features-and-roadmap-view__panel {
 	min-height: 320px;
 }
 
-.cn-features-and-roadmap-view__sidebar {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.cn-features-and-roadmap-view__sidebar-cta {
-	width: 100%;
-	justify-content: center;
-}
-
+/* NcAppSidebar positions itself at the viewport edge; styles below only
+   target the content slot inside the sidebar. */
 .cn-features-and-roadmap-view__sidebar-section {
 	padding: 16px;
-	background: var(--color-background-hover);
-	border-radius: var(--border-radius-large, 12px);
-	border: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 }
 
-.cn-features-and-roadmap-view__sidebar-title {
+.cn-features-and-roadmap-view__sidebar-section:last-child {
+	border-bottom: 0;
+}
+
+.cn-features-and-roadmap-view__sidebar-section-title {
 	margin: 0 0 8px 0;
-	font-size: 1em;
+	font-size: 1.05em;
 	color: var(--color-main-text);
 }
 
-.cn-features-and-roadmap-view__sidebar-body {
+.cn-features-and-roadmap-view__sidebar-section-body {
 	margin: 0 0 12px 0;
-	font-size: 0.9em;
-	line-height: 1.45;
+	font-size: 0.95em;
+	line-height: 1.5;
 	color: var(--color-text-light);
 }
 
@@ -338,7 +353,12 @@ export default {
 	gap: 4px;
 	color: var(--color-primary-element);
 	text-decoration: none;
-	font-size: 0.9em;
+	font-size: 0.95em;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	font-family: inherit;
 }
 
 .cn-features-and-roadmap-view__sidebar-link:hover {
