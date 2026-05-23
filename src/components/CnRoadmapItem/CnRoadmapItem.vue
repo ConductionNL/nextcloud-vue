@@ -1,11 +1,19 @@
 <template>
 	<article class="cn-roadmap-item">
 		<header class="cn-roadmap-item__header">
-			<NcAvatar
-				v-if="item.user && item.user.login"
-				:user="item.user.login"
-				:url="item.user.avatar_url"
-				:size="24"
+			<!-- Plain <img> rather than <NcAvatar>: the GitHub login is not a
+			     Nextcloud user, and NcAvatar's resolution path triggers a
+			     `/avatar/<user>` lookup that returns 404 + initials instead
+			     of using the GitHub-hosted `avatar_url`. CSP `img-src *`
+			     allows external images on this surface. -->
+			<img
+				v-if="item.user && item.user.avatar_url"
+				:src="item.user.avatar_url"
+				:alt="item.user.login || ''"
+				width="24"
+				height="24"
+				loading="lazy"
+				referrerpolicy="no-referrer"
 				class="cn-roadmap-item__avatar" />
 			<div class="cn-roadmap-item__meta">
 				<a
@@ -65,7 +73,6 @@
  * Spec: features-roadmap-component — Requirement "RoadmapItem".
  */
 import DOMPurify from 'dompurify'
-import { NcAvatar } from '@nextcloud/vue'
 import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
 
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
@@ -75,7 +82,7 @@ import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
 export default {
 	name: 'CnRoadmapItem',
 
-	components: { NcAvatar, ThumbUpOutline },
+	components: { ThumbUpOutline },
 
 	props: {
 		/**
@@ -159,6 +166,15 @@ export default {
 	margin-bottom: 8px;
 }
 
+.cn-roadmap-item__avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	object-fit: cover;
+	background: var(--color-background-darker);
+}
+
 .cn-roadmap-item__meta {
 	flex: 1;
 }
@@ -195,9 +211,23 @@ export default {
 	color: var(--color-main-text);
 	font-size: 0.95em;
 	line-height: 1.4;
+	/* Cap the rendered markdown so cards stay roughly feature-card-sized.
+	   Full body is reachable via the title link to the GitHub issue. */
+	max-height: 8.4em;
+	overflow: hidden;
+	position: relative;
+	mask-image: linear-gradient(to bottom, black 70%, transparent);
+	-webkit-mask-image: linear-gradient(to bottom, black 70%, transparent);
 }
 
 .cn-roadmap-item__body :deep(p) { margin: 4px 0; }
+.cn-roadmap-item__body :deep(h1),
+.cn-roadmap-item__body :deep(h2),
+.cn-roadmap-item__body :deep(h3) {
+	font-size: 1em;
+	margin: 4px 0;
+	font-weight: 600;
+}
 .cn-roadmap-item__body :deep(pre) { background: var(--color-background-hover); padding: 8px; border-radius: 4px; overflow-x: auto; }
 .cn-roadmap-item__body :deep(code) { background: var(--color-background-hover); padding: 2px 4px; border-radius: 3px; }
 
