@@ -111,6 +111,7 @@ import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
+import { useObjectStore } from '../../store/index.js'
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -590,6 +591,40 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Auto-register object types for `type:"custom"` pages whose
+		 * manifest config declares `register` + `schema` (single type)
+		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+		 *
+		 * For `type:"index"` and `type:"detail"` pages, the underlying
+		 * CnIndexPage / CnDetailPage components self-register when
+		 * mounted with `register` + `schema` props — so the renderer
+		 * does nothing extra for those. Custom components have no such
+		 * guarantee: they are bespoke per-app Vue components and would
+		 * each have to remember to call `registerObjectType` in their
+		 * own `mounted()` hook. Mirroring index/detail's zero-config
+		 * behaviour for the manifest-driven custom case (declared
+		 * `register` + `schema`) keeps the manifest the single source
+		 * of truth and removes a per-component landmine.
+		 *
+		 * Runs `immediate: true` so first mount registers before the
+		 * custom component's mounted() hook fires; re-runs on route
+		 * change in case the same CnPageRenderer instance is reused
+		 * for a different `type:"custom"` page.
+		 *
+		 * Defensive: every step is wrapped — a Pinia-not-installed
+		 * test harness, a missing store method, or a thrown error
+		 * inside `registerObjectType` all degrade to a single
+		 * `console.warn` so the page still mounts.
+		 *
+		 * See issue ConductionNL/nextcloud-vue#341.
+		 */
+		currentPage: {
+			immediate: true,
+			handler() {
+				this.autoRegisterCustomTypes()
+			},
+		},
 		currentPageSidebarVisible: {
 			immediate: true,
 			handler(visible) {
@@ -637,6 +672,111 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Auto-register object types declared on the current
+		 * `type:"custom"` page's `config`. No-op for any other page
+		 * type (index/detail self-register inside the page component
+		 * itself; dashboard/form/map have no such concept).
+		 *
+		 * Recognised config shapes:
+		 *
+		 *   1. Single type — `config.register` + `config.schema` are
+		 *      both non-empty strings. Registered under slug
+		 *      `${register}-${schema}` to match the convention used by
+		 *      CnIndexPage.setup (self-fetch mode) and CnLogsPage.
+		 *
+		 *   2. Multi-type — `config.types: [{ name, register, schema }]`.
+		 *      Each entry is registered under its own `name` slug so a
+		 *      single custom page (e.g. a Kanban board with multiple
+		 *      object kinds) can hydrate several object types in one
+		 *      manifest declaration.
+		 *
+		 * Both shapes may co-exist; the single-type pair is registered
+		 * first, then each `types[]` entry. Entries with missing /
+		 * non-string `name` / `register` / `schema` are skipped with a
+		 * single warning. All work is wrapped in try/catch so a broken
+		 * Pinia setup or a thrown `registerObjectType` never blocks
+		 * the page from mounting.
+		 */
+		autoRegisterCustomTypes() {
+			const page = this.currentPage
+			if (!page || page.type !== 'custom') return
+			const config = page.config
+			if (!config || typeof config !== 'object') return
+
+			let store = null
+			try {
+				store = useObjectStore()
+			} catch (err) {
+				// Pinia not installed (common in unit tests). Silently
+				// skip — the custom component can still register itself
+				// at mount time if/when it has its own store.
+				return
+			}
+			if (!store || typeof store.registerObjectType !== 'function') {
+				return
+			}
+
+			// Single-type shape: config.register + config.schema.
+			const reg = config.register
+			const schema = config.schema
+			const hasSingle = typeof reg === 'string' && reg.length > 0
+				&& typeof schema === 'string' && schema.length > 0
+			if (hasSingle) {
+				const slug = `${reg}-${schema}`
+				try {
+					store.registerObjectType(slug, schema, reg)
+				} catch (err) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnPageRenderer] Failed to auto-register object type "${slug}" for custom page id "${page.id}":`,
+						err,
+					)
+				}
+			} else if (
+				(typeof reg === 'string' && reg.length > 0)
+				|| (typeof schema === 'string' && schema.length > 0)
+			) {
+				// One half of the pair is set but not the other —
+				// likely a manifest typo. Warn but keep going so
+				// types[] (below) still gets a chance.
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnPageRenderer] Custom page id "${page.id}" declares only one of config.register / config.schema; auto-registration skipped. Set both (or use config.types[]) to opt in.`,
+				)
+			}
+
+			// Multi-type shape: config.types: [{ name, register, schema }, ...].
+			const types = config.types
+			if (Array.isArray(types)) {
+				for (const entry of types) {
+					if (!entry || typeof entry !== 'object') continue
+					const name = entry.name
+					const r = entry.register
+					const s = entry.schema
+					if (
+						typeof name !== 'string' || name.length === 0
+						|| typeof r !== 'string' || r.length === 0
+						|| typeof s !== 'string' || s.length === 0
+					) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnPageRenderer] Skipping invalid entry in config.types on custom page id "${page.id}" — each entry needs non-empty name, register, and schema.`,
+						)
+						continue
+					}
+					try {
+						store.registerObjectType(name, s, r)
+					} catch (err) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnPageRenderer] Failed to auto-register object type "${name}" for custom page id "${page.id}":`,
+							err,
+						)
+					}
+				}
+			}
+		},
 		/**
 		 * Resolve a registry component name. Logs a single console.warn
 		 * naming the slot if the name is not in the registry.
