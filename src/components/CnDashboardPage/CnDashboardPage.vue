@@ -694,9 +694,13 @@ export default {
 			let from = sr.from || null
 			let to = sr.to || null
 			// 2. Fall back to the dashboard-level reactive dateRange when
-			//    the bucket uses fromVar/toVar shorthand.
-			if ((!from || !to) && this.dashboardDateRange && this.dashboardDateRange.value) {
-				const rng = this.dashboardDateRange.value
+			//    the bucket uses fromVar/toVar shorthand. Vue 2.7's setup
+			//    auto-unwraps refs when accessed via `this`, so
+			//    `this.dashboardDateRange` IS the current value (not the
+			//    ref). Assignments in setRange() / initial-range
+			//    methods write through to the ref's `.value` automatically.
+			if ((!from || !to) && this.dashboardDateRange) {
+				const rng = this.dashboardDateRange
 				if (bucket.fromVar && rng[bucket.fromVar]) from = from || rng[bucket.fromVar]
 				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
 			}
