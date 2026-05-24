@@ -989,11 +989,8 @@ export default {
 	margin-bottom: 20px;
 	flex-wrap: wrap;
 	gap: 12px;
-	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
-	   positioned at the left edge of .app-content) AND leave breathing room
-	   so the title doesn't sit hard against the toggle's right edge.
-	   Mirrors the same fix in CnPageHeader. */
-	padding-inline-start: 56px;
+	/* Toggle-clearance padding now lives on `.cn-page-renderer > *`
+	   (one rule for every page type). See CnPageRenderer.vue. */
 }
 
 .cn-dashboard-page__header-left {
