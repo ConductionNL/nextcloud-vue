@@ -29,6 +29,18 @@
 				</div>
 			</header>
 
+			<NcNoteCard
+				v-if="resolvedDocumentationUrl"
+				type="info"
+				class="cn-features-and-roadmap-view__docs-note">
+				{{ docsNoteLeading }}
+				<a
+					:href="resolvedDocumentationUrl"
+					:target="documentationUrlIsExternal ? '_blank' : null"
+					:rel="documentationUrlIsExternal ? 'noopener noreferrer' : null">{{ docsNoteLinkLabel }}</a>
+				{{ docsNoteTrailing }}
+			</NcNoteCard>
+
 			<main class="cn-features-and-roadmap-view__panel">
 				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
 				<CnRoadmapTab v-else :repo="repo" />
@@ -71,7 +83,7 @@
  */
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcNoteCard } from '@nextcloud/vue'
 import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -92,6 +104,7 @@ export default {
 	components: {
 		NcButton,
 		NcEmptyContent,
+		NcNoteCard,
 		FormatListBulleted,
 		LockOutline,
 		Plus,
@@ -163,6 +176,31 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Optional override for the Suggest CTA inside the sidebar. When
+		 * set the CTA renders as an anchor pointing at this URL —
+		 * appropriate when the app routes feature suggestions through a
+		 * public form, a Discord channel, or any non-GitHub target. When
+		 * empty (default) the CTA stays a button that opens the
+		 * SuggestFeatureModal + posts to the GitHub-issues proxy.
+		 * @type {string}
+		 */
+		suggestUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional URL of the app's public documentation site. When set,
+		 * an info banner is rendered above the card grid pointing users at
+		 * `<docs>` for full technical + user docs. Per-app — pipelinq
+		 * passes `https://pipelinq.conduction.nl`, decidesk passes its
+		 * own, etc. When empty (default) no banner renders.
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
 	},
 
 	data() {
@@ -195,6 +233,18 @@ export default {
 		resolvedLlmSkillsUrl() {
 			return this.llmSkillsUrl || DEFAULT_LLM_SKILLS_URL
 		},
+		resolvedDocumentationUrl() {
+			return this.documentationUrl || ''
+		},
+		documentationUrlIsExternal() {
+			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
+		},
+		docsNoteLeading() { return t('nextcloud-vue', 'Looking for documentation? Visit') },
+		docsNoteLinkLabel() {
+			// Strip protocol for a cleaner inline link label.
+			return this.resolvedDocumentationUrl.replace(/^https?:\/\//i, '')
+		},
+		docsNoteTrailing() { return t('nextcloud-vue', 'for all technical and user documentation.') },
 	},
 
 	mounted() {
@@ -250,6 +300,7 @@ export default {
 				props: {
 					openbuiltUrl: this.resolvedOpenbuiltUrl,
 					llmSkillsUrl: this.resolvedLlmSkillsUrl,
+					suggestUrl: this.suggestUrl,
 				},
 				listeners: {
 					suggest: () => this.openSuggestModal(),

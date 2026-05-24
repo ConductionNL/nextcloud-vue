@@ -6,13 +6,15 @@
 			     `/avatar/<user>` lookup that returns 404 + initials instead
 			     of using the GitHub-hosted `avatar_url`. CSP `img-src *`
 			     allows external images on this surface. -->
+			<!-- Eager-load: `loading="lazy"` deferred the fetch indefinitely for
+			     cards below the fold, leaving the avatar as a broken-image
+			     glyph. These are 24px images so eager is cheap. -->
 			<img
 				v-if="item.user && item.user.avatar_url"
 				:src="item.user.avatar_url"
 				:alt="item.user.login || ''"
 				width="24"
 				height="24"
-				loading="lazy"
 				referrerpolicy="no-referrer"
 				class="cn-roadmap-item__avatar" />
 			<div class="cn-roadmap-item__meta">

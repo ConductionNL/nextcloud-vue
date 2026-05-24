@@ -19,6 +19,7 @@ import CnFeaturesAndRoadmapView from '../../src/components/CnFeaturesAndRoadmapV
 const stubs = {
 	NcButton: { name: 'NcButton', template: '<button class="btn" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' },
 	NcEmptyContent: { name: 'NcEmptyContent', props: ['name', 'description'], template: '<div class="empty"><h2>{{ name }}</h2></div>' },
+	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note-card" :data-type="type"><slot /></div>' },
 	FormatListBulleted: true,
 	LockOutline: true,
 	Plus: true,
@@ -165,5 +166,30 @@ describe('CnFeaturesAndRoadmapView', () => {
 	it('uses Nextcloud CSS variables only (no --nldesign- references)', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
 		expect(wrapper.html()).not.toContain('--nldesign-')
+	})
+
+	it('does NOT render the docs note when documentationUrl is unset', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapView, { stubs, propsData: baseProps })
+		expect(wrapper.find('.cn-features-and-roadmap-view__docs-note').exists()).toBe(false)
+	})
+
+	it('renders the docs note above the card grid when documentationUrl is set', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapView, {
+			stubs,
+			propsData: { ...baseProps, documentationUrl: 'https://pipelinq.conduction.nl' },
+		})
+		const note = wrapper.find('.cn-features-and-roadmap-view__docs-note')
+		expect(note.exists()).toBe(true)
+		expect(note.attributes('data-type')).toBe('info')
+		// Link shows the URL without the scheme prefix for a cleaner label.
+		const anchor = note.find('a')
+		expect(anchor.attributes('href')).toBe('https://pipelinq.conduction.nl')
+		expect(anchor.text()).toBe('pipelinq.conduction.nl')
+		expect(anchor.attributes('target')).toBe('_blank')
+	})
+
+	it('passes suggestUrl through to the hoisted sidebar config', () => {
+		const { sidebarHolder } = mountWithHost({ suggestUrl: 'https://example.com/feedback' })
+		expect(sidebarHolder.value.props.suggestUrl).toBe('https://example.com/feedback')
 	})
 })
