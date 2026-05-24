@@ -52,8 +52,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Email from 'vue-material-design-icons/Email.vue'
-import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
-import { buildHeaders } from '../../utils/index.js'
+import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { buildHeaders } from '../../../utils/index.js'
 
 /**
  * CnEmailCard — compact widget for the `email` integration leaf.

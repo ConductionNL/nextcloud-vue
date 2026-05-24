@@ -3,9 +3,10 @@
  *
  * Covers:
  *  - `builtinIntegrations` shape: the five canonical PHP-backed built-ins
- *    (`files`, `notes`, `tags`, `tasks`, `audit-trail`) PLUS bespoke leaf
- *    overrides (currently: `talk`); ordering, group, and that each
- *    descriptor is a valid `register()` payload (has `tab` + `widget`).
+ *    (`files`, `notes`, `tags`, `tasks`, `audit-trail`) PLUS the bespoke
+ *    leaf overrides bundled with the built-ins; ordering, group, and
+ *    that each descriptor is a valid `register()` payload (has `tab` +
+ *    `widget`).
  *  - `registerBuiltinIntegrations()` registers all entries onto a fresh
  *    registry, returns the new ids, and skips ids already present
  *    (collision policy: first wins) without throwing.
@@ -26,9 +27,44 @@ const CANONICAL_IDS = ['files', 'notes', 'tags', 'tasks', 'audit-trail']
 // Bespoke leaf overrides bundled with the built-ins so the AD-13
 // first-wins collision policy upgrades a leaf to a richer Vue pair at
 // bootstrap. Keep this in lock-step with `src/integrations/builtin/index.js`.
-const BESPOKE_LEAF_IDS = ['talk']
+const BESPOKE_LEAF_IDS = [
+	'calendar',
+	'contacts',
+	'email',
+	'talk',
+	'bookmarks',
+	'deck',
+	'polls',
+	'shares',
+	'activity',
+	'openproject',
+	'xwiki',
+]
 
 const ALL_IDS = [...CANONICAL_IDS, ...BESPOKE_LEAF_IDS]
+
+// Same set but sorted by `order` ascending — `reg.list()` returns the
+// providers sorted by `.order` (see `registry.js`), so the assertion
+// against the snapshot must match the order-sorted shape, not the
+// declaration order in `builtinIntegrations`.
+const SORTED_IDS = [
+	'files', // 1
+	'notes', // 2
+	'tags', // 3
+	'tasks', // 4
+	'audit-trail', // 5
+	'shares', // 10
+	'calendar', // 20
+	'contacts', // 21
+	'email', // 22
+	'talk', // 23
+	'openproject', // 31
+	'xwiki', // 32
+	'bookmarks', // 40
+	'activity', // 60
+	'deck', // 63
+	'polls', // 66
+]
 
 describe('builtinIntegrations', () => {
 	it('exposes the canonical five plus bespoke leaf overrides in the documented order', () => {
@@ -82,8 +118,10 @@ describe('registerBuiltinIntegrations', () => {
 	it('registers every entry onto a fresh registry and returns the new ids', () => {
 		const reg = createIntegrationRegistry()
 		const ids = registerBuiltinIntegrations(reg)
+		// `ids` is the declaration-order list of newly-registered ids
 		expect(ids).toEqual(ALL_IDS)
-		expect(reg.list().map((p) => p.id)).toEqual(ALL_IDS)
+		// `reg.list()` returns providers sorted by `.order` ascending
+		expect(reg.list().map((p) => p.id)).toEqual(SORTED_IDS)
 	})
 
 	it('skips ids already registered without throwing (collision: first wins)', () => {

@@ -5,7 +5,7 @@
  */
 
 const { mount } = require('@vue/test-utils')
-const CnEmailCard = require('../../src/components/CnEmailCard/CnEmailCard.vue').default
+const CnEmailCard = require('../CnEmailCard.vue').default
 
 describe('CnEmailCard', () => {
 	beforeEach(() => {

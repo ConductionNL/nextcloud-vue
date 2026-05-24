@@ -59,7 +59,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
-import { buildHeaders } from '../../utils/index.js'
+import { buildHeaders } from '../../../utils/index.js'
 
 /**
  * CnEmailTab — sidebar tab rendering the full list of Nextcloud Mail

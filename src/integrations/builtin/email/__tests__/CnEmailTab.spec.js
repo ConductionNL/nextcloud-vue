@@ -4,7 +4,7 @@
  */
 
 const { mount } = require('@vue/test-utils')
-const CnEmailTab = require('../../src/components/CnEmailTab/CnEmailTab.vue').default
+const CnEmailTab = require('../CnEmailTab.vue').default
 
 describe('CnEmailTab', () => {
 	beforeEach(() => {
