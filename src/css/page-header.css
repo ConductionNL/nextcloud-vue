@@ -5,8 +5,9 @@
 	align-items: flex-start;
 	gap: calc(3 * var(--default-grid-baseline));
 	margin-bottom: calc(4 * var(--default-grid-baseline));
-	/* Toggle-clearance padding now lives on `.cn-page-renderer > *`
-	   (one rule for every page type). See CnPageRenderer.vue. */
+	/* Toggle-clearance padding now lives on
+	   `.cn-page-renderer__viewport` (one rule for every page type).
+	   See CnPageRenderer.vue. */
 }
 
 .cn-page-header__icon {
