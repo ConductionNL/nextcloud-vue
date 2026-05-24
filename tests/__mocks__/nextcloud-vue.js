@@ -24,6 +24,7 @@ export const NcButton = createStub('NcButton')
 export const NcNoteCard = createStub('NcNoteCard')
 export const NcLoadingIcon = createStub('NcLoadingIcon')
 export const NcTextField = createStub('NcTextField')
+export const NcTextArea = createStub('NcTextArea')
 export const NcCheckboxRadioSwitch = createStub('NcCheckboxRadioSwitch')
 export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
@@ -46,6 +47,7 @@ export default {
 	NcNoteCard,
 	NcLoadingIcon,
 	NcTextField,
+	NcTextArea,
 	NcCheckboxRadioSwitch,
 	NcAppNavigation,
 	NcAppNavigationItem,

@@ -1,45 +1,53 @@
 <!--
-  CnFormsTab — bespoke sidebar tab for the `forms` integration.
-
-  Replaces the generic CnIntegrationTab for the `forms` leaf: renders a
-  list of linked NC Forms with title, description, status / expiry
-  meta, submission count, and a per-row "Open form" deep-link
-  (`/index.php/apps/forms/{hash}`). Submissions surfaced by the
-  provider are grouped under their parent form so the tab stays
-  scannable rather than collapsing into a flat row pile.
-
-  Talks to the same OpenRegister pluggable-integration sub-resource
-    `/api/objects/{register}/{schema}/{objectId}/integrations/forms`
-  served by `OCA\OpenRegister\Service\Integration\Providers\FormsProvider`
-  (which DB-queries `forms_v2_forms` filtered by an `[or:{uuid}]`
-  description marker, then loads `forms_v2_submissions` per match).
-
-  Payload contract today (per FormsProvider::list):
-    { type: 'form'|'submission',
-      id, title, description, url, lastUpdated,
-      data: { id, hash, title, description, lastUpdated }  // forms
-          | { id, formId, userId, timestamp } }              // submissions
-
-  Surface behaviour:
-    - Empty state with "Open Forms" CTA when no linked forms.
-    - Loading + 503 "currently unavailable" + generic error states match
-      CnIntegrationTab's behaviour for AD-23 graceful degradation.
-    - "Status" + "expiry" + "accessible" badges are rendered defensively
-      from poll.status/expiresAt/accessible if the provider ships them
-      later (currently NOT in the payload — flagged in the spec delta
-      under Phase B widening; UI lights up the moment the provider
-      extends).
-
-  Bespoke-vs-generic rationale: the generic tab renders a flat link
-  list which loses Forms' core signal — open vs. closed + how many
-  submissions have come in. The bespoke tab surfaces both inline so
-  case handlers can see at a glance whether a form needs collecting.
-
-  See `openregister/openspec/changes/integration-forms/` for the spec
-  delta and ADR-019 (registry mechanism).
--->
+  - SPDX-License-Identifier: EUPL-1.2
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  -
+  - CnFormsTab — bespoke sidebar tab for the Tier-2 `forms` integration.
+  -
+  - Replaces the generic CnIntegrationTab for the `forms` leaf: renders a
+  - list of linked NC Forms forms with title, description, status / expiry
+  - meta, submission count, a per-row "Open form" deep-link, and Tier-2
+  - link/unlink + create-new actions.
+  -
+  - Talks to the OpenRegister Tier-2 forms link surface:
+  -    GET    /api/objects/{r}/{s}/{id}/forms        — list linked
+  -    POST   /api/objects/{r}/{s}/{id}/forms        — link existing
+  -    POST   /api/objects/{r}/{s}/{id}/forms/new    — create + link
+  -    DELETE /api/objects/{r}/{s}/{id}/forms/{id}   — unlink form
+  -
+  - The Tier-2 endpoint returns canonical form rows enriched with
+  - submission roll-ups; pre-Tier-2 forms (still on the marker scan)
+  - keep working through the same endpoint via the provider's
+  - backwards-compat fallback.
+  -
+  - Per ADR-004 (modal isolation) the picker + create modals live in
+  - their own .vue files (CnFormPicker, CnFormCreate) and are wired
+  - in here rather than inlined.
+  -
+  - @spec openspec/changes/integration-forms/specs/integrations/forms/spec.md
+  -->
 <template>
 	<div class="cn-sidebar-tab cn-forms-tab">
+		<div class="cn-forms-tab__header">
+			<NcButton
+				type="primary"
+				:aria-label="linkExistingLabel"
+				@click="showPicker = true">
+				<template #icon>
+					<LinkVariantPlus :size="20" />
+				</template>
+				{{ linkExistingLabel }}
+			</NcButton>
+			<NcButton
+				:aria-label="createNewLabel"
+				@click="showCreate = true">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ createNewLabel }}
+			</NcButton>
+		</div>
+
 		<div v-if="degraded" class="cn-forms-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
@@ -75,6 +83,14 @@
 					<span
 						class="cn-forms-tab__status"
 						:class="statusClass(form)">{{ statusLabel(form) }}</span>
+					<button
+						type="button"
+						class="cn-forms-tab__unlink"
+						:aria-label="unlinkLabel"
+						:title="unlinkLabel"
+						@click="unlink(form)">
+						<Close :size="18" />
+					</button>
 				</div>
 				<div v-if="formDescription(form)" class="cn-forms-tab__description">
 					{{ formDescription(form) }}
@@ -84,6 +100,22 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnFormPicker
+			v-if="showPicker"
+			:object-id="objectId"
+			:register="register"
+			:schema="schema"
+			:api-base="apiBase"
+			@link="onLinkSelected"
+			@close="showPicker = false" />
+
+		<CnFormCreate
+			v-if="showCreate"
+			:submitting="creating"
+			:submit-error="createError"
+			@create="onCreateSubmit"
+			@close="onCreateClose" />
 	</div>
 </template>
 
@@ -92,23 +124,38 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import LinkVariantPlus from 'vue-material-design-icons/LinkVariantPlus.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+
 import { buildHeaders } from '../../../utils/index.js'
+import CnFormCreate from './CnFormCreate.vue'
+import CnFormPicker from './CnFormPicker.vue'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 /**
- * CnFormsTab — bespoke linked-forms list for the `forms` integration.
+ * CnFormsTab — bespoke linked-forms list for the Tier-2 `forms` leaf.
  *
- * Renders rows pulled from the OR pluggable-integration endpoint,
- * grouped per parent form. Per-row metadata lights up defensively
- * whenever the provider ships extra fields
- * (`status` / `expiresAt` / `accessible` / `submissionCount`) — until
- * Phase-B widening lands these stay hidden.
+ * Renders rows pulled from the OR Tier-2 forms link endpoint, with
+ * inline "Link existing form" + "Create new form" actions on the
+ * header. Submission roll-ups are surfaced as a count + last-updated
+ * fragment per row.
  */
 export default {
 	name: 'CnFormsTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, ClipboardText },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		ClipboardText,
+		Close,
+		LinkVariantPlus,
+		Plus,
+		CnFormCreate,
+		CnFormPicker,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'forms'`). */
@@ -127,6 +174,12 @@ export default {
 		openFormsLabel: { type: String, default: () => t('nextcloud-vue', 'Open Forms') },
 		/** Pre-translated banner when Forms is unavailable. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Forms is currently unavailable.') },
+		/** Pre-translated label for the link-existing action. */
+		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing form') },
+		/** Pre-translated label for the create-new action. */
+		createNewLabel: { type: String, default: () => t('nextcloud-vue', 'Create new form') },
+		/** Pre-translated label for the per-row unlink action. */
+		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink form') },
 		/** URL of the NC Forms app entry. */
 		formsAppUrl: { type: String, default: '/index.php/apps/forms' },
 	},
@@ -137,16 +190,20 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			showPicker: false,
+			showCreate: false,
+			creating: false,
+			createError: '',
 		}
 	},
 
 	computed: {
 		/**
 		 * Group provider rows into a per-form list with attached
-		 * submissions. The provider emits a flat sequence of `form`
-		 * rows interleaved with the form's `submission` rows; the tab
-		 * surfaces them as one card per form with a submission tally
-		 * derived from the trailing submission rows.
+		 * submissions. The Tier-2 endpoint already emits per-form rows
+		 * with `submissionCount` rolled up; this method also handles
+		 * the legacy flat shape (rows with `type: 'submission'`) for
+		 * forms that pre-date the link table.
 		 *
 		 * @return {object[]} Per-form display rows.
 		 */
@@ -184,19 +241,18 @@ export default {
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/forms`
 		},
 
 		normaliseFormRow(row) {
 			const data = row.data || {}
 			return {
-				id: row.id ?? data.id ?? '',
-				hash: data.hash ?? row.hash ?? '',
+				id: row.id ?? row.formId ?? data.id ?? '',
+				hash: data.hash ?? row.formHash ?? row.hash ?? '',
 				title: row.title ?? data.title ?? '',
 				description: row.description ?? data.description ?? '',
 				url: row.url ?? '',
 				lastUpdated: row.lastUpdated ?? data.lastUpdated ?? null,
-				// Defensive: these come from a future provider widening.
 				status: row.status ?? data.status ?? null,
 				expiresAt: row.expiresAt ?? data.expiresAt ?? null,
 				accessible: row.accessible ?? data.accessible ?? null,
@@ -241,7 +297,7 @@ export default {
 		},
 
 		isClosed(form) {
-			if (form.status === 'closed') {
+			if (form.status === 'closed' || form.status === 'archived') {
 				return true
 			}
 			const ms = this.expiresAtMs(form)
@@ -272,8 +328,6 @@ export default {
 		},
 
 		submissionCount(form) {
-			// Prefer the explicit count if the provider ever ships it;
-			// otherwise fall back to the submission rows we observed.
 			if (form.submissionCount > 0) {
 				return form.submissionCount
 			}
@@ -330,8 +384,7 @@ export default {
 				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
-					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
-					this.rawRows = rows
+					this.rawRows = this.unwrapList(data)
 				} else if (response.status === 503) {
 					this.rawRows = []
 					this.degraded = this.unavailableLabel
@@ -340,7 +393,6 @@ export default {
 					this.error = t('nextcloud-vue', 'Could not load forms.')
 				}
 			} catch (err) {
-				// eslint-disable-next-line no-console
 				console.error('[CnFormsTab] failed to fetch forms', err)
 				this.rawRows = []
 				this.error = t('nextcloud-vue', 'Could not load forms.')
@@ -348,11 +400,111 @@ export default {
 				this.loading = false
 			}
 		},
+
+		/**
+		 * Canonical wrapper-key cascade — mirrors CnContactsTab.unwrapList.
+		 *
+		 * @param {*} data parsed JSON response body
+		 *
+		 * @return {Array}
+		 */
+		unwrapList(data) {
+			if (Array.isArray(data)) {
+				return data
+			}
+			if (data && typeof data === 'object') {
+				if (Array.isArray(data.results)) {
+					return data.results
+				}
+				if (Array.isArray(data.items)) {
+					return data.items
+				}
+			}
+			return []
+		},
+
+		async onLinkSelected(payload) {
+			if (!payload || !payload.formId) return
+			try {
+				const response = await fetch(this.baseUrl(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (!response.ok) {
+					console.error('[CnFormsTab] link failed', response.status, response.statusText)
+					return
+				}
+				this.showPicker = false
+				await this.fetchForms()
+			} catch (err) {
+				console.error('[CnFormsTab] link error', err)
+			}
+		},
+
+		async onCreateSubmit(payload) {
+			if (!payload || !payload.title) return
+			this.creating = true
+			this.createError = ''
+			try {
+				const response = await fetch(`${this.baseUrl()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (!response.ok) {
+					const data = await response.json().catch(() => ({}))
+					this.createError = data?.error || `${response.status} ${response.statusText}`
+					return
+				}
+				this.showCreate = false
+				await this.fetchForms()
+			} catch (err) {
+				console.error('[CnFormsTab] create error', err)
+				this.createError = String(err?.message || err)
+			} finally {
+				this.creating = false
+			}
+		},
+
+		onCreateClose() {
+			this.showCreate = false
+			this.createError = ''
+		},
+
+		async unlink(form) {
+			if (!form?.id) return
+			try {
+				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(form.id)}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (!response.ok) {
+					console.error('[CnFormsTab] unlink failed', response.status, response.statusText)
+					return
+				}
+				this.rawRows = this.rawRows.filter((r) => String(r.id ?? r.formId ?? '') !== String(form.id))
+			} catch (err) {
+				console.error('[CnFormsTab] unlink error', err)
+			}
+		},
 	},
 }
 </script>
 
 <style scoped>
+.cn-forms-tab {
+	padding: 12px;
+}
+
+.cn-forms-tab__header {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
 .cn-forms-tab__banner {
 	display: flex;
 	align-items: center;
@@ -456,6 +608,25 @@ a.cn-forms-tab__title:hover {
 .cn-forms-tab__status--draft {
 	background: var(--color-warning, #e9a40f);
 	color: var(--color-main-background);
+}
+
+.cn-forms-tab__unlink {
+	background: none;
+	border: none;
+	padding: 4px;
+	cursor: pointer;
+	color: var(--color-text-maxcontrast);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.cn-forms-tab__unlink:hover,
+.cn-forms-tab__unlink:focus {
+	background-color: var(--color-background-dark);
+	color: var(--color-error);
 }
 
 .cn-forms-tab__description {

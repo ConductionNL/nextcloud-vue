@@ -177,4 +177,39 @@ describe('CnFormsTab', () => {
 		wrapper.destroy()
 		spy.mockRestore()
 	})
+
+	it('renders the "Link existing form" + "Create new form" header actions (Tier-2)', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('Link existing form')
+		expect(wrapper.text()).toContain('Create new form')
+		wrapper.destroy()
+	})
+
+	it('fetches from the Tier-2 link endpoint (/api/objects/{r}/{s}/{id}/forms)', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringMatching(/\/api\/objects\/reg\/schema\/obj-1\/forms$/),
+			expect.any(Object),
+		)
+		wrapper.destroy()
+	})
+
+	it('renders an unlink button on each row', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ results: [makeForm()] }),
+		})
+		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-forms-tab__unlink').exists()).toBe(true)
+		wrapper.destroy()
+	})
 })
