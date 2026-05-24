@@ -65,6 +65,7 @@ export { default as CnEmailCard } from '../integrations/builtin/email/CnEmailCar
 export { default as CnEmailTab } from '../integrations/builtin/email/CnEmailTab.vue'
 export { CnIntegrationTab } from './CnIntegrationTab/index.js'
 export { CnIntegrationCard } from './CnIntegrationCard/index.js'
+export { CnIntegrationWidgetGrid } from './CnIntegrationWidgetGrid/index.js'
 export { CnDetailCard } from './CnDetailCard/index.js'
 export { CnCard } from './CnCard/index.js'
 export { CnStatsPanel } from './CnStatsPanel/index.js'
