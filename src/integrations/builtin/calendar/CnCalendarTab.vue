@@ -1,80 +1,62 @@
 <!--
   CnCalendarTab — bespoke sidebar tab for the `calendar` integration.
 
-  Replaces the generic `CnIntegrationTab` for the calendar leaf: renders
-  the object's linked VEVENTs as a timeline (date-ascending, with
-  upcoming events surfaced above past events), surfaces an inline create
-  form (summary + date + time), and offers a per-row unlink action that
-  removes the OR ↔ VEVENT link without deleting the VEVENT from the
-  user's Nextcloud Calendar.
+  Tier-2 rewire (additive link-table strategy):
+    - "Add meeting" button opens CnCalendarEventCreate modal that POSTs
+      to /api/objects/{r}/{s}/{id}/events (writes X-OR-* on the VEVENT
+      AND a link-table row).
+    - "Link existing meeting" button opens CnCalendarEventPicker modal
+      that POSTs to /api/objects/{r}/{s}/{id}/events/link (writes ONLY
+      a link-table row — we may not own the VEVENT).
+    - Per-row UNLINK action: DELETE /events/{eventUid}/link  — removes
+      the link only, the VEVENT survives on the user's calendar.
+    - Per-row DELETE action: DELETE /events/{eventId} — destroys the
+      VEVENT (legacy semantics — also cleans up the link-table row).
 
-  Talks to:
-    - GET    /api/objects/{register}/{schema}/{id}/integrations/calendar
-             (CalendarProvider::list — delegates to CalendarEventService)
-    - POST   /api/objects/{register}/{schema}/{id}/events
-             (existing CalendarEventsController::create — wraps the
-             CalendarEventService directly, since CalendarProvider does
-             not implement create() per its current scope)
-    - DELETE /api/objects/{register}/{schema}/{id}/integrations/calendar/{calendarId}/{eventUri}
-             (CalendarProvider::delete — strips the X-OPENREGISTER-* link
-             properties from the VEVENT but leaves it in the calendar)
+  Read path: GET /api/objects/{r}/{s}/{id}/events returns the UNION of
+  link-table rows and the legacy X-OR-* CalDAV scan, deduped by
+  (calendarUri, eventUid) and annotated with a `source` field
+  (link-table / xor-only / both).
 
-  Empty, loading and error states follow ADR-017 component composition.
-  All UI strings are passed through `t('nextcloud-vue', ...)` per ADR-007.
-  Styling uses Nextcloud CSS variables only — the nldesign app overrides
-  them at the variable level (ADR-010).
+  ADR-004 modal isolation: every modal lives in its own .vue file under
+  `src/components/CnCalendar*/` and is imported here as a child component.
 -->
 <template>
 	<div class="cn-sidebar-tab cn-calendar-tab">
-		<!-- Inline create form -->
-		<div class="cn-calendar-tab__section">
-			<div class="cn-calendar-tab__action-row">
-				<NcTextField
-					v-model="newEventSummary"
-					:label="addEventLabel"
-					@keyup.enter="addEvent" />
-				<NcButton
-					type="primary"
-					:aria-label="addEventLabel"
-					:disabled="!newEventSummary.trim() || saving"
-					@click="addEvent">
-					<template #icon>
-						<NcLoadingIcon v-if="saving" :size="20" />
-						<Plus v-else :size="20" />
-					</template>
-				</NcButton>
-			</div>
-			<div class="cn-calendar-tab__grid">
-				<NcDateTimePickerNative
-					id="cn-calendar-tab-start"
-					v-model="newEventStart"
-					:label="dateLabel"
-					type="datetime" />
-				<NcTextField
-					v-model="newEventLocation"
-					:label="locationLabel" />
-			</div>
+		<!-- Action bar (replaces the inline create form) -->
+		<div class="cn-calendar-tab__action-row">
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ addEventLabel }}
+			</NcButton>
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="20" />
+				</template>
+				{{ linkExistingLabel }}
+			</NcButton>
 		</div>
 
-		<!-- Error banner (transient, non-blocking) -->
+		<!-- Error banner -->
 		<div v-if="error" class="cn-calendar-tab__banner cn-calendar-tab__banner--error" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ error }}</span>
 		</div>
 
-		<!-- Unavailable banner (503 graceful degradation, AD-23) -->
+		<!-- Unavailable banner (503) -->
 		<div v-if="degraded" class="cn-calendar-tab__banner" role="status">
 			<AlertCircleOutline :size="18" />
 			<span>{{ unavailableLabel }}</span>
 		</div>
 
-		<!-- States -->
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="sortedEvents.length === 0" class="cn-sidebar-tab__empty cn-calendar-tab__empty">
 			{{ noEventsLabel }}
 		</div>
 
-		<!-- Timeline (Upcoming / Past) -->
+		<!-- Timeline -->
 		<div v-else class="cn-calendar-tab__timeline">
 			<div v-if="upcomingEvents.length > 0" class="cn-calendar-tab__group">
 				<h4 class="cn-calendar-tab__group-title">
@@ -96,11 +78,17 @@
 						<span class="cn-calendar-tab__row-location">{{ ev.location }}</span>
 					</template>
 					<template #actions>
-						<NcActionButton :disabled="unlinkingKey === rowKey(ev)" @click="unlink(ev)">
+						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
 							</template>
 							{{ unlinkLabel }}
+						</NcActionButton>
+						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="deleteEvent(ev)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+							{{ deleteLabel }}
 						</NcActionButton>
 					</template>
 				</NcListItem>
@@ -127,16 +115,39 @@
 						<span class="cn-calendar-tab__row-location">{{ ev.location }}</span>
 					</template>
 					<template #actions>
-						<NcActionButton :disabled="unlinkingKey === rowKey(ev)" @click="unlink(ev)">
+						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
 							</template>
 							{{ unlinkLabel }}
 						</NcActionButton>
+						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="deleteEvent(ev)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+							{{ deleteLabel }}
+						</NcActionButton>
 					</template>
 				</NcListItem>
 			</div>
 		</div>
+
+		<!-- Picker modal (Tier-2 link existing flow) -->
+		<CnCalendarEventPicker
+			v-if="showPicker"
+			:api-base="apiBase"
+			@link="onPickerLink"
+			@close="closePicker" />
+
+		<!-- Create modal (Tier-2 create-and-link flow) -->
+		<CnCalendarEventCreate
+			v-if="showCreate"
+			:register="register"
+			:schema="schema"
+			:object-id="objectId"
+			:api-base="apiBase"
+			@created="onEventCreated"
+			@close="closeCreate" />
 	</div>
 </template>
 
@@ -144,41 +155,45 @@
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
-	NcTextField,
 	NcListItem,
 	NcActionButton,
 	NcLoadingIcon,
-	NcDateTimePickerNative,
 } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
+import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
 
 /**
  * CnCalendarTab — bespoke sidebar tab for the calendar integration.
  *
- * Renders linked VEVENTs as a date-grouped timeline (upcoming + past),
- * with an inline create form and a per-row unlink action. Replaces the
- * generic CnIntegrationTab for the `calendar` leaf.
+ * Tier-2 wiring: link/create flows are modal-driven (ADR-004 isolation),
+ * and per-row actions distinguish UNLINK (preserves the VEVENT) from
+ * DELETE (destroys the VEVENT).
  */
 export default {
 	name: 'CnCalendarTab',
 
 	components: {
 		NcButton,
-		NcTextField,
 		NcListItem,
 		NcActionButton,
 		NcLoadingIcon,
-		NcDateTimePickerNative,
 		Plus,
 		AlertCircleOutline,
+		LinkVariant,
 		LinkVariantOff,
 		CalendarClock,
 		CalendarCheck,
+		Delete,
+		CnCalendarEventPicker,
+		CnCalendarEventCreate,
 	},
 
 	props: {
@@ -194,39 +209,28 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (ADR-007) ---
-		/** Add-event placeholder/label. */
-		addEventLabel: { type: String, default: () => t('nextcloud-vue', 'Add meeting…') },
-		/** Date picker label. */
-		dateLabel: { type: String, default: () => t('nextcloud-vue', 'Start') },
-		/** Location field label. */
-		locationLabel: { type: String, default: () => t('nextcloud-vue', 'Location') },
-		/** Per-row unlink button label. */
+		addEventLabel: { type: String, default: () => t('nextcloud-vue', 'Add meeting') },
+		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing') },
 		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink') },
-		/** Empty-state label. */
+		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete meeting') },
 		noEventsLabel: { type: String, default: () => t('nextcloud-vue', 'No meetings linked yet') },
-		/** Fallback when a VEVENT has no summary. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', '(no title)') },
-		/** Upcoming group title. */
 		upcomingLabel: { type: String, default: () => t('nextcloud-vue', 'Upcoming') },
-		/** Past group title. */
 		pastLabel: { type: String, default: () => t('nextcloud-vue', 'Past') },
-		/** 503 graceful-degradation banner copy. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'Nextcloud Calendar is currently unavailable.') },
 	},
 
-	emits: ['linked', 'unlinked'],
+	emits: ['linked', 'unlinked', 'deleted'],
 
 	data() {
 		return {
 			events: [],
 			loading: false,
-			saving: false,
 			error: '',
 			degraded: false,
-			unlinkingKey: null,
-			newEventSummary: '',
-			newEventStart: null,
-			newEventLocation: '',
+			rowBusyKey: null,
+			showPicker: false,
+			showCreate: false,
 		}
 	},
 
@@ -268,26 +272,22 @@ export default {
 	},
 
 	methods: {
-		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		baseObjectUrl() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}`
 		},
 
 		rowKey(ev) {
-			if (ev.calendarId && ev.id) {
-				return `${ev.calendarId}/${ev.id}`
-			}
-			return ev.id || ev.uid || ''
+			// Prefer eventUid (Tier-2 stable identifier across calendars).
+			return ev.uid || ev.id || ''
 		},
 
 		async fetchEvents() {
-			if (!this.register || !this.schema || !this.objectId) {
-				return
-			}
+			if (!this.register || !this.schema || !this.objectId) return
 			this.loading = true
 			this.error = ''
 			this.degraded = false
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(`${this.baseObjectUrl()}/events`, { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.events = data.results || data.items || (Array.isArray(data) ? data : []) || []
@@ -308,82 +308,63 @@ export default {
 			}
 		},
 
-		async addEvent() {
-			if (!this.newEventSummary.trim() || !this.register || !this.schema || !this.objectId) {
-				return
-			}
-			this.saving = true
+		openCreate() {
+			this.showCreate = true
+		},
+		closeCreate() {
+			this.showCreate = false
+		},
+		async onEventCreated() {
+			this.closeCreate()
+			await this.fetchEvents()
+			this.$emit('linked')
+		},
+
+		openPicker() {
+			this.showPicker = true
+		},
+		closePicker() {
+			this.showPicker = false
+		},
+		async onPickerLink(payload) {
+			// payload: { calendarUri, eventUid }
+			this.closePicker()
 			this.error = ''
 			try {
-				const payload = { summary: this.newEventSummary.trim() }
-				if (this.newEventStart) {
-					const start = new Date(this.newEventStart)
-					if (!Number.isNaN(start.getTime())) {
-						payload.dtstart = start.toISOString()
-						// Default duration: 30 minutes.
-						const end = new Date(start.getTime() + (30 * 60 * 1000))
-						payload.dtend = end.toISOString()
-					}
-				}
-				if (this.newEventLocation.trim()) {
-					payload.location = this.newEventLocation.trim()
-				}
-				// The CalendarProvider does not implement create() — POST
-				// the new VEVENT to the dedicated CalendarEventsController
-				// endpoint, which is what consuming apps already use.
-				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`,
-					{
-						method: 'POST',
-						headers: buildHeaders(),
-						body: JSON.stringify(payload),
-					},
-				)
+				const response = await fetch(`${this.baseObjectUrl()}/events/link`, {
+					method: 'POST',
+					headers: buildHeaders(),
+					body: JSON.stringify(payload),
+				})
 				if (response.ok) {
-					this.clearForm()
 					await this.fetchEvents()
-					/** @event linked Emitted after a new VEVENT is created and linked. */
-					this.$emit('linked')
-				} else if (response.status === 503) {
-					this.degraded = true
+					this.$emit('linked', payload)
 				} else {
-					let message = t('nextcloud-vue', 'Could not create the meeting.')
+					let message = t('nextcloud-vue', 'Could not link the meeting.')
 					try {
 						const body = await response.json()
-						if (body && typeof body.error === 'string' && body.error.length > 0) {
-							message = body.error
-						}
-					} catch (_) { /* ignore parse errors */ }
+						if (body && typeof body.error === 'string') message = body.error
+					} catch (_) { /* ignore */ }
 					this.error = message
 				}
 			} catch (err) {
 				// eslint-disable-next-line no-console
-				console.error('[CnCalendarTab] failed to create event', err)
-				this.error = t('nextcloud-vue', 'Could not create the meeting.')
-			} finally {
-				this.saving = false
+				console.error('[CnCalendarTab] failed to link event', err)
+				this.error = t('nextcloud-vue', 'Could not link the meeting.')
 			}
-		},
-
-		clearForm() {
-			this.newEventSummary = ''
-			this.newEventStart = null
-			this.newEventLocation = ''
 		},
 
 		async unlink(ev) {
 			const key = this.rowKey(ev)
-			if (this.unlinkingKey || !key) {
-				return
-			}
-			this.unlinkingKey = key
+			if (this.rowBusyKey || !key) return
+			this.rowBusyKey = key
 			this.error = ''
 			try {
-				const url = `${this.baseUrl()}/${encodeURI(key)}`
+				// Tier-2 unlink-only endpoint: DELETE /events/{eventUid}/link
+				const url = `${this.baseObjectUrl()}/events/${encodeURIComponent(key)}/link`
 				const response = await fetch(url, { method: 'DELETE', headers: buildHeaders() })
 				if (response.ok || response.status === 204) {
 					this.events = this.events.filter((row) => this.rowKey(row) !== key)
-					/** @event unlinked Emitted after a row is unlinked. Payload: the row's composite id. */
 					this.$emit('unlinked', key)
 				} else if (response.status === 503) {
 					this.degraded = true
@@ -395,21 +376,41 @@ export default {
 				console.error('[CnCalendarTab] failed to unlink event', err)
 				this.error = t('nextcloud-vue', 'Could not unlink the meeting.')
 			} finally {
-				this.unlinkingKey = null
+				this.rowBusyKey = null
+			}
+		},
+
+		async deleteEvent(ev) {
+			const key = this.rowKey(ev)
+			const eventUri = ev.id
+			if (this.rowBusyKey || !eventUri) return
+			this.rowBusyKey = key
+			this.error = ''
+			try {
+				// Legacy destroy endpoint — destroys the VEVENT and cleans the link row.
+				const url = `${this.baseObjectUrl()}/events/${encodeURIComponent(eventUri)}`
+				const response = await fetch(url, { method: 'DELETE', headers: buildHeaders() })
+				if (response.ok || response.status === 204) {
+					this.events = this.events.filter((row) => this.rowKey(row) !== key)
+					this.$emit('deleted', key)
+				} else {
+					this.error = t('nextcloud-vue', 'Could not delete the meeting.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCalendarTab] failed to delete event', err)
+				this.error = t('nextcloud-vue', 'Could not delete the meeting.')
+			} finally {
+				this.rowBusyKey = null
 			}
 		},
 
 		formatWhen(ev) {
-			if (!ev.dtstart) {
-				return ''
-			}
+			if (!ev.dtstart) return ''
 			try {
 				const start = new Date(ev.dtstart)
-				if (Number.isNaN(start.getTime())) {
-					return String(ev.dtstart)
-				}
-				const opts = { dateStyle: 'medium', timeStyle: 'short' }
-				return start.toLocaleString(undefined, opts)
+				if (Number.isNaN(start.getTime())) return String(ev.dtstart)
+				return start.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 			} catch (_) {
 				return String(ev.dtstart)
 			}
@@ -424,25 +425,10 @@ export default {
 	overflow-x: hidden;
 }
 
-.cn-calendar-tab__section {
-	margin-bottom: 12px;
-}
-
 .cn-calendar-tab__action-row {
 	display: flex;
 	gap: 8px;
-	align-items: flex-end;
-	margin-bottom: 8px;
-}
-
-.cn-calendar-tab__grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-}
-
-.cn-calendar-tab__grid > * {
-	min-width: 0;
+	margin-bottom: 12px;
 }
 
 .cn-calendar-tab__banner {

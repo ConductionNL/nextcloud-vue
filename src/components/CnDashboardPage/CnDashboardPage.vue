@@ -113,7 +113,9 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
@@ -139,29 +141,63 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
+						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
+							<NcActions
+								:force-menu="true"
+								:open.sync="openChipPicker[item.widgetId]"
+								container="body"
+								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
+								class="cn-dashboard-page__date-chip-trigger">
+								<template #icon>
+									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
+										{{ formatChartDateRange(item) }}
+									</span>
+								</template>
+								<NcActionButton
+									v-for="preset in effectivePresets"
+									:key="preset.value"
+									:close-after-click="true"
+									@click="onChipPresetPick(preset, item)">
+									<template #icon>
+										<CalendarRange v-if="currentRange.preset === preset.value" :size="16" />
+										<span v-else class="cn-dashboard-page__date-chip-preset-spacer" />
+									</template>
+									{{ preset.label }}
+								</NcActionButton>
+								<NcActionSeparator />
+								<NcActionInput
+									type="date"
+									:value="currentRange.from"
+									:label="t('nextcloud-vue', 'From')"
+									@input="onChipDateInput('from', $event)" />
+								<NcActionInput
+									type="date"
+									:value="currentRange.to"
+									:label="t('nextcloud-vue', 'To')"
+									@input="onChipDateInput('to', $event)" />
+							</NcActions>
+						</template>
 						<CnChartWidget
 							v-bind="getChartProps(item)"
 							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
 
-				<!-- Stats-block widget — manifest-driven CnStatsBlock with
-				     a GraphQL-resolved count via `dataSource`. -->
+				<!-- Stats-block widget — manifest-driven CnStatsBlock with a
+				     GraphQL-resolved count via `dataSource`. Rendered WITHOUT
+				     CnWidgetWrapper: CnStatsBlock already supplies title +
+				     bordered card chrome + count layout, so wrapping it
+				     produced a double-card visual (outer + inner titles, two
+				     bordered boxes). The action menu lives on the page-level
+				     dashboard chrome instead. -->
 				<template v-else-if="isStatsBlock(item)">
-					<CnWidgetWrapper
+					<CnStatsBlockWidget
+						v-bind="getStatsBlockProps(item)"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
-						:flush="item.flush === true"
-						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
-						<CnStatsBlockWidget
-							v-bind="getStatsBlockProps(item)"
-							:data-source="getWidgetDataSource(item)" />
-					</CnWidgetWrapper>
+						:data-source="getWidgetDataSource(item)" />
 				</template>
 
 				<!-- Integration widget — resolved from the pluggable
@@ -177,7 +213,9 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<component
 							:is="resolveIntegrationWidget(item)"
 							v-if="resolveIntegrationWidget(item)"
@@ -196,7 +234,9 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
+						:style-config="item.styleConfig || {}"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
 							:widget="getWidgetDef(item.widgetId)"
 							:unavailable-text="unavailableLabel" />
@@ -220,9 +260,18 @@
 <script>
 import { provide, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import {
+	NcActions,
+	NcActionButton,
+	NcActionInput,
+	NcActionSeparator,
+	NcButton,
+	NcEmptyContent,
+	NcLoadingIcon,
+} from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
@@ -330,11 +379,16 @@ export default {
 	name: 'CnDashboardPage',
 
 	components: {
+		NcActions,
+		NcActionButton,
+		NcActionInput,
+		NcActionSeparator,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
 		Pencil,
 		Check,
+		CalendarRange,
 		ViewDashboardOutline,
 		CnDashboardGrid,
 		CnWidgetWrapper,
@@ -557,6 +611,23 @@ export default {
 			 * @type {{ from: string, to: string, preset: string }|null}
 			 */
 			currentRange: null,
+			/**
+			 * Per-widget open/close state for the in-chart date-range
+			 * popover. Keyed by widgetId so each chart widget's chip
+			 * tracks its own NcActions open state independently. Vue 2
+			 * reactivity caveat — entries are created lazily via
+			 * Vue.set when needed.
+			 *
+			 * @type {Record<string, boolean>}
+			 */
+			openChipPicker: {},
+			/**
+			 * Pre-translated tooltip for the chart-widget date-range
+			 * chip — kept as a data field rather than a computed so the
+			 * lib's `translate` is evaluated once at component creation
+			 * and not on every render.
+			 */
+			dateChipTitle: t('nextcloud-vue', 'Change date range'),
 		}
 	},
 
@@ -635,6 +706,116 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Forward a widget's `@refresh` from CnWidgetWrapper to the
+		 * dashboard host. The host wires this to its data-fetching layer
+		 * (e.g. re-fetching the GraphQL aggregate for a chart). Payload
+		 * is the layout item so consumers can route by widget id.
+		 *
+		 * @param {object} item Layout item descriptor.
+		 * @return {void}
+		 */
+		onWidgetRefresh(item) {
+			/**
+			 * @event widget-refresh User clicked Refresh in a widget's
+			 * overflow action menu. Payload: the layout item descriptor.
+			 */
+			this.$emit('widget-refresh', item)
+		},
+
+		/**
+		 * Forward a widget's `@request-feature` from CnWidgetWrapper to
+		 * the dashboard host. The host decides where to send the user
+		 * (typically an issue tracker).
+		 *
+		 * @param {object} item Layout item descriptor.
+		 * @return {void}
+		 */
+		onWidgetRequestFeature(item) {
+			/**
+			 * @event widget-request-feature User clicked Request a
+			 * feature in a widget's overflow action menu. Payload: the
+			 * layout item descriptor.
+			 */
+			this.$emit('widget-request-feature', item)
+		},
+
+		/**
+		 * Format a chart widget's bucket date range as a short readable
+		 * chip, rendered inside CnWidgetWrapper's `#title-meta` slot.
+		 * Returns null when the bucket has neither a `staticRange` nor
+		 * resolved `from`/`to` via the reactive dashboard `dateRange`
+		 * provide (in which case the chip simply doesn't render).
+		 *
+		 * @param {object} item Layout item descriptor with chart shorthand.
+		 * @return {string|null} `"2026-05-18 → 2026-05-25"` or null.
+		 */
+		formatChartDateRange(item) {
+			const ds = this.getWidgetDataSource(item) || {}
+			const bucket = ds.bucket || {}
+			// 1. Bucket-level staticRange wins (explicit per-widget freeze).
+			const sr = bucket.staticRange || {}
+			let from = sr.from || null
+			let to = sr.to || null
+			// 2. Fall back to the dashboard-level reactive dateRange when
+			//    the bucket uses fromVar/toVar shorthand. Vue 2.7's setup
+			//    auto-unwraps refs when accessed via `this`, so
+			//    `this.dashboardDateRange` IS the current value (not the
+			//    ref). Assignments in setRange() / initial-range
+			//    methods write through to the ref's `.value` automatically.
+			if ((!from || !to) && this.dashboardDateRange) {
+				const rng = this.dashboardDateRange
+				if (bucket.fromVar && rng[bucket.fromVar]) from = from || rng[bucket.fromVar]
+				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
+			}
+			if (!from && !to) return null
+			const fmt = (v) => typeof v === 'string' ? v.slice(0, 10) : ''
+			return `${fmt(from)}${from && to ? ' → ' : ''}${fmt(to)}`
+		},
+
+		/**
+		 * Handle a preset pick from the in-chip date-range popover. The
+		 * popover renders the same preset list the global picker uses
+		 * (effectivePresets). On click we resolve the preset to a from/to
+		 * window, build a `{ from, to, preset }` value, and forward to the
+		 * existing `onDateRangeChange` — same handler the top picker uses.
+		 * Effect: the chip is a per-chart shortcut to the dashboard-wide
+		 * range, not a per-widget override.
+		 *
+		 * @param {{ label: string, value: string }} preset Preset descriptor.
+		 * @param {object} _item Layout item (unused — included so the
+		 *   binding shape matches the template's @click signature).
+		 * @return {void}
+		 */
+		onChipPresetPick(preset, _item) {
+			if (!preset || !preset.value) return
+			if (preset.value === 'custom') return
+			const win = resolvePresetWindow(preset.value, this.effectivePresets)
+			if (!win) return
+			this.onDateRangeChange({ ...win, preset: preset.value })
+		},
+
+		/**
+		 * Handle a manual date-input change inside the in-chip popover.
+		 * Forwards the new `{ from, to, preset: 'custom' }` to the
+		 * existing `onDateRangeChange`. When the other side is empty
+		 * we still emit — the picker validates / surfaces issues
+		 * downstream (matches the top-level picker behaviour).
+		 *
+		 * @param {'from'|'to'} field The half being edited.
+		 * @param {string} value ISO `YYYY-MM-DD` string from `<input type="date">`.
+		 * @return {void}
+		 */
+		onChipDateInput(field, value) {
+			const next = {
+				from: this.currentRange?.from || '',
+				to: this.currentRange?.to || '',
+				preset: 'custom',
+			}
+			if (typeof value === 'string') next[field] = value
+			this.onDateRangeChange(next)
+		},
+
 		/**
 		 * Push pageKind = 'dashboard' into the reactive cnAiContext.
 		 * registerSlug/schemaSlug are populated when the dashboard page
@@ -1009,6 +1190,53 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Date-range chip rendered in a chart widget's title bar via the
+   CnWidgetWrapper `#title-meta` slot. Wrapped in an NcActions trigger
+   so clicking opens a popover with preset + from/to inputs — same
+   controls as the global picker, just inline at the chart. */
+.cn-dashboard-page__date-chip-trigger {
+	/* Eat the default NcActions trigger button styling so the only
+	   visible chrome is the chip span itself. */
+	display: inline-flex;
+}
+
+.cn-dashboard-page__date-chip-trigger :deep(.action-item__menutoggle) {
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	border: none;
+}
+
+.cn-dashboard-page__date-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 100ms ease;
+}
+
+.cn-dashboard-page__date-chip-trigger:hover .cn-dashboard-page__date-chip,
+.cn-dashboard-page__date-chip-trigger:focus-within .cn-dashboard-page__date-chip {
+	background: var(--color-primary-element-light, var(--color-background-darker));
+	color: var(--color-main-text);
+}
+
+/* Empty span used to keep preset NcActionButtons' label aligned with
+   the row that shows the current-selection CalendarRange icon. NcActionButton
+   icon slot is roughly 20px wide. */
+.cn-dashboard-page__date-chip-preset-spacer {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
 }
 
 .cn-dashboard-page__header-actions {

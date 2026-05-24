@@ -12,26 +12,44 @@
   - Clicking a contact opens the reverse-lookup flyout (AD-3) listing every
   - OR object linked to that vCard.
   -
+  - Tier-2 (this revision): the tab now hosts two header actions — "Link
+  - existing contact" (opens `CnContactPicker`) and "Add new contact"
+  - (opens `CnContactCreate`). Both dialogs are loaded lazily via
+  - dynamic import to keep the bundle below the integration-tab
+  - threshold, and both delegate the actual API call back to this tab
+  - so the loading + refresh handshake stays here.
+  -
   - Backed by:
   -   GET    /api/objects/{register}/{schema}/{id}/integrations/contacts
-  -   POST   /api/objects/{register}/{schema}/{id}/integrations/contacts
-  -   DELETE /api/objects/{register}/{schema}/{id}/integrations/contacts/{linkId}
+  -   POST   /api/objects/{register}/{schema}/{id}/integrations/contacts        — link existing
+  -   POST   /api/objects/{register}/{schema}/{id}/integrations/contacts/new    — create + link
+  -   DELETE /api/objects/{register}/{schema}/{id}/integrations/contacts/{uid}  — unlink
   -
   - The payload shape mirrors `ContactLink::jsonSerialize()` —
-  - `{id, contactUid, displayName, email, role, addressbookId, contactUri, linkedAt}`.
+  - `{id, contactUid, displayName, email, phone, org, avatarUrl, role,
+  -   addressbookId, contactUri, schemaId, metadata, linkedAt}`.
   -
-  - @spec openspec/changes/integration-contacts/specs/integrations/contacts/spec.md
+  - @spec openspec/changes/integration-contacts-tier2/specs/integrations/contacts/spec.md
   -->
 <template>
 	<div class="cn-contacts-tab">
 		<!-- Header actions: link existing / create new -->
 		<div class="cn-contacts-tab__header">
 			<NcButton
+				type="secondary"
+				:aria-label="addNewLabel"
+				@click="showCreateDialog = true">
+				<template #icon>
+					<AccountPlus :size="20" />
+				</template>
+				{{ addNewLabel }}
+			</NcButton>
+			<NcButton
 				type="primary"
 				:aria-label="linkExistingLabel"
 				@click="showLinkDialog = true">
 				<template #icon>
-					<AccountPlus :size="20" />
+					<LinkVariant :size="20" />
 				</template>
 				{{ linkExistingLabel }}
 			</NcButton>
@@ -77,7 +95,12 @@
 						class="cn-contacts-tab__item"
 						@click="openReverseLookup(contact)">
 						<div class="cn-contacts-tab__avatar" :title="contact.displayName || ''">
-							{{ initialsFor(contact) }}
+							<img
+								v-if="contact.avatarUrl"
+								:src="contact.avatarUrl"
+								:alt="contact.displayName || ''"
+								@error="contact.avatarUrl = null">
+							<span v-else>{{ initialsFor(contact) }}</span>
 						</div>
 						<div class="cn-contacts-tab__details">
 							<div class="cn-contacts-tab__name">
@@ -102,6 +125,20 @@
 				</ul>
 			</section>
 		</div>
+
+		<!-- Link existing contact dialog -->
+		<CnContactPicker
+			v-if="showLinkDialog"
+			:api-base="apiBase"
+			@link="onPickerLink"
+			@close="showLinkDialog = false" />
+
+		<!-- Create new contact dialog -->
+		<CnContactCreate
+			v-if="showCreateDialog"
+			:loading="createLoading"
+			@create="onCreateSubmit"
+			@close="showCreateDialog = false" />
 	</div>
 </template>
 
@@ -112,7 +149,10 @@ import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 
+import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
+import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -149,6 +189,9 @@ export default {
 		AccountMultipleOutline,
 		AlertCircleOutline,
 		Close,
+		LinkVariant,
+		CnContactPicker,
+		CnContactCreate,
 	},
 
 	props: {
@@ -159,6 +202,7 @@ export default {
 
 		// --- Pre-translated labels (consumer-overridable for i18n flexibility) ---
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
+		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
 		emptyDescriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Link a contact from your address book.') },
 		errorLabel: { type: String, default: () => t('nextcloud-vue', 'Could not load contacts') },
@@ -178,6 +222,8 @@ export default {
 			loading: false,
 			error: null,
 			showLinkDialog: false,
+			showCreateDialog: false,
+			createLoading: false,
 		}
 	},
 
@@ -224,6 +270,10 @@ export default {
 				}
 			}
 			return out
+		},
+
+		baseUrl() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/contacts`
 		},
 	},
 
@@ -275,8 +325,7 @@ export default {
 			this.loading = true
 			this.error = null
 			try {
-				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/contacts`
-				const response = await fetch(url, { headers: buildHeaders() })
+				const response = await fetch(this.baseUrl, { headers: buildHeaders() })
 				if (!response.ok) {
 					this.error = `${response.status} ${response.statusText}`
 					this.contacts = []
@@ -323,13 +372,74 @@ export default {
 		},
 
 		async unlink(contact) {
-			if (!contact?.id) return
+			if (!contact?.contactUid) return
 			try {
-				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/contacts/${encodeURIComponent(contact.id)}`
+				const url = `${this.baseUrl}/${encodeURIComponent(contact.contactUid)}`
 				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
 				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
 			} catch (err) {
 				console.error('CnContactsTab: Failed to unlink contact', err)
+			}
+		},
+
+		/**
+		 * Handle a `link` event from CnContactPicker — POST the picked
+		 * contact to the bare `/contacts` endpoint, then refresh.
+		 *
+		 * @param {object} payload picker payload
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onPickerLink(payload) {
+			try {
+				const response = await fetch(this.baseUrl, {
+					method: 'POST',
+					headers: {
+						...buildHeaders(),
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(payload),
+				})
+				if (!response.ok) {
+					console.error('CnContactsTab: Failed to link picked contact', response.status)
+					return
+				}
+				this.showLinkDialog = false
+				await this.fetchContacts()
+			} catch (err) {
+				console.error('CnContactsTab: Failed to link picked contact', err)
+			}
+		},
+
+		/**
+		 * Handle a `create` event from CnContactCreate — POST the form
+		 * payload to the dedicated `/contacts/new` endpoint.
+		 *
+		 * @param {object} payload form payload
+		 *
+		 * @return {Promise<void>}
+		 */
+		async onCreateSubmit(payload) {
+			this.createLoading = true
+			try {
+				const response = await fetch(`${this.baseUrl}/new`, {
+					method: 'POST',
+					headers: {
+						...buildHeaders(),
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(payload),
+				})
+				if (!response.ok) {
+					console.error('CnContactsTab: Failed to create+link contact', response.status)
+					return
+				}
+				this.showCreateDialog = false
+				await this.fetchContacts()
+			} catch (err) {
+				console.error('CnContactsTab: Failed to create+link contact', err)
+			} finally {
+				this.createLoading = false
 			}
 		},
 	},
@@ -345,7 +455,9 @@ export default {
 .cn-contacts-tab__header {
 	display: flex;
 	justify-content: flex-end;
+	gap: 8px;
 	margin-bottom: 12px;
+	flex-wrap: wrap;
 }
 
 .cn-contacts-tab__group {
@@ -402,6 +514,13 @@ export default {
 	font-weight: 600;
 	font-size: 13px;
 	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.cn-contacts-tab__avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
 .cn-contacts-tab__details {

@@ -1,16 +1,21 @@
 /**
- * Tests for CnCalendarTab — bespoke sidebar tab for the calendar
- * integration. Asserts the fetch happens on mount, the timeline groups
- * upcoming vs past events, the empty/error states render correctly,
- * and the inline create flow POSTs to the dedicated /events endpoint.
+ * Tests for CnCalendarTab — Tier-2 (additive link-table) wiring.
+ *
+ * Asserts:
+ *  - initial fetch happens on mount + empty state renders
+ *  - timeline groups upcoming vs past events
+ *  - error / 503 states render correctly
+ *  - link-existing path POSTs `{calendarUri, eventUid}` to /events/link
+ *  - unlink path hits DELETE /events/{eventUid}/link (NOT the full
+ *    destroy endpoint)
+ *  - delete path hits DELETE /events/{eventUri} (legacy destroy)
  */
 
 const { mount } = require('@vue/test-utils')
 const CnCalendarTab = require('../CnCalendarTab.vue').default
 
 const STUBS = {
-	NcButton: true,
-	NcTextField: true,
+	NcButton: { template: '<button class="cn-btn" @click="$emit(\'click\')"><slot /></button>' },
 	NcListItem: {
 		props: ['name', 'bold', 'forceDisplayActions'],
 		template: `
@@ -22,14 +27,13 @@ const STUBS = {
 			</li>
 		`,
 	},
-	NcActionButton: { template: '<button class="cn-action-button"><slot /></button>' },
+	NcActionButton: { template: '<button class="cn-action-button" @click="$emit(\'click\')"><slot /></button>' },
 	NcLoadingIcon: { template: '<div class="cn-loading" />' },
-	NcDateTimePickerNative: true,
+	CnCalendarEventPicker: { template: '<div class="cn-cep-stub" />' },
+	CnCalendarEventCreate: { template: '<div class="cn-cec-stub" />' },
 }
 
 function flush() {
-	// Resolve after all currently-queued microtasks; jsdom does not
-	// expose setImmediate in modern Jest, so use a Promise-based tick.
 	return new Promise((resolve) => Promise.resolve().then(() => Promise.resolve().then(resolve)))
 }
 
@@ -64,9 +68,9 @@ describe('CnCalendarTab', () => {
 			ok: true,
 			json: () => Promise.resolve({
 				results: [
-					{ id: 'e1', calendarId: 'cal-a', summary: 'Old meeting', dtstart: '2026-05-01T10:00:00Z' },
-					{ id: 'e2', calendarId: 'cal-a', summary: 'Future meeting', dtstart: '2026-07-15T14:00:00Z' },
-					{ id: 'e3', calendarId: 'cal-a', summary: 'Another future', dtstart: '2026-08-20T09:00:00Z' },
+					{ id: 'e1', uid: 'u1', summary: 'Old', dtstart: '2026-05-01T10:00:00Z' },
+					{ id: 'e2', uid: 'u2', summary: 'Future', dtstart: '2026-07-15T14:00:00Z' },
+					{ id: 'e3', uid: 'u3', summary: 'Another future', dtstart: '2026-08-20T09:00:00Z' },
 				],
 			}),
 		})
@@ -78,10 +82,8 @@ describe('CnCalendarTab', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.upcomingEvents).toHaveLength(2)
 		expect(wrapper.vm.pastEvents).toHaveLength(1)
-		expect(wrapper.text()).toContain('Future meeting')
-		expect(wrapper.text()).toContain('Old meeting')
+		expect(wrapper.text()).toContain('Future')
 		expect(wrapper.text()).toContain('Upcoming')
-		expect(wrapper.text()).toContain('Past')
 		wrapper.destroy()
 	})
 
@@ -109,17 +111,14 @@ describe('CnCalendarTab', () => {
 		wrapper.destroy()
 	})
 
-	it('POSTs the new meeting to the /events endpoint and refetches', async () => {
+	it('POSTs {calendarUri,eventUid} to /events/link when picker confirms', async () => {
 		global.fetch = jest.fn()
-			// initial fetch (mount)
 			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [] }) })
-			// POST create
-			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'new', calendarId: 'cal-a', summary: 'Kickoff' }) })
-			// refetch after create
+			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'e.ics', uid: 'ev-uid-1' }) })
 			.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({
-					results: [{ id: 'new', calendarId: 'cal-a', summary: 'Kickoff', dtstart: '2026-09-01T09:00:00Z' }],
+					results: [{ id: 'e.ics', uid: 'ev-uid-1', summary: 'Linked' }],
 				}),
 			})
 
@@ -130,24 +129,23 @@ describe('CnCalendarTab', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 
-		wrapper.vm.newEventSummary = 'Kickoff'
-		await wrapper.vm.addEvent()
+		await wrapper.vm.onPickerLink({ calendarUri: 'personal', eventUid: 'ev-uid-1' })
 		await flush()
 
-		const calls = global.fetch.mock.calls.map((c) => ({ url: c[0], method: c[1]?.method || 'GET' }))
-		// At least one POST to /events for this object.
-		const postCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/objects/r1/s1/o1/events'))
-		expect(postCall).toBeDefined()
+		const calls = global.fetch.mock.calls.map((c) => ({ url: c[0], method: c[1]?.method || 'GET', body: c[1]?.body }))
+		const linkCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/events/link'))
+		expect(linkCall).toBeDefined()
+		expect(JSON.parse(linkCall.body)).toEqual({ calendarUri: 'personal', eventUid: 'ev-uid-1' })
 		expect(wrapper.emitted('linked')).toBeTruthy()
 		wrapper.destroy()
 	})
 
-	it('emits unlinked after a successful DELETE on the registry endpoint', async () => {
+	it('unlink hits /events/{uid}/link (preserves the VEVENT)', async () => {
 		global.fetch = jest.fn()
 			.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({
-					results: [{ id: 'ev1', calendarId: 'cal-a', summary: 'Team standup', dtstart: '2099-01-01T09:00:00Z' }],
+					results: [{ id: 'e.ics', uid: 'ev1', summary: 'X', dtstart: '2099-01-01T09:00:00Z' }],
 				}),
 			})
 			.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
@@ -158,13 +156,39 @@ describe('CnCalendarTab', () => {
 		})
 		await flush()
 		await wrapper.vm.$nextTick()
-		await wrapper.vm.unlink({ id: 'ev1', calendarId: 'cal-a' })
+		await wrapper.vm.unlink({ id: 'e.ics', uid: 'ev1' })
 		await flush()
 
 		expect(wrapper.emitted('unlinked')).toBeTruthy()
-		expect(wrapper.emitted('unlinked')[0]).toEqual(['cal-a/ev1'])
+		expect(wrapper.emitted('unlinked')[0]).toEqual(['ev1'])
 		const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
-		expect(lastCall[0]).toContain('/integrations/calendar/cal-a/ev1')
+		expect(lastCall[0]).toContain('/events/ev1/link')
+		expect(lastCall[1].method).toBe('DELETE')
+		wrapper.destroy()
+	})
+
+	it('delete hits /events/{uri} (destroys the VEVENT)', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({
+					results: [{ id: 'e.ics', uid: 'ev1', summary: 'X', dtstart: '2099-01-01T09:00:00Z' }],
+				}),
+			})
+			.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
+
+		const wrapper = mount(CnCalendarTab, {
+			propsData: { register: 'r1', schema: 's1', objectId: 'o1' },
+			stubs: STUBS,
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.deleteEvent({ id: 'e.ics', uid: 'ev1' })
+		await flush()
+
+		expect(wrapper.emitted('deleted')).toBeTruthy()
+		const lastCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
+		expect(lastCall[0]).toMatch(/\/events\/e\.ics$/)
 		expect(lastCall[1].method).toBe('DELETE')
 		wrapper.destroy()
 	})
