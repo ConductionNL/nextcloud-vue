@@ -1,10 +1,17 @@
 <template>
 	<NcDialog
 		:name="dialogTitle"
-		size="normal"
+		size="large"
 		:can-close="true"
 		@closing="$emit('close')">
 		<div class="cn-suggest-feature-modal" data-testid="cn-modal" data-testid-modal="cn-suggest-feature-modal">
+			<NcNoteCard type="info" class="cn-suggest-feature-modal__intro">
+				<strong>{{ introTitle }}</strong>
+				<p class="cn-suggest-feature-modal__intro-body">
+					{{ introBody }}
+				</p>
+			</NcNoteCard>
+
 			<NcTextField
 				v-model="form.title"
 				:label="titleLabel"
@@ -14,21 +21,46 @@
 				required />
 
 			<NcTextArea
-				v-model="form.body"
-				:label="bodyLabel"
-				:maxlength="10000"
-				:error="bodyError !== ''"
-				:helper-text="bodyError || bodyHelper"
+				v-model="form.problem"
+				:label="problemLabel"
+				:maxlength="4000"
+				:error="problemError !== ''"
+				:helper-text="problemError || problemHelper"
 				required
-				:rows="6" />
+				:rows="4" />
 
-			<div class="cn-suggest-feature-modal__preview-toggle">
-				<NcCheckboxRadioSwitch :checked.sync="showPreview" type="switch">
-					{{ previewLabel }}
-				</NcCheckboxRadioSwitch>
-			</div>
+			<NcTextArea
+				v-model="form.proposedSolution"
+				:label="proposedSolutionLabel"
+				:maxlength="4000"
+				:error="proposedSolutionError !== ''"
+				:helper-text="proposedSolutionError || proposedSolutionHelper"
+				required
+				:rows="4" />
 
-			<div v-if="showPreview" class="cn-suggest-feature-modal__preview" v-html="sanitizedPreview" />
+			<NcTextArea
+				v-model="form.whoBenefits"
+				:label="whoBenefitsLabel"
+				:maxlength="2000"
+				:error="whoBenefitsError !== ''"
+				:helper-text="whoBenefitsError || whoBenefitsHelper"
+				required
+				:rows="3" />
+
+			<NcSelect
+				v-model="form.priorityToYou"
+				:label="priorityLabel"
+				:options="priorityOptions"
+				:input-label="priorityLabel"
+				:placeholder="priorityHelper"
+				:clearable="false" />
+
+			<NcTextArea
+				v-model="form.anythingElse"
+				:label="anythingElseLabel"
+				:maxlength="4000"
+				:helper-text="anythingElseHelper"
+				:rows="3" />
 
 			<NcNoteCard type="info" class="cn-suggest-feature-modal__github-info">
 				<strong>{{ githubInfoTitle }}</strong>
@@ -66,40 +98,39 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * SuggestFeatureModal — feature-request submission dialog. Offers two
- * submission paths:
+ * SuggestFeatureModal — proposal-grade feature-request dialog. Five
+ * structured user-written fields (`title`, `problem`, `proposedSolution`,
+ * `whoBenefits`, `priorityToYou`) plus one optional context field
+ * (`anythingElse`), mirroring the canonical
+ * `.github/ISSUE_TEMPLATE/feature-request.yml` Issue Form. Each field's
+ * answer flows directly into the OpenSpec proposal that gets scaffolded
+ * once a maintainer applies the `ready-to-build` label.
+ *
+ * Two submission paths:
  *
  *   - **Submit on GitHub (primary)**: builds a deep-link URL to the
- *     consuming repo's `feature-request.yml` Issue Form with the title
- *     pre-filled in the form's `title` field, the body pre-filled in
- *     the form's first textarea (`problem`), and any auto-detected
- *     context (`app`, `page`, `surface`, `object`, `spec-ref`)
- *     pre-filled in their matching form fields. Opens in a new tab.
- *     User reviews + submits on github.com under their own account.
- *     No server-side GitHub configuration needed — this is a pure
- *     client-side hand-off.
+ *     consuming repo's Issue Form with every structured field + the
+ *     auto-detected context (`app`, `page`, `surface`, `object`,
+ *     `spec-ref`) pre-filled. Opens in a new tab; user reviews +
+ *     submits on github.com under their own account. No app PAT, no
+ *     proxy, no server-side write path.
  *
  *   - **Send to Conduction (secondary)**: emits `submit-conduction`
- *     with the form payload + context for the parent to handle (Path
- *     B per the user-feedback flywheel strategy). Disabled unless the
- *     parent opts in via `conduction-submit-enabled`. Parents that
- *     have wired the Pipelinq Contactmoment intake enable it.
+ *     with the full structured payload. Parent forwards to the Pipelinq
+ *     Contactmoment intake (Path B). Disabled until the parent opts in
+ *     via `conduction-submit-enabled`.
  *
- * Live preview pane uses the same `marked` + `DOMPurify` pipeline as
- * `RoadmapItem`, sharing the exported `SAFE_MARKDOWN_DOMPURIFY_CONFIG`.
+ * Top of dialog: an intro NcNoteCard explaining that better-written
+ * requests have a higher chance of landing on the roadmap. The cue
+ * raises the average quality of submissions without rejecting anything.
  *
  * Spec: features-roadmap-component — Requirement "SuggestFeatureModal".
  */
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcDialog, NcButton, NcTextField, NcTextArea,
-	NcNoteCard, NcCheckboxRadioSwitch,
+	NcDialog, NcButton, NcTextField, NcTextArea, NcSelect, NcNoteCard,
 } from '@nextcloud/vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import DOMPurify from 'dompurify'
-
-import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ISSUE_FORM_TEMPLATE = 'feature-request.yml'
 
@@ -111,8 +142,8 @@ export default {
 		NcButton,
 		NcTextField,
 		NcTextArea,
+		NcSelect,
 		NcNoteCard,
-		NcCheckboxRadioSwitch,
 		OpenInNew,
 	},
 
@@ -137,7 +168,7 @@ export default {
 		},
 		/**
 		 * Optional auto-captured context. Each non-empty value becomes a
-		 * matching query parameter on the deep-link, so GitHub's Issue
+		 * matching query parameter on the deep-link so GitHub's Issue
 		 * Form renders with the field pre-filled. Mirrors the field ids
 		 * declared in `.github/ISSUE_TEMPLATE/feature-request.yml`.
 		 * @type {string}
@@ -178,16 +209,19 @@ export default {
 
 	data() {
 		return {
-			form: { title: '', body: '' },
-			showPreview: false,
+			form: {
+				title: '',
+				problem: '',
+				proposedSolution: '',
+				whoBenefits: '',
+				priorityToYou: '',
+				anythingElse: '',
+			},
 		}
 	},
 
 	computed: {
-		sanitizedPreview() {
-			const html = cnRenderMarkdown(this.form.body)
-			return DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
-		},
+		// ── Field validators ─────────────────────────────────────────
 		titleError() {
 			const len = this.form.title.trim().length
 			if (len === 0) return ''
@@ -195,17 +229,34 @@ export default {
 			if (len > 200) return t('nextcloud-vue', 'Title must be at most 200 characters.')
 			return ''
 		},
-		bodyError() {
-			const len = this.form.body.trim().length
+		problemError() {
+			const len = this.form.problem.trim().length
 			if (len === 0) return ''
-			if (len < 10) return t('nextcloud-vue', 'Body must be at least 10 characters.')
+			if (len < 10) return t('nextcloud-vue', 'Tell us a bit more — at least 10 characters.')
+			return ''
+		},
+		proposedSolutionError() {
+			const len = this.form.proposedSolution.trim().length
+			if (len === 0) return ''
+			if (len < 10) return t('nextcloud-vue', 'Tell us a bit more — at least 10 characters.')
+			return ''
+		},
+		whoBenefitsError() {
+			const len = this.form.whoBenefits.trim().length
+			if (len === 0) return ''
+			if (len < 5) return t('nextcloud-vue', 'Tell us a bit more — at least 5 characters.')
 			return ''
 		},
 		canSubmit() {
 			return this.form.title.trim().length >= 3
 				&& this.form.title.trim().length <= 200
-				&& this.form.body.trim().length >= 10
+				&& this.form.problem.trim().length >= 10
+				&& this.form.proposedSolution.trim().length >= 10
+				&& this.form.whoBenefits.trim().length >= 5
+				&& this.form.priorityToYou !== '' && this.form.priorityToYou !== null
 		},
+
+		// ── Deep-link builder ────────────────────────────────────────
 		/**
 		 * Build the GitHub Issue Form deep-link. Each query parameter
 		 * matches an `id:` from `.github/ISSUE_TEMPLATE/feature-request.yml`.
@@ -216,7 +267,11 @@ export default {
 			const params = new URLSearchParams()
 			params.set('template', ISSUE_FORM_TEMPLATE)
 			params.set('title', `[FEATURE] ${this.form.title.trim()}`)
-			params.set('problem', this.form.body.trim())
+			params.set('problem', this.form.problem.trim())
+			params.set('proposed-solution', this.form.proposedSolution.trim())
+			params.set('who-benefits', this.form.whoBenefits.trim())
+			if (this.priorityValue) params.set('priority-to-you', this.priorityValue)
+			if (this.form.anythingElse.trim()) params.set('context', this.form.anythingElse.trim())
 			if (this.app) params.set('app', this.app)
 			if (this.page) params.set('page', this.page)
 			if (this.surface) params.set('surface', this.surface)
@@ -224,12 +279,49 @@ export default {
 			if (this.specRef) params.set('spec-ref', this.specRef)
 			return `https://github.com/${this.repo}/issues/new?${params.toString()}`
 		},
+		priorityValue() {
+			const v = this.form.priorityToYou
+			if (v === null || v === '') return ''
+			// Handle both raw-string and {label,value} option shapes from NcSelect.
+			return typeof v === 'object' ? (v.label || v.value || '') : v
+		},
+		priorityOptions() {
+			return [
+				t('nextcloud-vue', 'Nice to have'),
+				t('nextcloud-vue', 'Would use weekly'),
+				t('nextcloud-vue', 'Would use daily'),
+				t('nextcloud-vue', 'Blocking me right now'),
+			]
+		},
+
+		// ── Localised labels ─────────────────────────────────────────
 		dialogTitle() { return t('nextcloud-vue', 'Suggest a feature') },
+		introTitle() { return t('nextcloud-vue', 'Help us land this faster.') },
+		introBody() {
+			return t(
+				'nextcloud-vue',
+				'We read every feature request. The clearer the problem and the more concrete the solution, the better the chance we add it to the roadmap and ship it. The fields below mirror the OpenSpec proposal we write internally, so good answers here become a draft proposal directly.',
+			)
+		},
+
 		titleLabel() { return t('nextcloud-vue', 'Title') },
-		titleHelper() { return t('nextcloud-vue', 'A short summary of what you would like built.') },
-		bodyLabel() { return t('nextcloud-vue', 'Description') },
-		bodyHelper() { return t('nextcloud-vue', 'Markdown is supported. The submission opens a pre-filled GitHub issue on the app repository.') },
-		previewLabel() { return t('nextcloud-vue', 'Show markdown preview') },
+		titleHelper() { return t('nextcloud-vue', 'A short summary in one sentence. Example: "Filter contacts by last interaction date".') },
+
+		problemLabel() { return t('nextcloud-vue', 'Problem') },
+		problemHelper() { return t('nextcloud-vue', 'What can you not do today? What is the friction? Write from your own perspective. Required.') },
+
+		proposedSolutionLabel() { return t('nextcloud-vue', 'Proposed solution') },
+		proposedSolutionHelper() { return t('nextcloud-vue', 'How would you like it to work? Sketches, references, examples welcome. "I am not sure" is also a valid answer. Required.') },
+
+		whoBenefitsLabel() { return t('nextcloud-vue', 'Who benefits') },
+		whoBenefitsHelper() { return t('nextcloud-vue', 'Which role or workflow does this serve? Be specific. Required.') },
+
+		priorityLabel() { return t('nextcloud-vue', 'How important is this to you?') },
+		priorityHelper() { return t('nextcloud-vue', 'Honest self-assessment helps us prioritise.') },
+
+		anythingElseLabel() { return t('nextcloud-vue', 'Anything else?') },
+		anythingElseHelper() { return t('nextcloud-vue', 'Edge cases, alternatives you considered, things to avoid, related capabilities. Optional.') },
+
 		cancelLabel() { return t('nextcloud-vue', 'Cancel') },
 		githubSubmitLabel() { return t('nextcloud-vue', 'Continue on GitHub') },
 		conductionSubmitLabel() { return t('nextcloud-vue', 'Send to Conduction') },
@@ -265,14 +357,19 @@ export default {
 			/**
 			 * Emitted when the user picks the Conduction (Path B)
 			 * submission instead of GitHub. Parent must wire the actual
-			 * intake endpoint; the modal just collects + forwards.
+			 * intake endpoint; the modal just collects + forwards. Payload
+			 * mirrors the Issue Form fields 1:1.
 			 *
 			 * @event submit-conduction
-			 * @type {{title: string, body: string, repo: string, specRef: string|null, app: string, page: string, surface: string, object: string}}
+			 * @type {{title: string, problem: string, proposedSolution: string, whoBenefits: string, priorityToYou: string, anythingElse: string, repo: string, specRef: string|null, app: string, page: string, surface: string, object: string}}
 			 */
 			this.$emit('submit-conduction', {
 				title: this.form.title.trim(),
-				body: this.form.body.trim(),
+				problem: this.form.problem.trim(),
+				proposedSolution: this.form.proposedSolution.trim(),
+				whoBenefits: this.form.whoBenefits.trim(),
+				priorityToYou: this.priorityValue,
+				anythingElse: this.form.anythingElse.trim(),
 				repo: this.repo,
 				specRef: this.specRef,
 				app: this.app,
@@ -290,31 +387,16 @@ export default {
 .cn-suggest-feature-modal {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: 16px;
 	padding: 8px 0;
 }
 
-.cn-suggest-feature-modal__preview-toggle {
-	margin-top: 4px;
-}
-
-.cn-suggest-feature-modal__preview {
-	border: 1px solid var(--color-border);
-	border-radius: 4px;
-	padding: 12px;
-	background: var(--color-background-hover);
-	max-height: 240px;
-	overflow-y: auto;
-}
-
-.cn-suggest-feature-modal__preview :deep(p) { margin: 4px 0; }
-.cn-suggest-feature-modal__preview :deep(pre) { background: var(--color-background-dark); padding: 8px; border-radius: 4px; overflow-x: auto; }
-.cn-suggest-feature-modal__preview :deep(code) { background: var(--color-background-dark); padding: 2px 4px; border-radius: 3px; }
-
+.cn-suggest-feature-modal__intro,
 .cn-suggest-feature-modal__github-info {
-	margin-top: 4px;
+	margin: 0;
 }
 
+.cn-suggest-feature-modal__intro-body,
 .cn-suggest-feature-modal__github-info-body {
 	margin: 6px 0 0 0;
 	line-height: 1.45;
