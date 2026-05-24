@@ -11,7 +11,22 @@
   link via the "Link existing" picker (compose UI tracked separately).
 -->
 <template>
-	<div class="cn-sidebar-tab">
+	<div class="cn-sidebar-tab cn-email-tab">
+		<div class="cn-email-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ linkExistingLabel }}
+			</NcButton>
+			<NcButton type="primary" @click="openComposeInMail">
+				<template #icon>
+					<EmailEditOutline :size="18" />
+				</template>
+				{{ composeLabel }}
+			</NcButton>
+		</div>
+
 		<div v-if="loading" class="cn-sidebar-tab__loading">
 			<NcLoadingIcon />
 		</div>
@@ -52,6 +67,12 @@
 			</template>
 			{{ loadMoreLabel }}
 		</NcButton>
+
+		<CnEmailPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
 	</div>
 </template>
 
@@ -59,6 +80,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
+import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -81,6 +105,9 @@ export default {
 		NcListItem,
 		NcLoadingIcon,
 		EmailOutline,
+		EmailEditOutline,
+		LinkVariant,
+		CnEmailPicker,
 	},
 
 	props: {
@@ -104,6 +131,12 @@ export default {
 		noSubjectLabel: { type: String, default: () => t('nextcloud-vue', '(no subject)') },
 		/** Pre-translated fallback sender label. */
 		unknownSenderLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown sender') },
+		/** Pre-translated link-existing CTA label. */
+		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing email') },
+		/** Pre-translated compose-in-Mail CTA label. */
+		composeLabel: { type: String, default: () => t('nextcloud-vue', 'Compose in Mail') },
+		/** Base path for the Mail app (for the compose deep-link). */
+		mailAppPath: { type: String, default: '/index.php/apps/mail' },
 	},
 
 	data() {
@@ -114,6 +147,7 @@ export default {
 			loading: false,
 			loadingMore: false,
 			errored: false,
+			pickerOpen: false,
 		}
 	},
 
@@ -233,6 +267,59 @@ export default {
 				window.open(base, '_blank', 'noopener')
 			}
 		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		/**
+		 * Deep-link into NC Mail's new-message composer.
+		 *
+		 * AD-2 (Mail owns compose / OR owns the link): we do NOT
+		 * implement an in-app composer. Clicking "Compose in Mail"
+		 * opens NC Mail in a new tab with the new-message view; once
+		 * the user has sent, they return to OR and link the sent
+		 * message via the picker.
+		 *
+		 * @return {void}
+		 */
+		openComposeInMail() {
+			const composeUrl = (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
+				? OC.generateUrl('/apps/mail/box/draft')
+				: `${this.mailAppPath}/box/draft`
+			if (typeof window !== 'undefined') {
+				window.open(composeUrl, '_blank', 'noopener')
+			}
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
+			try {
+				const response = await fetch(
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails`,
+					{
+						method: 'POST',
+						headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload),
+					},
+				)
+				if (response.ok === true || response.status === 409) {
+					// 409 = already-linked; treated as success since the row
+					// already exists for this object.
+					this.reset()
+					await this.fetchMessages()
+				} else {
+					this.errored = true
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnEmailTab] link failed', err)
+				this.errored = true
+			}
+		},
 	},
 }
 </script>
@@ -268,5 +355,12 @@ export default {
 
 .cn-sidebar-tab__load-more {
 	margin-top: 8px;
+}
+
+.cn-email-tab__actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
 }
 </style>
