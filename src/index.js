@@ -76,6 +76,8 @@ export {
 	CnFileManager,
 	CnTagsCard,
 	CnAuditTrailCard,
+	CnEmailCard,
+	CnEmailTab,
 	CnIntegrationTab,
 	CnIntegrationCard,
 	CnDetailCard,

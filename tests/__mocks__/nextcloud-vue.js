@@ -38,6 +38,7 @@ export const NcAppSidebarTab = createStub('NcAppSidebarTab')
 export const NcPopover = createStub('NcPopover')
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
+export const NcListItem = createStub('NcListItem')
 
 export default {
 	NcDialog,
@@ -59,4 +60,5 @@ export default {
 	NcPopover,
 	NcRichText,
 	NcAppContent,
+	NcListItem,
 }

@@ -475,7 +475,13 @@
     "Loading conversations...": "Loading conversations...",
     "Could not connect to AI service": "Could not connect to AI service",
     "Tool: {toolId}": "Tool: {toolId}",
-    "Reply was cancelled": "Reply was cancelled"
+    "Reply was cancelled": "Reply was cancelled",
+    "Emails": "Emails",
+    "No linked emails yet": "No linked emails yet",
+    "Could not load emails": "Could not load emails",
+    "Open in Mail": "Open in Mail",
+    "(no subject)": "(no subject)",
+    "Unknown sender": "Unknown sender"
   },
   "plurals": {}
 }
