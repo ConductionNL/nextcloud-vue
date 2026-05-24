@@ -30,9 +30,9 @@
 		</div>
 		<div class="cn-contacts-card__chip-text">
 			<span class="cn-contacts-card__chip-name">
-				{{ primaryContact?.displayName || unknownLabel }}
+				{{ (primaryContact && primaryContact.displayName) || unknownLabel }}
 			</span>
-			<span v-if="primaryContact?.role" class="cn-contacts-card__chip-role">
+			<span v-if="primaryContact && primaryContact.role" class="cn-contacts-card__chip-role">
 				{{ primaryContact.role }}
 			</span>
 		</div>
