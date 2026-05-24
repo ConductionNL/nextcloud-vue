@@ -7,7 +7,8 @@
  * that need a richer UI than the generic `CnIntegrationTab` /
  * `CnIntegrationCard` pair (currently: `calendar`, `contacts`, `email`,
  * `talk`, `deck`, `bookmarks`, `polls`, `shares`, `xwiki`,
- * `openproject`, `activity`).
+ * `openproject`, `activity`, `forms`, `flow`, `collectives`, `maps`,
+ * `photos`, `analytics`, `cospend`, `time-tracker`).
  *
  * Each entry maps onto a sidebar tab plus a compact widget for
  * dashboard / detail surfaces.
@@ -39,10 +40,18 @@ import { contactsIntegration } from './contacts.js'
 import { emailIntegration } from './email.js'
 import { talkIntegration } from './talk.js'
 import { bookmarksIntegration } from './bookmarks.js'
+import { collectivesIntegration } from './collectives.js'
+import { mapsIntegration } from './maps.js'
+import { photosIntegration } from './photos.js'
 import { deckIntegration } from './deck.js'
 import { pollsIntegration } from './polls.js'
 import { sharesIntegration } from './shares.js'
 import { activityIntegration } from './activity.js'
+import { analyticsIntegration } from './analytics.js'
+import { cospendIntegration } from './cospend.js'
+import { flowIntegration } from './flow.js'
+import { formsIntegration } from './forms.js'
+import { timeTrackerIntegration } from './time-tracker.js'
 import { openprojectIntegration } from './openproject.js'
 import { xwikiIntegration } from './xwiki.js'
 
@@ -69,11 +78,19 @@ export const builtinIntegrations = [
 	talkIntegration,
 	// docs
 	bookmarksIntegration,
+	collectivesIntegration,
+	mapsIntegration,
+	photosIntegration,
 	// workflow
 	deckIntegration,
 	pollsIntegration,
 	sharesIntegration,
 	activityIntegration,
+	analyticsIntegration,
+	cospendIntegration,
+	flowIntegration,
+	formsIntegration,
+	timeTrackerIntegration,
 	// external
 	openprojectIntegration,
 	xwikiIntegration,
@@ -115,10 +132,18 @@ export {
 	emailIntegration,
 	talkIntegration,
 	bookmarksIntegration,
+	collectivesIntegration,
+	mapsIntegration,
+	photosIntegration,
 	deckIntegration,
 	pollsIntegration,
 	sharesIntegration,
 	activityIntegration,
+	analyticsIntegration,
+	cospendIntegration,
+	flowIntegration,
+	formsIntegration,
+	timeTrackerIntegration,
 	openprojectIntegration,
 	xwikiIntegration,
 }
