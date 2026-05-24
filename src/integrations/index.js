@@ -13,6 +13,7 @@ export {
 	tagsIntegration,
 	tasksIntegration,
 	auditTrailIntegration,
+	talkIntegration,
 } from './builtin/index.js'
 
 // Leaves: 18 NC-native + external integrations whose PHP providers

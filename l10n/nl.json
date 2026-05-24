@@ -467,7 +467,17 @@
     "Loading conversations...": "Gesprekken laden...",
     "Could not connect to AI service": "Kon geen verbinding maken met de AI-service",
     "Tool: {toolId}": "Hulpmiddel: {toolId}",
-    "Reply was cancelled": "Antwoord geannuleerd"
+    "Reply was cancelled": "Antwoord geannuleerd",
+    "No conversations linked yet": "Nog geen gesprekken gekoppeld",
+    "Open Talk": "Talk openen",
+    "NC Talk is currently unavailable.": "NC Talk is momenteel niet beschikbaar.",
+    "Could not load conversations.": "Kan gesprekken niet laden.",
+    "{n} unread": "{n} ongelezen",
+    "{n} participants": "{n} deelnemers"
   },
-  "plurals": {}
+  "plurals": {
+    "{count} conversation": ["{count} gesprek", "{count} gesprekken"],
+    "{count} unread message": ["{count} ongelezen bericht", "{count} ongelezen berichten"],
+    "across {count} conversation": ["in {count} gesprek", "in {count} gesprekken"]
+  }
 }

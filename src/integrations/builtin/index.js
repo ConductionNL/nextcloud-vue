@@ -3,9 +3,12 @@
  *
  * The five always-available integrations (`files`, `notes`, `tags`,
  * `tasks`, `audit-trail`) that mirror OpenRegister's built-in PHP
- * `IntegrationProvider`s. Each entry maps onto the existing
- * `CnObjectSidebar` tab plus a compact widget for dashboard / detail
- * surfaces.
+ * `IntegrationProvider`s, plus bespoke overrides for selected leaf
+ * integrations that need a richer UI than the generic
+ * `CnIntegrationTab` / `CnIntegrationCard` pair (currently: `talk`).
+ *
+ * Each entry maps onto a sidebar tab plus a compact widget for
+ * dashboard / detail surfaces.
  *
  * OpenRegister's main bundle calls `registerBuiltinIntegrations()`
  * once at bootstrap (after `installIntegrationRegistry()`), so the
@@ -13,6 +16,10 @@
  * Re-registering is harmless: the collision policy (AD-13) keeps the
  * first registration, so a consuming app can pre-register an `id` to
  * override a built-in.
+ *
+ * Bespoke leaf overrides (e.g. `talk`) are listed AFTER the canonical
+ * five so the documented core ordering — `files`, `notes`, `tags`,
+ * `tasks`, `audit-trail` — stays stable for snapshot consumers.
  *
  * @module integrations/builtin
  */
@@ -23,9 +30,14 @@ import { notesIntegration } from './notes.js'
 import { tagsIntegration } from './tags.js'
 import { tasksIntegration } from './tasks.js'
 import { auditTrailIntegration } from './audit-trail.js'
+import { talkIntegration } from './talk.js'
 
 /**
  * Ordered list of the built-in integration descriptors.
+ *
+ * The first five are the canonical built-ins mirroring the PHP-side
+ * providers (`files`, `notes`, `tags`, `tasks`, `audit-trail`). Bespoke
+ * leaf overrides (currently `talk`) follow.
  *
  * @type {object[]}
  */
@@ -35,6 +47,7 @@ export const builtinIntegrations = [
 	tagsIntegration,
 	tasksIntegration,
 	auditTrailIntegration,
+	talkIntegration,
 ]
 
 /**
@@ -62,4 +75,4 @@ export function registerBuiltinIntegrations(registry) {
 	return registered
 }
 
-export { filesIntegration, notesIntegration, tagsIntegration, tasksIntegration, auditTrailIntegration }
+export { filesIntegration, notesIntegration, tagsIntegration, tasksIntegration, auditTrailIntegration, talkIntegration }

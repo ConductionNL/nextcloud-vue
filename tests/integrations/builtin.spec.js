@@ -2,23 +2,37 @@
  * Tests for the built-in integration registrations.
  *
  * Covers:
- *  - `builtinIntegrations` shape: the five ids, ordering, group, and
- *    that each descriptor is a valid `register()` payload (has
- *    `tab` + `widget`)
- *  - `registerBuiltinIntegrations()` registers all five onto a fresh
+ *  - `builtinIntegrations` shape: the five canonical PHP-backed built-ins
+ *    (`files`, `notes`, `tags`, `tasks`, `audit-trail`) PLUS bespoke leaf
+ *    overrides (currently: `talk`); ordering, group, and that each
+ *    descriptor is a valid `register()` payload (has `tab` + `widget`).
+ *  - `registerBuiltinIntegrations()` registers all entries onto a fresh
  *    registry, returns the new ids, and skips ids already present
- *    (collision policy: first wins) without throwing
- *  - id/order/icon/group match the PHP-side built-in providers
+ *    (collision policy: first wins) without throwing.
+ *  - id/order/icon/group match the PHP-side built-in providers (canonical
+ *    five only — bespoke leaf overrides validate their metadata in the
+ *    leaves.spec.js cross-check).
  */
 
 const { createIntegrationRegistry } = require('../../src/integrations/registry.js')
 const { builtinIntegrations, registerBuiltinIntegrations } = require('../../src/integrations/builtin/index.js')
 
+// Canonical PHP-backed built-ins (group 'core', requiredApp null) — the
+// ordering for `registerBuiltinIntegrations()` output cross-checks
+// against this list. Bespoke leaf overrides follow in declaration
+// order in `builtinIntegrations`.
+const CANONICAL_IDS = ['files', 'notes', 'tags', 'tasks', 'audit-trail']
+
+// Bespoke leaf overrides bundled with the built-ins so the AD-13
+// first-wins collision policy upgrades a leaf to a richer Vue pair at
+// bootstrap. Keep this in lock-step with `src/integrations/builtin/index.js`.
+const BESPOKE_LEAF_IDS = ['talk']
+
+const ALL_IDS = [...CANONICAL_IDS, ...BESPOKE_LEAF_IDS]
+
 describe('builtinIntegrations', () => {
-	it('exposes exactly the five built-in ids in the documented order', () => {
-		expect(builtinIntegrations.map((d) => d.id)).toEqual([
-			'files', 'notes', 'tags', 'tasks', 'audit-trail',
-		])
+	it('exposes the canonical five plus bespoke leaf overrides in the documented order', () => {
+		expect(builtinIntegrations.map((d) => d.id)).toEqual(ALL_IDS)
 	})
 
 	it('each descriptor carries the required tab + widget components', () => {
@@ -28,7 +42,7 @@ describe('builtinIntegrations', () => {
 		}
 	})
 
-	it('matches the PHP built-in providers on id / order / icon / group', () => {
+	it('the canonical five match the PHP built-in providers on id / order / icon / group', () => {
 		const byId = Object.fromEntries(builtinIntegrations.map((d) => [d.id, d]))
 		expect(byId.files.order).toBe(1)
 		expect(byId.files.icon).toBe('Paperclip')
@@ -40,13 +54,24 @@ describe('builtinIntegrations', () => {
 		expect(byId.tasks.icon).toBe('CheckboxMarkedOutline')
 		expect(byId['audit-trail'].order).toBe(5)
 		expect(byId['audit-trail'].icon).toBe('History')
-		for (const d of builtinIntegrations) {
-			expect(d.group).toBe('core')
-			expect(d.requiredApp).toBe(null)
+		for (const id of CANONICAL_IDS) {
+			expect(byId[id].group).toBe('core')
+			expect(byId[id].requiredApp).toBe(null)
 		}
 	})
 
-	it('declares referenceType === id for each built-in (AD-18 crossover)', () => {
+	it('bespoke leaf override for `talk` mirrors the leaf-side metadata', () => {
+		const byId = Object.fromEntries(builtinIntegrations.map((d) => [d.id, d]))
+		const talk = byId.talk
+		expect(talk).toBeTruthy()
+		expect(talk.icon).toBe('ChatOutline')
+		expect(talk.group).toBe('comms')
+		expect(talk.requiredApp).toBe('spreed')
+		expect(talk.order).toBe(23)
+		expect(talk.referenceType).toBe('talk')
+	})
+
+	it('declares referenceType === id for each entry (AD-18 crossover)', () => {
 		for (const d of builtinIntegrations) {
 			expect(d.referenceType).toBe(d.id)
 		}
@@ -54,11 +79,11 @@ describe('builtinIntegrations', () => {
 })
 
 describe('registerBuiltinIntegrations', () => {
-	it('registers all five onto a fresh registry and returns their ids', () => {
+	it('registers every entry onto a fresh registry and returns the new ids', () => {
 		const reg = createIntegrationRegistry()
 		const ids = registerBuiltinIntegrations(reg)
-		expect(ids).toEqual(['files', 'notes', 'tags', 'tasks', 'audit-trail'])
-		expect(reg.list().map((p) => p.id)).toEqual(['files', 'notes', 'tags', 'tasks', 'audit-trail'])
+		expect(ids).toEqual(ALL_IDS)
+		expect(reg.list().map((p) => p.id)).toEqual(ALL_IDS)
 	})
 
 	it('skips ids already registered without throwing (collision: first wins)', () => {
@@ -67,8 +92,8 @@ describe('registerBuiltinIntegrations', () => {
 		const customWidget = { name: 'CustomNotesWidget', render() {} }
 		reg.register({ id: 'notes', label: 'My Notes', tab: customNotes, widget: customWidget })
 		const ids = registerBuiltinIntegrations(reg)
-		// notes was skipped
-		expect(ids).toEqual(['files', 'tags', 'tasks', 'audit-trail'])
+		// notes was skipped, the rest registered in their original relative order
+		expect(ids).toEqual(ALL_IDS.filter((id) => id !== 'notes'))
 		// and the pre-registered one survived
 		expect(reg.get('notes').label).toBe('My Notes')
 		expect(reg.get('notes').tab).toBe(customNotes)
@@ -79,7 +104,7 @@ describe('registerBuiltinIntegrations', () => {
 		registerBuiltinIntegrations(reg)
 		const second = registerBuiltinIntegrations(reg)
 		expect(second).toEqual([])
-		expect(reg.list()).toHaveLength(5)
+		expect(reg.list()).toHaveLength(ALL_IDS.length)
 	})
 
 	it('defaults to the singleton registry when no argument is passed', () => {
@@ -88,6 +113,7 @@ describe('registerBuiltinIntegrations', () => {
 		const ids = registerBuiltinIntegrations()
 		expect(ids).toContain('files')
 		expect(integrations.has('audit-trail')).toBe(true)
+		expect(integrations.has('talk')).toBe(true)
 		integrations.__resetForTests()
 	})
 })
