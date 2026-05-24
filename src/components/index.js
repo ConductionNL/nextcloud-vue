@@ -134,3 +134,7 @@ export { CnEmailPicker } from './CnEmailPicker/index.js'
 // Polls integration leaf (Tier-2)
 export { CnPollPicker } from './CnPollPicker/index.js'
 export { CnPollCreate } from './CnPollCreate/index.js'
+
+// Talk integration leaf (Tier-2)
+export { CnTalkRoomPicker } from './CnTalkRoomPicker/index.js'
+export { CnTalkRoomCreate } from './CnTalkRoomCreate/index.js'
