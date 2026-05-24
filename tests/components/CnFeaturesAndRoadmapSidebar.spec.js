@@ -18,20 +18,31 @@ const baseProps = {
 }
 
 describe('CnFeaturesAndRoadmapSidebar', () => {
-	it('renders header + three sections', () => {
+	it('renders header + four sections', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: baseProps })
 		expect(wrapper.find('.cn-features-and-roadmap-sidebar__name').text()).toBe('Your input is the roadmap')
-		expect(wrapper.find('.cn-features-and-roadmap-sidebar__subname').text()).toBe('Three ways to ship what you need')
-		expect(wrapper.findAll('.cn-features-and-roadmap-sidebar__section')).toHaveLength(3)
+		expect(wrapper.find('.cn-features-and-roadmap-sidebar__subname').text()).toBe('Four ways to ship what you need')
+		expect(wrapper.findAll('.cn-features-and-roadmap-sidebar__section')).toHaveLength(4)
 	})
 
 	it('emits suggest when the Suggest CTA is clicked', async () => {
 		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: baseProps })
-		const suggestBtn = wrapper.find('button.cn-features-and-roadmap-sidebar__link')
+		const firstSection = wrapper.findAll('.cn-features-and-roadmap-sidebar__section').at(0)
+		const suggestBtn = firstSection.find('button.cn-features-and-roadmap-sidebar__link')
 		expect(suggestBtn.exists()).toBe(true)
 		await suggestBtn.trigger('click')
 		expect(wrapper.emitted('suggest')).toBeTruthy()
 		expect(wrapper.emitted('suggest')).toHaveLength(1)
+	})
+
+	it('emits support when the Support CTA in the fourth section is clicked', async () => {
+		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: baseProps })
+		const fourthSection = wrapper.findAll('.cn-features-and-roadmap-sidebar__section').at(3)
+		const supportBtn = fourthSection.find('button.cn-features-and-roadmap-sidebar__link')
+		expect(supportBtn.exists()).toBe(true)
+		await supportBtn.trigger('click')
+		expect(wrapper.emitted('support')).toBeTruthy()
+		expect(wrapper.emitted('support')).toHaveLength(1)
 	})
 
 	it('renders OpenBuilt + LLM CTAs as anchors with the prop URLs', () => {
@@ -70,8 +81,11 @@ describe('CnFeaturesAndRoadmapSidebar', () => {
 		expect(anchor.attributes('rel')).toBe('noopener noreferrer')
 	})
 
-	it('does NOT emit suggest when suggestUrl is set (no button to click)', () => {
+	it('does NOT render the Suggest button branch when suggestUrl is set', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: { ...baseProps, suggestUrl: 'https://example.com/feedback' } })
-		expect(wrapper.find('button.cn-features-and-roadmap-sidebar__link').exists()).toBe(false)
+		const firstSection = wrapper.findAll('.cn-features-and-roadmap-sidebar__section').at(0)
+		// Suggest section becomes anchor-only — the Support section's button
+		// stays, so we check the Suggest section specifically.
+		expect(firstSection.find('button.cn-features-and-roadmap-sidebar__link').exists()).toBe(false)
 	})
 })
