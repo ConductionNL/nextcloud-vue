@@ -113,4 +113,64 @@ describe('CnDeckTab', () => {
 		wrapper.destroy()
 		spy.mockRestore()
 	})
+
+	it('exposes Link and Create action buttons (Tier-2)', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('Link existing card')
+		expect(wrapper.text()).toContain('Create new card')
+		wrapper.destroy()
+	})
+
+	it('opens the picker when "Link existing card" is clicked', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		wrapper.vm.openPicker()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.pickerOpen).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('opens the create dialog when "Create new card" is clicked', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		wrapper.vm.openCreate()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.createOpen).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('POSTs the link payload to /deck on link pick', async () => {
+		const calls = []
+		global.fetch = jest.fn().mockImplementation((url, opts) => {
+			calls.push({ url, opts })
+			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		})
+		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onLinkPick({ cardId: 42 })
+		expect(calls.some(c => /\/deck$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('POSTs the create payload to /deck/new on create pick', async () => {
+		const calls = []
+		global.fetch = jest.fn().mockImplementation((url, opts) => {
+			calls.push({ url, opts })
+			return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		})
+		const wrapper = mount(CnDeckTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.onCreatePick({ boardId: 1, stackId: 2, title: 'X' })
+		expect(calls.some(c => /\/deck\/new$/.test(String(c.url)) && c.opts && c.opts.method === 'POST')).toBe(true)
+		wrapper.destroy()
+	})
 })

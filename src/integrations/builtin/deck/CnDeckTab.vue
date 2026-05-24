@@ -33,6 +33,21 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div class="cn-deck-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing card') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new card') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="error" class="cn-deck-tab__error" role="alert">
 			{{ error }}
@@ -84,6 +99,18 @@
 				</ul>
 			</section>
 		</div>
+
+		<CnDeckCardPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnDeckCardCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -92,7 +119,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
+import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
+import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -105,7 +136,17 @@ import { buildHeaders } from '../../../utils/index.js'
 export default {
 	name: 'CnDeckTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, ClockOutline, ViewColumnOutline },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		ClockOutline,
+		LinkVariant,
+		Plus,
+		ViewColumnOutline,
+		CnDeckCardPicker,
+		CnDeckCardCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'deck'`). */
@@ -134,6 +175,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -174,8 +217,72 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		},
+
+		/**
+		 * Base for the Tier-2 deck endpoints (link/new). The provider's
+		 * generic `/integrations/deck` surface accepts the same POST
+		 * shape, but the bespoke Tier-2 routes are nicer for the
+		 * picker's `/deck/new` create-flow.
+		 *
+		 * @return {string}
+		 */
+		deckEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/deck`
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.deckEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchCards()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This card is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link card.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnDeckTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link card.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.deckEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchCards()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create card.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnDeckTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create card.')
+			}
 		},
 
 		cardKey(card) {
@@ -283,6 +390,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-deck-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 8px;
+	flex-wrap: wrap;
+}
+
 .cn-deck-tab__banner {
 	display: flex;
 	align-items: center;

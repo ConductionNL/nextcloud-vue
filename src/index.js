@@ -127,6 +127,8 @@ export {
 	CnRoadmapTab,
 	CnRoadmapItem,
 	CnSuggestFeatureModal,
+	CnDeckCardPicker,
+	CnDeckCardCreate,
 	registerIcons,
 	CnWidgetGrid,
 	CnWidgetObjectTable,
