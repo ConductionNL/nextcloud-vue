@@ -457,6 +457,8 @@
     "Let AI add the feature": "Let AI add the feature",
     "Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You bring the prompt, they write the code. Push the PR, run the tests, and watch your feature land.": "Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You bring the prompt, they write the code. Push the PR, run the tests, and watch your feature land.",
     "Read the AI guide": "Read the AI guide",
+    "Looking for documentation? Visit": "Looking for documentation? Visit",
+    "for all technical and user documentation.": "for all technical and user documentation.",
     "This feature has been disabled by your administrator": "This feature has been disabled by your administrator",
     "Title must be at least 3 characters.": "Title must be at least 3 characters.",
     "Title must be at most 200 characters.": "Title must be at most 200 characters.",

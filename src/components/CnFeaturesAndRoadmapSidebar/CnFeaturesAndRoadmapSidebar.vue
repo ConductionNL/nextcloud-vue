@@ -16,7 +16,18 @@
 			<p class="cn-features-and-roadmap-sidebar__section-body">
 				{{ suggestBody }}
 			</p>
+			<a
+				v-if="suggestUrl"
+				:href="suggestUrl"
+				:target="suggestUrlIsExternal ? '_blank' : null"
+				:rel="suggestUrlIsExternal ? 'noopener noreferrer' : null"
+				class="cn-features-and-roadmap-sidebar__link">
+				{{ suggestCta }}
+				<OpenInNew v-if="suggestUrlIsExternal" :size="16" />
+				<ArrowRight v-else :size="16" />
+			</a>
 			<button
+				v-else
 				type="button"
 				class="cn-features-and-roadmap-sidebar__link"
 				@click="$emit('suggest')">
@@ -101,9 +112,26 @@ export default {
 			type: String,
 			required: true,
 		},
+		/**
+		 * Optional override for the Suggest CTA. When set, the CTA renders
+		 * as an anchor pointing at this URL — appropriate when the app
+		 * routes feature suggestions through a public form, a Discord
+		 * channel, or any non-GitHub target. When empty (default) the CTA
+		 * is a button that emits `@suggest`, which the parent view binds
+		 * to `CnSuggestFeatureModal` and the GitHub-issues proxy. External
+		 * URLs (matching `^https?://`) open in a new tab.
+		 * @type {string}
+		 */
+		suggestUrl: {
+			type: String,
+			default: '',
+		},
 	},
 
 	computed: {
+		suggestUrlIsExternal() {
+			return /^https?:\/\//i.test(this.suggestUrl)
+		},
 		sidebarTitle() { return t('nextcloud-vue', 'Shape this app') },
 		sidebarSubtitle() { return t('nextcloud-vue', 'Three ways to land a feature') },
 

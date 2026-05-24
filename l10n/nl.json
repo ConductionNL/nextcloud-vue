@@ -449,6 +449,8 @@
     "Let AI add the feature": "Laat AI de functie bouwen",
     "Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You bring the prompt, they write the code. Push the PR, run the tests, and watch your feature land.": "Claude, ChatGPT, Grok, Qwen of Mistral schrijven de code voor je. Onze skill set leert ze deze codebase. Jij stuurt aan, zij leveren. Push de PR, run de tests, en zie je functie verschijnen.",
     "Read the AI guide": "Lees de AI-gids",
+    "Looking for documentation? Visit": "Op zoek naar documentatie? Ga naar",
+    "for all technical and user documentation.": "voor alle technische en gebruikersdocumentatie.",
     "This feature has been disabled by your administrator": "Deze functie is uitgeschakeld door je beheerder",
     "Title must be at least 3 characters.": "De titel moet minimaal 3 tekens bevatten.",
     "Title must be at most 200 characters.": "De titel mag maximaal 200 tekens bevatten.",

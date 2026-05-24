@@ -47,4 +47,31 @@ describe('CnFeaturesAndRoadmapSidebar', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: baseProps })
 		expect(wrapper.html()).not.toContain('--nldesign-')
 	})
+
+	it('renders the Suggest CTA as an anchor when suggestUrl is set (internal)', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: { ...baseProps, suggestUrl: '/apps/forms/internal' } })
+		// First sidebar section is the Suggest block.
+		const firstSection = wrapper.findAll('.cn-features-and-roadmap-sidebar__section').at(0)
+		const anchor = firstSection.find('a.cn-features-and-roadmap-sidebar__link')
+		expect(anchor.exists()).toBe(true)
+		expect(anchor.attributes('href')).toBe('/apps/forms/internal')
+		// Internal URL — no target="_blank"
+		expect(anchor.attributes('target')).toBeUndefined()
+		// And the button branch is gone.
+		expect(firstSection.find('button.cn-features-and-roadmap-sidebar__link').exists()).toBe(false)
+	})
+
+	it('renders the Suggest CTA with target=_blank when suggestUrl is external', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: { ...baseProps, suggestUrl: 'https://example.com/feedback' } })
+		const firstSection = wrapper.findAll('.cn-features-and-roadmap-sidebar__section').at(0)
+		const anchor = firstSection.find('a.cn-features-and-roadmap-sidebar__link')
+		expect(anchor.attributes('href')).toBe('https://example.com/feedback')
+		expect(anchor.attributes('target')).toBe('_blank')
+		expect(anchor.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	it('does NOT emit suggest when suggestUrl is set (no button to click)', () => {
+		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: { ...baseProps, suggestUrl: 'https://example.com/feedback' } })
+		expect(wrapper.find('button.cn-features-and-roadmap-sidebar__link').exists()).toBe(false)
+	})
 })
