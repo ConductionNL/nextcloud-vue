@@ -1,50 +1,51 @@
 <!--
   CnFlowTab — bespoke sidebar tab for the `flow` (automation) integration.
 
-  Replaces the generic CnIntegrationTab for the `flow` leaf: renders a
-  list of NC Flow (workflowengine) operations bound to the parent
-  object's schema/admin scope. Each row surfaces the operation name,
-  the target entity class (short form), the operation type, a chips
-  set of trigger events, a checks-count, and a (display-only) enabled
-  toggle. A trailing "Open in Flow settings" deep-link points to
+  Renders a list of NC Flow (workflowengine) operations bound to the
+  parent OR object via the Tier-2 `openregister_flow_links` table.
+  Each row surfaces the operation name, the target entity class
+  (short form), the operation type, a chips set of trigger events, a
+  checks-count, and a (display-only) enabled toggle. A trailing
+  "Open in Flow settings" deep-link points to
   `/index.php/settings/admin/workflow` (NC Flow is admin-gated, so
   edits happen in the admin settings, not in the sidebar tab).
 
-  Talks to the same OpenRegister pluggable-integration sub-resource
-    `/api/objects/{register}/{schema}/{objectId}/integrations/flow`
-  served by `OCA\OpenRegister\Service\Integration\Providers\FlowProvider`
-  (which calls `OCA\WorkflowEngine\Manager::getAllOperations()` on the
-  admin scope and filters the result by an `[or:{uuid}]` marker on the
-  operation name).
+  Talks to the Tier-2 link-table endpoints:
+    GET    /api/objects/{r}/{s}/{id}/flow                  (read, all users)
+    POST   /api/objects/{r}/{s}/{id}/flow                  (link, admin-only)
+    DELETE /api/objects/{r}/{s}/{id}/flow/{operationId}    (unlink, admin-only)
 
-  Payload contract today (per FlowProvider::list):
-    { id, title, class, entity, operation, hasMarker, url,
-      data: { ...raw NC flow_operations row... } }
-
-  The provider exposes the raw NC row under `data`; the tab reads
-  `data.events` (array of trigger event names) and `data.checks`
-  (array of check rule rows) defensively so the chips/counts light up
-  even though the spec doesn't promise these top-level today.
+  Payload contract (per FlowProvider + FlowLinkService):
+    { operationId, operationName, operationClass, entityType,
+      enabled, url, linkId, events, checks, operation }
+    + envelope `{ results, total, isAdmin }`
 
   Surface behaviour:
-    - Empty state with "Open Flow settings" CTA when no linked ops.
-    - Loading + 503 "currently unavailable" + generic error states match
-      CnIntegrationTab's behaviour for AD-23 graceful degradation.
-
-  Bespoke-vs-generic rationale: the generic tab renders a flat link
-  list which loses Flow's core signal — which events trigger the rule
-  and which entity class it's bound to. The bespoke tab surfaces both
-  inline so admins can see at a glance which automations fire on this
-  object's lifecycle.
+    - Admins see: "Link existing automation" button → CnFlowOperationPicker
+      + per-row unlink action.
+    - Non-admins see: read-only list, no link/unlink controls. The
+      "Open Flow settings" deep-link is still surfaced so the user
+      knows where automations live.
+    - Loading + 503 "currently unavailable" + generic error states
+      match CnIntegrationTab's behaviour for AD-23 graceful degradation.
 
   See `openregister/openspec/changes/integration-flow/` for the spec
-  delta and ADR-019 (registry mechanism).
+  delta and ADR-019 (registry mechanism) / ADR-023 (action authorisation).
 -->
 <template>
 	<div class="cn-sidebar-tab cn-flow-tab">
 		<div v-if="degraded" class="cn-flow-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<div v-if="isAdmin && !loading && !error" class="cn-flow-tab__actions">
+			<NcButton type="secondary" data-testid="cn-flow-tab-link" @click="openPicker">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing automation') }}
+			</NcButton>
 		</div>
 
 		<NcLoadingIcon v-if="loading" />
@@ -81,6 +82,17 @@
 						<span class="cn-flow-tab__enabled-dot" />
 						{{ enabledLabel(op) }}
 					</span>
+					<NcButton
+						v-if="isAdmin"
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink automation')"
+						class="cn-flow-tab__unlink"
+						data-testid="cn-flow-tab-unlink"
+						@click="confirmUnlink(op)">
+						<template #icon>
+							<Close :size="18" />
+						</template>
+					</NcButton>
 				</div>
 				<div v-if="opSummary(op)" class="cn-flow-tab__summary">
 					{{ opSummary(op) }}
@@ -96,6 +108,13 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnFlowOperationPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			:flow-settings-url="flowSettingsUrl"
+			@close="pickerOpen = false"
+			@link="onLink" />
 	</div>
 </template>
 
@@ -103,21 +122,22 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
+import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
  * CnFlowTab — bespoke automation-rule list for the `flow` integration.
  *
- * Renders rows pulled from the OR pluggable-integration endpoint with
- * trigger-event chips, check counts, and a display-only enabled
- * indicator. Editing happens in NC Flow's admin settings — the
- * "Open Flow settings" CTA deep-links there.
+ * Admins can link/unlink operations via the picker; non-admins see
+ * a read-only list with a deep-link to NC Workflow Settings.
  */
 export default {
 	name: 'CnFlowTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, RobotOutline },
+	components: { NcButton, NcLoadingIcon, AlertCircleOutline, Close, Plus, RobotOutline, CnFlowOperationPicker },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'flow'`). */
@@ -133,7 +153,7 @@ export default {
 		/** Pre-translated empty-state label. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No automations linked yet') },
 		/** Pre-translated label for the "Open Flow settings" CTA. */
-		openSettingsLabel: { type: String, default: () => t('nextcloud-vue', 'Open Flow settings') },
+		openSettingsLabel: { type: String, default: () => t('nextcloud-vue', 'Open Workflow settings') },
 		/** Pre-translated banner when Flow is unavailable. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Flow is currently unavailable.') },
 		/** URL of the NC Flow admin settings page. */
@@ -146,6 +166,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			isAdmin: false,
+			pickerOpen: false,
 		}
 	},
 
@@ -156,16 +178,18 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/flow`
 		},
 
 		opKey(op) {
-			return op.id ?? op.title ?? ''
+			return op.operationId ?? op.id ?? op.title ?? ''
 		},
 
 		opTitle(op) {
-			return op.title || op.displayName || op.name || this.shortClass(op.class) || t('nextcloud-vue', 'Untitled automation')
+			return op.operationName || op.title || op.name || this.shortClass(op.operationClass) || t('nextcloud-vue', 'Untitled automation')
 		},
 
 		opUrl(op) {
@@ -181,10 +205,11 @@ export default {
 		},
 
 		entityLabel(op) {
-			if (!op.entity) {
+			const entity = op.entityType || op.entity
+			if (!entity) {
 				return ''
 			}
-			return this.shortClass(op.entity)
+			return this.shortClass(entity)
 		},
 
 		operationLabel(op) {
@@ -213,8 +238,6 @@ export default {
 		},
 
 		shortEvent(evt) {
-			// NC events look like `OCA\WorkflowEngine\Entity\Foo::postCreate`
-			// — strip down to the trailing method name for the chip.
 			const colon = String(evt).lastIndexOf(':')
 			if (colon === -1) {
 				return String(evt)
@@ -248,9 +271,6 @@ export default {
 		},
 
 		isDisabled(op) {
-			// Default to enabled — NC operations are enabled-by-default.
-			// Honour explicit `enabled: false` if a future widening
-			// surfaces it.
 			const v = op.enabled ?? op.data?.enabled
 			if (v === undefined || v === null) {
 				return false
@@ -280,6 +300,10 @@ export default {
 			}
 		},
 
+		openPicker() {
+			this.pickerOpen = true
+		},
+
 		async fetchOperations() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -293,13 +317,13 @@ export default {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.operations = rows
+					this.isAdmin = Boolean(data.isAdmin)
+				} else if (response.status === 501) {
+					this.operations = []
+					this.degraded = t('nextcloud-vue', 'NC Workflow Engine is not installed.')
 				} else if (response.status === 503) {
 					this.operations = []
 					this.degraded = this.unavailableLabel
-				} else if (response.status === 403) {
-					// NC Flow is admin-gated — surface the gap gracefully.
-					this.operations = []
-					this.degraded = t('nextcloud-vue', 'Flow operations are only visible to administrators.')
 				} else {
 					this.operations = []
 					this.error = t('nextcloud-vue', 'Could not load automations.')
@@ -311,6 +335,60 @@ export default {
 				this.error = t('nextcloud-vue', 'Could not load automations.')
 			} finally {
 				this.loading = false
+			}
+		},
+
+		async onLink({ operationId }) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.baseUrl(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify({ operationId }),
+				})
+				if (response.ok) {
+					await this.fetchOperations()
+				} else if (response.status === 403) {
+					this.error = t('nextcloud-vue', 'Only administrators can link automations.')
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'Automation is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link automation.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnFlowTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link automation.')
+			}
+		},
+
+		async confirmUnlink(op) {
+			const opId = op.operationId ?? op.id
+			if (!opId) {
+				return
+			}
+			if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+				const ok = window.confirm(t('nextcloud-vue', 'Remove this automation link?'))
+				if (!ok) {
+					return
+				}
+			}
+			try {
+				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(opId)}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchOperations()
+				} else if (response.status === 403) {
+					this.error = t('nextcloud-vue', 'Only administrators can unlink automations.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink automation.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnFlowTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink automation.')
 			}
 		},
 	},
@@ -328,6 +406,10 @@ export default {
 	background: var(--color-warning, #e9a40f);
 	color: var(--color-main-background);
 	font-size: 0.9em;
+}
+
+.cn-flow-tab__actions {
+	margin-bottom: 8px;
 }
 
 .cn-flow-tab__error {
@@ -426,6 +508,10 @@ a.cn-flow-tab__title:hover {
 .cn-flow-tab__enabled--off {
 	background: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-tab__unlink {
+	flex-shrink: 0;
 }
 
 .cn-flow-tab__summary,
