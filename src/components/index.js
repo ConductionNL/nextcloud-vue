@@ -138,3 +138,6 @@ export { CnPollCreate } from './CnPollCreate/index.js'
 // Talk integration leaf (Tier-2)
 export { CnTalkRoomPicker } from './CnTalkRoomPicker/index.js'
 export { CnTalkRoomCreate } from './CnTalkRoomCreate/index.js'
+
+// Flow integration leaf (Tier-2)
+export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
