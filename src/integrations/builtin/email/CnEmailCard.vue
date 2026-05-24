@@ -165,7 +165,7 @@ export default {
 				)
 				if (response.ok === true) {
 					const data = await response.json()
-					const list = data.results || data || []
+					const list = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.messages = Array.isArray(list) === true ? list : []
 					this.total = typeof data.total === 'number' ? data.total : this.messages.length
 				} else {
