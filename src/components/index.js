@@ -134,3 +134,6 @@ export { CnEmailPicker } from './CnEmailPicker/index.js'
 // Polls integration leaf (Tier-2)
 export { CnPollPicker } from './CnPollPicker/index.js'
 export { CnPollCreate } from './CnPollCreate/index.js'
+
+// Flow integration leaf (Tier-2)
+export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
