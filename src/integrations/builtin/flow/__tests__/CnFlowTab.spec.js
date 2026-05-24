@@ -1,17 +1,18 @@
 /**
  * Tests for CnFlowTab — bespoke sidebar tab for the `flow`
- * (automation) integration.
+ * (automation) integration. Tier-2: link-table + admin-only
+ * link/unlink controls.
  *
  * Covers:
- *  - empty-state with "Open Flow settings" CTA when the provider
+ *  - empty-state with "Open Workflow settings" CTA when the endpoint
  *    returns no operations;
- *  - row rendering with title, entity / operation summary, and an
- *    enabled indicator;
- *  - trigger-event chips populated from `data.events`;
- *  - condition count populated from `data.checks`;
- *  - 403 admin-only path (NC Flow is admin-gated);
- *  - 503 unavailable degradation;
- *  - generic-error path when fetch throws.
+ *  - row rendering with title, entity / operation summary, enabled
+ *    indicator, and chips from `events` + `data.events`;
+ *  - condition count populated from `checks` / `data.checks`;
+ *  - admin sees the "Link existing automation" button + per-row
+ *    unlink control;
+ *  - non-admin sees neither (read-only mode);
+ *  - 501 + 503 + generic-error degradation paths.
  */
 
 const { mount } = require('@vue/test-utils')
@@ -25,26 +26,28 @@ const DEFAULT_PROPS = {
 
 function makeOp(overrides = {}) {
 	return {
-		id: '7',
-		title: 'Auto-tag new uploads',
-		class: 'OCA\\WorkflowEngine\\Operation\\GenericOperation',
-		entity: 'OCA\\WorkflowEngine\\Entity\\File',
+		operationId: 7,
+		operationName: 'Auto-tag new uploads',
+		operationClass: 'OCA\\WorkflowEngine\\Operation\\GenericOperation',
+		entityType: 'OCA\\WorkflowEngine\\Entity\\File',
 		operation: 'tag',
-		hasMarker: false,
-		url: '/index.php/settings/admin/workflow',
-		data: {
-			id: 7,
-			class: 'OCA\\WorkflowEngine\\Operation\\GenericOperation',
-			name: 'Auto-tag new uploads',
-			entity: 'OCA\\WorkflowEngine\\Entity\\File',
-			events: ['OCA\\WorkflowEngine\\Entity\\File::postCreate'],
-			operation: 'tag',
-			checks: [
-				{ class: 'OCA\\WorkflowEngine\\Check\\FileMimeType', operator: 'matches', value: 'image/.*' },
-			],
-		},
+		enabled: true,
+		url: '/index.php/settings/admin/workflow#7',
+		linkId: 1,
+		events: ['OCA\\WorkflowEngine\\Entity\\File::postCreate'],
+		checks: [
+			{ class: 'OCA\\WorkflowEngine\\Check\\FileMimeType', operator: 'matches', value: 'image/.*' },
+		],
 		...overrides,
 	}
+}
+
+function envelope(results = [], isAdmin = false) {
+	return { results, total: results.length, isAdmin }
+}
+
+function resolveOnce(payload, status = 200) {
+	return Promise.resolve({ ok: status >= 200 && status < 300, status, json: () => Promise.resolve(payload) })
 }
 
 describe('CnFlowTab', () => {
@@ -56,46 +59,35 @@ describe('CnFlowTab', () => {
 		delete global.fetch
 	})
 
-	it('renders the empty state with an "Open Flow settings" CTA when no operations', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+	it('renders the empty state with an "Open Workflow settings" CTA when no operations', async () => {
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No automations linked yet')
-		expect(wrapper.text()).toContain('Open Flow settings')
+		expect(wrapper.text()).toContain('Open Workflow settings')
 		wrapper.destroy()
 	})
 
 	it('renders a row with title, entity and operation summary', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({ results: [makeOp()] }),
-		})
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-flow-tab__row')
 		expect(rows).toHaveLength(1)
 		expect(wrapper.text()).toContain('Auto-tag new uploads')
-		// Entity class shortened
 		expect(wrapper.text()).toContain('Entity:')
 		expect(wrapper.text()).toContain('File')
-		// Operation kind
 		expect(wrapper.text()).toContain('Operation:')
 		expect(wrapper.text()).toContain('tag')
-		// Enabled-by-default
 		expect(wrapper.find('.cn-flow-tab__enabled--on').exists()).toBe(true)
 		expect(wrapper.text()).toContain('Enabled')
 		wrapper.destroy()
 	})
 
 	it('renders trigger-event chips shortened to the method name', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({ results: [makeOp()] }),
-		})
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -106,11 +98,7 @@ describe('CnFlowTab', () => {
 	})
 
 	it('renders a condition count when checks are present', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({ results: [makeOp()] }),
-		})
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -119,11 +107,7 @@ describe('CnFlowTab', () => {
 	})
 
 	it('marks operations with explicit enabled:false as disabled', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({ results: [makeOp({ enabled: false })] }),
-		})
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp({ enabled: false })], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -133,17 +117,39 @@ describe('CnFlowTab', () => {
 		wrapper.destroy()
 	})
 
-	it('shows the admin-only banner when the provider returns 403', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 403, json: () => Promise.resolve({}) })
+	it('admin sees the "Link existing automation" button + per-row unlink', async () => {
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], true)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.text()).toContain('Flow operations are only visible to administrators.')
+		expect(wrapper.vm.isAdmin).toBe(true)
+		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('non-admin sees neither link button nor per-row unlink', async () => {
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp()], false)))
+		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.isAdmin).toBe(false)
+		expect(wrapper.find('[data-testid="cn-flow-tab-link"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-flow-tab-unlink"]').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('shows the 501 banner when Flow is not installed', async () => {
+		global.fetch.mockReturnValueOnce(resolveOnce({}, 501))
+		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('NC Workflow Engine is not installed.')
 		wrapper.destroy()
 	})
 
 	it('shows the unavailable banner when the provider returns 503', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
+		global.fetch.mockReturnValueOnce(resolveOnce({}, 503))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -154,7 +160,7 @@ describe('CnFlowTab', () => {
 
 	it('shows the generic error label when fetch throws', async () => {
 		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
-		global.fetch = jest.fn().mockRejectedValueOnce(new Error('boom'))
+		global.fetch.mockRejectedValueOnce(new Error('boom'))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -163,12 +169,8 @@ describe('CnFlowTab', () => {
 		spy.mockRestore()
 	})
 
-	it('falls back to the shortened class name when title is absent', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({ results: [makeOp({ title: '', data: { ...makeOp().data, name: '' } })] }),
-		})
+	it('falls back to the shortened class name when name is absent', async () => {
+		global.fetch.mockReturnValueOnce(resolveOnce(envelope([makeOp({ operationName: '' })], false)))
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
