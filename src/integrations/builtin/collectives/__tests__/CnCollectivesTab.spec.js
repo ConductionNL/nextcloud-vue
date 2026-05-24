@@ -120,6 +120,35 @@ describe('CnCollectivesTab', () => {
 		wrapper.destroy()
 	})
 
+	it('trims a dangling slug separator left behind after marker strip (D-1 fixture)', async () => {
+		// Phase D-1 fixture: slug = 'phase-d1-page-[or:UUID]'. After
+		// the marker is stripped what remains is 'phase-d1-page-' with
+		// a trailing hyphen — the bug. Fix trims dangling -, _, .
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({
+				results: [
+					{
+						id: 42,
+						title: 'phase-d1-page-[or:a270fe68-df45-4427-8cb9-3c33eefc2e88]',
+						url: '/index.php/apps/collectives/42',
+						data: { id: 42 },
+					},
+				],
+			}),
+		})
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		const titleEl = wrapper.find('.cn-collectives-tab__title')
+		expect(titleEl.exists()).toBe(true)
+		expect(titleEl.text()).toBe('phase-d1-page')
+		expect(titleEl.text()).not.toContain('[or:')
+		expect(titleEl.text()).not.toMatch(/-$/)
+		wrapper.destroy()
+	})
+
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })

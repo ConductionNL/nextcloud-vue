@@ -127,6 +127,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -238,8 +239,11 @@ export default {
 		pageTitle(page) {
 			const d = this.dataOf(page)
 			const candidate = page.title ?? d.title ?? d.slug ?? page.slug ?? ''
-			const text = String(candidate)
-			return text.replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(this.pageKey(page))
+			// Strip the [or:UUID] marker AND any dangling slug
+			// separator (-, _, .) that gets left behind — see
+			// CnCollectivesTab.pageTitle for the bug context.
+			const stripped = stripMarker(candidate).replace(/[-_.]+$/, '').replace(/^[-_.]+/, '').trim()
+			return stripped || String(this.pageKey(page))
 		},
 
 		pageEmoji(page) {

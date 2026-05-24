@@ -107,6 +107,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const MS_PER_HOUR = 60 * 60 * 1000
@@ -192,10 +193,13 @@ export default {
 		pageTitle(page) {
 			const d = this.dataOf(page)
 			const candidate = page.title ?? d.title ?? d.slug ?? page.slug ?? ''
-			const text = String(candidate)
-			// Provider returns the slug (which carries the `[or:{uuid}]` marker)
-			// when no real title is available. Strip the marker for display.
-			return text.replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(this.pageKey(page))
+			// Provider returns the slug (which carries the `[or:{uuid}]`
+			// marker) when no real title is available. Strip the marker
+			// AND any dangling slug separator (`-`, `_`, `.`) left
+			// behind — `phase-d1-page-[or:UUID]` would otherwise render
+			// as `phase-d1-page-` with a trailing hyphen (D-1 bug).
+			const stripped = stripMarker(candidate).replace(/[-_.]+$/, '').replace(/^[-_.]+/, '').trim()
+			return stripped || String(this.pageKey(page))
 		},
 
 		pageEmoji(page) {
