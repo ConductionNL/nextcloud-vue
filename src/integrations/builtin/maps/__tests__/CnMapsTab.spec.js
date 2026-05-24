@@ -131,9 +131,14 @@ describe('CnMapsTab', () => {
 			json: () => Promise.resolve({
 				results: [
 					{
-						id: 9, title: 'phase-d1 location', url: '/index.php/apps/maps/#/m=9',
+						id: 9,
+						title: 'phase-d1 location',
+						url: '/index.php/apps/maps/#/m=9',
 						data: {
-							id: 9, name: 'phase-d1 location', lat: 52.37, lng: 4.89,
+							id: 9,
+							name: 'phase-d1 location',
+							lat: 52.37,
+							lng: 4.89,
 							// Bare marker (no brackets) — the bug.
 							category: 'or:a270fe68-df45-4427-8cb9-3c33eefc2e88',
 						},
