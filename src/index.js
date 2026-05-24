@@ -80,6 +80,7 @@ export {
 	CnEmailTab,
 	CnIntegrationTab,
 	CnIntegrationCard,
+	CnIntegrationWidgetGrid,
 	CnDetailCard,
 	CnDetailPage,
 	CnCard,
