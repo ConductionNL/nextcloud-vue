@@ -32,6 +32,26 @@
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
 
+		<!--
+		  Viewport wrapper — toggle-clearance contract.
+
+		  Every page dispatched by CnPageRenderer is rendered INSIDE this
+		  wrapper, which carries `padding-inline-start: 56px` so the page's
+		  content clears Nextcloud's absolutely-positioned navigation-collapse
+		  toggle (44px wide + 12px breathing room).
+
+		  Earlier attempts placed the padding on the dispatched child via
+		  `.cn-page-renderer > *` (#355) — but consumer pages that use the
+		  `padding` shorthand (e.g. `padding: 24px 16px`) inside scoped Vue
+		  styles win on specificity AND the shorthand expands to all four
+		  sides — so the per-child rule was silently overridden
+		  (CnFeaturesAndRoadmapView was a confirmed regression). Putting the
+		  padding on a dedicated wrapper keeps the contract framework-side,
+		  lets children retain their own padding shorthands, and avoids
+		  !important.
+		-->
+		<div class="cn-page-renderer__viewport">
+
 		<!-- V2 render path: slot dispatcher via CnWidgetGrid.
 		     Body falls back to the typed-primitive dispatch when no
 		     widgets[] entries target the `body` slot — apps that just
@@ -103,6 +123,7 @@
 					v-bind="slotProps" />
 			</template>
 		</component>
+		</div><!-- /cn-page-renderer__viewport -->
 	</div>
 </template>
 
@@ -813,21 +834,22 @@ export default {
  * Nextcloud's `.app-navigation-toggle-wrapper` is absolutely positioned
  * at the left edge of `.app-content` with a 34px right-margin overhang,
  * so it floats over the first ~44px of every page's left edge —
- * occluding any heading at offset 0. Historically each page type added
- * its own `padding-inline-start` (CnPageHeader, CnDashboardPage,
- * CnDetailPage), which left custom pages (type:"custom" in manifest)
- * unprotected — e.g. pipelinq's Features page rendered "eatures" with
- * the F behind the toggle.
+ * occluding any heading at offset 0.
  *
- * Applying the padding here — to every direct child of the dispatcher,
- * regardless of page type — is the abstract fix: index, detail,
- * dashboard, custom, all get the same clearance. Per-component
- * `padding-inline-start` rules have been removed from CnPageHeader,
- * CnDashboardPage, and CnDetailPage to prevent stacking.
+ * The padding lives on a dedicated viewport wrapper rather than on the
+ * dispatched child directly. A `.cn-page-renderer > *` selector (the
+ * approach in #355) loses to scoped consumer styles like
+ * CnFeaturesAndRoadmapView's `padding: 24px 16px` — both on specificity
+ * (scoped data-attr selectors win) and via shorthand expansion
+ * overwriting `padding-inline-start`. The wrapper element side-steps
+ * both: children render INSIDE the padded box, and their own padding
+ * stacks naturally without conflict.
  *
- * 56px = 44px toggle width + 12px breathing room.
+ * 56px = 44px toggle width + 12px breathing room. Per-component
+ * padding rules in CnPageHeader, CnDashboardPage, and CnDetailPage
+ * have been removed to prevent double-padding.
  */
-.cn-page-renderer > * {
+.cn-page-renderer__viewport {
 	padding-inline-start: 56px;
 }
 
