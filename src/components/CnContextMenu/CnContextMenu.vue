@@ -322,9 +322,27 @@ export default {
 </script>
 
 <style scoped>
+/* Hide the NcActions trigger button — menu opens only via right-click.
+   Previously a plain scoped `display: none` was here, but consumer
+   bundles still rendered a stray `…` glyph in the bottom-left of every
+   index page. The scoped data-v hash doesn't reliably propagate to
+   NcActions' rendered root in Vue 2 builds, so the `.cn-context-menu`
+   selector misses. Belt-and-suspenders: shove the whole root off-screen
+   so the trigger has nowhere to render visually. The menu panel
+   teleports to `<body>` via `container="body"`, so the off-screen
+   wrapper doesn't affect where the menu actually opens. */
+.cn-context-menu-root {
+	position: absolute;
+	left: -9999px;
+	top: -9999px;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
 .cn-context-menu {
-	/* Hide the NcActions trigger button — menu opens only via right-click */
-	display: none;
+	display: none !important;
 }
 
 .cn-context-menu__backdrop {
