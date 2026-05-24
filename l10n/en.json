@@ -487,10 +487,19 @@
     "Could not load emails": "Could not load emails",
     "Open in Mail": "Open in Mail",
     "(no subject)": "(no subject)",
-    "Unknown sender": "Unknown sender"
+    "Unknown sender": "Unknown sender",
+    "No conversations linked yet": "No conversations linked yet",
+    "Open Talk": "Open Talk",
+    "NC Talk is currently unavailable.": "NC Talk is currently unavailable.",
+    "Could not load conversations.": "Could not load conversations.",
+    "{n} unread": "{n} unread",
+    "{n} participants": "{n} participants"
   },
   "plurals": {
     "{count} card": ["{count} card", "{count} cards"],
-    "across {count} stack": ["across {count} stack", "across {count} stacks"]
+    "across {count} stack": ["across {count} stack", "across {count} stacks"],
+    "{count} conversation": ["{count} conversation", "{count} conversations"],
+    "{count} unread message": ["{count} unread message", "{count} unread messages"],
+    "across {count} conversation": ["across {count} conversation", "across {count} conversations"]
   }
 }
