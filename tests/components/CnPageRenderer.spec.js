@@ -594,4 +594,70 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.currentPage).toBeNull()
 		})
 	})
+
+	describe('listener + attribute forwarding (B1)', () => {
+		// Drive emits / inspect props via findComponent + vm rather than
+		// rendered DOM. shallowMount stubs the dispatched component's
+		// template, but the component instance + its $emit / $attrs /
+		// resolved props are still observable through the wrapper.
+		const EmittingPage = {
+			name: 'EmittingPage',
+			inheritAttrs: false,
+			props: ['title'],
+			template: '<div class="emitting-stub" />',
+		}
+		const emittingManifest = {
+			version: '1.0.0',
+			menu: [],
+			pages: [
+				{
+					id: 'emitter',
+					route: '/emitter',
+					type: 'custom',
+					title: 'Decisions',
+					component: 'EmittingPage',
+					config: { title: 'Decisions' },
+				},
+			],
+		}
+
+		const mountEmitter = (extra = {}) => shallowMount(CnPageRenderer, {
+			provide: {
+				cnManifest: emittingManifest,
+				cnCustomComponents: { EmittingPage },
+				cnTranslate: (k) => k,
+			},
+			mocks: { $route: { name: 'emitter', params: {} } },
+			...extra,
+		})
+
+		it('forwards listeners so dispatched-page emits reach the host', () => {
+			const onWidgetAction = jest.fn()
+			const wrapper = mountEmitter({ listeners: { 'widget-action': onWidgetAction } })
+			const page = wrapper.findComponent(EmittingPage)
+			expect(page.exists()).toBe(true)
+			page.vm.$emit('widget-action', { widgetId: 'foo' })
+			expect(onWidgetAction).toHaveBeenCalledWith({ widgetId: 'foo' })
+		})
+
+		it('forwards $attrs to the dispatched page component', () => {
+			const wrapper = mountEmitter({ attrs: { 'host-context': 'meeting-room' } })
+			const page = wrapper.findComponent(EmittingPage)
+			expect(page.vm.$attrs['host-context']).toBe('meeting-room')
+		})
+
+		it('does NOT leak forwarded $attrs onto the wrapping cn-page-renderer div (inheritAttrs: false)', () => {
+			const wrapper = mountEmitter({ attrs: { 'host-context': 'meeting-room' } })
+			expect(wrapper.find('.cn-page-renderer').attributes('host-context')).toBeUndefined()
+		})
+
+		it('resolvedProps still wins over $attrs on key collisions', () => {
+			const wrapper = mountEmitter({ attrs: { title: 'Overridden' } })
+			const page = wrapper.findComponent(EmittingPage)
+			// manifest config.title = "Decisions"; $attrs.title would be
+			// "Overridden". Object spread `{ ...$attrs, ...resolvedProps }`
+			// makes resolvedProps win — the page receives "Decisions".
+			expect(page.props('title')).toBe('Decisions')
+		})
+	})
 })

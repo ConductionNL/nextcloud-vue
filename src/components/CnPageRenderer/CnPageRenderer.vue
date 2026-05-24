@@ -50,7 +50,8 @@
 			<component
 				v-else-if="resolvedComponent"
 				:is="resolvedComponent"
-				v-bind="resolvedProps">
+				v-bind="{ ...$attrs, ...resolvedProps }"
+				v-on="$listeners">
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -89,11 +90,11 @@
 			</template>
 		</template>
 
-		<!-- V1 render path: unchanged -->
 		<component
 			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
-			v-bind="resolvedProps">
+			v-bind="{ ...$attrs, ...resolvedProps }"
+			v-on="$listeners">
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -150,6 +151,22 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 
 export default {
 	name: 'CnPageRenderer',
+
+	/**
+	 * Forward listeners + attrs to the dispatched page component (B1).
+	 *
+	 * `inheritAttrs: false` opts the wrapping `.cn-page-renderer` <div>
+	 * out of Vue's default non-prop-attribute fallthrough, so attributes
+	 * the host passed to CnPageRenderer land on the dispatched page via
+	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
+	 * does the same for events. Without this, built-in page components
+	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
+	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
+	 *
+	 * Resolved props win over `$attrs` on key collisions because the
+	 * spread order is `{ ...$attrs, ...resolvedProps }`.
+	 */
+	inheritAttrs: false,
 
 	components: {
 		CnWidgetGrid,
