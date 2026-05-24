@@ -52,6 +52,18 @@
 				:spec-ref="suggestModalSpecRef"
 				@submitted="onSubmitted"
 				@close="showSuggestModal = false" />
+
+			<CnSupportDialog
+				v-if="showSupportDialog"
+				:app-name="resolvedAppName"
+				:app-slug="resolvedAppSlug"
+				:app-store-url="resolvedAppStoreUrl"
+				:feature-request-url="resolvedFeatureRequestUrl"
+				:donate-url="donateUrl"
+				:support-url="supportUrl"
+				:founder-name="founderName"
+				:founder-title="founderTitle"
+				@close="showSupportDialog = false" />
 		</template>
 	</div>
 </template>
@@ -71,9 +83,10 @@
  * sidebar slot renders correctly (next to NcAppContent, not inside it).
  * When mounted under CnAppRoot the view publishes
  * `CnFeaturesAndRoadmapSidebar` + props into the holder on mounted()
- * and clears it on beforeDestroy(). Sidebar carries three pitch
- * sections: Suggest, OpenBuilt, LLM. The Suggest CTA inside the sidebar
- * bubbles a `@suggest` event the view forwards to its modal opener.
+ * and clears it on beforeDestroy(). Sidebar carries four pitch
+ * sections: Suggest, OpenBuilt, LLM, Support. Suggest emits `@suggest`
+ * (forwarded to the modal opener); Support emits `@support` (forwarded
+ * to a freshly-mounted `CnSupportDialog`).
  *
  * Sidebar link targets are overridable via the `openbuiltUrl` and
  * `llmSkillsUrl` props. Defaults: in-instance `/apps/openbuilt` (via
@@ -93,10 +106,15 @@ import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
+import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import { useSpecRef } from '../../composables/useSpecRef.js'
 
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
 const DEFAULT_LLM_SKILLS_URL = 'https://docs.conduction.nl/ai-skills'
+const DEFAULT_DONATE_URL = 'https://github.com/sponsors/ConductionNL'
+const DEFAULT_SUPPORT_URL = 'https://www.conduction.nl/contact'
+const DEFAULT_FOUNDER_NAME = 'Ruben van der Linde'
+const DEFAULT_FOUNDER_TITLE = 'Founder'
 
 export default {
 	name: 'CnFeaturesAndRoadmapView',
@@ -112,6 +130,7 @@ export default {
 		CnFeaturesTab,
 		CnRoadmapTab,
 		CnSuggestFeatureModal,
+		CnSupportDialog,
 	},
 
 	inject: {
@@ -201,6 +220,89 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Display name of the host app, used as the title of the bundled
+		 * `CnSupportDialog` and interpolated into its body copy. When
+		 * empty (default) the View derives a humanised label from `repo`
+		 * — `ConductionNL/openregister` becomes `Openregister` — which is
+		 * fine for stock apps and overridable for camelCased names.
+		 * @type {string}
+		 */
+		appName: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Kebab-case host-app id passed to `CnSupportDialog` (its
+		 * localStorage namespace). When empty (default) the View derives
+		 * it from `repo` — second segment lower-cased.
+		 * @type {string}
+		 */
+		appSlug: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Nextcloud App Store listing URL for the host app, threaded
+		 * through to `CnSupportDialog`. When empty (default) the View
+		 * derives `https://apps.nextcloud.com/apps/{appSlug}`.
+		 * @type {string}
+		 */
+		appStoreUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * URL the "Suggest a feature" CTA inside `CnSupportDialog` opens.
+		 * When empty (default) the View derives
+		 * `https://github.com/{repo}/issues/new`. This is intentionally
+		 * separate from the prop-of-the-same-name on the sidebar's
+		 * Suggest CTA — that one opens the modal-driven flow; this one
+		 * is the "open in GitHub" fallback used by the support dialog,
+		 * which is meant for the casual visitor rather than the existing
+		 * suggest-feature loop.
+		 * @type {string}
+		 */
+		featureRequestUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Donate-CTA URL passed to `CnSupportDialog`. Defaults to
+		 * ConductionNL's GitHub Sponsors page.
+		 * @type {string}
+		 */
+		donateUrl: {
+			type: String,
+			default: DEFAULT_DONATE_URL,
+		},
+		/**
+		 * Business-support CTA URL passed to `CnSupportDialog`. Defaults
+		 * to the Conduction contact page.
+		 * @type {string}
+		 */
+		supportUrl: {
+			type: String,
+			default: DEFAULT_SUPPORT_URL,
+		},
+		/**
+		 * Name rendered in the handwritten signature of `CnSupportDialog`.
+		 * Defaults to Ruben van der Linde.
+		 * @type {string}
+		 */
+		founderName: {
+			type: String,
+			default: DEFAULT_FOUNDER_NAME,
+		},
+		/**
+		 * Title shown after the handwritten signature in `CnSupportDialog`
+		 * (e.g. "Founder", "Oprichter").
+		 * @type {string}
+		 */
+		founderTitle: {
+			type: String,
+			default: DEFAULT_FOUNDER_TITLE,
+		},
 	},
 
 	data() {
@@ -208,6 +310,7 @@ export default {
 			activeView: 'features',
 			showSuggestModal: false,
 			suggestModalSpecRef: null,
+			showSupportDialog: false,
 		}
 	},
 
@@ -235,6 +338,29 @@ export default {
 		},
 		resolvedDocumentationUrl() {
 			return this.documentationUrl || ''
+		},
+		repoSlug() {
+			if (!this.repo || !this.repo.includes('/')) return ''
+			return this.repo.split('/')[1].toLowerCase()
+		},
+		resolvedAppSlug() {
+			return this.appSlug || this.repoSlug
+		},
+		resolvedAppName() {
+			if (this.appName) return this.appName
+			const slug = this.repoSlug
+			if (!slug) return ''
+			return slug.charAt(0).toUpperCase() + slug.slice(1)
+		},
+		resolvedAppStoreUrl() {
+			return this.appStoreUrl || (this.resolvedAppSlug
+				? `https://apps.nextcloud.com/apps/${this.resolvedAppSlug}`
+				: '')
+		},
+		resolvedFeatureRequestUrl() {
+			return this.featureRequestUrl || (this.repo
+				? `https://github.com/${this.repo}/issues/new`
+				: '')
 		},
 		documentationUrlIsExternal() {
 			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
@@ -266,6 +392,9 @@ export default {
 		openSuggestModal() {
 			this.suggestModalSpecRef = useSpecRef(this)
 			this.showSuggestModal = true
+		},
+		openSupportDialog() {
+			this.showSupportDialog = true
 		},
 		onSubmitted(payload) {
 			this.showSuggestModal = false
@@ -304,6 +433,7 @@ export default {
 				},
 				listeners: {
 					suggest: () => this.openSuggestModal(),
+					support: () => this.openSupportDialog(),
 				},
 			}
 		},
