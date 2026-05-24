@@ -325,6 +325,10 @@ export default {
 	gap: 12px;
 	margin-bottom: 24px;
 	flex-wrap: wrap;
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content) plus 12px breathing
+	   room. Only the HEADER shifts right — the panel below keeps full width. */
+	padding-inline-start: 56px;
 }
 
 .cn-features-and-roadmap-view__title {
