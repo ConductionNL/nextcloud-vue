@@ -181,4 +181,107 @@ describe('CnPollsTab', () => {
 		expect(wrapper.text()).toContain('Bare poll')
 		wrapper.destroy()
 	})
+
+	it('opens the picker modal when "Link existing poll" is clicked', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.pickerOpen).toBe(false)
+		wrapper.vm.openPicker()
+		expect(wrapper.vm.pickerOpen).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('opens the create modal when "Create new poll" is clicked', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.createOpen).toBe(false)
+		wrapper.vm.openCreate()
+		expect(wrapper.vm.createOpen).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('POSTs to /polls when the picker emits link', async () => {
+		// Initial list fetch then link POST then refresh.
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({ pollId: 99 }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ pollId: 99 })
+
+		const linkCall = global.fetch.mock.calls[1]
+		expect(linkCall[0]).toContain('/api/objects/reg/schema/obj-1/polls')
+		expect(linkCall[1].method).toBe('POST')
+		expect(JSON.parse(linkCall[1].body)).toEqual({ pollId: 99 })
+		wrapper.destroy()
+	})
+
+	it('surfaces a 409 error when linking a duplicate', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: false, status: 409, json: () => Promise.resolve({}) })
+
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ pollId: 99 })
+
+		expect(wrapper.vm.error).toContain('already linked')
+		wrapper.destroy()
+	})
+
+	it('POSTs to /polls/new when the create dialog emits create', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({ pollId: 456 }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		const payload = {
+			title: 'Lunch',
+			description: 'Pick a day',
+			type: 'datePoll',
+			options: ['Mon', 'Tue'],
+			deadline: null,
+		}
+		await wrapper.vm.onCreatePick(payload)
+
+		const createCall = global.fetch.mock.calls[1]
+		expect(createCall[0]).toContain('/api/objects/reg/schema/obj-1/polls/new')
+		expect(createCall[1].method).toBe('POST')
+		expect(JSON.parse(createCall[1].body)).toEqual(payload)
+		wrapper.destroy()
+	})
+
+	it('DELETEs the link when unlinkPoll is called', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [makePoll()] }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.unlinkPoll({ pollId: 42 })
+
+		const deleteCall = global.fetch.mock.calls[1]
+		expect(deleteCall[0]).toContain('/api/objects/reg/schema/obj-1/polls/42')
+		expect(deleteCall[1].method).toBe('DELETE')
+		wrapper.destroy()
+	})
 })

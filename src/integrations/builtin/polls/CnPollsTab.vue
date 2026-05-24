@@ -3,18 +3,22 @@
 
   Replaces the generic CnIntegrationTab for the `polls` leaf: renders a
   live vote tally for each linked NC Polls poll — title, type
-  (yes/no/abstain or pick), deadline countdown, and a per-option
+  (text choice or date choice), deadline countdown, and a per-option
   progress bar (vote count + percentage). A trailing "Open in Polls"
   link per row deep-links to `/index.php/apps/polls/vote/{id}`.
 
-  Talks to the same OpenRegister pluggable-integration sub-resource
-    `/api/objects/{register}/{schema}/{objectId}/integrations/polls`
-  served by `OCA\OpenRegister\Service\Integration\Providers\PollsProvider`
-  (which currently DB-queries `polls_polls` filtered by an `[or:{uuid}]`
-  title marker). The provider payload today only includes
-  `{id,title,description,type,url}` — option-level results are read
-  defensively (`poll.options`/`poll.results`) so the tab lights up the
-  moment the provider extends.
+  Tier-2 surface (this commit):
+    - "Link existing poll"   → opens CnPollPicker (modal)
+    - "Create new poll"      → opens CnPollCreate (modal)
+    - Per-row unlink         → DELETE …/polls/{pollId}
+
+  Talks to the OpenRegister Tier-2 poll-link endpoints
+    GET     /api/objects/{r}/{s}/{id}/polls          — list
+    POST    /api/objects/{r}/{s}/{id}/polls          — link existing
+    POST    /api/objects/{r}/{s}/{id}/polls/new      — create + link
+    DELETE  /api/objects/{r}/{s}/{id}/polls/{pollId} — unlink
+    GET     /api/integrations/polls/available        — picker source
+  served by `OCA\OpenRegister\Controller\PollLinksController`.
 
   Surface behaviour:
     - Empty state with "Open Polls" CTA when no linked polls.
@@ -22,11 +26,6 @@
       CnIntegrationTab's behaviour for AD-23 graceful degradation.
     - Deadline countdown for open polls ("Closes in 3 days"); for
       already-elapsed polls renders "Closed" + the option leader.
-
-  Bespoke-vs-generic rationale: the generic tab renders a flat link
-  list which loses Polls' headline signal (live tally + your-vote). The
-  bespoke tab surfaces option results inline so case handlers can see
-  at a glance whether the vote has reached quorum.
 
   See `openregister/openspec/changes/integration-polls/` for the spec
   delta and ADR-019 (registry mechanism).
@@ -36,6 +35,21 @@
 		<div v-if="degraded" class="cn-polls-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<div class="cn-polls-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing poll') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new poll') }}
+			</NcButton>
 		</div>
 
 		<NcLoadingIcon v-if="loading" />
@@ -65,6 +79,15 @@
 						target="_blank"
 						rel="noopener"
 						class="cn-polls-tab__title">{{ pollTitle(poll) }}</a>
+					<NcButton
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink poll')"
+						class="cn-polls-tab__unlink"
+						@click="unlinkPoll(poll)">
+						<template #icon>
+							<LinkOff :size="18" />
+						</template>
+					</NcButton>
 				</div>
 				<div v-if="pollMeta(poll)" class="cn-polls-tab__meta">
 					{{ pollMeta(poll) }}
@@ -97,6 +120,17 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnPollPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnPollCreate
+			v-if="createOpen"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -104,7 +138,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
+import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
+import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
@@ -114,12 +153,23 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
  * CnPollsTab — bespoke live-tally list for the `polls` integration.
  *
  * Renders rows pulled from the OR pluggable-integration endpoint with
- * per-option progress bars and a deadline countdown.
+ * per-option progress bars and a deadline countdown. Tier-2: includes
+ * link/create modals and per-row unlink.
  */
 export default {
 	name: 'CnPollsTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, Poll },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		LinkOff,
+		LinkVariant,
+		Plus,
+		Poll,
+		CnPollPicker,
+		CnPollCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'polls'`). */
@@ -148,6 +198,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -158,17 +210,100 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},
 
+		/**
+		 * Base for the Tier-2 polls endpoints (link/new/destroy).
+		 *
+		 * @return {string}
+		 */
+		pollsEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/polls`
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.pollsEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPolls()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This poll is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link poll.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnPollsTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link poll.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.pollsEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPolls()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create poll.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnPollsTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create poll.')
+			}
+		},
+
+		async unlinkPoll(poll) {
+			const pollId = this.pollKey(poll)
+			if (!pollId) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.pollsEndpoint()}/${pollId}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchPolls()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink poll.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnPollsTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink poll.')
+			}
+		},
+
 		pollKey(poll) {
-			return poll.id ?? poll.reference ?? ''
+			return poll.pollId ?? poll.id ?? poll.reference ?? ''
 		},
 
 		pollTitle(poll) {
-			const raw = poll.title ?? poll.name ?? this.pollKey(poll)
-			// Strip the `[or:{uuid}]` marker from the displayed title
+			const raw = poll.title ?? poll.pollTitle ?? poll.name ?? this.pollKey(poll)
+			// Strip any legacy `[or:{uuid}]` marker from displayed title
 			// via the shared helper (ADR-019).
 			return stripMarker(raw) || String(raw)
 		},
@@ -181,12 +316,12 @@ export default {
 			if (poll.url) {
 				return poll.url
 			}
-			const id = poll.id ?? ''
+			const id = this.pollKey(poll)
 			return id ? `/index.php/apps/polls/vote/${id}` : this.pollsAppUrl
 		},
 
 		pollType(poll) {
-			return poll.type ?? ''
+			return poll.type ?? poll.pollType ?? ''
 		},
 
 		pollOptions(poll) {
@@ -324,6 +459,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-polls-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 8px;
+	flex-wrap: wrap;
+}
+
 .cn-polls-tab__banner {
 	display: flex;
 	align-items: center;
@@ -402,6 +544,10 @@ export default {
 
 a.cn-polls-tab__title:hover {
 	text-decoration: underline;
+}
+
+.cn-polls-tab__unlink {
+	flex-shrink: 0;
 }
 
 .cn-polls-tab__meta {
