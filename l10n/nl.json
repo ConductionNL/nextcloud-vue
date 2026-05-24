@@ -473,7 +473,13 @@
     "NC Deck is currently unavailable.": "NC Deck is momenteel niet beschikbaar.",
     "Could not load cards.": "Kan kaarten niet laden.",
     "No stack": "Geen stapel",
-    "Stack {n}": "Stapel {n}"
+    "Stack {n}": "Stapel {n}",
+    "Emails": "E-mails",
+    "No linked emails yet": "Nog geen gekoppelde e-mails",
+    "Could not load emails": "Kon e-mails niet laden",
+    "Open in Mail": "Openen in Mail",
+    "(no subject)": "(geen onderwerp)",
+    "Unknown sender": "Onbekende afzender"
   },
   "plurals": {
     "{count} card": ["{count} kaart", "{count} kaarten"],

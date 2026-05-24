@@ -481,7 +481,13 @@
     "NC Deck is currently unavailable.": "NC Deck is currently unavailable.",
     "Could not load cards.": "Could not load cards.",
     "No stack": "No stack",
-    "Stack {n}": "Stack {n}"
+    "Stack {n}": "Stack {n}",
+    "Emails": "Emails",
+    "No linked emails yet": "No linked emails yet",
+    "Could not load emails": "Could not load emails",
+    "Open in Mail": "Open in Mail",
+    "(no subject)": "(no subject)",
+    "Unknown sender": "Unknown sender"
   },
   "plurals": {
     "{count} card": ["{count} card", "{count} cards"],
