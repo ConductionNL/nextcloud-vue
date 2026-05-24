@@ -57,7 +57,7 @@
 						<DotsHorizontal :size="20" />
 					</template>
 					<NcActionButton
-						v-if="!hideRefresh"
+						v-if="effectiveShowRefresh"
 						data-testid="cn-widget-wrapper-action-refresh"
 						@click="onRefreshClick">
 						<template #icon>
@@ -66,7 +66,7 @@
 						{{ refreshLabel }}
 					</NcActionButton>
 					<NcActionButton
-						v-if="!hideRequestFeature"
+						v-if="effectiveShowRequestFeature"
 						data-testid="cn-widget-wrapper-action-request-feature"
 						@click="onRequestFeatureClick">
 						<template #icon>
@@ -105,15 +105,56 @@
 				</a>
 			</slot>
 		</div>
+
+		<!-- Auto-mounted feature-request modal (B2 default for Request a feature).
+		     Lazy-loaded via the components() async-import so the modal bundle
+		     only ships when a host renders a widget wrapper. Suppressed by the
+		     host calling preventDefault on @request-feature. -->
+		<CnSuggestFeatureModal
+			v-if="featureRequestModalOpen"
+			:repo="cnFeatureRequestRepo"
+			:spec-ref="specRef"
+			:app="cnAppId"
+			:page="$route ? ($route.name || '') : ''"
+			:surface="`widget:${resolvedWidgetId}`"
+			:conduction-submit-enabled="false"
+			@close="onFeatureRequestModalClose" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { emit as emitOnBus } from '@nextcloud/event-bus'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+
+/**
+ * Stable event-bus channel name for the built-in widget Refresh
+ * action. Widgets opt in by `subscribe('cn:widget:refresh', cb)` and
+ * filtering on `payload.widgetId`. Documented in
+ * `cn-widget-wrapper.md` as part of the B3 refresh contract.
+ */
+const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
+
+/**
+ * Build a synthetic event object handed to host listeners alongside
+ * the action payload. Mirrors the Vue 3 / DOM Event API enough to let
+ * a host call `event.preventDefault()` to suppress the wrapper's
+ * built-in default handler.
+ *
+ * @return {{defaultPrevented: boolean, preventDefault: Function}}
+ */
+function createSyntheticEvent() {
+	const ev = {
+		defaultPrevented: false,
+		preventDefault() {
+			this.defaultPrevented = true
+		},
+	}
+	return ev
+}
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -144,6 +185,26 @@ export default {
 		DotsHorizontal,
 		Refresh,
 		LightbulbOutline,
+		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
+	},
+
+	inject: {
+		/**
+		 * Consuming app's slug (e.g. "pipelinq"). Provided by CnAppRoot.
+		 * Auto-filled on the built-in Request-a-feature modal as the
+		 * `app` prop. Defaults to empty string when no CnAppRoot ancestor
+		 * exists; the modal falls back to a missing-context warning.
+		 */
+		cnAppId: { default: () => '' },
+		/**
+		 * Repo slug used as the GitHub deep-link target on the auto-
+		 * mounted CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`).
+		 * Provided by CnAppRoot from the manifest's
+		 * `nav.featureRequestRepo` field (with fallback to
+		 * `ConductionNL/<appId>`). Empty when no ancestor — the default
+		 * handler will warn-and-skip-modal rather than open a broken link.
+		 */
+		cnFeatureRequestRepo: { default: () => '' },
 	},
 
 	props: {
@@ -213,7 +274,8 @@ export default {
 		/**
 		 * Hide the built-in Refresh item from the overflow action menu.
 		 * The Refresh item is shown by default — set this when the widget
-		 * has no refreshable data source (e.g. a static tile).
+		 * has no refreshable data source (e.g. a static tile). Alias for
+		 * the inverse `:show-refresh="false"`; either form opts out.
 		 */
 		hideRefresh: {
 			type: Boolean,
@@ -222,11 +284,61 @@ export default {
 		/**
 		 * Hide the built-in Request-a-feature item from the overflow
 		 * action menu. Shown by default; set when the consuming app has
-		 * no public issue tracker to link out to.
+		 * no public issue tracker to link out to. Alias for the inverse
+		 * `:show-request-feature="false"`; either form opts out.
 		 */
 		hideRequestFeature: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Inverse of `hideRefresh`. Defaults to `true` so the action
+		 * renders. Set `:show-refresh="false"` to hide. Either `hideRefresh`
+		 * OR `!showRefresh` hides the action — the spec scenario in
+		 * `widget-wrapper` declares the show-prefixed form as canonical;
+		 * the `hide-` flags remain for back-compat.
+		 *
+		 * @type {boolean}
+		 */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
+		 * action renders. Set `:show-request-feature="false"` to hide it.
+		 * Either flag hides the action.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Widget id for the built-in default Refresh / Request-a-feature
+		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
+		 * on the auto-mounted CnSuggestFeatureModal AND as the
+		 * `widgetId` field on the `cn:widget:refresh` event-bus payload.
+		 * When unset, the wrapper falls back to a slugified `displayTitle`,
+		 * which works but is less stable than an explicit id.
+		 *
+		 * @type {string}
+		 */
+		widgetId: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional `specRef` forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so the resulting GitHub issue links to
+		 * the spec capability this widget belongs to.
+		 *
+		 * @type {string}
+		 */
+		specRef: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
@@ -255,9 +367,57 @@ export default {
 		},
 	},
 
+	data() {
+		return {
+			/**
+			 * Internal state for the auto-mounted default
+			 * CnSuggestFeatureModal (B2). Flipped to true by the
+			 * default Request-a-feature handler when the host did not
+			 * `preventDefault()` on `@request-feature`. The modal emits
+			 * `@close` back to this component which resets it.
+			 */
+			featureRequestModalOpen: false,
+		}
+	},
+
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * Effective Refresh visibility. Either `hideRefresh: true` OR
+		 * `showRefresh: false` hides the action. The show-prefixed prop
+		 * is the spec-canonical form (per `widget-wrapper` scenario);
+		 * `hideRefresh` remains as a back-compat alias.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveShowRefresh() {
+			return this.showRefresh && !this.hideRefresh
+		},
+		/**
+		 * Effective Request-a-feature visibility — same OR-of-opt-outs
+		 * pattern as `effectiveShowRefresh`.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveShowRequestFeature() {
+			return this.showRequestFeature && !this.hideRequestFeature
+		},
+
+		/**
+		 * Stable id used in event-bus payloads and the
+		 * `surface: "widget:<id>"` field on the auto-mounted feature
+		 * modal. Prefers the explicit `widgetId` prop; falls back to a
+		 * slugified `displayTitle` so widgets without an explicit id
+		 * still get a usable identifier.
+		 *
+		 * @return {string}
+		 */
+		resolvedWidgetId() {
+			if (this.widgetId) return this.widgetId
+			return this.displayTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
 		/**
@@ -268,8 +428,8 @@ export default {
 		 * @return {boolean}
 		 */
 		hasOverflowMenu() {
-			if (!this.hideRefresh) return true
-			if (!this.hideRequestFeature) return true
+			if (this.effectiveShowRefresh) return true
+			if (this.effectiveShowRequestFeature) return true
 			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
 		},
 
@@ -299,36 +459,68 @@ export default {
 
 	methods: {
 		/**
-		 * Emit @refresh when the user clicks the built-in Refresh action.
-		 * Payload is the widget title — dashboard hosts use it to route
-		 * to the right widget when a single handler is wired to many
-		 * wrappers.
+		 * Refresh click — emits `@refresh`, then runs the built-in
+		 * default (emit on the `cn:widget:refresh` event-bus channel)
+		 * unless the host called `event.preventDefault()` on the
+		 * second handler arg. Payload includes `widgetId` for
+		 * subscriber-side filtering.
 		 *
 		 * @return {void}
 		 */
 		onRefreshClick() {
+			const ev = createSyntheticEvent()
 			/**
 			 * @event refresh User clicked the Refresh item in the overflow
-			 * action menu. Payload: `{ title }` where `title` is the
-			 * widget's display title (consumers route by it when one
-			 * handler serves many wrappers).
+			 * action menu. Payload: `{ widgetId, title }`. Handlers may
+			 * call the second arg's `preventDefault()` to suppress the
+			 * built-in default (event-bus emit on `cn:widget:refresh`).
 			 */
-			this.$emit('refresh', { title: this.displayTitle })
+			this.$emit('refresh', { widgetId: this.resolvedWidgetId, title: this.displayTitle }, ev)
+			if (ev.defaultPrevented) return
+			emitOnBus(REFRESH_BUS_CHANNEL, {
+				widgetId: this.resolvedWidgetId,
+				title: this.displayTitle,
+			})
 		},
 
 		/**
-		 * Emit @request-feature when the user clicks the built-in
-		 * Request-a-feature action. The consuming dashboard decides
-		 * where to send the user (typically an issue tracker).
+		 * Request-a-feature click — emits `@request-feature`, then runs
+		 * the built-in default (open `CnSuggestFeatureModal` with
+		 * `app + page + surface=widget:<id>` context auto-filled from
+		 * `CnAppRoot` injects) unless the host called `event.preventDefault()`.
+		 * The injects fall back to empty strings outside `CnAppRoot`;
+		 * the handler logs a `console.warn` and skips opening the modal
+		 * when no repo can be resolved.
 		 *
 		 * @return {void}
 		 */
 		onRequestFeatureClick() {
+			const ev = createSyntheticEvent()
 			/**
 			 * @event request-feature User clicked the Request a feature
-			 * item. Payload: `{ title }` — the widget's display title.
+			 * item. Payload: `{ widgetId, title }`. Handlers may call
+			 * the second arg's `preventDefault()` to suppress the
+			 * built-in default (auto-opening `CnSuggestFeatureModal`).
 			 */
-			this.$emit('request-feature', { title: this.displayTitle })
+			this.$emit('request-feature', { widgetId: this.resolvedWidgetId, title: this.displayTitle }, ev)
+			if (ev.defaultPrevented) return
+			if (!this.cnFeatureRequestRepo) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[CnWidgetWrapper] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
+				)
+				return
+			}
+			this.featureRequestModalOpen = true
+		},
+		/**
+		 * Close handler for the auto-mounted feature-request modal.
+		 * Resets the v-model-equivalent local flag.
+		 *
+		 * @return {void}
+		 */
+		onFeatureRequestModalClose() {
+			this.featureRequestModalOpen = false
 		},
 	},
 }
