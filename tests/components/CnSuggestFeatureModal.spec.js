@@ -2,12 +2,12 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Tests for CnSuggestFeatureModal — feature-request submission dialog. The
- * dialog hosts two submission paths: a primary "Continue on GitHub" button
- * that builds a deep-link to the repo's Issue Form and opens it in a new
- * tab, and a secondary "Send to Conduction" button that emits a payload
- * the parent forwards to Pipelinq's Contactmoment intake (Path B). No
- * server-side write proxy is involved — Path A is pure client-side.
+ * Tests for CnSuggestFeatureModal — the proposal-grade feature-request
+ * dialog. Five structured user-written fields (title, problem,
+ * proposed-solution, who-benefits, priority-to-you) plus one optional
+ * context field (anythingElse) plus the auto-captured context fields
+ * (app, page, surface, object, spec-ref). Two submission paths:
+ * GitHub deep-link (primary) and Conduction emit (secondary).
  *
  * @spec openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md
  *       (requirement "CnSuggestFeatureModal")
@@ -31,10 +31,11 @@ const stubs = {
 		model: { prop: 'value', event: 'update:value' },
 		template: '<div class="text-area" :data-label="label"><textarea :value="value" @input="$emit(\'update:value\', $event.target.value)" /></div>',
 	},
-	NcCheckboxRadioSwitch: {
-		name: 'NcCheckboxRadioSwitch',
-		props: ['checked', 'type'],
-		template: '<label class="switch"><input type="checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" /><slot /></label>',
+	NcSelect: {
+		name: 'NcSelect',
+		props: ['value', 'label', 'options', 'inputLabel', 'placeholder', 'clearable'],
+		model: { prop: 'value', event: 'input' },
+		template: '<select class="select" :data-label="label" :value="value" @change="$emit(\'input\', $event.target.value)"><option value="">--</option><option v-for="opt in options" :key="opt" :value="opt">{{ opt }}</option></select>',
 	},
 	NcNoteCard: { name: 'NcNoteCard', props: ['type'], template: '<div class="note" :data-type="type"><slot /></div>' },
 	NcButton: {
@@ -46,8 +47,11 @@ const stubs = {
 }
 
 const fillValid = async (wrapper) => {
-	await wrapper.find('.text-field input').setValue('Add timeline filter')
-	await wrapper.find('.text-area textarea').setValue('A short description with more than ten characters.')
+	await wrapper.find('[data-label="Title"] input').setValue('Add timeline filter')
+	await wrapper.find('[data-label="Problem"] textarea').setValue('I want to filter contacts by last interaction date but the list view does not support it.')
+	await wrapper.find('[data-label="Proposed solution"] textarea').setValue('A date-range filter in the contacts list sidebar, defaulting to last 30 days.')
+	await wrapper.find('[data-label="Who benefits"] textarea').setValue('Account managers tracking client engagement.')
+	await wrapper.find('select.select').setValue('Would use weekly')
 }
 
 describe('CnSuggestFeatureModal', () => {
@@ -60,33 +64,32 @@ describe('CnSuggestFeatureModal', () => {
 		window.open = originalOpen
 	})
 
-	it('renders the title, body, info card, and three action buttons', () => {
+	it('renders intro card + five structured fields + three buttons', () => {
 		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
+		const notes = wrapper.findAllComponents({ name: 'NcNoteCard' })
+		expect(notes).toHaveLength(2)
+		expect(notes.at(0).text()).toContain('Help us land this faster.')
+		expect(notes.at(1).text()).toContain('Why continue on GitHub?')
 		expect(wrapper.find('[data-label="Title"]').exists()).toBe(true)
-		expect(wrapper.find('[data-label="Description"]').exists()).toBe(true)
-		const note = wrapper.findComponent({ name: 'NcNoteCard' })
-		expect(note.exists()).toBe(true)
-		expect(note.props('type')).toBe('info')
-		expect(note.text()).toContain('Why continue on GitHub?')
-		const buttons = wrapper.findAll('.dialog-actions button.btn')
-		expect(buttons).toHaveLength(3)
+		expect(wrapper.find('[data-label="Problem"]').exists()).toBe(true)
+		expect(wrapper.find('[data-label="Proposed solution"]').exists()).toBe(true)
+		expect(wrapper.find('[data-label="Who benefits"]').exists()).toBe(true)
+		expect(wrapper.find('[data-label="How important is this to you?"]').exists()).toBe(true)
+		expect(wrapper.find('[data-label="Anything else?"]').exists()).toBe(true)
+		expect(wrapper.findAll('.dialog-actions button.btn')).toHaveLength(3)
 	})
 
-	it('GitHub button is primary, both submit buttons disabled until form is valid', () => {
+	it('GitHub button stays disabled until every required field is satisfied', async () => {
 		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
-		const buttons = wrapper.findAll('.dialog-actions button.btn')
-		expect(buttons.at(2).attributes('data-type')).toBe('primary')
-		expect(buttons.at(2).text()).toContain('Continue on GitHub')
-		expect(buttons.at(1).text()).toContain('Send to Conduction')
-		expect(buttons.at(1).attributes('disabled')).toBeDefined()
-		expect(buttons.at(2).attributes('disabled')).toBeDefined()
-	})
-
-	it('enables the GitHub button once title + body satisfy length rules', async () => {
-		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
-		await fillValid(wrapper)
-		const githubBtn = wrapper.findAll('.dialog-actions button.btn').at(2)
-		expect(githubBtn.attributes('disabled')).toBeUndefined()
+		const githubBtn = () => wrapper.findAll('.dialog-actions button.btn').at(2)
+		expect(githubBtn().attributes('disabled')).toBeDefined()
+		await wrapper.find('[data-label="Title"] input').setValue('Add timeline filter')
+		await wrapper.find('[data-label="Problem"] textarea').setValue('Short problem statement.')
+		expect(githubBtn().attributes('disabled')).toBeDefined()
+		await wrapper.find('[data-label="Proposed solution"] textarea').setValue('A date-range filter in the sidebar.')
+		await wrapper.find('[data-label="Who benefits"] textarea').setValue('Account managers.')
+		await wrapper.find('select.select').setValue('Nice to have')
+		expect(githubBtn().attributes('disabled')).toBeUndefined()
 	})
 
 	it('Conduction button stays disabled when conduction-submit-enabled is false', async () => {
@@ -97,14 +100,7 @@ describe('CnSuggestFeatureModal', () => {
 		expect(conductionBtn.attributes('title')).toContain('Coming soon')
 	})
 
-	it('Conduction button becomes enabled when conduction-submit-enabled is true', async () => {
-		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq', conductionSubmitEnabled: true } })
-		await fillValid(wrapper)
-		const conductionBtn = wrapper.findAll('.dialog-actions button.btn').at(1)
-		expect(conductionBtn.attributes('disabled')).toBeUndefined()
-	})
-
-	it('GitHub submit opens the pre-filled Issue Form URL in a new tab and emits close', async () => {
+	it('GitHub submit opens deep-link with every structured field + context param pre-filled', async () => {
 		const wrapper = mount(CnSuggestFeatureModal, {
 			stubs,
 			propsData: {
@@ -117,16 +113,19 @@ describe('CnSuggestFeatureModal', () => {
 			},
 		})
 		await fillValid(wrapper)
+		await wrapper.find('[data-label="Anything else?"] textarea').setValue('Avoid: hiding the filter behind a settings page.')
 		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
 
 		expect(window.open).toHaveBeenCalledTimes(1)
-		const [url, target, features] = window.open.mock.calls[0]
-		expect(target).toBe('_blank')
-		expect(features).toBe('noopener,noreferrer')
+		const url = window.open.mock.calls[0][0]
 		expect(url).toMatch(/^https:\/\/github\.com\/ConductionNL\/pipelinq\/issues\/new\?/)
 		expect(url).toContain('template=feature-request.yml')
 		expect(url).toMatch(/title=%5BFEATURE%5D\+Add\+timeline\+filter/)
-		expect(url).toMatch(/problem=A\+short\+description/)
+		expect(url).toMatch(/problem=I\+want\+to\+filter\+contacts/)
+		expect(url).toMatch(/proposed-solution=A\+date-range\+filter/)
+		expect(url).toMatch(/who-benefits=Account\+managers/)
+		expect(url).toContain('priority-to-you=Would+use+weekly')
+		expect(url).toMatch(/context=Avoid%3A\+hiding\+the\+filter/)
 		expect(url).toContain('app=pipelinq')
 		expect(url).toMatch(/page=clients-index\+%28%2Fclients%29/)
 		expect(url).toContain('surface=contacts-list-sidebar')
@@ -136,7 +135,20 @@ describe('CnSuggestFeatureModal', () => {
 		expect(wrapper.emitted('close')).toBeTruthy()
 	})
 
-	it('Conduction submit emits submit-conduction with the full payload and closes', async () => {
+	it('GitHub submit omits empty optional params from the URL', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
+		await fillValid(wrapper)
+		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
+		const url = window.open.mock.calls[0][0]
+		expect(url).not.toContain('context=')
+		expect(url).not.toContain('app=')
+		expect(url).not.toContain('page=')
+		expect(url).not.toContain('surface=')
+		expect(url).not.toContain('object=')
+		expect(url).not.toContain('spec-ref=')
+	})
+
+	it('Conduction submit emits the full structured payload and closes', async () => {
 		const wrapper = mount(CnSuggestFeatureModal, {
 			stubs,
 			propsData: {
@@ -150,13 +162,18 @@ describe('CnSuggestFeatureModal', () => {
 			},
 		})
 		await fillValid(wrapper)
+		await wrapper.find('[data-label="Anything else?"] textarea').setValue('Some extra context.')
 		await wrapper.findAll('.dialog-actions button.btn').at(1).trigger('click')
 
 		expect(wrapper.emitted('submit-conduction')).toBeTruthy()
 		const payload = wrapper.emitted('submit-conduction')[0][0]
 		expect(payload).toMatchObject({
 			title: 'Add timeline filter',
-			body: 'A short description with more than ten characters.',
+			problem: 'I want to filter contacts by last interaction date but the list view does not support it.',
+			proposedSolution: 'A date-range filter in the contacts list sidebar, defaulting to last 30 days.',
+			whoBenefits: 'Account managers tracking client engagement.',
+			priorityToYou: 'Would use weekly',
+			anythingElse: 'Some extra context.',
 			repo: 'ConductionNL/pipelinq',
 			specRef: 'client-management',
 			app: 'pipelinq',
