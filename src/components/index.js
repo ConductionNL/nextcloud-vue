@@ -126,3 +126,7 @@ export { CnDeckCardCreate } from './CnDeckCardCreate/index.js'
 // Calendar integration leaf (Tier-2)
 export { CnCalendarEventPicker } from './CnCalendarEventPicker/index.js'
 export { CnCalendarEventCreate } from './CnCalendarEventCreate/index.js'
+
+// Polls integration leaf (Tier-2)
+export { CnPollPicker } from './CnPollPicker/index.js'
+export { CnPollCreate } from './CnPollCreate/index.js'
