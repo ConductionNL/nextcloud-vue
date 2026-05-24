@@ -359,6 +359,21 @@ export default {
 			 * hosts).
 			 */
 			cnHostsIndexSidebar: true,
+			/**
+			 * Consuming app's slug (e.g. "pipelinq"). Mirrors the `appId`
+			 * prop. Auto-filled by `CnWidgetWrapper`'s built-in
+			 * Request-a-feature default as the `app` prop on
+			 * `CnSuggestFeatureModal` so no per-widget wiring is needed.
+			 */
+			cnAppId: this.appId,
+			/**
+			 * Target repo slug for the in-product feature-request deep
+			 * link (e.g. `ConductionNL/pipelinq`). Read from the
+			 * manifest's `nav.featureRequestRepo` when set; falls back
+			 * to `ConductionNL/<appId>` which is the convention for
+			 * every Conduction app.
+			 */
+			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
 		}
 	},
 
@@ -701,6 +716,23 @@ export default {
 		 */
 		orStoreLink() {
 			return OR_STORE_LINK
+		},
+		/**
+		 * Repo target for the built-in feature-request deep link.
+		 * Provided to descendants under the `cnFeatureRequestRepo`
+		 * inject key. Reads `manifest.nav.featureRequestRepo` when set;
+		 * falls back to `ConductionNL/<appId>` which is the convention
+		 * for every Conduction app. Returns empty string when no
+		 * `appId` is available (defensive — should never happen since
+		 * `appId` is a required prop).
+		 *
+		 * @return {string}
+		 */
+		resolvedFeatureRequestRepo() {
+			const explicit = this.manifest?.nav?.featureRequestRepo
+			if (typeof explicit === 'string' && explicit.length > 0) return explicit
+			if (!this.appId) return ''
+			return `ConductionNL/${this.appId}`
 		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
