@@ -26,6 +26,8 @@ module.exports = {
 	testMatch: [
 		'<rootDir>/tests/**/*.spec.js',
 		'<rootDir>/tests/**/*.test.js',
+		'<rootDir>/src/**/__tests__/*.spec.js',
+		'<rootDir>/src/**/__tests__/*.test.js',
 	],
 	setupFiles: [
 		'<rootDir>/tests/setup.js',
