@@ -52,7 +52,7 @@
 
 		<!-- Empty -->
 		<NcEmptyContent
-			v-else-if="contacts.length === 0"
+			v-else-if="contactsArray.length === 0"
 			:name="emptyTitleLabel"
 			:description="emptyDescriptionLabel">
 			<template #icon>
@@ -183,6 +183,20 @@ export default {
 
 	computed: {
 		/**
+		 * Defensive view onto `this.contacts` — always an array.
+		 *
+		 * Guards against the well-known "this.contacts is not iterable"
+		 * TypeError observed in Phase A / D-1 when the provider returns
+		 * an object-shaped payload (or `null`) and the iteration site
+		 * blows up before the watch has even fired.
+		 *
+		 * @return {Array}
+		 */
+		contactsArray() {
+			return Array.isArray(this.contacts) ? this.contacts : []
+		},
+
+		/**
 		 * Group contacts by normalised role bucket.
 		 *
 		 * @return {Array<{key: string, label: string, items: Array}>}
@@ -195,7 +209,7 @@ export default {
 				other: this.otherLabel,
 			}
 			const buckets = { applicant: [], handler: [], advisor: [], other: [] }
-			for (const c of this.contacts) {
+			for (const c of this.contactsArray) {
 				const matched = ROLE_BUCKETS.find((b) => b.match(c.role))
 				if (matched) {
 					buckets[matched.key].push(c)
@@ -269,7 +283,12 @@ export default {
 					return
 				}
 				const data = await response.json()
-				this.contacts = data.results || data || []
+				// Canonical wrapper-key cascade (per ADR-022): provider
+				// may return `{results: [...]}` (paginated), `{items:
+				// [...]}` (some leaves), or a bare array. Anything else
+				// falls back to `[]` rather than letting a non-iterable
+				// object reach `groupedContacts` (Phase A / D-1 bug).
+				this.contacts = this.unwrapList(data)
 			} catch (err) {
 				console.error('CnContactsTab: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
@@ -279,12 +298,36 @@ export default {
 			}
 		},
 
+		/**
+		 * Normalise a list-shaped response body to an array. Accepts
+		 * `{results:[...]}`, `{items:[...]}`, or a bare array; any
+		 * other shape (object, null, undefined) becomes `[]`.
+		 *
+		 * @param {*} data parsed JSON response body
+		 *
+		 * @return {Array}
+		 */
+		unwrapList(data) {
+			if (Array.isArray(data)) {
+				return data
+			}
+			if (data && typeof data === 'object') {
+				if (Array.isArray(data.results)) {
+					return data.results
+				}
+				if (Array.isArray(data.items)) {
+					return data.items
+				}
+			}
+			return []
+		},
+
 		async unlink(contact) {
 			if (!contact?.id) return
 			try {
 				const url = `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/contacts/${encodeURIComponent(contact.id)}`
 				await fetch(url, { method: 'DELETE', headers: buildHeaders() })
-				this.contacts = this.contacts.filter((c) => c.id !== contact.id)
+				this.contacts = this.contactsArray.filter((c) => c.id !== contact.id)
 			} catch (err) {
 				console.error('CnContactsTab: Failed to unlink contact', err)
 			}

@@ -43,7 +43,7 @@
 		<header class="cn-contacts-card__header">
 			<AccountMultiple :size="20" />
 			<span class="cn-contacts-card__header-title">{{ titleLabel }}</span>
-			<span class="cn-contacts-card__header-count">{{ contacts.length }}</span>
+			<span class="cn-contacts-card__header-count">{{ contactsArray.length }}</span>
 		</header>
 
 		<!-- Loading -->
@@ -56,7 +56,7 @@
 		</div>
 
 		<!-- Empty -->
-		<div v-else-if="contacts.length === 0" class="cn-contacts-card__empty">
+		<div v-else-if="contactsArray.length === 0" class="cn-contacts-card__empty">
 			{{ emptyLabel }}
 		</div>
 
@@ -79,12 +79,12 @@
 			</li>
 		</ul>
 
-		<footer v-if="contacts.length > displayMax" class="cn-contacts-card__footer">
+		<footer v-if="contactsArray.length > displayMax" class="cn-contacts-card__footer">
 			<button
 				type="button"
 				class="cn-contacts-card__view-all"
 				@click="$emit('view-all')">
-				{{ viewAllLabel }} ({{ contacts.length }})
+				{{ viewAllLabel }} ({{ contactsArray.length }})
 			</button>
 		</footer>
 	</div>
@@ -165,10 +165,21 @@ export default {
 
 	computed: {
 		/**
+		 * Defensive view onto `this.contacts` — always an array.
+		 * Guards against non-iterable shapes (object / null) per the
+		 * Phase A / D-1 "this.contacts is not iterable" TypeError.
+		 *
+		 * @return {Array}
+		 */
+		contactsArray() {
+			return Array.isArray(this.contacts) ? this.contacts : []
+		},
+
+		/**
 		 * Most recent N (sorted by `linkedAt` desc).
 		 */
 		displayedContacts() {
-			const sorted = [...this.contacts].sort((a, b) => {
+			const sorted = [...this.contactsArray].sort((a, b) => {
 				const aT = a?.linkedAt ? new Date(a.linkedAt).getTime() : 0
 				const bT = b?.linkedAt ? new Date(b.linkedAt).getTime() : 0
 				return bT - aT
@@ -181,7 +192,7 @@ export default {
 		 * else the first fetched one.
 		 */
 		primaryContact() {
-			return this.contact || this.contacts[0] || null
+			return this.contact || this.contactsArray[0] || null
 		},
 
 		chipTitle() {
@@ -230,7 +241,7 @@ export default {
 					return
 				}
 				const data = await response.json()
-				this.contacts = data.results || data || []
+				this.contacts = this.unwrapList(data)
 			} catch (err) {
 				console.error('CnContactsCard: Failed to fetch contacts', err)
 				this.error = String(err?.message || err)
@@ -238,6 +249,30 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * Normalise a list-shaped response body to an array. See
+		 * CnContactsTab.unwrapList for the same canonical cascade
+		 * (results → items → bare array → []).
+		 *
+		 * @param {*} data parsed JSON response body
+		 *
+		 * @return {Array}
+		 */
+		unwrapList(data) {
+			if (Array.isArray(data)) {
+				return data
+			}
+			if (data && typeof data === 'object') {
+				if (Array.isArray(data.results)) {
+					return data.results
+				}
+				if (Array.isArray(data.items)) {
+					return data.items
+				}
+			}
+			return []
 		},
 	},
 }

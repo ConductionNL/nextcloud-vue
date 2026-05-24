@@ -192,6 +192,33 @@ describe('CnContactsCard — compact surfaces (detail-page / dashboards)', () =>
 		expect(wrapper.find('.cn-contacts-card__view-all').exists()).toBe(false)
 	})
 
+	it('does not throw when the response body is an unexpected non-array shape', async () => {
+		// Phase A / D-1 bug: provider returns { foo: 'bar' } (no results,
+		// no items, no bare array). Old code did `data.results || data || []`
+		// which assigned the bare object to `this.contacts`, then
+		// `[...this.contacts].sort(...)` threw 'is not iterable'.
+		global.fetch.mockResolvedValue({
+			ok: true,
+			json: async () => ({ unexpected: { foo: 'bar' } }),
+		})
+		const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const wrapper = mount(CnContactsCard, {
+			stubs,
+			propsData: {
+				surface: 'detail-page',
+				register: 'reg',
+				schema: 'sch',
+				objectId: 'obj-1',
+			},
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+		// Empty state renders, no console error.
+		expect(wrapper.find('.cn-contacts-card__empty').exists()).toBe(true)
+		expect(errSpy).not.toHaveBeenCalled()
+		errSpy.mockRestore()
+	})
+
 	it('builds initials from display name', () => {
 		const wrapper = mount(CnContactsCard, {
 			stubs,

@@ -180,6 +180,32 @@ describe('CnContactsTab', () => {
 		expect(wrapper.vm.initialsFor({})).toBe('?')
 	})
 
+	it('does not throw when the response body is a non-iterable shape', async () => {
+		// Phase A / D-1 bug: groupedContacts threw "this.contacts is
+		// not iterable" because the old `data.results || data || []`
+		// fallback would assign a bare object to `this.contacts`.
+		global.fetch.mockResolvedValue({
+			ok: true,
+			json: async () => ({ unexpected: { foo: 'bar' } }),
+		})
+		const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const wrapper = mount(CnContactsTab, {
+			stubs,
+			propsData: {
+				objectId: 'obj-1',
+				register: 'reg',
+				schema: 'sch',
+			},
+		})
+		await flush()
+		await wrapper.vm.$nextTick()
+		// Empty state renders (we treat unknown shapes as empty),
+		// no TypeError surfaces in console.
+		expect(wrapper.find('.empty').exists()).toBe(true)
+		expect(errSpy).not.toHaveBeenCalled()
+		errSpy.mockRestore()
+	})
+
 	it('calls DELETE when unlink is clicked and removes the item', async () => {
 		global.fetch
 			.mockResolvedValueOnce({
