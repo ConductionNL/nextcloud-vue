@@ -343,4 +343,17 @@ export default {
 .cn-features-and-roadmap-view__panel {
 	min-height: 320px;
 }
+
+/* Underline the inline docs URL so it reads as a link inside the note
+   body — NcNoteCard's default link styling drops the underline by
+   inheriting from the host theme. */
+.cn-features-and-roadmap-view__docs-note :deep(a) {
+	color: var(--color-primary-element);
+	text-decoration: underline;
+}
+
+.cn-features-and-roadmap-view__docs-note :deep(a:hover) {
+	text-decoration: underline;
+	opacity: 0.85;
+}
 </style>
