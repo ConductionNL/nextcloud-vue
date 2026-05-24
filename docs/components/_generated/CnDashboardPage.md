@@ -24,11 +24,13 @@
 
 ### Events
 
-| Name                | Payload | Description                                                                                                                                                |
-| ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `layout-change`     | —       | Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.                            |
-| `edit-toggle`       | —       | Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.                                                    |
-| `date-range-change` | —       | Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`. |
+| Name                     | Payload | Description                                                                                                                                                |
+| ------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layout-change`          | —       | Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.                            |
+| `edit-toggle`            | —       | Emitted when the user toggles edit mode. Payload: `true` when entering edit mode, `false` when leaving.                                                    |
+| `date-range-change`      | —       | Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`. |
+| `widget-refresh`         | —       | User clicked Refresh in a widget's overflow action menu. Payload: the layout item descriptor.                                                              |
+| `widget-request-feature` | —       | User clicked Request a feature in a widget's overflow action menu. Payload: the layout item descriptor.                                                    |
 
 ### Slots
 

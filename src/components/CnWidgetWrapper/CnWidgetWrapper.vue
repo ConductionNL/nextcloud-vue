@@ -34,9 +34,51 @@
 				<h3 class="cn-widget-wrapper__title">
 					{{ displayTitle }}
 				</h3>
+				<!-- @slot title-meta Rendered inside the header's left group,
+				     after the title and before the spacer. Use for small
+				     contextual chips (e.g. a date-range badge on chart
+				     widgets). Kept inside header-left so the chip sits next
+				     to the title rather than floating right next to the
+				     actions menu. -->
+				<div v-if="$slots['title-meta']" class="cn-widget-wrapper__title-meta">
+					<slot name="title-meta" />
+				</div>
 			</div>
 			<div class="cn-widget-wrapper__actions">
+				<!-- @slot actions Custom action buttons rendered before the
+				     built-in overflow menu. -->
 				<slot name="actions" />
+				<NcActions
+					v-if="hasOverflowMenu"
+					:force-name="true"
+					:menu-name="actionsMenuLabel"
+					data-testid="cn-widget-wrapper-actions">
+					<template #icon>
+						<DotsHorizontal :size="20" />
+					</template>
+					<NcActionButton
+						v-if="!hideRefresh"
+						data-testid="cn-widget-wrapper-action-refresh"
+						@click="onRefreshClick">
+						<template #icon>
+							<Refresh :size="20" />
+						</template>
+						{{ refreshLabel }}
+					</NcActionButton>
+					<NcActionButton
+						v-if="!hideRequestFeature"
+						data-testid="cn-widget-wrapper-action-request-feature"
+						@click="onRequestFeatureClick">
+						<template #icon>
+							<LightbulbOutline :size="20" />
+						</template>
+						{{ requestFeatureLabel }}
+					</NcActionButton>
+					<!-- @slot action-items Additional NcActionButton-family
+					     items rendered inside the overflow menu, after the
+					     built-in Refresh / Request-a-feature pair. -->
+					<slot name="action-items" />
+				</NcActions>
 			</div>
 			<!-- Title icon — right: rendered after actions, far right -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'right'"
@@ -68,6 +110,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { NcActions, NcActionButton } from '@nextcloud/vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -91,6 +137,14 @@ import { translate as t } from '@nextcloud/l10n'
  */
 export default {
 	name: 'CnWidgetWrapper',
+
+	components: {
+		NcActions,
+		NcActionButton,
+		DotsHorizontal,
+		Refresh,
+		LightbulbOutline,
+	},
 
 	props: {
 		/** Widget title */
@@ -156,11 +210,67 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Hide the built-in Refresh item from the overflow action menu.
+		 * The Refresh item is shown by default — set this when the widget
+		 * has no refreshable data source (e.g. a static tile).
+		 */
+		hideRefresh: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the built-in Request-a-feature item from the overflow
+		 * action menu. Shown by default; set when the consuming app has
+		 * no public issue tracker to link out to.
+		 */
+		hideRequestFeature: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Optional pre-translated label for the Refresh action. Defaults
+		 * to the lib's translation of "Refresh" so callers usually don't
+		 * need to set this.
+		 */
+		refreshLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Refresh'),
+		},
+		/**
+		 * Optional pre-translated label for the Request-a-feature action.
+		 * Defaults to the lib's translation of "Request a feature".
+		 */
+		requestFeatureLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Request a feature'),
+		},
+		/**
+		 * Pre-translated aria-label / tooltip for the overflow menu
+		 * trigger. Defaults to "Actions".
+		 */
+		actionsMenuLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Actions'),
+		},
 	},
 
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * Whether the built-in overflow `…` menu renders. True when at
+		 * least one of Refresh / Request-a-feature is visible OR the
+		 * caller provided an `action-items` slot.
+		 *
+		 * @return {boolean}
+		 */
+		hasOverflowMenu() {
+			if (!this.hideRefresh) return true
+			if (!this.hideRequestFeature) return true
+			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
 		},
 
 		wrapperStyles() {
@@ -184,6 +294,41 @@ export default {
 			}
 
 			return styles
+		},
+	},
+
+	methods: {
+		/**
+		 * Emit @refresh when the user clicks the built-in Refresh action.
+		 * Payload is the widget title — dashboard hosts use it to route
+		 * to the right widget when a single handler is wired to many
+		 * wrappers.
+		 *
+		 * @return {void}
+		 */
+		onRefreshClick() {
+			/**
+			 * @event refresh User clicked the Refresh item in the overflow
+			 * action menu. Payload: `{ title }` where `title` is the
+			 * widget's display title (consumers route by it when one
+			 * handler serves many wrappers).
+			 */
+			this.$emit('refresh', { title: this.displayTitle })
+		},
+
+		/**
+		 * Emit @request-feature when the user clicks the built-in
+		 * Request-a-feature action. The consuming dashboard decides
+		 * where to send the user (typically an issue tracker).
+		 *
+		 * @return {void}
+		 */
+		onRequestFeatureClick() {
+			/**
+			 * @event request-feature User clicked the Request a feature
+			 * item. Payload: `{ title }` — the widget's display title.
+			 */
+			this.$emit('request-feature', { title: this.displayTitle })
 		},
 	},
 }
@@ -248,6 +393,16 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.cn-widget-wrapper__title-meta {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .cn-widget-wrapper__actions {
