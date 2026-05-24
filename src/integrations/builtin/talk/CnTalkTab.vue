@@ -83,6 +83,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 /**
  * CnTalkTab — bespoke conversation list for the `talk` integration.
@@ -141,7 +142,8 @@ export default {
 		},
 
 		roomTitle(room) {
-			return room.title ?? room.displayName ?? room.name ?? this.roomKey(room)
+			const raw = room.title ?? room.displayName ?? room.name ?? this.roomKey(room)
+			return stripMarker(raw) || String(this.roomKey(room))
 		},
 
 		roomUrl(room) {

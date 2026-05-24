@@ -106,6 +106,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -167,12 +168,13 @@ export default {
 
 		pollTitle(poll) {
 			const raw = poll.title ?? poll.name ?? this.pollKey(poll)
-			// Strip the `[or:{uuid}]` marker from the displayed title.
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(raw)
+			// Strip the `[or:{uuid}]` marker from the displayed title
+			// via the shared helper (ADR-019).
+			return stripMarker(raw) || String(raw)
 		},
 
 		pollDescription(poll) {
-			return poll.description ?? ''
+			return stripMarker(poll.description)
 		},
 
 		pollUrl(poll) {

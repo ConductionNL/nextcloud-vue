@@ -119,6 +119,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -239,7 +240,7 @@ export default {
 
 		pollTitle(poll) {
 			const raw = poll.title ?? poll.name ?? this.pollKey(poll)
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(raw)
+			return stripMarker(raw) || String(raw)
 		},
 
 		pollUrl(poll) {

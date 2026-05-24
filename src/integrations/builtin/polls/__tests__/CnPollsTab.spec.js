@@ -92,6 +92,38 @@ describe('CnPollsTab', () => {
 		wrapper.destroy()
 	})
 
+	it('strips a leading [or:{uuid}] marker (D-3 real-world fixture)', async () => {
+		// Phase D-3 fixture: title = '[or:UUID] verification poll'
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({
+				items: [
+					{
+						id: 2,
+						title: '[or:1fc4dc2e-08f1-49bb-aca5-4d49a425a261] verification poll',
+						description: '',
+						type: 'textPoll',
+						url: '/index.php/apps/polls/vote/2',
+						deadline: null,
+						closed: false,
+						voterCount: 1,
+						options: [{ id: 1, text: 'Option A', votes: 1 }],
+					},
+				],
+			}),
+		})
+		const wrapper = mount(CnPollsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		const title = wrapper.find('.cn-polls-tab__title')
+		expect(title.exists()).toBe(true)
+		expect(title.text()).toBe('verification poll')
+		expect(title.text()).not.toContain('[or:')
+		expect(title.text()).not.toContain('1fc4dc2e')
+		wrapper.destroy()
+	})
+
 	it('shows "Closed" when the deadline has elapsed', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,
