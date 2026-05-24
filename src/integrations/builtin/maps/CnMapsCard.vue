@@ -126,6 +126,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -243,14 +244,13 @@ export default {
 		pointName(point) {
 			const d = this.dataOf(point)
 			const candidate = point.name ?? point.title ?? d.name ?? d.title ?? ''
-			const text = String(candidate)
-			return text.replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(this.pointKey(point))
+			return stripMarker(candidate) || String(this.pointKey(point))
 		},
 
 		pointCategory(point) {
 			const d = this.dataOf(point)
 			const c = point.category ?? d.category ?? ''
-			return String(c).trim()
+			return stripMarker(c)
 		},
 
 		coordOf(point, key) {

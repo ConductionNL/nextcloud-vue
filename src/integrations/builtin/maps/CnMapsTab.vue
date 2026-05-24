@@ -111,6 +111,7 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const COMMENT_MAX_CHARS = 160
 
@@ -181,16 +182,20 @@ export default {
 		pointName(point) {
 			const d = this.dataOf(point)
 			const candidate = point.name ?? point.title ?? d.name ?? d.title ?? ''
-			const text = String(candidate)
-			// Provider returns the name (which carries the `[or:{uuid}]` marker)
-			// as title fallback. Strip the marker for display.
-			return text.replace(/\s*\[or:[^\]]+\]\s*/g, '').trim() || String(this.pointKey(point))
+			// Provider returns the name (which carries the `[or:{uuid}]`
+			// marker) as title fallback. Strip the marker for display.
+			return stripMarker(candidate) || String(this.pointKey(point))
 		},
 
 		pointCategory(point) {
 			const d = this.dataOf(point)
 			const c = point.category ?? d.category ?? ''
-			return String(c).trim()
+			// Maps fixtures sometimes land a bare `or:{uuid}` marker in
+			// the category column when no real category exists. Strip
+			// the marker and suppress the chip when nothing meaningful
+			// remains — surfacing the marker as a chip artefact (see
+			// phase-d1 maps-tab.png) is the bug we're fixing.
+			return stripMarker(c)
 		},
 
 		pointComment(point) {

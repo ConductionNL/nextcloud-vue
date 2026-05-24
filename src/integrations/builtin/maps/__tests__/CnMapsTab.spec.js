@@ -120,6 +120,38 @@ describe('CnMapsTab', () => {
 		wrapper.destroy()
 	})
 
+	it('strips a bare or:{uuid} marker from the category field and suppresses the chip', async () => {
+		// Real-world: phase-d1 maps_favorites.category = 'or:{uuid}'
+		// surfaced as a stray "-3C33EEFC2E88" chip artefact next to the
+		// title. The fix strips both bracketed AND bare markers and
+		// hides the chip when nothing meaningful remains.
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({
+				results: [
+					{
+						id: 9, title: 'phase-d1 location', url: '/index.php/apps/maps/#/m=9',
+						data: {
+							id: 9, name: 'phase-d1 location', lat: 52.37, lng: 4.89,
+							// Bare marker (no brackets) — the bug.
+							category: 'or:a270fe68-df45-4427-8cb9-3c33eefc2e88',
+						},
+					},
+				],
+			}),
+		})
+		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).not.toContain('or:a270fe68')
+		expect(wrapper.text()).not.toContain('3C33EEFC2E88')
+		expect(wrapper.text()).not.toContain('3c33eefc2e88')
+		// Chip should NOT render when category is marker-only.
+		expect(wrapper.find('.cn-maps-tab__category').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
 	it('shows the unavailable banner when the provider returns 503', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
 		const wrapper = mount(CnMapsTab, { propsData: { ...DEFAULT_PROPS } })
