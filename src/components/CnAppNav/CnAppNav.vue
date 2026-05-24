@@ -37,20 +37,27 @@
 				:name="resolveLabel(item)"
 				:to="itemTo(item)"
 				:exact="isExact(item)"
-				:icon="item.icon"
+				:icon="cssIconClass(item)"
 				:active="isActive(item)"
 				:data-testid="`cn-nav-entry-${item.id}`"
 				@click="onItemClick(item, $event)">
+				<template v-if="mdiIconComponent(item)" #icon>
+					<component :is="mdiIconComponent(item)" :size="20" />
+				</template>
 				<NcAppNavigationItem
 					v-for="child in visibleChildren(item)"
 					:key="child.id"
 					:name="resolveLabel(child)"
 					:to="itemTo(child)"
 					:exact="isExact(child)"
-					:icon="child.icon"
+					:icon="cssIconClass(child)"
 					:active="isActive(child)"
 					:data-testid="`cn-nav-entry-${child.id}`"
-					@click="onItemClick(child, $event)" />
+					@click="onItemClick(child, $event)">
+					<template v-if="mdiIconComponent(child)" #icon>
+						<component :is="mdiIconComponent(child)" :size="20" />
+					</template>
+				</NcAppNavigationItem>
 			</NcAppNavigationItem>
 		</template>
 		<template v-if="settingsItems.length" #footer>
@@ -61,10 +68,14 @@
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
 					:exact="isExact(item)"
-					:icon="item.icon"
+					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
-					@click="onItemClick(item, $event)" />
+					@click="onItemClick(item, $event)">
+					<template v-if="mdiIconComponent(item)" #icon>
+						<component :is="mdiIconComponent(item)" :size="20" />
+					</template>
+				</NcAppNavigationItem>
 			</ul>
 		</template>
 	</NcAppNavigation>
@@ -72,6 +83,7 @@
 
 <script>
 import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -175,6 +187,37 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a menu item's `icon` string to an MDI Vue component
+		 * via the per-app `registerIcons()` registry. Returns the
+		 * component when the icon name is a registered MDI key,
+		 * otherwise `null` so the template falls back to the
+		 * `:icon="cssIconClass(item)"` (CSS class) path.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {import('vue').Component|null}
+		 */
+		mdiIconComponent(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0) return null
+			if (icon.startsWith('icon-')) return null
+			return ICON_MAP[icon] || null
+		},
+		/**
+		 * Pass-through for the `:icon` prop on NcAppNavigationItem when
+		 * the manifest declares a Nextcloud CSS-class icon (`icon-*`).
+		 * Returns an empty string when the icon is an MDI name so
+		 * NcAppNavigationItem doesn't render a bogus CSS class — the
+		 * `#icon` slot above handles the MDI path.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {string}
+		 */
+		cssIconClass(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0) return ''
+			return icon.startsWith('icon-') ? icon : ''
+		},
 		passesPermission(item) {
 			if (!item.permission) return true
 			if (!this.permissions || this.permissions.length === 0) return true
