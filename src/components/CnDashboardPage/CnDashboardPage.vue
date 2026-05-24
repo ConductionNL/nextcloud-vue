@@ -989,9 +989,10 @@ export default {
 	margin-bottom: 20px;
 	flex-wrap: wrap;
 	gap: 12px;
-	/* Toggle-clearance padding now lives on
-	   `.cn-page-renderer__viewport` (one rule for every page type).
-	   See CnPageRenderer.vue. */
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content) plus 12px breathing
+	   room. Only the HEADER shifts right — body widgets keep full width. */
+	padding-inline-start: 56px;
 }
 
 .cn-dashboard-page__header-left {
