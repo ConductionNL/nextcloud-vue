@@ -113,7 +113,9 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
 							<slot :name="'widget-' + item.widgetId + '-title-icon'" :item="item" :widget="getWidgetDef(item.widgetId)" />
@@ -139,29 +141,30 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
+						<template v-if="formatChartDateRange(item)" #title-meta>
+							<span class="cn-dashboard-page__date-chip">{{ formatChartDateRange(item) }}</span>
+						</template>
 						<CnChartWidget
 							v-bind="getChartProps(item)"
 							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
 
-				<!-- Stats-block widget — manifest-driven CnStatsBlock with
-				     a GraphQL-resolved count via `dataSource`. -->
+				<!-- Stats-block widget — manifest-driven CnStatsBlock with a
+				     GraphQL-resolved count via `dataSource`. Rendered WITHOUT
+				     CnWidgetWrapper: CnStatsBlock already supplies title +
+				     bordered card chrome + count layout, so wrapping it
+				     produced a double-card visual (outer + inner titles, two
+				     bordered boxes). The action menu lives on the page-level
+				     dashboard chrome instead. -->
 				<template v-else-if="isStatsBlock(item)">
-					<CnWidgetWrapper
+					<CnStatsBlockWidget
+						v-bind="getStatsBlockProps(item)"
 						:title="getWidgetTitle(item)"
-						:icon-url="getWidgetIconUrl(item)"
-						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
-						:flush="item.flush === true"
-						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
-						<CnStatsBlockWidget
-							v-bind="getStatsBlockProps(item)"
-							:data-source="getWidgetDataSource(item)" />
-					</CnWidgetWrapper>
+						:data-source="getWidgetDataSource(item)" />
 				</template>
 
 				<!-- Integration widget — resolved from the pluggable
@@ -177,7 +180,9 @@
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
-						:title-icon-color="getWidgetTitleIconColor(item)">
+						:title-icon-color="getWidgetTitleIconColor(item)"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<component
 							:is="resolveIntegrationWidget(item)"
 							v-if="resolveIntegrationWidget(item)"
@@ -196,7 +201,9 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
-						:style-config="item.styleConfig || {}">
+						:style-config="item.styleConfig || {}"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
 							:widget="getWidgetDef(item.widgetId)"
 							:unavailable-text="unavailableLabel" />
@@ -636,6 +643,69 @@ export default {
 
 	methods: {
 		/**
+		 * Forward a widget's `@refresh` from CnWidgetWrapper to the
+		 * dashboard host. The host wires this to its data-fetching layer
+		 * (e.g. re-fetching the GraphQL aggregate for a chart). Payload
+		 * is the layout item so consumers can route by widget id.
+		 *
+		 * @param {object} item Layout item descriptor.
+		 * @return {void}
+		 */
+		onWidgetRefresh(item) {
+			/**
+			 * @event widget-refresh User clicked Refresh in a widget's
+			 * overflow action menu. Payload: the layout item descriptor.
+			 */
+			this.$emit('widget-refresh', item)
+		},
+
+		/**
+		 * Forward a widget's `@request-feature` from CnWidgetWrapper to
+		 * the dashboard host. The host decides where to send the user
+		 * (typically an issue tracker).
+		 *
+		 * @param {object} item Layout item descriptor.
+		 * @return {void}
+		 */
+		onWidgetRequestFeature(item) {
+			/**
+			 * @event widget-request-feature User clicked Request a
+			 * feature in a widget's overflow action menu. Payload: the
+			 * layout item descriptor.
+			 */
+			this.$emit('widget-request-feature', item)
+		},
+
+		/**
+		 * Format a chart widget's bucket date range as a short readable
+		 * chip, rendered inside CnWidgetWrapper's `#title-meta` slot.
+		 * Returns null when the bucket has neither a `staticRange` nor
+		 * resolved `from`/`to` via the reactive dashboard `dateRange`
+		 * provide (in which case the chip simply doesn't render).
+		 *
+		 * @param {object} item Layout item descriptor with chart shorthand.
+		 * @return {string|null} `"2026-05-18 → 2026-05-25"` or null.
+		 */
+		formatChartDateRange(item) {
+			const ds = this.getWidgetDataSource(item) || {}
+			const bucket = ds.bucket || {}
+			// 1. Bucket-level staticRange wins (explicit per-widget freeze).
+			const sr = bucket.staticRange || {}
+			let from = sr.from || null
+			let to = sr.to || null
+			// 2. Fall back to the dashboard-level reactive dateRange when
+			//    the bucket uses fromVar/toVar shorthand.
+			if ((!from || !to) && this.dashboardDateRange && this.dashboardDateRange.value) {
+				const rng = this.dashboardDateRange.value
+				if (bucket.fromVar && rng[bucket.fromVar]) from = from || rng[bucket.fromVar]
+				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
+			}
+			if (!from && !to) return null
+			const fmt = (v) => typeof v === 'string' ? v.slice(0, 10) : ''
+			return `${fmt(from)}${from && to ? ' → ' : ''}${fmt(to)}`
+		},
+
+		/**
 		 * Push pageKind = 'dashboard' into the reactive cnAiContext.
 		 * registerSlug/schemaSlug are populated when the dashboard page
 		 * receives those props (some dashboards are schema-specific).
@@ -1009,6 +1079,21 @@ export default {
 	margin: 4px 0 0;
 	font-size: 14px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Date-range chip rendered in a chart widget's title bar via the
+   CnWidgetWrapper `#title-meta` slot. Small muted pill so the title
+   stays the dominant element. */
+.cn-dashboard-page__date-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
 }
 
 .cn-dashboard-page__header-actions {
