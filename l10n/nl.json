@@ -467,7 +467,24 @@
     "Loading conversations...": "Gesprekken laden...",
     "Could not connect to AI service": "Kon geen verbinding maken met de AI-service",
     "Tool: {toolId}": "Hulpmiddel: {toolId}",
-    "Reply was cancelled": "Antwoord geannuleerd"
+    "Reply was cancelled": "Antwoord geannuleerd",
+    "No work packages linked yet": "Nog geen werkpakketten gekoppeld",
+    "Open OpenProject": "OpenProject openen",
+    "Configure OpenProject connection": "OpenProject-verbinding configureren",
+    "OpenProject is not configured yet. Add an `openproject` source in OpenConnector to start linking work packages.": "OpenProject is nog niet geconfigureerd. Voeg een `openproject`-bron toe in OpenConnector om werkpakketten te kunnen koppelen.",
+    "OpenProject is currently unavailable.": "OpenProject is momenteel niet beschikbaar.",
+    "Authorisation for OpenProject expired. Reconnect the source in OpenConnector to restore access.": "Autorisatie voor OpenProject is verlopen. Herstel toegang door de bron opnieuw te verbinden in OpenConnector.",
+    "Authorisation for OpenProject expired.": "Autorisatie voor OpenProject is verlopen.",
+    "OpenProject not configured in OpenConnector.": "OpenProject is niet geconfigureerd in OpenConnector.",
+    "Open OpenConnector": "OpenConnector openen",
+    "Connected": "Verbonden",
+    "Could not load work packages.": "Kan werkpakketten niet laden.",
+    "Assigned to {name}": "Toegewezen aan {name}",
+    "Priority: {priority}": "Prioriteit: {priority}",
+    "Projects": "Projecten",
+    "Unknown": "Onbekend"
   },
-  "plurals": {}
+  "plurals": {
+    "{count} work package": ["{count} werkpakket", "{count} werkpakketten"]
+  }
 }

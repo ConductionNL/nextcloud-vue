@@ -475,7 +475,24 @@
     "Loading conversations...": "Loading conversations...",
     "Could not connect to AI service": "Could not connect to AI service",
     "Tool: {toolId}": "Tool: {toolId}",
-    "Reply was cancelled": "Reply was cancelled"
+    "Reply was cancelled": "Reply was cancelled",
+    "No work packages linked yet": "No work packages linked yet",
+    "Open OpenProject": "Open OpenProject",
+    "Configure OpenProject connection": "Configure OpenProject connection",
+    "OpenProject is not configured yet. Add an `openproject` source in OpenConnector to start linking work packages.": "OpenProject is not configured yet. Add an `openproject` source in OpenConnector to start linking work packages.",
+    "OpenProject is currently unavailable.": "OpenProject is currently unavailable.",
+    "Authorisation for OpenProject expired. Reconnect the source in OpenConnector to restore access.": "Authorisation for OpenProject expired. Reconnect the source in OpenConnector to restore access.",
+    "Authorisation for OpenProject expired.": "Authorisation for OpenProject expired.",
+    "OpenProject not configured in OpenConnector.": "OpenProject not configured in OpenConnector.",
+    "Open OpenConnector": "Open OpenConnector",
+    "Connected": "Connected",
+    "Could not load work packages.": "Could not load work packages.",
+    "Assigned to {name}": "Assigned to {name}",
+    "Priority: {priority}": "Priority: {priority}",
+    "Projects": "Projects",
+    "Unknown": "Unknown"
   },
-  "plurals": {}
+  "plurals": {
+    "{count} work package": ["{count} work package", "{count} work packages"]
+  }
 }
