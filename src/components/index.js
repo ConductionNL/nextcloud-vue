@@ -120,3 +120,17 @@ export { CnFeaturesTab } from './CnFeaturesTab/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'
 export { CnRoadmapItem } from './CnRoadmapItem/index.js'
 export { CnSuggestFeatureModal } from './CnSuggestFeatureModal/index.js'
+// Deck integration leaf (Tier-2)
+export { CnDeckCardPicker } from './CnDeckCardPicker/index.js'
+export { CnDeckCardCreate } from './CnDeckCardCreate/index.js'
+
+// Calendar integration leaf (Tier-2)
+export { CnCalendarEventPicker } from './CnCalendarEventPicker/index.js'
+export { CnCalendarEventCreate } from './CnCalendarEventCreate/index.js'
+
+// Email integration leaf (Tier-2)
+export { CnEmailPicker } from './CnEmailPicker/index.js'
+
+// Polls integration leaf (Tier-2)
+export { CnPollPicker } from './CnPollPicker/index.js'
+export { CnPollCreate } from './CnPollCreate/index.js'
