@@ -114,6 +114,7 @@ export {
 	CnAppRoot,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
+	CnFeaturesAndRoadmapSidebar,
 	CnFeaturesAndRoadmapView,
 	CnFeaturesTab,
 	CnRoadmapTab,

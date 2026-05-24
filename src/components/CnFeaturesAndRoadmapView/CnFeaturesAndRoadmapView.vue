@@ -10,37 +10,41 @@
 		<template v-else>
 			<header class="cn-features-and-roadmap-view__header">
 				<h2 class="cn-features-and-roadmap-view__title">
-					{{ viewTitle }}
+					{{ headerTitle }}
 				</h2>
-				<NcButton type="primary" @click="openSuggestModal">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ suggestLabel }}
-				</NcButton>
+				<div class="cn-features-and-roadmap-view__actions">
+					<NcButton @click="toggleView">
+						<template #icon>
+							<RoadVariant v-if="activeView === 'features'" :size="20" />
+							<FormatListBulleted v-else :size="20" />
+						</template>
+						{{ toggleLabel }}
+					</NcButton>
+					<NcButton type="primary" @click="openSuggestModal">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ suggestLabel }}
+					</NcButton>
+				</div>
 			</header>
 
-			<div class="cn-features-and-roadmap-view__tabs">
-				<button
-					type="button"
-					class="cn-features-and-roadmap-view__tab"
-					:class="{ 'cn-features-and-roadmap-view__tab--active': activeTab === 'features' }"
-					@click="activeTab = 'features'">
-					{{ featuresTabLabel }}
-				</button>
-				<button
-					type="button"
-					class="cn-features-and-roadmap-view__tab"
-					:class="{ 'cn-features-and-roadmap-view__tab--active': activeTab === 'roadmap' }"
-					@click="activeTab = 'roadmap'">
-					{{ roadmapTabLabel }}
-				</button>
-			</div>
+			<NcNoteCard
+				v-if="resolvedDocumentationUrl"
+				type="info"
+				class="cn-features-and-roadmap-view__docs-note">
+				{{ docsNoteLeading }}
+				<a
+					:href="resolvedDocumentationUrl"
+					:target="documentationUrlIsExternal ? '_blank' : null"
+					:rel="documentationUrlIsExternal ? 'noopener noreferrer' : null">{{ docsNoteLinkLabel }}</a>
+				{{ docsNoteTrailing }}
+			</NcNoteCard>
 
-			<div class="cn-features-and-roadmap-view__panel">
-				<CnFeaturesTab v-if="activeTab === 'features'" :features="features" />
-				<CnRoadmapTab v-else-if="activeTab === 'roadmap'" :repo="repo" />
-			</div>
+			<main class="cn-features-and-roadmap-view__panel">
+				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
+				<CnRoadmapTab v-else :repo="repo" />
+			</main>
 
 			<CnSuggestFeatureModal
 				v-if="showSuggestModal"
@@ -57,21 +61,42 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * CnFeaturesAndRoadmapView — route-level container hosting the Features tab,
- * the Roadmap tab, and the Suggest-feature header button + modal. Renders
- * an admin-disabled empty state when the `disabled` prop is true.
+ * CnFeaturesAndRoadmapView — route-level container for the Features &
+ * Roadmap surface. Header carries the view-toggle and the primary
+ * Suggest-feature CTA. Body is a card grid (Features OR Roadmap).
+ *
+ * The right-edge sidebar is hoisted to NcContent level via the same
+ * `cnIndexSidebarConfig` provide mechanism CnIndexPage uses for its
+ * CnIndexSidebar — that's the only place where Nextcloud's right-edge
+ * sidebar slot renders correctly (next to NcAppContent, not inside it).
+ * When mounted under CnAppRoot the view publishes
+ * `CnFeaturesAndRoadmapSidebar` + props into the holder on mounted()
+ * and clears it on beforeDestroy(). Sidebar carries three pitch
+ * sections: Suggest, OpenBuilt, LLM. The Suggest CTA inside the sidebar
+ * bubbles a `@suggest` event the view forwards to its modal opener.
+ *
+ * Sidebar link targets are overridable via the `openbuiltUrl` and
+ * `llmSkillsUrl` props. Defaults: in-instance `/apps/openbuilt` (via
+ * `generateUrl`) and `https://docs.conduction.nl/ai-skills`.
  *
  * Spec: features-roadmap-component — Requirement "CnFeaturesAndRoadmapView".
  */
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcButton, NcEmptyContent, NcNoteCard } from '@nextcloud/vue'
+import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
 
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
+import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
 import { useSpecRef } from '../../composables/useSpecRef.js'
+
+const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
+const DEFAULT_LLM_SKILLS_URL = 'https://docs.conduction.nl/ai-skills'
 
 export default {
 	name: 'CnFeaturesAndRoadmapView',
@@ -79,11 +104,32 @@ export default {
 	components: {
 		NcButton,
 		NcEmptyContent,
+		NcNoteCard,
+		FormatListBulleted,
 		LockOutline,
 		Plus,
+		RoadVariant,
 		CnFeaturesTab,
 		CnRoadmapTab,
 		CnSuggestFeatureModal,
+	},
+
+	inject: {
+		/**
+		 * Set to `true` by CnAppRoot so descendants know the host will
+		 * mount a hoisted sidebar at NcContent level (see CnAppRoot.vue
+		 * `cnHostsIndexSidebar: true`). When `false` (no CnAppRoot
+		 * ancestor) the view skips publishing — there's no inline
+		 * fallback for this surface.
+		 */
+		cnHostsIndexSidebar: { default: false },
+		/**
+		 * Reactive holder published by CnAppRoot that backs the
+		 * hoisted-sidebar render in NcContent. Set value to
+		 * `{component, props, listeners}` to mount; set to `null` to
+		 * unmount. Same holder CnIndexPage uses.
+		 */
+		cnIndexSidebarConfig: { default: () => ({ value: null }) },
 	},
 
 	props: {
@@ -111,26 +157,112 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * Override the OpenBuilt sidebar CTA target. Pass an absolute URL or
+		 * a Nextcloud-relative path. When unset, defaults to the in-instance
+		 * OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`).
+		 * @type {string}
+		 */
+		openbuiltUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Override the LLM-skills sidebar CTA target. Defaults to
+		 * `https://docs.conduction.nl/ai-skills`.
+		 * @type {string}
+		 */
+		llmSkillsUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional override for the Suggest CTA inside the sidebar. When
+		 * set the CTA renders as an anchor pointing at this URL —
+		 * appropriate when the app routes feature suggestions through a
+		 * public form, a Discord channel, or any non-GitHub target. When
+		 * empty (default) the CTA stays a button that opens the
+		 * SuggestFeatureModal + posts to the GitHub-issues proxy.
+		 * @type {string}
+		 */
+		suggestUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional URL of the app's public documentation site. When set,
+		 * an info banner is rendered above the card grid pointing users at
+		 * `<docs>` for full technical + user docs. Per-app — pipelinq
+		 * passes `https://pipelinq.conduction.nl`, decidesk passes its
+		 * own, etc. When empty (default) no banner renders.
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
 	},
 
 	data() {
 		return {
-			activeTab: 'features',
+			activeView: 'features',
 			showSuggestModal: false,
 			suggestModalSpecRef: null,
 		}
 	},
 
 	computed: {
-		viewTitle() { return t('nextcloud-vue', 'Features & roadmap') },
+		headerTitle() {
+			return this.activeView === 'features'
+				? t('nextcloud-vue', 'Features')
+				: t('nextcloud-vue', 'Roadmap')
+		},
+		toggleLabel() {
+			return this.activeView === 'features'
+				? t('nextcloud-vue', 'Show roadmap')
+				: t('nextcloud-vue', 'Show features')
+		},
 		suggestLabel() { return t('nextcloud-vue', 'Suggest feature') },
-		featuresTabLabel() { return t('nextcloud-vue', 'Features') },
-		roadmapTabLabel() { return t('nextcloud-vue', 'Roadmap') },
 		disabledTitle() { return t('nextcloud-vue', 'This feature has been disabled by your administrator') },
 		disabledDescription() { return t('nextcloud-vue', 'Contact your Nextcloud administrator to enable Features & Roadmap on this instance.') },
+
+		resolvedOpenbuiltUrl() {
+			if (this.openbuiltUrl) return this.openbuiltUrl
+			return generateUrl(DEFAULT_OPENBUILT_PATH)
+		},
+		resolvedLlmSkillsUrl() {
+			return this.llmSkillsUrl || DEFAULT_LLM_SKILLS_URL
+		},
+		resolvedDocumentationUrl() {
+			return this.documentationUrl || ''
+		},
+		documentationUrlIsExternal() {
+			return /^https?:\/\//i.test(this.resolvedDocumentationUrl)
+		},
+		docsNoteLeading() { return t('nextcloud-vue', 'Looking for documentation? Visit') },
+		docsNoteLinkLabel() {
+			// Strip protocol for a cleaner inline link label.
+			return this.resolvedDocumentationUrl.replace(/^https?:\/\//i, '')
+		},
+		docsNoteTrailing() { return t('nextcloud-vue', 'for all technical and user documentation.') },
+	},
+
+	mounted() {
+		this.publishHoistedSidebar()
+	},
+
+	beforeDestroy() {
+		// Clear the holder so the hoisted sidebar disappears when the
+		// user navigates away from this route. Mirrors CnIndexPage.
+		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
+			this.cnIndexSidebarConfig.value = null
+		}
 	},
 
 	methods: {
+		toggleView() {
+			this.activeView = this.activeView === 'features' ? 'roadmap' : 'features'
+		},
 		openSuggestModal() {
 			this.suggestModalSpecRef = useSpecRef(this)
 			this.showSuggestModal = true
@@ -146,8 +278,34 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('submitted', payload)
-			// Re-fetch the roadmap tab when the user just submitted from this view.
-			this.activeTab = 'roadmap'
+			// Switch to the Roadmap view so the user sees their submission appear.
+			this.activeView = 'roadmap'
+		},
+		/**
+		 * Publish the hoisted-sidebar config to `cnIndexSidebarConfig`
+		 * (same holder CnIndexPage uses) so CnAppRoot mounts the
+		 * CnFeaturesAndRoadmapSidebar at NcContent level. The sidebar
+		 * emits `suggest` when the user clicks the Suggest CTA inside
+		 * it; the view forwards that to `openSuggestModal()`. No-op
+		 * when there's no CnAppRoot ancestor.
+		 */
+		publishHoistedSidebar() {
+			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) return
+			if (this.disabled) {
+				this.cnIndexSidebarConfig.value = null
+				return
+			}
+			this.cnIndexSidebarConfig.value = {
+				component: CnFeaturesAndRoadmapSidebar,
+				props: {
+					openbuiltUrl: this.resolvedOpenbuiltUrl,
+					llmSkillsUrl: this.resolvedLlmSkillsUrl,
+					suggestUrl: this.suggestUrl,
+				},
+				listeners: {
+					suggest: () => this.openSuggestModal(),
+				},
+			}
 		},
 	},
 }
@@ -155,7 +313,7 @@ export default {
 
 <style scoped>
 .cn-features-and-roadmap-view {
-	max-width: 920px;
+	max-width: 1200px;
 	margin: 0 auto;
 	padding: 24px 16px;
 }
@@ -164,7 +322,9 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 16px;
+	gap: 12px;
+	margin-bottom: 24px;
+	flex-wrap: wrap;
 }
 
 .cn-features-and-roadmap-view__title {
@@ -173,30 +333,11 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-features-and-roadmap-view__tabs {
+.cn-features-and-roadmap-view__actions {
 	display: flex;
-	gap: 0;
-	border-bottom: 1px solid var(--color-border);
-	margin-bottom: 0;
-}
-
-.cn-features-and-roadmap-view__tab {
-	padding: 12px 20px;
-	border: 0;
-	background: transparent;
-	border-bottom: 2px solid transparent;
-	color: var(--color-text-light);
-	cursor: pointer;
-	font-size: 1em;
-}
-
-.cn-features-and-roadmap-view__tab:hover {
-	background: var(--color-background-hover);
-}
-
-.cn-features-and-roadmap-view__tab--active {
-	color: var(--color-primary-element);
-	border-bottom-color: var(--color-primary-element);
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
 }
 
 .cn-features-and-roadmap-view__panel {

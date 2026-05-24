@@ -16,6 +16,8 @@
 	margin-bottom: calc(4 * var(--default-grid-baseline));
 	flex-wrap: wrap;
 	gap: calc(4 * var(--default-grid-baseline));
+	/* Toggle-clearance padding now lives on `.cn-page-renderer > *`
+	   (one rule for every page type). See CnPageRenderer.vue. */
 }
 
 .cn-detail-page__header-left {

@@ -22,7 +22,11 @@
 	<CnFeaturesAndRoadmapView
 		:repo="resolvedRepo"
 		:features="resolvedFeatures"
-		:disabled="resolvedDisabled" />
+		:disabled="resolvedDisabled"
+		:openbuilt-url="resolvedOpenbuiltUrl"
+		:llm-skills-url="resolvedLlmSkillsUrl"
+		:suggest-url="resolvedSuggestUrl"
+		:documentation-url="resolvedDocumentationUrl" />
 </template>
 
 <script>
@@ -96,6 +100,41 @@ export default {
 			default: null,
 		},
 		/**
+		 * Override for the OpenBuilt sidebar CTA target. Manifest config
+		 * > initialState > the view's own default (in-instance /apps/openbuilt).
+		 */
+		openbuiltUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Override for the LLM-skills sidebar CTA target. Manifest config
+		 * > initialState > docs.conduction.nl/ai-skills.
+		 */
+		llmSkillsUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Override for the Suggest sidebar CTA. When set, the sidebar
+		 * Suggest CTA renders as an anchor pointing here; when empty
+		 * (default) it stays a button that opens the SuggestFeatureModal.
+		 * Manifest config > initialState > '' (modal).
+		 */
+		suggestUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * URL of the app's public documentation site. When set, an info
+		 * banner above the card grid points users at the docs. Manifest
+		 * config > initialState > '' (no banner).
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * Override for the appId used to namespace loadState lookups.
 		 * Tests pass an explicit value; production reads it from the
 		 * `cnAiContext` inject populated by CnAppRoot.
@@ -156,6 +195,22 @@ export default {
 				return this.disabled
 			}
 			return readInitialState(this.effectiveAppId, 'features_roadmap_disabled', false)
+		},
+		resolvedOpenbuiltUrl() {
+			return this.openbuiltUrl
+				|| readInitialState(this.effectiveAppId, 'features_roadmap_openbuilt_url', '')
+		},
+		resolvedLlmSkillsUrl() {
+			return this.llmSkillsUrl
+				|| readInitialState(this.effectiveAppId, 'features_roadmap_llm_skills_url', '')
+		},
+		resolvedSuggestUrl() {
+			return this.suggestUrl
+				|| readInitialState(this.effectiveAppId, 'features_roadmap_suggest_url', '')
+		},
+		resolvedDocumentationUrl() {
+			return this.documentationUrl
+				|| readInitialState(this.effectiveAppId, 'features_roadmap_documentation_url', '')
 		},
 	},
 }

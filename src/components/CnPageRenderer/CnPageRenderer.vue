@@ -668,6 +668,30 @@ export default {
 }
 
 /*
+ * Toggle-clearance padding for EVERY page dispatched by CnPageRenderer.
+ *
+ * Nextcloud's `.app-navigation-toggle-wrapper` is absolutely positioned at
+ * the left edge of `.app-content` with a 34px right-margin overhang, so it
+ * floats over the first ~44px of every page's left edge — occluding any
+ * heading at offset 0. Historically each page type added its own
+ * `padding-inline-start` (CnPageHeader, CnDashboardPage, CnDetailPage),
+ * which left custom pages (type:"custom" in manifest) unprotected — e.g.
+ * pipelinq's Features page rendered "eatures" with the F behind the
+ * toggle.
+ *
+ * Applying the padding here — to every direct child of the dispatcher,
+ * regardless of page type — is the abstract fix: index, detail,
+ * dashboard, custom, all get the same clearance. Per-component
+ * `padding-inline-start` rules have been removed from CnPageHeader,
+ * CnDashboardPage, and CnDetailPage to prevent stacking.
+ *
+ * 56px = 44px toggle width + 12px breathing room.
+ */
+.cn-page-renderer > * {
+	padding-inline-start: 56px;
+}
+
+/*
  * Hook class applied when the current page's manifest entry has
  * `sidebar.show: false`. The library does not ship visual rules
  * here — consumer apps with style-driven sidebar layouts (e.g. CSS

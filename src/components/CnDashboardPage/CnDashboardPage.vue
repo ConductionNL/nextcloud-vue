@@ -989,6 +989,8 @@ export default {
 	margin-bottom: 20px;
 	flex-wrap: wrap;
 	gap: 12px;
+	/* Toggle-clearance padding now lives on `.cn-page-renderer > *`
+	   (one rule for every page type). See CnPageRenderer.vue. */
 }
 
 .cn-dashboard-page__header-left {
