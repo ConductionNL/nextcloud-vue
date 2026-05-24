@@ -475,7 +475,16 @@
     "Loading conversations...": "Loading conversations...",
     "Could not connect to AI service": "Could not connect to AI service",
     "Tool: {toolId}": "Tool: {toolId}",
-    "Reply was cancelled": "Reply was cancelled"
+    "Reply was cancelled": "Reply was cancelled",
+    "No cards linked yet": "No cards linked yet",
+    "Open Deck": "Open Deck",
+    "NC Deck is currently unavailable.": "NC Deck is currently unavailable.",
+    "Could not load cards.": "Could not load cards.",
+    "No stack": "No stack",
+    "Stack {n}": "Stack {n}"
   },
-  "plurals": {}
+  "plurals": {
+    "{count} card": ["{count} card", "{count} cards"],
+    "across {count} stack": ["across {count} stack", "across {count} stacks"]
+  }
 }

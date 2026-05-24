@@ -467,7 +467,16 @@
     "Loading conversations...": "Gesprekken laden...",
     "Could not connect to AI service": "Kon geen verbinding maken met de AI-service",
     "Tool: {toolId}": "Hulpmiddel: {toolId}",
-    "Reply was cancelled": "Antwoord geannuleerd"
+    "Reply was cancelled": "Antwoord geannuleerd",
+    "No cards linked yet": "Nog geen kaarten gekoppeld",
+    "Open Deck": "Deck openen",
+    "NC Deck is currently unavailable.": "NC Deck is momenteel niet beschikbaar.",
+    "Could not load cards.": "Kan kaarten niet laden.",
+    "No stack": "Geen stapel",
+    "Stack {n}": "Stapel {n}"
   },
-  "plurals": {}
+  "plurals": {
+    "{count} card": ["{count} kaart", "{count} kaarten"],
+    "across {count} stack": ["over {count} stapel", "over {count} stapels"]
+  }
 }
