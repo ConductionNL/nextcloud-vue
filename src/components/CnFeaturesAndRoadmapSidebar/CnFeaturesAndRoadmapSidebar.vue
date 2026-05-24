@@ -132,19 +132,19 @@ export default {
 		suggestUrlIsExternal() {
 			return /^https?:\/\//i.test(this.suggestUrl)
 		},
-		sidebarTitle() { return t('nextcloud-vue', 'Shape this app') },
-		sidebarSubtitle() { return t('nextcloud-vue', 'Three ways to land a feature') },
+		sidebarTitle() { return t('nextcloud-vue', 'Your input is the roadmap') },
+		sidebarSubtitle() { return t('nextcloud-vue', 'Three ways to ship what you need') },
 
-		suggestTitle() { return t('nextcloud-vue', 'Missing something?') },
-		suggestBody() { return t('nextcloud-vue', 'Tell us what would make your day. Every suggestion lands as a GitHub issue. Other users can +1 it. The maintainers triage it. You watch the status here on the roadmap.') },
+		suggestTitle() { return t('nextcloud-vue', 'Hit a wall? Tell us.') },
+		suggestBody() { return t('nextcloud-vue', 'Anything that wastes your time is gold to us. Every suggestion becomes a public GitHub issue, others can back it, and we triage within 24 hours. You watch it move on this roadmap and get credit on the merge.') },
 		suggestCta() { return t('nextcloud-vue', 'Suggest a feature') },
 
-		openbuiltTitle() { return t('nextcloud-vue', 'Tweak it in OpenBuilt') },
-		openbuiltBody() { return t('nextcloud-vue', 'Want a new screen, a renamed field, or a custom register? OpenBuilt is our visual app builder. Drag, drop, save. It runs inside your own Nextcloud, so no code, no deploy, no waiting.') },
+		openbuiltTitle() { return t('nextcloud-vue', 'Tweak it yourself') },
+		openbuiltBody() { return t('nextcloud-vue', 'Need a new screen, renamed field, or custom register today? OpenBuilt is the visual app builder inside your own Nextcloud. Drag, drop, save. No code, no deploy, no waiting on a release.') },
 		openbuiltCta() { return t('nextcloud-vue', 'Open OpenBuilt') },
 
-		llmTitle() { return t('nextcloud-vue', 'Let AI add the feature') },
-		llmBody() { return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You bring the prompt, they write the code. Push the PR, run the tests, and watch your feature land.') },
+		llmTitle() { return t('nextcloud-vue', 'Or have AI build it') },
+		llmBody() { return t('nextcloud-vue', 'Claude, ChatGPT, Grok, Qwen or Mistral can ship a feature for you. Our skill set teaches them this codebase. You write the prompt, they write the code, push the PR — same triage, same roadmap, faster path.') },
 		llmCta() { return t('nextcloud-vue', 'Read the AI guide') },
 	},
 }

@@ -20,8 +20,8 @@ const baseProps = {
 describe('CnFeaturesAndRoadmapSidebar', () => {
 	it('renders header + three sections', () => {
 		const wrapper = mount(CnFeaturesAndRoadmapSidebar, { stubs, propsData: baseProps })
-		expect(wrapper.find('.cn-features-and-roadmap-sidebar__name').text()).toBe('Shape this app')
-		expect(wrapper.find('.cn-features-and-roadmap-sidebar__subname').text()).toBe('Three ways to land a feature')
+		expect(wrapper.find('.cn-features-and-roadmap-sidebar__name').text()).toBe('Your input is the roadmap')
+		expect(wrapper.find('.cn-features-and-roadmap-sidebar__subname').text()).toBe('Three ways to ship what you need')
 		expect(wrapper.findAll('.cn-features-and-roadmap-sidebar__section')).toHaveLength(3)
 	})
 
