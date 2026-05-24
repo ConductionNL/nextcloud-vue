@@ -300,7 +300,7 @@ export default {
 		introBody() {
 			return t(
 				'nextcloud-vue',
-				'We read every feature request. The clearer the problem and the more concrete the solution, the better the chance we add it to the roadmap and ship it. The fields below mirror the OpenSpec proposal we write internally, so good answers here become a draft proposal directly.',
+				'We read every feature request. The clearer the problem and the more concrete the solution, the better the chance we add it to the roadmap and ship it.',
 			)
 		},
 
