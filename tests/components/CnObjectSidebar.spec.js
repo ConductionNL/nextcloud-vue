@@ -36,9 +36,14 @@ const MyCustomWidget = {
 	template: '<div class="my-custom-widget">{{ objectId }}</div>',
 }
 
+// The `useRegistry` prop defaults to `true` (ADR-019 / registry-driven
+// tabs). These two suites exercise the legacy hardcoded-tabs path and
+// the open-enum `tabs` path, so they explicitly opt out of registry
+// mode with `useRegistry: false` (also serves as the backward-compat
+// regression guard). Per-test `extra` can still override it.
 function mountSidebar(extra = {}, mountOptions = {}) {
 	return mount(CnObjectSidebar, {
-		propsData: { ...baseProps, ...extra },
+		propsData: { ...baseProps, useRegistry: false, ...extra },
 		stubs: {
 			// Stub the heavy built-in tabs so the legacy branch stays cheap.
 			CnFilesTab: true,
@@ -53,6 +58,76 @@ function mountSidebar(extra = {}, mountOptions = {}) {
 		...mountOptions,
 	})
 }
+
+describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
+	// The integration registry singleton consumed by setup().
+	const { integrations } = require('../../src/integrations/registry.js')
+	const DefaultTab = { name: 'DefaultTab', render() { return h('div', { class: 'default-registry-tab' }) } }
+	const DefaultWidget = { name: 'DefaultWidget', render() { return h('div') } }
+
+	afterEach(() => {
+		integrations.__resetForTests()
+	})
+
+	it('defaults useRegistry to true (registry mode is active without an explicit prop)', () => {
+		const wrapper = mount(CnObjectSidebar, {
+			propsData: { ...baseProps },
+			stubs: {
+				CnFilesTab: true,
+				CnNotesTab: true,
+				CnTagsTab: true,
+				CnTasksTab: true,
+				CnAuditTrailTab: true,
+			},
+		})
+		expect(wrapper.props('useRegistry')).toBe(true)
+		expect(wrapper.vm.isRegistryMode).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('renders registry providers by default (no explicit useRegistry prop)', () => {
+		integrations.register({ id: 'files', label: 'Files', tab: DefaultTab, widget: DefaultWidget })
+		integrations.register({ id: 'notes', label: 'Notes', tab: DefaultTab, widget: DefaultWidget })
+		const wrapper = mount(CnObjectSidebar, {
+			propsData: { ...baseProps },
+			stubs: {
+				CnFilesTab: true,
+				CnNotesTab: true,
+				CnTagsTab: true,
+				CnTasksTab: true,
+				CnAuditTrailTab: true,
+			},
+		})
+		expect(wrapper.findAll('.default-registry-tab').length).toBe(2)
+		// The legacy hardcoded built-in tabs MUST NOT render in registry mode.
+		const html = wrapper.html()
+		expect(html).toContain('id="files"')
+		expect(html).toContain('id="notes"')
+		wrapper.destroy()
+	})
+
+	it('backward compat: useRegistry=false renders the legacy hardcoded built-in tabs', () => {
+		// No providers registered; legacy branch must still render the five built-ins.
+		const wrapper = mount(CnObjectSidebar, {
+			propsData: { ...baseProps, useRegistry: false },
+			stubs: {
+				CnFilesTab: true,
+				CnNotesTab: true,
+				CnTagsTab: true,
+				CnTasksTab: true,
+				CnAuditTrailTab: true,
+			},
+		})
+		expect(wrapper.vm.isRegistryMode).toBe(false)
+		const html = wrapper.html()
+		expect(html).toContain('id="files"')
+		expect(html).toContain('id="notes"')
+		expect(html).toContain('id="tags"')
+		expect(html).toContain('id="tasks"')
+		expect(html).toContain('id="auditTrail"')
+		wrapper.destroy()
+	})
+})
 
 describe('CnObjectSidebar — built-in tab set (legacy branch)', () => {
 	it('renders all built-in tabs when `tabs` is unset', () => {
@@ -262,8 +337,11 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		return mount(CnObjectSidebar, {
 			propsData: { ...baseProps, useRegistry: true, ...extra },
 			stubs: {
-				CnFilesTab: true, CnNotesTab: true, CnTagsTab: true,
-				CnTasksTab: true, CnAuditTrailTab: true,
+				CnFilesTab: true,
+				CnNotesTab: true,
+				CnTagsTab: true,
+				CnTasksTab: true,
+				CnAuditTrailTab: true,
 			},
 		})
 	}
