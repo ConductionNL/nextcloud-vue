@@ -158,3 +158,9 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 - [defaultPageTypes](../utilities/default-page-types.md) — Built-in page-type registry.
 - [validateManifest](../utilities/validate-manifest.md) — The validator used inside `useAppManifest`.
 - [migrating-to-manifest](../migrating-to-manifest.md) — Tier-by-tier adoption guide.
+
+## Support dialog
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |

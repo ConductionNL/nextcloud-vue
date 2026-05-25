@@ -177,3 +177,9 @@ See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilitie
 ## Mounting an in-memory manifest
 
 Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuilt app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuilt) above.
+
+## Support dialog
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |

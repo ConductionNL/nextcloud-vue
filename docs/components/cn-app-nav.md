@@ -6,7 +6,7 @@ Items split into three groups by `section`:
 
 - `section: "main"` (default) — top of the navigation, scrollable.
 - `section: "footer"` — pinned-bottom **regular** entries rendered flat above the settings foldout. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
-- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout only mounts when at least one `settings` item exists.
+- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout mounts whenever there are `settings` items **or** personal settings is enabled — so every app shows a Settings gear with at least Personal settings; it's only fully suppressed when there are no `settings` items **and** `nav.includePersonalSettings: false`.
 
 ### `nav` block
 

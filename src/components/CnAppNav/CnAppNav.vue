@@ -19,7 +19,10 @@
     A "Personal settings" entry is auto-prepended at the top of the
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
-    false`. The foldout only mounts when ≥1 settings item exists.
+    false`. The foldout mounts whenever there are settings items OR
+    personal settings is enabled — so every app shows a Settings gear
+    with at least Personal settings. It is only fully suppressed when
+    there are no settings items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -243,14 +246,17 @@ export default {
 			return this.visibleItems.filter((item) => item.section === 'settings')
 		},
 		/**
-		 * Whether the settings foldout mounts. Mounts only when at least
-		 * one `section: "settings"` item exists — an empty settings group
-		 * shows no foldout (and thus no orphan Personal-settings entry).
+		 * Whether the settings foldout mounts. Mounts when there is at
+		 * least one `section: "settings"` item OR personal settings is
+		 * enabled — so every app shows a Settings gear with at least the
+		 * auto-prepended "Personal settings" entry. Only fully suppressed
+		 * when there are no settings items AND `nav.includePersonalSettings`
+		 * is explicitly `false`.
 		 *
 		 * @return {boolean}
 		 */
 		showSettingsFoldout() {
-			return this.settingsItems.length > 0
+			return this.settingsItems.length > 0 || this.includePersonalSettings
 		},
 		/**
 		 * Whether to auto-prepend the "Personal settings" entry at the top
