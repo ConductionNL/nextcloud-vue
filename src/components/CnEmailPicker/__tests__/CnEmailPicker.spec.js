@@ -31,10 +31,12 @@ describe('CnEmailPicker', () => {
 	})
 
 	it('renders accounts on mount', async () => {
-		global.fetch.mockReturnValueOnce(resolveOnce({ results: [
-			{ id: 1, label: 'Work', email: 'work@example.com' },
-			{ id: 2, label: 'Personal', email: 'me@example.com' },
-		] }))
+		global.fetch.mockReturnValueOnce(resolveOnce({
+			results: [
+				{ id: 1, label: 'Work', email: 'work@example.com' },
+				{ id: 2, label: 'Personal', email: 'me@example.com' },
+			],
+		}))
 
 		const wrapper = mount(CnEmailPicker)
 		await wrapper.vm.$nextTick()

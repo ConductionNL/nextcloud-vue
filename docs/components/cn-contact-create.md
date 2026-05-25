@@ -32,3 +32,21 @@ Lives in its own `.vue` file under `src/components/CnContactCreate/` per ADR-004
 | ----- | ------- | ----------- |
 | `create` | `{displayName, email, phone, org, role}` | Emitted when the user submits a valid form. |
 | `close` | — | Emitted on cancel or close. |
+
+## Form & label props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `title` | String | Dialog title. |
+| `displayNameLabel` | String | Label for the display-name field. |
+| `displayNameHelper` | String | Helper text under the display-name field. |
+| `emailLabel` | String | Label for the email field. |
+| `emailHelper` | String | Helper text under the email field. |
+| `phoneLabel` | String | Label for the phone field. |
+| `orgLabel` | String | Label for the organisation field. |
+| `roleLabel` | String | Label for the role field. |
+| `cancelLabel` | String | Cancel button label. |
+| `confirmLabel` | String | Confirm/create button label. |
+| `displayNameRequiredMsg` | String | Validation message when the display name is empty. |
+| `emailInvalidMsg` | String | Validation message for an invalid email. |
+| `roleOptions` | Array | Selectable role options for the role field. |

@@ -93,3 +93,12 @@ the page just works.
 ## Spec
 
 [ConductionNL/nextcloud-vue#264](https://github.com/ConductionNL/nextcloud-vue/issues/264)
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `openbuiltUrl` | String | `'/apps/openbuilt'` | URL for the sidebar's "Tweak it in OpenBuilt" CTA. |
+| `llmSkillsUrl` | String | — | URL for the sidebar's "Let AI build it" CTA (opens in a new tab). |
+| `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA; when empty the CTA opens the in-product modal. |
+| `documentationUrl` | String | `''` | Per-app documentation site URL surfaced in the docs info card. |

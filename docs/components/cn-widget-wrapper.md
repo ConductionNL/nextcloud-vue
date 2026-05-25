@@ -167,3 +167,16 @@ export default {
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnWidgetWrapper.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnWidgetWrapper/CnWidgetWrapper.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Additional props & slots
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal so the resulting issue links to the widget's spec capability. |
+| `refreshLabel` | String | `t('Refresh')` | Pre-translated label for the Refresh action. |
+| `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated label for the Request-a-feature action. |
+| `actionsMenuLabel` | String | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow `…` menu trigger. |
+
+| Slot | Description |
+|------|-------------|
+| `title-meta` | Inline content rendered next to the title (e.g. the dashboard date-range chip). |

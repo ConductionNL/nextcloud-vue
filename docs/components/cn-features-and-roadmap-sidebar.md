@@ -46,3 +46,9 @@ only spot where Nextcloud's right-edge sidebar slot positions correctly.
   → Requirement "CnFeaturesAndRoadmapSidebar"
 - Implementation: [src/components/CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue](../../src/components/CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue)
 - Mounting view: [src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue](../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue) — see `publishHoistedSidebar()`
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `suggestUrl` | String | `''` | Optional override target for the "Suggest a feature" CTA. When set, the CTA links there (external URLs open in a new tab); when empty it emits `@suggest` for the in-product modal. |

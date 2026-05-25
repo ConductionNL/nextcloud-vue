@@ -152,3 +152,9 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | Event | Payload | Description |
 |---|---|---|
 | `header-action` | `{ action: <id>, id: <id> }` | Fired when a `headerActions[]` entry is clicked. The `action` field aliases `id` for forward-compat with the row-level `@action` event. |
+
+## Request-a-feature
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRequestFeature` | Boolean | `false` | Show a built-in "Request a feature" entry in the overflow (after Refresh + headerActions). Emits `@request-feature`. |

@@ -73,3 +73,18 @@ and the Suggest modal POSTs to the same endpoint. Full backend contract:
 - Spec: `openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md`
   → Requirement "CnFeaturesAndRoadmapView"
 - Implementation: [src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue](../../src/components/CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue)
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `suggestUrl` | String | `''` | Optional override for the "Suggest a feature" CTA target. |
+| `documentationUrl` | String | `''` | Per-app documentation site URL shown in the docs info card. |
+| `appName` | String | `''` | Human app name used in the feature-request copy. |
+| `appSlug` | String | `''` | App slug used to build the GitHub feature-request deep-link repo. |
+| `appStoreUrl` | String | `''` | Nextcloud app-store URL for the app. |
+| `featureRequestUrl` | String | `''` | Explicit feature-request URL override. |
+| `donateUrl` | String | `''` | Donation/support link. |
+| `supportUrl` | String | `''` | Support contact link. |
+| `founderName` | String | `''` | Founder name shown in the personal-touch copy. |
+| `founderTitle` | String | `''` | Founder title/role shown alongside the name. |

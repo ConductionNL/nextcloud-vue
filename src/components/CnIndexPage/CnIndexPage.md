@@ -533,3 +533,9 @@ Reserved built-in ids (`refresh`, `import`, `export`, `copy`, `delete`)
 are dropped from the rendered list with a `console.warn` so manifest
 authors cannot accidentally shadow CnActionsBar's built-in overflow
 items.
+
+## Request-a-feature
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject). |
