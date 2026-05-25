@@ -47,6 +47,21 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div class="cn-maps-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing location') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new location') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 
 		<div v-else-if="error" class="cn-maps-tab__error" role="alert">
@@ -100,8 +115,28 @@
 						</a>
 					</div>
 				</div>
+				<NcButton
+					type="tertiary-no-background"
+					:aria-label="t('nextcloud-vue', 'Unlink location')"
+					class="cn-maps-tab__unlink"
+					@click="unlinkPoint(point)">
+					<template #icon>
+						<LinkOff :size="16" />
+					</template>
+				</NcButton>
 			</li>
 		</ul>
+
+		<CnMapPoiPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnMapPoiCreate
+			v-if="createOpen"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -109,7 +144,12 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnMapPoiCreate from '../../../components/CnMapPoiCreate/CnMapPoiCreate.vue'
+import CnMapPoiPicker from '../../../components/CnMapPoiPicker/CnMapPoiPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
@@ -125,7 +165,17 @@ const COMMENT_MAX_CHARS = 160
 export default {
 	name: 'CnMapsTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, MapMarker },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		LinkOff,
+		LinkVariant,
+		MapMarker,
+		Plus,
+		CnMapPoiPicker,
+		CnMapPoiCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'maps'`). */
@@ -156,6 +206,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -166,8 +218,13 @@ export default {
 	},
 
 	methods: {
-		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		/**
+		 * Base for the Tier-2 maps endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		mapsEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/maps`
 		},
 
 		dataOf(point) {
@@ -176,7 +233,19 @@ export default {
 
 		pointKey(point) {
 			const d = this.dataOf(point)
-			return point.id ?? d.id ?? this.pointName(point)
+			return point.favoriteId ?? point.id ?? d.favoriteId ?? d.id ?? this.pointName(point)
+		},
+
+		/**
+		 * The NC Maps favorite id used for the Tier-2 unlink DELETE.
+		 *
+		 * @param {object} point Provider row.
+		 *
+		 * @return {(number|string)} The favorite id.
+		 */
+		favoriteIdOf(point) {
+			const d = this.dataOf(point)
+			return point.favoriteId ?? point.id ?? d.favoriteId ?? d.id ?? ''
 		},
 
 		pointName(point) {
@@ -267,6 +336,78 @@ export default {
 			}
 		},
 
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.mapsEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPoints()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This location is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link location.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnMapsTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link location.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.mapsEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPoints()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create location.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnMapsTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create location.')
+			}
+		},
+
+		async unlinkPoint(point) {
+			const favoriteId = this.favoriteIdOf(point)
+			if (!favoriteId) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.mapsEndpoint()}/${favoriteId}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchPoints()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink location.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnMapsTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink location.')
+			}
+		},
+
 		async fetchPoints() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -275,12 +416,12 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(this.mapsEndpoint(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.points = rows
-				} else if (response.status === 503) {
+				} else if (response.status === 503 || response.status === 501) {
 					this.points = []
 					this.degraded = this.unavailableLabel
 				} else {
@@ -301,6 +442,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-maps-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
 .cn-maps-tab__banner {
 	display: flex;
 	align-items: center;
@@ -340,11 +488,18 @@ export default {
 }
 
 .cn-maps-tab__row {
+	position: relative;
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
-	padding: 10px 0;
+	padding: 10px 28px 10px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-maps-tab__unlink {
+	position: absolute;
+	top: 6px;
+	right: 0;
 }
 
 .cn-maps-tab__row:last-child {

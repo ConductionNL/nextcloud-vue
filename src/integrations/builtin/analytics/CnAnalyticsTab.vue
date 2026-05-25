@@ -4,28 +4,30 @@
 
   Replaces the generic `CnIntegrationTab` for the `analytics` leaf:
   renders the linked NC Analytics reports / dashboards as a list (icon
-  by report type, title from subheader-minus-marker, type badge,
-  modified date). Clicking a row deep-links into the NC Analytics app
-  at `/index.php/apps/analytics/#/r/{id}` (matches the URL the provider
-  emits — `#/r/` is NC Analytics 6.x's report route).
+  by report type, title, type badge, modified date). Clicking a row
+  deep-links into the NC Analytics app at
+  `/index.php/apps/analytics/#/r/{id}` (`#/r/` is NC Analytics 6.x's
+  report route).
 
-  Talks to the OR pluggable-integration sub-resource:
-    GET /api/objects/{register}/{schema}/{objectId}/integrations/analytics
-  served by `OCA\OpenRegister\Service\Integration\Providers\AnalyticsProvider`.
+  Tier-2 surface (this commit):
+    - "Link existing report" → opens CnAnalyticsReportPicker (modal)
+    - "Create new report"    → opens CnAnalyticsReportCreate (modal)
+    - Per-row unlink         → DELETE …/analytics/{reportId}
 
-  The provider returns rows shaped:
-    { id, title, url, data: { name, subheader, type } }
+  Talks to the OpenRegister Tier-2 analytics-link endpoints
+    GET     /api/objects/{r}/{s}/{id}/analytics             — list
+    POST    /api/objects/{r}/{s}/{id}/analytics             — link existing
+    POST    /api/objects/{r}/{s}/{id}/analytics/new         — create + link
+    DELETE  /api/objects/{r}/{s}/{id}/analytics/{reportId}  — unlink
+    GET     /api/integrations/analytics/available           — picker source
+  served by `OCA\OpenRegister\Controller\AnalyticsLinksController`.
 
-  - `name` carries the album/report display name and the `[or:{uuid}]`
-    marker the provider uses for its LIKE query.
-  - `subheader` is the operator-authored description; we surface it as
-    secondary text, stripping any marker that leaked in (the wave-2.2
-    design intent was to host the marker here — defensive in case).
-  - `type` is the report kind code (1 = SQL/group, 2 = remote, 3 =
-    file/CSV, 4 = internal, etc.) — see the badge mapping below.
+  The endpoint returns rows shaped:
+    { id, reportId, reportTitle, reportType, subheader, createdAt,
+      modifiedAt, url, … }
 
-  Empty + loading + error + 503 unavailable states follow ADR-017 and
-  AD-23 graceful degradation. All UI strings pass through
+  Empty + loading + error + 501/503 unavailable states follow ADR-017
+  and AD-23 graceful degradation. All UI strings pass through
   `t('nextcloud-vue', ...)` per ADR-007. Styling uses Nextcloud CSS
   variables only so the nldesign overrides apply transparently
   (ADR-010).
@@ -45,6 +47,21 @@
 		<div v-if="degraded" class="cn-analytics-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<div class="cn-analytics-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing report') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new report') }}
+			</NcButton>
 		</div>
 
 		<!-- Loading -->
@@ -96,8 +113,28 @@
 						</span>
 					</div>
 				</div>
+				<NcButton
+					type="tertiary-no-background"
+					:aria-label="t('nextcloud-vue', 'Unlink report')"
+					class="cn-analytics-tab__unlink"
+					@click="unlinkReport(report)">
+					<template #icon>
+						<LinkOff :size="16" />
+					</template>
+				</NcButton>
 			</li>
 		</ul>
+
+		<CnAnalyticsReportPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnAnalyticsReportCreate
+			v-if="createOpen"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -108,8 +145,13 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
 import ChartPie from 'vue-material-design-icons/ChartPie.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import TableIcon from 'vue-material-design-icons/Table.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
+import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -117,7 +159,8 @@ import { buildHeaders } from '../../../utils/index.js'
  *
  * Renders linked NC Analytics reports / dashboards as a list with
  * type-coded icons + badges. Clicking a row opens the report in NC
- * Analytics in a new tab. See the file-level docblock for design notes.
+ * Analytics in a new tab. Tier-2: includes link/create modals and
+ * per-row unlink. See the file-level docblock for design notes.
  */
 export default {
 	name: 'CnAnalyticsTab',
@@ -129,8 +172,13 @@ export default {
 		ChartBar,
 		ChartLine,
 		ChartPie,
+		LinkOff,
+		LinkVariant,
+		Plus,
 		TableIcon,
 		ViewDashboard,
+		CnAnalyticsReportPicker,
+		CnAnalyticsReportCreate,
 	},
 
 	props: {
@@ -160,6 +208,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -170,32 +220,38 @@ export default {
 	},
 
 	methods: {
-		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		t,
+
+		/**
+		 * Base for the Tier-2 analytics endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		analyticsEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/analytics`
 		},
 
 		reportKey(report) {
-			return (report && (report.id ?? report.data?.id)) || ''
+			return (report && (report.reportId ?? report.id ?? report.data?.id)) || ''
 		},
 
 		/**
 		 * Resolve the displayable report title, stripping the
-		 * `[or:{uuid}]` marker (provider keeps the marker inside the
-		 * `name` field for its LIKE query).
+		 * `[or:{uuid}]` marker (pre-Tier-2 reports embedded the marker
+		 * inside `name`).
 		 *
 		 * @param {object} report Provider row.
 		 *
 		 * @return {string}
 		 */
 		reportTitle(report) {
-			const raw = (report && (report.title || report.name || report.data?.name)) || ''
+			const raw = (report && (report.reportTitle || report.title || report.name || report.data?.name)) || ''
 			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled report')
 		},
 
 		/**
-		 * Resolve the secondary "subheader" line. The wave-2.2 design
-		 * intent had the marker living on this field; in case any old
-		 * row still has it, strip defensively.
+		 * Resolve the secondary "subheader" line, stripping any leaked
+		 * marker defensively.
 		 *
 		 * @param {object} report Provider row.
 		 *
@@ -203,8 +259,7 @@ export default {
 		 */
 		reportSubheader(report) {
 			const raw = report?.subheader ?? report?.data?.subheader ?? ''
-			const trimmed = String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim()
-			return trimmed
+			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim()
 		},
 
 		reportType(report) {
@@ -228,21 +283,19 @@ export default {
 		reportTypeLabel(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 1: return t('nextcloud-vue', 'Group')
-			case 2: return t('nextcloud-vue', 'Remote')
-			case 3: return t('nextcloud-vue', 'File')
-			case 4: return t('nextcloud-vue', 'Internal')
-			case 5: return t('nextcloud-vue', 'Database')
-			case 6: return t('nextcloud-vue', 'External')
+			case 0: return t('nextcloud-vue', 'Group')
+			case 1: return t('nextcloud-vue', 'File')
+			case 2: return t('nextcloud-vue', 'Database')
+			case 3: return t('nextcloud-vue', 'Git')
+			case 4: return t('nextcloud-vue', 'External')
+			case 6: return t('nextcloud-vue', 'JSON')
 			default: return t('nextcloud-vue', 'Report')
 			}
 		},
 
 		/**
 		 * MDI component for the report type. Tries to express the
-		 * "kind" without fetching chart data (file = Table, dashboard
-		 * = ViewDashboard, group/internal = ChartBar, remote =
-		 * ChartLine, etc.).
+		 * "kind" without fetching chart data.
 		 *
 		 * @param {object} report Provider row.
 		 *
@@ -251,10 +304,10 @@ export default {
 		reportIcon(report) {
 			const type = this.reportType(report)
 			switch (type) {
-			case 3: return TableIcon
-			case 4: return ViewDashboard
-			case 2: return ChartLine
-			case 5: return ChartPie
+			case 1: return TableIcon
+			case 0: return ViewDashboard
+			case 4: return ChartLine
+			case 6: return ChartPie
 			default: return ChartBar
 			}
 		},
@@ -282,16 +335,92 @@ export default {
 		},
 
 		formatWhen(value) {
-			if (!value) return ''
+			if (!value) {
+				return ''
+			}
 			try {
 				const num = Number(value)
 				const d = Number.isFinite(num) && num > 0 && String(value).length <= 12
 					? new Date(num * 1000)
 					: new Date(value)
-				if (Number.isNaN(d.getTime())) return String(value)
+				if (Number.isNaN(d.getTime())) {
+					return String(value)
+				}
 				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
 			} catch (_) {
 				return String(value)
+			}
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.analyticsEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchReports()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This report is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link report.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnAnalyticsTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link report.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.analyticsEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchReports()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create report.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnAnalyticsTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create report.')
+			}
+		},
+
+		async unlinkReport(report) {
+			const reportId = this.reportKey(report)
+			if (!reportId) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.analyticsEndpoint()}/${reportId}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchReports()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink report.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnAnalyticsTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink report.')
 			}
 		},
 
@@ -309,11 +438,11 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(this.analyticsEndpoint(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.reports = data.results || data.items || (Array.isArray(data) ? data : []) || []
-				} else if (response.status === 503) {
+				} else if (response.status === 503 || response.status === 501) {
 					this.reports = []
 					this.degraded = this.unavailableLabel
 				} else {
@@ -337,6 +466,13 @@ export default {
 .cn-analytics-tab {
 	padding: 12px;
 	overflow-x: hidden;
+}
+
+.cn-analytics-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
 }
 
 .cn-analytics-tab__banner {
@@ -439,9 +575,9 @@ a.cn-analytics-tab__title:hover {
 	text-transform: uppercase;
 }
 
-.cn-analytics-tab__badge--type-3 { background: var(--color-primary-element-light, var(--color-primary-light)); color: var(--color-primary-element-text); }
-.cn-analytics-tab__badge--type-4 { background: var(--color-success, #46ba61); color: var(--color-main-background); }
-.cn-analytics-tab__badge--type-2 { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
+.cn-analytics-tab__badge--type-1 { background: var(--color-primary-element-light, var(--color-primary-light)); color: var(--color-primary-element-text); }
+.cn-analytics-tab__badge--type-2 { background: var(--color-success, #46ba61); color: var(--color-main-background); }
+.cn-analytics-tab__badge--type-4 { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
 
 .cn-analytics-tab__subheader {
 	overflow: hidden;
@@ -452,5 +588,9 @@ a.cn-analytics-tab__title:hover {
 
 .cn-analytics-tab__when {
 	white-space: nowrap;
+}
+
+.cn-analytics-tab__unlink {
+	flex-shrink: 0;
 }
 </style>

@@ -156,3 +156,11 @@ export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
 // Collectives integration leaf (Tier-2)
 export { CnCollectivePagePicker } from './CnCollectivePagePicker/index.js'
 export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'
+
+// Maps integration leaf (Tier-2)
+export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
+export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
+
+// Analytics integration leaf (Tier-2)
+export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
+export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
