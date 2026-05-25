@@ -310,4 +310,90 @@ describe('CnDashboardPage — dateRange prop', () => {
 			expect(wrapper.vm.formatChartDateRange({ widgetId: 'x' })).toBeNull()
 		})
 	})
+
+	describe('chip preset pick (regression: preset.id, not preset.value)', () => {
+		const mountPage = () => mount(CnDashboardPage, {
+			propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+			stubs,
+		})
+
+		it('clicking a preset updates the current range (was a no-op when keyed by .value)', () => {
+			const wrapper = mountPage()
+			const before = { ...wrapper.vm.currentRange }
+			wrapper.vm.onChipPresetPick({ id: 'last-30', label: 'Last 30 days', days: 30 })
+			const after = wrapper.vm.currentRange
+			expect(after.preset).toBe('last-30')
+			expect(after.from).not.toBe(before.from)
+		})
+
+		it('an hour preset resolves a rolling window', () => {
+			const wrapper = mountPage()
+			wrapper.vm.onChipPresetPick({ id: 'last-8h', label: 'Last 8 hours', hours: 8 })
+			expect(wrapper.vm.currentRange.preset).toBe('last-8h')
+			const span = new Date(wrapper.vm.currentRange.to).getTime() - new Date(wrapper.vm.currentRange.from).getTime()
+			expect(span).toBeCloseTo(8 * 3600000, -3)
+		})
+
+		it('custom preset is a no-op (keeps editing manually)', () => {
+			const wrapper = mountPage()
+			const before = { ...wrapper.vm.currentRange }
+			wrapper.vm.onChipPresetPick({ id: 'custom', label: 'Custom range', days: null })
+			expect(wrapper.vm.currentRange.from).toBe(before.from)
+		})
+	})
+
+	describe('chip datetime round-trip (#5 time selection)', () => {
+		const mountPage = () => mount(CnDashboardPage, {
+			propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+			stubs,
+		})
+
+		it('localDateTimeInputToIso round-trips with toLocalDateTimeInput', () => {
+			const wrapper = mountPage()
+			const local = wrapper.vm.toLocalDateTimeInput('2026-05-19T08:30:00.000Z')
+			// Local string has no zone; converting back yields the same instant.
+			expect(wrapper.vm.localDateTimeInputToIso(local)).toBe('2026-05-19T08:30:00.000Z')
+		})
+
+		it('onChipDateInput stores an ISO instant and flips preset to custom', () => {
+			const wrapper = mountPage()
+			const local = wrapper.vm.toLocalDateTimeInput('2026-05-19T08:30:00.000Z')
+			wrapper.vm.onChipDateInput('from', local)
+			expect(wrapper.vm.currentRange.preset).toBe('custom')
+			expect(wrapper.vm.currentRange.from).toBe('2026-05-19T08:30:00.000Z')
+		})
+
+		it('toLocalDateTimeInput returns empty string for null / bad input', () => {
+			const wrapper = mountPage()
+			expect(wrapper.vm.toLocalDateTimeInput('')).toBe('')
+			expect(wrapper.vm.toLocalDateTimeInput('not-a-date')).toBe('')
+		})
+	})
+
+	describe('manifest starting range by preset (#2)', () => {
+		it('resolves dateRange.default.preset into a window when from/to omitted', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true, default: { preset: 'last-30' } }, layout: [], widgets: [] },
+				stubs,
+			})
+			expect(wrapper.vm.currentRange.preset).toBe('last-30')
+			expect(wrapper.vm.currentRange.from).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			expect(wrapper.vm.currentRange.to).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+		})
+
+		it('explicit from/to default still wins over preset resolution', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: {
+						enabled: true,
+						default: { from: '2026-01-01T00:00:00.000Z', to: '2026-01-31T23:59:59.999Z', preset: 'custom' },
+					},
+					layout: [], widgets: [],
+				},
+				stubs,
+			})
+			expect(wrapper.vm.currentRange.from).toBe('2026-01-01T00:00:00.000Z')
+			expect(wrapper.vm.currentRange.preset).toBe('custom')
+		})
+	})
 })

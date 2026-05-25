@@ -60,6 +60,8 @@ import { NcDateTimePicker, NcSelect } from '@nextcloud/vue'
  * it keeps the pickers editable without forcing a recomputed window.
  */
 export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
+	{ id: 'last-8h', label: 'Last 8 hours', hours: 8 },
+	{ id: 'last-24h', label: 'Last 24 hours', hours: 24 },
 	{ id: 'today', label: 'Today', days: 1 },
 	{ id: 'last-7', label: 'Last 7 days', days: 7 },
 	{ id: 'last-30', label: 'Last 30 days', days: 30 },
@@ -73,23 +75,32 @@ export const DEFAULT_DATE_RANGE_PRESETS = Object.freeze([
  * SHALL preserve the previously selected dates).
  *
  * @param {string|null} presetId Preset id to resolve.
- * @param {Array<{ id: string, days: number|null }>} presets Preset list.
+ * @param {Array<{ id: string, days?: number|null, hours?: number }>} presets Preset list.
  * @param {Date} [now] Override `now` for deterministic tests.
  * @return {{ from: string, to: string } | null} ISO-8601 UTC window or null.
  */
 export function resolvePresetWindow(presetId, presets, now = new Date()) {
 	if (!presetId || presetId === 'custom') return null
 	const preset = (presets || []).find((p) => p.id === presetId)
-	if (!preset || typeof preset.days !== 'number') return null
-	// End-of-day UTC today
+	if (!preset) return null
+	// Hour-granularity presets are ROLLING windows ending at the exact
+	// current instant — `now − N hours → now` — so "Last 8 hours" means
+	// the trailing 8h, not a calendar-day-aligned span.
+	if (typeof preset.hours === 'number') {
+		const end = new Date(now.getTime())
+		const start = new Date(now.getTime() - preset.hours * 3600000)
+		return { from: start.toISOString(), to: end.toISOString() }
+	}
+	if (typeof preset.days !== 'number') return null
+	// Day-granularity presets are calendar-aligned: midnight UTC start of
+	// the (days-1)-th day back through end-of-day UTC today. `today`
+	// (days=1) resolves to "00:00 → 23:59 of today".
 	const end = new Date(Date.UTC(
 		now.getUTCFullYear(),
 		now.getUTCMonth(),
 		now.getUTCDate(),
 		23, 59, 59, 999,
 	))
-	// Start = midnight UTC, (days - 1) before end. `today` (days=1)
-	// resolves to "00:00 → 23:59 of today".
 	const start = new Date(end)
 	start.setUTCDate(start.getUTCDate() - (preset.days - 1))
 	start.setUTCHours(0, 0, 0, 0)
