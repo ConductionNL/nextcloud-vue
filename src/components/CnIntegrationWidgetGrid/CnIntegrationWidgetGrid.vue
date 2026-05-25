@@ -52,6 +52,11 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard']
 /**
  * CnIntegrationWidgetGrid — responsive grid that renders every registered
  * integration's widget for a given dashboard surface.
+ *
+ * @deprecated Superseded by `CnIntegrationWidget` (tabbed, app-faithful
+ * per-leaf content + single-integration mode). Kept until all consumers
+ * migrate; a later cleanup PR removes it. New code should use
+ * `CnIntegrationWidget`.
  */
 export default {
 	name: 'CnIntegrationWidgetGrid',

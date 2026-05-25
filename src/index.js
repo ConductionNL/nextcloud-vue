@@ -85,6 +85,7 @@ export {
 	CnIntegrationTab,
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,
+	CnIntegrationWidget,
 	CnDetailCard,
 	CnDetailPage,
 	CnCard,

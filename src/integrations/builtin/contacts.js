@@ -41,6 +41,9 @@ export const contactsIntegration = {
 	tab: CnContactsTab,
 	widget: CnContactsCard,
 	defaultSize: { w: 3, h: 3 },
+	// CnIntegrationWidget contract — exemplar accent (NC Contacts brand blue).
+	accentColor: '#0082c9',
+	appName: 'Contacts',
 }
 
 export default contactsIntegration

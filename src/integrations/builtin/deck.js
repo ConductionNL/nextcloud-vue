@@ -42,6 +42,10 @@ export const deckIntegration = {
 	tab: CnDeckTab,
 	widget: CnDeckCard,
 	defaultSize: { w: 4, h: 3 },
+	// CnIntegrationWidget contract — exemplar accent (NC Deck brand blue).
+	// `appName` / `docsUrl` default from id+label in the registry.
+	accentColor: '#0082c9',
+	appName: 'Deck',
 }
 
 export default deckIntegration

@@ -50,6 +50,9 @@ export const formsIntegration = {
 	tab: CnFormsTab,
 	widget: CnFormsCard,
 	defaultSize: { w: 3, h: 3 },
+	// CnIntegrationWidget contract — exemplar accent (NC Forms brand green).
+	accentColor: '#0d7000',
+	appName: 'Forms',
 }
 
 export default formsIntegration

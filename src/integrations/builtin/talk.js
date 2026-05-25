@@ -41,6 +41,9 @@ export const talkIntegration = {
 	tab: CnTalkTab,
 	widget: CnTalkCard,
 	defaultSize: { w: 3, h: 3 },
+	// CnIntegrationWidget contract — exemplar accent (NC Talk brand blue).
+	accentColor: '#0082c9',
+	appName: 'Talk',
 }
 
 export default talkIntegration
