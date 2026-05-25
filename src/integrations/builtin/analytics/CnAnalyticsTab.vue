@@ -383,7 +383,7 @@ export default {
 			return String(raw)
 		},
 
-		kpiTitle(report) {
+		kpiTitle(_report) {
 			return t('nextcloud-vue', 'Latest value')
 		},
 

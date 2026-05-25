@@ -100,10 +100,12 @@ describe('CnCospendTab', () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,
 			status: 200,
-			json: () => Promise.resolve({ results: [
-				makeBill({ id: 1, amount: 42.5 }),
-				makeBill({ id: 2, amount: 7.5 }),
-			] }),
+			json: () => Promise.resolve({
+				results: [
+					makeBill({ id: 1, amount: 42.5 }),
+					makeBill({ id: 2, amount: 7.5 }),
+				],
+			}),
 		})
 		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()

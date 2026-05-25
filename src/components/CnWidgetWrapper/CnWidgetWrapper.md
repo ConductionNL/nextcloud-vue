@@ -111,3 +111,23 @@ export default {
 | `title-icon` | Icon or badge rendered inside the header at the position given by `titleIconPosition` |
 | `actions` | Action buttons rendered in the header (right side, before the right title-icon) |
 | `footer` | Custom footer content (replaces the auto-generated `buttons` links) |
+
+## Action props & slots
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `hideRefresh` | Boolean | `false` | Hide the built-in Refresh action (legacy alias of `:show-refresh="false"`). |
+| `hideRequestFeature` | Boolean | `false` | Hide the built-in Request-a-feature action (legacy alias of `:show-request-feature="false"`). |
+| `showRefresh` | Boolean | `true` | Show the built-in Refresh action. |
+| `showRequestFeature` | Boolean | `true` | Show the built-in Request-a-feature action. |
+| `widgetId` | String | `''` | Stable widget id used in the `cn:widget:refresh` event-bus payload and the `surface: "widget:<id>"` feature-request context. |
+| `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal. |
+| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins while true (host-driven). |
+| `optimisticSpinMs` | Number | `800` | Optimistic Refresh-icon spin duration (ms) when `refreshing` is not bound. |
+| `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
+| `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
+| `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |
+
+| Slot | Description |
+|------|-------------|
+| `title-meta` | Inline content next to the title (e.g. the date-range chip). |

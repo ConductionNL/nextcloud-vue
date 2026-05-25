@@ -96,7 +96,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
@@ -121,9 +121,6 @@ export default {
 		NcAvatar,
 		NcButton,
 		NcDateTime,
-		// NcListItem retained as a registered dependency for downstream
-		// consumers / test stubs even though the row markup is now bespoke.
-		NcListItem,
 		NcLoadingIcon,
 		EmailEditOutline,
 		LinkVariant,

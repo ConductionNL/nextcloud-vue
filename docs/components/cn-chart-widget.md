@@ -156,3 +156,9 @@ The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnChartWidget.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnChartWidget/CnChartWidget.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Refresh wiring
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events (broadcast by CnWidgetWrapper's Refresh); on a matching id the chart re-queries its `dataSource`. |

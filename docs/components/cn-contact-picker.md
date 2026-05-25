@@ -32,3 +32,18 @@ The parent (typically [`CnContactsTab`](./cn-contacts-tab.md)) handles the actua
 | ----- | ------- | ----------- |
 | `link` | `{contactUid, addressbookId, contactUri, displayName, email, role}` | Emitted when the user confirms a selection. |
 | `close` | — | Emitted on cancel or close. |
+
+## Label props
+
+All optional, pre-translated overrides:
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `searchLabel` | String | A11y label for the search field. |
+| `searchPlaceholder` | String | Placeholder for the search field. |
+| `emptyLabel` | String | Title for the empty/no-results state. |
+| `emptyDescription` | String | Description for the empty/no-results state. |
+| `unknownLabel` | String | Fallback label for a contact with no display name. |
+| `roleLabel` | String | Label for the contact role field. |
+| `cancelLabel` | String | Cancel button label. |
+| `confirmLabel` | String | Confirm/link button label. |
