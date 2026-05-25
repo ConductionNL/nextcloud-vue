@@ -280,9 +280,9 @@ export default {
 
 	setup(props) {
 		const exposed = {}
-		// Integration registry: opt-in via `useRegistry` prop. We
-		// always wire the composable up so consumers can toggle
-		// `useRegistry` reactively without a remount.
+		// Integration registry: on by default via the `useRegistry`
+		// prop (ADR-019). We always wire the composable up so consumers
+		// can toggle `useRegistry` reactively without a remount.
 		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
 		exposed.registryIntegrations = registryIntegrations
 		exposed.resolveRegistryWidget = resolveWidget
@@ -330,21 +330,32 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Opt into the pluggable integration registry. When `true`,
-		 * the hardcoded built-in tabs are replaced by one tab per
+		 * Use the pluggable integration registry to drive the sidebar
+		 * tabs. Defaults to `true` (ADR-019): tabs are rendered one per
 		 * provider registered on `window.OCA.OpenRegister.integrations`
-		 * (and via `useIntegrationRegistry()`). Slot overrides
-		 * `#tab-<id>` and `hiddenTabs` / `excludeIntegrations` still
-		 * apply.
+		 * (and via `useIntegrationRegistry()`). The canonical five
+		 * built-ins — files / notes / tags / tasks / audit-trail — are
+		 * shipped as providers in `builtinIntegrations` and registered by
+		 * OpenRegister's bootstrap (`registerBuiltinIntegrations()`), so
+		 * the default surface is unchanged for apps that register them.
 		 *
-		 * Mutually exclusive with the open-enum `tabs` prop — when
-		 * both are set, `tabs` wins and a console.warn is logged.
+		 * Set `false` to opt back into the legacy hardcoded-tabs path,
+		 * which renders the five built-in tabs directly from this
+		 * component and supports the `#tab-<id>` slot overrides. Use this
+		 * for consumers that do not call `registerBuiltinIntegrations()`
+		 * and want the built-in tabs without standing up the registry.
+		 *
+		 * `hiddenTabs` / `excludeIntegrations` and the `#extra-tabs` slot
+		 * apply in both modes.
+		 *
+		 * Mutually exclusive with the open-enum `tabs` prop — when both
+		 * are set, `tabs` wins and a console.warn is logged.
 		 *
 		 * @type {boolean}
 		 */
 		useRegistry: {
 			type: Boolean,
-			default: false,
+			default: true,
 		},
 		/**
 		 * Integration ids to exclude when rendering registry-driven
