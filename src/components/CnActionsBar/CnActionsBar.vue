@@ -81,6 +81,19 @@
 				<!-- @slot action-items Custom primary action items rendered inside the overflow dropdown, after Refresh + `headerActions[]`, before the mass-actions group. -->
 				<slot name="action-items" />
 
+				<!-- Built-in Request-a-feature entry (opt-in via showRequestFeature).
+				     Emits @request-feature; the host (CnIndexPage) opens the
+				     CnSuggestFeatureModal. Mirrors the widget Actions menu. -->
+				<NcActionButton
+					v-if="showRequestFeature"
+					data-testid="cn-actions-bar-request-feature"
+					@click="$emit('request-feature')">
+					<template #icon>
+						<LightbulbOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Request a feature') }}
+				</NcActionButton>
+
 				<!-- Separator between primary and mass actions -->
 				<NcActionSeparator v-if="hasMassActions" />
 
@@ -135,6 +148,7 @@ import { NcActions, NcActionButton, NcActionSeparator, NcButton, NcCheckboxRadio
 import { CnIcon } from '../CnIcon/index.js'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Import from 'vue-material-design-icons/Import.vue'
@@ -155,6 +169,7 @@ import Export from 'vue-material-design-icons/Export.vue'
  *
  * @event add Primary Add button clicked.
  * @event refresh Refresh action clicked from the overflow dropdown.
+ * @event request-feature Built-in "Request a feature" overflow item clicked (only when `showRequestFeature`). No payload.
  * @event view-mode-change View toggle changed. Payload: `'table'` or `'cards'`.
  * @event header-action A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention).
  * @event show-import Built-in mass Import action clicked.
@@ -179,6 +194,7 @@ export default {
 		CnIcon,
 		Plus,
 		Refresh,
+		LightbulbOutline,
 		ContentCopy,
 		TrashCanOutline,
 		Import,
@@ -259,6 +275,18 @@ export default {
 		},
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
 		refreshDisabled: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Show a built-in "Request a feature" entry in the overflow
+		 * dropdown (after Refresh + headerActions). Emits `@request-feature`
+		 * on click; the host opens the CnSuggestFeatureModal. Off by
+		 * default — CnIndexPage opts in so every list view gets it.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
 			type: Boolean,
 			default: false,
 		},

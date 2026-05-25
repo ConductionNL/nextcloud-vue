@@ -58,6 +58,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
+| `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens the CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject) to open — warns + no-ops otherwise |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |

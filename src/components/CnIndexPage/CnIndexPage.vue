@@ -40,8 +40,10 @@
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			:header-actions="mergedHeaderActions"
+			:show-request-feature="showRequestFeature"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
+			@request-feature="onRequestFeatureClick"
 			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
@@ -322,6 +324,18 @@
 			@search="onSearchEvent"
 			@columns-change="onColumnsEvent"
 			@filter-change="onFilterEvent" />
+
+		<!-- Built-in Request-a-feature modal (#7) — opened from the
+		     CnActionsBar overflow. surface = "index:<schema>" so triage
+		     can pinpoint which list the request came from. -->
+		<CnSuggestFeatureModal
+			v-if="featureRequestModalOpen"
+			:repo="cnFeatureRequestRepo"
+			:app="cnAppId"
+			:page="$route ? ($route.name || '') : ''"
+			:surface="requestFeatureSurface"
+			:conduction-submit-enabled="false"
+			@close="featureRequestModalOpen = false" />
 	</div>
 </template>
 
@@ -462,6 +476,7 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
+		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
 	},
 
 	/**
@@ -479,6 +494,14 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * App slug + feature-request repo from CnAppRoot — used by the
+		 * built-in Request-a-feature action to auto-fill the
+		 * CnSuggestFeatureModal. Default to empty so CnIndexPage works
+		 * standalone; the handler warns + skips opening when no repo.
+		 */
+		cnAppId: { default: () => '' },
+		cnFeatureRequestRepo: { default: () => '' },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -728,6 +751,19 @@ export default {
 		importOptions: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Show the built-in "Request a feature" entry in the CnActionsBar
+		 * overflow. On by default so every list view exposes it; opens the
+		 * CnSuggestFeatureModal with `surface: "index:<schema>"` context.
+		 * Requires a CnAppRoot ancestor (for the repo inject) to actually
+		 * open — otherwise the click warns and no-ops.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
 		},
 		/** Whether to show the built-in form dialog for Add/Edit */
 		showFormDialog: {
@@ -1066,10 +1102,23 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
+			// Built-in Request-a-feature modal (#7)
+			featureRequestModalOpen: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * `surface` value handed to the Request-a-feature modal — pins
+		 * the resulting issue to this list view, e.g. "index:client".
+		 *
+		 * @return {string}
+		 */
+		requestFeatureSurface() {
+			const schemaName = this.effectiveSchema?.name
+				|| (typeof this.effectiveSchema === 'string' ? this.effectiveSchema : '')
+			return `index:${schemaName || this.$route?.name || 'list'}`
+		},
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
@@ -1521,6 +1570,25 @@ export default {
 		onRefreshEvent() {
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
 			this.$emit('refresh')
+		},
+
+		/**
+		 * Open the built-in Request-a-feature modal from the CnActionsBar
+		 * overflow (#7). Requires the `cnFeatureRequestRepo` inject (from
+		 * CnAppRoot); warns and no-ops when absent so standalone mounts
+		 * don't open a broken deep-link.
+		 *
+		 * @return {void}
+		 */
+		onRequestFeatureClick() {
+			if (!this.cnFeatureRequestRepo) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[CnIndexPage] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot).',
+				)
+				return
+			}
+			this.featureRequestModalOpen = true
 		},
 
 		/**
