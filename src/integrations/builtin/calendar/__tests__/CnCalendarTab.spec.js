@@ -16,19 +16,10 @@ const CnCalendarTab = require('../CnCalendarTab.vue').default
 
 const STUBS = {
 	NcButton: { template: '<button class="cn-btn" @click="$emit(\'click\')"><slot /></button>' },
-	NcListItem: {
-		props: ['name', 'bold', 'forceDisplayActions'],
-		template: `
-			<li class="cn-list-item">
-				<span class="cn-list-item__name">{{ name }}</span>
-				<slot name="subname" />
-				<slot name="details" />
-				<slot name="actions" />
-			</li>
-		`,
-	},
+	NcActions: { template: '<div class="cn-actions"><slot /></div>' },
 	NcActionButton: { template: '<button class="cn-action-button" @click="$emit(\'click\')"><slot /></button>' },
 	NcLoadingIcon: { template: '<div class="cn-loading" />' },
+	CnStatusBadge: { props: ['label', 'variant', 'size'], template: '<span class="cn-status-badge">{{ label }}</span>' },
 	CnCalendarEventPicker: { template: '<div class="cn-cep-stub" />' },
 	CnCalendarEventCreate: { template: '<div class="cn-cec-stub" />' },
 }
