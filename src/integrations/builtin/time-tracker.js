@@ -50,6 +50,7 @@ export const timeTrackerIntegration = {
 	label: t('nextcloud-vue', 'Time tracker'),
 	appName: t('nextcloud-vue', 'Time manager'),
 	icon: 'Clock',
+	accentColor: '#16a085',
 	requiredApp: 'timemanager',
 	order: 67,
 	group: 'workflow',

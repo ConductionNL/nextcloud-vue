@@ -88,14 +88,20 @@ describe('CnTimeTrackerTab', () => {
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--client').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--task').exists()).toBe(true)
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--time').exists()).toBe(true)
+		// Titles are passed to NcListItem via the `name` prop (rendered as
+		// an attribute by the test-env stub), not inline text.
+		const names = wrapper.findAll('.cn-time-tracker-tab__row').wrappers
+			.map((w) => w.attributes('name'))
+		expect(names).toContain('Acme Corp')
+		expect(names).toContain('Migrate database')
+		expect(names).toContain('Morning session')
 		const txt = wrapper.text()
-		expect(txt).toContain('Acme Corp')
-		expect(txt).toContain('Migrate database')
-		expect(txt).toContain('Morning session')
-		// 2h 0m + 0h 30m durations
+		// 2h 0m + 0h 30m durations (rendered in the #details slot)
 		expect(txt).toContain('2h 0m')
 		expect(txt).toContain('30m')
-		// billable chip
+		// total-duration summary header aggregates 7200s + 1800s = 2h 30m
+		expect(wrapper.find('.cn-time-tracker-tab__summary-value').text()).toContain('2h 30m')
+		// billable indicator
 		expect(wrapper.find('.cn-time-tracker-tab__billable').exists()).toBe(true)
 		wrapper.destroy()
 	})
@@ -112,7 +118,7 @@ describe('CnTimeTrackerTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.cn-time-tracker-tab__kind-chip--client').exists()).toBe(true)
-		expect(wrapper.text()).toContain('Legacy project')
+		expect(wrapper.find('.cn-time-tracker-tab__row').attributes('name')).toBe('Legacy project')
 		wrapper.destroy()
 	})
 
