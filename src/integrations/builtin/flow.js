@@ -44,6 +44,7 @@ export const flowIntegration = {
 	label: t('nextcloud-vue', 'Automation'),
 	appName: t('nextcloud-vue', 'Flow'),
 	icon: 'RobotOutline',
+	accentColor: '#0082c9',
 	requiredApp: 'workflowengine',
 	order: 64,
 	group: 'workflow',
