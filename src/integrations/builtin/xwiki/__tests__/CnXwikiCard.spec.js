@@ -185,7 +185,7 @@ describe('CnXwikiCard', () => {
 			expect(chip.exists()).toBe(true)
 			expect(chip.classes()).not.toContain('cn-xwiki-card__chip--fallback')
 			expect(chip.text()).toContain('Policy Manual')
-			expect(chip.text()).toContain('Wiki / Knowledge')
+			expect(chip.text()).toContain('Wiki › Knowledge')
 			wrapper.destroy()
 		})
 

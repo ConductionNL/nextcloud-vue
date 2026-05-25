@@ -45,6 +45,8 @@ export const xwikiIntegration = {
 	group: 'external',
 	referenceType: 'xwiki',
 	storageStrategy: 'external',
+	// XWiki's brand green — tints the page-tile glyph in the bespoke list.
+	accentColor: '#3CA22F',
 	tab: CnXwikiTab,
 	widget: CnXwikiCard,
 	defaultSize: { w: 4, h: 3 },
