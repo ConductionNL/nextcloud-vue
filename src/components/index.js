@@ -144,3 +144,7 @@ export { CnShareCreate } from './CnShareCreate/index.js'
 
 // Flow integration leaf (Tier-2)
 export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
+
+// Bookmarks integration leaf (Tier-2)
+export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
+export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'

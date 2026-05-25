@@ -32,6 +32,21 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div class="cn-bookmarks-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing bookmark') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new bookmark') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="error" class="cn-bookmarks-tab__error" role="alert">
 			{{ error }}
@@ -100,9 +115,29 @@
 							</span>
 						</div>
 					</div>
+					<NcButton
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink bookmark')"
+						class="cn-bookmarks-tab__unlink"
+						@click="unlinkBookmark(bookmark)">
+						<template #icon>
+							<LinkOff :size="18" />
+						</template>
+					</NcButton>
 				</li>
 			</ul>
 		</div>
+
+		<CnBookmarkPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnBookmarkCreate
+			v-if="createOpen"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -111,6 +146,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnBookmarkCreate from '../../../components/CnBookmarkCreate/CnBookmarkCreate.vue'
+import CnBookmarkPicker from '../../../components/CnBookmarkPicker/CnBookmarkPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -119,12 +159,23 @@ import { buildHeaders } from '../../../utils/index.js'
  *
  * Renders rows pulled from the OR pluggable-integration endpoint with
  * favicon, title, URL, description, and Bookmarks-side tag chips. Tag
- * chips at the top filter the visible rows client-side.
+ * chips at the top filter the visible rows client-side. Tier-2: adds
+ * link/create modals and per-row unlink.
  */
 export default {
 	name: 'CnBookmarksTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, Bookmark },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		Bookmark,
+		LinkOff,
+		LinkVariant,
+		Plus,
+		CnBookmarkPicker,
+		CnBookmarkCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'bookmarks'`). */
@@ -157,6 +208,8 @@ export default {
 			degraded: '',
 			activeTag: '',
 			brokenFavicons: {},
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -186,8 +239,95 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		},
+
+		/**
+		 * Base for the Tier-2 bookmark endpoints (link/new/destroy).
+		 *
+		 * @return {string}
+		 */
+		bookmarksEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/bookmarks`
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		bookmarkId(bookmark) {
+			return bookmark.bookmarkId ?? bookmark.id ?? ''
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.bookmarksEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchBookmarks()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This bookmark is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link bookmark.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnBookmarksTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link bookmark.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.bookmarksEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchBookmarks()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create bookmark.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnBookmarksTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create bookmark.')
+			}
+		},
+
+		async unlinkBookmark(bookmark) {
+			const id = this.bookmarkId(bookmark)
+			if (!id) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.bookmarksEndpoint()}/${id}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchBookmarks()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink bookmark.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnBookmarksTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink bookmark.')
+			}
 		},
 
 		bookmarkKey(bookmark) {
@@ -266,6 +406,18 @@ export default {
 </script>
 
 <style scoped>
+.cn-bookmarks-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 8px;
+	flex-wrap: wrap;
+}
+
+.cn-bookmarks-tab__unlink {
+	flex-shrink: 0;
+	align-self: flex-start;
+}
+
 .cn-bookmarks-tab__banner {
 	display: flex;
 	align-items: center;
