@@ -2,15 +2,19 @@
   CnCospendTab — bespoke sidebar tab for the `cospend` integration.
 
   Replaces the generic CnIntegrationTab for the `cospend` leaf: renders
-  the NC Cospend rows linked to the parent OR object as a flat list.
+  the NC Cospend rows linked to the parent OR object as a Cospend-style
+  list of projects and bills.
   Cospend exposes BOTH project rows AND bill rows in the same payload
   (per wave 2.3 design — see `CospendProvider.php`); each row carries
   a `type` discriminator (`'project'` | `'bill'`) which this tab shows
-  as a `[Project]` / `[Bill]` chip alongside the title.
+  as a `[Project]` / `[Bill]` status badge alongside the title.
 
-  Rows show:
-    - project: name + currency badge + payer (when present)
-    - bill:    title + date + amount + currency + payer
+  Rows render via NcListItem to mirror real Cospend:
+    - project: name + [Project] badge + currency, payer (when present)
+    - bill:    title + [Bill] badge + payer · date subline, prominent
+               right-aligned amount with currency
+  A per-currency total footer summarises the linked spend, matching
+  Cospend's project balance row.
 
   Clicking a project row deep-links to
     /index.php/apps/cospend/p/{id}
@@ -75,50 +79,70 @@
 				{{ openCospendLabel }}
 			</NcButton>
 		</div>
-		<ul v-else class="cn-cospend-tab__list">
-			<li
-				v-for="row in rows"
-				:key="rowKey(row)"
-				class="cn-cospend-tab__row"
-				:class="rowClass(row)">
-				<div class="cn-cospend-tab__row-header">
-					<a
-						:href="rowUrl(row)"
-						target="_blank"
-						rel="noopener"
-						class="cn-cospend-tab__title">{{ rowTitle(row) }}</a>
-					<span
-						class="cn-cospend-tab__type-chip"
-						:class="typeChipClass(row)">
-						{{ typeLabel(row) }}
-					</span>
-				</div>
-				<div class="cn-cospend-tab__row-meta">
-					<span v-if="amountLabel(row)" class="cn-cospend-tab__amount">
-						<CurrencyEur :size="13" />
-						{{ amountLabel(row) }}
-					</span>
-					<span v-if="payerLabel(row)" class="cn-cospend-tab__payer">
-						<AccountCircleOutline :size="13" />
-						{{ payerLabel(row) }}
-					</span>
-					<span v-if="dateLabel(row)" class="cn-cospend-tab__date">
-						<ClockOutline :size="13" />
-						{{ dateLabel(row) }}
-					</span>
-				</div>
-				<NcButton
-					v-if="entryIdOf(row)"
-					type="tertiary-no-background"
-					:aria-label="t('nextcloud-vue', 'Unlink entry')"
-					class="cn-cospend-tab__unlink"
-					@click="unlinkEntry(row)">
+		<template v-else>
+			<ul class="cn-cospend-tab__list">
+				<NcListItem
+					v-for="row in rows"
+					:key="rowKey(row)"
+					class="cn-cospend-tab__row"
+					:class="rowClass(row)"
+					:href="rowUrl(row)"
+					target="_blank"
+					:force-display-actions="true">
 					<template #icon>
-						<LinkOff :size="16" />
+						<span class="cn-cospend-tab__row-icon" :class="iconClass(row)">
+							<CashMultiple v-if="rowType(row) === 'bill'" :size="20" />
+							<FolderOutline v-else :size="20" />
+						</span>
 					</template>
-				</NcButton>
-			</li>
-		</ul>
+					<template #name>
+						<span class="cn-cospend-tab__title">{{ rowTitle(row) }}</span>
+					</template>
+					<template #subname>
+						<span class="cn-cospend-tab__subline">
+							<CnStatusBadge
+								class="cn-cospend-tab__type-chip"
+								:class="typeChipClass(row)"
+								size="small"
+								:variant="typeVariant(row)"
+								:label="typeLabel(row)" />
+							<span v-if="sublineText(row)" class="cn-cospend-tab__subline-text">
+								{{ sublineText(row) }}
+							</span>
+						</span>
+					</template>
+					<template #indicator>
+						<span v-if="amountLabel(row)" class="cn-cospend-tab__amount" :class="amountClass(row)">
+							{{ amountLabel(row) }}
+						</span>
+					</template>
+					<template #actions>
+						<NcActionButton
+							v-if="entryIdOf(row)"
+							:close-after-click="true"
+							@click="unlinkEntry(row)">
+							<template #icon>
+								<LinkOff :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Unlink entry') }}
+						</NcActionButton>
+					</template>
+				</NcListItem>
+			</ul>
+
+			<div v-if="totals.length > 0" class="cn-cospend-tab__totals">
+				<span class="cn-cospend-tab__totals-label">{{ t('nextcloud-vue', 'Total') }}</span>
+				<ul class="cn-cospend-tab__totals-list">
+					<li
+						v-for="bucket in totals"
+						:key="bucket.currency"
+						class="cn-cospend-tab__totals-row">
+						<span class="cn-cospend-tab__totals-currency">{{ bucket.currency }}</span>
+						<span class="cn-cospend-tab__totals-amount">{{ bucket.amountLabel }}</span>
+					</li>
+				</ul>
+			</div>
+		</template>
 
 		<CnCospendPicker
 			v-if="pickerOpen"
@@ -136,14 +160,15 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
-import AccountCircleOutline from 'vue-material-design-icons/AccountCircleOutline.vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import CashMultiple from 'vue-material-design-icons/CashMultiple.vue'
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -151,23 +176,26 @@ import { buildHeaders } from '../../../utils/index.js'
 /**
  * CnCospendTab — bespoke sidebar tab for the `cospend` integration.
  *
- * Renders linked Cospend projects + bills with type chip, amount,
- * currency, payer, date. See the file-level docblock for surface
- * behaviour.
+ * Renders linked Cospend projects + bills with a type badge, amount,
+ * currency, payer, date and a per-currency total footer. See the
+ * file-level docblock for surface behaviour.
  */
 export default {
 	name: 'CnCospendTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcListItem,
 		NcLoadingIcon,
-		AccountCircleOutline,
 		AlertCircleOutline,
-		ClockOutline,
+		CashMultiple,
 		CurrencyEur,
+		FolderOutline,
 		LinkOff,
 		LinkVariant,
 		Plus,
+		CnStatusBadge,
 		CnCospendPicker,
 		CnCospendCreate,
 	},
@@ -202,6 +230,35 @@ export default {
 			pickerOpen: false,
 			createOpen: false,
 		}
+	},
+
+	computed: {
+		/**
+		 * Per-currency totals of every row carrying an amount, mirroring
+		 * the balance row Cospend renders under a project.
+		 *
+		 * @return {Array<{currency: string, amountLabel: string}>}
+		 */
+		totals() {
+			const groups = new Map()
+			for (const row of this.rows) {
+				const amount = this.amountRaw(row)
+				if (amount === null) {
+					continue
+				}
+				const currency = this.currencyOf(row) || ''
+				const existing = groups.get(currency) || { currency, total: 0 }
+				existing.total += amount
+				groups.set(currency, existing)
+			}
+			return Array.from(groups.values()).map((b) => {
+				const code = b.currency || t('nextcloud-vue', 'Unspecified')
+				return {
+					currency: code,
+					amountLabel: b.currency ? `${b.total.toFixed(2)} ${b.currency}` : b.total.toFixed(2),
+				}
+			})
+		},
 	},
 
 	watch: {
@@ -361,10 +418,39 @@ export default {
 				: 'cn-cospend-tab__type-chip--project'
 		},
 
+		typeVariant(row) {
+			return this.rowType(row) === 'bill' ? 'warning' : 'primary'
+		},
+
 		rowClass(row) {
 			return this.rowType(row) === 'bill'
 				? 'cn-cospend-tab__row--bill'
 				: 'cn-cospend-tab__row--project'
+		},
+
+		iconClass(row) {
+			return this.rowType(row) === 'bill'
+				? 'cn-cospend-tab__row-icon--bill'
+				: 'cn-cospend-tab__row-icon--project'
+		},
+
+		amountClass(row) {
+			return this.rowType(row) === 'bill'
+				? 'cn-cospend-tab__amount--bill'
+				: 'cn-cospend-tab__amount--project'
+		},
+
+		amountRaw(row) {
+			const raw = row.amount ?? row.data?.amount ?? null
+			if (raw === null || raw === undefined || raw === '') {
+				return null
+			}
+			const num = Number(raw)
+			return Number.isNaN(num) ? null : num
+		},
+
+		currencyOf(row) {
+			return row.currency ?? row.currency_name ?? row.data?.currency_name ?? row.data?.currency ?? ''
 		},
 
 		amountLabel(row) {
@@ -372,7 +458,7 @@ export default {
 			if (raw === null || raw === undefined || raw === '') {
 				return ''
 			}
-			const currency = row.currency ?? row.currency_name ?? row.data?.currency_name ?? row.data?.currency ?? ''
+			const currency = this.currencyOf(row)
 			const num = Number(raw)
 			if (Number.isNaN(num)) {
 				return currency ? `${raw} ${currency}` : String(raw)
@@ -397,6 +483,38 @@ export default {
 				return ''
 			}
 			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+		},
+
+		/**
+		 * Subline shown under the title. For bills this is the payer and
+		 * date joined with a middot ("alice · 20 May 2026"); for projects
+		 * it is the currency (or payer) when present.
+		 *
+		 * @param {object} row Provider row.
+		 * @return {string} Subline text, or '' when nothing to show.
+		 */
+		sublineText(row) {
+			const parts = []
+			if (this.rowType(row) === 'bill') {
+				const payer = this.payerLabel(row)
+				if (payer) {
+					parts.push(payer)
+				}
+				const date = this.dateLabel(row)
+				if (date) {
+					parts.push(date)
+				}
+			} else {
+				const currency = this.currencyOf(row)
+				if (currency) {
+					parts.push(currency)
+				}
+				const payer = this.payerLabel(row)
+				if (payer) {
+					parts.push(payer)
+				}
+			}
+			return parts.join(' · ')
 		},
 
 		openCospendApp() {
@@ -484,24 +602,12 @@ export default {
 	padding: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 2px;
 }
 
+/* Coloured left rail per row type, echoing Cospend's project/bill split. */
 .cn-cospend-tab__row {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 8px 10px;
 	border-radius: var(--border-radius);
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-}
-
-.cn-cospend-tab__unlink {
-	position: absolute;
-	top: 4px;
-	right: 4px;
 }
 
 .cn-cospend-tab__row--bill {
@@ -512,71 +618,100 @@ export default {
 	border-left: 3px solid var(--color-primary-element, #21468B);
 }
 
-.cn-cospend-tab__row-header {
-	display: flex;
+.cn-cospend-tab__row-icon {
+	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding-right: 28px;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	color: var(--color-main-background);
+}
+
+.cn-cospend-tab__row-icon--bill {
+	background: var(--color-warning, #e9a40f);
+}
+
+.cn-cospend-tab__row-icon--project {
+	background: var(--color-primary-element, #21468B);
 }
 
 .cn-cospend-tab__title {
-	flex: 1;
+	font-weight: 600;
 	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
+}
+
+.cn-cospend-tab__subline {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cospend-tab__subline-text {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-a.cn-cospend-tab__title:hover {
-	text-decoration: underline;
-}
-
 .cn-cospend-tab__type-chip {
-	display: inline-block;
-	padding: 1px 6px;
-	font-size: 0.7em;
-	font-weight: 600;
-	border-radius: 8px;
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	white-space: nowrap;
-}
-
-.cn-cospend-tab__type-chip--bill {
-	background: var(--color-warning, #e9a40f);
-	color: var(--color-main-background);
-}
-
-.cn-cospend-tab__type-chip--project {
-	background: var(--color-primary-element, #21468B);
-	color: var(--color-main-background);
-}
-
-.cn-cospend-tab__row-meta {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 8px;
-	font-size: 0.78em;
-	color: var(--color-text-maxcontrast);
+	flex-shrink: 0;
 }
 
 .cn-cospend-tab__amount {
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
-	font-weight: 600;
+	font-weight: 700;
+	font-size: 0.95em;
+	white-space: nowrap;
 	color: var(--color-main-text);
 }
 
-.cn-cospend-tab__payer,
-.cn-cospend-tab__date {
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
+.cn-cospend-tab__amount--bill {
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-cospend-tab__totals {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 8px;
+	padding: 8px 10px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-cospend-tab__totals-label {
+	font-weight: 600;
+	color: var(--color-main-text);
+	text-transform: uppercase;
+	font-size: 0.78em;
+	letter-spacing: 0.04em;
+}
+
+.cn-cospend-tab__totals-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: right;
+}
+
+.cn-cospend-tab__totals-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-end;
+	gap: 8px;
+	font-size: 0.85em;
+}
+
+.cn-cospend-tab__totals-currency {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cospend-tab__totals-amount {
+	font-weight: 700;
+	color: var(--color-main-text);
 }
 </style>

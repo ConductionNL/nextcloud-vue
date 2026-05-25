@@ -90,6 +90,41 @@ describe('CnCospendTab', () => {
 		expect(wrapper.text()).toContain('Bill')
 		expect(wrapper.text()).toContain('42.50 EUR')
 		expect(wrapper.find('.cn-cospend-tab__type-chip--bill').exists()).toBe(true)
+		// Prominent right-aligned amount + payer/date subline.
+		expect(wrapper.find('.cn-cospend-tab__amount').text()).toBe('42.50 EUR')
+		expect(wrapper.find('.cn-cospend-tab__subline-text').text()).toContain('alice')
+		wrapper.destroy()
+	})
+
+	it('shows a per-currency total footer that sums bill amounts', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ results: [
+				makeBill({ id: 1, amount: 42.5 }),
+				makeBill({ id: 2, amount: 7.5 }),
+			] }),
+		})
+		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		const totals = wrapper.find('.cn-cospend-tab__totals')
+		expect(totals.exists()).toBe(true)
+		expect(totals.text()).toContain('Total')
+		expect(totals.text()).toContain('50.00 EUR')
+		wrapper.destroy()
+	})
+
+	it('omits the total footer when no row carries an amount', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ results: [makeProject()] }),
+		})
+		const wrapper = mount(CnCospendTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-cospend-tab__totals').exists()).toBe(false)
 		wrapper.destroy()
 	})
 
