@@ -3,11 +3,14 @@
   leaf.
 
   Replaces the generic `CnIntegrationTab` for the `analytics` leaf:
-  renders the linked NC Analytics reports / dashboards as a list (icon
-  by report type, title, type badge, modified date). Clicking a row
-  deep-links into the NC Analytics app at
-  `/index.php/apps/analytics/#/r/{id}` (`#/r/` is NC Analytics 6.x's
-  report route).
+  renders the linked NC Analytics reports / datasets so the tab reads
+  like the real Analytics app — each row is an `NcListItem` showing the
+  chart-type icon (bar / line / pie / dataset), the bold report name, a
+  data-source / type subtitle, an optional headline KPI value, and a
+  colour-coded type badge (CnStatusBadge). Clicking a row deep-links
+  into the NC Analytics app at `/index.php/apps/analytics/#/r/{id}`
+  (`#/r/` is NC Analytics 6.x's report route). Per-row "Open in
+  Analytics" + "Unlink" live in the NcListItem action menu.
 
   Tier-2 surface (this commit):
     - "Link existing report" → opens CnAnalyticsReportPicker (modal)
@@ -23,8 +26,8 @@
   served by `OCA\OpenRegister\Controller\AnalyticsLinksController`.
 
   The endpoint returns rows shaped:
-    { id, reportId, reportTitle, reportType, subheader, createdAt,
-      modifiedAt, url, … }
+    { id, reportId, reportTitle, reportType, subheader, value, kpi,
+      createdAt, modifiedAt, url, … }
 
   Empty + loading + error + 501/503 unavailable states follow ADR-017
   and AD-23 graceful degradation. All UI strings pass through
@@ -32,14 +35,14 @@
   variables only so the nldesign overrides apply transparently
   (ADR-010).
 
-  v1 deliberately does NOT fetch actual chart data per row — that would
-  require N HTTP calls. A type-coded icon placeholder communicates the
-  report kind without the network cost. Inline mini-charts are a
-  Phase D / follow-up enhancement.
+  The headline KPI (`value` / `kpi`) is rendered only when the provider
+  supplies it — there is no extra HTTP call per row. A type-coded icon
+  communicates the chart kind without fetching chart data; inline
+  mini-charts remain a follow-up enhancement.
 
   Bespoke-vs-generic rationale: MyDash needs to surface "what kind of
-  report is this + when did it change" without opening it; the generic
-  link list strips both the type and the modified date.
+  report is this + its headline number" without opening it; the generic
+  link list strips the chart type, the data source and the KPI.
 -->
 <template>
 	<div class="cn-sidebar-tab cn-analytics-tab">
@@ -84,45 +87,57 @@
 			</NcButton>
 		</div>
 
-		<!-- Report list -->
+		<!-- Report list — NcListItem rows mirror the NC Analytics dataset list -->
 		<ul v-else class="cn-analytics-tab__list">
-			<li
+			<NcListItem
 				v-for="report in reports"
 				:key="reportKey(report)"
-				class="cn-analytics-tab__row">
-				<div class="cn-analytics-tab__row-icon">
-					<component :is="reportIcon(report)" :size="20" />
-				</div>
-				<div class="cn-analytics-tab__row-main">
-					<a
-						:href="reportUrl(report)"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="cn-analytics-tab__title">
-						{{ reportTitle(report) }}
-					</a>
-					<div class="cn-analytics-tab__sub">
-						<span class="cn-analytics-tab__badge" :class="badgeClass(report)">
-							{{ reportTypeLabel(report) }}
-						</span>
+				class="cn-analytics-tab__row"
+				:name="reportTitle(report)"
+				:bold="true"
+				:href="reportUrl(report)"
+				target="_blank"
+				:force-display-actions="true">
+				<template #icon>
+					<span class="cn-analytics-tab__row-icon">
+						<component :is="reportIcon(report)" :size="22" />
+					</span>
+				</template>
+				<template #subname>
+					<span class="cn-analytics-tab__sub">
+						<CnStatusBadge
+							class="cn-analytics-tab__badge"
+							size="small"
+							:variant="badgeVariant(report)"
+							:label="reportTypeLabel(report)" />
 						<span v-if="reportSubheader(report)" class="cn-analytics-tab__subheader">
 							{{ reportSubheader(report) }}
 						</span>
 						<span v-if="modifiedAt(report)" class="cn-analytics-tab__when">
 							· {{ formatWhen(modifiedAt(report)) }}
 						</span>
-					</div>
-				</div>
-				<NcButton
-					type="tertiary-no-background"
-					:aria-label="t('nextcloud-vue', 'Unlink report')"
-					class="cn-analytics-tab__unlink"
-					@click="unlinkReport(report)">
-					<template #icon>
-						<LinkOff :size="16" />
-					</template>
-				</NcButton>
-			</li>
+					</span>
+				</template>
+				<template v-if="reportValue(report)" #details>
+					<span class="cn-analytics-tab__kpi" :title="kpiTitle(report)">
+						{{ reportValue(report) }}
+					</span>
+				</template>
+				<template #actions>
+					<NcActionButton :close-after-click="true" @click="openReport(report)">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Open in Analytics') }}
+					</NcActionButton>
+					<NcActionButton :close-after-click="true" @click="unlinkReport(report)">
+						<template #icon>
+							<LinkOff :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Unlink report') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnAnalyticsReportPicker
@@ -140,40 +155,51 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
 import ChartPie from 'vue-material-design-icons/ChartPie.vue'
+import DatabaseOutline from 'vue-material-design-icons/DatabaseOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import TableIcon from 'vue-material-design-icons/Table.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
- * CnAnalyticsTab — bespoke list view for the `analytics` integration.
+ * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
  *
- * Renders linked NC Analytics reports / dashboards as a list with
- * type-coded icons + badges. Clicking a row opens the report in NC
- * Analytics in a new tab. Tier-2: includes link/create modals and
- * per-row unlink. See the file-level docblock for design notes.
+ * Renders linked NC Analytics reports / datasets as NcListItem rows
+ * styled to mirror the Analytics app: chart-type icon, bold report
+ * name, data-source / type subtitle, type badge and an optional
+ * headline KPI value. Clicking a row opens the report in NC Analytics
+ * in a new tab. Tier-2: includes link / create modals and per-row
+ * unlink via the row action menu. See the file-level docblock for
+ * design notes.
  */
 export default {
 	name: 'CnAnalyticsTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcListItem,
 		NcLoadingIcon,
+		CnStatusBadge,
 		AlertCircleOutline,
 		ChartBar,
 		ChartLine,
 		ChartPie,
+		DatabaseOutline,
 		LinkOff,
 		LinkVariant,
+		OpenInNew,
 		Plus,
 		TableIcon,
 		ViewDashboard,
@@ -258,7 +284,7 @@ export default {
 		 * @return {string}
 		 */
 		reportSubheader(report) {
-			const raw = report?.subheader ?? report?.data?.subheader ?? ''
+			const raw = report?.subheader ?? report?.dataSource ?? report?.data?.subheader ?? ''
 			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim()
 		},
 
@@ -294,6 +320,26 @@ export default {
 		},
 
 		/**
+		 * CnStatusBadge colour variant for the report type. Mirrors NC
+		 * Analytics' datasource-type accenting without inventing colours
+		 * (uses the shared variant palette).
+		 *
+		 * @param {object} report Provider row.
+		 *
+		 * @return {string}
+		 */
+		badgeVariant(report) {
+			const type = this.reportType(report)
+			switch (type) {
+			case 1: return 'primary'
+			case 2: return 'success'
+			case 4: return 'warning'
+			case 6: return 'info'
+			default: return 'default'
+			}
+		},
+
+		/**
 		 * MDI component for the report type. Tries to express the
 		 * "kind" without fetching chart data.
 		 *
@@ -306,15 +352,39 @@ export default {
 			switch (type) {
 			case 1: return TableIcon
 			case 0: return ViewDashboard
+			case 2: return DatabaseOutline
 			case 4: return ChartLine
 			case 6: return ChartPie
 			default: return ChartBar
 			}
 		},
 
-		badgeClass(report) {
-			const type = this.reportType(report)
-			return `cn-analytics-tab__badge--type-${type ?? 'unknown'}`
+		/**
+		 * Headline KPI / value for the report, when the provider supplies
+		 * one. Numbers are locale-formatted; strings pass through.
+		 *
+		 * @param {object} report Provider row.
+		 *
+		 * @return {string}
+		 */
+		reportValue(report) {
+			const raw = report?.value ?? report?.kpi ?? report?.data?.value ?? ''
+			if (raw === null || raw === undefined || raw === '') {
+				return ''
+			}
+			const num = Number(raw)
+			if (Number.isFinite(num) && String(raw).trim() !== '') {
+				try {
+					return num.toLocaleString()
+				} catch (_) {
+					return String(num)
+				}
+			}
+			return String(raw)
+		},
+
+		kpiTitle(report) {
+			return t('nextcloud-vue', 'Latest value')
 		},
 
 		reportUrl(report) {
@@ -358,6 +428,12 @@ export default {
 
 		openCreate() {
 			this.createOpen = true
+		},
+
+		openReport(report) {
+			if (typeof window !== 'undefined') {
+				window.open(this.reportUrl(report), '_blank', 'noopener')
+			}
 		},
 
 		async onLinkPick(payload) {
@@ -511,48 +587,24 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-}
-
-.cn-analytics-tab__row {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-analytics-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-analytics-tab__row-icon {
-	flex-shrink: 0;
-	color: var(--color-primary-element);
-	padding-top: 2px;
-}
-
-.cn-analytics-tab__row-main {
-	flex: 1;
-	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: 2px;
 }
 
-.cn-analytics-tab__title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-	font-size: 13px;
+/* Chart-type icon avatar — tinted with the descriptor accent (or NC primary). */
+.cn-analytics-tab__row-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-primary-element-light, var(--color-background-hover));
+	color: var(--cn-iw-accent, var(--color-primary-element, #0082c9));
 }
 
-a.cn-analytics-tab__title:hover {
-	text-decoration: underline;
-}
-
+/* Subtitle row: type badge + data source + modified date, single muted line. */
 .cn-analytics-tab__sub {
 	display: flex;
 	flex-wrap: wrap;
@@ -560,24 +612,12 @@ a.cn-analytics-tab__title:hover {
 	gap: 6px;
 	font-size: 11px;
 	color: var(--color-text-maxcontrast);
+	min-width: 0;
 }
 
 .cn-analytics-tab__badge {
-	display: inline-flex;
-	align-items: center;
-	padding: 1px 6px;
-	border-radius: 8px;
-	background: var(--color-background-hover);
-	color: var(--color-main-text);
-	font-size: 10px;
-	font-weight: 600;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
+	flex-shrink: 0;
 }
-
-.cn-analytics-tab__badge--type-1 { background: var(--color-primary-element-light, var(--color-primary-light)); color: var(--color-primary-element-text); }
-.cn-analytics-tab__badge--type-2 { background: var(--color-success, #46ba61); color: var(--color-main-background); }
-.cn-analytics-tab__badge--type-4 { background: var(--color-warning, #e9a40f); color: var(--color-main-background); }
 
 .cn-analytics-tab__subheader {
 	overflow: hidden;
@@ -590,7 +630,11 @@ a.cn-analytics-tab__title:hover {
 	white-space: nowrap;
 }
 
-.cn-analytics-tab__unlink {
-	flex-shrink: 0;
+/* Headline KPI value, right-aligned in the details slot — Analytics style. */
+.cn-analytics-tab__kpi {
+	font-weight: 700;
+	font-size: 15px;
+	color: var(--color-main-text);
+	white-space: nowrap;
 }
 </style>
