@@ -34,14 +34,20 @@ describe('CnSupportDialog', () => {
 		openSpy.mockRestore()
 	})
 
-	it('renders the four action buttons in priority order', () => {
+	it('renders donate + support (tertiary) above the primary + secondary row', () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
 		const buttons = wrapper.findAll('button')
 		expect(buttons.length).toBe(4)
-		expect(buttons.at(0).attributes('data-button-type')).toBe('primary')
-		expect(buttons.at(1).attributes('data-button-type')).toBe('secondary')
-		expect(buttons.at(2).attributes('data-button-type')).toBe('tertiary')
-		expect(buttons.at(3).attributes('data-button-type')).toBe('tertiary')
+		// Top row: Donate + Business support (tertiary).
+		expect(buttons.at(0).attributes('data-testid')).toBe('cn-support-dialog-donate')
+		expect(buttons.at(0).attributes('data-button-type')).toBe('tertiary')
+		expect(buttons.at(1).attributes('data-testid')).toBe('cn-support-dialog-support')
+		expect(buttons.at(1).attributes('data-button-type')).toBe('tertiary')
+		// Bottom row: Suggest a feature (primary) + Review on App Store (secondary).
+		expect(buttons.at(2).attributes('data-testid')).toBe('cn-support-dialog-feature-request')
+		expect(buttons.at(2).attributes('data-button-type')).toBe('primary')
+		expect(buttons.at(3).attributes('data-testid')).toBe('cn-support-dialog-app-store')
+		expect(buttons.at(3).attributes('data-button-type')).toBe('secondary')
 	})
 
 	it('renders the Conduction and apps inline links with default targets', () => {
