@@ -114,7 +114,6 @@ export {
 	CnSettingsPage,
 	CnChatPage,
 	CnFilesPage,
-	CnWikiPage,
 	CnPageRenderer,
 	defaultPageTypes,
 	CnAppNav,
@@ -137,7 +136,6 @@ export {
 	CnWidgetGrid,
 	CnWidgetObjectTable,
 	CnWidgetFormRenderer,
-	CnWidgetWikiRenderer,
 	CnWidgetMapViewer,
 	CnWidgetCardGrid,
 } from './components/index.js'

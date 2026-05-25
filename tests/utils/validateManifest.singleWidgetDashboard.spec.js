@@ -95,7 +95,6 @@ describe('Single-12×12-custom-widget dashboard rule (ADR-036 Decision 1)', () =
 		['object-table'],
 		['card-grid'],
 		['form-renderer'],
-		['wiki-renderer'],
 		['map-viewer'],
 		['chart'],
 		['stats-block'],

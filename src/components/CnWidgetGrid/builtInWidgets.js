@@ -16,7 +16,6 @@
 
 import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
-import CnWidgetWikiRenderer from '../CnWidgetWikiRenderer/CnWidgetWikiRenderer.vue'
 import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
 
@@ -28,7 +27,6 @@ import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
 export const BUILT_IN_WIDGETS = {
 	'object-table': CnWidgetObjectTable,
 	'form-renderer': CnWidgetFormRenderer,
-	'wiki-renderer': CnWidgetWikiRenderer,
 	'map-viewer': CnWidgetMapViewer,
 	'card-grid': CnWidgetCardGrid,
 }
