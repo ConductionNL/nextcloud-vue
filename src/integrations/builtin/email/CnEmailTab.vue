@@ -143,7 +143,7 @@ export default {
 		return {
 			messages: [],
 			total: 0,
-			page: 0,
+			nextCursor: null,
 			loading: false,
 			loadingMore: false,
 			errored: false,
@@ -152,7 +152,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether a further page is available.
+		 *
+		 * Prefers the backend's `nextCursor` (Tier-3 standardized
+		 * `{items, total, nextCursor}` envelope from the generic
+		 * integrations endpoint). Falls back to the count comparison
+		 * for any backend that still omits the cursor.
+		 *
+		 * @return {boolean} True when more messages can be loaded.
+		 */
 		hasMore() {
+			if (this.nextCursor !== null) {
+				return true
+			}
 			return this.messages.length < this.total
 		},
 	},
@@ -173,7 +186,7 @@ export default {
 		reset() {
 			this.messages = []
 			this.total = 0
-			this.page = 0
+			this.nextCursor = null
 			this.errored = false
 		},
 
@@ -188,20 +201,26 @@ export default {
 			}
 			this.errored = false
 			try {
-				const params = new URLSearchParams({
-					_limit: String(this.pageSize),
-					_page: String(this.page),
-				})
+				const params = new URLSearchParams({ _limit: String(this.pageSize) })
+				// The Tier-3 envelope's `nextCursor` is the next zero-indexed
+				// page number consumed by `_page`; walk it on append.
+				if (append === true && this.nextCursor !== null) {
+					params.set('_page', String(this.nextCursor))
+				} else {
+					params.set('_page', '0')
+				}
 				const response = await fetch(
 					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/email?${params.toString()}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok === true) {
 					const data = await response.json()
-					const list = data.results || data.items || (Array.isArray(data) ? data : []) || []
+					const list = data.items || data.results || (Array.isArray(data) ? data : []) || []
 					const items = Array.isArray(list) === true ? list : []
 					this.messages = append === true ? [...this.messages, ...items] : items
 					this.total = typeof data.total === 'number' ? data.total : this.messages.length
+					const next = data.nextCursor
+					this.nextCursor = (next === null || next === undefined) ? null : next
 				} else {
 					this.errored = true
 					if (append !== true) {
@@ -222,7 +241,9 @@ export default {
 		},
 
 		loadMore() {
-			this.page += 1
+			if (this.nextCursor === null && this.messages.length >= this.total) {
+				return
+			}
 			this.fetchMessages(true)
 		},
 
