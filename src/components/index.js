@@ -153,6 +153,10 @@ export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'
 export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
 export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
 
+// Collectives integration leaf (Tier-2)
+export { CnCollectivePagePicker } from './CnCollectivePagePicker/index.js'
+export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'
+
 // Maps integration leaf (Tier-2)
 export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
 export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'

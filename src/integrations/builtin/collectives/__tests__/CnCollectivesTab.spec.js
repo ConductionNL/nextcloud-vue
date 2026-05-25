@@ -169,4 +169,95 @@ describe('CnCollectivesTab', () => {
 		wrapper.destroy()
 		spy.mockRestore()
 	})
+
+	it('renders the Tier-2 link/create action buttons', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('Link existing page')
+		expect(wrapper.text()).toContain('Create new page')
+		wrapper.destroy()
+	})
+
+	it('POSTs the picked page to the Tier-2 collectives endpoint on link', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({}) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ pageId: 77 })
+		await wrapper.vm.$nextTick()
+
+		const postCall = global.fetch.mock.calls[1]
+		expect(postCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives')
+		expect(postCall[1].method).toBe('POST')
+		expect(JSON.parse(postCall[1].body)).toEqual({ pageId: 77 })
+		wrapper.destroy()
+	})
+
+	it('POSTs the create payload to the /new endpoint on create', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({}) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onCreatePick({ collectiveId: 3, title: 'New page' })
+		await wrapper.vm.$nextTick()
+
+		const postCall = global.fetch.mock.calls[1]
+		expect(postCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives/new')
+		expect(postCall[1].method).toBe('POST')
+		expect(JSON.parse(postCall[1].body)).toEqual({ collectiveId: 3, title: 'New page' })
+		wrapper.destroy()
+	})
+
+	it('DELETEs the page on unlink', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve({ results: [{ pageId: 55, pageTitle: 'Runbook', collectiveName: 'Ops' }] }),
+			})
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.unlinkPage({ pageId: 55 })
+		await wrapper.vm.$nextTick()
+
+		const delCall = global.fetch.mock.calls[1]
+		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/collectives/55')
+		expect(delCall[1].method).toBe('DELETE')
+		wrapper.destroy()
+	})
+
+	it('renders the Tier-2 link-row shape (pageTitle + collectiveName)', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({
+				results: [
+					{ pageId: 10, pageTitle: 'Runbook', collectiveId: 1, collectiveName: 'Ops', emoji: '📕', url: '/index.php/apps/collectives/?fileId=10' },
+				],
+			}),
+		})
+		const wrapper = mount(CnCollectivesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-collectives-tab__title').text()).toBe('Runbook')
+		expect(wrapper.text()).toContain('Ops')
+		wrapper.destroy()
+	})
 })
