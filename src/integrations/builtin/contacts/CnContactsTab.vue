@@ -86,7 +86,7 @@
 				class="cn-contacts-tab__group">
 				<h3 class="cn-contacts-tab__group-title">
 					{{ group.label }}
-					<span class="cn-contacts-tab__group-count">({{ group.items.length }})</span>
+					<span class="cn-contacts-tab__group-count">{{ group.items.length }}</span>
 				</h3>
 				<ul class="cn-contacts-tab__list">
 					<li
@@ -94,23 +94,39 @@
 						:key="contact.id"
 						class="cn-contacts-tab__item"
 						@click="openReverseLookup(contact)">
-						<div class="cn-contacts-tab__avatar" :title="contact.displayName || ''">
-							<img
-								v-if="contact.avatarUrl"
-								:src="contact.avatarUrl"
-								:alt="contact.displayName || ''"
-								@error="contact.avatarUrl = null">
-							<span v-else>{{ initialsFor(contact) }}</span>
+						<div class="cn-contacts-tab__avatar">
+							<NcAvatar
+								:size="40"
+								:display-name="contact.displayName || unknownLabel"
+								:user="avatarSeed(contact)"
+								:url="contact.avatarUrl || undefined"
+								:is-no-user="true"
+								:disable-menu="true"
+								:disable-tooltip="true"
+								:show-user-status="false" />
 						</div>
 						<div class="cn-contacts-tab__details">
-							<div class="cn-contacts-tab__name">
-								{{ contact.displayName || unknownLabel }}
+							<div class="cn-contacts-tab__name-row">
+								<span class="cn-contacts-tab__name">
+									{{ contact.displayName || unknownLabel }}
+								</span>
+								<CnStatusBadge
+									v-if="contact.role"
+									:label="roleLabel(contact)"
+									:variant="roleVariant(contact)"
+									size="small" />
 							</div>
-							<div v-if="contact.email" class="cn-contacts-tab__email">
-								{{ contact.email }}
+							<div v-if="contact.email" class="cn-contacts-tab__sub">
+								<Email :size="14" class="cn-contacts-tab__sub-icon" />
+								<span class="cn-contacts-tab__sub-text">{{ contact.email }}</span>
 							</div>
-							<div v-if="contact.role" class="cn-contacts-tab__role">
-								{{ contact.role }}
+							<div v-if="contact.phone" class="cn-contacts-tab__sub">
+								<Phone :size="14" class="cn-contacts-tab__sub-icon" />
+								<span class="cn-contacts-tab__sub-text">{{ contact.phone }}</span>
+							</div>
+							<div v-if="contact.org" class="cn-contacts-tab__sub">
+								<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
+								<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
 							</div>
 						</div>
 						<button
@@ -144,13 +160,17 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Email from 'vue-material-design-icons/Email.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OfficeBuildingOutline from 'vue-material-design-icons/OfficeBuildingOutline.vue'
+import Phone from 'vue-material-design-icons/Phone.vue'
 
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -182,6 +202,7 @@ export default {
 	name: 'CnContactsTab',
 
 	components: {
+		NcAvatar,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -189,7 +210,11 @@ export default {
 		AccountMultipleOutline,
 		AlertCircleOutline,
 		Close,
+		Email,
 		LinkVariant,
+		OfficeBuildingOutline,
+		Phone,
+		CnStatusBadge,
 		CnContactPicker,
 		CnContactCreate,
 	},
@@ -212,6 +237,9 @@ export default {
 		handlersLabel: { type: String, default: () => t('nextcloud-vue', 'Handlers') },
 		advisorsLabel: { type: String, default: () => t('nextcloud-vue', 'Advisors') },
 		otherLabel: { type: String, default: () => t('nextcloud-vue', 'Other') },
+		applicantRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Applicant') },
+		handlerRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Handler') },
+		advisorRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Advisor') },
 	},
 
 	emits: ['open-reverse-lookup'],
@@ -302,6 +330,65 @@ export default {
 			const parts = name.split(/\s+/).filter(Boolean)
 			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+		},
+
+		/**
+		 * Stable seed for NcAvatar's deterministic colour + initials.
+		 * Prefer the contact UID, then email, then display name so the
+		 * generated avatar colour stays consistent for a given contact.
+		 *
+		 * @param {object} contact ContactLink JSON.
+		 *
+		 * @return {string}
+		 */
+		avatarSeed(contact) {
+			return contact.contactUid || contact.email || contact.displayName || '?'
+		},
+
+		/**
+		 * Resolve the normalised role bucket for a contact.
+		 *
+		 * @param {object} contact ContactLink JSON.
+		 *
+		 * @return {string} one of applicant|handler|advisor|other
+		 */
+		roleKey(contact) {
+			const matched = ROLE_BUCKETS.find((b) => b.match(contact.role))
+			return matched ? matched.key : 'other'
+		},
+
+		/**
+		 * Human-readable role chip label — the translated bucket name
+		 * when the role maps to a known bucket, else the raw vCard role.
+		 *
+		 * @param {object} contact ContactLink JSON.
+		 *
+		 * @return {string}
+		 */
+		roleLabel(contact) {
+			const map = {
+				applicant: this.applicantRoleLabel,
+				handler: this.handlerRoleLabel,
+				advisor: this.advisorRoleLabel,
+			}
+			return map[this.roleKey(contact)] || contact.role
+		},
+
+		/**
+		 * CnStatusBadge variant per role bucket so each role reads as a
+		 * distinct accent (handlers = primary, advisors = info, etc.).
+		 *
+		 * @param {object} contact ContactLink JSON.
+		 *
+		 * @return {string}
+		 */
+		roleVariant(contact) {
+			const map = {
+				applicant: 'info',
+				handler: 'primary',
+				advisor: 'success',
+			}
+			return map[this.roleKey(contact)] || 'default'
 		},
 
 		/**
@@ -465,17 +552,28 @@ export default {
 }
 
 .cn-contacts-tab__group-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--color-text-maxcontrast);
-	margin: 0 0 8px;
+	margin: 0 0 4px;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }
 
 .cn-contacts-tab__group-count {
-	font-weight: 400;
-	margin-inline-start: 4px;
+	font-weight: 600;
+	font-size: 11px;
+	min-width: 18px;
+	padding: 0 6px;
+	height: 18px;
+	line-height: 18px;
+	text-align: center;
+	border-radius: 9px;
+	background-color: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-contacts-tab__list {
@@ -484,17 +582,16 @@ export default {
 	margin: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
 }
 
 .cn-contacts-tab__item {
 	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 8px;
-	border-radius: var(--border-radius);
+	align-items: flex-start;
+	gap: 12px;
+	padding: 10px 8px;
+	border-radius: var(--border-radius-large, 8px);
 	cursor: pointer;
-	transition: background-color 0.15s ease;
+	transition: background-color 0.1s ease-in-out;
 }
 
 .cn-contacts-tab__item:hover,
@@ -503,52 +600,54 @@ export default {
 }
 
 .cn-contacts-tab__avatar {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	background-color: var(--color-primary-element-light, var(--color-primary-light));
-	color: var(--color-primary-element-text, var(--color-primary-text));
+	flex-shrink: 0;
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	font-weight: 600;
-	font-size: 13px;
-	flex-shrink: 0;
-	overflow: hidden;
-}
-
-.cn-contacts-tab__avatar img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
 }
 
 .cn-contacts-tab__details {
 	flex: 1;
 	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-top: 2px;
+}
+
+.cn-contacts-tab__name-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
 }
 
 .cn-contacts-tab__name {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.cn-contacts-tab__email {
+.cn-contacts-tab__sub {
+	display: flex;
+	align-items: center;
+	gap: 5px;
 	font-size: 12px;
 	color: var(--color-text-maxcontrast);
+	min-width: 0;
+}
+
+.cn-contacts-tab__sub-icon {
+	flex-shrink: 0;
+	opacity: 0.7;
+}
+
+.cn-contacts-tab__sub-text {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.cn-contacts-tab__role {
-	font-size: 11px;
-	color: var(--color-text-lighter);
-	font-style: italic;
-	margin-top: 2px;
 }
 
 .cn-contacts-tab__unlink {
@@ -562,6 +661,7 @@ export default {
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+	align-self: center;
 }
 
 .cn-contacts-tab__unlink:hover,
