@@ -161,6 +161,10 @@ export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'
 export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
 export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
 
+// OpenProject integration leaf (Tier-2)
+export { CnOpenProjectPicker } from './CnOpenProjectPicker/index.js'
+export { CnOpenProjectCreate } from './CnOpenProjectCreate/index.js'
+
 // Analytics integration leaf (Tier-2)
 export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
 export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
