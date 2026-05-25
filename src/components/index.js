@@ -157,6 +157,10 @@ export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
 export { CnCollectivePagePicker } from './CnCollectivePagePicker/index.js'
 export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'
 
+// XWiki integration leaf (Tier-2)
+export { CnXwikiPagePicker } from './CnXwikiPagePicker/index.js'
+export { CnXwikiPageCreate } from './CnXwikiPageCreate/index.js'
+
 // Maps integration leaf (Tier-2)
 export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
 export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'

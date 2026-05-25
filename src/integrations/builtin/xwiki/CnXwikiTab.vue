@@ -63,6 +63,23 @@
 			</NcButton>
 		</div>
 
+		<!-- Link / Create actions. Disabled when the source is unconfigured;
+		     the banner above already carries the Configure CTA. -->
+		<div v-if="banner.kind === 'none' || banner.kind === 'unconfigured'" class="cn-xwiki-tab__actions">
+			<NcButton type="secondary" :disabled="banner.kind === 'unconfigured'" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing page') }}
+			</NcButton>
+			<NcButton type="primary" :disabled="banner.kind === 'unconfigured'" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new page') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 
 		<div
@@ -84,6 +101,15 @@
 						target="_blank"
 						rel="noopener"
 						class="cn-xwiki-tab__title">{{ pageTitle(page) }}</a>
+					<NcButton
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink page')"
+						class="cn-xwiki-tab__unlink"
+						@click="unlinkPage(page)">
+						<template #icon>
+							<LinkOff :size="16" />
+						</template>
+					</NcButton>
 				</div>
 				<div v-if="breadcrumbLabel(page)" class="cn-xwiki-tab__breadcrumb">
 					{{ breadcrumbLabel(page) }}
@@ -93,6 +119,21 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnXwikiPagePicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			:open-connector-sources-url="openConnectorSourcesUrl"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnXwikiPageCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			:unavailable="banner.kind === 'unconfigured'"
+			:open-connector-sources-url="openConnectorSourcesUrl"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -101,6 +142,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
+import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -116,7 +162,17 @@ const MS_PER_HOUR = 60 * 60 * 1000
 export default {
 	name: 'CnXwikiTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, FileDocumentMultiple },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		FileDocumentMultiple,
+		LinkOff,
+		LinkVariant,
+		Plus,
+		CnXwikiPagePicker,
+		CnXwikiPageCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'xwiki'`). */
@@ -141,6 +197,8 @@ export default {
 			loading: false,
 			/** One of: 'none' | 'unconfigured' | 'auth' | 'upstream' | 'error'. */
 			bannerKind: 'none',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -192,8 +250,80 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		},
+
+		/**
+		 * Base for the Tier-2 xwiki endpoints (link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		xwikiEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.xwikiEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnXwikiTab] link failed', err)
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.xwikiEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnXwikiTab] create failed', err)
+			}
+		},
+
+		async unlinkPage(page) {
+			const ref = this.pageKey(page)
+			if (!ref) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.xwikiEndpoint()}/${encodeURIComponent(ref)}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnXwikiTab] unlink failed', err)
+			}
 		},
 
 		pageKey(page) {
@@ -319,6 +449,17 @@ export default {
 </script>
 
 <style scoped>
+.cn-xwiki-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
+.cn-xwiki-tab__unlink {
+	flex-shrink: 0;
+}
+
 .cn-xwiki-tab__banner {
 	display: flex;
 	align-items: flex-start;
