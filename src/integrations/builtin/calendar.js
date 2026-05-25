@@ -41,6 +41,9 @@ export const calendarIntegration = {
 	tab: CnCalendarTab,
 	widget: CnCalendarCard,
 	defaultSize: { w: 4, h: 3 },
+	// CnIntegrationWidget contract — exemplar accent (NC Calendar brand red).
+	accentColor: '#b3367a',
+	appName: 'Calendar',
 }
 
 export default calendarIntegration

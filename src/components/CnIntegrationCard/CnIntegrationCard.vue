@@ -81,6 +81,11 @@ const COMPACT_LIMIT = 5
  * IntegrationProvider; for the 12 greenfield leaf stubs the list will
  * be empty until each leaf's wrapped service ships, at which point the
  * widget lights up without code changes here.
+ *
+ * @deprecated Superseded by `CnIntegrationWidget`, which composes each
+ * leaf's app-faithful bespoke content (tabbed) instead of this generic
+ * one-size card. Kept until all consumers migrate; a later cleanup PR
+ * removes it. New code should use `CnIntegrationWidget`.
  */
 export default {
 	name: 'CnIntegrationCard',

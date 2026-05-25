@@ -1,5 +1,14 @@
 {
   "translations": {
+    "No integrations available yet.": "No integrations available yet.",
+    "This integration is not available.": "This integration is not available.",
+    "Integrations": "Integrations",
+    "{app} not available": "{app} not available",
+    "{app} not configured": "{app} not configured",
+    "This integration is not available or not configured yet.": "This integration is not available or not configured yet.",
+    "This integration is not set up yet. Configure a connection to start using it.": "This integration is not set up yet. Configure a connection to start using it.",
+    "This integration is not set up yet. Install and enable the {app} app to start using it.": "This integration is not set up yet. Install and enable the {app} app to start using it.",
+    "Set up {app}": "Set up {app}",
     "Add new contact": "Add new contact",
     "Link contact": "Link contact",
     "Search contacts": "Search contacts",

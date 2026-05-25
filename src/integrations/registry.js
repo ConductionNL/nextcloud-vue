@@ -73,6 +73,11 @@ export function createIntegrationRegistry() {
 	 * @param {object} [entry.widgetExpanded] Override for `detail-page` surface.
 	 * @param {object} [entry.widgetEntity] Override for `single-entity` surface.
 	 * @param {object} [entry.defaultSize] Default grid dimensions `{w, h}`.
+	 * @param {string[]} [entry.surfaces] Explicit surface allowlist; when omitted the integration is eligible for every surface (CnIntegrationWidget contract).
+	 * @param {?boolean} [entry.available] Backing-app availability hint (true/false); null when unknown — the widget then resolves availability from the OCS capability / isAppInstalled fallback.
+	 * @param {?string} [entry.accentColor] Per-app brand accent hex (e.g. Deck's `#0082c9`) used by CnIntegrationWidget for the tab/header tint. Per-app waves fill these in.
+	 * @param {?string} [entry.appName] Human-readable backing-app name for empty-state copy ("{App} not available"); defaults to `label` when omitted.
+	 * @param {?string} [entry.docsUrl] Setup-docs URL for the empty state; defaults to `https://openregister.conduction.nl/docs/Integrations/{id}/`.
 	 *
 	 * @return {?object} Normalised entry, or null on collision in prod.
 	 */
@@ -118,6 +123,16 @@ export function createIntegrationRegistry() {
 			widgetExpanded: entry.widgetExpanded || null,
 			widgetEntity: entry.widgetEntity || null,
 			defaultSize: entry.defaultSize || null,
+			// CnIntegrationWidget contract fields (Phase: integration-widget-framework).
+			// `surfaces` stays undefined-as-null so consumers can treat
+			// "no allowlist" as "eligible everywhere".
+			surfaces: Array.isArray(entry.surfaces) ? entry.surfaces.slice() : null,
+			available: typeof entry.available === 'boolean' ? entry.available : null,
+			accentColor: typeof entry.accentColor === 'string' && entry.accentColor !== '' ? entry.accentColor : null,
+			appName: typeof entry.appName === 'string' && entry.appName !== '' ? entry.appName : entry.label,
+			docsUrl: typeof entry.docsUrl === 'string' && entry.docsUrl !== ''
+				? entry.docsUrl
+				: `https://openregister.conduction.nl/docs/Integrations/${entry.id}/`,
 		}
 		providers.set(entry.id, normalised)
 		notify()

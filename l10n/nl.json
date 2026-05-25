@@ -1,5 +1,14 @@
 {
   "translations": {
+    "No integrations available yet.": "Nog geen integraties beschikbaar.",
+    "This integration is not available.": "Deze integratie is niet beschikbaar.",
+    "Integrations": "Integraties",
+    "{app} not available": "{app} niet beschikbaar",
+    "{app} not configured": "{app} niet geconfigureerd",
+    "This integration is not available or not configured yet.": "Deze integratie is nog niet beschikbaar of niet geconfigureerd.",
+    "This integration is not set up yet. Configure a connection to start using it.": "Deze integratie is nog niet ingesteld. Configureer een verbinding om hem te gebruiken.",
+    "This integration is not set up yet. Install and enable the {app} app to start using it.": "Deze integratie is nog niet ingesteld. Installeer en activeer de app {app} om hem te gebruiken.",
+    "Set up {app}": "{app} instellen",
     "Add new contact": "Nieuw contact toevoegen",
     "Link contact": "Contact koppelen",
     "Search contacts": "Contacten zoeken",
