@@ -48,6 +48,9 @@ export const sharesIntegration = {
 	order: 10,
 	group: 'core',
 	referenceType: 'shares',
+	// NC-core sharing has no dedicated brand colour; the standard
+	// Nextcloud primary blue tints the tab header to read as a built-in.
+	accentColor: '#0082c9',
 	tab: CnSharesTab,
 	widget: CnSharesCard,
 	defaultSize: { w: 3, h: 3 },
