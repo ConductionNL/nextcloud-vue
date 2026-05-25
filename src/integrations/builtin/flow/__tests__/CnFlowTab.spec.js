@@ -76,7 +76,8 @@ describe('CnFlowTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-flow-tab__row')
 		expect(rows).toHaveLength(1)
-		expect(wrapper.text()).toContain('Auto-tag new uploads')
+		// The rule name is bound to the NcListItem `name` attribute.
+		expect(rows.at(0).attributes('name')).toBe('Auto-tag new uploads')
 		expect(wrapper.text()).toContain('Entity:')
 		expect(wrapper.text()).toContain('File')
 		expect(wrapper.text()).toContain('Operation:')
@@ -174,7 +175,8 @@ describe('CnFlowTab', () => {
 		const wrapper = mount(CnFlowTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.text()).toContain('GenericOperation')
+		// Fallback name is bound to the NcListItem `name` attribute.
+		expect(wrapper.find('.cn-flow-tab__row').attributes('name')).toBe('GenericOperation')
 		wrapper.destroy()
 	})
 })

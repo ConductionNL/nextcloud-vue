@@ -63,50 +63,58 @@
 			</NcButton>
 		</div>
 		<ul v-else class="cn-flow-tab__list">
-			<li
+			<NcListItem
 				v-for="op in operations"
 				:key="opKey(op)"
 				class="cn-flow-tab__row"
-				:class="{ 'cn-flow-tab__row--disabled': isDisabled(op) }">
-				<div class="cn-flow-tab__row-header">
-					<RobotOutline :size="20" class="cn-flow-tab__row-icon" />
-					<a
-						:href="opUrl(op)"
-						target="_blank"
-						rel="noopener"
-						class="cn-flow-tab__title">{{ opTitle(op) }}</a>
-					<span
+				:class="{ 'cn-flow-tab__row--disabled': isDisabled(op) }"
+				:name="opTitle(op)"
+				:href="opUrl(op)"
+				target="_blank"
+				:bold="true"
+				:force-display-actions="isAdmin">
+				<template #icon>
+					<span class="cn-flow-tab__avatar" :class="enabledClass(op)" :aria-hidden="true">
+						<RobotOutline :size="20" />
+					</span>
+				</template>
+				<template #subname>
+					<span v-if="opSummary(op)" class="cn-flow-tab__summary">{{ opSummary(op) }}</span>
+				</template>
+				<template #indicator>
+					<CnStatusBadge
 						class="cn-flow-tab__enabled"
 						:class="enabledClass(op)"
-						:aria-label="enabledAriaLabel(op)">
-						<span class="cn-flow-tab__enabled-dot" />
-						{{ enabledLabel(op) }}
+						size="small"
+						:variant="enabledVariant(op)"
+						:label="enabledLabel(op)"
+						:aria-label="enabledAriaLabel(op)" />
+				</template>
+				<template v-if="events(op).length > 0 || opMeta(op)" #details>
+					<span class="cn-flow-tab__details">
+						<span v-if="events(op).length > 0" class="cn-flow-tab__events">
+							<span
+								v-for="evt in events(op)"
+								:key="evt"
+								class="cn-flow-tab__chip">{{ shortEvent(evt) }}</span>
+						</span>
+						<span v-if="opMeta(op)" class="cn-flow-tab__meta">{{ opMeta(op) }}</span>
 					</span>
-					<NcButton
-						v-if="isAdmin"
-						type="tertiary-no-background"
-						:aria-label="t('nextcloud-vue', 'Unlink automation')"
+				</template>
+				<template v-if="isAdmin" #actions>
+					<NcActionButton
 						class="cn-flow-tab__unlink"
+						:aria-label="t('nextcloud-vue', 'Unlink automation')"
 						data-testid="cn-flow-tab-unlink"
+						:close-after-click="true"
 						@click="confirmUnlink(op)">
 						<template #icon>
-							<Close :size="18" />
+							<Close :size="20" />
 						</template>
-					</NcButton>
-				</div>
-				<div v-if="opSummary(op)" class="cn-flow-tab__summary">
-					{{ opSummary(op) }}
-				</div>
-				<div v-if="events(op).length > 0" class="cn-flow-tab__events">
-					<span
-						v-for="evt in events(op)"
-						:key="evt"
-						class="cn-flow-tab__chip">{{ shortEvent(evt) }}</span>
-				</div>
-				<div v-if="opMeta(op)" class="cn-flow-tab__meta">
-					{{ opMeta(op) }}
-				</div>
-			</li>
+						{{ t('nextcloud-vue', 'Unlink automation') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnFlowOperationPicker
@@ -120,12 +128,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
 import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -137,7 +146,7 @@ import { buildHeaders } from '../../../utils/index.js'
 export default {
 	name: 'CnFlowTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, Close, Plus, RobotOutline, CnFlowOperationPicker },
+	components: { NcActionButton, NcButton, NcListItem, NcLoadingIcon, AlertCircleOutline, Close, Plus, RobotOutline, CnFlowOperationPicker, CnStatusBadge },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'flow'`). */
@@ -290,6 +299,10 @@ export default {
 				: 'cn-flow-tab__enabled--on'
 		},
 
+		enabledVariant(op) {
+			return this.isDisabled(op) === true ? 'default' : 'success'
+		},
+
 		enabledAriaLabel(op) {
 			return this.enabledLabel(op)
 		},
@@ -438,94 +451,58 @@ export default {
 	padding: 0;
 }
 
-.cn-flow-tab__row {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 10px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-flow-tab__row:last-child {
-	border-bottom: none;
-}
-
+/* Mirror NC Flow's rule rows: a round robot avatar, the bold rule
+   name, a trigger/condition subline, and an enabled/disabled chip. */
 .cn-flow-tab__row--disabled {
 	opacity: 0.7;
 }
 
-.cn-flow-tab__row-header {
-	display: flex;
+.cn-flow-tab__avatar {
+	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-}
-
-.cn-flow-tab__row-icon {
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
 	flex-shrink: 0;
 }
 
-.cn-flow-tab__title {
-	flex: 1;
-	min-width: 0;
+.cn-flow-tab__avatar.cn-flow-tab__enabled--on {
+	background: var(--color-primary-element-light, var(--color-background-dark));
+	color: var(--color-primary-element, #0082c9);
+}
+
+.cn-flow-tab__avatar.cn-flow-tab__enabled--off {
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-flow-tab__summary {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
 }
 
-a.cn-flow-tab__title:hover {
-	text-decoration: underline;
-}
-
-.cn-flow-tab__enabled {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 1px 8px;
-	border-radius: 10px;
-	font-size: 0.75em;
-	font-weight: 500;
-	flex-shrink: 0;
-	background: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-flow-tab__enabled-dot {
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: currentColor;
-}
-
-.cn-flow-tab__enabled--on {
-	background: var(--color-success, #46ba61);
-	color: var(--color-primary-element-text, #ffffff);
-}
-
-.cn-flow-tab__enabled--off {
-	background: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-flow-tab__unlink {
-	flex-shrink: 0;
-}
-
-.cn-flow-tab__summary,
 .cn-flow-tab__meta {
 	font-size: 0.8em;
 	color: var(--color-text-maxcontrast);
-	padding-left: 28px;
+}
+
+.cn-flow-tab__details {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
 }
 
 .cn-flow-tab__events {
-	display: flex;
+	display: inline-flex;
 	flex-wrap: wrap;
 	gap: 4px;
-	padding-left: 28px;
 }
 
 .cn-flow-tab__chip {
