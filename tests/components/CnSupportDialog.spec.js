@@ -107,7 +107,7 @@ describe('CnSupportDialog', () => {
 	it('uses the default support URL when none is provided', async () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
 		await wrapper.find('[data-testid="cn-support-dialog-support"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('https://www.conduction.nl/contact', '_blank', 'noopener,noreferrer')
+		expect(openSpy).toHaveBeenCalledWith('https://www.conduction.nl/support', '_blank', 'noopener,noreferrer')
 	})
 
 	it('renders the founder name and title in the signature block', () => {

@@ -112,7 +112,7 @@ import { useSpecRef } from '../../composables/useSpecRef.js'
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
 const DEFAULT_LLM_SKILLS_URL = 'https://docs.conduction.nl/ai-skills'
 const DEFAULT_DONATE_URL = 'https://github.com/sponsors/ConductionNL'
-const DEFAULT_SUPPORT_URL = 'https://www.conduction.nl/contact'
+const DEFAULT_SUPPORT_URL = 'https://www.conduction.nl/support'
 const DEFAULT_FOUNDER_NAME = 'Ruben van der Linde'
 const DEFAULT_FOUNDER_TITLE = 'a founder of Conduction'
 
