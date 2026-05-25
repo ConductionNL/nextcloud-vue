@@ -41,7 +41,39 @@ describe('CnSupportDialog', () => {
 		expect(buttons.at(0).attributes('data-button-type')).toBe('primary')
 		expect(buttons.at(1).attributes('data-button-type')).toBe('secondary')
 		expect(buttons.at(2).attributes('data-button-type')).toBe('tertiary')
-		expect(buttons.at(3).attributes('data-button-type')).toBe('tertiary-no-background')
+		expect(buttons.at(3).attributes('data-button-type')).toBe('tertiary')
+	})
+
+	it('renders the Conduction and apps inline links with default targets', () => {
+		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
+		const links = wrapper.findAll('a.cn-support-dialog__link')
+		expect(links.length).toBe(2)
+		expect(links.at(0).attributes('href')).toBe('https://www.conduction.nl')
+		expect(links.at(1).attributes('href')).toBe('https://www.conduction.nl/apps')
+	})
+
+	it('renders the founder avatar linking to the profile URL', () => {
+		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
+		const avatarLink = wrapper.find('a.cn-support-dialog__avatar-link')
+		expect(avatarLink.exists()).toBe(true)
+		expect(avatarLink.attributes('href')).toBe('https://www.linkedin.com/in/rubenlinde/')
+		const img = avatarLink.find('img.cn-support-dialog__avatar')
+		expect(img.exists()).toBe(true)
+		expect(img.attributes('src')).toMatch(/^data:image\/png;base64,/)
+	})
+
+	it('renders avatar without a link when founderProfileUrl is empty', () => {
+		const wrapper = mount(CnSupportDialog, {
+			propsData: { ...baseProps, founderProfileUrl: '' },
+			stubs,
+		})
+		expect(wrapper.find('a.cn-support-dialog__avatar-link').exists()).toBe(false)
+		expect(wrapper.find('img.cn-support-dialog__avatar').exists()).toBe(true)
+	})
+
+	it('does not use em-dashes in the default body copy', () => {
+		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
+		expect(wrapper.text()).not.toContain('—')
 	})
 
 	it('opens the feature-request URL in a new tab and emits @action', async () => {

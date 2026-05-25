@@ -87,9 +87,13 @@ Use `reset()` from the same composable to re-enable the dialog (tests, admin "sh
 | `featureRequestUrl` | `String` (required) | — | URL the "Suggest a feature" CTA opens (typically the host's GitHub issues template). |
 | `donateUrl` | `String` | `https://github.com/sponsors/ConductionNL` | Override per-app if the host has its own donation channel. |
 | `supportUrl` | `String` | `https://www.conduction.nl/contact` | Business-support CTA target. |
+| `conductionUrl` | `String` | `https://www.conduction.nl` | Target of the inline "Conduction" link in the default body. Ignored when `bodyParagraphs` is set. |
+| `appsUrl` | `String` | `https://www.conduction.nl/apps` | Target of the inline "apps" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `founderName` | `String` | `Ruben van der Linde` | Rendered in the handwritten signature. |
-| `founderTitle` | `String` | `Founder` | Title beside the signature. |
-| `bodyParagraphs` | `Array<String>` | `[]` | Override the default Conduction body copy with a host-specific message (release announcement, pricing change, etc). When non-empty, the built-in paragraphs are skipped. |
+| `founderTitle` | `String` | `Founder` | Title under the signature. |
+| `founderAvatarUrl` | `String` | bundled portrait (data URI) | Avatar shown left of the signature. Defaults to the self-hosted founder portrait (no third-party request). Override with any URL or data URI when signing your own apps. |
+| `founderProfileUrl` | `String` | `https://www.linkedin.com/in/rubenlinde/` | Profile the avatar links to (new tab). Pass `''` to render the avatar without a link. |
+| `bodyParagraphs` | `Array<String>` | `[]` | Override the default Conduction body copy with a host-specific message (release announcement, pricing change, etc). When non-empty, the built-in paragraphs and inline links are skipped. |
 
 ## Events
 
@@ -113,6 +117,28 @@ If you need a different voice (release announcement, sunset notice, pricing chan
 The handwritten signature uses **Caveat** (SIL OFL 1.1, latin subset). The font is self-hosted: the woff2 file is inlined as base64 inside a scoped `@font-face` rule that is appended to `document.head` on the first dialog mount. Apps that never open the dialog do not pay the font cost at runtime beyond the bundle bytes.
 
 The OFL attribution lives next to the bundled font at `src/components/CnSupportDialog/assets/Caveat-OFL.txt`.
+
+## Avatar note
+
+The founder avatar is **self-hosted**: the bundled portrait (Ruben van der Linde, the canonical avatar the conduction-website repo references) is inlined as a data URI in `src/components/CnSupportDialog/assets/founderAvatar.js`, so there is no third-party image request. The source PNG sits next to it as `founder-avatar-ruben.png`; regenerate the data URI with `base64 -w0 founder-avatar-ruben.png`.
+
+Other parties signing their own apps override it the same way as the copy — pass `founder-name`, `founder-title`, `founder-avatar-url` and `founder-profile-url` props:
+
+```vue
+<CnSupportDialog
+  v-if="visible"
+  app-name="Acme App"
+  app-slug="acme-app"
+  app-store-url="https://apps.nextcloud.com/apps/acme-app"
+  feature-request-url="https://github.com/acme/acme-app/issues/new"
+  founder-name="Jane Doe"
+  founder-title="Maintainer"
+  founder-avatar-url="https://acme.example/jane.png"
+  founder-profile-url="https://www.linkedin.com/in/jane-doe/"
+  conduction-url="https://acme.example"
+  apps-url="https://acme.example/apps"
+  @close="hide" />
+```
 
 ## See also
 

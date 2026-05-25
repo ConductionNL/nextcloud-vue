@@ -165,7 +165,7 @@ export default {
 		llmCta() { return t('nextcloud-vue', 'Read the AI guide') },
 
 		supportTitle() { return t('nextcloud-vue', 'Support this project') },
-		supportBody() { return t('nextcloud-vue', 'A short note from the founder on what keeps this app going — and the few small things you can do to help, from a review on the App Store to a feature request or a donation. Worth a minute.') },
+		supportBody() { return t('nextcloud-vue', 'A short note from the founder on what keeps this app going, and the few small things you can do to help. A review, a feature request, a donation. Worth a minute.') },
 		supportCta() { return t('nextcloud-vue', 'Show support note') },
 	},
 

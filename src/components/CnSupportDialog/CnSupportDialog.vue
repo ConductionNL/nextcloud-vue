@@ -7,60 +7,117 @@
 		data-testid-modal="cn-support-dialog"
 		@closing="onClose">
 		<div class="cn-support-dialog__body">
-			<p
-				v-for="(paragraph, index) in paragraphs"
-				:key="index"
-				class="cn-support-dialog__paragraph">
-				{{ paragraph }}
-			</p>
+			<!-- Host-provided override copy: plain paragraphs, no links. -->
+			<template v-if="hasBodyOverride">
+				<p
+					v-for="(paragraph, index) in bodyParagraphs"
+					:key="index"
+					class="cn-support-dialog__paragraph">
+					{{ paragraph }}
+				</p>
+			</template>
+
+			<!-- Default Conduction copy with inline links. -->
+			<template v-else>
+				<p class="cn-support-dialog__paragraph">
+					{{ greetingHi }}
+				</p>
+				<p class="cn-support-dialog__paragraph">
+					{{ introLead }} <a
+						:href="conductionUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="cn-support-dialog__link">{{ conductionLabel }}</a>.
+				</p>
+				<p class="cn-support-dialog__paragraph">
+					{{ teamLead }} <a
+						:href="appsUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="cn-support-dialog__link">{{ appsLabel }}</a> {{ teamTrail }}
+				</p>
+				<p class="cn-support-dialog__paragraph">
+					{{ featureParagraph }}
+				</p>
+				<p class="cn-support-dialog__paragraph">
+					{{ supportParagraph }}
+				</p>
+			</template>
 
 			<div class="cn-support-dialog__signature">
-				<span class="cn-support-dialog__signature-name">{{ founderName }}</span>
-				<span class="cn-support-dialog__signature-title">— {{ founderTitle }}</span>
+				<a
+					v-if="founderProfileUrl"
+					:href="founderProfileUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="cn-support-dialog__avatar-link"
+					:aria-label="founderName">
+					<img
+						class="cn-support-dialog__avatar"
+						:src="founderAvatarUrl"
+						:alt="founderName"
+						width="48"
+						height="48">
+				</a>
+				<img
+					v-else
+					class="cn-support-dialog__avatar"
+					:src="founderAvatarUrl"
+					:alt="founderName"
+					width="48"
+					height="48">
+				<span class="cn-support-dialog__signature-text">
+					<span class="cn-support-dialog__signature-name">{{ founderName }}</span>
+					<span class="cn-support-dialog__signature-title">{{ founderTitle }}</span>
+				</span>
+			</div>
+
+			<div class="cn-support-dialog__actions">
+				<NcButton
+					type="primary"
+					wide
+					data-testid="cn-support-dialog-feature-request"
+					@click="openAction('feature-request', featureRequestUrl)">
+					<template #icon>
+						<HandHeart :size="20" />
+					</template>
+					{{ featureRequestLabel }}
+				</NcButton>
+
+				<NcButton
+					type="secondary"
+					wide
+					data-testid="cn-support-dialog-app-store"
+					@click="openAction('app-store', appStoreUrl)">
+					<template #icon>
+						<Star :size="20" />
+					</template>
+					{{ appStoreLabel }}
+				</NcButton>
+
+				<NcButton
+					type="tertiary"
+					wide
+					data-testid="cn-support-dialog-donate"
+					@click="openAction('donate', donateUrl)">
+					<template #icon>
+						<HeartOutline :size="20" />
+					</template>
+					{{ donateLabel }}
+				</NcButton>
+
+				<NcButton
+					type="tertiary"
+					wide
+					data-testid="cn-support-dialog-support"
+					@click="openAction('support', supportUrl)">
+					<template #icon>
+						<BriefcaseOutline :size="20" />
+					</template>
+					{{ supportLabel }}
+				</NcButton>
 			</div>
 		</div>
-
-		<template #actions>
-			<NcButton
-				type="primary"
-				data-testid="cn-support-dialog-feature-request"
-				@click="openAction('feature-request', featureRequestUrl)">
-				<template #icon>
-					<HandHeart :size="20" />
-				</template>
-				{{ featureRequestLabel }}
-			</NcButton>
-
-			<NcButton
-				type="secondary"
-				data-testid="cn-support-dialog-app-store"
-				@click="openAction('app-store', appStoreUrl)">
-				<template #icon>
-					<Star :size="20" />
-				</template>
-				{{ appStoreLabel }}
-			</NcButton>
-
-			<NcButton
-				type="tertiary"
-				data-testid="cn-support-dialog-donate"
-				@click="openAction('donate', donateUrl)">
-				<template #icon>
-					<HeartOutline :size="20" />
-				</template>
-				{{ donateLabel }}
-			</NcButton>
-
-			<NcButton
-				type="tertiary-no-background"
-				data-testid="cn-support-dialog-support"
-				@click="openAction('support', supportUrl)">
-				<template #icon>
-					<BriefcaseOutline :size="20" />
-				</template>
-				{{ supportLabel }}
-			</NcButton>
-		</template>
 	</NcDialog>
 </template>
 
@@ -73,22 +130,25 @@
  * to the user of any Conduction Nextcloud app.
  *
  * The dialog is intentionally calm and personal (MKB tone) rather than
- * a generic "support us" funnel. Four CTAs in a deliberate priority
- * order:
- *   1. Suggest a feature   — primary; framed as the single most
- *                            valuable contribution.
- *   2. Review on App Store — secondary; helps other people find the app.
- *   3. Donate              — tertiary; defaults to ConductionNL GitHub
- *                            Sponsors.
- *   4. Get business support — subtle / link-style; explicitly framed
- *                            as for organisations, not individuals.
+ * a generic "support us" funnel. A founder avatar + handwritten
+ * signature sit above four CTAs laid out in a 2x2 grid, in a deliberate
+ * priority order:
+ *   1. Suggest a feature   primary; framed as the most useful contribution.
+ *   2. Review on App Store secondary; helps other people find the app.
+ *   3. Donate              tertiary; defaults to ConductionNL GitHub Sponsors.
+ *   4. Business support    tertiary; framed for organisations, not individuals.
+ *
+ * Every piece of host-specific content is overridable via props: the
+ * app name + slug, all four CTA URLs, the two inline links (Conduction
+ * + apps), the founder name/title/avatar/profile link, and the entire
+ * body copy (`bodyParagraphs`). This keeps the component reusable by
+ * Conduction-adjacent parties signing their own apps — see
+ * docs/components/cn-support-dialog.md.
  *
  * The dialog does not manage its own visibility. Pair it with
  * `useSupportDialog(appSlug)` for first-open + dismiss-persistence, or
  * mount it imperatively (e.g. from `CnFeaturesAndRoadmapView`'s 4th
  * sidebar container).
- *
- * Adoption (see docs/components/cn-support-dialog.md for the full example).
  */
 import { translate as t } from '@nextcloud/l10n'
 import { NcDialog, NcButton } from '@nextcloud/vue'
@@ -98,6 +158,7 @@ import Star from 'vue-material-design-icons/Star.vue'
 import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
+import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
 
 export default {
 	name: 'CnSupportDialog',
@@ -155,7 +216,7 @@ export default {
 			default: 'https://github.com/sponsors/ConductionNL',
 		},
 		/**
-		 * URL the "Get business support" CTA opens. Defaults to the
+		 * URL the "Business support" CTA opens. Defaults to the
 		 * Conduction contact page. The copy frames this CTA for
 		 * organisations, not individuals.
 		 */
@@ -164,8 +225,24 @@ export default {
 			default: 'https://www.conduction.nl/contact',
 		},
 		/**
+		 * Target of the inline "Conduction" link in the default body copy.
+		 * Ignored when `bodyParagraphs` is provided.
+		 */
+		conductionUrl: {
+			type: String,
+			default: 'https://www.conduction.nl',
+		},
+		/**
+		 * Target of the inline "apps" link in the default body copy.
+		 * Ignored when `bodyParagraphs` is provided.
+		 */
+		appsUrl: {
+			type: String,
+			default: 'https://www.conduction.nl/apps',
+		},
+		/**
 		 * Name rendered in the handwritten signature line. Defaults to
-		 * Ruben van der Linde; overridable so a future Conduction-adjacent
+		 * Ruben van der Linde; overridable so a Conduction-adjacent
 		 * consumer can sign their own apps.
 		 */
 		founderName: {
@@ -173,21 +250,38 @@ export default {
 			default: 'Ruben van der Linde',
 		},
 		/**
-		 * Title shown after the signature (e.g. "Founder", "Oprichter").
-		 * Defaults to the English `Founder` — translated body copy already
-		 * carries the localised noun in the paragraphs above, so the label
-		 * here is intentionally short.
+		 * Title shown under the signature name (e.g. "Founder",
+		 * "Oprichter").
 		 */
 		founderTitle: {
 			type: String,
 			default: 'Founder',
 		},
 		/**
+		 * Avatar shown to the left of the signature. Defaults to the
+		 * bundled founder portrait (data URI, self-hosted — no third-party
+		 * request). Override with any URL or data URI when signing your
+		 * own apps.
+		 */
+		founderAvatarUrl: {
+			type: String,
+			default: DEFAULT_FOUNDER_AVATAR,
+		},
+		/**
+		 * Profile the avatar links to (opens in a new tab). Defaults to
+		 * the founder's LinkedIn. Pass an empty string to render the
+		 * avatar without a link.
+		 */
+		founderProfileUrl: {
+			type: String,
+			default: 'https://www.linkedin.com/in/rubenlinde/',
+		},
+		/**
 		 * Optional body-copy override. When non-empty, the array is
-		 * rendered verbatim — one `<p>` per entry — and the built-in
-		 * Conduction copy is skipped. Useful for one-off campaigns
-		 * (release announcement, new pricing) where the founder note is
-		 * not the right voice.
+		 * rendered verbatim — one `<p>` per entry, no inline links — and
+		 * the built-in Conduction copy is skipped. Useful for one-off
+		 * campaigns (release announcement, new pricing) where the founder
+		 * note is not the right voice.
 		 */
 		bodyParagraphs: {
 			type: Array,
@@ -198,19 +292,29 @@ export default {
 	emits: ['close', 'action'],
 
 	computed: {
+		hasBodyOverride() {
+			return Array.isArray(this.bodyParagraphs) && this.bodyParagraphs.length > 0
+		},
 		dialogTitle() {
 			return t('nextcloud-vue', 'Support {appName}', { appName: this.appName })
 		},
-		paragraphs() {
-			if (Array.isArray(this.bodyParagraphs) && this.bodyParagraphs.length > 0) {
-				return this.bodyParagraphs
-			}
-			return [
-				t('nextcloud-vue', 'Hi — I\'m {founderName}, founder of Conduction.', { founderName: this.founderName }),
-				t('nextcloud-vue', 'We\'re a small Dutch team building {appName} and the rest of our open-source apps for Nextcloud. Every app is EUPL-1.2 on GitHub — your data stays yours, and the code is yours to read, fork, or improve.', { appName: this.appName }),
-				t('nextcloud-vue', 'What pushes {appName} forward isn\'t sales calls — it\'s feature requests. If something\'s missing, awkward, or you\'d love to see it work differently, please tell us. That\'s how this app grows, and it\'s the single most valuable thing you can give back.', { appName: this.appName }),
-				t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it. A small donation keeps us writing code instead of writing invoices. And if your organisation needs hands-on help — onboarding, hosting, custom work — that\'s what our paid support is for.', { appName: this.appName }),
-			]
+		greetingHi() { return t('nextcloud-vue', 'Hi,') },
+		introLead() {
+			return t('nextcloud-vue', 'I\'m {founderName}, founder of', { founderName: this.founderName })
+		},
+		conductionLabel() { return t('nextcloud-vue', 'Conduction') },
+		teamLead() {
+			return t('nextcloud-vue', 'We\'re a small Dutch team. We build {appName} and the rest of our open-source', { appName: this.appName })
+		},
+		appsLabel() { return t('nextcloud-vue', 'apps') },
+		teamTrail() {
+			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 on GitHub, so your data stays yours and you can read, fork or improve the code yourself.')
+		},
+		featureParagraph() {
+			return t('nextcloud-vue', 'Feature requests are what move {appName} forward, not sales calls. If something is missing, awkward, or you\'d like it to work differently, tell us. That\'s how the app grows.', { appName: this.appName })
+		},
+		supportParagraph() {
+			return t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it. A small donation keeps us writing code instead of invoices. And if your organisation needs hands-on help with onboarding, hosting or custom work, that\'s what our paid support is for.', { appName: this.appName })
 		},
 		featureRequestLabel() { return t('nextcloud-vue', 'Suggest a feature') },
 		appStoreLabel() { return t('nextcloud-vue', 'Review on App Store') },
@@ -224,16 +328,12 @@ export default {
 
 	methods: {
 		/**
-		 * Open `url` in a new tab and notify listeners. Consumers can use
-		 * the `@action` event for analytics or to short-circuit the
-		 * default open-in-new-tab behaviour by calling
-		 * `event.preventDefault()` on the native `<NcButton>` click —
-		 * not currently exposed (intentional: kept simple for v1).
+		 * Open `url` in a new tab and notify listeners.
 		 *
-		 * @param {string} action  Stable identifier — one of
-		 *                         `feature-request`, `app-store`,
-		 *                         `donate`, `support`.
-		 * @param {string} url     URL the CTA points at.
+		 * @param {string} action Stable identifier — one of
+		 *                        `feature-request`, `app-store`, `donate`,
+		 *                        `support`.
+		 * @param {string} url    URL the CTA points at.
 		 */
 		openAction(action, url) {
 			if (url) {
@@ -270,18 +370,40 @@ export default {
 	color: var(--color-main-text);
 }
 
-.cn-support-dialog__paragraph:last-of-type {
-	margin-bottom: 20px;
+.cn-support-dialog__link {
+	color: var(--color-primary-element);
+	text-decoration: underline;
 }
 
 .cn-support-dialog__signature {
 	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 2px;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
 	margin-top: 8px;
 	padding-top: 12px;
 	border-top: 1px solid var(--color-border);
+}
+
+.cn-support-dialog__avatar-link {
+	flex: 0 0 auto;
+	display: inline-flex;
+	border-radius: 50%;
+}
+
+.cn-support-dialog__avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+	display: block;
+}
+
+.cn-support-dialog__signature-text {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
 }
 
 .cn-support-dialog__signature-name {
@@ -294,5 +416,18 @@ export default {
 .cn-support-dialog__signature-title {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-support-dialog__actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-top: 20px;
+}
+
+@media (max-width: 480px) {
+	.cn-support-dialog__actions {
+		grid-template-columns: 1fr;
+	}
 }
 </style>
