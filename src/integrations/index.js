@@ -3,6 +3,8 @@ export {
 	createIntegrationRegistry,
 	installIntegrationRegistry,
 	registerIntegration,
+	getSharedRegistry,
+	sharedRegistryIfInstalled,
 	VALID_SURFACES,
 } from './registry.js'
 

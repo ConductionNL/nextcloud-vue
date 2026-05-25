@@ -298,6 +298,21 @@ export function installIntegrationRegistry(globalRef) {
 	target.OCA.OpenRegister = target.OCA.OpenRegister || {}
 
 	const prior = target.OCA.OpenRegister.integrations
+
+	// Converge, don't clobber. If another bundle already installed a REAL
+	// registry (has register(), no _queue), every later caller CONVERGES
+	// on that same object — otherwise each app's bundle would install its
+	// own per-bundle singleton and a consuming app's useIntegrationRegistry
+	// would read an empty registry while a leaf registered into a
+	// different one. First bundle to install wins; all others share it.
+	if (prior !== undefined
+		&& prior !== integrations
+		&& typeof prior.register === 'function'
+		&& prior._queue === undefined
+	) {
+		return prior
+	}
+
 	target.OCA.OpenRegister.integrations = integrations
 
 	if (prior !== undefined && Array.isArray(prior._queue) === true) {
@@ -314,6 +329,52 @@ export function installIntegrationRegistry(globalRef) {
 	}
 
 	return integrations
+}
+
+/**
+ * Read the shared registry IF one is already installed on the global —
+ * WITHOUT installing or mutating anything.
+ *
+ * Used by `useIntegrationRegistry` so a consuming app reads the same
+ * registry OpenRegister's global bootstrap populated, instead of its own
+ * per-bundle module singleton. Returns null when no real registry is
+ * installed yet (a bare stub queue does NOT count) so callers fall back
+ * to the module singleton — keeping unit tests that never install a
+ * global on the module-singleton path.
+ *
+ * @param {object} [globalRef] Global to read. Defaults to `window`.
+ * @return {object|null} The installed shared registry, or null.
+ */
+export function sharedRegistryIfInstalled(globalRef) {
+	const target = globalRef || (typeof window !== 'undefined' ? window : null)
+	if (target === null) {
+		return null
+	}
+	const g = target.OCA && target.OCA.OpenRegister && target.OCA.OpenRegister.integrations
+	if (g && typeof g.register === 'function' && g._queue === undefined) {
+		return g
+	}
+	return null
+}
+
+/**
+ * Resolve the canonical shared registry, INSTALLING the module singleton
+ * onto the global when none exists yet (and draining any stub queue).
+ *
+ * This is the entry point OpenRegister's global bootstrap uses so that
+ * `registerBuiltinIntegrations` / `registerLeafIntegrations` /
+ * `registerIntegrationIcons` all populate the one shared registry every
+ * consuming app reads via `useIntegrationRegistry`. Idempotent.
+ *
+ * @param {object} [globalRef] Global to resolve against. Defaults to `window`.
+ * @return {object} The shared registry (always a real registry instance).
+ */
+export function getSharedRegistry(globalRef) {
+	const existing = sharedRegistryIfInstalled(globalRef)
+	if (existing !== null) {
+		return existing
+	}
+	return installIntegrationRegistry(globalRef)
 }
 
 /**

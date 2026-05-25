@@ -20,7 +20,7 @@
  */
 
 import { onBeforeUnmount, shallowRef, computed } from 'vue'
-import { integrations as defaultRegistry } from '../integrations/registry.js'
+import { integrations as defaultRegistry, sharedRegistryIfInstalled } from '../integrations/registry.js'
 
 /**
  * Subscribe to the integration registry and expose a reactive
@@ -36,7 +36,12 @@ import { integrations as defaultRegistry } from '../integrations/registry.js'
  * }}
  */
 export function useIntegrationRegistry(registry) {
-	const target = registry || defaultRegistry
+	// Prefer the shared registry installed on the global by OpenRegister's
+	// bootstrap (so a consuming app reads the SAME registry every leaf —
+	// generic or Path-2 — registered into, regardless of which bundle
+	// owns it). Falls back to this bundle's module singleton when no
+	// global is installed (standalone use, unit tests).
+	const target = registry || sharedRegistryIfInstalled() || defaultRegistry
 	// shallowRef, not ref: the snapshot holds integration descriptors
 	// whose `tab` / `widget` / `widget*` fields are Vue component
 	// options objects. Deep reactive observation would walk into those
