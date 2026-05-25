@@ -2,10 +2,20 @@
 
 Manifest-driven app navigation. Renders the manifest's `menu[]` array as `NcAppNavigation` + `NcAppNavigationItem`. Sorts by `order`; filters by `permission`; supports one level of nested `children[]`.
 
-Items split into two groups by `section`:
+Items split into three groups by `section`:
 
 - `section: "main"` (default) — top of the navigation, scrollable.
-- `section: "settings"` — pinned to the bottom inside `NcAppNavigation`'s `#footer` slot, separated from the main list by a thin border. Use for documentation links, settings entries, or anything that should anchor below the scroll area.
+- `section: "footer"` — pinned-bottom **regular** entries rendered flat above the settings foldout. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
+- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout only mounts when at least one `settings` item exists.
+
+### `nav` block
+
+Top-level manifest config for the navigation:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
+| `nav.settingsLabel` | String | `'Settings'` | Override the foldout gear-button label. |
 
 `manifest`, `translate`, and `permissions` are read from injected values (provided by [`CnAppRoot`](./cn-app-root.md)) but can also be passed as props for standalone use. **Props always win over inject.**
 
@@ -52,7 +62,7 @@ Items split into two groups by `section`:
 | `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
-| `section` | `'main' \| 'settings'` | Default `'main'`. `'settings'` items render in the bottom footer list |
+| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = pinned-bottom flat entry; `'settings'` = inside the gear-icon foldout |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
 | `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently |
 | `visibleIf` | `object` | Optional display condition block — see [visibleIf conditions](#visibleif-conditions) |
