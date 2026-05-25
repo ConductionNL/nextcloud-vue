@@ -41,7 +41,7 @@ import CnFlowCard from './flow/CnFlowCard.vue'
  */
 export const flowIntegration = {
 	id: 'flow',
-	label: t('nextcloud-vue', 'Automation'),
+	label: t('nextcloud-vue', 'Flow'),
 	appName: t('nextcloud-vue', 'Flow'),
 	icon: 'RobotOutline',
 	accentColor: '#0082c9',
