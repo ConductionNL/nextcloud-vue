@@ -46,6 +46,21 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div v-if="!degraded" class="cn-cospend-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing project') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new project') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="error" class="cn-cospend-tab__error" role="alert">
 			{{ error }}
@@ -92,8 +107,30 @@
 						{{ dateLabel(row) }}
 					</span>
 				</div>
+				<NcButton
+					v-if="entryIdOf(row)"
+					type="tertiary-no-background"
+					:aria-label="t('nextcloud-vue', 'Unlink entry')"
+					class="cn-cospend-tab__unlink"
+					@click="unlinkEntry(row)">
+					<template #icon>
+						<LinkOff :size="16" />
+					</template>
+				</NcButton>
 			</li>
 		</ul>
+
+		<CnCospendPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnCospendCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -104,6 +141,11 @@ import AccountCircleOutline from 'vue-material-design-icons/AccountCircleOutline
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
+import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -116,7 +158,19 @@ import { buildHeaders } from '../../../utils/index.js'
 export default {
 	name: 'CnCospendTab',
 
-	components: { NcButton, NcLoadingIcon, AccountCircleOutline, AlertCircleOutline, ClockOutline, CurrencyEur },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AccountCircleOutline,
+		AlertCircleOutline,
+		ClockOutline,
+		CurrencyEur,
+		LinkOff,
+		LinkVariant,
+		Plus,
+		CnCospendPicker,
+		CnCospendCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'cospend'`). */
@@ -145,6 +199,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -159,8 +215,102 @@ export default {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},
 
+		/**
+		 * Base for the Tier-2 cospend endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		cospendEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/cospend`
+		},
+
 		rowKey(row) {
 			return row.id ?? row.uuid ?? ''
+		},
+
+		/**
+		 * Resolve the link-row id for a Tier-2 row (used for unlink).
+		 * Legacy marker rows have no `entryId` so the unlink button hides.
+		 *
+		 * @param {object} row Provider/link row.
+		 *
+		 * @return {(number|string)} The link row id, or '' when absent.
+		 */
+		entryIdOf(row) {
+			const d = (row && typeof row.data === 'object' && row.data !== null) ? row.data : {}
+			return row.entryId ?? d.id ?? ''
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.cospendEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This entry is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link entry.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCospendTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link entry.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.cospendEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create project.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCospendTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create project.')
+			}
+		},
+
+		async unlinkEntry(row) {
+			const id = this.entryIdOf(row)
+			if (!id) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.cospendEndpoint()}/${id}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink entry.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCospendTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink entry.')
+			}
 		},
 
 		rowTitle(row) {
@@ -268,7 +418,7 @@ export default {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.rows = rows
-				} else if (response.status === 503) {
+				} else if (response.status === 503 || response.status === 501) {
 					this.rows = []
 					this.degraded = this.unavailableLabel
 				} else {
@@ -289,6 +439,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-cospend-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
 .cn-cospend-tab__banner {
 	display: flex;
 	align-items: center;
@@ -331,6 +488,7 @@ export default {
 }
 
 .cn-cospend-tab__row {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -338,6 +496,12 @@ export default {
 	border-radius: var(--border-radius);
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+}
+
+.cn-cospend-tab__unlink {
+	position: absolute;
+	top: 4px;
+	right: 4px;
 }
 
 .cn-cospend-tab__row--bill {
@@ -352,6 +516,7 @@ export default {
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	padding-right: 28px;
 }
 
 .cn-cospend-tab__title {
