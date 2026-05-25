@@ -83,42 +83,52 @@
 				:key="group.key"
 				class="cn-collectives-tab__group">
 				<header v-if="group.label" class="cn-collectives-tab__group-header">
-					{{ group.label }}
+					<FolderTextOutline :size="14" />
+					<span>{{ group.label }}</span>
 				</header>
 				<ul class="cn-collectives-tab__list">
-					<li
+					<NcListItem
 						v-for="page in group.pages"
 						:key="pageKey(page)"
-						class="cn-collectives-tab__row">
-						<span class="cn-collectives-tab__emoji" :aria-hidden="true">
-							<template v-if="pageEmoji(page)">{{ pageEmoji(page) }}</template>
-							<BookOpenPageVariant v-else :size="18" />
-						</span>
-						<div class="cn-collectives-tab__row-main">
-							<a
-								:href="pageUrl(page)"
-								target="_blank"
-								rel="noopener"
-								class="cn-collectives-tab__title">
-								{{ pageTitle(page) }}
-							</a>
-							<span v-if="pageSnippet(page)" class="cn-collectives-tab__snippet">
-								{{ pageSnippet(page) }}
+						class="cn-collectives-tab__row"
+						:name="pageTitle(page)"
+						:bold="true"
+						:href="pageUrl(page)"
+						target="_blank"
+						:force-display-actions="true">
+						<template #icon>
+							<span class="cn-collectives-tab__emoji" :aria-hidden="true">
+								<template v-if="pageEmoji(page)">{{ pageEmoji(page) }}</template>
+								<FileDocumentOutline v-else :size="22" />
 							</span>
-							<span v-if="metaLabel(page)" class="cn-collectives-tab__meta">
-								{{ metaLabel(page) }}
+						</template>
+						<template #subname>
+							<span class="cn-collectives-tab__subname">
+								<span v-if="sublineLabel(page)" class="cn-collectives-tab__subname-line">{{ sublineLabel(page) }}</span>
+								<span v-if="pageSnippet(page)" class="cn-collectives-tab__snippet">{{ pageSnippet(page) }}</span>
 							</span>
-						</div>
-						<NcButton
-							type="tertiary-no-background"
-							:aria-label="t('nextcloud-vue', 'Unlink page')"
-							class="cn-collectives-tab__unlink"
-							@click="unlinkPage(page)">
-							<template #icon>
-								<LinkOff :size="16" />
-							</template>
-						</NcButton>
-					</li>
+						</template>
+						<template v-if="modifiedMs(page)" #details>
+							<NcDateTime
+								class="cn-collectives-tab__time"
+								:timestamp="modifiedMs(page)"
+								:relative-time="'short'" />
+						</template>
+						<template #actions>
+							<NcActionButton :close-after-click="true" @click="openPage(page)">
+								<template #icon>
+									<OpenInNew :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Open in Knowledge') }}
+							</NcActionButton>
+							<NcActionButton :close-after-click="true" @click="unlinkPage(page)">
+								<template #icon>
+									<LinkOff :size="20" />
+								</template>
+								{{ t('nextcloud-vue', 'Unlink page') }}
+							</NcActionButton>
+						</template>
+					</NcListItem>
 				</ul>
 			</section>
 		</div>
@@ -139,11 +149,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
+import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
+import FolderTextOutline from 'vue-material-design-icons/FolderTextOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCollectivePageCreate from '../../../components/CnCollectivePageCreate/CnCollectivePageCreate.vue'
 import CnCollectivePagePicker from '../../../components/CnCollectivePagePicker/CnCollectivePagePicker.vue'
@@ -166,12 +179,18 @@ export default {
 	name: 'CnCollectivesTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		BookOpenPageVariant,
+		FileDocumentOutline,
+		FolderTextOutline,
 		LinkOff,
 		LinkVariant,
+		OpenInNew,
 		Plus,
 		CnCollectivePagePicker,
 		CnCollectivePageCreate,
@@ -353,6 +372,24 @@ export default {
 			return t('nextcloud-vue', 'Updated {n} days ago', { n: days })
 		},
 
+		/**
+		 * Subname line for a row: the parent collective name. NcDateTime
+		 * renders the "last edited" moment separately in the row's
+		 * #details slot, so the subname carries the collective only.
+		 *
+		 * @param {object} page Provider/link row.
+		 * @return {string} The collective name, or '' when unknown.
+		 */
+		sublineLabel(page) {
+			return this.collectiveLabel(page)
+		},
+
+		openPage(page) {
+			if (typeof window !== 'undefined') {
+				window.open(this.pageUrl(page), '_blank', 'noopener')
+			}
+		},
+
 		openCollectivesApp() {
 			if (typeof window !== 'undefined') {
 				window.open(this.collectivesAppUrl, '_blank', 'noopener')
@@ -511,11 +548,16 @@ export default {
 }
 
 .cn-collectives-tab__group-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	font-size: 0.8em;
+	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--color-text-maxcontrast);
-	margin-bottom: 4px;
+	margin-bottom: 2px;
+	padding: 0 4px;
 }
 
 .cn-collectives-tab__list {
@@ -524,57 +566,38 @@ export default {
 	padding: 0;
 }
 
-.cn-collectives-tab__row {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-collectives-tab__unlink {
-	flex-shrink: 0;
-}
-
-.cn-collectives-tab__row:last-child {
-	border-bottom: none;
-}
-
+/* Emoji glyph stands in for the NcListItem avatar — circular tile
+   tinted with the collective accent, mirroring NC Collectives pages. */
 .cn-collectives-tab__emoji {
 	flex-shrink: 0;
-	width: 20px;
-	height: 20px;
+	width: 40px;
+	height: 40px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 1.05em;
+	font-size: 1.25em;
 	line-height: 1;
-	color: var(--color-text-maxcontrast);
+	border-radius: 50%;
+	background: var(--color-background-hover);
+	color: var(--color-primary-element);
 }
 
-.cn-collectives-tab__row-main {
-	flex: 1;
-	min-width: 0;
+.cn-collectives-tab__subname {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	min-width: 0;
 }
 
-.cn-collectives-tab__title {
+.cn-collectives-tab__subname-line {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-a.cn-collectives-tab__title:hover {
-	text-decoration: underline;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-collectives-tab__snippet {
-	font-size: 0.85em;
+	font-size: 0.9em;
 	color: var(--color-text-maxcontrast);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -583,8 +606,8 @@ a.cn-collectives-tab__title:hover {
 	-webkit-box-orient: vertical;
 }
 
-.cn-collectives-tab__meta {
-	font-size: 0.75em;
+.cn-collectives-tab__time {
+	font-size: 0.8em;
 	color: var(--color-text-maxcontrast);
 }
 </style>
