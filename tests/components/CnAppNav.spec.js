@@ -556,11 +556,13 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.settingsItems.map((i) => i.id)).toEqual(['forms', 'pipelines'])
 		})
 
-		it('renders footer-section items as flat entries in the footer', () => {
+		it('renders footer-section items as native pinned NcAppNavigationItems', () => {
 			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
-			expect(wrapper.find('[data-testid="cn-nav-footer"]').exists()).toBe(true)
+			// Footer items render (bottom-pinned via NC's native `pinned` prop);
+			// the old hand-rolled custom footer-list wrapper is gone.
 			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
 			expect(wrapper.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-app-nav__footer-list').exists()).toBe(false)
 		})
 
 		it('mounts the settings foldout with the settings items inside', () => {
