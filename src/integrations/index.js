@@ -2,6 +2,7 @@ export {
 	integrations,
 	createIntegrationRegistry,
 	installIntegrationRegistry,
+	registerIntegration,
 	VALID_SURFACES,
 } from './registry.js'
 
