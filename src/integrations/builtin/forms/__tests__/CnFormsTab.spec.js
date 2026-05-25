@@ -97,12 +97,14 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-forms-tab__row')
 		expect(rows).toHaveLength(1)
-		expect(wrapper.text()).toContain('Budget intake')
+		// Title is passed to NcListItem via the `name` prop (rendered by
+		// the real component; surfaced as an attribute by the test stub).
+		expect(rows.at(0).attributes('name')).toBe('Budget intake')
 		expect(wrapper.text()).toContain('Collect spend proposals for 2026')
 		expect(wrapper.text()).toContain('Open')
 		expect(wrapper.find('.cn-forms-tab__status--open').exists()).toBe(true)
-		const anchor = wrapper.find('a.cn-forms-tab__title')
-		expect(anchor.attributes('href')).toBe('/index.php/apps/forms/hash-42')
+		// The row deep-links into Forms via NcListItem's href.
+		expect(rows.at(0).attributes('href')).toBe('/index.php/apps/forms/hash-42')
 		wrapper.destroy()
 	})
 
@@ -124,7 +126,10 @@ describe('CnFormsTab', () => {
 		await wrapper.vm.$nextTick()
 		// 1 form row, not 4 rows
 		expect(wrapper.findAll('.cn-forms-tab__row')).toHaveLength(1)
-		expect(wrapper.text()).toContain('3 submissions')
+		// Submission tally is surfaced as a response-count bubble.
+		const count = wrapper.find('.cn-forms-tab__count')
+		expect(count.exists()).toBe(true)
+		expect(count.text()).toContain('3')
 		wrapper.destroy()
 	})
 
@@ -143,7 +148,7 @@ describe('CnFormsTab', () => {
 		wrapper.destroy()
 	})
 
-	it('surfaces a "Closes in X days" countdown when expiresAt is in the future', async () => {
+	it('renders the expiry date (NcDateTime) and an open chip when expiresAt is in the future', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,
 			status: 200,
@@ -152,7 +157,7 @@ describe('CnFormsTab', () => {
 		const wrapper = mount(CnFormsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.text()).toContain('Closes in')
+		expect(wrapper.find('.cn-forms-tab__expiry').exists()).toBe(true)
 		expect(wrapper.find('.cn-forms-tab__status--open').exists()).toBe(true)
 		wrapper.destroy()
 	})

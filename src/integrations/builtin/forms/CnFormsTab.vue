@@ -5,9 +5,13 @@
   - CnFormsTab — bespoke sidebar tab for the Tier-2 `forms` integration.
   -
   - Replaces the generic CnIntegrationTab for the `forms` leaf: renders a
-  - list of linked NC Forms forms with title, description, status / expiry
-  - meta, submission count, a per-row "Open form" deep-link, and Tier-2
-  - link/unlink + create-new actions.
+  - list of linked NC Forms forms styled to mirror the real Forms app —
+  - each row is an NcListItem with a clipboard/form icon, the bold form
+  - title, an optional description, a response-count bubble
+  - (NcCounterBubble), an open/closed/draft state chip (CnStatusBadge),
+  - and an expiry date (NcDateTime) when the form has one. Per-row "Open
+  - in Forms" + unlink live in the row actions menu, with Tier-2
+  - link/unlink + create-new actions on the header.
   -
   - Talks to the OpenRegister Tier-2 forms link surface:
   -    GET    /api/objects/{r}/{s}/{id}/forms        — list linked
@@ -68,37 +72,62 @@
 			</NcButton>
 		</div>
 		<ul v-else class="cn-forms-tab__list">
-			<li
+			<NcListItem
 				v-for="form in forms"
 				:key="formKey(form)"
 				class="cn-forms-tab__row"
-				:class="{ 'cn-forms-tab__row--closed': isClosed(form) }">
-				<div class="cn-forms-tab__row-header">
-					<ClipboardText :size="20" class="cn-forms-tab__row-icon" />
-					<a
-						:href="formUrl(form)"
-						target="_blank"
-						rel="noopener"
-						class="cn-forms-tab__title">{{ formTitle(form) }}</a>
-					<span
-						class="cn-forms-tab__status"
-						:class="statusClass(form)">{{ statusLabel(form) }}</span>
-					<button
-						type="button"
+				:class="{ 'cn-forms-tab__row--closed': isClosed(form) }"
+				:name="formTitle(form)"
+				:bold="false"
+				:href="formUrl(form)"
+				target="_blank"
+				:force-display-actions="true">
+				<template #icon>
+					<ClipboardText :size="40" class="cn-forms-tab__row-icon" />
+				</template>
+				<template v-if="formDescription(form)" #subname>
+					<span class="cn-forms-tab__description">{{ formDescription(form) }}</span>
+				</template>
+				<template #details>
+					<div class="cn-forms-tab__details">
+						<CnStatusBadge
+							class="cn-forms-tab__status"
+							:class="statusClass(form)"
+							:label="statusLabel(form)"
+							:variant="statusVariant(form)"
+							size="small" />
+						<NcDateTime
+							v-if="expiresAtMs(form) !== null"
+							class="cn-forms-tab__expiry"
+							:timestamp="expiresAtMs(form)"
+							:relative-time="'short'" />
+					</div>
+				</template>
+				<template v-if="submissionCount(form) > 0" #indicator>
+					<NcCounterBubble
+						class="cn-forms-tab__count"
+						:aria-label="responsesAriaLabel(form)">
+						{{ submissionCount(form) }}
+					</NcCounterBubble>
+				</template>
+				<template #actions>
+					<NcActionButton :close-after-click="true" @click="openForm(form)">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ openInFormsLabel }}
+					</NcActionButton>
+					<NcActionButton
 						class="cn-forms-tab__unlink"
-						:aria-label="unlinkLabel"
-						:title="unlinkLabel"
+						:close-after-click="true"
 						@click="unlink(form)">
-						<Close :size="18" />
-					</button>
-				</div>
-				<div v-if="formDescription(form)" class="cn-forms-tab__description">
-					{{ formDescription(form) }}
-				</div>
-				<div v-if="formMeta(form)" class="cn-forms-tab__meta">
-					{{ formMeta(form) }}
-				</div>
-			</li>
+						<template #icon>
+							<Close :size="20" />
+						</template>
+						{{ unlinkLabel }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnFormPicker
@@ -121,38 +150,45 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import LinkVariantPlus from 'vue-material-design-icons/LinkVariantPlus.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import CnFormCreate from './CnFormCreate.vue'
 import CnFormPicker from './CnFormPicker.vue'
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
 /**
  * CnFormsTab — bespoke linked-forms list for the Tier-2 `forms` leaf.
  *
- * Renders rows pulled from the OR Tier-2 forms link endpoint, with
- * inline "Link existing form" + "Create new form" actions on the
- * header. Submission roll-ups are surfaced as a count + last-updated
- * fragment per row.
+ * Renders rows pulled from the OR Tier-2 forms link endpoint, styled to
+ * mirror NC Forms (form icon, bold title, description, response-count
+ * bubble, state chip, expiry date), with inline "Link existing form" +
+ * "Create new form" actions on the header and per-row open/unlink in the
+ * row actions menu.
  */
 export default {
 	name: 'CnFormsTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcCounterBubble,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		ClipboardText,
 		Close,
 		LinkVariantPlus,
+		OpenInNew,
 		Plus,
+		CnStatusBadge,
 		CnFormCreate,
 		CnFormPicker,
 	},
@@ -172,6 +208,8 @@ export default {
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No forms linked yet') },
 		/** Pre-translated label for the "Open in Forms" CTA. */
 		openFormsLabel: { type: String, default: () => t('nextcloud-vue', 'Open Forms') },
+		/** Pre-translated label for the per-row "Open in Forms" action. */
+		openInFormsLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Forms') },
 		/** Pre-translated banner when Forms is unavailable. */
 		unavailableLabel: { type: String, default: () => t('nextcloud-vue', 'NC Forms is currently unavailable.') },
 		/** Pre-translated label for the link-existing action. */
@@ -284,6 +322,15 @@ export default {
 			return this.formsAppUrl
 		},
 
+		/**
+		 * Resolve the form's expiry as a millisecond epoch, or null when
+		 * the form never expires. Accepts both second- and millisecond-
+		 * granularity numbers and ISO strings.
+		 *
+		 * @param {object} form normalised form row
+		 *
+		 * @return {?number}
+		 */
 		expiresAtMs(form) {
 			const v = form.expiresAt
 			if (v === null || v === undefined || v === '') {
@@ -327,6 +374,24 @@ export default {
 			return 'cn-forms-tab__status--open'
 		},
 
+		/**
+		 * Map the form's state to a CnStatusBadge colour variant —
+		 * open = success (green), draft = warning, closed = default.
+		 *
+		 * @param {object} form normalised form row
+		 *
+		 * @return {string}
+		 */
+		statusVariant(form) {
+			if (this.isClosed(form) === true) {
+				return 'default'
+			}
+			if (form.status === 'draft') {
+				return 'warning'
+			}
+			return 'success'
+		},
+
 		submissionCount(form) {
 			if (form.submissionCount > 0) {
 				return form.submissionCount
@@ -334,37 +399,14 @@ export default {
 			return form.submissions || 0
 		},
 
-		formMeta(form) {
-			const parts = []
-			const count = this.submissionCount(form)
-			if (count > 0) {
-				parts.push(t('nextcloud-vue', '{n} submissions', { n: count }))
-			}
-			const expiryFragment = this.expiryFragment(form)
-			if (expiryFragment !== '') {
-				parts.push(expiryFragment)
-			}
-			if (form.accessible === false) {
-				parts.push(t('nextcloud-vue', 'Restricted'))
-			}
-			return parts.join(' · ')
+		responsesAriaLabel(form) {
+			return t('nextcloud-vue', '{n} submissions', { n: this.submissionCount(form) })
 		},
 
-		expiryFragment(form) {
-			const ms = this.expiresAtMs(form)
-			if (ms === null) {
-				return ''
+		openForm(form) {
+			if (typeof window !== 'undefined') {
+				window.open(this.formUrl(form), '_blank', 'noopener')
 			}
-			const diff = ms - Date.now()
-			if (diff <= 0) {
-				return t('nextcloud-vue', 'Closed')
-			}
-			const days = Math.ceil(diff / MS_PER_DAY)
-			if (days <= 1) {
-				const hours = Math.max(1, Math.ceil(diff / (60 * 60 * 1000)))
-				return t('nextcloud-vue', 'Closes in {n} hours', { n: hours })
-			}
-			return t('nextcloud-vue', 'Closes in {n} days', { n: days })
 		},
 
 		openFormsApp() {
@@ -543,105 +585,53 @@ export default {
 	padding: 0;
 }
 
-.cn-forms-tab__row {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 10px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-forms-tab__row:last-child {
-	border-bottom: none;
+/* Forms brand accent on the row icon, mirroring the real Forms app. */
+.cn-forms-tab__row-icon {
+	color: var(--cn-forms-accent, #0d7000);
+	flex-shrink: 0;
 }
 
 .cn-forms-tab__row--closed {
 	opacity: 0.85;
 }
 
-.cn-forms-tab__row-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.cn-forms-tab__row-icon {
+.cn-forms-tab__row--closed .cn-forms-tab__row-icon {
 	color: var(--color-text-maxcontrast);
-	flex-shrink: 0;
-}
-
-.cn-forms-tab__title {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-a.cn-forms-tab__title:hover {
-	text-decoration: underline;
-}
-
-.cn-forms-tab__status {
-	flex-shrink: 0;
-	padding: 1px 8px;
-	border-radius: 10px;
-	font-size: 0.75em;
-	font-weight: 500;
-	background: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-forms-tab__status--open {
-	background: var(--color-success, #46ba61);
-	color: var(--color-primary-element-text, #ffffff);
-}
-
-.cn-forms-tab__status--closed {
-	background: var(--color-background-dark);
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-forms-tab__status--draft {
-	background: var(--color-warning, #e9a40f);
-	color: var(--color-main-background);
-}
-
-.cn-forms-tab__unlink {
-	background: none;
-	border: none;
-	padding: 4px;
-	cursor: pointer;
-	color: var(--color-text-maxcontrast);
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-}
-
-.cn-forms-tab__unlink:hover,
-.cn-forms-tab__unlink:focus {
-	background-color: var(--color-background-dark);
-	color: var(--color-error);
 }
 
 .cn-forms-tab__description {
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
-	padding-left: 28px;
-	overflow: hidden;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
 }
 
-.cn-forms-tab__meta {
+.cn-forms-tab__details {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+.cn-forms-tab__expiry {
 	font-size: 0.8em;
 	color: var(--color-text-maxcontrast);
-	padding-left: 28px;
+	white-space: nowrap;
+}
+
+/* Status chip colours layered on top of CnStatusBadge variants so the
+   open/closed/draft state reads at a glance, like the real Forms app. */
+.cn-forms-tab__status--open {
+	--cn-forms-status: var(--color-success, #46ba61);
+}
+
+.cn-forms-tab__status--closed {
+	--cn-forms-status: var(--color-text-maxcontrast);
+}
+
+.cn-forms-tab__status--draft {
+	--cn-forms-status: var(--color-warning, #e9a40f);
 }
 </style>
