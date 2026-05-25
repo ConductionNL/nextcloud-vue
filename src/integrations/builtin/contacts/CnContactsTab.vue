@@ -20,10 +20,10 @@
   - so the loading + refresh handshake stays here.
   -
   - Backed by:
-  -   GET    /api/objects/{register}/{schema}/{id}/integrations/contacts
-  -   POST   /api/objects/{register}/{schema}/{id}/integrations/contacts        — link existing
-  -   POST   /api/objects/{register}/{schema}/{id}/integrations/contacts/new    — create + link
-  -   DELETE /api/objects/{register}/{schema}/{id}/integrations/contacts/{uid}  — unlink
+  -   GET    /api/objects/{register}/{schema}/{id}/contacts
+  -   POST   /api/objects/{register}/{schema}/{id}/contacts            — link existing
+  -   POST   /api/objects/{register}/{schema}/{id}/contacts/new        — create + link
+  -   DELETE /api/objects/{register}/{schema}/{id}/contacts/{uid}      — unlink
   -
   - The payload shape mirrors `ContactLink::jsonSerialize()` —
   - `{id, contactUid, displayName, email, phone, org, avatarUrl, role,
