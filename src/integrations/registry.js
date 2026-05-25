@@ -316,4 +316,66 @@ export function installIntegrationRegistry(globalRef) {
 	return integrations
 }
 
+/**
+ * Load-order-safe registration entry point for a LEAF app's bespoke
+ * integration component (Path 2).
+ *
+ * This is the symmetric counterpart to `installIntegrationRegistry`,
+ * which OpenRegister calls to install its singleton. A leaf app must
+ * NOT call `installIntegrationRegistry` — that replaces the global with
+ * OR's singleton and would clobber it. Instead the leaf ships a small
+ * bundle, loaded globally on every Nextcloud page via the app's own
+ * `\OCP\Util::addInitScript()`, that calls `registerIntegration()`.
+ *
+ * Behaviour by load order:
+ *  - OR already installed its singleton → register the descriptor live;
+ *    it appears in `integrations.list()` immediately.
+ *  - OR not loaded yet (this leaf, or another leaf, ran first) →
+ *    install/extend a `{ _queue, register }` stub on
+ *    `window.OCA.OpenRegister.integrations` and push the descriptor. OR
+ *    replays the queue when it later calls `installIntegrationRegistry`.
+ *
+ * Validation, collision policy (AD-13), required `tab`/`widget`, and
+ * `referenceType` defaulting are unchanged — they apply identically
+ * whether the call lands live or via replay, because both paths funnel
+ * through the same `register()`.
+ *
+ * @param {object} descriptor The integration descriptor (same shape as
+ *   `integrations.register()` — id, label, icon, tab, widget, etc.).
+ * @param {object} [globalRef] Global object to attach to. Defaults to
+ *   `window`. Injectable for tests / SSR.
+ * @return {void}
+ */
+export function registerIntegration(descriptor, globalRef) {
+	const target = globalRef || (typeof window !== 'undefined' ? window : null)
+	if (target === null) {
+		// No global (SSR / non-browser) — register on the module singleton
+		// directly so unit tests and isomorphic callers still work.
+		integrations.register(descriptor)
+		return
+	}
+
+	target.OCA = target.OCA || {}
+	target.OCA.OpenRegister = target.OCA.OpenRegister || {}
+	const current = target.OCA.OpenRegister.integrations
+
+	// OR's real singleton is installed when the global exposes `register`
+	// and carries NO `_queue` (only the stub has a `_queue`).
+	if (current === integrations || (current && typeof current.register === 'function' && current._queue === undefined)) {
+		current.register(descriptor)
+		return
+	}
+
+	// Not installed yet — ensure a queue stub exists, then enqueue.
+	if (current === undefined || current === null) {
+		target.OCA.OpenRegister.integrations = {
+			_queue: [],
+			register(entry) {
+				this._queue.push(entry)
+			},
+		}
+	}
+	target.OCA.OpenRegister.integrations.register(descriptor)
+}
+
 export { VALID_SURFACES }
