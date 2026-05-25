@@ -646,7 +646,20 @@
     "This location is already linked.": "Deze locatie is al gekoppeld.",
     "Could not link location.": "Kon locatie niet koppelen.",
     "Could not create location.": "Kon locatie niet aanmaken.",
-    "Could not unlink location.": "Kon locatie niet ontkoppelen."
+    "Could not unlink location.": "Kon locatie niet ontkoppelen.",
+    "Link an existing xWiki page": "Een bestaande xWiki-pagina koppelen",
+    "Configure XWiki connection": "XWiki-verbinding configureren",
+    "XWiki connection not configured": "XWiki-verbinding niet geconfigureerd",
+    "XWiki authentication failed": "XWiki-authenticatie mislukt",
+    "XWiki is currently unavailable": "XWiki is momenteel niet beschikbaar",
+    "XWiki returned 401 — check the OpenConnector source credentials.": "XWiki gaf 401 terug — controleer de inloggegevens van de OpenConnector-bron.",
+    "Add an XWiki source in OpenConnector with the upstream URL and credentials so OpenRegister can browse pages.": "Voeg een XWiki-bron toe in OpenConnector met de upstream-URL en inloggegevens zodat OpenRegister pagina's kan doorbladeren.",
+    "No xWiki pages matched. Try a different search, or create a new page.": "Geen xWiki-pagina's gevonden. Probeer een andere zoekterm of maak een nieuwe pagina aan.",
+    "Could not load xWiki pages.": "Kan xWiki-pagina's niet laden.",
+    "Create a new xWiki page": "Een nieuwe xWiki-pagina aanmaken",
+    "Add an XWiki source in OpenConnector before creating pages.": "Voeg een XWiki-bron toe in OpenConnector voordat je pagina's aanmaakt.",
+    "Space": "Ruimte",
+    "e.g. Departments.Legal": "bijv. Departments.Legal"
   },
   "plurals": {
     "{count} photo": ["{count} foto", "{count} foto's"],
