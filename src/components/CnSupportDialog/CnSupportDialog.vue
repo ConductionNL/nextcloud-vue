@@ -136,7 +136,8 @@
  *   1. Suggest a feature   primary; framed as the most useful contribution.
  *   2. Review on App Store secondary; helps other people find the app.
  *   3. Donate              tertiary; defaults to ConductionNL GitHub Sponsors.
- *   4. Business support    tertiary; framed for organisations, not individuals.
+ *   4. Get support         tertiary; routes organisations to a Conduction
+ *                          support partner (the apps stay free).
  *
  * Every piece of host-specific content is overridable via props: the
  * app name + slug, all four CTA URLs, the two inline links (Conduction
@@ -216,13 +217,14 @@ export default {
 			default: 'https://github.com/sponsors/ConductionNL',
 		},
 		/**
-		 * URL the "Business support" CTA opens. Defaults to the
-		 * Conduction contact page. The copy frames this CTA for
-		 * organisations, not individuals.
+		 * URL the "Get support" CTA opens. Defaults to the Conduction
+		 * support page, where organisations are matched with a Host,
+		 * Service, or Certified partner. Conduction does not sell direct
+		 * support — the apps stay free and support runs through partners.
 		 */
 		supportUrl: {
 			type: String,
-			default: 'https://www.conduction.nl/contact',
+			default: 'https://www.conduction.nl/support',
 		},
 		/**
 		 * Target of the inline "Conduction" link in the default body copy.
@@ -315,12 +317,12 @@ export default {
 			return t('nextcloud-vue', 'Feature requests are what move {appName} forward, not sales calls. If something is missing, awkward, or you\'d like it to work differently, tell us. That\'s how the app grows.', { appName: this.appName })
 		},
 		supportParagraph() {
-			return t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it. A small donation keeps us writing code instead of invoices. And if your organisation needs hands-on help with onboarding, hosting or custom work, that\'s what our paid support is for.', { appName: this.appName })
+			return t('nextcloud-vue', 'If {appName} is useful to you, a review on the App Store helps other people find it, and a small donation keeps us writing code instead of invoices. The app stays free, always. And if your organisation wants hands-on help with hosting, setup or an SLA, we\'ll match you with a partner who supports it.', { appName: this.appName })
 		},
 		featureRequestLabel() { return t('nextcloud-vue', 'Suggest a feature') },
 		appStoreLabel() { return t('nextcloud-vue', 'Review on App Store') },
 		donateLabel() { return t('nextcloud-vue', 'Donate') },
-		supportLabel() { return t('nextcloud-vue', 'Business support') },
+		supportLabel() { return t('nextcloud-vue', 'Get support') },
 	},
 
 	mounted() {

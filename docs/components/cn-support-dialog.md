@@ -9,7 +9,7 @@ A first-open "support this project" modal every Conduction app can mount from `@
 1. **Suggest a feature** — primary. Framed as the single most valuable contribution.
 2. **Review on App Store** — secondary. Helps other people find the app.
 3. **Donate** — tertiary. Defaults to ConductionNL GitHub Sponsors.
-4. **Business support** — subtle, link-style. Explicit copy that this CTA is for organisations, not individuals.
+4. **Get support** — tertiary. Routes organisations to a Conduction support partner (Host / Service / Certified). Conduction does not sell direct support — the apps stay free and support runs through partners. Defaults to `https://www.conduction.nl/support`.
 
 The dialog is paired with [`useSupportDialog`](./use-support-dialog.md) — a composable that persists the dismissed state per `appSlug` in `localStorage` so users only see the note the first time they open an app.
 
@@ -86,7 +86,7 @@ Use `reset()` from the same composable to re-enable the dialog (tests, admin "sh
 | `appStoreUrl` | `String` (required) | — | URL the "Review on App Store" CTA opens. |
 | `featureRequestUrl` | `String` (required) | — | URL the "Suggest a feature" CTA opens (typically the host's GitHub issues template). |
 | `donateUrl` | `String` | `https://github.com/sponsors/ConductionNL` | Override per-app if the host has its own donation channel. |
-| `supportUrl` | `String` | `https://www.conduction.nl/contact` | Business-support CTA target. |
+| `supportUrl` | `String` | `https://www.conduction.nl/support` | "Get support" CTA target — the partner-matching page. |
 | `conductionUrl` | `String` | `https://www.conduction.nl` | Target of the inline "Conduction" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `appsUrl` | `String` | `https://www.conduction.nl/apps` | Target of the inline "apps" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `founderName` | `String` | `Ruben van der Linde` | Rendered in the handwritten signature. |
@@ -108,7 +108,7 @@ The default body is intentionally short, personal, and signed. It is **not** a s
 
 - Frames feature requests as the most valuable contribution — matching the editorial line on the Features & Roadmap surface.
 - Reviews and donations are positioned as small, optional gestures.
-- Business support is the only commercial CTA, and the copy makes it explicit that it is meant for organisations.
+- The app stays free; "Get support" routes organisations to a Conduction partner rather than implying Conduction sells support directly (per the partner model on conduction.nl/support).
 
 If you need a different voice (release announcement, sunset notice, pricing change), use the `bodyParagraphs` override rather than forking the component.
 
