@@ -48,6 +48,8 @@ export const openprojectIntegration = {
 	requiredApp: 'openconnector',
 	order: 31,
 	group: 'external',
+	// OpenProject's brand blue (recognizable spot colour for the leaf).
+	accentColor: '#1A67A3',
 	storageStrategy: 'external',
 	referenceType: 'openproject',
 	tab: CnOpenprojectTab,

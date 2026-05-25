@@ -87,7 +87,7 @@ export const leafIntegrations = [
 	leaf({ id: 'analytics', label: t('nextcloud-vue', 'Analytics'), appName: t('nextcloud-vue', 'Analytics'), icon: 'ChartBar', group: 'workflow', requiredApp: 'analytics', order: 61, defaultSize: { w: 4, h: 3 } }),
 	leaf({ id: 'cospend', label: t('nextcloud-vue', 'Costs'), appName: t('nextcloud-vue', 'Cospend'), icon: 'CurrencyEur', group: 'workflow', requiredApp: 'cospend', order: 62 }),
 	leaf({ id: 'deck', label: t('nextcloud-vue', 'Cards'), appName: t('nextcloud-vue', 'Deck'), icon: 'ViewColumnOutline', group: 'workflow', requiredApp: 'deck', order: 63, defaultSize: { w: 4, h: 3 } }),
-	leaf({ id: 'flow', label: t('nextcloud-vue', 'Automation'), appName: t('nextcloud-vue', 'Flow'), icon: 'RobotOutline', group: 'workflow', requiredApp: 'workflowengine', order: 64 }),
+	leaf({ id: 'flow', label: t('nextcloud-vue', 'Flow'), appName: t('nextcloud-vue', 'Flow'), icon: 'RobotOutline', group: 'workflow', requiredApp: 'workflowengine', order: 64 }),
 	leaf({ id: 'forms', label: t('nextcloud-vue', 'Forms'), appName: t('nextcloud-vue', 'Forms'), icon: 'ClipboardText', group: 'workflow', requiredApp: 'forms', order: 65 }),
 	leaf({ id: 'polls', label: t('nextcloud-vue', 'Polls'), appName: t('nextcloud-vue', 'Polls'), icon: 'Poll', group: 'workflow', requiredApp: 'polls', order: 66 }),
 	leaf({ id: 'time-tracker', label: t('nextcloud-vue', 'Time'), appName: t('nextcloud-vue', 'Time manager'), icon: 'Clock', group: 'workflow', requiredApp: 'timemanager', order: 67 }),

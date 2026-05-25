@@ -70,15 +70,21 @@ describe('CnAnalyticsTab', () => {
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
+		// Each report renders as an NcListItem row.
 		const rows = wrapper.findAll('.cn-analytics-tab__row')
 		expect(rows).toHaveLength(2)
-		expect(wrapper.text()).toContain('Sales')
-		expect(wrapper.text()).toContain('Ops Dashboard')
+		// Report names are bound to the NcListItem `name` attribute (the
+		// functional stub spreads bound attrs onto its root element).
+		const names = rows.wrappers.map((r) => r.attributes('name'))
+		expect(names).toContain('Sales')
+		expect(names).toContain('Ops Dashboard')
+		// Type badges still render their labels as text.
 		expect(wrapper.text()).toContain('Group')
 		expect(wrapper.text()).toContain('External')
-		const links = wrapper.findAll('a.cn-analytics-tab__title')
-		expect(links.at(0).attributes('href')).toBe('/index.php/apps/analytics/#/r/1')
-		expect(links.at(1).attributes('href')).toBe('/index.php/apps/analytics/#/r/2')
+		// Deep-link href is bound to the NcListItem row.
+		const hrefs = rows.wrappers.map((r) => r.attributes('href'))
+		expect(hrefs).toContain('/index.php/apps/analytics/#/r/1')
+		expect(hrefs).toContain('/index.php/apps/analytics/#/r/2')
 		wrapper.destroy()
 	})
 
@@ -95,10 +101,13 @@ describe('CnAnalyticsTab', () => {
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
+		// Title is bound to the NcListItem `name` attribute; subheader is text.
+		const row = wrapper.find('.cn-analytics-tab__row')
+		expect(row.attributes('name')).toBe('KPI')
 		const text = wrapper.text()
-		expect(text).toContain('KPI')
 		expect(text).toContain('with annotated marker')
 		expect(text).not.toContain('[or:obj-1]')
+		expect(row.attributes('name')).not.toContain('[or:obj-1]')
 		wrapper.destroy()
 	})
 
@@ -110,6 +119,29 @@ describe('CnAnalyticsTab', () => {
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Report')
+		wrapper.destroy()
+	})
+
+	it('renders the headline KPI value when the provider supplies one', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({
+			results: [makeReport({ reportId: 11, reportTitle: 'Revenue', value: 12345 })],
+		}))
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(true)
+		expect(wrapper.find('.cn-analytics-tab__kpi').text()).toBe((12345).toLocaleString())
+		wrapper.destroy()
+	})
+
+	it('omits the KPI element when no value is supplied', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({
+			results: [makeReport({ reportId: 12, value: undefined, kpi: undefined })],
+		}))
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('.cn-analytics-tab__kpi').exists()).toBe(false)
 		wrapper.destroy()
 	})
 
@@ -150,7 +182,8 @@ describe('CnAnalyticsTab', () => {
 		expect(linkCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics')
 		expect(linkCall[1].method).toBe('POST')
 		expect(JSON.parse(linkCall[1].body)).toEqual({ reportId: 5 })
-		expect(wrapper.text()).toContain('Linked')
+		const names = wrapper.findAll('.cn-analytics-tab__row').wrappers.map((r) => r.attributes('name'))
+		expect(names).toContain('Linked')
 		wrapper.destroy()
 	})
 

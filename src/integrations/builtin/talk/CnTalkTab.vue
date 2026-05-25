@@ -265,11 +265,82 @@ export default {
 		},
 
 		roomPreview(room) {
-			const msg = room.lastMessage
-			if (msg && typeof msg === 'object') {
-				return msg.message ?? msg.text ?? ''
+			let msg = room.lastMessage
+			// The provider may hand us the message as a JSON string; parse it
+			// so we never render a raw `{"message":...}` blob in the preview.
+			if (typeof msg === 'string') {
+				const trimmed = msg.trim()
+				if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+					try {
+						msg = JSON.parse(trimmed)
+					} catch (e) {
+						return this.cleanPreview(trimmed)
+					}
+				} else {
+					return this.cleanPreview(msg)
+				}
 			}
-			return room.lastMessageText ?? room.preview ?? ''
+			if (msg && typeof msg === 'object') {
+				// Talk system messages carry a snake_case key (e.g. `user_added`)
+				// in `systemMessage`/`message` plus rich `parameters`. Humanise
+				// them instead of dumping the placeholder/JSON.
+				const isSystem = (typeof msg.systemMessage === 'string' && msg.systemMessage !== '')
+					|| msg.messageType === 'system'
+				const raw = msg.message ?? msg.text ?? ''
+				if (isSystem) {
+					return this.humaniseSystemMessage(msg)
+				}
+				return this.cleanPreview(typeof raw === 'string' ? raw : '')
+			}
+			return this.cleanPreview(room.lastMessageText ?? room.preview ?? '')
+		},
+
+		/**
+		 * Turn a Talk system message into readable text. Substitutes rich
+		 * `{placeholder}` parameters with their display name; falls back to a
+		 * title-cased version of the snake_case key (e.g. `user_added` →
+		 * "User added").
+		 *
+		 * @param {object} msg The last-message object.
+		 * @return {string} Human-readable line.
+		 */
+		humaniseSystemMessage(msg) {
+			const key = (typeof msg.systemMessage === 'string' && msg.systemMessage !== '')
+				? msg.systemMessage
+				: (typeof msg.message === 'string' ? msg.message : '')
+			const template = (typeof msg.message === 'string' && msg.message.indexOf('{') !== -1)
+				? msg.message
+				: ''
+			const params = msg.messageParameters || msg.parameters || {}
+			if (template !== '' && params && typeof params === 'object') {
+				return template.replace(/\{(\w+)\}/g, (whole, name) => {
+					const p = params[name]
+					if (p && typeof p === 'object') {
+						return p.name || p.displayName || p.id || name
+					}
+					return (p === undefined || p === null) ? name : String(p)
+				})
+			}
+			// Bare key like `user_added` / `conversation_created`.
+			if (key !== '') {
+				const words = key.replace(/[_-]+/g, ' ').trim()
+				return words.charAt(0).toUpperCase() + words.slice(1)
+			}
+			return t('nextcloud-vue', 'System message')
+		},
+
+		/**
+		 * Guard against a raw JSON blob ever reaching the preview line.
+		 *
+		 * @param {string} text Candidate preview text.
+		 * @return {string} The text, or '' when it still looks like JSON.
+		 */
+		cleanPreview(text) {
+			const s = String(text || '').trim()
+			if (s.charAt(0) === '{' || s.charAt(0) === '[') {
+				return ''
+			}
+			return s
 		},
 
 		/**

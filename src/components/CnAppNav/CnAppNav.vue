@@ -9,10 +9,11 @@
 
   Items split into three groups by `section`:
   - `section: "main"` (default) — top of the navigation, scrollable.
-  - `section: "footer"` — pinned-bottom regular entries rendered flat in
-    NcAppNavigation's `#footer` slot, above the settings foldout. For
-    always-visible, non-settings links: Documentation, Features &
-    Roadmap, About.
+  - `section: "footer"` — bottom-pinned entries rendered via
+    NcAppNavigationItem's native `pinned` prop (NC's own
+    `order: 2; margin-top: auto`), sticking to the bottom of the list
+    above the settings foldout. For always-visible, non-settings links:
+    Documentation, Features & Roadmap, About.
   - `section: "settings"` — rendered INSIDE an NcAppNavigationSettings
     foldout (the NC-native gear-icon button that slides a panel open).
     A "Personal settings" entry is auto-prepended at the top of the
@@ -65,31 +66,29 @@
 					</template>
 				</NcAppNavigationItem>
 			</NcAppNavigationItem>
-		</template>
-		<template v-if="footerItems.length || showSettingsFoldout" #footer>
-			<!-- Pinned-bottom regular entries (section: "footer") — e.g.
-			     Documentation, Features & Roadmap, About. Always visible,
-			     rendered flat above the settings foldout. -->
-			<ul
-				v-if="footerItems.length"
-				class="cn-app-nav__footer-list"
-				data-testid="cn-nav-footer">
-				<NcAppNavigationItem
-					v-for="item in footerItems"
-					:key="item.id"
-					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:exact="isExact(item)"
-					:icon="cssIconClass(item)"
-					:active="isActive(item)"
-					:data-testid="`cn-nav-entry-${item.id}`"
-					@click="onItemClick(item, $event)">
-					<template v-if="mdiIconComponent(item)" #icon>
-						<component :is="mdiIconComponent(item)" :size="20" />
-					</template>
-				</NcAppNavigationItem>
-			</ul>
 
+			<!-- Footer-section entries (Documentation, Features & Roadmap,
+				     About) use NcAppNavigationItem's native `pinned` prop. NC
+				     bottom-pins them (above the settings foldout) via its own
+				     `order: 2; margin-top: auto` rule — no custom wrapper or
+				     CSS, just the native primitive. -->
+			<NcAppNavigationItem
+				v-for="item in footerItems"
+				:key="item.id"
+				:pinned="true"
+				:name="resolveLabel(item)"
+				:to="itemTo(item)"
+				:exact="isExact(item)"
+				:icon="cssIconClass(item)"
+				:active="isActive(item)"
+				:data-testid="`cn-nav-entry-${item.id}`"
+				@click="onItemClick(item, $event)">
+				<template v-if="mdiIconComponent(item)" #icon>
+					<component :is="mdiIconComponent(item)" :size="20" />
+				</template>
+			</NcAppNavigationItem>
+		</template>
+		<template v-if="showSettingsFoldout" #footer>
 			<!-- Settings foldout (section: "settings" items). NC-native
 			     gear-icon button that slides open a panel; the first entry
 			     is an auto-prepended "Personal settings" that opens the
@@ -476,32 +475,26 @@ export default {
 }
 
 /*
- * Footer-list (section: "footer" items rendered in NcAppNavigation's
- * `#footer` slot, above the settings foldout). Reset list defaults so
- * the entries align with the main list.
- *
- * NcAppNavigation's scoped style targets `.app-navigation__content >
- * ul` with `overflow-y: auto` + flex padding, and Vue 2 propagates the
- * parent's data-v attribute onto slot-root elements — so without
- * `overflow: visible` the footer list renders its own scrollbar even
- * though the footer area has plenty of room. The `!important` flags
- * force-beat the parent rule's specificity (which includes the data-v
- * attribute).
- *
- * No hard `border-top`: native NcAppNavigation footers don't divide the
- * scroll list from the footer with a rule — the natural gap (and the
- * settings foldout's own top border) provides the separation. A hard
- * line here read as "not a default NC component".
+ * Footer-section items (section: "footer") now use NcAppNavigationItem's
+ * native `pinned` prop — NC bottom-pins them via its own
+ * `order: 2; margin-top: auto` rule. The previous hand-rolled
+ * `.cn-app-nav__footer-list` <ul> wrapper (with overflow/padding/border
+ * overrides) was the non-native bit that fought NC's layout and has been
+ * removed entirely.
  */
-.cn-app-nav__footer-list {
+
+/*
+ * Align the settings foldout's items with the main/footer list items,
+ * whose icons sit at a 16px inset. The foldout's items live in a bare
+ * <ul> inside NcAppNavigationSettings' panel (`#app-settings`, padding
+ * 3px), so without this they start ~5px further left and the icon
+ * column looks ragged. (The native settings-toggle button sits ~1px
+ * left of the 16px baseline, but NC owns that with an !important
+ * shorthand — a sub-pixel difference we leave to the native component.)
+ */
+.cn-app-nav__settings-list {
 	list-style: none;
 	margin: 0;
-	/* Match the native NcAppNavigationSettings footer rhythm: its
-	   `#app-settings` root carries `padding: 3px`, so the footer group
-	   reads with the same breathing room rather than butting flush
-	   against the scroll list / the settings foldout below. */
-	padding: 3px 3px 0 !important;
-	overflow: visible !important;
-	flex: 0 0 auto;
+	padding-inline-start: 5px;
 }
 </style>

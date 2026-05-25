@@ -90,22 +90,46 @@
 					<span class="cn-activity-tab__day-count">{{ day.rows.length }}</span>
 				</header>
 				<ul class="cn-activity-tab__list">
-					<li
+					<NcListItem
 						v-for="entry in day.rows"
 						:key="entryKey(entry)"
-						class="cn-activity-tab__row">
-						<div class="cn-activity-tab__row-icon">
-							<component :is="iconFor(entry)" :size="20" />
-						</div>
-						<div class="cn-activity-tab__row-main">
+						class="cn-activity-tab__row"
+						:name="subjectFor(entry)"
+						:bold="false"
+						:compact="true"
+						:force-display-actions="false">
+						<template #name>
 							<span class="cn-activity-tab__subject">{{ subjectFor(entry) }}</span>
-							<span class="cn-activity-tab__meta">
-								<span class="cn-activity-tab__actor">{{ actorFor(entry) }}</span>
-								<span class="cn-activity-tab__dot">·</span>
-								<span class="cn-activity-tab__time">{{ relativeTime(entry) }}</span>
+						</template>
+						<template #icon>
+							<span class="cn-activity-tab__avatar-wrap">
+								<NcAvatar
+									:user="avatarUser(entry)"
+									:display-name="actorFor(entry)"
+									:size="36"
+									:disable-menu="true"
+									:disable-tooltip="true"
+									:show-user-status="false" />
+								<span class="cn-activity-tab__type-badge" :class="typeBadgeClass(entry)">
+									<component :is="iconFor(entry)" :size="12" />
+								</span>
 							</span>
-						</div>
-					</li>
+						</template>
+						<template #subname>
+							<span class="cn-activity-tab__subname">
+								<span class="cn-activity-tab__actor">{{ actorFor(entry) }}</span>
+							</span>
+						</template>
+						<template v-if="timestampMillis(entry)" #details>
+							<NcDateTime
+								class="cn-activity-tab__time"
+								:timestamp="timestampMillis(entry)"
+								:relative-time="'short'" />
+						</template>
+						<template v-else #details>
+							<span class="cn-activity-tab__time">{{ relativeTime(entry) }}</span>
+						</template>
+					</NcListItem>
 				</ul>
 			</section>
 			<div v-if="hasMore" class="cn-activity-tab__footer">
@@ -126,7 +150,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
@@ -154,7 +178,10 @@ export default {
 	name: 'CnActivityTab',
 
 	components: {
+		NcAvatar,
 		NcButton,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		CalendarOutline,
@@ -343,12 +370,59 @@ export default {
 			}
 		},
 
+		/**
+		 * Resolve the entry timestamp as epoch-millisecond value for
+		 * NcDateTime, or 0 when unknown (callers branch on truthiness).
+		 *
+		 * @param {object} entry Activity row.
+		 * @return {number} Epoch milliseconds, or 0.
+		 */
+		timestampMillis(entry) {
+			const ts = this.timestampFor(entry)
+			return ts === null ? 0 : ts.getTime()
+		},
+
 		subjectFor(entry) {
 			return entry.subject_rich ?? entry.subjectRich ?? entry.subject ?? entry.title ?? ''
 		},
 
 		actorFor(entry) {
 			return entry.actor_id ?? entry.actorDisplayName ?? entry.user ?? entry.affecteduser ?? t('nextcloud-vue', 'System')
+		},
+
+		/**
+		 * NC user id to seed the actor avatar, when the entry carries a
+		 * real account id. Falls back to '' so NcAvatar renders initials
+		 * from the display name (e.g. the System pseudo-actor).
+		 *
+		 * @param {object} entry Activity row.
+		 * @return {string} NC user id, or ''.
+		 */
+		avatarUser(entry) {
+			const id = entry.actor_id ?? entry.user ?? entry.affecteduser ?? ''
+			return typeof id === 'string' ? id : ''
+		},
+
+		/**
+		 * Modifier class colouring the small activity-type badge that
+		 * overlaps the actor avatar, grouping verbs into NC-Activity-like
+		 * families (file / comment / share / tag).
+		 *
+		 * @param {object} entry Activity row.
+		 * @return {string} BEM modifier class.
+		 */
+		typeBadgeClass(entry) {
+			const type = String(entry.type ?? '').toLowerCase()
+			if (type.includes('comment')) {
+				return 'cn-activity-tab__type-badge--comment'
+			}
+			if (type.includes('share')) {
+				return 'cn-activity-tab__type-badge--share'
+			}
+			if (type.includes('tag')) {
+				return 'cn-activity-tab__type-badge--tag'
+			}
+			return 'cn-activity-tab__type-badge--file'
 		},
 
 		iconFor(entry) {
@@ -604,46 +678,62 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-}
-
-.cn-activity-tab__row {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-activity-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-activity-tab__row-icon {
-	flex-shrink: 0;
-	padding-top: 2px;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-activity-tab__row-main {
-	flex: 1;
-	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
+/* Actor avatar with an overlapping activity-type badge, mirroring the
+   NC Activity feed's per-event glyph. */
+.cn-activity-tab__avatar-wrap {
+	position: relative;
+	display: inline-flex;
+	width: 36px;
+	height: 36px;
+}
+
+.cn-activity-tab__type-badge {
+	position: absolute;
+	right: -2px;
+	bottom: -2px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	border: 2px solid var(--color-main-background);
+	color: var(--color-primary-element-text);
+	background: var(--color-primary-element);
+}
+
+.cn-activity-tab__type-badge--comment {
+	background: var(--color-success, #46ba61);
+}
+
+.cn-activity-tab__type-badge--share {
+	background: var(--color-primary-element);
+}
+
+.cn-activity-tab__type-badge--tag {
+	background: var(--color-warning, #e9a40f);
+}
+
+.cn-activity-tab__type-badge--file {
+	background: var(--color-text-maxcontrast);
+}
+
 .cn-activity-tab__subject {
 	color: var(--color-main-text);
-	font-weight: 500;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.cn-activity-tab__meta {
-	display: flex;
-	align-items: baseline;
-	gap: 6px;
-	font-size: 0.8em;
+.cn-activity-tab__subname {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -651,8 +741,10 @@ export default {
 	font-weight: 500;
 }
 
-.cn-activity-tab__dot {
-	opacity: 0.6;
+.cn-activity-tab__time {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.8em;
+	white-space: nowrap;
 }
 
 .cn-activity-tab__footer {

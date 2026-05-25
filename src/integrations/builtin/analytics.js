@@ -39,6 +39,9 @@ export const analyticsIntegration = {
 	id: 'analytics',
 	label: t('nextcloud-vue', 'Analytics'),
 	icon: 'ChartBar',
+	// NC Analytics' toolbar / chart accent reads as the Nextcloud
+	// primary blue; used by CnIntegrationWidget for the tab tint.
+	accentColor: '#0082c9',
 	requiredApp: 'analytics',
 	order: 61,
 	group: 'workflow',

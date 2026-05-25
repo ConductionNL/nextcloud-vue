@@ -305,7 +305,8 @@ export default {
 			if (ancestors.length === 0) {
 				return String(page.space ?? '')
 			}
-			return ancestors.map((c) => String(c)).filter((s) => s !== '').join(' / ')
+			// XWiki renders space paths with a "›" chevron separator.
+			return ancestors.map((c) => String(c)).filter((s) => s !== '').join(' › ')
 		},
 
 		chipSubtitle(page) {
