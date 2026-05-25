@@ -237,7 +237,7 @@ describe('CnContactsTab', () => {
 
 		expect(global.fetch).toHaveBeenCalledTimes(2)
 		const [url, opts] = global.fetch.mock.calls[1]
-		expect(url).toContain('/integrations/contacts/7')
+		expect(url).toContain('/objects/reg/sch/obj-1/contacts/uid-x')
 		expect(opts.method).toBe('DELETE')
 		expect(wrapper.vm.contacts.length).toBe(0)
 	})
