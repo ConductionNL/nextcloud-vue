@@ -33,6 +33,7 @@ import CnEmailCard from './email/CnEmailCard.vue'
 export const emailIntegration = {
 	id: 'email',
 	label: t('nextcloud-vue', 'Emails'),
+	appName: t('nextcloud-vue', 'Mail'),
 	icon: 'Email',
 	requiredApp: 'mail',
 	order: 22,

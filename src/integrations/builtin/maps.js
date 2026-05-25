@@ -42,6 +42,7 @@ import CnMapsCard from './maps/CnMapsCard.vue'
 export const mapsIntegration = {
 	id: 'maps',
 	label: t('nextcloud-vue', 'Locations'),
+	appName: t('nextcloud-vue', 'Maps'),
 	icon: 'MapMarker',
 	requiredApp: 'maps',
 	order: 42,

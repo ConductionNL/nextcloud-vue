@@ -43,6 +43,7 @@ import CnOpenprojectCard from './openproject/CnOpenprojectCard.vue'
 export const openprojectIntegration = {
 	id: 'openproject',
 	label: t('nextcloud-vue', 'Projects'),
+	appName: t('nextcloud-vue', 'OpenProject'),
 	icon: 'Briefcase',
 	requiredApp: 'openconnector',
 	order: 31,

@@ -36,6 +36,7 @@ import CnCollectivesCard from './collectives/CnCollectivesCard.vue'
 export const collectivesIntegration = {
 	id: 'collectives',
 	label: t('nextcloud-vue', 'Knowledge'),
+	appName: t('nextcloud-vue', 'Collectives'),
 	icon: 'BookOpenPageVariant',
 	requiredApp: 'collectives',
 	order: 41,
