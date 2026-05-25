@@ -177,4 +177,63 @@ describe('CnSharesTab', () => {
 		wrapper.destroy()
 		spy.mockRestore()
 	})
+
+	it('renders a "Share file" toolbar button', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.find('[data-testid="cn-shares-tab-share-file"]').exists()).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('opens the create dialog and fetches shareable files', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [{ fileId: 5, fileName: 'a.txt' }] }) }) // files
+		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.openCreateDialog()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showCreate).toBe(true)
+		expect(wrapper.vm.shareableFiles).toEqual([{ fileId: 5, fileName: 'a.txt' }])
+		const filesCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
+		expect(filesCall[0]).toContain('/integrations/shares/files/reg/schema/obj-1')
+		wrapper.destroy()
+	})
+
+	it('POSTs to the dedicated /shares endpoint on createShare and refetches', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({ shareId: 's1' }) }) // create
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // refetch
+		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+
+		const payload = { fileId: 5, shareType: 0, shareWith: 'bob', permissions: 1, password: null, expiration: null }
+		await wrapper.vm.createShare(payload)
+		await wrapper.vm.$nextTick()
+
+		const createCall = global.fetch.mock.calls[1]
+		expect(createCall[0]).toContain('/objects/reg/schema/obj-1/shares')
+		expect(createCall[1].method).toBe('POST')
+		expect(JSON.parse(createCall[1].body)).toEqual(payload)
+		expect(wrapper.vm.showCreate).toBe(false)
+		expect(wrapper.emitted('share-created')).toBeTruthy()
+		wrapper.destroy()
+	})
+
+	it('surfaces the backend error message when createShare fails', async () => {
+		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
+			.mockResolvedValueOnce({ ok: false, status: 400, json: () => Promise.resolve({ error: 'bad recipient' }) }) // create
+		const wrapper = mount(CnSharesTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.createShare({ fileId: 5, shareType: 0, shareWith: '', permissions: 1 })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.error).toBe('bad recipient')
+		wrapper.destroy()
+		spy.mockRestore()
+	})
 })
