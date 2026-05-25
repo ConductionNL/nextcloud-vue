@@ -482,4 +482,19 @@ export default {
  * overrides) was the non-native bit that fought NC's layout and has been
  * removed entirely.
  */
+
+/*
+ * Align the settings foldout's items with the main/footer list items,
+ * whose icons sit at a 16px inset. The foldout's items live in a bare
+ * <ul> inside NcAppNavigationSettings' panel (`#app-settings`, padding
+ * 3px), so without this they start ~5px further left and the icon
+ * column looks ragged. (The native settings-toggle button sits ~1px
+ * left of the 16px baseline, but NC owns that with an !important
+ * shorthand — a sub-pixel difference we leave to the native component.)
+ */
+.cn-app-nav__settings-list {
+	list-style: none;
+	margin: 0;
+	padding-inline-start: 5px;
+}
 </style>
