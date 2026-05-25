@@ -17,16 +17,23 @@
   Clicking a row deep-links to the TimeManager UI — own `url` field
   wins; otherwise the tab synthesises a sensible permalink per kind.
 
-  Talks to the OpenRegister pluggable-integration sub-resource
-    `/api/objects/{register}/{schema}/{objectId}/integrations/time-tracker`
-  served by `OCA\OpenRegister\Service\Integration\Providers\TimeProvider`
-  (link-table strategy — marker `[or:{uuid}]` in
-  `timemanager_project.name`).
+  Talks to the OpenRegister Tier-2 time-tracker link API
+    GET    /api/objects/{register}/{schema}/{id}/time-tracker
+    POST   /api/objects/{register}/{schema}/{id}/time-tracker          (link existing)
+    POST   /api/objects/{register}/{schema}/{id}/time-tracker/new      (create + link client)
+    DELETE /api/objects/{register}/{schema}/{id}/time-tracker/{entryId} (unlink)
+  served by `OCA\OpenRegister\Controller\TimeTrackerLinksController`
+  (link-table strategy — rows in `openregister_timetracker_links`; the
+  `TimeProvider` still falls back to the legacy `[or:{uuid}]` note marker).
+
+  Tier-2 surface: a Link/Create actions bar drives the
+  CnTimeTrackerPicker (pick an existing entry) + CnTimeTrackerCreate
+  (create a client) dialogs; each row has a per-row unlink button.
 
   Surface behaviour (per ADR-017 graceful degradation):
     - Empty state with "Open TimeManager" CTA when no linked rows.
     - Loading spinner during fetch.
-    - 503 "currently unavailable" banner when TimeManager is down.
+    - 503 / 501 "currently unavailable" banner when TimeManager is down.
     - Generic error label when fetch throws.
 
   Bespoke-vs-generic rationale: the generic tab renders a flat link
@@ -47,6 +54,21 @@
 		<div v-if="degraded" class="cn-time-tracker-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<div v-if="!degraded" class="cn-time-tracker-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing entry') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new client') }}
+			</NcButton>
 		</div>
 
 		<NcLoadingIcon v-if="loading" />
@@ -78,6 +100,15 @@
 					<span class="cn-time-tracker-tab__kind-chip" :class="kindChipClass(row)">
 						{{ kindLabel(row) }}
 					</span>
+					<NcButton
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink entry')"
+						class="cn-time-tracker-tab__unlink"
+						@click="unlinkRow(row)">
+						<template #icon>
+							<LinkOff :size="16" />
+						</template>
+					</NcButton>
 				</div>
 				<div class="cn-time-tracker-tab__row-meta">
 					<span v-if="taskCountLabel(row)" class="cn-time-tracker-tab__task-count">
@@ -102,6 +133,18 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnTimeTrackerPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnTimeTrackerCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -113,7 +156,12 @@ import ClipboardTextOutline from 'vue-material-design-icons/ClipboardTextOutline
 import Clock from 'vue-material-design-icons/Clock.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
+import CnTimeTrackerCreate from '../../../components/CnTimeTrackerCreate/CnTimeTrackerCreate.vue'
+import CnTimeTrackerPicker from '../../../components/CnTimeTrackerPicker/CnTimeTrackerPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -134,7 +182,12 @@ export default {
 		Clock,
 		ClockOutline,
 		CurrencyEur,
+		LinkOff,
+		LinkVariant,
+		Plus,
 		Timer,
+		CnTimeTrackerPicker,
+		CnTimeTrackerCreate,
 	},
 
 	props: {
@@ -166,6 +219,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 			billableTitle: t('nextcloud-vue', 'This entry is marked as billable.'),
 		}
 	},
@@ -177,8 +232,15 @@ export default {
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Base for the Tier-2 time-tracker endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/time-tracker`
 		},
 
 		rowKey(row) {
@@ -325,6 +387,78 @@ export default {
 			}
 		},
 
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.baseUrl(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This entry is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link entry.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnTimeTrackerTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link entry.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.baseUrl()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create client.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnTimeTrackerTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create client.')
+			}
+		},
+
+		async unlinkRow(row) {
+			const id = this.rowKey(row)
+			if (!id) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.baseUrl()}/${encodeURIComponent(id)}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchRows()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink entry.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnTimeTrackerTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink entry.')
+			}
+		},
+
 		async fetchRows() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -338,7 +472,7 @@ export default {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.rows = rows
-				} else if (response.status === 503) {
+				} else if (response.status === 503 || response.status === 501) {
 					this.rows = []
 					this.degraded = this.unavailableLabel
 				} else {
@@ -359,6 +493,17 @@ export default {
 </script>
 
 <style scoped>
+.cn-time-tracker-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
+.cn-time-tracker-tab__unlink {
+	flex-shrink: 0;
+}
+
 .cn-time-tracker-tab__banner {
 	display: flex;
 	align-items: center;

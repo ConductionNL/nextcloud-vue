@@ -164,3 +164,7 @@ export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
 // Analytics integration leaf (Tier-2)
 export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
 export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
+
+// Time-tracker integration leaf (Tier-2)
+export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
+export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
