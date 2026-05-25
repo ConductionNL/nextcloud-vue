@@ -85,54 +85,72 @@
 				{{ openTimeTrackerLabel }}
 			</NcButton>
 		</div>
-		<ul v-else class="cn-time-tracker-tab__list">
-			<li
-				v-for="row in rows"
-				:key="rowKey(row)"
-				class="cn-time-tracker-tab__row"
-				:class="rowClass(row)">
-				<div class="cn-time-tracker-tab__row-header">
-					<a
-						:href="rowUrl(row)"
-						target="_blank"
-						rel="noopener"
-						class="cn-time-tracker-tab__title">{{ rowTitle(row) }}</a>
-					<span class="cn-time-tracker-tab__kind-chip" :class="kindChipClass(row)">
-						{{ kindLabel(row) }}
-					</span>
-					<NcButton
-						type="tertiary-no-background"
-						:aria-label="t('nextcloud-vue', 'Unlink entry')"
-						class="cn-time-tracker-tab__unlink"
-						@click="unlinkRow(row)">
-						<template #icon>
-							<LinkOff :size="16" />
-						</template>
-					</NcButton>
-				</div>
-				<div class="cn-time-tracker-tab__row-meta">
-					<span v-if="taskCountLabel(row)" class="cn-time-tracker-tab__task-count">
-						<ClipboardTextOutline :size="13" />
-						{{ taskCountLabel(row) }}
-					</span>
-					<span v-if="durationLabel(row)" class="cn-time-tracker-tab__duration">
-						<Timer :size="13" />
-						{{ durationLabel(row) }}
-					</span>
-					<span v-if="startedAtLabel(row)" class="cn-time-tracker-tab__started-at">
-						<ClockOutline :size="13" />
-						{{ startedAtLabel(row) }}
-					</span>
-					<span
-						v-if="isBillable(row)"
-						class="cn-time-tracker-tab__billable"
-						:title="billableTitle">
-						<CurrencyEur :size="13" />
-						{{ billableLabel }}
-					</span>
-				</div>
-			</li>
-		</ul>
+		<template v-else>
+			<div v-if="totalDurationLabel" class="cn-time-tracker-tab__summary">
+				<span class="cn-time-tracker-tab__summary-label">
+					<Timer :size="16" />
+					{{ t('nextcloud-vue', 'Total tracked') }}
+				</span>
+				<span class="cn-time-tracker-tab__summary-value">{{ totalDurationLabel }}</span>
+			</div>
+			<ul class="cn-time-tracker-tab__list">
+				<NcListItem
+					v-for="row in rows"
+					:key="rowKey(row)"
+					class="cn-time-tracker-tab__row"
+					:class="rowClass(row)"
+					:name="rowTitle(row)"
+					:bold="true"
+					:href="rowUrl(row)"
+					target="_blank"
+					:force-display-actions="true">
+					<template #icon>
+						<span class="cn-time-tracker-tab__row-icon" :class="rowClass(row)">
+							<ClipboardTextOutline v-if="rowKind(row) === 'task'" :size="22" />
+							<AccountOutline v-else-if="rowKind(row) === 'client'" :size="22" />
+							<ClockOutline v-else :size="22" />
+						</span>
+					</template>
+					<template #subname>
+						<span class="cn-time-tracker-tab__subline">
+							<span class="cn-time-tracker-tab__kind-chip" :class="kindChipClass(row)">
+								{{ kindLabel(row) }}
+							</span>
+							<NcDateTime
+								v-if="startedAtMs(row) !== null"
+								class="cn-time-tracker-tab__date"
+								:timestamp="startedAtMs(row)"
+								:relative-time="'short'" />
+							<span v-else-if="taskCountLabel(row)" class="cn-time-tracker-tab__task-count">
+								{{ taskCountLabel(row) }}
+							</span>
+						</span>
+					</template>
+					<template #details>
+						<span v-if="durationLabel(row)" class="cn-time-tracker-tab__duration">
+							{{ durationLabel(row) }}
+						</span>
+					</template>
+					<template v-if="isBillable(row)" #indicator>
+						<span class="cn-time-tracker-tab__billable" :title="billableTitle">
+							<CurrencyEur :size="14" />
+							{{ billableLabel }}
+						</span>
+					</template>
+					<template #actions>
+						<NcActionButton
+							class="cn-time-tracker-tab__unlink"
+							:close-after-click="true"
+							@click="unlinkRow(row)">
+							<template #icon>
+								<LinkOff :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Unlink entry') }}
+						</NcActionButton>
+					</template>
+				</NcListItem>
+			</ul>
+		</template>
 
 		<CnTimeTrackerPicker
 			v-if="pickerOpen"
@@ -150,7 +168,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClipboardTextOutline from 'vue-material-design-icons/ClipboardTextOutline.vue'
 import Clock from 'vue-material-design-icons/Clock.vue'
@@ -175,8 +194,12 @@ export default {
 	name: 'CnTimeTrackerTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
+		AccountOutline,
 		AlertCircleOutline,
 		ClipboardTextOutline,
 		Clock,
@@ -223,6 +246,38 @@ export default {
 			createOpen: false,
 			billableTitle: t('nextcloud-vue', 'This entry is marked as billable.'),
 		}
+	},
+
+	computed: {
+		/**
+		 * Total tracked seconds across all linked rows that carry a
+		 * `duration` (clients are parent containers and usually omit it).
+		 *
+		 * @return {number} Seconds total.
+		 */
+		totalSeconds() {
+			let total = 0
+			for (const row of this.rows) {
+				const d = this.durationSeconds(row)
+				if (d !== null) {
+					total += d
+				}
+			}
+			return total
+		},
+
+		/**
+		 * Human-readable total duration shown in the summary header, or
+		 * empty when nothing tracked.
+		 *
+		 * @return {string} Formatted "Xh Ym" / "Ym" total.
+		 */
+		totalDurationLabel() {
+			if (this.totalSeconds === 0) {
+				return ''
+			}
+			return this.formatDuration(this.totalSeconds)
+		},
 	},
 
 	watch: {
@@ -333,18 +388,28 @@ export default {
 			return Number.isNaN(num) ? null : num
 		},
 
-		durationLabel(row) {
-			const total = this.durationSeconds(row)
-			if (total === null) {
-				return ''
-			}
-			const totalMinutes = Math.round(total / 60)
+		/**
+		 * Format a seconds total as a compact "Xh Ym" / "Ym" duration.
+		 *
+		 * @param {number} seconds Total seconds.
+		 * @return {string} Formatted duration.
+		 */
+		formatDuration(seconds) {
+			const totalMinutes = Math.round(seconds / 60)
 			const hours = Math.floor(totalMinutes / 60)
 			const minutes = totalMinutes % 60
 			if (hours > 0) {
 				return `${hours}h ${minutes}m`
 			}
 			return `${minutes}m`
+		},
+
+		durationLabel(row) {
+			const total = this.durationSeconds(row)
+			if (total === null) {
+				return ''
+			}
+			return this.formatDuration(total)
 		},
 
 		taskCountLabel(row) {
@@ -362,19 +427,27 @@ export default {
 			return t('nextcloud-vue', '{count} tasks', { count: num })
 		},
 
-		startedAtLabel(row) {
+		/**
+		 * Start timestamp in milliseconds for the row, suitable for
+		 * `NcDateTime`. Only time entries carry a start; returns null when
+		 * absent or unparseable.
+		 *
+		 * @param {object} row Provider row.
+		 * @return {number|null} Epoch milliseconds or null.
+		 */
+		startedAtMs(row) {
 			if (this.rowKind(row) !== 'time') {
-				return ''
+				return null
 			}
 			const raw = row.startedAt ?? row.started_at ?? row.start ?? row.data?.start ?? null
-			if (!raw) {
-				return ''
+			if (raw === null || raw === undefined || raw === '') {
+				return null
 			}
-			const date = typeof raw === 'number' ? new Date(raw * 1000) : new Date(raw)
-			if (Number.isNaN(date.getTime())) {
-				return ''
+			const ms = typeof raw === 'number' ? raw * 1000 : Date.parse(raw)
+			if (Number.isNaN(ms)) {
+				return null
 			}
-			return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+			return ms
 		},
 
 		isBillable(row) {
@@ -536,55 +609,78 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+.cn-time-tracker-tab__summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 8px 12px;
+	margin-bottom: 8px;
+	border-radius: var(--border-radius-large, var(--border-radius));
+	background: var(--color-background-hover);
+}
+
+.cn-time-tracker-tab__summary-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-time-tracker-tab__summary-value {
+	font-weight: 700;
+	font-size: 1.15em;
+	color: var(--color-main-text);
+	font-variant-numeric: tabular-nums;
+}
+
 .cn-time-tracker-tab__list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 2px;
 }
 
-.cn-time-tracker-tab__row {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 8px 10px;
-	border-radius: var(--border-radius);
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
+.cn-time-tracker-tab__row-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
 }
 
-.cn-time-tracker-tab__row--client {
-	border-left: 3px solid var(--color-primary-element, #21468B);
+.cn-time-tracker-tab__row-icon.cn-time-tracker-tab__row--client {
+	background: var(--color-primary-element-light, var(--color-background-dark));
+	color: var(--color-primary-element, #21468B);
 }
 
-.cn-time-tracker-tab__row--task {
-	border-left: 3px solid var(--color-warning, #e9a40f);
+.cn-time-tracker-tab__row-icon.cn-time-tracker-tab__row--task {
+	background: var(--color-warning, #e9a40f);
+	color: var(--color-main-background);
 }
 
-.cn-time-tracker-tab__row--time {
-	border-left: 3px solid var(--color-success, #46ba61);
+.cn-time-tracker-tab__row-icon.cn-time-tracker-tab__row--time {
+	background: var(--color-success, #46ba61);
+	color: var(--color-main-background);
 }
 
-.cn-time-tracker-tab__row-header {
-	display: flex;
+.cn-time-tracker-tab__subline {
+	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	flex-wrap: wrap;
 }
 
-.cn-time-tracker-tab__title {
-	flex: 1;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-a.cn-time-tracker-tab__title:hover {
-	text-decoration: underline;
+.cn-time-tracker-tab__date,
+.cn-time-tracker-tab__task-count {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
 }
 
 .cn-time-tracker-tab__kind-chip {
@@ -615,31 +711,24 @@ a.cn-time-tracker-tab__title:hover {
 	color: var(--color-main-background);
 }
 
-.cn-time-tracker-tab__row-meta {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 8px;
-	font-size: 0.78em;
-	color: var(--color-text-maxcontrast);
-}
-
 .cn-time-tracker-tab__duration {
-	font-weight: 600;
+	font-weight: 700;
+	font-size: 1.05em;
 	color: var(--color-main-text);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
 }
 
-.cn-time-tracker-tab__duration,
-.cn-time-tracker-tab__task-count,
-.cn-time-tracker-tab__started-at,
 .cn-time-tracker-tab__billable {
 	display: inline-flex;
 	align-items: center;
 	gap: 3px;
-}
-
-.cn-time-tracker-tab__billable {
-	color: var(--color-success, #46ba61);
-	font-weight: 500;
+	padding: 1px 6px;
+	border-radius: 8px;
+	font-size: 0.72em;
+	font-weight: 600;
+	color: var(--color-main-background);
+	background: var(--color-success, #46ba61);
+	white-space: nowrap;
 }
 </style>
