@@ -1,17 +1,18 @@
 /**
  * Tests for CnAnalyticsTab — bespoke sidebar tab for the `analytics`
- * integration.
+ * integration (Tier-2).
  *
  * Covers:
- *  - empty-state with "Open Analytics" CTA when the provider returns
+ *  - empty-state with "Open Analytics" CTA when the endpoint returns
  *    no rows;
  *  - row rendering: title, type badge, modified date, deep-link href
  *    into the NC Analytics app;
  *  - `[or:{uuid}]` marker is stripped from the displayed title and
- *    from the subheader (wave-2.2 had marker on subheader; defensive
- *    against both placements);
- *  - graceful degradation when the provider returns 503;
- *  - generic-error path when fetch throws.
+ *    from the subheader (defensive against legacy placement);
+ *  - graceful degradation when the endpoint returns 503/501;
+ *  - generic-error path when fetch throws;
+ *  - Tier-2: link existing (onLinkPick), create (onCreatePick) and
+ *    per-row unlink (unlinkReport) POST/DELETE to the OR endpoints.
  */
 
 const { mount } = require('@vue/test-utils')
@@ -26,14 +27,18 @@ const DEFAULT_PROPS = {
 function makeReport(overrides = {}) {
 	return {
 		id: 42,
-		title: 'Quarterly KPIs',
+		reportId: 42,
+		reportTitle: 'Quarterly KPIs',
 		url: '/index.php/apps/analytics/#/r/42',
 		subheader: 'Sales pipeline broken down by region',
-		reportType: 1,
+		reportType: 0,
 		modifiedAt: '2026-05-01T09:00:00Z',
-		data: { id: 42, name: 'Quarterly KPIs', subheader: 'Sales pipeline broken down by region', type: 1 },
 		...overrides,
 	}
+}
+
+function okJson(payload, status = 200) {
+	return { ok: status >= 200 && status < 300, status, json: () => Promise.resolve(payload) }
 }
 
 describe('CnAnalyticsTab', () => {
@@ -46,7 +51,7 @@ describe('CnAnalyticsTab', () => {
 	})
 
 	it('renders the empty state with an "Open Analytics" CTA when no reports', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({ results: [] }))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -56,16 +61,12 @@ describe('CnAnalyticsTab', () => {
 	})
 
 	it('renders one row per report with title + type badge + deep-link href', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({
-				results: [
-					makeReport({ id: 1, title: 'Sales', reportType: 1, url: '/index.php/apps/analytics/#/r/1' }),
-					makeReport({ id: 2, title: 'Ops Dashboard', reportType: 4, url: '/index.php/apps/analytics/#/r/2' }),
-				],
-			}),
-		})
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({
+			results: [
+				makeReport({ reportId: 1, reportTitle: 'Sales', reportType: 0, url: '/index.php/apps/analytics/#/r/1' }),
+				makeReport({ reportId: 2, reportTitle: 'Ops Dashboard', reportType: 4, url: '/index.php/apps/analytics/#/r/2' }),
+			],
+		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -74,7 +75,7 @@ describe('CnAnalyticsTab', () => {
 		expect(wrapper.text()).toContain('Sales')
 		expect(wrapper.text()).toContain('Ops Dashboard')
 		expect(wrapper.text()).toContain('Group')
-		expect(wrapper.text()).toContain('Internal')
+		expect(wrapper.text()).toContain('External')
 		const links = wrapper.findAll('a.cn-analytics-tab__title')
 		expect(links.at(0).attributes('href')).toBe('/index.php/apps/analytics/#/r/1')
 		expect(links.at(1).attributes('href')).toBe('/index.php/apps/analytics/#/r/2')
@@ -82,19 +83,15 @@ describe('CnAnalyticsTab', () => {
 	})
 
 	it('strips the [or:{uuid}] marker from title and subheader', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({
-				results: [
-					makeReport({
-						id: 7,
-						title: 'KPI [or:obj-1]',
-						subheader: 'with annotated marker [or:obj-1]',
-					}),
-				],
-			}),
-		})
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({
+			results: [
+				makeReport({
+					reportId: 7,
+					reportTitle: 'KPI [or:obj-1]',
+					subheader: 'with annotated marker [or:obj-1]',
+				}),
+			],
+		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -106,13 +103,9 @@ describe('CnAnalyticsTab', () => {
 	})
 
 	it('renders a fallback "Report" badge for unknown report types', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: () => Promise.resolve({
-				results: [makeReport({ id: 99, reportType: 999 })],
-			}),
-		})
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({
+			results: [makeReport({ reportId: 99, reportType: 999 })],
+		}))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -120,8 +113,8 @@ describe('CnAnalyticsTab', () => {
 		wrapper.destroy()
 	})
 
-	it('shows the unavailable banner when the provider returns 503', async () => {
-		global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) })
+	it('shows the unavailable banner when the endpoint returns 503', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce(okJson({}, 503))
 		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
@@ -139,5 +132,76 @@ describe('CnAnalyticsTab', () => {
 		expect(wrapper.text()).toContain('Could not load reports.')
 		wrapper.destroy()
 		spy.mockRestore()
+	})
+
+	it('POSTs to the link endpoint then refreshes on link pick', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce(okJson({ results: [] })) // initial fetch
+			.mockResolvedValueOnce(okJson({ id: 1 }, 201)) // link POST
+			.mockResolvedValueOnce(okJson({ results: [makeReport({ reportId: 5, reportTitle: 'Linked' })] })) // refetch
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ reportId: 5 })
+		await wrapper.vm.$nextTick()
+
+		const linkCall = global.fetch.mock.calls[1]
+		expect(linkCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics')
+		expect(linkCall[1].method).toBe('POST')
+		expect(JSON.parse(linkCall[1].body)).toEqual({ reportId: 5 })
+		expect(wrapper.text()).toContain('Linked')
+		wrapper.destroy()
+	})
+
+	it('surfaces the already-linked error on 409', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce(okJson({ results: [] }))
+			.mockResolvedValueOnce(okJson({ error: 'dup' }, 409))
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ reportId: 5 })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('This report is already linked.')
+		wrapper.destroy()
+	})
+
+	it('POSTs to the create endpoint on create pick', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce(okJson({ results: [] }))
+			.mockResolvedValueOnce(okJson({ id: 9 }, 201))
+			.mockResolvedValueOnce(okJson({ results: [] }))
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onCreatePick({ name: 'New report', type: 0 })
+		await wrapper.vm.$nextTick()
+
+		const createCall = global.fetch.mock.calls[1]
+		expect(createCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics/new')
+		expect(createCall[1].method).toBe('POST')
+		expect(JSON.parse(createCall[1].body)).toEqual({ name: 'New report', type: 0 })
+		wrapper.destroy()
+	})
+
+	it('DELETEs the report on unlink', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce(okJson({ results: [makeReport({ reportId: 5 })] }))
+			.mockResolvedValueOnce(okJson({ success: true }))
+			.mockResolvedValueOnce(okJson({ results: [] }))
+		const wrapper = mount(CnAnalyticsTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.unlinkReport({ reportId: 5 })
+		await wrapper.vm.$nextTick()
+
+		const delCall = global.fetch.mock.calls[1]
+		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/analytics/5')
+		expect(delCall[1].method).toBe('DELETE')
+		wrapper.destroy()
 	})
 })

@@ -152,3 +152,7 @@ export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'
 // Bookmarks integration leaf (Tier-2)
 export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
 export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
+
+// Analytics integration leaf (Tier-2)
+export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
+export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
