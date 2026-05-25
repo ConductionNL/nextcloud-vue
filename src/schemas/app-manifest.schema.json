@@ -24,6 +24,22 @@
 			"items": { "type": "string" },
 			"description": "Nextcloud app IDs that MUST be installed and enabled for this app to function. CnAppRoot checks each via useAppStatus(appId)."
 		},
+		"nav": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Navigation-level configuration consumed by CnAppNav.",
+			"properties": {
+				"includePersonalSettings": {
+					"type": "boolean",
+					"default": true,
+					"description": "Auto-prepend a 'Personal settings' entry at the top of the settings foldout (opens the host's NcAppSettingsDialog via cnOpenUserSettings). Set false for apps with no per-user settings."
+				},
+				"settingsLabel": {
+					"type": "string",
+					"description": "Override label for the settings foldout's gear button. Defaults to 'Settings'."
+				}
+			}
+		},
 		"runtime": {
 			"type": "object",
 			"description": "Runtime context data injected into the manifest by the backend (e.g. OpenRegister) at serve time. Carries per-user fields that `visibleIf` context-path predicates resolve against. The canonical sub-object is `user`, which exposes user-specific flags and role information. Example: `{ \"user\": { \"primaryRole\": \"compliance-officer\", \"isOverdueOnMandatoryTraining\": false } }`. Consumer apps MUST NOT assume any field is present; the FE evaluator returns `false` (hidden) when a referenced path resolves to `undefined`.",
@@ -80,7 +96,7 @@
 				},
 				"section": {
 					"type": "string",
-					"enum": ["main", "settings"],
+					"enum": ["main", "footer", "settings"],
 					"default": "main",
 					"description": "Where the entry renders inside CnAppNav. \"main\" (default) places it in the top list. \"settings\" places it inside the NcAppNavigationSettings footer group, below the separator. Use \"settings\" for items that act on app configuration, help/docs links, or anything that belongs near Settings."
 				},
@@ -118,7 +134,7 @@
 				"permission": { "type": "string" },
 				"section": {
 					"type": "string",
-					"enum": ["main", "settings"],
+					"enum": ["main", "footer", "settings"],
 					"default": "main"
 				},
 				"href": { "type": "string" },

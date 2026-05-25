@@ -7,12 +7,18 @@
   an order render last. Items with a `permission` are filtered against
   the `permissions` prop — when the prop is omitted, all items render.
 
-  Items split into two groups by `section`:
+  Items split into three groups by `section`:
   - `section: "main"` (default) — top of the navigation, scrollable.
-  - `section: "settings"` — pinned to the bottom inside NcAppNavigation's
-    `#footer` slot, always visible above the close-toggle, separated
-    from the main list by a thin border. Use for documentation links,
-    settings entries, or anything that should sit at the bottom.
+  - `section: "footer"` — pinned-bottom regular entries rendered flat in
+    NcAppNavigation's `#footer` slot, above the settings foldout. For
+    always-visible, non-settings links: Documentation, Features &
+    Roadmap, About.
+  - `section: "settings"` — rendered INSIDE an NcAppNavigationSettings
+    foldout (the NC-native gear-icon button that slides a panel open).
+    A "Personal settings" entry is auto-prepended at the top of the
+    foldout (opens the host app's NcAppSettingsDialog via
+    cnOpenUserSettings); opt out with `nav.includePersonalSettings:
+    false`. The foldout only mounts when ≥1 settings item exists.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -60,10 +66,16 @@
 				</NcAppNavigationItem>
 			</NcAppNavigationItem>
 		</template>
-		<template v-if="settingsItems.length" #footer>
-			<ul class="cn-app-nav__footer-list" data-testid="cn-nav-footer">
+		<template v-if="footerItems.length || showSettingsFoldout" #footer>
+			<!-- Pinned-bottom regular entries (section: "footer") — e.g.
+			     Documentation, Features & Roadmap, About. Always visible,
+			     rendered flat above the settings foldout. -->
+			<ul
+				v-if="footerItems.length"
+				class="cn-app-nav__footer-list"
+				data-testid="cn-nav-footer">
 				<NcAppNavigationItem
-					v-for="item in settingsItems"
+					v-for="item in footerItems"
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
@@ -77,12 +89,49 @@
 					</template>
 				</NcAppNavigationItem>
 			</ul>
+
+			<!-- Settings foldout (section: "settings" items). NC-native
+			     gear-icon button that slides open a panel; the first entry
+			     is an auto-prepended "Personal settings" that opens the
+			     host app's NcAppSettingsDialog via cnOpenUserSettings. -->
+			<NcAppNavigationSettings
+				v-if="showSettingsFoldout"
+				:name="settingsFoldoutLabel"
+				data-testid="cn-nav-settings">
+				<ul class="cn-app-nav__settings-list">
+					<NcAppNavigationItem
+						v-if="includePersonalSettings"
+						:name="personalSettingsLabel"
+						data-testid="cn-nav-personal-settings"
+						@click="onPersonalSettingsClick">
+						<template #icon>
+							<Cog :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-for="item in settingsItems"
+						:key="item.id"
+						:name="resolveLabel(item)"
+						:to="itemTo(item)"
+						:exact="isExact(item)"
+						:icon="cssIconClass(item)"
+						:active="isActive(item)"
+						:data-testid="`cn-nav-entry-${item.id}`"
+						@click="onItemClick(item, $event)">
+						<template v-if="mdiIconComponent(item)" #icon>
+							<component :is="mdiIconComponent(item)" :size="20" />
+						</template>
+					</NcAppNavigationItem>
+				</ul>
+			</NcAppNavigationSettings>
 		</template>
 	</NcAppNavigation>
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationSettings } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
@@ -93,6 +142,8 @@ export default {
 	components: {
 		NcAppNavigation,
 		NcAppNavigationItem,
+		NcAppNavigationSettings,
+		Cog,
 	},
 
 	inject: {
@@ -175,14 +226,65 @@ export default {
 			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
 		},
 		/**
-		 * Items that render inside the `#footer` slot of NcAppNavigation
-		 * — always visible at the bottom of the navigation, above the
-		 * close-toggle. Use for help / docs / settings entries that
-		 * should anchor to the bottom rather than scroll with the main
-		 * list.
+		 * Items pinned to the bottom of the navigation (section:
+		 * "footer") — rendered as flat NcAppNavigationItems above the
+		 * settings foldout. For always-visible, non-settings entries:
+		 * Documentation, Features & Roadmap, About.
+		 */
+		footerItems() {
+			return this.visibleItems.filter((item) => item.section === 'footer')
+		},
+		/**
+		 * Items that render INSIDE the NcAppNavigationSettings foldout
+		 * (section: "settings"). The foldout is the NC-native gear-icon
+		 * button that slides a panel open; these entries are app-level
+		 * configuration pages (Forms, Pipelines, Automations, …).
 		 */
 		settingsItems() {
 			return this.visibleItems.filter((item) => item.section === 'settings')
+		},
+		/**
+		 * Whether the settings foldout mounts. Mounts only when at least
+		 * one `section: "settings"` item exists — an empty settings group
+		 * shows no foldout (and thus no orphan Personal-settings entry).
+		 *
+		 * @return {boolean}
+		 */
+		showSettingsFoldout() {
+			return this.settingsItems.length > 0
+		},
+		/**
+		 * Whether to auto-prepend the "Personal settings" entry at the top
+		 * of the foldout. On by default; opt out with
+		 * `manifest.nav.includePersonalSettings: false` (e.g. when the app
+		 * has no per-user NcAppSettingsDialog wired through
+		 * cnOpenUserSettings).
+		 *
+		 * @return {boolean}
+		 */
+		includePersonalSettings() {
+			return this.effectiveManifest?.nav?.includePersonalSettings !== false
+		},
+		/**
+		 * Label for the foldout's gear button. Manifest override:
+		 * `nav.settingsLabel`; defaults to "Settings".
+		 *
+		 * @return {string}
+		 */
+		settingsFoldoutLabel() {
+			const custom = this.effectiveManifest?.nav?.settingsLabel
+			if (typeof custom === 'string' && custom.length > 0) {
+				return this.effectiveTranslate(custom)
+			}
+			return t('nextcloud-vue', 'Settings')
+		},
+		/**
+		 * Label for the auto-prepended Personal-settings entry.
+		 *
+		 * @return {string}
+		 */
+		personalSettingsLabel() {
+			return t('nextcloud-vue', 'Personal settings')
 		},
 	},
 
@@ -343,6 +445,17 @@ export default {
 				event.preventDefault()
 			}
 			window.open(item.href, '_blank', 'noopener,noreferrer')
+		},
+		/**
+		 * Click handler for the auto-prepended Personal-settings entry in
+		 * the settings foldout. Invokes the injected `cnOpenUserSettings`
+		 * (provided by CnAppRoot → opens the host's NcAppSettingsDialog).
+		 * No-op inject when mounted standalone.
+		 *
+		 * @return {void}
+		 */
+		onPersonalSettingsClick() {
+			this.cnOpenUserSettings()
 		},
 	},
 }
