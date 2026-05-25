@@ -141,3 +141,7 @@ export { CnTalkRoomCreate } from './CnTalkRoomCreate/index.js'
 
 // Flow integration leaf (Tier-2)
 export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
+
+// Photos integration leaf (Tier-2)
+export { CnPhotoAlbumPicker } from './CnPhotoAlbumPicker/index.js'
+export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'

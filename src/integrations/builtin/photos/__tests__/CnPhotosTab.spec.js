@@ -73,7 +73,8 @@ describe('CnPhotosTab', () => {
 		expect(wrapper.text()).toContain('Bravo')
 		expect(wrapper.text()).toContain('5 photos')
 		expect(wrapper.text()).toContain('11 photos')
-		expect(tiles.at(0).attributes('href')).toBe('/index.php/apps/photos/albums/Alpha')
+		const links = wrapper.findAll('.cn-photos-tab__tile-link')
+		expect(links.at(0).attributes('href')).toBe('/index.php/apps/photos/albums/Alpha')
 		wrapper.destroy()
 	})
 
@@ -137,5 +138,61 @@ describe('CnPhotosTab', () => {
 		expect(wrapper.text()).toContain('Could not load albums.')
 		wrapper.destroy()
 		spy.mockRestore()
+	})
+
+	it('renders the Tier-2 link/create action buttons', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.text()).toContain('Link existing album')
+		expect(wrapper.text()).toContain('Create new album')
+		wrapper.destroy()
+	})
+
+	it('POSTs the albumId to the Tier-2 endpoint on link pick', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
+			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({}) }) // POST link
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // refetch
+		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ albumId: 7 })
+		const linkCall = global.fetch.mock.calls[1]
+		expect(linkCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/photos')
+		expect(linkCall[1].method).toBe('POST')
+		expect(JSON.parse(linkCall[1].body)).toEqual({ albumId: 7 })
+		wrapper.destroy()
+	})
+
+	it('surfaces the duplicate-link error on 409', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: false, status: 409, json: () => Promise.resolve({}) })
+		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onLinkPick({ albumId: 7 })
+		expect(wrapper.vm.error).toContain('already linked')
+		wrapper.destroy()
+	})
+
+	it('DELETEs the album on unlink', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ success: true }) })
+			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnPhotosTab, { propsData: { ...DEFAULT_PROPS } })
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.unlinkAlbum({ albumId: 42 })
+		const delCall = global.fetch.mock.calls[1]
+		expect(delCall[0]).toBe('/apps/openregister/api/objects/reg/schema/obj-1/photos/42')
+		expect(delCall[1].method).toBe('DELETE')
+		wrapper.destroy()
 	})
 })
