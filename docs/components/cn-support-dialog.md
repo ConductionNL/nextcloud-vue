@@ -42,9 +42,21 @@ export default {
 </script>
 ```
 
-## First-open adoption (recommended)
+## Fleet auto-mount via CnAppRoot (default)
 
-Pair with `useSupportDialog` for the original "show once per user, then never again" UX:
+Apps that mount [`CnAppRoot`](./cn-app-root.md) get the first-open note **automatically** on a lib bump — no per-app wiring. `CnAppRoot` derives the slug/name/App-Store/feature-request URLs from `appId` and persists the "seen" flag **per-user** (server preferences endpoint, localStorage fallback). Opt out with `:support-dialog="false"`, or override copy/URLs with an object:
+
+```vue
+<CnAppRoot :app-id="appId" :manifest="manifest" />               <!-- auto-shows -->
+<CnAppRoot :app-id="appId" :manifest="manifest" :support-dialog="false" /> <!-- opt out -->
+<CnAppRoot :app-id="appId" :manifest="manifest" :support-dialog="{ appName: 'Pipelinq', donateUrl: '…' }" />
+```
+
+Server persistence requires the host app to expose the generic preferences endpoint (`GET`/`PUT /apps/{appId}/api/preferences/{key}`, backed by `IConfig` user values). The nextcloud-app-template ships the canonical controller; if it's missing, the dialog falls back to per-browser localStorage.
+
+## First-open adoption (manual)
+
+For apps not using `CnAppRoot`, pair `useSupportDialog` with a manual mount for the same "show once per user, then never again" UX:
 
 ```vue
 <template>

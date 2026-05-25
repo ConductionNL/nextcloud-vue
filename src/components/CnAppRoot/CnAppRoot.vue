@@ -196,6 +196,23 @@
 			  component. No per-app wiring required.
 			-->
 			<CnAiCompanion />
+
+			<!--
+			  Support note — auto-mounted on first open per the fleet
+			  support-dialog rollout. Deriving slug/name/URLs from `appId`
+			  by convention means apps gain it on a lib bump with no
+			  per-app wiring; pass `:support-dialog="false"` to opt out or
+			  an object to override copy/URLs. Persistence is per-user
+			  (server preferences endpoint) with a localStorage fallback.
+			-->
+			<CnSupportDialog
+				v-if="cnSupportVisible"
+				:app-name="cnSupportAppName"
+				:app-slug="appId"
+				:app-store-url="cnSupportAppStoreUrl"
+				:feature-request-url="cnSupportFeatureRequestUrl"
+				v-bind="cnSupportOverrides"
+				@close="cnSupportHide" />
 			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
@@ -243,7 +260,9 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import Vue from 'vue'
@@ -285,6 +304,7 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnAiCompanion,
+		CnSupportDialog,
 	},
 
 	provide() {
@@ -422,6 +442,22 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+		/**
+		 * First-open support note (`CnSupportDialog`). `true` (default)
+		 * auto-mounts it, deriving the app name and the App-Store /
+		 * feature-request URLs from `appId` by convention. Pass `false`
+		 * to opt out, or an object to override any `CnSupportDialog`
+		 * prop (e.g. `{ appName, appStoreUrl, featureRequestUrl,
+		 * donateUrl, founderName, … }`). Dismissal persists per-user via
+		 * the app's `/api/preferences/support-dialog-seen` endpoint, with
+		 * a localStorage fallback.
+		 *
+		 * @type {boolean|object}
+		 */
+		supportDialog: {
+			type: [Boolean, Object],
+			default: true,
 		},
 		/**
 		 * Whether the manifest is still loading from the backend.
@@ -598,6 +634,24 @@ export default {
 	 *   inspecting the component instance can introspect failures.
 	 *   The error path falls through to the renderer regardless.
 	 */
+	/**
+	 * Auto-mount the first-open support note unless the host opted out
+	 * with `:support-dialog="false"`. Per-user persistence via the app's
+	 * preferences endpoint (localStorage fallback inside the composable).
+	 * Returns no refs when disabled, so the `v-if="cnSupportVisible"` in
+	 * the template stays false.
+	 *
+	 * @param {object} props Component props (reads `appId`, `supportDialog`).
+	 * @return {object} `{ cnSupportVisible, cnSupportHide }` or `{}` when disabled.
+	 */
+	setup(props) {
+		if (props.supportDialog === false) {
+			return {}
+		}
+		const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
+		return { cnSupportVisible: visible, cnSupportHide: hide }
+	},
+
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
@@ -686,6 +740,71 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Resolved support-dialog config object — `{}` when `supportDialog`
+		 * is `true`/`false`, or the host-supplied override object.
+		 *
+		 * @return {object}
+		 */
+		cnSupportConfig() {
+			return (this.supportDialog && typeof this.supportDialog === 'object')
+				? this.supportDialog
+				: {}
+		},
+		/**
+		 * App display name for the support note — host override, else the
+		 * capitalised `appId` (e.g. `pipelinq` → `Pipelinq`).
+		 *
+		 * @return {string}
+		 */
+		cnSupportAppName() {
+			if (this.cnSupportConfig.appName) {
+				return this.cnSupportConfig.appName
+			}
+			return this.appId
+				? this.appId.charAt(0).toUpperCase() + this.appId.slice(1)
+				: ''
+		},
+		/**
+		 * App Store listing URL — host override, else the conventional
+		 * `apps.nextcloud.com/apps/{appId}`.
+		 *
+		 * @return {string}
+		 */
+		cnSupportAppStoreUrl() {
+			return this.cnSupportConfig.appStoreUrl
+				|| ('https://apps.nextcloud.com/apps/' + this.appId)
+		},
+		/**
+		 * Feature-request URL — host override, else the conventional
+		 * `github.com/ConductionNL/{appId}/issues/new` (GitHub redirects
+		 * resolve repo-name casing).
+		 *
+		 * @return {string}
+		 */
+		cnSupportFeatureRequestUrl() {
+			return this.cnSupportConfig.featureRequestUrl
+				|| ('https://github.com/ConductionNL/' + this.appId + '/issues/new')
+		},
+		/**
+		 * Pass-through of any other `CnSupportDialog` props supplied in
+		 * the `supportDialog` override object (donateUrl, supportUrl,
+		 * conductionUrl, appsUrl, founderName/title/avatar/profile,
+		 * bodyParagraphs). Lets a host re-sign the note without forking.
+		 *
+		 * @return {object}
+		 */
+		cnSupportOverrides() {
+			const cfg = this.cnSupportConfig
+			const passthrough = ['donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs']
+			const out = {}
+			for (const key of passthrough) {
+				if (cfg[key] !== undefined) {
+					out[key] = cfg[key]
+				}
+			}
+			return out
+		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the

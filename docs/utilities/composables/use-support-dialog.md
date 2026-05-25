@@ -12,9 +12,12 @@ const { visible, show, hide, reset } = useSupportDialog(appSlug, options)
 
 | Argument | Type | Description |
 |----------|------|-------------|
-| `appSlug` | `string` | Kebab-case host-app id (e.g. `'decidesk'`). Used as the `localStorage` namespace so two apps mounted in the same Nextcloud session don't share a "shown" flag. |
+| `appSlug` | `string` | Kebab-case host-app id (e.g. `'decidesk'`). Namespaces the flag so two apps in the same session don't collide. |
 | `options` | `object` (optional) | See below. |
-| `options.storage` | `Storage` | Storage backend; defaults to `window.localStorage`. Injectable for tests or alternate persistence layers. |
+| `options.persistence` | `'local' \| 'server'` | `'local'` (default) = per-browser localStorage. `'server'` = per-user, cross-device via the app's preferences endpoint, with a localStorage fallback. |
+| `options.key` | `string` | Preference key (default `support-dialog-seen`). |
+| `options.storage` | `Storage` | localStorage backend; defaults to `window.localStorage`. Injectable for tests. |
+| `options.http` | `object` | axios instance; injectable for tests. |
 
 ## Return value
 
@@ -27,7 +30,10 @@ const { visible, show, hide, reset } = useSupportDialog(appSlug, options)
 
 ## Persistence
 
-Visibility is persisted under the key `cn-support-dialog-shown:{appSlug}` with the value `"1"`. The composable is **slug-namespaced** so two Conduction apps mounted in the same Nextcloud session each show their own support note the first time the user opens them.
+- **`local`** (default) — synchronous; `visible` seeds from `localStorage["cn-support-dialog-shown:{slug}"]`. Zero backend, per-browser.
+- **`server`** — `visible` starts `false` and resolves asynchronously from `GET /apps/{appSlug}/api/preferences/{key}` (so the note never flashes on a return visit); `hide()` issues `PUT …/{key}` with `{ value: '1' }`. Per-user, cross-device. On any failure (unauthenticated, endpoint missing, offline) it degrades to the `localStorage` flag, so the dialog is never a hard dependency on the backend. This is the mode [`CnAppRoot`](../../components/cn-app-root.md) uses for the fleet auto-mount; it requires the host app to expose the generic preferences endpoint (`GET`/`PUT /apps/{appId}/api/preferences/{key}`, backed by `IConfig` user values — see the nextcloud-app-template controller).
+
+The composable is **slug-namespaced** so two Conduction apps in the same session each track their own "seen" flag.
 
 ## SSR / quota safety
 
