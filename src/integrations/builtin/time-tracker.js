@@ -48,6 +48,7 @@ import CnTimeTrackerCard from './time-tracker/CnTimeTrackerCard.vue'
 export const timeTrackerIntegration = {
 	id: 'time-tracker',
 	label: t('nextcloud-vue', 'Time tracker'),
+	appName: t('nextcloud-vue', 'Time manager'),
 	icon: 'Clock',
 	requiredApp: 'timemanager',
 	order: 67,

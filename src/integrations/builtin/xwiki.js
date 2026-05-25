@@ -38,6 +38,7 @@ import CnXwikiCard from './xwiki/CnXwikiCard.vue'
 export const xwikiIntegration = {
 	id: 'xwiki',
 	label: t('nextcloud-vue', 'Articles'),
+	appName: t('nextcloud-vue', 'XWiki'),
 	icon: 'FileDocumentMultiple',
 	requiredApp: 'openconnector',
 	order: 32,

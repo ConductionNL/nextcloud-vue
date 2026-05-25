@@ -42,6 +42,7 @@ import CnFlowCard from './flow/CnFlowCard.vue'
 export const flowIntegration = {
 	id: 'flow',
 	label: t('nextcloud-vue', 'Automation'),
+	appName: t('nextcloud-vue', 'Flow'),
 	icon: 'RobotOutline',
 	requiredApp: 'workflowengine',
 	order: 64,

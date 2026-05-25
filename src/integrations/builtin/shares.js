@@ -42,6 +42,7 @@ import CnSharesCard from './shares/CnSharesCard.vue'
 export const sharesIntegration = {
 	id: 'shares',
 	label: t('nextcloud-vue', 'Shares'),
+	appName: t('nextcloud-vue', 'Sharing'),
 	icon: 'Share',
 	requiredApp: null,
 	order: 10,

@@ -42,6 +42,7 @@ import CnCospendCard from './cospend/CnCospendCard.vue'
 export const cospendIntegration = {
 	id: 'cospend',
 	label: t('nextcloud-vue', 'Costs'),
+	appName: t('nextcloud-vue', 'Cospend'),
 	icon: 'CurrencyEur',
 	requiredApp: 'cospend',
 	order: 62,
