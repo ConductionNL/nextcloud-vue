@@ -164,3 +164,7 @@ export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
 // Analytics integration leaf (Tier-2)
 export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
 export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
+
+// Cospend integration leaf (Tier-2)
+export { CnCospendPicker } from './CnCospendPicker/index.js'
+export { CnCospendCreate } from './CnCospendCreate/index.js'
