@@ -362,7 +362,10 @@ export default {
 
 <style scoped>
 .cn-support-dialog__body {
-	padding: 0 4px;
+	/* Bottom padding restores the breathing room the NcDialog actions slot
+	   used to provide — the CTAs now live in the body, so without it the
+	   bottom row sits flush against the dialog edge. */
+	padding: 0 4px 16px;
 }
 
 .cn-support-dialog__paragraph {
