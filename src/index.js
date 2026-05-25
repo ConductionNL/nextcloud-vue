@@ -129,6 +129,7 @@ export {
 	CnRoadmapItem,
 	CnSuggestFeatureModal,
 	CnSupportDialog,
+	CnNotificationPreferences,
 	CnDeckCardPicker,
 	CnDeckCardCreate,
 	registerIcons,

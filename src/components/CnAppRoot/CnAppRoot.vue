@@ -226,13 +226,9 @@
 				:show-navigation="true"
 				:name="resolvedUserSettingsTitle"
 				@update:open="userSettingsOpen = $event">
-				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to a single placeholder section when omitted. -->
+				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
 				<slot name="user-settings">
-					<NcAppSettingsSection
-						id="general"
-						:name="translate('User preferences')">
-						<p>{{ translate('User preferences will appear here.') }}</p>
-					</NcAppSettingsSection>
+					<CnNotificationPreferences />
 				</slot>
 			</NcAppSettingsDialog>
 
@@ -261,6 +257,7 @@ import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -305,6 +302,7 @@ export default {
 		CnDependencyMissing,
 		CnAiCompanion,
 		CnSupportDialog,
+		CnNotificationPreferences,
 	},
 
 	provide() {
