@@ -74,28 +74,6 @@
 
 			<div class="cn-support-dialog__actions">
 				<NcButton
-					type="primary"
-					wide
-					data-testid="cn-support-dialog-feature-request"
-					@click="openAction('feature-request', featureRequestUrl)">
-					<template #icon>
-						<HandHeart :size="20" />
-					</template>
-					{{ featureRequestLabel }}
-				</NcButton>
-
-				<NcButton
-					type="secondary"
-					wide
-					data-testid="cn-support-dialog-app-store"
-					@click="openAction('app-store', appStoreUrl)">
-					<template #icon>
-						<Star :size="20" />
-					</template>
-					{{ appStoreLabel }}
-				</NcButton>
-
-				<NcButton
 					type="tertiary"
 					wide
 					data-testid="cn-support-dialog-donate"
@@ -115,6 +93,28 @@
 						<BriefcaseOutline :size="20" />
 					</template>
 					{{ supportLabel }}
+				</NcButton>
+
+				<NcButton
+					type="primary"
+					wide
+					data-testid="cn-support-dialog-feature-request"
+					@click="openAction('feature-request', featureRequestUrl)">
+					<template #icon>
+						<HandHeart :size="20" />
+					</template>
+					{{ featureRequestLabel }}
+				</NcButton>
+
+				<NcButton
+					type="secondary"
+					wide
+					data-testid="cn-support-dialog-app-store"
+					@click="openAction('app-store', appStoreUrl)">
+					<template #icon>
+						<Star :size="20" />
+					</template>
+					{{ appStoreLabel }}
 				</NcButton>
 			</div>
 		</div>
@@ -250,12 +250,12 @@ export default {
 			default: 'Ruben van der Linde',
 		},
 		/**
-		 * Title shown under the signature name (e.g. "Founder",
-		 * "Oprichter").
+		 * Title shown under the signature name. Defaults to
+		 * "Founder of Conduction"; override when signing your own apps.
 		 */
 		founderTitle: {
 			type: String,
-			default: 'Founder',
+			default: 'Founder of Conduction',
 		},
 		/**
 		 * Avatar shown to the left of the signature. Defaults to the
@@ -421,8 +421,17 @@ export default {
 .cn-support-dialog__actions {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-	margin-top: 20px;
+	column-gap: 8px;
+	row-gap: 8px;
+	align-items: stretch;
+	margin-top: 16px;
+}
+
+/* Normalise per-button margins so the grid gap is the only spacing —
+   NcButton ships its own margins that otherwise make the rows look uneven. */
+.cn-support-dialog__actions > * {
+	margin: 0;
+	width: 100%;
 }
 
 @media (max-width: 480px) {
