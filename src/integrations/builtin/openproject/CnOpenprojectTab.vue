@@ -106,62 +106,87 @@
 		</div>
 
 		<ul v-else class="cn-openproject-tab__list">
-			<li
+			<NcListItem
 				v-for="wp in workPackages"
 				:key="wpKey(wp)"
 				class="cn-openproject-tab__row"
-				:class="{ 'cn-openproject-tab__row--high-priority': isHighPriority(wp) }">
-				<div class="cn-openproject-tab__row-header">
-					<a
-						:href="wpUrl(wp)"
-						target="_blank"
-						rel="noopener"
-						class="cn-openproject-tab__subject">{{ wpSubject(wp) }}</a>
+				:class="rowClass(wp)"
+				:name="wpSubject(wp)"
+				:bold="true"
+				:href="wpUrl(wp)"
+				target="_blank"
+				:force-display-actions="true">
+				<!-- Type indicator: a coloured square chip echoing OpenProject's
+				     type colour-coding (Task / Bug / Feature / Milestone). -->
+				<template #icon>
 					<span
-						v-if="wpType(wp)"
-						class="cn-openproject-tab__type-badge"
-						:class="typeBadgeClass(wp)">
-						{{ wpType(wp) }}
+						class="cn-openproject-tab__type-icon"
+						:class="typeBadgeClass(wp)"
+						:title="typeTitle(wp)">
+						<RhombusOutline v-if="isMilestoneType(wp)" :size="18" />
+						<Bug v-else-if="isBugType(wp)" :size="18" />
+						<StarFourPointsOutline v-else-if="isFeatureType(wp)" :size="18" />
+						<CheckboxMarkedOutline v-else :size="18" />
 					</span>
-					<NcButton
-						type="tertiary-no-background"
-						:aria-label="t('nextcloud-vue', 'Unlink work package')"
+				</template>
+				<!-- Sub-line: #id reference + status chip, the OpenProject row meta. -->
+				<template #subname>
+					<span class="cn-openproject-tab__subline">
+						<span v-if="wpReference(wp)" class="cn-openproject-tab__ref">{{ wpReference(wp) }}</span>
+						<CnStatusBadge
+							v-if="wpStatus(wp)"
+							class="cn-openproject-tab__status-pill"
+							:class="statusPillClass(wp)"
+							:label="wpStatus(wp)"
+							:variant="statusVariant(wp)"
+							size="small" />
+						<span v-if="wpProject(wp)" class="cn-openproject-tab__project">
+							<Briefcase :size="12" />
+							{{ wpProject(wp) }}
+						</span>
+					</span>
+				</template>
+				<!-- Trailing column: type badge label so the type stays legible. -->
+				<template v-if="wpType(wp)" #details>
+					<span class="cn-openproject-tab__type-label">{{ wpType(wp) }}</span>
+				</template>
+				<!-- Right-edge indicators: priority marker + assignee avatar. -->
+				<template #indicator>
+					<span class="cn-openproject-tab__indicators">
+						<span
+							v-if="wpPriority(wp)"
+							class="cn-openproject-tab__priority"
+							:class="priorityClass(wp)"
+							:title="priorityTitle(wp)">
+							<AlertCircleOutline v-if="isHighPriority(wp)" :size="14" />
+							<ChevronDoubleUp v-else-if="isMediumPriority(wp)" :size="14" />
+							<ChevronUp v-else :size="14" />
+						</span>
+						<NcAvatar
+							v-if="wpAssignee(wp)"
+							class="cn-openproject-tab__assignee"
+							:size="24"
+							:display-name="wpAssignee(wp)"
+							:user="assigneeSeed(wp)"
+							:is-no-user="true"
+							:disable-menu="true"
+							:disable-tooltip="false"
+							:show-user-status="false"
+							:title="assigneeTitle(wp)" />
+					</span>
+				</template>
+				<template #actions>
+					<NcActionButton
 						class="cn-openproject-tab__unlink"
+						:close-after-click="true"
 						@click="unlinkWorkPackage(wp)">
 						<template #icon>
-							<LinkOff :size="16" />
+							<LinkOff :size="20" />
 						</template>
-					</NcButton>
-				</div>
-				<div class="cn-openproject-tab__row-meta">
-					<span
-						v-if="wpStatus(wp)"
-						class="cn-openproject-tab__status-pill"
-						:class="statusPillClass(wp)">
-						{{ wpStatus(wp) }}
-					</span>
-					<span
-						v-if="wpPriority(wp)"
-						class="cn-openproject-tab__priority"
-						:title="priorityTitle(wp)">
-						<AlertCircleOutline v-if="isHighPriority(wp)" :size="13" />
-						<ChevronDoubleUp v-else-if="isMediumPriority(wp)" :size="13" />
-						<ChevronUp v-else :size="13" />
-						{{ wpPriority(wp) }}
-					</span>
-					<span v-if="wpProject(wp)" class="cn-openproject-tab__project">
-						<Briefcase :size="13" />
-						{{ wpProject(wp) }}
-					</span>
-					<span
-						v-if="wpAssignee(wp)"
-						class="cn-openproject-tab__assignee"
-						:title="assigneeTitle(wp)">
-						<AccountCircleOutline :size="14" />
-						{{ wpAssignee(wp) }}
-					</span>
-				</div>
-			</li>
+						{{ t('nextcloud-vue', 'Unlink work package') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnOpenProjectPicker
@@ -182,10 +207,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
-import AccountCircleOutline from 'vue-material-design-icons/AccountCircleOutline.vue'
+import { NcActionButton, NcAvatar, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Briefcase from 'vue-material-design-icons/Briefcase.vue'
+import Bug from 'vue-material-design-icons/Bug.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import ChevronDoubleUp from 'vue-material-design-icons/ChevronDoubleUp.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import CogOutline from 'vue-material-design-icons/CogOutline.vue'
@@ -194,6 +220,9 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import RhombusOutline from 'vue-material-design-icons/RhombusOutline.vue'
+import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutline.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -210,11 +239,15 @@ export default {
 	name: 'CnOpenprojectTab',
 
 	components: {
+		NcActionButton,
+		NcAvatar,
 		NcButton,
+		NcListItem,
 		NcLoadingIcon,
-		AccountCircleOutline,
 		AlertCircleOutline,
 		Briefcase,
+		Bug,
+		CheckboxMarkedOutline,
 		ChevronDoubleUp,
 		ChevronUp,
 		CogOutline,
@@ -223,6 +256,9 @@ export default {
 		LockOutline,
 		OpenInNew,
 		Plus,
+		RhombusOutline,
+		StarFourPointsOutline,
+		CnStatusBadge,
 		CnOpenProjectPicker,
 		CnOpenProjectCreate,
 	},
@@ -394,6 +430,92 @@ export default {
 
 		wpKey(wp) {
 			return wp.id ?? wp.reference ?? ''
+		},
+
+		/**
+		 * The OpenProject `#id` reference shown on the row sub-line.
+		 *
+		 * @param {object} wp - The work-package row.
+		 * @return {string} A `#123` reference, or '' when no id is known.
+		 */
+		wpReference(wp) {
+			const id = wp.id ?? wp.reference ?? ''
+			if (id === '' || id === null || id === undefined) {
+				return ''
+			}
+			const str = String(id)
+			return str.charAt(0) === '#' ? str : '#' + str
+		},
+
+		/**
+		 * Stable seed for NcAvatar's deterministic colour + initials.
+		 *
+		 * @param {object} wp - The work-package row.
+		 * @return {string} A non-empty seed.
+		 */
+		assigneeSeed(wp) {
+			return String(this.wpAssignee(wp) || this.wpKey(wp) || 'op')
+		},
+
+		/**
+		 * Row modifier classes (high-priority emphasis on the left edge).
+		 *
+		 * @param {object} wp - The work-package row.
+		 * @return {object} The class map.
+		 */
+		rowClass(wp) {
+			return { 'cn-openproject-tab__row--high-priority': this.isHighPriority(wp) }
+		},
+
+		typeTitle(wp) {
+			return t('nextcloud-vue', 'Type: {type}', { type: this.wpType(wp) || t('nextcloud-vue', 'Task') })
+		},
+
+		isBugType(wp) {
+			return String(this.wpType(wp)).toLowerCase().includes('bug')
+		},
+
+		isMilestoneType(wp) {
+			const type = String(this.wpType(wp)).toLowerCase()
+			return type.includes('milestone') || type.includes('phase')
+		},
+
+		isFeatureType(wp) {
+			const type = String(this.wpType(wp)).toLowerCase()
+			return type.includes('feature') || type.includes('user story') || type.includes('epic')
+		},
+
+		/**
+		 * CnStatusBadge variant matching the OpenProject status family.
+		 *
+		 * @param {object} wp - The work-package row.
+		 * @return {string} A CnStatusBadge variant.
+		 */
+		statusVariant(wp) {
+			const status = String(this.wpStatus(wp)).toLowerCase()
+			if (status.includes('closed') || status.includes('done') || status.includes('resolved')) {
+				return 'success'
+			}
+			if (status.includes('progress') || status.includes('developed') || status.includes('review')) {
+				return 'warning'
+			}
+			if (status.includes('reject') || status.includes('block')) {
+				return 'error'
+			}
+			return 'info'
+		},
+
+		/**
+		 * Priority-marker emphasis class.
+		 *
+		 * @param {object} wp - The work-package row.
+		 * @return {object} The class map.
+		 */
+		priorityClass(wp) {
+			return {
+				'cn-openproject-tab__priority--high': this.isHighPriority(wp),
+				'cn-openproject-tab__priority--medium': this.isMediumPriority(wp),
+			}
 		},
 
 		wpSubject(wp) {
@@ -608,116 +730,97 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
 }
 
-.cn-openproject-tab__row {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	padding: 8px 10px;
-	border-radius: var(--border-radius);
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-}
-
+/* High-priority work packages get a coloured left rail so case handlers
+   spot them while scanning the list. */
 .cn-openproject-tab__row--high-priority {
 	border-left: 3px solid var(--color-error);
 }
 
-.cn-openproject-tab__row-header {
-	display: flex;
+/* Type indicator: a rounded square chip echoing OpenProject's
+   colour-coded work-package types. */
+.cn-openproject-tab__type-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: var(--border-radius);
+	background: var(--color-primary-element, #1A67A3);
+	color: var(--color-primary-element-text, #fff);
+}
+
+.cn-openproject-tab__type-icon.cn-openproject-tab__type-badge--bug {
+	background: var(--color-error);
+}
+
+.cn-openproject-tab__type-icon.cn-openproject-tab__type-badge--feature {
+	background: var(--color-success, #46ba61);
+}
+
+.cn-openproject-tab__type-icon.cn-openproject-tab__type-badge--task {
+	background: #1A67A3;
+}
+
+.cn-openproject-tab__subline {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+/* OpenProject-style `#id` reference, monospaced for a ticket feel. */
+.cn-openproject-tab__ref {
+	font-family: var(--font-face-monospace, monospace);
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-openproject-tab__project {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.cn-openproject-tab__type-label {
+	font-size: 0.78em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+}
+
+.cn-openproject-tab__indicators {
+	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 }
 
-.cn-openproject-tab__subject {
-	flex: 1;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-a.cn-openproject-tab__subject:hover {
-	text-decoration: underline;
-}
-
-.cn-openproject-tab__type-badge {
-	display: inline-block;
-	padding: 1px 6px;
-	font-size: 0.7em;
-	font-weight: 600;
-	border-radius: 8px;
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	white-space: nowrap;
-}
-
-.cn-openproject-tab__type-badge--bug {
-	background: var(--color-error);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__type-badge--feature {
-	background: var(--color-success, #46ba61);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__type-badge--task {
-	background: var(--color-primary-element, #21468B);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__row-meta {
-	display: flex;
+.cn-openproject-tab__priority {
+	display: inline-flex;
 	align-items: center;
-	flex-wrap: wrap;
-	gap: 8px;
-	font-size: 0.78em;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-openproject-tab__status-pill {
-	display: inline-block;
-	padding: 1px 8px;
-	border-radius: 10px;
-	background: var(--color-background-dark);
-	color: var(--color-main-text);
-	font-size: 0.9em;
-	font-weight: 500;
+.cn-openproject-tab__priority--high {
+	color: var(--color-error);
 }
 
-.cn-openproject-tab__status-pill--new {
-	background: var(--color-background-darker, var(--color-background-dark));
+.cn-openproject-tab__priority--medium {
+	color: var(--color-warning, #e9a40f);
 }
 
-.cn-openproject-tab__status-pill--progress {
-	background: var(--color-warning, #e9a40f);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__status-pill--done {
-	background: var(--color-success, #46ba61);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__status-pill--blocked {
-	background: var(--color-error, #e9322d);
-	color: var(--color-main-background);
-}
-
-.cn-openproject-tab__priority,
-.cn-openproject-tab__project,
 .cn-openproject-tab__assignee {
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
+	flex-shrink: 0;
+}
+
+/* CnStatusBadge keeps its own colours; the legacy status-pill modifier
+   hooks are retained so existing tests and consumers keep matching. */
+.cn-openproject-tab__status-pill {
+	flex-shrink: 0;
 }
 </style>

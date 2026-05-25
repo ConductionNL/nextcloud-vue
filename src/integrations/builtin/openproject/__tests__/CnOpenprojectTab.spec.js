@@ -71,15 +71,22 @@ describe('CnOpenprojectTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-openproject-tab__row')
 		expect(rows).toHaveLength(2)
+		// Subjects are passed to NcListItem via the `name` prop (rendered
+		// to the `name` attribute by the test stub).
+		const names = rows.wrappers.map((w) => w.attributes('name'))
+		expect(names).toContain('A')
+		expect(names).toContain('B')
 		const text = wrapper.text()
-		expect(text).toContain('A')
-		expect(text).toContain('B')
 		expect(text).toContain('Bug')
 		expect(text).toContain('Feature')
 		expect(text).toContain('New')
 		expect(text).toContain('Closed')
-		expect(text).toContain('Bob')
-		expect(text).toContain('Carol')
+		// Assignees render as NcAvatar; their names live in the avatar's
+		// display-name attribute, not as visible row text.
+		const avatarNames = wrapper.findAll('.cn-openproject-tab__assignee').wrappers
+			.map((w) => w.attributes('display-name'))
+		expect(avatarNames).toContain('Bob')
+		expect(avatarNames).toContain('Carol')
 		const bug = wrapper.find('.cn-openproject-tab__type-badge--bug')
 		expect(bug.exists()).toBe(true)
 		const feature = wrapper.find('.cn-openproject-tab__type-badge--feature')
@@ -113,9 +120,10 @@ describe('CnOpenprojectTab', () => {
 		const wrapper = mount(CnOpenprojectTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
+		const row = wrapper.find('.cn-openproject-tab__row')
 		expect(wrapper.findAll('.cn-openproject-tab__row')).toHaveLength(1)
-		expect(wrapper.text()).toContain('HAL-shaped WP')
-		expect(wrapper.text()).toContain('Dora')
+		expect(row.attributes('name')).toBe('HAL-shaped WP')
+		expect(wrapper.find('.cn-openproject-tab__assignee').attributes('display-name')).toBe('Dora')
 		wrapper.destroy()
 	})
 
