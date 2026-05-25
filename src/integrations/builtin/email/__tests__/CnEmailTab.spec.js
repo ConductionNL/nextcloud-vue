@@ -92,6 +92,53 @@ describe('CnEmailTab', () => {
 		wrapper.destroy()
 	})
 
+	it('reads the standardized {items, total, nextCursor} envelope', async () => {
+		const items = new Array(3).fill(null).map((_, i) => ({
+			id: i + 1, subject: `s${i + 1}`, sender: 'a', mailAccountId: 1, mailMessageId: i,
+		}))
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve({ items, total: 10, nextCursor: '1' }),
+		})
+		const wrapper = mount(CnEmailTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 3 },
+		})
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.messages).toHaveLength(3)
+		expect(wrapper.vm.total).toBe(10)
+		expect(wrapper.vm.nextCursor).toBe('1')
+		// hasMore driven by the cursor, not just the count comparison.
+		expect(wrapper.vm.hasMore).toBe(true)
+		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('walks nextCursor via the _page query param on load-more', async () => {
+		const page0 = [{ id: 1, subject: 's1', sender: 'a', mailAccountId: 1, mailMessageId: 0 }]
+		const page1 = [{ id: 2, subject: 's2', sender: 'b', mailAccountId: 1, mailMessageId: 1 }]
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ items: page0, total: 2, nextCursor: '1' }) })
+			.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ items: page1, total: 2, nextCursor: null }) })
+		const wrapper = mount(CnEmailTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1', pageSize: 1 },
+		})
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.messages).toHaveLength(1)
+		await wrapper.find('.cn-sidebar-tab__load-more').trigger('click')
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.messages).toHaveLength(2)
+		// The second fetch carried the cursor as `_page=1`.
+		const secondUrl = global.fetch.mock.calls[1][0]
+		expect(secondUrl).toContain('_page=1')
+		// nextCursor cleared, load-more gone.
+		expect(wrapper.vm.nextCursor).toBeNull()
+		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
 	it('skips the fetch when register or schema is empty', async () => {
 		global.fetch = jest.fn()
 		const wrapper = mount(CnEmailTab, {
