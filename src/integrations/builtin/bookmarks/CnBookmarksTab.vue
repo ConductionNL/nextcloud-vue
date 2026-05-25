@@ -92,13 +92,7 @@
 					:force-display-actions="true">
 					<template #icon>
 						<span class="cn-bookmarks-tab__row-icon">
-							<img
-								v-if="faviconUrl(bookmark)"
-								:src="faviconUrl(bookmark)"
-								:alt="''"
-								class="cn-bookmarks-tab__favicon"
-								@error="onFaviconError(bookmark)">
-							<Bookmark v-else :size="20" />
+							<Bookmark :size="20" />
 						</span>
 					</template>
 					<template #subname>
@@ -224,7 +218,6 @@ export default {
 			error: '',
 			degraded: '',
 			activeTag: '',
-			brokenFavicons: {},
 			pickerOpen: false,
 			createOpen: false,
 		}
@@ -389,22 +382,6 @@ export default {
 			return tags.filter((tag) => typeof tag === 'string' && tag !== '' && !tag.startsWith('or:'))
 		},
 
-		faviconUrl(bookmark) {
-			if (this.brokenFavicons[this.bookmarkKey(bookmark)]) {
-				return ''
-			}
-			try {
-				const url = new URL(bookmark.url)
-				return `${url.origin}/favicon.ico`
-			} catch (e) {
-				return ''
-			}
-		},
-
-		onFaviconError(bookmark) {
-			this.$set(this.brokenFavicons, this.bookmarkKey(bookmark), true)
-		},
-
 		toggleTagFilter(tag) {
 			this.activeTag = this.activeTag === tag ? '' : tag
 		},
@@ -543,12 +520,6 @@ export default {
 	justify-content: center;
 	border-radius: var(--border-radius);
 	background: var(--color-background-hover);
-}
-
-.cn-bookmarks-tab__favicon {
-	width: 18px;
-	height: 18px;
-	object-fit: contain;
 }
 
 /* Truncated URL subline with a trailing external-link affordance. */
