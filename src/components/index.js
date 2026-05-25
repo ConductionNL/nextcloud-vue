@@ -165,6 +165,18 @@ export { CnXwikiPageCreate } from './CnXwikiPageCreate/index.js'
 export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
 export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
 
+// OpenProject integration leaf (Tier-2)
+export { CnOpenProjectPicker } from './CnOpenProjectPicker/index.js'
+export { CnOpenProjectCreate } from './CnOpenProjectCreate/index.js'
+
 // Analytics integration leaf (Tier-2)
 export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
 export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
+
+// Cospend integration leaf (Tier-2)
+export { CnCospendPicker } from './CnCospendPicker/index.js'
+export { CnCospendCreate } from './CnCospendCreate/index.js'
+
+// Time-tracker integration leaf (Tier-2)
+export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
+export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
