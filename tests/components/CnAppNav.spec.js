@@ -595,7 +595,7 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
 		})
 
-		it('does NOT mount the foldout when there are no settings items', () => {
+		it('still mounts the foldout (Personal settings only) when there are no settings items', () => {
 			const m = {
 				version: '1.0.0',
 				pages: [],
@@ -605,10 +605,26 @@ describe('CnAppNav', () => {
 				],
 			}
 			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			// New semantics: foldout mounts whenever personal settings is on
+			// (default), so every app shows a Settings gear + Personal settings.
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+		})
+
+		it('fully suppresses the foldout only when no settings items AND includePersonalSettings is false', () => {
+			const m = {
+				version: '1.0.0',
+				nav: { includePersonalSettings: false },
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'Home', route: 'home', order: 1 },
+					{ id: 'docs', label: 'Docs', href: 'https://x', section: 'footer', order: 10 },
+				],
+			}
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
 			expect(wrapper.vm.showSettingsFoldout).toBe(false)
 			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
-			// Footer still renders for the footer-section item.
-			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
 		})
 
 		it('uses nav.settingsLabel override for the foldout label', () => {
