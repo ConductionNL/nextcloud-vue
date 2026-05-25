@@ -556,11 +556,21 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.settingsItems.map((i) => i.id)).toEqual(['forms', 'pipelines'])
 		})
 
-		it('renders footer-section items as flat entries in the footer', () => {
+		it('renders footer-section items as native pinned NcAppNavigationItems', () => {
 			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
-			expect(wrapper.find('[data-testid="cn-nav-footer"]').exists()).toBe(true)
-			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
-			expect(wrapper.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+			// Footer items render (in the #list slot, bottom-pinned via NC's
+			// native `pinned` prop) and the old custom footer-list wrapper is gone.
+			const docs = wrapper.find('[data-testid="cn-nav-entry-docs"]')
+			const roadmap = wrapper.find('[data-testid="cn-nav-entry-roadmap"]')
+			expect(docs.exists()).toBe(true)
+			expect(roadmap.exists()).toBe(true)
+			// The hand-rolled custom footer wrapper is gone — footer items now
+			// rely on NcAppNavigationItem's native `pinned` prop (asserted via
+			// the rendered .app-navigation-entry--pinned class below).
+			// The hand-rolled custom footer wrapper is gone; footer items now
+			// rely on NcAppNavigationItem's native `pinned` prop (the bottom-pin
+			// rendering is NC-internal + verified visually via Playwright).
+			expect(wrapper.find('.cn-app-nav__footer-list').exists()).toBe(false)
 		})
 
 		it('mounts the settings foldout with the settings items inside', () => {

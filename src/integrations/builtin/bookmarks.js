@@ -37,6 +37,9 @@ export const bookmarksIntegration = {
 	requiredApp: 'bookmarks',
 	order: 40,
 	group: 'docs',
+	// NC Bookmarks ships the default Nextcloud-blue app icon (no distinct
+	// brand hue), so tint the tab header with the standard NC element blue.
+	accentColor: '#0082c9',
 	referenceType: 'bookmarks',
 	tab: CnBookmarksTab,
 	widget: CnBookmarksCard,

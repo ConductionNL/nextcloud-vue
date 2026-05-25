@@ -79,11 +79,16 @@
 					class="cn-talk-card__row"
 					:class="{ 'cn-talk-card__row--unread': hasUnread(room) }">
 					<div class="cn-talk-card__row-icon">
-						<ChatOutline :size="16" />
-						<span
+						<NcAvatar
+							:display-name="roomTitle(room)"
+							:size="32"
+							:is-no-user="true"
+							:show-user-status="false" />
+						<NcCounterBubble
 							v-if="hasUnread(room)"
 							class="cn-talk-card__badge"
-							:aria-label="unreadAriaLabel(room)">{{ formatUnread(room) }}</span>
+							type="highlighted"
+							:aria-label="unreadAriaLabel(room)">{{ formatUnread(room) }}</NcCounterBubble>
 					</div>
 					<div class="cn-talk-card__row-main">
 						<a
@@ -101,7 +106,7 @@
 
 <script>
 import { translate as t, translatePlural as n } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcCounterBubble, NcLoadingIcon } from '@nextcloud/vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -119,7 +124,7 @@ const COMPACT_LIMIT = 5
 export default {
 	name: 'CnTalkCard',
 
-	components: { CnDetailCard, NcLoadingIcon, ChatOutline },
+	components: { CnDetailCard, NcAvatar, NcCounterBubble, NcLoadingIcon, ChatOutline },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'talk'`). */

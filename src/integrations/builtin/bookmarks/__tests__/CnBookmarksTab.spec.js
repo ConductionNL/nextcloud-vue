@@ -67,9 +67,13 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-bookmarks-tab__row')
 		expect(rows).toHaveLength(2)
-		expect(wrapper.text()).toContain('Alpha')
-		expect(wrapper.text()).toContain('Bravo')
-		expect(wrapper.text()).toContain('https://alpha.test/')
+		// Titles are bound to the NcListItem `name` attribute (the stub
+		// spreads bound attrs onto its root element).
+		const names = rows.wrappers.map((r) => r.attributes('name'))
+		expect(names).toContain('Alpha')
+		expect(names).toContain('Bravo')
+		// The URL subline drops the scheme + trailing slash, NC-Bookmarks style.
+		expect(wrapper.text()).toContain('alpha.test')
 		expect(wrapper.text()).toContain('first ref')
 	})
 
@@ -116,9 +120,10 @@ describe('CnBookmarksTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-bookmarks-tab__row')
 		expect(rows).toHaveLength(2)
-		expect(wrapper.text()).toContain('Alpha')
-		expect(wrapper.text()).toContain('Charlie')
-		expect(wrapper.text()).not.toContain('Bravo')
+		const names = rows.wrappers.map((r) => r.attributes('name'))
+		expect(names).toContain('Alpha')
+		expect(names).toContain('Charlie')
+		expect(names).not.toContain('Bravo')
 		wrapper.destroy()
 	})
 

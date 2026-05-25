@@ -40,6 +40,21 @@ export const NcPopover = createStub('NcPopover')
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
 export const NcListItem = createStub('NcListItem')
+export const NcAvatar = createStub('NcAvatar')
+export const NcCounterBubble = createStub('NcCounterBubble')
+
+/**
+ * NcDateTime stub — renders its `timestamp` prop as text so tab/card
+ * relative-time rows have observable content in jsdom.
+ */
+export const NcDateTime = {
+	name: 'NcDateTime',
+	functional: true,
+	render(h, { props, data }) {
+		const ts = props && props.timestamp
+		return h('time', { class: ['stub', 'NcDateTime'], ...data }, ts === undefined || ts === null ? '' : String(ts))
+	},
+}
 
 export default {
 	NcDialog,
@@ -63,4 +78,7 @@ export default {
 	NcRichText,
 	NcAppContent,
 	NcListItem,
+	NcAvatar,
+	NcCounterBubble,
+	NcDateTime,
 }

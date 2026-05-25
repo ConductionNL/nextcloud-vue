@@ -18,6 +18,12 @@
   (calendarUri, eventUid) and annotated with a `source` field
   (link-table / xor-only / both).
 
+  Visual fidelity (NC Calendar): each row foregrounds a date block (month
+  abbreviation + day-of-month, accented like the Calendar app's agenda),
+  a start–end time range, a bold event title, the location with a
+  map-marker icon, an attendee avatar stack with an overflow count, and a
+  CnStatusBadge for the VEVENT status (confirmed / tentative / cancelled).
+
   ADR-004 modal isolation: every modal lives in its own .vue file under
   `src/components/CnCalendar*/` and is imported here as a child component.
 -->
@@ -56,28 +62,62 @@
 			{{ noEventsLabel }}
 		</div>
 
-		<!-- Timeline -->
-		<div v-else class="cn-calendar-tab__timeline">
+		<!-- Agenda -->
+		<div v-else class="cn-calendar-tab__agenda">
 			<div v-if="upcomingEvents.length > 0" class="cn-calendar-tab__group">
 				<h4 class="cn-calendar-tab__group-title">
 					{{ upcomingLabel }}
 				</h4>
-				<NcListItem
+				<div
 					v-for="ev in upcomingEvents"
 					:key="rowKey(ev)"
-					:name="ev.summary || untitledLabel"
-					:bold="false"
-					:force-display-actions="true">
-					<template #icon>
-						<CalendarClock :size="32" class="cn-calendar-tab__row-icon" />
-					</template>
-					<template #subname>
-						{{ formatWhen(ev) }}
-					</template>
-					<template v-if="ev.location" #details>
-						<span class="cn-calendar-tab__row-location">{{ ev.location }}</span>
-					</template>
-					<template #actions>
+					class="cn-calendar-tab__event">
+					<!-- Date block (month + day) -->
+					<div class="cn-calendar-tab__date" aria-hidden="true">
+						<span class="cn-calendar-tab__date-month">{{ monthOf(ev) }}</span>
+						<span class="cn-calendar-tab__date-day">{{ dayOf(ev) }}</span>
+					</div>
+
+					<!-- Main column: title, time range, location, attendees -->
+					<div class="cn-calendar-tab__main">
+						<div class="cn-calendar-tab__title-row">
+							<span class="cn-calendar-tab__title">{{ ev.summary || untitledLabel }}</span>
+							<CnStatusBadge
+								v-if="statusLabel(ev)"
+								:label="statusLabel(ev)"
+								:variant="statusVariant(ev)"
+								size="small" />
+						</div>
+
+						<div class="cn-calendar-tab__when">
+							<ClockOutline :size="14" class="cn-calendar-tab__meta-icon" />
+							<span>{{ formatTimeRange(ev) }}</span>
+						</div>
+
+						<div v-if="ev.location" class="cn-calendar-tab__location">
+							<MapMarkerOutline :size="14" class="cn-calendar-tab__meta-icon" />
+							<span class="cn-calendar-tab__location-text">{{ ev.location }}</span>
+						</div>
+
+						<div v-if="attendeeList(ev).length > 0" class="cn-calendar-tab__attendees">
+							<span
+								v-for="(att, idx) in visibleAttendees(ev)"
+								:key="idx"
+								class="cn-calendar-tab__avatar"
+								:title="att.name">
+								{{ att.initials }}
+							</span>
+							<span
+								v-if="extraAttendees(ev) > 0"
+								class="cn-calendar-tab__avatar cn-calendar-tab__avatar--more"
+								:title="attendeeCountLabel(ev)">
+								+{{ extraAttendees(ev) }}
+							</span>
+						</div>
+					</div>
+
+					<!-- Row actions -->
+					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -90,31 +130,61 @@
 							</template>
 							{{ deleteLabel }}
 						</NcActionButton>
-					</template>
-				</NcListItem>
+					</NcActions>
+				</div>
 			</div>
 
 			<div v-if="pastEvents.length > 0" class="cn-calendar-tab__group">
 				<h4 class="cn-calendar-tab__group-title cn-calendar-tab__group-title--past">
 					{{ pastLabel }}
 				</h4>
-				<NcListItem
+				<div
 					v-for="ev in pastEvents"
 					:key="rowKey(ev)"
-					:name="ev.summary || untitledLabel"
-					:bold="false"
-					:force-display-actions="true"
-					class="cn-calendar-tab__row--past">
-					<template #icon>
-						<CalendarCheck :size="32" class="cn-calendar-tab__row-icon cn-calendar-tab__row-icon--past" />
-					</template>
-					<template #subname>
-						{{ formatWhen(ev) }}
-					</template>
-					<template v-if="ev.location" #details>
-						<span class="cn-calendar-tab__row-location">{{ ev.location }}</span>
-					</template>
-					<template #actions>
+					class="cn-calendar-tab__event cn-calendar-tab__event--past">
+					<div class="cn-calendar-tab__date cn-calendar-tab__date--past" aria-hidden="true">
+						<span class="cn-calendar-tab__date-month">{{ monthOf(ev) }}</span>
+						<span class="cn-calendar-tab__date-day">{{ dayOf(ev) }}</span>
+					</div>
+
+					<div class="cn-calendar-tab__main">
+						<div class="cn-calendar-tab__title-row">
+							<span class="cn-calendar-tab__title">{{ ev.summary || untitledLabel }}</span>
+							<CnStatusBadge
+								v-if="statusLabel(ev)"
+								:label="statusLabel(ev)"
+								:variant="statusVariant(ev)"
+								size="small" />
+						</div>
+
+						<div class="cn-calendar-tab__when">
+							<ClockOutline :size="14" class="cn-calendar-tab__meta-icon" />
+							<span>{{ formatTimeRange(ev) }}</span>
+						</div>
+
+						<div v-if="ev.location" class="cn-calendar-tab__location">
+							<MapMarkerOutline :size="14" class="cn-calendar-tab__meta-icon" />
+							<span class="cn-calendar-tab__location-text">{{ ev.location }}</span>
+						</div>
+
+						<div v-if="attendeeList(ev).length > 0" class="cn-calendar-tab__attendees">
+							<span
+								v-for="(att, idx) in visibleAttendees(ev)"
+								:key="idx"
+								class="cn-calendar-tab__avatar"
+								:title="att.name">
+								{{ att.initials }}
+							</span>
+							<span
+								v-if="extraAttendees(ev) > 0"
+								class="cn-calendar-tab__avatar cn-calendar-tab__avatar--more"
+								:title="attendeeCountLabel(ev)">
+								+{{ extraAttendees(ev) }}
+							</span>
+						</div>
+					</div>
+
+					<NcActions :force-menu="true" class="cn-calendar-tab__actions">
 						<NcActionButton :disabled="rowBusyKey === rowKey(ev)" @click="unlink(ev)">
 							<template #icon>
 								<LinkVariantOff :size="20" />
@@ -127,8 +197,8 @@
 							</template>
 							{{ deleteLabel }}
 						</NcActionButton>
-					</template>
-				</NcListItem>
+					</NcActions>
+				</div>
 			</div>
 		</div>
 
@@ -155,7 +225,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
-	NcListItem,
+	NcActions,
 	NcActionButton,
 	NcLoadingIcon,
 } from '@nextcloud/vue'
@@ -163,34 +233,39 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
-import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
-import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../../utils/index.js'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
+
+const MAX_AVATARS = 3
 
 /**
  * CnCalendarTab — bespoke sidebar tab for the calendar integration.
  *
  * Tier-2 wiring: link/create flows are modal-driven (ADR-004 isolation),
  * and per-row actions distinguish UNLINK (preserves the VEVENT) from
- * DELETE (destroys the VEVENT).
+ * DELETE (destroys the VEVENT). Rows mirror NC Calendar's agenda look:
+ * date block, time range, title, location, attendee avatars + status.
  */
 export default {
 	name: 'CnCalendarTab',
 
 	components: {
 		NcButton,
-		NcListItem,
+		NcActions,
 		NcActionButton,
 		NcLoadingIcon,
+		CnStatusBadge,
 		Plus,
 		AlertCircleOutline,
 		LinkVariant,
 		LinkVariantOff,
-		CalendarClock,
-		CalendarCheck,
+		ClockOutline,
+		MapMarkerOutline,
 		Delete,
 		CnCalendarEventPicker,
 		CnCalendarEventCreate,
@@ -405,15 +480,97 @@ export default {
 			}
 		},
 
-		formatWhen(ev) {
-			if (!ev.dtstart) return ''
-			try {
-				const start = new Date(ev.dtstart)
-				if (Number.isNaN(start.getTime())) return String(ev.dtstart)
-				return start.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-			} catch (_) {
-				return String(ev.dtstart)
+		// --- Presentation helpers (NC Calendar agenda look) ---
+
+		parseDate(value) {
+			if (!value) return null
+			const d = new Date(value)
+			return Number.isNaN(d.getTime()) ? null : d
+		},
+
+		monthOf(ev) {
+			const d = this.parseDate(ev.dtstart)
+			if (!d) return '—'
+			return d.toLocaleDateString(undefined, { month: 'short' })
+		},
+
+		dayOf(ev) {
+			const d = this.parseDate(ev.dtstart)
+			if (!d) return '?'
+			return String(d.getDate())
+		},
+
+		formatTimeRange(ev) {
+			const start = this.parseDate(ev.dtstart)
+			if (!start) {
+				return ev.dtstart ? String(ev.dtstart) : t('nextcloud-vue', 'Time not set')
 			}
+			const end = this.parseDate(ev.dtend)
+			const dateLabel = start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+			const timeOpts = { hour: '2-digit', minute: '2-digit' }
+			const startTime = start.toLocaleTimeString(undefined, timeOpts)
+			if (end) {
+				const sameDay = start.toDateString() === end.toDateString()
+				const endTime = end.toLocaleTimeString(undefined, timeOpts)
+				if (sameDay) {
+					return `${dateLabel} · ${startTime} – ${endTime}`
+				}
+				const endDateLabel = end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+				return `${dateLabel} ${startTime} – ${endDateLabel} ${endTime}`
+			}
+			return `${dateLabel} · ${startTime}`
+		},
+
+		statusLabel(ev) {
+			const status = (ev.status || '').toString().toLowerCase()
+			if (status === 'confirmed') return t('nextcloud-vue', 'Confirmed')
+			if (status === 'tentative') return t('nextcloud-vue', 'Tentative')
+			if (status === 'cancelled') return t('nextcloud-vue', 'Cancelled')
+			return ''
+		},
+
+		statusVariant(ev) {
+			const status = (ev.status || '').toString().toLowerCase()
+			if (status === 'confirmed') return 'success'
+			if (status === 'tentative') return 'warning'
+			if (status === 'cancelled') return 'error'
+			return 'default'
+		},
+
+		attendeeList(ev) {
+			const raw = ev.attendees || ev.participants || []
+			if (!Array.isArray(raw)) return []
+			return raw.map((att) => {
+				if (typeof att === 'string') {
+					return { name: att, initials: this.initialsFor(att) }
+				}
+				const name = att.name || att.displayName || att.cn || att.email || ''
+				return { name, initials: this.initialsFor(name) }
+			}).filter((a) => a.name)
+		},
+
+		visibleAttendees(ev) {
+			return this.attendeeList(ev).slice(0, MAX_AVATARS)
+		},
+
+		extraAttendees(ev) {
+			const total = this.attendeeList(ev).length
+			return total > MAX_AVATARS ? total - MAX_AVATARS : 0
+		},
+
+		attendeeCountLabel(ev) {
+			const total = this.attendeeList(ev).length
+			return t('nextcloud-vue', '{count} attendees', { count: total })
+		},
+
+		initialsFor(name) {
+			const clean = (name || '').trim()
+			if (!clean) return '?'
+			const local = clean.includes('@') ? clean.split('@')[0] : clean
+			const parts = local.split(/[\s._-]+/).filter(Boolean)
+			if (parts.length === 0) return clean.charAt(0).toUpperCase()
+			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 		},
 	},
 }
@@ -454,16 +611,16 @@ export default {
 	font-size: 13px;
 }
 
-.cn-calendar-tab__timeline {
+.cn-calendar-tab__agenda {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: 14px;
 }
 
 .cn-calendar-tab__group {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 4px;
 }
 
 .cn-calendar-tab__group-title {
@@ -479,20 +636,139 @@ export default {
 	opacity: 0.7;
 }
 
-.cn-calendar-tab__row-icon {
-	color: var(--color-primary-element);
+/* Event row */
+.cn-calendar-tab__event {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 8px;
+	border-radius: var(--border-radius-large, 8px);
+	border-left: 3px solid var(--color-primary-element);
+	background: var(--color-background-hover);
 }
 
-.cn-calendar-tab__row-icon--past {
+.cn-calendar-tab__event + .cn-calendar-tab__event {
+	margin-top: 4px;
+}
+
+.cn-calendar-tab__event--past {
+	border-left-color: var(--color-border-dark, var(--color-border));
+	background: transparent;
+	opacity: 0.72;
+}
+
+/* Date block */
+.cn-calendar-tab__date {
+	flex-shrink: 0;
+	width: 44px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 0;
+	border-radius: var(--border-radius);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text, #fff);
+	line-height: 1.1;
+}
+
+.cn-calendar-tab__date--past {
+	background: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-calendar-tab__row--past {
-	opacity: 0.75;
+.cn-calendar-tab__date-month {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 }
 
-.cn-calendar-tab__row-location {
+.cn-calendar-tab__date-day {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+/* Main column */
+.cn-calendar-tab__main {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.cn-calendar-tab__title-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.cn-calendar-tab__title {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-calendar-tab__when,
+.cn-calendar-tab__location {
+	display: flex;
+	align-items: center;
+	gap: 5px;
 	font-size: 12px;
 	color: var(--color-text-maxcontrast);
+	min-width: 0;
+}
+
+.cn-calendar-tab__meta-icon {
+	flex-shrink: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-tab__location-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Attendees */
+.cn-calendar-tab__attendees {
+	display: flex;
+	align-items: center;
+	margin-top: 2px;
+}
+
+.cn-calendar-tab__avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	font-weight: 600;
+	background: var(--color-primary-element-light, var(--color-primary-light));
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	border: 2px solid var(--color-main-background);
+	margin-left: -6px;
+	flex-shrink: 0;
+}
+
+.cn-calendar-tab__avatar:first-child {
+	margin-left: 0;
+}
+
+.cn-calendar-tab__avatar--more {
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+}
+
+/* Actions */
+.cn-calendar-tab__actions {
+	flex-shrink: 0;
 }
 </style>

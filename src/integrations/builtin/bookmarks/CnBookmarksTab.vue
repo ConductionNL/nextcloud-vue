@@ -81,50 +81,55 @@
 				</button>
 			</div>
 			<ul class="cn-bookmarks-tab__list">
-				<li
+				<NcListItem
 					v-for="bookmark in filteredBookmarks"
 					:key="bookmarkKey(bookmark)"
-					class="cn-bookmarks-tab__row">
-					<div class="cn-bookmarks-tab__row-icon">
-						<img
-							v-if="faviconUrl(bookmark)"
-							:src="faviconUrl(bookmark)"
-							:alt="''"
-							class="cn-bookmarks-tab__favicon"
-							@error="onFaviconError(bookmark)">
-						<Bookmark v-else :size="20" />
-					</div>
-					<div class="cn-bookmarks-tab__row-main">
-						<a
-							:href="bookmark.url"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="cn-bookmarks-tab__title">
-							{{ bookmarkTitle(bookmark) }}
-						</a>
-						<span class="cn-bookmarks-tab__url">{{ bookmark.url }}</span>
+					class="cn-bookmarks-tab__row"
+					:name="bookmarkTitle(bookmark)"
+					:bold="true"
+					:href="bookmark.url"
+					target="_blank"
+					:force-display-actions="true">
+					<template #icon>
+						<span class="cn-bookmarks-tab__row-icon">
+							<Bookmark :size="20" />
+						</span>
+					</template>
+					<template #subname>
+						<span class="cn-bookmarks-tab__url" :title="bookmark.url">
+							<span class="cn-bookmarks-tab__url-text">{{ displayUrl(bookmark) }}</span>
+							<OpenInNew :size="12" class="cn-bookmarks-tab__url-ext" />
+						</span>
+					</template>
+					<template #extra>
 						<span v-if="bookmark.description" class="cn-bookmarks-tab__description">
 							{{ bookmark.description }}
 						</span>
-						<div v-if="bookmarkTags(bookmark).length > 0" class="cn-bookmarks-tab__tags">
-							<span
+						<span v-if="bookmarkTags(bookmark).length > 0" class="cn-bookmarks-tab__tags">
+							<CnStatusBadge
 								v-for="tag in bookmarkTags(bookmark)"
 								:key="tag"
-								class="cn-bookmarks-tab__tag">
-								{{ tag }}
-							</span>
-						</div>
-					</div>
-					<NcButton
-						type="tertiary-no-background"
-						:aria-label="t('nextcloud-vue', 'Unlink bookmark')"
-						class="cn-bookmarks-tab__unlink"
-						@click="unlinkBookmark(bookmark)">
-						<template #icon>
-							<LinkOff :size="18" />
-						</template>
-					</NcButton>
-				</li>
+								class="cn-bookmarks-tab__tag"
+								size="small"
+								variant="info"
+								:label="tag" />
+						</span>
+					</template>
+					<template #actions>
+						<NcActionButton :close-after-click="true" @click="openBookmark(bookmark)">
+							<template #icon>
+								<OpenInNew :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Open bookmark') }}
+						</NcActionButton>
+						<NcActionButton :close-after-click="true" @click="unlinkBookmark(bookmark)">
+							<template #icon>
+								<LinkOff :size="20" />
+							</template>
+							{{ t('nextcloud-vue', 'Unlink bookmark') }}
+						</NcActionButton>
+					</template>
+				</NcListItem>
 			</ul>
 		</div>
 
@@ -143,14 +148,16 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnBookmarkCreate from '../../../components/CnBookmarkCreate/CnBookmarkCreate.vue'
 import CnBookmarkPicker from '../../../components/CnBookmarkPicker/CnBookmarkPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -166,15 +173,19 @@ export default {
 	name: 'CnBookmarksTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		Bookmark,
 		LinkOff,
 		LinkVariant,
+		OpenInNew,
 		Plus,
 		CnBookmarkPicker,
 		CnBookmarkCreate,
+		CnStatusBadge,
 	},
 
 	props: {
@@ -207,7 +218,6 @@ export default {
 			error: '',
 			degraded: '',
 			activeTag: '',
-			brokenFavicons: {},
 			pickerOpen: false,
 			createOpen: false,
 		}
@@ -338,28 +348,38 @@ export default {
 			return bookmark.title || bookmark.url || ''
 		},
 
+		/**
+		 * Host (+ path) of the bookmark URL for the subline — drops the
+		 * scheme and trailing slash so the row reads like NC Bookmarks
+		 * ("example.com/spec" rather than "https://example.com/spec/").
+		 * Falls back to the raw URL when it cannot be parsed.
+		 *
+		 * @param {object} bookmark Bookmark row.
+		 * @return {string} Display URL.
+		 */
+		displayUrl(bookmark) {
+			const raw = bookmark.url || ''
+			try {
+				const url = new URL(raw)
+				const path = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '')
+				return `${url.host}${path}${url.search}`
+			} catch (e) {
+				return raw
+			}
+		},
+
+		openBookmark(bookmark) {
+			if (typeof window !== 'undefined' && bookmark.url) {
+				window.open(bookmark.url, '_blank', 'noopener')
+			}
+		},
+
 		bookmarkTags(bookmark) {
 			const tags = bookmark.tags
 			if (!Array.isArray(tags)) {
 				return []
 			}
 			return tags.filter((tag) => typeof tag === 'string' && tag !== '' && !tag.startsWith('or:'))
-		},
-
-		faviconUrl(bookmark) {
-			if (this.brokenFavicons[this.bookmarkKey(bookmark)]) {
-				return ''
-			}
-			try {
-				const url = new URL(bookmark.url)
-				return `${url.origin}/favicon.ico`
-			} catch (e) {
-				return ''
-			}
-		},
-
-		onFaviconError(bookmark) {
-			this.$set(this.brokenFavicons, this.bookmarkKey(bookmark), true)
 		},
 
 		toggleTagFilter(tag) {
@@ -411,11 +431,6 @@ export default {
 	gap: 8px;
 	margin-bottom: 8px;
 	flex-wrap: wrap;
-}
-
-.cn-bookmarks-tab__unlink {
-	flex-shrink: 0;
-	align-self: flex-start;
 }
 
 .cn-bookmarks-tab__banner {
@@ -488,73 +503,52 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-}
-
-.cn-bookmarks-tab__row {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-bookmarks-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-bookmarks-tab__row-icon {
-	flex-shrink: 0;
-	color: var(--color-text-maxcontrast);
-	padding-top: 2px;
-	width: 20px;
-	height: 20px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.cn-bookmarks-tab__favicon {
-	width: 16px;
-	height: 16px;
-	object-fit: contain;
-}
-
-.cn-bookmarks-tab__row-main {
-	flex: 1;
-	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
-.cn-bookmarks-tab__title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-a.cn-bookmarks-tab__title:hover {
-	text-decoration: underline;
-}
-
-.cn-bookmarks-tab__url {
-	font-size: 0.75em;
+/* Favicon / fallback glyph rendered inside NcListItem's #icon slot,
+   sized like a real NC Bookmarks site icon. */
+.cn-bookmarks-tab__row-icon {
+	flex-shrink: 0;
 	color: var(--color-text-maxcontrast);
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--border-radius);
+	background: var(--color-background-hover);
+}
+
+/* Truncated URL subline with a trailing external-link affordance. */
+.cn-bookmarks-tab__url {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	max-width: 100%;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-bookmarks-tab__url-text {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-bookmarks-tab__url-ext {
+	flex-shrink: 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-bookmarks-tab__description {
+	display: -webkit-box;
 	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
 	overflow: hidden;
 	text-overflow: ellipsis;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 1;
 	-webkit-box-orient: vertical;
 }
 
@@ -563,14 +557,5 @@ a.cn-bookmarks-tab__title:hover {
 	flex-wrap: wrap;
 	gap: 4px;
 	margin-top: 2px;
-}
-
-.cn-bookmarks-tab__tag {
-	display: inline-block;
-	padding: 1px 6px;
-	border-radius: 8px;
-	background: var(--color-background-hover);
-	color: var(--color-text-maxcontrast);
-	font-size: 0.7em;
 }
 </style>

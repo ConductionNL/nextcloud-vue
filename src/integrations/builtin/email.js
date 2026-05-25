@@ -33,11 +33,14 @@ import CnEmailCard from './email/CnEmailCard.vue'
 export const emailIntegration = {
 	id: 'email',
 	label: t('nextcloud-vue', 'Emails'),
+	appName: t('nextcloud-vue', 'Mail'),
 	icon: 'Email',
 	requiredApp: 'mail',
 	order: 22,
 	group: 'comms',
 	referenceType: 'email',
+	// NC Mail's app-icon blue — the standard Nextcloud envelope tint.
+	accentColor: '#0082c9',
 	tab: CnEmailTab,
 	widget: CnEmailCard,
 	defaultSize: { w: 3, h: 3 },

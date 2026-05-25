@@ -42,7 +42,13 @@ import CnMapsCard from './maps/CnMapsCard.vue'
 export const mapsIntegration = {
 	id: 'maps',
 	label: t('nextcloud-vue', 'Locations'),
+	appName: t('nextcloud-vue', 'Maps'),
 	icon: 'MapMarker',
+	// NC Maps ships with the default Nextcloud product blue (#0082c9) — it
+	// has no distinct brand hue — so we tint the leaf's pin tile / accent
+	// with NC blue, matching the other stock-app leaves (Talk, Contacts,
+	// Deck) rather than inventing a clashing colour.
+	accentColor: '#0082c9',
 	requiredApp: 'maps',
 	order: 42,
 	group: 'docs',

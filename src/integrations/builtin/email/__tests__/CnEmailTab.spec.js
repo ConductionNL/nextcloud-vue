@@ -58,12 +58,58 @@ describe('CnEmailTab', () => {
 		})
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
-		// 3 NcListItem stubs rendered, one per message.
-		expect(wrapper.findAll('.stub.NcListItem')).toHaveLength(3)
+		// 3 NC-Mail-style rows rendered, one per message.
+		expect(wrapper.findAll('.cn-email-tab__row')).toHaveLength(3)
 		expect(wrapper.vm.messages).toHaveLength(3)
 		expect(wrapper.vm.total).toBe(10)
 		// Load-more visible because messages.length (3) < total (10)
 		expect(wrapper.find('.cn-sidebar-tab__load-more').exists()).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('marks unread rows and renders sender + snippet (NC Mail fidelity)', async () => {
+		global.fetch = jest.fn().mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve({
+				results: [
+					{
+						id: 1,
+						subject: 'Hello',
+						senderName: 'Jane Doe',
+						senderEmail: 'jane@example.com',
+						preview: 'A short preview of the message body',
+						unread: true,
+						mailDate: '2026-01-01T09:00:00Z',
+						mailAccountId: 1,
+						mailMessageId: 100,
+					},
+					{
+						id: 2,
+						subject: 'Re: Hello',
+						senderName: 'John Roe',
+						preview: 'Another preview',
+						unread: false,
+						mailDate: '2026-01-02T09:00:00Z',
+						mailAccountId: 1,
+						mailMessageId: 101,
+					},
+				],
+				total: 2,
+			}),
+		})
+		const wrapper = mount(CnEmailTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		})
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+		const rows = wrapper.findAll('.cn-email-tab__row')
+		expect(rows).toHaveLength(2)
+		// First row unread → carries the modifier class.
+		expect(rows.at(0).classes()).toContain('cn-email-tab__row--unread')
+		expect(rows.at(1).classes()).not.toContain('cn-email-tab__row--unread')
+		// Sender name + snippet are surfaced.
+		expect(wrapper.text()).toContain('Jane Doe')
+		expect(wrapper.text()).toContain('A short preview of the message body')
 		wrapper.destroy()
 	})
 
