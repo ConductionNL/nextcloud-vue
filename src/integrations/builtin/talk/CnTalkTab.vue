@@ -1,12 +1,16 @@
 <!--
   CnTalkTab — bespoke sidebar tab for the `talk` integration.
 
-  Replaces the generic CnIntegrationTab for the `talk` leaf: renders a
-  conversation list with room name, last-message preview, unread badge,
-  and a "Open in Talk" deep-link per row. Tier-2: adds explicit
+  Replaces the generic CnIntegrationTab for the `talk` leaf: mirrors the
+  real NC Talk conversation list — each row is an NcListItem with the
+  conversation avatar (NcAvatar keyed on the room name), a bold
+  conversation name, a last-message preview as the subname, a relative
+  timestamp (NcDateTime) in the details slot, and an unread-count bubble
+  (NcCounterBubble) when the room has unread messages. Per-row unlink and
+  "Open in Talk" live in the row action menu. Tier-2: adds explicit
   "Link existing room" + "Create new room" actions powered by
-  CnTalkRoomPicker / CnTalkRoomCreate, plus per-row unlink (which
-  does NOT destroy the underlying Talk room).
+  CnTalkRoomPicker / CnTalkRoomCreate; unlink does NOT destroy the
+  underlying Talk room.
 
   Talks to the OpenRegister Tier-2 endpoint
     GET    /api/objects/{register}/{schema}/{objectId}/talk
@@ -19,10 +23,6 @@
     - Empty state with "Open Talk" + Link/Create CTAs when no linked rooms.
     - Loading + 503 "currently unavailable" + generic error states match
       CnIntegrationTab's behaviour for AD-23 graceful degradation.
-
-  Bespoke-vs-generic rationale: the generic tab renders a flat link list
-  which loses Talk's three primary signals (unread count, last message,
-  participant size) — the bespoke tab surfaces them per row.
 
   See `openregister/openspec/changes/integration-talk/` for the spec
   delta and ADR-019 (registry mechanism).
@@ -65,42 +65,55 @@
 			</NcButton>
 		</div>
 		<ul v-else class="cn-talk-tab__list">
-			<li
+			<NcListItem
 				v-for="room in rooms"
 				:key="roomKey(room)"
 				class="cn-talk-tab__row"
-				:class="{ 'cn-talk-tab__row--unread': hasUnread(room) }">
-				<div class="cn-talk-tab__row-icon">
-					<ChatOutline :size="24" />
-					<span
-						v-if="hasUnread(room)"
+				:class="{ 'cn-talk-tab__row--unread': hasUnread(room) }"
+				:name="roomTitle(room)"
+				:bold="hasUnread(room)"
+				:href="roomUrl(room)"
+				target="_blank"
+				:force-display-actions="true">
+				<template #icon>
+					<NcAvatar
+						:display-name="roomTitle(room)"
+						:size="40"
+						:is-no-user="true"
+						:show-user-status="false" />
+				</template>
+				<template #subname>
+					<span class="cn-talk-tab__preview">{{ roomSubname(room) }}</span>
+				</template>
+				<template v-if="roomTimestamp(room)" #details>
+					<NcDateTime
+						class="cn-talk-tab__time"
+						:timestamp="roomTimestamp(room)"
+						:relative-time="'short'" />
+				</template>
+				<template v-if="hasUnread(room)" #indicator>
+					<NcCounterBubble
 						class="cn-talk-tab__badge"
-						:aria-label="unreadAriaLabel(room)">{{ formatUnread(room) }}</span>
-				</div>
-				<div class="cn-talk-tab__row-main">
-					<a
-						:href="roomUrl(room)"
-						target="_blank"
-						rel="noopener"
-						class="cn-talk-tab__title">
-						{{ roomTitle(room) }}
-					</a>
-					<span v-if="roomPreview(room)" class="cn-talk-tab__preview">
-						{{ roomPreview(room) }}
-					</span>
-					<span v-if="roomMeta(room)" class="cn-talk-tab__meta">
-						{{ roomMeta(room) }}
-					</span>
-				</div>
-				<button
-					type="button"
-					class="cn-talk-tab__unlink"
-					:title="t('nextcloud-vue', 'Unlink from object (the room stays in Talk)')"
-					:aria-label="t('nextcloud-vue', 'Unlink room')"
-					@click="unlinkRoom(room)">
-					<Close :size="18" />
-				</button>
-			</li>
+						type="highlighted"
+						:aria-label="unreadAriaLabel(room)">
+						{{ formatUnread(room) }}
+					</NcCounterBubble>
+				</template>
+				<template #actions>
+					<NcActionButton :close-after-click="true" @click="openRoom(room)">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Open in Talk') }}
+					</NcActionButton>
+					<NcActionButton :close-after-click="true" @click="unlinkRoom(room)">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Unlink from object (the room stays in Talk)') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<!-- Picker + Create modals (mounted lazily) -->
@@ -119,11 +132,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcAvatar, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnTalkRoomCreate from '../../../components/CnTalkRoomCreate/CnTalkRoomCreate.vue'
 import CnTalkRoomPicker from '../../../components/CnTalkRoomPicker/CnTalkRoomPicker.vue'
@@ -133,20 +147,28 @@ import { stripMarker } from '../../utils/marker.js'
 /**
  * CnTalkTab — bespoke conversation list for the `talk` integration.
  *
- * Renders rows pulled from the OR Tier-2 link table with unread
- * indicators, last-message previews, and participant counts. Tier-2:
- * supports link / create / unlink via picker + create dialogs.
+ * Renders rows pulled from the OR Tier-2 link table as NcListItem rows
+ * styled to mirror NC Talk: conversation avatar, bold name,
+ * last-message preview, relative timestamp, and an unread counter
+ * bubble. Tier-2: supports link / create / unlink via picker + create
+ * dialogs.
  */
 export default {
 	name: 'CnTalkTab',
 
 	components: {
+		NcActionButton,
+		NcAvatar,
 		NcButton,
+		NcCounterBubble,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		ChatOutline,
 		Close,
 		LinkVariant,
+		OpenInNew,
 		Plus,
 		CnTalkRoomPicker,
 		CnTalkRoomCreate,
@@ -223,6 +245,25 @@ export default {
 			return t('nextcloud-vue', '{n} unread', { n: count })
 		},
 
+		/**
+		 * Last-message preview line. Falls back to a participant-count
+		 * summary so the subname is never empty in NC-Talk style.
+		 *
+		 * @param {object} room Conversation row.
+		 * @return {string} Preview or participant summary.
+		 */
+		roomSubname(room) {
+			const preview = this.roomPreview(room)
+			if (preview) {
+				return preview
+			}
+			const participants = Number(room.participantCount ?? room.numParticipants ?? 0)
+			if (Number.isFinite(participants) && participants > 0) {
+				return t('nextcloud-vue', '{n} participants', { n: participants })
+			}
+			return ''
+		},
+
 		roomPreview(room) {
 			const msg = room.lastMessage
 			if (msg && typeof msg === 'object') {
@@ -231,32 +272,30 @@ export default {
 			return room.lastMessageText ?? room.preview ?? ''
 		},
 
-		roomMeta(room) {
-			const parts = []
-			const participants = Number(room.participantCount ?? room.numParticipants ?? 0)
-			if (Number.isFinite(participants) && participants > 0) {
-				parts.push(t('nextcloud-vue', '{n} participants', { n: participants }))
+		/**
+		 * Resolve the room's last-activity moment as an epoch-millisecond
+		 * value for NcDateTime. Accepts unix seconds, millisecond numbers,
+		 * or an ISO-8601 string; returns 0 when unparseable (no timestamp).
+		 *
+		 * @param {object} room Conversation row.
+		 * @return {number} Epoch milliseconds, or 0 when unknown.
+		 */
+		roomTimestamp(room) {
+			const raw = room.lastActivity ?? room.lastActivityAt ?? null
+			if (raw === null || raw === undefined || raw === '') {
+				return 0
 			}
-			if (room.lastActivity) {
-				parts.push(this.formatTimestamp(room.lastActivity))
+			if (typeof raw === 'number') {
+				// Heuristic: treat 10-digit values as unix seconds.
+				return raw < 1e12 ? raw * 1000 : raw
 			}
-			return parts.join(' · ')
+			const parsed = new Date(raw).getTime()
+			return Number.isNaN(parsed) ? 0 : parsed
 		},
 
-		formatTimestamp(value) {
-			let date
-			try {
-				if (typeof value === 'number') {
-					date = new Date(value * 1000)
-				} else {
-					date = new Date(value)
-				}
-				if (Number.isNaN(date.getTime())) {
-					return ''
-				}
-				return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-			} catch (e) {
-				return ''
+		openRoom(room) {
+			if (typeof window !== 'undefined') {
+				window.open(this.roomUrl(room), '_blank', 'noopener')
 			}
 		},
 
@@ -368,6 +407,10 @@ export default {
 </script>
 
 <style scoped>
+.cn-talk-tab {
+	padding: 8px 0;
+}
+
 .cn-talk-tab__banner {
 	display: flex;
 	align-items: center;
@@ -411,93 +454,23 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-}
-
-.cn-talk-tab__row {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-talk-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-talk-tab__row-icon {
-	position: relative;
-	flex-shrink: 0;
-	color: var(--color-text-maxcontrast);
-	padding-top: 2px;
-}
-
-.cn-talk-tab__badge {
-	position: absolute;
-	top: -4px;
-	right: -8px;
-	min-width: 18px;
-	height: 18px;
-	padding: 0 5px;
-	border-radius: 9px;
-	background: var(--color-primary-element, #4376FC);
-	color: var(--color-primary-element-text, #ffffff);
-	font-size: 0.7em;
-	font-weight: bold;
-	line-height: 18px;
-	text-align: center;
-}
-
-.cn-talk-tab__row-main {
-	flex: 1;
-	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
-.cn-talk-tab__title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-.cn-talk-tab__row--unread .cn-talk-tab__title {
-	font-weight: 600;
-}
-
-a.cn-talk-tab__title:hover {
-	text-decoration: underline;
-}
-
+/* Last-message preview — single line, muted, like NC Talk. */
 .cn-talk-tab__preview {
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
+	display: block;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.cn-talk-tab__meta {
-	font-size: 0.75em;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-talk-tab__unlink {
-	flex-shrink: 0;
-	background: transparent;
-	border: none;
+.cn-talk-tab__time {
 	color: var(--color-text-maxcontrast);
-	cursor: pointer;
-	padding: 4px;
-	border-radius: var(--border-radius);
-}
-
-.cn-talk-tab__unlink:hover {
-	background: var(--color-background-hover);
-	color: var(--color-error);
+	font-size: 0.8em;
+	white-space: nowrap;
 }
 </style>
