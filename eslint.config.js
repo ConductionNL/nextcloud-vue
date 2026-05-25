@@ -62,6 +62,49 @@ module.exports = defineConfig([{
 		'@nextcloud/no-removed-apis': 'off',
 	},
 }, {
+	// Phase K / K2 — integration-leaf template-ES2020 guard (ADR-019).
+	//
+	// Vue 2 transpiles every <template> expression through buble
+	// (vue-template-compiler → vue-template-es2015-compiler), which does
+	// NOT understand optional chaining (`?.`) or nullish coalescing
+	// (`??`). Such syntax passes jest but breaks `npm run build` — the
+	// rollout's biggest near-miss (a template-side `obj?.field` in
+	// CnContactsCard.vue). `vue/no-restricted-syntax` runs against the
+	// template AST produced by vue-eslint-parser, so these selectors fire
+	// at lint time, before build.
+	//
+	// SCOPED to src/integrations/builtin/**/*.vue on purpose: the rest of
+	// the library has plenty of legitimate `?.`/`??` in <script> blocks
+	// (which buble never sees), and a fleet-wide rule would be noise. The
+	// `VElement[name='template']` ancestor restriction in each selector
+	// keeps the rule template-only even within these files.
+	files: ['src/integrations/builtin/**/*.vue'],
+	rules: {
+		'vue/no-restricted-syntax': ['error',
+			{
+				// Optional chaining (a?.b, a?.(), a?.[b]) inside a <template>.
+				selector: "VElement[name='template'] ChainExpression",
+				message: 'Optional chaining (?.) is not allowed in <template> — Vue 2\'s buble transpiler rejects it and `npm run build` breaks (it passes jest). Move the expression into a computed/method, or use an explicit (a && a.b) form.',
+			},
+			{
+				// Belt-and-braces: a bare optional MemberExpression that
+				// some parser versions emit without the ChainExpression wrapper.
+				selector: "VElement[name='template'] MemberExpression[optional=true]",
+				message: 'Optional chaining (?.) is not allowed in <template> — Vue 2\'s buble transpiler rejects it. Use an explicit (a && a.b) form.',
+			},
+			{
+				// Optional call: a?.()
+				selector: "VElement[name='template'] CallExpression[optional=true]",
+				message: 'Optional call (?.()) is not allowed in <template> — Vue 2\'s buble transpiler rejects it. Guard the call explicitly.',
+			},
+			{
+				// Nullish coalescing (a ?? b) inside a <template>.
+				selector: "VElement[name='template'] LogicalExpression[operator='??']",
+				message: 'Nullish coalescing (??) is not allowed in <template> — Vue 2\'s buble transpiler rejects it and `npm run build` breaks. Use an explicit (a == null ? b : a) form or a computed.',
+			},
+		],
+	},
+}, {
 	// CLI scripts are Node.js executables — process.exit(), CJS require(), and
 	// minimal JSDoc are intentional and appropriate for build tools.
 	files: ['src/cli/**/*.js', 'src/cli/**/*.cjs'],
