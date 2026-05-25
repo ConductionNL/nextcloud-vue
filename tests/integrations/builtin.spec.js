@@ -28,15 +28,27 @@ const CANONICAL_IDS = ['files', 'notes', 'tags', 'tasks', 'audit-trail']
 // first-wins collision policy upgrades a leaf to a richer Vue pair at
 // bootstrap. Keep this in lock-step with `src/integrations/builtin/index.js`.
 const BESPOKE_LEAF_IDS = [
+	// comms
 	'calendar',
 	'contacts',
 	'email',
 	'talk',
+	// docs
 	'bookmarks',
+	'collectives',
+	'maps',
+	'photos',
+	// workflow
 	'deck',
 	'polls',
 	'shares',
 	'activity',
+	'analytics',
+	'cospend',
+	'flow',
+	'forms',
+	'time-tracker',
+	// external
 	'openproject',
 	'xwiki',
 ]
@@ -61,9 +73,17 @@ const SORTED_IDS = [
 	'openproject', // 31
 	'xwiki', // 32
 	'bookmarks', // 40
+	'collectives', // 41
+	'maps', // 42
+	'photos', // 43
 	'activity', // 60
+	'analytics', // 61
+	'cospend', // 62
 	'deck', // 63
+	'flow', // 64
+	'forms', // 65
 	'polls', // 66
+	'time-tracker', // 67
 ]
 
 describe('builtinIntegrations', () => {
