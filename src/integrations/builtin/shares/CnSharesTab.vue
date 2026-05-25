@@ -31,6 +31,15 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div class="cn-shares-tab__toolbar">
+			<NcButton type="primary" data-testid="cn-shares-tab-share-file" @click="openCreateDialog">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ shareFileLabel }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 		<div v-else-if="error" class="cn-shares-tab__error" role="alert">
 			{{ error }}
@@ -108,6 +117,16 @@
 				</NcButton>
 			</div>
 		</div>
+
+		<CnShareCreate
+			v-if="showCreate"
+			:files="shareableFiles"
+			:files-loading="filesLoading"
+			:principals="principals"
+			:principals-loading="principalsLoading"
+			@close="showCreate = false"
+			@search-principals="searchPrincipals"
+			@create="createShare" />
 	</div>
 </template>
 
@@ -123,6 +142,8 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import Share from 'vue-material-design-icons/Share.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import { CnShareCreate } from '../../../components/CnShareCreate/index.js'
 import { buildHeaders } from '../../../utils/index.js'
 
 // NC core share-type constants (OCP\Share\IShare::TYPE_*).
@@ -162,6 +183,8 @@ export default {
 		CloseCircleOutline,
 		FolderOutline,
 		Share,
+		Plus,
+		CnShareCreate,
 	},
 
 	props: {
@@ -191,6 +214,8 @@ export default {
 		expiryLabel: { type: String, default: () => t('nextcloud-vue', 'Expires') },
 		/** URL of the NC Files app entry. */
 		filesAppUrl: { type: String, default: '/index.php/apps/files' },
+		/** Pre-translated label for the "Share file" toolbar button. */
+		shareFileLabel: { type: String, default: () => t('nextcloud-vue', 'Share file') },
 	},
 
 	data() {
@@ -199,6 +224,11 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			showCreate: false,
+			shareableFiles: [],
+			filesLoading: false,
+			principals: [],
+			principalsLoading: false,
 		}
 	},
 
@@ -225,6 +255,74 @@ export default {
 	methods: {
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		},
+
+		// Tier-2 dedicated endpoints (ShareLinksController) — distinct
+		// from the generic registry `baseUrl()` above. Create/revoke flow
+		// through these so the IManager-backed service owns the write
+		// path (NO cache table).
+		sharesUrl() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/shares`
+		},
+
+		shareableFilesUrl() {
+			return `${this.apiBase}/integrations/shares/files/${this.register}/${this.schema}/${this.objectId}`
+		},
+
+		async openCreateDialog() {
+			this.showCreate = true
+			await this.fetchShareableFiles()
+		},
+
+		async fetchShareableFiles() {
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
+			this.filesLoading = true
+			try {
+				const response = await fetch(this.shareableFilesUrl(), { headers: buildHeaders() })
+				if (response.ok) {
+					const data = await response.json()
+					this.shareableFiles = data.results || (Array.isArray(data) ? data : []) || []
+				} else {
+					this.shareableFiles = []
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnSharesTab] failed to fetch shareable files', err)
+				this.shareableFiles = []
+			} finally {
+				this.filesLoading = false
+			}
+		},
+
+		searchPrincipals({ shareType, query }) {
+			// Principal lookup is host-supplied: the host app wires NC's
+			// share-search OCS endpoint. Emit upward so the host can
+			// populate `principals`; default is a no-op empty list.
+			this.$emit('search-principals', { shareType, query })
+		},
+
+		async createShare(payload) {
+			try {
+				const response = await fetch(this.sharesUrl(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					this.showCreate = false
+					this.$emit('share-created', payload)
+					await this.fetchShares()
+				} else {
+					const data = await response.json().catch(() => ({}))
+					this.error = data.error || t('nextcloud-vue', 'Could not create share.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnSharesTab] failed to create share', err)
+				this.error = t('nextcloud-vue', 'Could not create share.')
+			}
 		},
 
 		shareKey(share) {
@@ -361,6 +459,12 @@ export default {
 	background: var(--color-warning, #e9a40f);
 	color: var(--color-main-background);
 	font-size: 0.9em;
+}
+
+.cn-shares-tab__toolbar {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 10px;
 }
 
 .cn-shares-tab__error {
