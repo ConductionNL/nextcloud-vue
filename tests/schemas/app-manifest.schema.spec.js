@@ -47,6 +47,20 @@ describe('app-manifest.schema.json (metadata)', () => {
 	it('disallows additional top-level properties', () => {
 		expect(schema.additionalProperties).toBe(false)
 	})
+
+	it('menu item section enum is the three-section model (main / footer / settings)', () => {
+		expect(schema.$defs.menuItem.properties.section.enum).toEqual(['main', 'footer', 'settings'])
+	})
+
+	it('child menu item section enum also includes footer', () => {
+		expect(schema.$defs.menuItemLeaf.properties.section.enum).toEqual(['main', 'footer', 'settings'])
+	})
+
+	it('declares the nav block with includePersonalSettings + settingsLabel', () => {
+		expect(schema.properties.nav).toBeDefined()
+		expect(schema.properties.nav.properties.includePersonalSettings).toMatchObject({ type: 'boolean' })
+		expect(schema.properties.nav.properties.settingsLabel).toMatchObject({ type: 'string' })
+	})
 })
 
 describe('validateManifest (FE)', () => {

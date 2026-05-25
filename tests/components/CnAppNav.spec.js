@@ -535,4 +535,89 @@ describe('CnAppNav', () => {
 			window.open = originalOpen
 		})
 	})
+
+	describe('three-section model (main / footer / settings foldout)', () => {
+		const sectionManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'Home', route: 'home', order: 1 },
+				{ id: 'docs', label: 'Documentation', href: 'https://x', section: 'footer', order: 10 },
+				{ id: 'roadmap', label: 'Features & roadmap', route: 'roadmap', section: 'footer', order: 11 },
+				{ id: 'forms', label: 'Forms', route: 'forms', section: 'settings', order: 20 },
+				{ id: 'pipelines', label: 'Pipelines', route: 'pipelines', section: 'settings', order: 21 },
+			],
+		}
+
+		it('splits items into main / footer / settings computeds', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.mainItems.map((i) => i.id)).toEqual(['home'])
+			expect(wrapper.vm.footerItems.map((i) => i.id)).toEqual(['docs', 'roadmap'])
+			expect(wrapper.vm.settingsItems.map((i) => i.id)).toEqual(['forms', 'pipelines'])
+		})
+
+		it('renders footer-section items as flat entries in the footer', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.find('[data-testid="cn-nav-footer"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+		})
+
+		it('mounts the settings foldout with the settings items inside', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			// showSettingsFoldout drives the foldout mount; the settings
+			// entries rendering inside it is the observable proof (the dist
+			// NcAppNavigationSettings component name isn't reliably matchable
+			// via findComponent, so assert on its slot content instead).
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-pipelines"]').exists()).toBe(true)
+		})
+
+		it('auto-prepends a Personal settings entry that invokes cnOpenUserSettings', () => {
+			const openUserSettings = jest.fn()
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home', openUserSettings })
+			const personal = wrapper.find('[data-testid="cn-nav-personal-settings"]')
+			expect(personal.exists()).toBe(true)
+			wrapper.vm.onPersonalSettingsClick()
+			expect(openUserSettings).toHaveBeenCalledTimes(1)
+		})
+
+		it('suppresses Personal settings when nav.includePersonalSettings is false', () => {
+			const m = { ...sectionManifest, nav: { includePersonalSettings: false } }
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			expect(wrapper.vm.includePersonalSettings).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
+			// Foldout still mounts because there are settings items.
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
+		})
+
+		it('does NOT mount the foldout when there are no settings items', () => {
+			const m = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'Home', route: 'home', order: 1 },
+					{ id: 'docs', label: 'Docs', href: 'https://x', section: 'footer', order: 10 },
+				],
+			}
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			expect(wrapper.vm.showSettingsFoldout).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
+			// Footer still renders for the footer-section item.
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+		})
+
+		it('uses nav.settingsLabel override for the foldout label', () => {
+			const m = { ...sectionManifest, nav: { settingsLabel: 'Beheer' } }
+			const wrapper = mountNav({ manifest: m, routeName: 'home', translate: (k) => k })
+			expect(wrapper.vm.settingsFoldoutLabel).toBe('Beheer')
+		})
+
+		it('items with no section still default to main', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.mainItems.every((i) => (i.section ?? 'main') === 'main')).toBe(true)
+		})
+	})
 })
