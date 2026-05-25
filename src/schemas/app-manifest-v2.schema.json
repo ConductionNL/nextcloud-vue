@@ -420,7 +420,7 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "wiki", "map", "roadmap", "search", "custom"],
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "custom"],
 					"description": "Page type. Closed enum of 13 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
@@ -456,7 +456,7 @@
 				"widgets": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/widgetEntry" },
-					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check. Single-widget dashboards: a type:'dashboard' page with exactly one body widget covering the full 12×12 grid whose widgetKey resolves to a custom (non-library-built-in) registry component is REJECTED — see ADR-036 Decision 1 (single-widget dashboard anti-pattern). Use type:'custom' with component:'<widgetKey>' or split into N>1 widgets instead. Library built-in widget keys (object-table, card-grid, form-renderer, wiki-renderer, map-viewer, chart, stats-block) are exempt from the rule. Enforced by validateManifestV2() post-schema check."
+					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check. Single-widget dashboards: a type:'dashboard' page with exactly one body widget covering the full 12×12 grid whose widgetKey resolves to a custom (non-library-built-in) registry component is REJECTED — see ADR-036 Decision 1 (single-widget dashboard anti-pattern). Use type:'custom' with component:'<widgetKey>' or split into N>1 widgets instead. Library built-in widget keys (object-table, card-grid, form-renderer, map-viewer, chart, stats-block) are exempt from the rule. Enforced by validateManifestV2() post-schema check."
 				},
 				"actions": {
 					"type": "array",
@@ -465,7 +465,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, wiki, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
+					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
 					"properties": {
 						"register": {
@@ -666,50 +666,6 @@
 									"description": "Whether rows are selectable (driving the mass-action surface). Maps to CnIndexPage `selectable`."
 								}
 							}
-						},
-						"contentField": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): property on `article` holding the markdown body. Defaults to 'body'. Maps to CnWikiPage `contentField`."
-						},
-						"titleField": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): property on `article` holding the H1 title. Defaults to 'title'. Maps to CnWikiPage `titleField`."
-						},
-						"idParam": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): $route.params key holding the article id. Defaults to 'id'. Maps to CnWikiPage `idParam`."
-						},
-						"treeField": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): property on each sidebar tree node holding its child array. Defaults to 'children'. Maps to CnWikiPage `treeField`."
-						},
-						"sidebarTitleField": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): property on each sidebar tree node holding its label. Defaults to the value of `titleField`. Maps to CnWikiPage `sidebarTitleField`."
-						},
-						"sidebarRegister": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): register slug for the sidebar tree. Defaults to the main `register`. Maps to CnWikiPage `sidebarRegister`."
-						},
-						"sidebarSchema": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): schema slug for the sidebar tree. When set AND `tree` is non-empty the sidebar renders. Maps to CnWikiPage `sidebarSchema`."
-						},
-						"emptyText": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): empty-state heading when `article` is null. Maps to CnWikiPage `emptyText`."
-						},
-						"emptyDescription": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): empty-state description when `article` is null. Maps to CnWikiPage `emptyDescription`."
-						},
-						"emptyBodyText": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): empty-body heading when the article has no `contentField` value. Maps to CnWikiPage `emptyBodyText`."
-						},
-						"emptyBodyDescription": {
-							"type": "string",
-							"description": "Wiki (type='wiki'): empty-body description. Maps to CnWikiPage `emptyBodyDescription`."
 						},
 						"mode": {
 							"type": "string",

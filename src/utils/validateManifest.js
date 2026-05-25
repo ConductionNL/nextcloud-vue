@@ -54,10 +54,10 @@ function ajvErrorToString(err) {
  * rule (see `LIBRARY_BUILT_IN_WIDGET_KEYS` consumer below).
  *
  * Canonical list per ADR-036 Decision 1 + the manifest-v2 spec
- * (`object-table`, `card-grid`, `form-renderer`, `wiki-renderer`,
- * `map-viewer`, `chart`, `stats-block`). The runtime
- * `BUILT_IN_WIDGETS` registry in `src/components/CnWidgetGrid/`
- * currently ships the first five; `chart` and `stats-block` are
+ * (`object-table`, `card-grid`, `form-renderer`, `map-viewer`,
+ * `chart`, `stats-block`). The runtime `BUILT_IN_WIDGETS` registry in
+ * `src/components/CnWidgetGrid/` currently ships the first four;
+ * `chart` and `stats-block` are
  * reserved here so manifests authored against the spec do not trip
  * the rule when those widgets ship. New built-ins added to the
  * library MUST be appended to this list in the same PR.
@@ -68,7 +68,6 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'object-table',
 	'card-grid',
 	'form-renderer',
-	'wiki-renderer',
 	'map-viewer',
 	'chart',
 	'stats-block',
@@ -515,7 +514,7 @@ function isPlainObject(value) {
 
 /**
  * Validate a page's `config` object against per-type rules for the
- * built-in extended types: `logs`, `settings`, `chat`, `files`, `wiki`, `map`.
+ * built-in extended types: `logs`, `settings`, `chat`, `files`, `map`.
  *
  * Skips silently for any other type (including the original
  * `index | detail | dashboard | custom`) — those have free-form
@@ -713,24 +712,6 @@ function validateTypeConfig(page, index, errors) {
 		}
 
 		validateConfigMode(cfg, pathSlash, pathBracket, errors)
-		break
-	}
-	case 'wiki': {
-		// `manifest-wiki-page-type` REQ-MWPT — wiki pages render a
-		// markdown article sourced from a register/schema property.
-		// Both register and schema MUST be non-empty strings.
-		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
-		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
-		if (!hasRegister || !hasSchema) {
-			errors.push(`${pathSlash}: ${pathBracket}: wiki pages must declare register and schema`)
-		}
-		// `manifest-wiki-stabilise` — the 11 optional config fields
-		// (contentField / titleField / idParam / treeField /
-		// sidebarTitleField / sidebarRegister / sidebarSchema /
-		// emptyText / emptyDescription / emptyBodyText /
-		// emptyBodyDescription) MUST be strings when present.
-		// Schema-validated, but cross-check here for typed paths.
-		validateWikiConfigFields(cfg, pathSlash, pathBracket, errors)
 		break
 	}
 	case 'map': {
@@ -1113,28 +1094,6 @@ function validateActionsArray(cfg, pathSlash, pathBracket, errors) {
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
 
 /**
- * Known optional string fields for `type:'wiki'` config
- * (`manifest-wiki-stabilise`). Each value MUST be a string when
- * present; omitted fields are tolerated; unknown keys pass for
- * forward-compat.
- *
- * @type {string[]}
- */
-const WIKI_OPTIONAL_STRING_FIELDS = [
-	'contentField',
-	'titleField',
-	'idParam',
-	'treeField',
-	'sidebarTitleField',
-	'sidebarRegister',
-	'sidebarSchema',
-	'emptyText',
-	'emptyDescription',
-	'emptyBodyText',
-	'emptyBodyDescription',
-]
-
-/**
  * Validate `config.actionToggles` for index page type
  * (`manifest-index-action-toggles`). The block is OPTIONAL; when
  * present it MUST be a plain object whose values are booleans.
@@ -1251,26 +1210,6 @@ function validateSidebarTabGroupRefs(page, index, errors) {
 			errors.push(`pages[${index}]/widgets/${wIndex}/tabGroup: "${widget.tabGroup}" must match a declared config.sidebarTabs[].id`)
 		}
 	})
-}
-
-/**
- * Validate the optional typed string fields on `type:'wiki'` config.
- * Required fields (register, schema) are checked separately by the
- * wiki case in `validateTypeConfig`.
- *
- * @param {object} cfg The page's `config` block (or null)
- * @param {string} pathSlash JSON-pointer-style path prefix
- * @param {string} pathBracket Bracket-style path prefix
- * @param {string[]} errors Accumulator
- */
-function validateWikiConfigFields(cfg, pathSlash, pathBracket, errors) {
-	if (!cfg) return
-	for (const field of WIKI_OPTIONAL_STRING_FIELDS) {
-		if (cfg[field] === undefined) continue
-		if (typeof cfg[field] !== 'string') {
-			errors.push(`${pathSlash}/${field}: ${pathBracket}.${field}: must be a string when set (got ${typeof cfg[field]})`)
-		}
-	}
 }
 
 /**

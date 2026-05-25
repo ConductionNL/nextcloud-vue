@@ -20,13 +20,13 @@
 
 ### Slots
 
-| Name                 | Bindings       | Description                                                                                                                                                     |
-| -------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `or-missing`         | `missing-apps` |                                                                                                                                                                 |
-| `loading`            | —              |                                                                                                                                                                 |
-| `dependency-missing` | `dependencies` |                                                                                                                                                                 |
-| `menu`               | —              | menu                                                                                                                                                            |
-| `header-actions`     | —              | header-actions                                                                                                                                                  |
-| `footer`             | —              | footer                                                                                                                                                          |
-| `sidebar`            | —              | sidebar                                                                                                                                                         |
-| `user-settings`      | —              | user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to a single placeholder section when omitted. |
+| Name                 | Bindings       | Description                                                                                                                                                          |
+| -------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `or-missing`         | `missing-apps` |                                                                                                                                                                      |
+| `loading`            | —              |                                                                                                                                                                      |
+| `dependency-missing` | `dependencies` |                                                                                                                                                                      |
+| `menu`               | —              | menu                                                                                                                                                                 |
+| `header-actions`     | —              | header-actions                                                                                                                                                       |
+| `footer`             | —              | footer                                                                                                                                                               |
+| `sidebar`            | —              | sidebar                                                                                                                                                              |
+| `user-settings`      | —              | user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. |
