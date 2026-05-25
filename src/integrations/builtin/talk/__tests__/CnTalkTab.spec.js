@@ -67,10 +67,15 @@ describe('CnTalkTab', () => {
 		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
+		// Each conversation renders as an NcListItem row.
 		const rows = wrapper.findAll('.cn-talk-tab__row')
 		expect(rows).toHaveLength(2)
-		expect(wrapper.text()).toContain('Alpha')
-		expect(wrapper.text()).toContain('Beta')
+		// Conversation names are bound to the NcListItem `name` attribute
+		// (the functional stub spreads bound attrs onto its root element).
+		const names = rows.wrappers.map((r) => r.attributes('name'))
+		expect(names).toContain('Alpha')
+		expect(names).toContain('Beta')
+		// Only the unread room shows a counter bubble badge.
 		const badges = wrapper.findAll('.cn-talk-tab__badge')
 		expect(badges).toHaveLength(1)
 		expect(badges.at(0).text()).toBe('3')
