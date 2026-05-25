@@ -24,11 +24,21 @@
   string and the comment snippet — three signals that make a POI
   legible at-a-glance. The bespoke tab surfaces them per row.
 
-  Mini-map preview: deliberately skipped for v1 — the only inline map
+  Visual fidelity: each row mirrors a real NC Maps favourite — an
+  offline-safe map-pin tile (no remote tiles / no external images),
+  the bold location name, an address subline (falls back to the
+  category when no street address is present), a monospace lat/long
+  line, and a compact coordinate chip when the row carries coordinates.
+  Rows are rendered as `NcListItem`s so the tab matches NC Maps' own
+  favourites list look-and-feel. The pin tile is tinted with the leaf
+  accent (`--cn-iw-accent`, set from the descriptor's `accentColor`)
+  falling back to the theme primary.
+
+  Mini-map preview: deliberately skipped — the only inline map
   component in this repo (`CnMapWidget`) is a heavy Leaflet wrapper
-  intended for full-page rendering, not for a sidebar row. We surface
-  formatted coordinates + an "Open on map" link instead and revisit
-  once a lightweight static-map primitive lands.
+  intended for full-page rendering, not for a sidebar row, and would
+  pull remote tiles. We surface a static pin tile + formatted
+  coordinates + an "Open on map" link instead.
 
   Surface behaviour:
     - Empty state ("No locations linked yet") + "Open Locations" CTA
@@ -82,49 +92,67 @@
 		</div>
 
 		<ul v-else-if="points.length > 0" class="cn-maps-tab__list">
-			<li
+			<NcListItem
 				v-for="point in points"
 				:key="pointKey(point)"
-				class="cn-maps-tab__row">
-				<div class="cn-maps-tab__row-icon">
-					<MapMarker :size="20" />
-				</div>
-				<div class="cn-maps-tab__row-main">
-					<div class="cn-maps-tab__row-header">
-						<a
-							:href="pointUrl(point)"
-							target="_blank"
-							rel="noopener"
-							class="cn-maps-tab__title">{{ pointName(point) }}</a>
-						<span v-if="pointCategory(point)" class="cn-maps-tab__category">
-							{{ pointCategory(point) }}
-						</span>
-					</div>
-					<span v-if="pointComment(point)" class="cn-maps-tab__comment">
-						{{ pointComment(point) }}
+				class="cn-maps-tab__row"
+				:name="pointName(point)"
+				:href="pointUrl(point)"
+				target="_blank"
+				:force-display-actions="true">
+				<template #icon>
+					<span class="cn-maps-tab__pin" aria-hidden="true">
+						<MapMarker :size="22" class="cn-maps-tab__pin-icon" />
 					</span>
-					<div v-if="coordsLabel(point)" class="cn-maps-tab__coords">
-						<span class="cn-maps-tab__coords-text">{{ coordsLabel(point) }}</span>
+				</template>
+				<template #name>
+					<span class="cn-maps-tab__title">{{ pointName(point) }}</span>
+					<span v-if="pointCategory(point)" class="cn-maps-tab__category">
+						{{ pointCategory(point) }}
+					</span>
+				</template>
+				<template #subname>
+					<span class="cn-maps-tab__subname">
+						<span v-if="addressLabel(point)" class="cn-maps-tab__address">{{ addressLabel(point) }}</span>
+						<span v-if="coordsLabel(point)" class="cn-maps-tab__coords">
+							<MapMarkerOutline :size="13" class="cn-maps-tab__coords-icon" />
+							<span class="cn-maps-tab__coords-text">{{ coordsLabel(point) }}</span>
+						</span>
 						<a
 							v-if="pointHasCoords(point)"
 							:href="openOnMapUrl(point)"
 							target="_blank"
 							rel="noopener"
-							class="cn-maps-tab__open-link">
+							class="cn-maps-tab__open-link"
+							@click.stop>
 							{{ openOnMapLabel }}
 						</a>
-					</div>
-				</div>
-				<NcButton
-					type="tertiary-no-background"
-					:aria-label="t('nextcloud-vue', 'Unlink location')"
-					class="cn-maps-tab__unlink"
-					@click="unlinkPoint(point)">
-					<template #icon>
-						<LinkOff :size="16" />
-					</template>
-				</NcButton>
-			</li>
+					</span>
+					<span v-if="pointComment(point)" class="cn-maps-tab__comment">
+						{{ pointComment(point) }}
+					</span>
+				</template>
+				<template v-if="pointHasCoords(point)" #indicator>
+					<span class="cn-maps-tab__coord-chip" :title="coordsLabel(point)">
+						<MapMarker :size="11" />
+						{{ coordsLabel(point) }}
+					</span>
+				</template>
+				<template #actions>
+					<NcActionButton :close-after-click="true" @click="openPoint(point)">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ openOnMapLabel }}
+					</NcActionButton>
+					<NcActionButton :close-after-click="true" @click="unlinkPoint(point)">
+						<template #icon>
+							<LinkOff :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Unlink location') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnMapPoiPicker
@@ -142,11 +170,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMapPoiCreate from '../../../components/CnMapPoiCreate/CnMapPoiCreate.vue'
 import CnMapPoiPicker from '../../../components/CnMapPoiPicker/CnMapPoiPicker.vue'
@@ -166,12 +196,16 @@ export default {
 	name: 'CnMapsTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		LinkOff,
 		LinkVariant,
 		MapMarker,
+		MapMarkerOutline,
+		OpenInNew,
 		Plus,
 		CnMapPoiPicker,
 		CnMapPoiCreate,
@@ -278,6 +312,42 @@ export default {
 				return text.slice(0, COMMENT_MAX_CHARS).trimEnd() + '…'
 			}
 			return text
+		},
+
+		/**
+		 * Human-readable address subline for the row.
+		 *
+		 * NC Maps favourites don't always carry a structured address, so
+		 * read a few common fields defensively (top-level + `data.*`) and
+		 * fall back to the category when no street address exists — that
+		 * keeps the subline informative without surfacing the bare coords
+		 * twice (coords have their own line).
+		 *
+		 * @param {object} point Provider row.
+		 *
+		 * @return {string} The address subline (may be empty).
+		 */
+		addressLabel(point) {
+			const d = this.dataOf(point)
+			const raw = point.address ?? point.formattedAddress ?? d.address ?? d.formattedAddress ?? d.street ?? ''
+			const text = stripMarker(String(raw)).replace(/\s+/g, ' ').trim()
+			if (text !== '') {
+				return text
+			}
+			return this.pointCategory(point)
+		},
+
+		/**
+		 * Open a single POI in NC Maps (row action).
+		 *
+		 * @param {object} point Provider row.
+		 *
+		 * @return {void}
+		 */
+		openPoint(point) {
+			if (typeof window !== 'undefined') {
+				window.open(this.pointUrl(point), '_blank', 'noopener')
+			}
 		},
 
 		coordOf(point, key) {
@@ -487,67 +557,35 @@ export default {
 	padding: 0;
 }
 
-.cn-maps-tab__row {
-	position: relative;
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 10px 28px 10px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-maps-tab__unlink {
-	position: absolute;
-	top: 6px;
-	right: 0;
-}
-
-.cn-maps-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-maps-tab__row-icon {
-	flex-shrink: 0;
-	color: var(--color-text-maxcontrast);
-	padding-top: 2px;
-	width: 20px;
-	height: 20px;
+/* Offline-safe static pin tile — a tinted rounded square with a marker
+   glyph, mirroring a Maps favourite thumbnail without loading any tiles. */
+.cn-maps-tab__pin {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--cn-iw-accent, var(--color-primary-element, #0082c9));
+	color: var(--color-primary-element-text, #fff);
+	flex-shrink: 0;
 }
 
-.cn-maps-tab__row-main {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.cn-maps-tab__row-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
+.cn-maps-tab__pin-icon {
+	color: var(--color-primary-element-text, #fff);
 }
 
 .cn-maps-tab__title {
-	flex: 1;
-	min-width: 0;
+	font-weight: 500;
+	color: var(--color-main-text);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-a.cn-maps-tab__title:hover {
-	text-decoration: underline;
 }
 
 .cn-maps-tab__category {
 	flex-shrink: 0;
+	margin-inline-start: 6px;
 	font-size: 0.7em;
 	padding: 2px 8px;
 	border-radius: 10px;
@@ -555,24 +593,32 @@ a.cn-maps-tab__title:hover {
 	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 	letter-spacing: 0.03em;
+	vertical-align: middle;
 }
 
-.cn-maps-tab__comment {
-	font-size: 0.85em;
+.cn-maps-tab__subname {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+}
+
+.cn-maps-tab__address {
 	color: var(--color-text-maxcontrast);
 	overflow: hidden;
 	text-overflow: ellipsis;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
+	white-space: nowrap;
 }
 
 .cn-maps-tab__coords {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	font-size: 0.75em;
+	gap: 3px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-maps-tab__coords-icon {
+	color: var(--cn-iw-accent, var(--color-primary-element));
 }
 
 .cn-maps-tab__coords-text {
@@ -586,5 +632,30 @@ a.cn-maps-tab__title:hover {
 
 .cn-maps-tab__open-link:hover {
 	text-decoration: underline;
+}
+
+.cn-maps-tab__comment {
+	display: -webkit-box;
+	margin-top: 2px;
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Compact coordinate chip in the row indicator slot. */
+.cn-maps-tab__coord-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px;
+	border-radius: 10px;
+	font-size: 0.7em;
+	font-family: var(--font-face-monospace, monospace);
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
 }
 </style>
