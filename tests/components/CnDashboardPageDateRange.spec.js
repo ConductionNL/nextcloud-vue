@@ -263,4 +263,51 @@ describe('CnDashboardPage — dateRange prop', () => {
 		expect(provided.value.preset).toBe('last-30')
 		expect(provided.value.from).toBe('2026-06-01T00:00:00.000Z')
 	})
+
+	describe('formatChartDateRange — friendly compact label', () => {
+		// getWidgetDataSource resolves the bucket from the widget DEFINITION
+		// (widgetMap keyed by w.id), not from the layout item — so register
+		// the widget with its staticRange and reference it by id.
+		const mountPageWithRange = (from, to, id = 'calls') => mount(CnDashboardPage, {
+			propsData: {
+				dateRange: { enabled: true },
+				layout: [],
+				widgets: [{ id, dataSource: { bucket: { staticRange: { from, to } } } }],
+			},
+			stubs,
+		})
+		const thisYear = new Date().getFullYear()
+
+		it('renders a day-month range with an en-dash separator (same year)', () => {
+			const wrapper = mountPageWithRange(`${thisYear}-05-18T00:00:00.000Z`, `${thisYear}-05-25T23:59:59.999Z`)
+			const label = wrapper.vm.formatChartDateRange({ widgetId: 'calls' })
+			// Not the old raw ISO "YYYY-05-18 → YYYY-05-25" form.
+			expect(label).not.toContain(`${thisYear}-05-18`)
+			expect(label).toContain(' – ')
+			// Day number + short month on each side (order is locale-dependent:
+			// "18 May – 25 May" or "May 18 – May 25"); year omitted same-year.
+			const [leftSide, rightSide] = label.split(' – ')
+			for (const side of [leftSide, rightSide]) {
+				expect(side).toMatch(/\d{1,2}/) // a day number
+				expect(side).toMatch(/\p{L}{3,}/u) // a month name
+			}
+			expect(label).not.toContain(String(thisYear))
+		})
+
+		it('includes the year when a bound falls outside the current year', () => {
+			const wrapper = mountPageWithRange('2020-12-18T00:00:00.000Z', '2021-01-02T23:59:59.999Z')
+			const label = wrapper.vm.formatChartDateRange({ widgetId: 'calls' })
+			expect(label).toMatch(/2020/)
+			expect(label).toMatch(/2021/)
+			expect(label).toContain(' – ')
+		})
+
+		it('returns null when neither bound resolves', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [{ id: 'x', dataSource: { bucket: {} } }] },
+				stubs,
+			})
+			expect(wrapper.vm.formatChartDateRange({ widgetId: 'x' })).toBeNull()
+		})
+	})
 })

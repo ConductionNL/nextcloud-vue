@@ -139,9 +139,16 @@ export { CnPollCreate } from './CnPollCreate/index.js'
 export { CnTalkRoomPicker } from './CnTalkRoomPicker/index.js'
 export { CnTalkRoomCreate } from './CnTalkRoomCreate/index.js'
 
+// Shares integration leaf (Tier-2) — create-only (no picker)
+export { CnShareCreate } from './CnShareCreate/index.js'
+
 // Flow integration leaf (Tier-2)
 export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
 
 // Photos integration leaf (Tier-2)
 export { CnPhotoAlbumPicker } from './CnPhotoAlbumPicker/index.js'
 export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'
+
+// Bookmarks integration leaf (Tier-2)
+export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
+export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'

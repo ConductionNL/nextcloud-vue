@@ -10,6 +10,7 @@
 
 ### Events
 
-| Name      | Payload | Description |
-| --------- | ------- | ----------- |
-| `suggest` | —       |             |
+| Name      | Payload | Description                                                                                                                                                                                                                                              |
+| --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `suggest` | —       | Emitted when the user clicks the Suggest-feature CTA inside the sidebar (only when `suggestUrl` is empty). The parent view binds this to its `openSuggestModal` so a single `CnSuggestFeatureModal` serves the page header CTA and the sidebar text-CTA. |
+| `support` | —       | Emitted when the user clicks the "Show support note" CTA in the fourth sidebar container. The parent view binds this to its `openSupportDialog` so a freshly-mounted `CnSupportDialog` carries the host-app context.                                     |

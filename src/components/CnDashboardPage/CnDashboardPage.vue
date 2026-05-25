@@ -769,8 +769,31 @@ export default {
 				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
 			}
 			if (!from && !to) return null
-			const fmt = (v) => typeof v === 'string' ? v.slice(0, 10) : ''
-			return `${fmt(from)}${from && to ? ' → ' : ''}${fmt(to)}`
+			// Friendly compact label: "18 May – 25 May" / "18 Dec 2025 – 2 Jan 2026".
+			// The year is only shown when a bound falls outside the current
+			// year, keeping the common same-year case short while staying
+			// unambiguous for older / cross-year windows.
+			const toDate = (v) => {
+				if (typeof v !== 'string' || v.length < 10) return null
+				const d = new Date(`${v.slice(0, 10)}T00:00:00`)
+				return Number.isNaN(d.getTime()) ? null : d
+			}
+			const fromDate = toDate(from)
+			const toDateValue = toDate(to)
+			const thisYear = new Date().getFullYear()
+			const needsYear = [fromDate, toDateValue].some((d) => d && d.getFullYear() !== thisYear)
+			const fmt = (d) => {
+				if (!d) return ''
+				return d.toLocaleDateString(undefined, {
+					day: 'numeric',
+					month: 'short',
+					...(needsYear ? { year: 'numeric' } : {}),
+				})
+			}
+			const left = fmt(fromDate)
+			const right = fmt(toDateValue)
+			if (left && right) return `${left} – ${right}`
+			return left || right
 		},
 
 		/**
@@ -1208,6 +1231,18 @@ export default {
 	padding: 0;
 	background: transparent;
 	border: none;
+}
+
+/* The chip text lives in NcActions' icon slot, whose default toggle is
+   sized for a single ~44px icon and clips wider content (the cause of the
+   "8 → 2" truncation). Let the toggle + its icon wrapper grow to the
+   chip's natural width so the full "18 May – 25 May" range reads. */
+.cn-dashboard-page__date-chip-trigger :deep(.button-vue),
+.cn-dashboard-page__date-chip-trigger :deep(.button-vue__wrapper),
+.cn-dashboard-page__date-chip-trigger :deep(.button-vue__icon) {
+	width: auto !important;
+	min-width: 0 !important;
+	overflow: visible !important;
 }
 
 .cn-dashboard-page__date-chip {
