@@ -32,8 +32,12 @@
 <script>
 import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
+
+/** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
+const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -212,6 +216,20 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Widget id used to match `cn:widget:refresh` event-bus events
+		 * (broadcast by CnWidgetWrapper's Refresh action). When the bus
+		 * fires with a matching `widgetId`, the chart re-queries its
+		 * `dataSource`. Passed by CnDashboardPage from the layout item.
+		 * Empty disables bus-driven refresh (the chart still refetches
+		 * reactively when its dataSource / range changes).
+		 *
+		 * @type {string}
+		 */
+		widgetId: {
+			type: String,
+			default: '',
+		},
 	},
 
 	setup(props) {
@@ -230,8 +248,8 @@ export default {
 		// useDataSource — Vue treats inject() within setup and the
 		// Options `inject:` declaration as the same resolution.
 		const range = inject('cnDashboardDateRange', null) || ref(null)
-		const { data } = useDataSource(() => props.dataSource, { range })
-		return { dsData: data }
+		const { data, refetch } = useDataSource(() => props.dataSource, { range })
+		return { dsData: data, dsRefetch: refetch }
 	},
 
 	data() {
@@ -369,6 +387,16 @@ export default {
 	},
 
 	mounted() {
+		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
+		// FIRST, before the ResizeObserver early-return — environments
+		// without ResizeObserver (jsdom) must still get the subscription.
+		this._onWidgetRefresh = (payload) => {
+			if (!this.widgetId) return
+			if (payload?.widgetId !== this.widgetId) return
+			this.refresh()
+		}
+		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
+
 		if (typeof ResizeObserver === 'undefined') return
 		this._lastWidth = this.$el.offsetWidth
 		this._resizeTimer = null
@@ -392,9 +420,26 @@ export default {
 			this._resizeObserver.disconnect()
 			this._resizeObserver = null
 		}
+		if (this._onWidgetRefresh) {
+			unsubscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
+			this._onWidgetRefresh = null
+		}
 	},
 
 	methods: {
+		/**
+		 * Re-query the chart's dataSource. Exposed as a ref-callable
+		 * method (B3 canonical refresh mode) AND invoked by the
+		 * `cn:widget:refresh` bus subscription. No-op when the chart has
+		 * no dataSource (static series/labels mode).
+		 *
+		 * @return {void}
+		 */
+		refresh() {
+			if (typeof this.dsRefetch === 'function') {
+				this.dsRefetch()
+			}
+		},
 		/**
 		 * Deep merge two objects (target wins on conflict)
 		 * @param {object} base Base object

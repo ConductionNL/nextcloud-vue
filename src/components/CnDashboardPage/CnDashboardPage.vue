@@ -182,6 +182,7 @@
 						</template>
 						<CnChartWidget
 							v-bind="getChartProps(item)"
+							:widget-id="item.widgetId"
 							:data-source="getWidgetDataSource(item)" />
 					</CnWidgetWrapper>
 				</template>
