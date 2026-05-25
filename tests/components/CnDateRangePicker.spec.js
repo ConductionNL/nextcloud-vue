@@ -74,6 +74,27 @@ describe('resolvePresetWindow', () => {
 		expect(w).not.toBeNull()
 		expect(w.to).toBe('2026-05-21T23:59:59.999Z')
 	})
+
+	it('last-8h resolves to a rolling 8-hour window ending at now (exact time)', () => {
+		const now = new Date('2026-05-21T10:30:00Z')
+		const w = resolvePresetWindow('last-8h', presets, now)
+		// Rolling, not day-aligned: to = now exactly, from = now - 8h
+		expect(w.to).toBe('2026-05-21T10:30:00.000Z')
+		expect(w.from).toBe('2026-05-21T02:30:00.000Z')
+	})
+
+	it('last-24h resolves to a rolling 24-hour window ending at now', () => {
+		const now = new Date('2026-05-21T10:30:00Z')
+		const w = resolvePresetWindow('last-24h', presets, now)
+		expect(w.to).toBe('2026-05-21T10:30:00.000Z')
+		expect(w.from).toBe('2026-05-20T10:30:00.000Z')
+	})
+
+	it('DEFAULT_DATE_RANGE_PRESETS includes the hour presets', () => {
+		const ids = DEFAULT_DATE_RANGE_PRESETS.map((p) => p.id)
+		expect(ids).toContain('last-8h')
+		expect(ids).toContain('last-24h')
+	})
 })
 
 describe('CnDateRangePicker', () => {

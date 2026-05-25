@@ -31,7 +31,7 @@ Selecting a preset (other than `custom`) auto-fills both pickers to `now − day
 | Prop         | Type     | Default                          | Description                                           |
 | ------------ | -------- | -------------------------------- | ----------------------------------------------------- |
 | `value`      | Object   | `null`                           | Current `{ from, to, preset }` value (ISO-8601 UTC).  |
-| `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list: `{ id, label, days }`. `days: null` = manual. |
+| `presets`    | Array    | `DEFAULT_DATE_RANGE_PRESETS`     | Preset list: `{ id, label, days }` or `{ id, label, hours }`. `days: null` = manual. `hours: N` = rolling N-hour window. |
 | `disabled`   | Boolean  | `false`                          | Disables both date pickers and the preset select.    |
 | `dateFormat` | String   | `'YYYY-MM-DD'`                   | Forwarded to `NcDateTimePicker`'s `format` prop.     |
 | `presetLabel`| String   | `'Range preset'`                 | A11y label for the preset dropdown.                  |
@@ -50,13 +50,27 @@ The exported `DEFAULT_DATE_RANGE_PRESETS` constant mirrors the defaults applied 
 
 ```js
 [
-  { id: 'today',   label: 'Today',          days: 1 },
-  { id: 'last-7',  label: 'Last 7 days',    days: 7 },
-  { id: 'last-30', label: 'Last 30 days',   days: 30 },
-  { id: 'last-90', label: 'Last 90 days',   days: 90 },
-  { id: 'custom',  label: 'Custom range',   days: null },
+  { id: 'last-8h',  label: 'Last 8 hours',  hours: 8 },
+  { id: 'last-24h', label: 'Last 24 hours', hours: 24 },
+  { id: 'today',    label: 'Today',         days: 1 },
+  { id: 'last-7',   label: 'Last 7 days',   days: 7 },
+  { id: 'last-30',  label: 'Last 30 days',  days: 30 },
+  { id: 'last-90',  label: 'Last 90 days',  days: 90 },
+  { id: 'custom',   label: 'Custom range',  days: null },
 ]
 ```
+
+**Day vs hour presets.** A preset with `days: N` resolves to a calendar-aligned
+window (midnight UTC start through end-of-day UTC today). A preset with
+`hours: N` resolves to a **rolling** window ending at the exact current instant
+(`now − N hours → now`), so "Last 8 hours" tracks the trailing 8h rather than a
+day boundary.
+
+**Starting range from the manifest.** `CnDashboardPage`'s `dateRange.default`
+accepts either an explicit `{ from, to }` window or just a preset id — e.g.
+`dateRange: { enabled: true, default: { preset: 'last-7' } }` resolves the
+window from the preset at mount, so a dashboard can declare its initial range by
+name without hard-coding dates.
 
 ## Helpers
 

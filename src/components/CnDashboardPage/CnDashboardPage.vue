@@ -158,24 +158,24 @@
 								</template>
 								<NcActionButton
 									v-for="preset in effectivePresets"
-									:key="preset.value"
+									:key="preset.id"
 									:close-after-click="true"
 									@click="onChipPresetPick(preset, item)">
 									<template #icon>
-										<CalendarRange v-if="currentRange.preset === preset.value" :size="16" />
+										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
 										<span v-else class="cn-dashboard-page__date-chip-preset-spacer" />
 									</template>
 									{{ preset.label }}
 								</NcActionButton>
 								<NcActionSeparator />
 								<NcActionInput
-									type="date"
-									:value="currentRange.from"
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange.from)"
 									:label="t('nextcloud-vue', 'From')"
 									@input="onChipDateInput('from', $event)" />
 								<NcActionInput
-									type="date"
-									:value="currentRange.to"
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange.to)"
 									:label="t('nextcloud-vue', 'To')"
 									@input="onChipDateInput('to', $event)" />
 							</NcActions>
@@ -811,32 +811,65 @@ export default {
 		 * @return {void}
 		 */
 		onChipPresetPick(preset, _item) {
-			if (!preset || !preset.value) return
-			if (preset.value === 'custom') return
-			const win = resolvePresetWindow(preset.value, this.effectivePresets)
+			if (!preset || !preset.id) return
+			if (preset.id === 'custom') return
+			const win = resolvePresetWindow(preset.id, this.effectivePresets)
 			if (!win) return
-			this.onDateRangeChange({ ...win, preset: preset.value })
+			this.onDateRangeChange({ ...win, preset: preset.id })
 		},
 
 		/**
-		 * Handle a manual date-input change inside the in-chip popover.
-		 * Forwards the new `{ from, to, preset: 'custom' }` to the
-		 * existing `onDateRangeChange`. When the other side is empty
-		 * we still emit — the picker validates / surfaces issues
-		 * downstream (matches the top-level picker behaviour).
+		 * Handle a manual datetime-input change inside the in-chip popover.
+		 * The `<input type="datetime-local">` emits a local "YYYY-MM-DDTHH:mm"
+		 * string (or a DOM Event in some NcActionInput versions); we
+		 * normalise to an ISO-8601 UTC string for storage and forward
+		 * `{ from, to, preset: 'custom' }` to `onDateRangeChange`.
 		 *
 		 * @param {'from'|'to'} field The half being edited.
-		 * @param {string} value ISO `YYYY-MM-DD` string from `<input type="date">`.
+		 * @param {string|Event} value Local datetime string or input Event.
 		 * @return {void}
 		 */
 		onChipDateInput(field, value) {
+			const raw = typeof value === 'string'
+				? value
+				: (value && value.target ? value.target.value : '')
 			const next = {
 				from: this.currentRange?.from || '',
 				to: this.currentRange?.to || '',
 				preset: 'custom',
 			}
-			if (typeof value === 'string') next[field] = value
+			next[field] = raw ? this.localDateTimeInputToIso(raw) : ''
 			this.onDateRangeChange(next)
+		},
+
+		/**
+		 * Format a stored ISO-8601 string as the local "YYYY-MM-DDTHH:mm"
+		 * value an `<input type="datetime-local">` expects. Returns empty
+		 * string for null / unparseable input.
+		 *
+		 * @param {string} iso ISO-8601 timestamp.
+		 * @return {string} Local datetime-local input value.
+		 */
+		toLocalDateTimeInput(iso) {
+			if (!iso) return ''
+			const d = new Date(iso)
+			if (Number.isNaN(d.getTime())) return ''
+			const pad = (n) => String(n).padStart(2, '0')
+			return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+		},
+
+		/**
+		 * Parse a local "YYYY-MM-DDTHH:mm" datetime-local value into an
+		 * ISO-8601 UTC string. `new Date(local)` interprets the bare
+		 * string in the runtime's local timezone, matching what the
+		 * native input shows the user.
+		 *
+		 * @param {string} local Local datetime-local input value.
+		 * @return {string} ISO-8601 UTC string, or empty when unparseable.
+		 */
+		localDateTimeInputToIso(local) {
+			const d = new Date(local)
+			return Number.isNaN(d.getTime()) ? '' : d.toISOString()
 		},
 
 		/**
@@ -870,12 +903,25 @@ export default {
 			if (this.dateRange?.persistKey) {
 				initial = this.readPersisted(this.dateRange.persistKey)
 			}
-			// 2. Explicit consumer-supplied default.
+			// 2. Explicit consumer-supplied default. A default may be given
+			//    as an explicit { from, to } window OR as just a preset id
+			//    (e.g. `default: { preset: 'last-7' }`) — in the latter case
+			//    we resolve the window from the preset so the manifest can
+			//    declare a starting range by name without hard-coding dates.
 			if (!initial && this.dateRange?.default) {
-				initial = {
-					from: this.dateRange.default.from || null,
-					to: this.dateRange.default.to || null,
-					preset: this.dateRange.default.preset || 'custom',
+				const def = this.dateRange.default
+				if ((!def.from || !def.to) && def.preset && def.preset !== 'custom') {
+					const win = resolvePresetWindow(def.preset, this.effectivePresets)
+					if (win) {
+						initial = { from: win.from, to: win.to, preset: def.preset }
+					}
+				}
+				if (!initial) {
+					initial = {
+						from: def.from || null,
+						to: def.to || null,
+						preset: def.preset || 'custom',
+					}
 				}
 			}
 			// 3. Last-7 fallback.
@@ -1304,5 +1350,22 @@ export default {
 
 .cn-dashboard-page__content-item {
 	width: 100%;
+}
+</style>
+
+<!-- Unscoped: the chip's NcActions menu is teleported to <body> (container="body"),
+     so scoped :deep() can't reach it. NcActions forwards the trigger's data-testid
+     onto the popper, so we target it here to (a) give the custom From/To
+     datetime-local inputs comfortable width and (b) keep the menu content from
+     clipping the native picker. -->
+<style>
+.action-item__popper[data-testid^="cn-dashboard-page-date-chip-"] .v-popper__inner,
+[data-testid^="cn-dashboard-page-date-chip-"].v-popper__popper .v-popper__inner {
+	overflow: visible;
+}
+
+[data-testid^="cn-dashboard-page-date-chip-"] .action-input__form,
+[data-testid^="cn-dashboard-page-date-chip-"] .action-input {
+	min-width: 240px;
 }
 </style>
