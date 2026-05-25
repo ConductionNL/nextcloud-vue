@@ -92,3 +92,34 @@ export default {
 ```
 
 In the example above, "View in mydash" renders only when `mydash` is detected in `OC.appswebroots` or the capabilities bootstrap. In a fresh Nextcloud without mydash the item is hidden entirely; once mydash is installed and enabled it appears automatically on the next page load (results are cached per load). This satisfies the `feedback_mydash-no-or-dependency` guideline — cross-app links are runtime-conditional, not install-time dependencies.
+
+Primary action — render a "new" button or active-context switcher above the main list. The `primary-action` slot gives full control over dynamic content and click handling (use it when the label reflects live state, e.g. OpenRegister's active-organisation button); it takes precedence over a static `nav.primaryAction` ({ label, icon?, route?, href? }) manifest field. Nothing renders when neither is provided.
+
+```vue {static}
+<template>
+  <div style="height: 300px; width: 260px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+    <CnAppNav
+      :manifest="manifest"
+      :translate="(key) => key">
+      <template #primary-action>
+        <NcAppNavigationNew text="Acme Corp" @click="() => {}" />
+      </template>
+    </CnAppNav>
+  </div>
+</template>
+<script>
+import { NcAppNavigationNew } from '@nextcloud/vue'
+export default {
+  components: { NcAppNavigationNew },
+  data() {
+    return {
+      manifest: {
+        menu: [
+          { id: 'home', label: 'Home', icon: 'icon-home', route: 'home', order: 1 },
+        ],
+      },
+    }
+  },
+}
+</script>
+```
