@@ -23,19 +23,29 @@
 		</div>
 		<ul v-else class="cn-email-card__list">
 			<li
-				v-for="message in displayedMessages"
-				:key="message.id"
-				class="cn-email-card__row">
+				v-for="row in displayedRows"
+				:key="row.id"
+				class="cn-email-card__row"
+				:class="{ 'cn-email-card__row--unread': row.unread }">
 				<button
 					class="cn-email-card__open"
 					:title="openInMailLabel"
-					@click="openInMail(message)">
-					<div class="cn-email-card__row-head">
-						<strong class="cn-email-card__subject">{{ formatSubject(message) }}</strong>
-						<span class="cn-email-card__when">{{ formatWhen(message) }}</span>
-					</div>
-					<div class="cn-email-card__row-body">
-						<span class="cn-email-card__sender">{{ formatSender(message) }}</span>
+					@click="openInMail(row.message)">
+					<NcAvatar
+						class="cn-email-card__avatar"
+						:size="32"
+						:display-name="row.sender"
+						:user="row.avatarUser"
+						:is-no-user="true" />
+					<div class="cn-email-card__text">
+						<div class="cn-email-card__row-head">
+							<strong class="cn-email-card__subject">{{ row.subject }}</strong>
+							<span class="cn-email-card__when">{{ row.when }}</span>
+						</div>
+						<div class="cn-email-card__row-body">
+							<span class="cn-email-card__sender">{{ row.sender }}</span>
+						</div>
+						<div v-if="row.snippet" class="cn-email-card__snippet">{{ row.snippet }}</div>
 					</div>
 				</button>
 			</li>
@@ -50,7 +60,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -78,7 +88,7 @@ import { buildHeaders } from '../../../utils/index.js'
 export default {
 	name: 'CnEmailCard',
 
-	components: { CnDetailCard, NcLoadingIcon },
+	components: { CnDetailCard, NcAvatar, NcLoadingIcon },
 
 	props: {
 		/** OpenRegister register id (slug or uuid). */
@@ -141,6 +151,23 @@ export default {
 		displayedMessages() {
 			return this.messages.slice(0, this.effectiveMax)
 		},
+		/**
+		 * Template-safe view rows; keeps `?.`/`??` out of the buble template.
+		 *
+		 * @return {object[]} One descriptor per displayed message.
+		 */
+		displayedRows() {
+			return this.displayedMessages.map((message) => ({
+				id: message.id,
+				message,
+				subject: this.formatSubject(message),
+				sender: this.formatSender(message),
+				snippet: this.formatSnippet(message),
+				when: this.formatWhen(message),
+				unread: this.isUnread(message),
+				avatarUser: this.senderEmail(message),
+			}))
+		},
 	},
 
 	watch: {
@@ -191,11 +218,43 @@ export default {
 		},
 
 		formatSender(message) {
-			const raw = message.sender
+			const raw = message.senderName || message.fromName || message.sender || message.from
 			if (typeof raw === 'string' && raw.trim() !== '') {
 				return raw
 			}
 			return this.unknownSenderLabel
+		},
+
+		senderEmail(message) {
+			const candidate = message.senderEmail || message.fromEmail || message.sender || message.from
+			if (typeof candidate === 'string' && candidate.indexOf('@') !== -1) {
+				return candidate.trim()
+			}
+			return ''
+		},
+
+		formatSnippet(message) {
+			const raw = message.preview || message.snippet || message.summary || message.bodyPreview
+			if (typeof raw === 'string' && raw.trim() !== '') {
+				return raw.trim()
+			}
+			return ''
+		},
+
+		isUnread(message) {
+			if (typeof message.unread === 'boolean') {
+				return message.unread
+			}
+			if (typeof message.isRead === 'boolean') {
+				return message.isRead === false
+			}
+			if (typeof message.seen === 'boolean') {
+				return message.seen === false
+			}
+			if (Array.isArray(message.flags)) {
+				return message.flags.indexOf('seen') === -1 && message.flags.indexOf('\\Seen') === -1
+			}
+			return false
 		},
 
 		formatWhen(message) {
@@ -244,7 +303,9 @@ export default {
 }
 
 .cn-email-card__open {
-	display: block;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
 	width: 100%;
 	background: none;
 	border: none;
@@ -259,6 +320,15 @@ export default {
 	color: var(--color-primary-element);
 }
 
+.cn-email-card__avatar {
+	flex: 0 0 auto;
+}
+
+.cn-email-card__text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
 .cn-email-card__row-head {
 	display: flex;
 	justify-content: space-between;
@@ -267,6 +337,19 @@ export default {
 
 .cn-email-card__subject {
 	color: var(--color-main-text);
+	font-weight: normal;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-email-card__row--unread .cn-email-card__subject {
+	font-weight: bold;
+}
+
+.cn-email-card__snippet {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

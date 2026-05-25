@@ -6,6 +6,11 @@
   (`/integrations/email`). Paged via load-more; rows deep-link into the
   NC Mail app per AD-2 (Mail owns compose, OR owns the link).
 
+  Visual fidelity: mirrors the real NC Mail message list — a sender
+  avatar, a bold subject, a "sender · date" subline, a one-line snippet
+  preview, and an unread indicator (accent dot + bold subject) when the
+  message has not been read.
+
   Storage strategy: link-table (`openregister_email_links`). Per design
   AD-1 the tab does NOT compose — users open Mail, send, return and
   link via the "Link existing" picker (compose UI tracked separately).
@@ -36,25 +41,38 @@
 		<div v-else-if="messages.length === 0" class="cn-sidebar-tab__empty">
 			{{ noMessagesLabel }}
 		</div>
-		<div v-else class="cn-sidebar-tab__list">
-			<NcListItem
-				v-for="message in messages"
-				:key="message.id"
-				:name="formatSubject(message)"
-				:bold="false"
-				:force-display-actions="false"
-				@click="openInMail(message)">
-				<template #icon>
-					<EmailOutline :size="32" />
-				</template>
-				<template #subname>
-					{{ formatSender(message) }}
-				</template>
-				<template #details>
-					{{ formatWhen(message) }}
-				</template>
-			</NcListItem>
-		</div>
+		<ul v-else class="cn-email-tab__list">
+			<li
+				v-for="row in rows"
+				:key="row.id"
+				class="cn-email-tab__row"
+				:class="{ 'cn-email-tab__row--unread': row.unread }"
+				@click="openInMail(row.message)">
+				<span class="cn-email-tab__unread-dot" :class="{ 'is-shown': row.unread }" />
+				<NcAvatar
+					class="cn-email-tab__avatar"
+					:size="36"
+					:display-name="row.avatarName"
+					:user="row.avatarUser"
+					:is-no-user="true" />
+				<div class="cn-email-tab__body">
+					<div class="cn-email-tab__line">
+						<span class="cn-email-tab__subject" :title="row.subject">{{ row.subject }}</span>
+						<span class="cn-email-tab__date">
+							<NcDateTime
+								v-if="row.dateValid"
+								:timestamp="row.dateMs"
+								:relative-time="'short'" />
+							<template v-else>{{ row.dateRaw }}</template>
+						</span>
+					</div>
+					<div class="cn-email-tab__sender" :title="row.sender">{{ row.sender }}</div>
+					<div v-if="row.snippet" class="cn-email-tab__snippet" :title="row.snippet">
+						{{ row.snippet }}
+					</div>
+				</div>
+			</li>
+		</ul>
 		<NcButton
 			v-if="hasMore === true"
 			type="tertiary"
@@ -78,8 +96,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
-import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
+import { NcAvatar, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
@@ -101,10 +118,13 @@ export default {
 	name: 'CnEmailTab',
 
 	components: {
+		NcAvatar,
 		NcButton,
+		NcDateTime,
+		// NcListItem retained as a registered dependency for downstream
+		// consumers / test stubs even though the row markup is now bespoke.
 		NcListItem,
 		NcLoadingIcon,
-		EmailOutline,
 		EmailEditOutline,
 		LinkVariant,
 		CnEmailPicker,
@@ -167,6 +187,36 @@ export default {
 				return true
 			}
 			return this.messages.length < this.total
+		},
+
+		/**
+		 * Pre-computed, template-safe view rows mirroring NC Mail.
+		 *
+		 * All optional-chaining / nullish logic lives here (in JS) so the
+		 * buble-compiled Vue 2 template stays free of `?.` / `??`.
+		 *
+		 * @return {object[]} One descriptor per message.
+		 */
+		rows() {
+			return this.messages.map((message) => {
+				const dateRaw = this.rawWhen(message)
+				const d = dateRaw === '' ? null : new Date(dateRaw)
+				const dateValid = d !== null && Number.isNaN(d.getTime()) === false
+				const sender = this.formatSender(message)
+				return {
+					id: message.id,
+					message,
+					subject: this.formatSubject(message),
+					sender,
+					snippet: this.formatSnippet(message),
+					unread: this.isUnread(message),
+					dateValid,
+					dateMs: dateValid ? d.getTime() : 0,
+					dateRaw: String(dateRaw),
+					avatarName: sender,
+					avatarUser: this.senderEmail(message),
+				}
+			})
 		},
 	},
 
@@ -256,23 +306,71 @@ export default {
 		},
 
 		formatSender(message) {
-			const raw = message.sender
+			const raw = message.senderName || message.fromName || message.sender || message.from
 			if (typeof raw === 'string' && raw.trim() !== '') {
 				return raw
 			}
 			return this.unknownSenderLabel
 		},
 
-		formatWhen(message) {
+		/**
+		 * Best-effort bare email address for the NcAvatar `user` seed so
+		 * gravatar/initials are stable per correspondent.
+		 *
+		 * @param {object} message The message record.
+		 * @return {string} An email-ish identifier, or '' when unknown.
+		 */
+		senderEmail(message) {
+			const candidate = message.senderEmail || message.fromEmail || message.sender || message.from
+			if (typeof candidate === 'string' && candidate.indexOf('@') !== -1) {
+				return candidate.trim()
+			}
+			return ''
+		},
+
+		/**
+		 * One-line preview snippet, mirroring NC Mail's message list.
+		 *
+		 * @param {object} message The message record.
+		 * @return {string} A trimmed snippet, or '' when none is available.
+		 */
+		formatSnippet(message) {
+			const raw = message.preview || message.snippet || message.summary || message.bodyPreview
+			if (typeof raw === 'string' && raw.trim() !== '') {
+				return raw.trim()
+			}
+			return ''
+		},
+
+		/**
+		 * Whether the message is unread, tolerant of the several shapes
+		 * the backend may report read-state in.
+		 *
+		 * @param {object} message The message record.
+		 * @return {boolean} True when the message has not been read.
+		 */
+		isUnread(message) {
+			if (typeof message.unread === 'boolean') {
+				return message.unread
+			}
+			if (typeof message.isRead === 'boolean') {
+				return message.isRead === false
+			}
+			if (typeof message.seen === 'boolean') {
+				return message.seen === false
+			}
+			if (Array.isArray(message.flags)) {
+				return message.flags.indexOf('seen') === -1 && message.flags.indexOf('\\Seen') === -1
+			}
+			return false
+		},
+
+		rawWhen(message) {
 			const raw = message.mailDate || message.date || message.linkedAt
 			if (raw === undefined || raw === null || raw === '') {
 				return ''
 			}
-			const d = new Date(raw)
-			if (Number.isNaN(d.getTime()) === true) {
-				return String(raw)
-			}
-			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+			return raw
 		},
 
 		openInMail(message) {
@@ -368,12 +466,6 @@ export default {
 	color: var(--color-error);
 }
 
-.cn-sidebar-tab__list {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
 .cn-sidebar-tab__load-more {
 	margin-top: 8px;
 }
@@ -383,5 +475,100 @@ export default {
 	gap: 8px;
 	flex-wrap: wrap;
 	margin-bottom: 8px;
+}
+
+/* NC-Mail-style message list */
+.cn-email-tab__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-email-tab__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 8px 6px;
+	border-radius: var(--border-radius-large, 8px);
+	cursor: pointer;
+	position: relative;
+}
+
+.cn-email-tab__row:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-email-tab__unread-dot {
+	flex: 0 0 auto;
+	width: 8px;
+	align-self: center;
+	visibility: hidden;
+}
+
+.cn-email-tab__unread-dot.is-shown {
+	visibility: visible;
+}
+
+.cn-email-tab__unread-dot.is-shown::before {
+	content: '';
+	display: block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--cn-email-accent, var(--color-primary-element));
+}
+
+.cn-email-tab__avatar {
+	flex: 0 0 auto;
+}
+
+.cn-email-tab__body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-email-tab__line {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.cn-email-tab__subject {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: var(--color-main-text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-email-tab__row--unread .cn-email-tab__subject {
+	font-weight: bold;
+}
+
+.cn-email-tab__date {
+	flex: 0 0 auto;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.8em;
+	white-space: nowrap;
+}
+
+.cn-email-tab__sender {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-email-tab__snippet {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin-top: 1px;
 }
 </style>
