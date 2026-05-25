@@ -2,10 +2,13 @@
   CnPollsTab — bespoke sidebar tab for the `polls` integration.
 
   Replaces the generic CnIntegrationTab for the `polls` leaf: renders a
-  live vote tally for each linked NC Polls poll — title, type
-  (text choice or date choice), deadline countdown, and a per-option
-  progress bar (vote count + percentage). A trailing "Open in Polls"
-  link per row deep-links to `/index.php/apps/polls/vote/{id}`.
+  live vote tally for each linked NC Polls poll, mirroring the real NC
+  Polls list look. Each row foregrounds a poll-type icon (text vs date
+  poll), the bold poll question/title, an open / closed status chip
+  (CnStatusBadge), a meta line with participant + option counts, a
+  relative expiry (NcDateTime) when a deadline is present, and a
+  per-option vote-tally progress bar. A trailing "Open in Polls" action
+  per row deep-links to `/index.php/apps/polls/vote/{id}`.
 
   Tier-2 surface (this commit):
     - "Link existing poll"   → opens CnPollPicker (modal)
@@ -24,8 +27,6 @@
     - Empty state with "Open Polls" CTA when no linked polls.
     - Loading + 503 "currently unavailable" + generic error states match
       CnIntegrationTab's behaviour for AD-23 graceful degradation.
-    - Deadline countdown for open polls ("Closes in 3 days"); for
-      already-elapsed polls renders "Closed" + the option leader.
 
   See `openregister/openspec/changes/integration-polls/` for the spec
   delta and ADR-019 (registry mechanism).
@@ -73,12 +74,20 @@
 				class="cn-polls-tab__row"
 				:class="{ 'cn-polls-tab__row--closed': isClosed(poll) }">
 				<div class="cn-polls-tab__row-header">
-					<Poll :size="20" class="cn-polls-tab__row-icon" />
+					<span class="cn-polls-tab__row-icon" :title="typeLabel(poll)" :aria-label="typeLabel(poll)">
+						<CalendarRange v-if="isDatePoll(poll)" :size="20" />
+						<FormatListChecks v-else :size="20" />
+					</span>
 					<a
 						:href="pollUrl(poll)"
 						target="_blank"
 						rel="noopener"
 						class="cn-polls-tab__title">{{ pollTitle(poll) }}</a>
+					<CnStatusBadge
+						:label="statusLabel(poll)"
+						:variant="statusVariant(poll)"
+						size="small"
+						class="cn-polls-tab__status" />
 					<NcButton
 						type="tertiary-no-background"
 						:aria-label="t('nextcloud-vue', 'Unlink poll')"
@@ -89,9 +98,25 @@
 						</template>
 					</NcButton>
 				</div>
-				<div v-if="pollMeta(poll)" class="cn-polls-tab__meta">
-					{{ pollMeta(poll) }}
+
+				<div class="cn-polls-tab__meta">
+					<span class="cn-polls-tab__meta-item">
+						<AccountMultiple :size="14" class="cn-polls-tab__meta-icon" />
+						<span>{{ voterMetaLabel(poll) }}</span>
+					</span>
+					<span v-if="pollOptions(poll).length > 0" class="cn-polls-tab__meta-item">
+						<FormatListBulleted :size="14" class="cn-polls-tab__meta-icon" />
+						<span>{{ optionMetaLabel(poll) }}</span>
+					</span>
+					<span v-if="deadlineMs(poll) !== null" class="cn-polls-tab__meta-item">
+						<ClockOutline :size="14" class="cn-polls-tab__meta-icon" />
+						<NcDateTime
+							class="cn-polls-tab__time"
+							:timestamp="deadlineMs(poll)"
+							:relative-time="'short'" />
+					</span>
 				</div>
+
 				<ul v-if="pollOptions(poll).length > 0" class="cn-polls-tab__options">
 					<li
 						v-for="opt in pollOptions(poll)"
@@ -136,33 +161,46 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
+import AccountMultiple from 'vue-material-design-icons/AccountMultiple.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
+import FormatListChecks from 'vue-material-design-icons/FormatListChecks.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import CnPollCreate from '../../../components/CnPollCreate/CnPollCreate.vue'
 import CnPollPicker from '../../../components/CnPollPicker/CnPollPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
 /**
  * CnPollsTab — bespoke live-tally list for the `polls` integration.
  *
- * Renders rows pulled from the OR pluggable-integration endpoint with
- * per-option progress bars and a deadline countdown. Tier-2: includes
- * link/create modals and per-row unlink.
+ * Renders rows pulled from the OR pluggable-integration endpoint that
+ * mirror the real NC Polls list: type icon, bold question, open/closed
+ * status chip, participant + option counts, a relative expiry, and
+ * per-option vote-tally progress bars. Tier-2: includes link/create
+ * modals and per-row unlink.
  */
 export default {
 	name: 'CnPollsTab',
 
 	components: {
 		NcButton,
+		NcDateTime,
 		NcLoadingIcon,
+		CnStatusBadge,
+		AccountMultiple,
 		AlertCircleOutline,
+		CalendarRange,
+		ClockOutline,
+		FormatListBulleted,
+		FormatListChecks,
 		LinkOff,
 		LinkVariant,
 		Plus,
@@ -324,6 +362,17 @@ export default {
 			return poll.type ?? poll.pollType ?? ''
 		},
 
+		isDatePoll(poll) {
+			const type = String(this.pollType(poll)).toLowerCase()
+			return type.indexOf('date') !== -1
+		},
+
+		typeLabel(poll) {
+			return this.isDatePoll(poll)
+				? t('nextcloud-vue', 'Date poll')
+				: t('nextcloud-vue', 'Text poll')
+		},
+
 		pollOptions(poll) {
 			const opts = poll.options ?? poll.results ?? poll.optionResults ?? []
 			return Array.isArray(opts) ? opts : []
@@ -359,6 +408,16 @@ export default {
 			return Number.isFinite(n) && n > 0 ? n : this.totalVotes(poll)
 		},
 
+		voterMetaLabel(poll) {
+			const voters = this.voterCount(poll)
+			return t('nextcloud-vue', '{n} participants', { n: voters })
+		},
+
+		optionMetaLabel(poll) {
+			const count = this.pollOptions(poll).length
+			return t('nextcloud-vue', '{n} options', { n: count })
+		},
+
 		deadline(poll) {
 			return poll.deadline ?? poll.expire ?? poll.expiresAt ?? null
 		},
@@ -385,38 +444,14 @@ export default {
 			return ms <= Date.now()
 		},
 
-		pollMeta(poll) {
-			const parts = []
-			const type = this.pollType(poll)
-			if (type !== '') {
-				parts.push(type)
-			}
-			const voters = this.voterCount(poll)
-			if (voters > 0) {
-				parts.push(t('nextcloud-vue', '{n} voters', { n: voters }))
-			}
-			const countdown = this.formatCountdown(poll)
-			if (countdown !== '') {
-				parts.push(countdown)
-			}
-			return parts.join(' · ')
+		statusLabel(poll) {
+			return this.isClosed(poll)
+				? t('nextcloud-vue', 'Closed')
+				: t('nextcloud-vue', 'Open')
 		},
 
-		formatCountdown(poll) {
-			const ms = this.deadlineMs(poll)
-			if (ms === null) {
-				return ''
-			}
-			const diff = ms - Date.now()
-			if (diff <= 0) {
-				return t('nextcloud-vue', 'Closed')
-			}
-			const days = Math.ceil(diff / MS_PER_DAY)
-			if (days <= 1) {
-				const hours = Math.max(1, Math.ceil(diff / (60 * 60 * 1000)))
-				return t('nextcloud-vue', 'Closes in {n} hours', { n: hours })
-			}
-			return t('nextcloud-vue', 'Closes in {n} days', { n: days })
+		statusVariant(poll) {
+			return this.isClosed(poll) ? 'default' : 'success'
 		},
 
 		openPollsApp() {
@@ -502,22 +537,25 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .cn-polls-tab__row {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	padding: 10px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-polls-tab__row:last-child {
-	border-bottom: none;
+	padding: 10px;
+	border-radius: var(--border-radius-large, 8px);
+	border-left: 3px solid var(--color-primary-element);
+	background: var(--color-background-hover);
 }
 
 .cn-polls-tab__row--closed {
-	opacity: 0.85;
+	border-left-color: var(--color-border-dark, var(--color-border));
+	background: transparent;
+	opacity: 0.78;
 }
 
 .cn-polls-tab__row-header {
@@ -527,8 +565,13 @@ export default {
 }
 
 .cn-polls-tab__row-icon {
-	color: var(--color-text-maxcontrast);
+	display: inline-flex;
+	color: var(--color-primary-element);
 	flex-shrink: 0;
+}
+
+.cn-polls-tab__row--closed .cn-polls-tab__row-icon {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-polls-tab__title {
@@ -539,11 +582,15 @@ export default {
 	white-space: nowrap;
 	color: var(--color-main-text);
 	text-decoration: none;
-	font-weight: 500;
+	font-weight: 600;
 }
 
 a.cn-polls-tab__title:hover {
 	text-decoration: underline;
+}
+
+.cn-polls-tab__status {
+	flex-shrink: 0;
 }
 
 .cn-polls-tab__unlink {
@@ -551,9 +598,29 @@ a.cn-polls-tab__title:hover {
 }
 
 .cn-polls-tab__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
 	font-size: 0.8em;
 	color: var(--color-text-maxcontrast);
 	padding-left: 28px;
+}
+
+.cn-polls-tab__meta-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-polls-tab__meta-icon {
+	flex-shrink: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-polls-tab__time {
+	font-size: 1em;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-polls-tab__options {

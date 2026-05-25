@@ -78,12 +78,20 @@
 					class="cn-polls-card__row"
 					:class="{ 'cn-polls-card__row--closed': isClosed(poll) }">
 					<div class="cn-polls-card__row-header">
-						<Poll :size="16" class="cn-polls-card__row-icon" />
+						<span class="cn-polls-card__row-icon" :title="typeLabel(poll)" :aria-label="typeLabel(poll)">
+							<CalendarRange v-if="isDatePoll(poll)" :size="16" />
+							<FormatListChecks v-else :size="16" />
+						</span>
 						<a
 							:href="pollUrl(poll)"
 							target="_blank"
 							rel="noopener"
 							class="cn-polls-card__title">{{ pollTitle(poll) }}</a>
+						<CnStatusBadge
+							:label="statusLabel(poll)"
+							:variant="statusVariant(poll)"
+							size="small"
+							class="cn-polls-card__status" />
 					</div>
 					<span v-if="rowMeta(poll)" class="cn-polls-card__subtitle">{{ rowMeta(poll) }}</span>
 					<ul v-if="pollOptions(poll).length > 0" class="cn-polls-card__options">
@@ -116,8 +124,11 @@
 <script>
 import { translate as t, translatePlural as n } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
+import FormatListChecks from 'vue-material-design-icons/FormatListChecks.vue'
 import Poll from 'vue-material-design-icons/Poll.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
@@ -134,7 +145,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 export default {
 	name: 'CnPollsCard',
 
-	components: { CnDetailCard, NcLoadingIcon, Poll },
+	components: { CnDetailCard, CnStatusBadge, NcLoadingIcon, CalendarRange, FormatListChecks, Poll },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'polls'`). */
@@ -249,6 +260,31 @@ export default {
 			}
 			const id = poll.id ?? ''
 			return id ? `/index.php/apps/polls/vote/${id}` : this.pollsAppUrl
+		},
+
+		pollType(poll) {
+			return poll.type ?? poll.pollType ?? ''
+		},
+
+		isDatePoll(poll) {
+			const type = String(this.pollType(poll)).toLowerCase()
+			return type.indexOf('date') !== -1
+		},
+
+		typeLabel(poll) {
+			return this.isDatePoll(poll)
+				? t('nextcloud-vue', 'Date poll')
+				: t('nextcloud-vue', 'Text poll')
+		},
+
+		statusLabel(poll) {
+			return this.isClosed(poll)
+				? t('nextcloud-vue', 'Closed')
+				: t('nextcloud-vue', 'Open')
+		},
+
+		statusVariant(poll) {
+			return this.isClosed(poll) ? 'default' : 'success'
 		},
 
 		pollOptions(poll) {
@@ -515,7 +551,16 @@ export default {
 }
 
 .cn-polls-card__row-icon {
+	display: inline-flex;
+	color: var(--color-primary-element);
+	flex-shrink: 0;
+}
+
+.cn-polls-card__row--closed .cn-polls-card__row-icon {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-polls-card__status {
 	flex-shrink: 0;
 }
 
