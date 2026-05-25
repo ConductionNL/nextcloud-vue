@@ -128,6 +128,10 @@ export default {
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
 | `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |
 
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the overflow menu that opens the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation entry label. |
+
 | Slot | Description |
 |------|-------------|
 | `title-meta` | Inline content next to the title (e.g. the date-range chip). |
+| `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in Refresh / Documentation / Request-a-feature group. |

@@ -23,7 +23,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-analytics-report-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-analytics-report-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-analytics-report-create__error">
 				{{ error }}
@@ -50,7 +50,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -114,10 +114,25 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		submit() {
 			if (!this.canSubmit) {
 				return
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ name, type }`.
+			 */
 			this.$emit('create', {
 				name: this.name.trim(),
 				type: this.selectedType ? this.selectedType.value : 0,

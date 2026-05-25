@@ -23,7 +23,7 @@
 		:can-close="!loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-contact-create">
 			<NcTextField
 				v-model="form.displayName"
@@ -69,7 +69,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
@@ -134,18 +134,34 @@ export default {
 		loading: { type: Boolean, default: false },
 
 		// --- Pre-translated labels (consumer-overridable) ---
+		/** Pre-translated dialog title. */
 		title: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		/** Pre-translated label for the display-name field. */
 		displayNameLabel: { type: String, default: () => t('nextcloud-vue', 'Display name') },
+		/** Pre-translated helper text under the display-name field. */
 		displayNameHelper: { type: String, default: () => t('nextcloud-vue', 'Required — shown in the contact list.') },
+		/** Pre-translated label for the email field. */
 		emailLabel: { type: String, default: () => t('nextcloud-vue', 'Email') },
+		/** Pre-translated helper text under the email field. */
 		emailHelper: { type: String, default: () => t('nextcloud-vue', 'Optional. Used for outgoing mail and reverse lookup.') },
+		/** Pre-translated label for the phone field. */
 		phoneLabel: { type: String, default: () => t('nextcloud-vue', 'Phone') },
+		/** Pre-translated label for the organisation field. */
 		orgLabel: { type: String, default: () => t('nextcloud-vue', 'Organisation') },
+		/** Pre-translated label for the role dropdown. */
 		roleLabel: { type: String, default: () => t('nextcloud-vue', 'Role') },
+		/** Pre-translated label for the Cancel button. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Pre-translated label for the confirm (Create) button. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Create contact') },
+		/** Pre-translated validation message when display name is empty. */
 		displayNameRequiredMsg: { type: String, default: () => t('nextcloud-vue', 'Display name is required.') },
+		/** Pre-translated validation message when the email is malformed. */
 		emailInvalidMsg: { type: String, default: () => t('nextcloud-vue', 'Email is not a valid address.') },
+		/**
+		 * Role options for the role dropdown.
+		 * @type {Array<{ label: string, value: string }>}
+		 */
 		roleOptions: {
 			type: Array,
 			default: () => [
@@ -192,8 +208,23 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the user cancels or closes the dialog.
+			 */
+			this.$emit('close')
+		},
+
 		submit() {
 			if (!this.canSubmit) return
+			/**
+			 * @event create Emitted on submit. Payload: `{ displayName, email, phone, org, role }`.
+			 */
 			this.$emit('create', {
 				displayName: this.form.displayName.trim(),
 				email: this.form.email.trim() || null,

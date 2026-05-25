@@ -71,12 +71,13 @@ Container shell around a dashboard widget. Provides a header with icon and title
 
 ## Built-in Actions menu
 
-`CnWidgetWrapper` ships with a small overflow `…` menu in the header containing two actions, both functional **without any host wiring** when the wrapper is mounted under `CnAppRoot`:
+`CnWidgetWrapper` ships with a small overflow `…` menu in the header — the shared [`CnActionsMenu`](./cn-actions-menu) — containing up to three actions, all functional **without any host wiring** when the wrapper is mounted under `CnAppRoot`:
 
 - **Refresh** — emits `@refresh`, then (unless the host listener calls `event.preventDefault()`) emits on the `@nextcloud/event-bus` channel `cn:widget:refresh` with payload `{ widgetId, title }`. Widgets that care subscribe and filter by `widgetId`.
+- **Documentation** — rendered only when a `documentationUrl` is supplied. Opens the host-provided link in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); no JS handler. Apps pass the URL from the widget configuration (`:documentation-url="widget.documentationUrl"`); customise the wording with `documentationLabel`.
 - **Request a feature** — emits `@request-feature`, then (unless suppressed) auto-mounts `CnSuggestFeatureModal` with `app + page + surface=widget:<id>` context auto-filled from `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
 
-Opt out per-instance with `:show-refresh="false"` and/or `:show-request-feature="false"` (the legacy `hide-refresh` / `hide-request-feature` aliases also still work for back-compat). When both are hidden and no `#action-items` slot content is supplied, the overflow menu disappears entirely.
+Opt out per-instance with `:show-refresh="false"` and/or `:show-request-feature="false"` (the legacy `hide-refresh` / `hide-request-feature` aliases also still work for back-compat). When everything is hidden — both built-ins opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely.
 
 Set `:widget-id` so the event-bus payload + modal surface tag are stable across renames; otherwise the wrapper falls back to a slugified `title`.
 
@@ -173,6 +174,8 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal so the resulting issue links to the widget's spec capability. |
+| `documentationUrl` | String | `''` | When set, renders a **Documentation** item in the overflow menu that opens this link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated label for the Documentation action. |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated label for the Refresh action. |
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated label for the Request-a-feature action. |
 | `actionsMenuLabel` | String | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow `…` menu trigger. |

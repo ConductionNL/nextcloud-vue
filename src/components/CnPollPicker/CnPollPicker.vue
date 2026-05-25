@@ -31,7 +31,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-poll-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-poll-picker">
 			<NcNoteCard v-if="error" type="error" class="cn-poll-picker__error">
 				{{ error }}
@@ -67,7 +67,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -150,6 +150,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		async fetchPolls(searchTerm = '') {
 			this.loading = true
 			this.error = ''
@@ -214,6 +226,9 @@ export default {
 			if (!this.selectedPollId) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ pollId }`.
+			 */
 			this.$emit('link', { pollId: this.selectedPollId })
 		},
 	},

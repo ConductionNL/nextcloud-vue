@@ -2,9 +2,14 @@
  * Tests for the manifest-wiki-stabilise change.
  *
  * Covers the 11 typed string fields newly declared under
- * pages[].config for type='wiki' pages. Required register/schema
- * checks already lived in validateTypeConfig — this suite covers the
- * additive validation only.
+ * pages[].config for type='wiki' pages (each must be a string when
+ * present — enforced by the v2 JSON schema).
+ *
+ * Note: register/schema are NOT required for a wiki page. Wiki content
+ * comes from the xwiki leaf integration (external, via OpenConnector),
+ * not the app's own register/schema. The `type:'wiki'` page type is
+ * slated for deprecation in favour of that integration — see
+ * ConductionNL/nextcloud-vue#445.
  */
 
 import { validateManifest } from '../../src/utils/validateManifest.js'
@@ -64,20 +69,25 @@ describe('type=wiki — manifest-wiki-stabilise', () => {
 		expect(result.errors).toEqual([])
 	})
 
-	it('rejects missing register (regression)', () => {
+	// Wiki content is sourced from the xwiki leaf integration (external,
+	// routed via OpenConnector) — a `type:'wiki'` page is NOT backed by
+	// the app's own register/schema, so neither is required. (The
+	// `type:'wiki'` page type itself is slated for deprecation in favour
+	// of the xwiki integration — see ConductionNL/nextcloud-vue#445.)
+	it('allows a wiki page without register (not app-DB-backed)', () => {
 		const result = validateManifest(manifestWithWiki({
 			schema: 'article',
 		}))
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('register'))).toBe(true)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
 	})
 
-	it('rejects missing schema (regression)', () => {
+	it('allows a wiki page without schema (not app-DB-backed)', () => {
 		const result = validateManifest(manifestWithWiki({
 			register: 'opencatalogi',
 		}))
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('schema'))).toBe(true)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
 	})
 
 	it('rejects a non-string contentField', () => {

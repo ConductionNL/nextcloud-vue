@@ -24,7 +24,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-collective-page-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-collective-page-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-collective-page-create__error">
 				{{ error }}
@@ -47,7 +47,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -114,6 +114,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		async fetchCollectives() {
 			this.error = ''
 			try {
@@ -139,6 +151,9 @@ export default {
 			if (!this.canSubmit) {
 				return
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ collectiveId, title }`.
+			 */
 			this.$emit('create', { collectiveId: this.collective.id, title: this.title.trim() })
 		},
 	},

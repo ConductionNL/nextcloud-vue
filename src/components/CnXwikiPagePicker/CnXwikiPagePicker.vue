@@ -34,7 +34,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-xwiki-page-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-xwiki-page-picker">
 			<!-- Unconfigured / upstream-down state: prominent Configure CTA -->
 			<div
@@ -89,7 +89,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -209,6 +209,18 @@ export default {
 		t,
 
 		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
+		/**
 		 * Map a 503 cause from the controller (`details.cause`) to the
 		 * matching degraded state. Unknown causes fall through to 'upstream'.
 		 *
@@ -302,6 +314,9 @@ export default {
 			if (this.selectedReference === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ pageReference }`.
+			 */
 			this.$emit('link', { pageReference: this.selectedReference })
 		},
 	},

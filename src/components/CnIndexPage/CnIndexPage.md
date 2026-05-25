@@ -539,3 +539,10 @@ items.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject). |
+
+## Documentation link
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the CnActionsBar overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `''` | Optional override for the Documentation entry label; empty falls back to CnActionsBar's translated "Documentation". |

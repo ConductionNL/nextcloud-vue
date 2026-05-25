@@ -3,7 +3,9 @@
 
   Provides header (icon + title), scrollable content area, and optional
   footer with action buttons. Applies style configuration for borders,
-  backgrounds, and padding.
+  backgrounds, and padding. The built-in overflow Actions menu (Refresh /
+  Documentation / Request a feature) is delegated to the shared
+  CnActionsMenu so widgets and page surfaces stay in lockstep.
 -->
 <template>
 	<div
@@ -48,39 +50,32 @@
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
-				<NcActions
-					v-if="hasOverflowMenu"
-					:force-name="true"
-					:menu-name="actionsMenuLabel"
-					data-testid="cn-widget-wrapper-actions">
-					<template #icon>
-						<DotsHorizontal :size="20" />
-					</template>
-					<NcActionButton
-						v-if="effectiveShowRefresh"
-						data-testid="cn-widget-wrapper-action-refresh"
-						@click="onRefreshClick">
-						<template #icon>
-							<Refresh
-								:size="20"
-								:class="{ 'cn-widget-wrapper__refresh-icon--spinning': isRefreshing }" />
-						</template>
-						{{ refreshLabel }}
-					</NcActionButton>
-					<NcActionButton
-						v-if="effectiveShowRequestFeature"
-						data-testid="cn-widget-wrapper-action-request-feature"
-						@click="onRequestFeatureClick">
-						<template #icon>
-							<LightbulbOutline :size="20" />
-						</template>
-						{{ requestFeatureLabel }}
-					</NcActionButton>
+				<CnActionsMenu
+					:show-refresh="effectiveShowRefresh"
+					:show-request-feature="effectiveShowRequestFeature"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel"
+					:refresh-label="refreshLabel"
+					:request-feature-label="requestFeatureLabel"
+					:actions-menu-label="actionsMenuLabel"
+					:refreshing="refreshing"
+					:optimistic-spin-ms="optimisticSpinMs"
+					:widget-id="resolvedWidgetId"
+					:title="displayTitle"
+					:surface="`widget:${resolvedWidgetId}`"
+					:spec-ref="specRef"
+					refresh-channel="cn:widget:refresh"
+					testid-base="cn-widget-wrapper"
+					@refresh="onActionsRefresh"
+					@request-feature="onActionsRequestFeature">
 					<!-- @slot action-items Additional NcActionButton-family
 					     items rendered inside the overflow menu, after the
-					     built-in Refresh / Request-a-feature pair. -->
-					<slot name="action-items" />
-				</NcActions>
+					     built-in Refresh / Documentation / Request-a-feature
+					     group. -->
+					<template v-if="hasActionItemsSlot" #action-items>
+						<slot name="action-items" />
+					</template>
+				</CnActionsMenu>
 			</div>
 			<!-- Title icon — right: rendered after actions, far right -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'right'"
@@ -107,56 +102,12 @@
 				</a>
 			</slot>
 		</div>
-
-		<!-- Auto-mounted feature-request modal (B2 default for Request a feature).
-		     Lazy-loaded via the components() async-import so the modal bundle
-		     only ships when a host renders a widget wrapper. Suppressed by the
-		     host calling preventDefault on @request-feature. -->
-		<CnSuggestFeatureModal
-			v-if="featureRequestModalOpen"
-			:repo="cnFeatureRequestRepo"
-			:spec-ref="specRef"
-			:app="cnAppId"
-			:page="$route ? ($route.name || '') : ''"
-			:surface="`widget:${resolvedWidgetId}`"
-			:conduction-submit-enabled="false"
-			@close="onFeatureRequestModalClose" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton } from '@nextcloud/vue'
-import { emit as emitOnBus } from '@nextcloud/event-bus'
-import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
-import Refresh from 'vue-material-design-icons/Refresh.vue'
-import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
-
-/**
- * Stable event-bus channel name for the built-in widget Refresh
- * action. Widgets opt in by `subscribe('cn:widget:refresh', cb)` and
- * filtering on `payload.widgetId`. Documented in
- * `cn-widget-wrapper.md` as part of the B3 refresh contract.
- */
-const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
-
-/**
- * Build a synthetic event object handed to host listeners alongside
- * the action payload. Mirrors the Vue 3 / DOM Event API enough to let
- * a host call `event.preventDefault()` to suppress the wrapper's
- * built-in default handler.
- *
- * @return {{defaultPrevented: boolean, preventDefault: Function}}
- */
-function createSyntheticEvent() {
-	const ev = {
-		defaultPrevented: false,
-		preventDefault() {
-			this.defaultPrevented = true
-		},
-	}
-	return ev
-}
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -173,6 +124,7 @@ function createSyntheticEvent() {
  *   :title="widget.title"
  *   :icon-url="widget.iconUrl"
  *   :icon-class="widget.iconClass"
+ *   :documentation-url="widget.documentationUrl"
  *   :buttons="widget.buttons">
  *   <CnWidgetRenderer :widget="widget" />
  * </CnWidgetWrapper>
@@ -182,31 +134,7 @@ export default {
 	name: 'CnWidgetWrapper',
 
 	components: {
-		NcActions,
-		NcActionButton,
-		DotsHorizontal,
-		Refresh,
-		LightbulbOutline,
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
-	},
-
-	inject: {
-		/**
-		 * Consuming app's slug (e.g. "pipelinq"). Provided by CnAppRoot.
-		 * Auto-filled on the built-in Request-a-feature modal as the
-		 * `app` prop. Defaults to empty string when no CnAppRoot ancestor
-		 * exists; the modal falls back to a missing-context warning.
-		 */
-		cnAppId: { default: () => '' },
-		/**
-		 * Repo slug used as the GitHub deep-link target on the auto-
-		 * mounted CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`).
-		 * Provided by CnAppRoot from the manifest's
-		 * `nav.featureRequestRepo` field (with fallback to
-		 * `ConductionNL/<appId>`). Empty when no ancestor — the default
-		 * handler will warn-and-skip-modal rather than open a broken link.
-		 */
-		cnFeatureRequestRepo: { default: () => '' },
+		CnActionsMenu,
 	},
 
 	props: {
@@ -318,6 +246,26 @@ export default {
 			default: true,
 		},
 		/**
+		 * Documentation link for this widget. When a non-empty URL is set,
+		 * the overflow menu renders a "Documentation" item that opens the
+		 * link in a new tab. Host apps supply it from the widget
+		 * configuration. Empty (the default) hides the item.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Optional pre-translated label for the Documentation action.
+		 * Defaults to the lib's translation of "Documentation".
+		 */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
+		},
+		/**
 		 * Widget id for the built-in default Refresh / Request-a-feature
 		 * handlers (B2). Forwarded as the `surface: "widget:<id>"` value
 		 * on the auto-mounted CnSuggestFeatureModal AND as the
@@ -397,47 +345,9 @@ export default {
 		},
 	},
 
-	data() {
-		return {
-			/**
-			 * Internal state for the auto-mounted default
-			 * CnSuggestFeatureModal (B2). Flipped to true by the
-			 * default Request-a-feature handler when the host did not
-			 * `preventDefault()` on `@request-feature`. The modal emits
-			 * `@close` back to this component which resets it.
-			 */
-			featureRequestModalOpen: false,
-			/**
-			 * Optimistic-spin flag. Set true on Refresh click when the
-			 * host hasn't bound `:refreshing`, then auto-cleared after
-			 * `optimisticSpinMs`. OR-ed with the `refreshing` prop by the
-			 * `isRefreshing` computed to drive the icon spin class.
-			 */
-			optimisticSpinning: false,
-		}
-	},
-
-	beforeDestroy() {
-		if (this._optimisticSpinTimer) {
-			clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = null
-		}
-	},
-
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
-		},
-
-		/**
-		 * Whether the Refresh icon should spin. True while the host's
-		 * bound `:refreshing` prop is true OR during the short optimistic
-		 * window after a click when no prop is bound.
-		 *
-		 * @return {boolean}
-		 */
-		isRefreshing() {
-			return this.refreshing || this.optimisticSpinning
 		},
 
 		/**
@@ -476,15 +386,15 @@ export default {
 		},
 
 		/**
-		 * Whether the built-in overflow `…` menu renders. True when at
-		 * least one of Refresh / Request-a-feature is visible OR the
-		 * caller provided an `action-items` slot.
+		 * Whether the caller supplied an `action-items` slot. Forwarded
+		 * conditionally so the shared CnActionsMenu doesn't treat an
+		 * always-present pass-through template as content (which would
+		 * keep the overflow menu visible even when every built-in is
+		 * opted out).
 		 *
 		 * @return {boolean}
 		 */
-		hasOverflowMenu() {
-			if (this.effectiveShowRefresh) return true
-			if (this.effectiveShowRequestFeature) return true
+		hasActionItemsSlot() {
 			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
 		},
 
@@ -514,88 +424,45 @@ export default {
 
 	methods: {
 		/**
-		 * Refresh click — emits `@refresh`, then runs the built-in
-		 * default (emit on the `cn:widget:refresh` event-bus channel)
-		 * unless the host called `event.preventDefault()` on the
-		 * second handler arg. Payload includes `widgetId` for
-		 * subscriber-side filtering.
+		 * Re-emit the shared CnActionsMenu `@refresh` to the host, passing
+		 * the synthetic event through unchanged so a host listener can
+		 * still `preventDefault()` the built-in default (event-bus emit on
+		 * `cn:widget:refresh`).
 		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
 		 * @return {void}
 		 */
-		onRefreshClick() {
-			this.startOptimisticSpin()
-			const ev = createSyntheticEvent()
+		onActionsRefresh(payload, ev) {
 			/**
 			 * @event refresh User clicked the Refresh item in the overflow
-			 * action menu. Payload: `{ widgetId, title }`. Handlers may
-			 * call the second arg's `preventDefault()` to suppress the
-			 * built-in default (event-bus emit on `cn:widget:refresh`).
+			 * action menu. Payload: `{ widgetId, title }`. Handlers may call
+			 * the second arg's `preventDefault()` to suppress the built-in
+			 * default (event-bus emit on `cn:widget:refresh`).
+			 * @type {{ widgetId: string, title: string }}
 			 */
-			this.$emit('refresh', { widgetId: this.resolvedWidgetId, title: this.displayTitle }, ev)
-			if (ev.defaultPrevented) return
-			emitOnBus(REFRESH_BUS_CHANNEL, {
-				widgetId: this.resolvedWidgetId,
-				title: this.displayTitle,
-			})
+			this.$emit('refresh', payload, ev)
 		},
 
 		/**
-		 * Spin the Refresh icon optimistically for `optimisticSpinMs`,
-		 * but ONLY when the host has not bound `:refreshing` (when they
-		 * have, the prop is the source of truth and we leave it alone).
-		 * No-op when `optimisticSpinMs` is 0.
+		 * Re-emit the shared CnActionsMenu `@request-feature` to the host,
+		 * passing the synthetic event through so a host listener can
+		 * `preventDefault()` the built-in default (auto-opening
+		 * CnSuggestFeatureModal).
 		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
 		 * @return {void}
 		 */
-		startOptimisticSpin() {
-			if (this.refreshing) return
-			if (!this.optimisticSpinMs || this.optimisticSpinMs <= 0) return
-			this.optimisticSpinning = true
-			if (this._optimisticSpinTimer) clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = setTimeout(() => {
-				this.optimisticSpinning = false
-				this._optimisticSpinTimer = null
-			}, this.optimisticSpinMs)
-		},
-
-		/**
-		 * Request-a-feature click — emits `@request-feature`, then runs
-		 * the built-in default (open `CnSuggestFeatureModal` with
-		 * `app + page + surface=widget:<id>` context auto-filled from
-		 * `CnAppRoot` injects) unless the host called `event.preventDefault()`.
-		 * The injects fall back to empty strings outside `CnAppRoot`;
-		 * the handler logs a `console.warn` and skips opening the modal
-		 * when no repo can be resolved.
-		 *
-		 * @return {void}
-		 */
-		onRequestFeatureClick() {
-			const ev = createSyntheticEvent()
+		onActionsRequestFeature(payload, ev) {
 			/**
 			 * @event request-feature User clicked the Request a feature
-			 * item. Payload: `{ widgetId, title }`. Handlers may call
-			 * the second arg's `preventDefault()` to suppress the
-			 * built-in default (auto-opening `CnSuggestFeatureModal`).
+			 * item. Payload: `{ widgetId, title }`. Handlers may call the
+			 * second arg's `preventDefault()` to suppress the built-in
+			 * default (auto-opening CnSuggestFeatureModal).
+			 * @type {{ widgetId: string, title: string }}
 			 */
-			this.$emit('request-feature', { widgetId: this.resolvedWidgetId, title: this.displayTitle }, ev)
-			if (ev.defaultPrevented) return
-			if (!this.cnFeatureRequestRepo) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					'[CnWidgetWrapper] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).',
-				)
-				return
-			}
-			this.featureRequestModalOpen = true
-		},
-		/**
-		 * Close handler for the auto-mounted feature-request modal.
-		 * Resets the v-model-equivalent local flag.
-		 *
-		 * @return {void}
-		 */
-		onFeatureRequestModalClose() {
-			this.featureRequestModalOpen = false
+			this.$emit('request-feature', payload, ev)
 		},
 	},
 }
@@ -609,24 +476,6 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	overflow: hidden;
-}
-
-/* Refresh icon spin — driven by the `isRefreshing` class binding.
-   One full rotation per 400ms, so the default 800ms optimistic window
-   reads as ~2 turns. Disabled under prefers-reduced-motion. */
-.cn-widget-wrapper__refresh-icon--spinning {
-	animation: cn-widget-wrapper-spin 400ms linear infinite;
-}
-
-@keyframes cn-widget-wrapper-spin {
-	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.cn-widget-wrapper__refresh-icon--spinning {
-		animation: none;
-	}
 }
 
 .cn-widget-wrapper__content {

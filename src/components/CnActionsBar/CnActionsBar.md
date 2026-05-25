@@ -158,3 +158,10 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRequestFeature` | Boolean | `false` | Show a built-in "Request a feature" entry in the overflow (after Refresh + headerActions). Emits `@request-feature`. |
+
+## Documentation link
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation entry label. |

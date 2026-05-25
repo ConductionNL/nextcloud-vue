@@ -2,15 +2,15 @@
 
 ### Props
 
-| Name          | Type     | Required | Default                                                 | Description |
-| ------------- | -------- | -------- | ------------------------------------------------------- | ----------- |
-| `apiBase`     | `string` |          | `'/apps/openregister/api'`                              |             |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing email')` |             |
-| `pageSize`    | `number` |          | `50`                                                    |             |
+| Name          | Type     | Required | Default                                                 | Description                                            |
+| ------------- | -------- | -------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| `apiBase`     | `string` |          | `'/apps/openregister/api'`                              | Base API URL for OR.                                   |
+| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing email')` | Pre-translated dialog title.                           |
+| `pageSize`    | `number` |          | `50`                                                    | Page size for the message list (load-more pagination). |
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `close` | —       |             |
-| `link`  | —       |             |
+| Name    | Payload | Description                                                                                        |
+| ------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `close` | —       | Emitted when the dialog should be closed (cancel or close button).                                 |
+| `link`  | —       | Emitted when the user confirms the selection. Payload: `{ mailAccountId, messageId, messageUid }`. |

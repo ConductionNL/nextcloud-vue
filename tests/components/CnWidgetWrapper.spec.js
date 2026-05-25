@@ -2,13 +2,16 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Tests for CnWidgetWrapper — the dashboard widget shell. Focuses on
- * the built-in overflow Actions menu (Refresh + Request a feature):
- * effective visibility, default handlers (event-bus emit + auto-mounted
- * feature modal), and host preventDefault suppression. Spec capabilities:
+ * Tests for CnWidgetWrapper — the dashboard widget shell. The built-in
+ * overflow Actions menu (Refresh + Documentation + Request a feature) is
+ * delegated to the shared CnActionsMenu; these tests verify the wrapper
+ * wires it correctly end-to-end: effective visibility, default handlers
+ * (event-bus emit + auto-mounted feature modal), the Documentation link,
+ * spin state forwarding, and host preventDefault suppression. Spec
+ * capabilities:
  *
  * - widget-wrapper / "header actions slot" (MODIFIED): show/hide flags,
- *   menu hidden when both opted out
+ *   menu hidden when both opted out, Documentation link
  * - widget-wrapper-actions / "default Request-a-feature handler",
  *   "default Refresh handler emits on cn:widget:refresh event-bus channel"
  */
@@ -35,13 +38,21 @@ const NcActionsStub = {
 	name: 'NcActions',
 	template: '<div class="nc-actions-stub" data-testid="cn-widget-wrapper-actions"><slot /></div>',
 }
+const NcActionLinkStub = {
+	name: 'NcActionLink',
+	inheritAttrs: false,
+	props: ['href', 'target', 'rel'],
+	template: '<a :data-testid="$attrs[\'data-testid\']" :href="href" :target="target" :rel="rel"><slot /></a>',
+}
 
 const baseStubs = {
 	NcActions: NcActionsStub,
 	NcActionButton: NcActionButtonStub,
+	NcActionLink: NcActionLinkStub,
 	DotsHorizontal: true,
 	Refresh: true,
 	LightbulbOutline: true,
+	BookOpenVariant: true,
 	CnSuggestFeatureModal: { name: 'CnSuggestFeatureModal', props: ['repo', 'specRef', 'app', 'page', 'surface', 'conductionSubmitEnabled'], template: '<div class="suggest-modal-stub" />' },
 }
 
@@ -199,33 +210,72 @@ describe('CnWidgetWrapper — refresh icon spin', () => {
 		jest.restoreAllMocks()
 	})
 
+	// Spin state now lives on the delegated CnActionsMenu child; the
+	// wrapper forwards :refreshing / :optimistic-spin-ms. Read the child's
+	// isRefreshing to assert the behaviour still holds end-to-end. The
+	// full spin mechanics are also covered in CnActionsMenu.spec.js.
+	const menuVm = (wrapper) => wrapper.findComponent({ name: 'CnActionsMenu' }).vm
+
 	it('spins optimistically on click then stops after optimisticSpinMs', async () => {
 		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 800 })
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(menuVm(wrapper).isRefreshing).toBe(false)
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
-		expect(wrapper.vm.isRefreshing).toBe(true)
+		expect(menuVm(wrapper).isRefreshing).toBe(true)
 		jest.advanceTimersByTime(800)
 		await wrapper.vm.$nextTick()
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(menuVm(wrapper).isRefreshing).toBe(false)
 	})
 
 	it('does NOT optimistically spin when optimisticSpinMs is 0', async () => {
 		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 0 })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(menuVm(wrapper).isRefreshing).toBe(false)
 	})
 
 	it('spins for as long as the :refreshing prop is true (host-driven)', async () => {
 		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
-		expect(wrapper.vm.isRefreshing).toBe(true)
+		expect(menuVm(wrapper).isRefreshing).toBe(true)
 		await wrapper.setProps({ refreshing: false })
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(menuVm(wrapper).isRefreshing).toBe(false)
 	})
 
 	it('with :refreshing bound true, clicking does not leave an optimistic spin behind', async () => {
 		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
 		await wrapper.setProps({ refreshing: false })
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(menuVm(wrapper).isRefreshing).toBe(false)
+	})
+})
+
+describe('CnWidgetWrapper — Documentation action', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+		jest.spyOn(console, 'warn').mockImplementation(() => {})
+	})
+	afterEach(() => {
+		jest.restoreAllMocks()
+	})
+
+	it('hides the Documentation item when no documentationUrl is set', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-documentation"]').exists()).toBe(false)
+	})
+
+	it('renders a Documentation link that opens in a new tab when documentationUrl is set', () => {
+		const wrapper = mountWrapper({ documentationUrl: 'https://docs.example.test/widget' })
+		const link = wrapper.find('[data-testid="cn-widget-wrapper-action-documentation"]')
+		expect(link.exists()).toBe(true)
+		expect(link.attributes('href')).toBe('https://docs.example.test/widget')
+		expect(link.attributes('target')).toBe('_blank')
+		expect(link.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	it('shows the overflow menu for documentation alone even when both built-ins are opted out', () => {
+		const wrapper = mountWrapper({
+			showRefresh: false,
+			showRequestFeature: false,
+			documentationUrl: 'https://docs.example.test/widget',
+		})
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-documentation"]').exists()).toBe(true)
 	})
 })

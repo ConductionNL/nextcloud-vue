@@ -2,24 +2,24 @@
 
 ### Props
 
-| Name               | Type     | Required | Default                                         | Description                              |
-| ------------------ | -------- | -------- | ----------------------------------------------- | ---------------------------------------- |
-| `register`         | `string` | ✓        | —                                               | OpenRegister register id (slug or uuid). |
-| `schema`           | `string` | ✓        | —                                               | OpenRegister schema id (slug or uuid).   |
-| `objectId`         | `string` | ✓        | —                                               | Parent object id.                        |
-| `apiBase`          | `string` |          | `'/apps/openregister/api'`                      | Base API URL for OpenRegister.           |
-| `title`            | `string` |          | `() =&gt; t('nextcloud-vue', 'New meeting')`    |                                          |
-| `summaryLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Summary')`        |                                          |
-| `startLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Start')`          |                                          |
-| `endLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'End')`            |                                          |
-| `locationLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Location')`       |                                          |
-| `descriptionLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Description')`    |                                          |
-| `cancelLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`         |                                          |
-| `confirmLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Create meeting')` |                                          |
+| Name               | Type     | Required | Default                                         | Description                                           |
+| ------------------ | -------- | -------- | ----------------------------------------------- | ----------------------------------------------------- |
+| `register`         | `string` | ✓        | —                                               | OpenRegister register id (slug or uuid).              |
+| `schema`           | `string` | ✓        | —                                               | OpenRegister schema id (slug or uuid).                |
+| `objectId`         | `string` | ✓        | —                                               | Parent object id.                                     |
+| `apiBase`          | `string` |          | `'/apps/openregister/api'`                      | Base API URL for OpenRegister.                        |
+| `title`            | `string` |          | `() =&gt; t('nextcloud-vue', 'New meeting')`    | Pre-translated dialog title.                          |
+| `summaryLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Summary')`        | Pre-translated label for the summary field.           |
+| `startLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Start')`          | Pre-translated label for the start date-time field.   |
+| `endLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'End')`            | Pre-translated label for the end date-time field.     |
+| `locationLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Location')`       | Pre-translated label for the location field.          |
+| `descriptionLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Description')`    | Pre-translated label for the description field.       |
+| `cancelLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`         | Pre-translated label for the Cancel button.           |
+| `confirmLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Create meeting')` | Pre-translated label for the confirm (Create) button. |
 
 ### Events
 
-| Name      | Payload | Description                                                  |
-| --------- | ------- | ------------------------------------------------------------ |
-| `created` | —       | Emitted after a successful POST. Payload: the new event row. |
-| `close`   | —       |                                                              |
+| Name      | Payload | Description                                                        |
+| --------- | ------- | ------------------------------------------------------------------ |
+| `created` | —       | Emitted after a successful POST. Payload: the new event row.       |
+| `close`   | —       | Emitted when the dialog should be closed (cancel or close button). |

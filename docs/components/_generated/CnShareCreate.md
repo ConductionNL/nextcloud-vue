@@ -12,8 +12,8 @@
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `close`             | —       |             |
-| `create`            | —       |             |
-| `search-principals` | —       |             |
+| Name                | Payload | Description                                                                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `close`             | —       | Emitted when the dialog should be closed (cancel or close button).                                                       |
+| `create`            | —       | Emitted when the user confirms creation. Payload: the share form data.                                                   |
+| `search-principals` | —       | Emitted (debounced) as the user types, so the parent can resolve matching users/groups. Payload: `{ shareType, query }`. |

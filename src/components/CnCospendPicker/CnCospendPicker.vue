@@ -37,7 +37,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-cospend-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-cospend-picker">
 			<NcNoteCard v-if="error" type="error" class="cn-cospend-picker__error">
 				{{ error }}
@@ -77,7 +77,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -159,6 +159,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		async fetchProjects(searchTerm = '') {
 			this.loading = true
 			this.error = ''
@@ -203,6 +215,9 @@ export default {
 			if (this.selectedProjectId === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ entryType, projectId }`.
+			 */
 			this.$emit('link', { entryType: 'project', projectId: this.selectedProjectId })
 		},
 	},

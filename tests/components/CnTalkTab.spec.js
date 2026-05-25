@@ -65,8 +65,13 @@ describe('CnTalkTab', () => {
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-talk-tab__row')
 		expect(rows).toHaveLength(2)
-		expect(wrapper.text()).toContain('Alpha')
-		expect(wrapper.text()).toContain('Bravo')
+		// Assert the component's own responsibility: derive each room's
+		// title and bind it to the NcListItem `name` (the real
+		// NcListItem renders that as the visible title in production).
+		expect(rows.at(0).attributes('name')).toBe('Alpha')
+		expect(rows.at(1).attributes('name')).toBe('Bravo')
+		// The last-message preview is rendered by the component itself
+		// (subname slot), so it shows up as real text.
 		expect(wrapper.text()).toContain('hi a')
 		expect(wrapper.text()).toContain('hi b')
 		wrapper.destroy()

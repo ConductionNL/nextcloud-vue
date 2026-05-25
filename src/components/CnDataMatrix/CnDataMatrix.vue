@@ -310,8 +310,13 @@ export default {
 			if (col.type !== 'number') return ''
 			const mode = col.aggregate || 'sum'
 			if (mode === 'none') return ''
+			// Drop empty cells (null / undefined / '') BEFORE coercing —
+			// `Number(null)` is `0`, which would otherwise be counted and
+			// summed as a real zero value.
 			const values = this.rows
-				.map((r) => Number(r[col.key]))
+				.map((r) => r[col.key])
+				.filter((v) => v !== null && v !== undefined && v !== '')
+				.map((v) => Number(v))
 				.filter((v) => Number.isFinite(v))
 			if (values.length === 0) return 0
 			if (mode === 'count') return values.length

@@ -104,6 +104,7 @@ export {
 	CnInfoWidget,
 	CnTableWidget,
 	CnActionsBar,
+	CnActionsMenu,
 	CnIcon,
 	CnPageHeader,
 	CnNoteCard,

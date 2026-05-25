@@ -28,7 +28,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-talk-room-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-talk-room-picker">
 			<!-- Inline error banner -->
 			<NcNoteCard v-if="error" type="error" class="cn-talk-room-picker__error">
@@ -71,7 +71,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -137,6 +137,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		participantLabel(count) {
 			return t('nextcloud-vue', '{n} participants', { n: count })
 		},
@@ -183,6 +195,9 @@ export default {
 			if (!this.selectedToken) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ roomToken }`.
+			 */
 			this.$emit('link', { roomToken: this.selectedToken })
 		},
 	},

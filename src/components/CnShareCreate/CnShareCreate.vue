@@ -34,7 +34,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-share-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-share-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-share-create__error">
 				{{ error }}
@@ -123,7 +123,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -292,6 +292,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		hasPermission(value) {
 			return (this.permissions & value) === value
 		},
@@ -305,6 +317,9 @@ export default {
 		},
 
 		onPrincipalSearch(query) {
+			/**
+			 * @event search-principals Emitted (debounced) as the user types, so the parent can resolve matching users/groups. Payload: `{ shareType, query }`.
+			 */
 			this.$emit('search-principals', { shareType: this.shareType, query })
 		},
 
@@ -331,6 +346,9 @@ export default {
 				password: this.supportsPassword && this.password ? this.password : null,
 				expiration: this.expiration ? new Date(this.expiration).toISOString() : null,
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: the share form data.
+			 */
 			this.$emit('create', payload)
 		},
 	},
