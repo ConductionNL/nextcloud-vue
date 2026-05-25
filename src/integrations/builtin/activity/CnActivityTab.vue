@@ -1,28 +1,29 @@
 <!--
   CnActivityTab — bespoke sidebar tab for the `activity` integration.
 
-  Replaces the generic CnIntegrationTab for the `activity` leaf: renders
-  a chronological timeline of NC Activity events grouped by day, with
-  a type icon + actor + subject text + relative timestamp per row, and
-  a "load more" button for paging.
+  Renders a chronological timeline of NC Activity events grouped by day,
+  with a type icon + actor + subject text + relative timestamp per row.
 
-  Talks to the OpenRegister pluggable-integration sub-resource:
-    `/api/objects/{register}/{schema}/{objectId}/integrations/activity`
-  served by `OCA\OpenRegister\Service\Integration\Providers\ActivityProvider`.
-  (Activity is the one leaf where the MarkerLookupTrait usage is
-  intentionally preserved — NC Activity does write a single string
-  subject column and that column is the marker target; see the
-  integration-activity change proposal for the carve-out rationale.)
+  Tier-2 surface (read-only — NC Activity entries are core-generated):
+    - Filter bar: type dropdown, actor dropdown, date-range segmented
+      control (24h / 7d / 30d / all).
+    - Cursor-based "load more" pagination.
+    - NO picker, NO inline create (entries are not user-authored here).
+
+  Talks to the OpenRegister Tier-2 activity endpoints:
+    GET /api/objects/{register}/{schema}/{objectId}/activity
+        ?type=&actor=&after=&limit=&cursor=
+    GET /api/integrations/activity/types?object={r}/{s}/{id}
+    GET /api/integrations/activity/actors?object={r}/{s}/{id}
+  backed by `OCA\OpenRegister\Service\ActivityFilterService`, which wraps
+  the wave-5.3 `MarkerLookupTrait` carve-out (NC Activity's single string
+  `subject` column is the `[or:{uuid}]` marker target) with the filters
+  and cursor pagination above. The carve-out is intentionally preserved.
 
   Surface behaviour:
-    - Empty state with neutral copy when no activity is logged.
-    - Loading + 503 "unavailable" + generic error banner all match
+    - Empty state with neutral copy when no activity matches the filters.
+    - Loading + 501/503 "unavailable" + generic error banner all match
       CnIntegrationTab's degradation patterns (AD-23).
-
-  Bespoke-vs-generic rationale: the generic tab renders a flat link list
-  which strips Activity's three primary timeline signals — actor, verb,
-  and time — that case handlers need to skim recent events in chronological
-  context. The timeline grouping by day mirrors NC Activity's own UI.
 
   See `openregister/openspec/changes/integration-activity/` for the spec
   delta and ADR-019 (registry mechanism).
@@ -32,6 +33,42 @@
 		<div v-if="degraded" class="cn-activity-tab__banner" role="alert">
 			<AlertCircleOutline :size="18" />
 			<span>{{ degraded }}</span>
+		</div>
+
+		<div v-if="!degraded" class="cn-activity-tab__filters">
+			<div class="cn-activity-tab__filter-row">
+				<label class="cn-activity-tab__filter">
+					<span class="cn-activity-tab__filter-label">{{ typeLabel }}</span>
+					<select
+						v-model="selectedType"
+						class="cn-activity-tab__select"
+						@change="resetAndFetch">
+						<option value="">{{ allTypesLabel }}</option>
+						<option v-for="ty in types" :key="ty" :value="ty">{{ ty }}</option>
+					</select>
+				</label>
+				<label class="cn-activity-tab__filter">
+					<span class="cn-activity-tab__filter-label">{{ actorLabel }}</span>
+					<select
+						v-model="selectedActor"
+						class="cn-activity-tab__select"
+						@change="resetAndFetch">
+						<option value="">{{ allActorsLabel }}</option>
+						<option v-for="ac in actors" :key="ac" :value="ac">{{ ac }}</option>
+					</select>
+				</label>
+			</div>
+			<div class="cn-activity-tab__range" role="group" :aria-label="rangeGroupLabel">
+				<button
+					v-for="range in ranges"
+					:key="range.key"
+					type="button"
+					class="cn-activity-tab__range-btn"
+					:class="{ 'cn-activity-tab__range-btn--active': selectedRange === range.key }"
+					@click="selectRange(range.key)">
+					{{ range.label }}
+				</button>
+			</div>
 		</div>
 
 		<NcLoadingIcon v-if="loading && entries.length === 0" />
@@ -102,15 +139,16 @@ import CalendarClockOutline from 'vue-material-design-icons/CalendarClockOutline
 import { buildHeaders } from '../../../utils/index.js'
 
 const DEFAULT_PAGE_SIZE = 25
+const SECONDS_PER_DAY = 86400
 
 /**
  * CnActivityTab — bespoke chronological timeline for the `activity`
- * integration.
+ * integration with type/actor/date filters + cursor pagination.
  *
  * Renders activity entries grouped by day (today / yesterday / older
- * dates), with type icons, actor name, and a relative timestamp.
- * Reads from the OR pluggable-integration endpoint with simple
- * page-based "load more" paging.
+ * dates), with type icons, actor name, and a relative timestamp. Reads
+ * from the OR Tier-2 activity endpoints; filters drive a fresh fetch,
+ * "load more" walks the cursor returned by the backend.
  */
 export default {
 	name: 'CnActivityTab',
@@ -153,22 +191,48 @@ export default {
 	data() {
 		return {
 			entries: [],
+			types: [],
+			actors: [],
+			selectedType: '',
+			selectedActor: '',
+			selectedRange: 'all',
+			cursor: null,
 			loading: false,
 			loadingMore: false,
-			page: 1,
 			total: 0,
 			error: '',
 			degraded: '',
+			typeLabel: t('nextcloud-vue', 'Type'),
+			actorLabel: t('nextcloud-vue', 'Actor'),
+			allTypesLabel: t('nextcloud-vue', 'All types'),
+			allActorsLabel: t('nextcloud-vue', 'All actors'),
+			rangeGroupLabel: t('nextcloud-vue', 'Date range'),
+			ranges: [
+				{ key: '24h', label: t('nextcloud-vue', '24h') },
+				{ key: '7d', label: t('nextcloud-vue', '7d') },
+				{ key: '30d', label: t('nextcloud-vue', '30d') },
+				{ key: 'all', label: t('nextcloud-vue', 'All') },
+			],
 		}
 	},
 
 	computed: {
 		hasMore() {
-			if (this.total > 0) {
-				return this.entries.length < this.total
+			return this.cursor !== null
+		},
+
+		/**
+		 * Unix-epoch-seconds lower bound for the selected date range, or
+		 * null for "all".
+		 *
+		 * @return {?number} Lower-bound timestamp or null.
+		 */
+		afterTimestamp() {
+			const days = { '24h': 1, '7d': 7, '30d': 30 }[this.selectedRange]
+			if (!days) {
+				return null
 			}
-			// Heuristic: if last page filled, assume more might exist.
-			return this.entries.length > 0 && (this.entries.length % this.pageSize) === 0
+			return Math.floor(Date.now() / 1000) - (days * SECONDS_PER_DAY)
 		},
 
 		groupedByDay() {
@@ -189,20 +253,36 @@ export default {
 	},
 
 	watch: {
-		objectId: { immediate: true, handler(id) { if (id) { this.resetAndFetch() } } },
-		register() { this.resetAndFetch() },
-		schema() { this.resetAndFetch() },
+		objectId: { immediate: true, handler(id) { if (id) { this.bootstrap() } } },
+		register() { this.bootstrap() },
+		schema() { this.bootstrap() },
 	},
 
 	methods: {
 		baseUrl() {
-			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/activity`
+		},
+
+		dropdownUrl(kind) {
+			const object = `${this.register}/${this.schema}/${this.objectId}`
+			return `${this.apiBase}/integrations/activity/${kind}?object=${encodeURIComponent(object)}`
 		},
 
 		buildQuery() {
 			const params = new URLSearchParams()
 			params.set('limit', String(this.pageSize))
-			params.set('_page', String(this.page))
+			if (this.selectedType) {
+				params.set('type', this.selectedType)
+			}
+			if (this.selectedActor) {
+				params.set('actor', this.selectedActor)
+			}
+			if (this.afterTimestamp !== null) {
+				params.set('after', String(this.afterTimestamp))
+			}
+			if (this.cursor !== null) {
+				params.set('cursor', String(this.cursor))
+			}
 			return params.toString()
 		},
 
@@ -294,18 +374,62 @@ export default {
 			return 'Timeline'
 		},
 
+		selectRange(key) {
+			if (this.selectedRange === key) {
+				return
+			}
+			this.selectedRange = key
+			this.resetAndFetch()
+		},
+
+		/**
+		 * Full (re)load: refresh the dropdown sources, then fetch the
+		 * first filtered page.
+		 *
+		 * @return {void}
+		 */
+		bootstrap() {
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
+			this.fetchDropdowns()
+			this.resetAndFetch()
+		},
+
 		resetAndFetch() {
 			this.entries = []
-			this.page = 1
+			this.cursor = null
 			this.total = 0
 			this.fetchEntries()
+		},
+
+		async fetchDropdowns() {
+			try {
+				const [typesRes, actorsRes] = await Promise.all([
+					fetch(this.dropdownUrl('types'), { headers: buildHeaders() }),
+					fetch(this.dropdownUrl('actors'), { headers: buildHeaders() }),
+				])
+				if (typesRes.ok) {
+					const data = await typesRes.json()
+					this.types = data.results || []
+				}
+				if (actorsRes.ok) {
+					const data = await actorsRes.json()
+					this.actors = data.results || []
+				}
+			} catch (err) {
+				// Dropdown failure is non-fatal — filters just stay empty.
+				// eslint-disable-next-line no-console
+				console.error('[CnActivityTab] failed to fetch filter options', err)
+			}
 		},
 
 		async fetchEntries() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
 			}
-			if (this.page === 1) {
+			const isFirstPage = this.cursor === null
+			if (isFirstPage) {
 				this.loading = true
 			} else {
 				this.loadingMore = true
@@ -317,25 +441,30 @@ export default {
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
-					this.entries = this.page === 1 ? rows : [...this.entries, ...rows]
+					this.entries = isFirstPage ? rows : [...this.entries, ...rows]
 					this.total = Number(data.total ?? 0)
-				} else if (response.status === 503) {
-					if (this.page === 1) {
+					const next = data.nextCursor ?? null
+					this.cursor = (next === null || next === undefined) ? null : Number(next)
+				} else if (response.status === 503 || response.status === 501) {
+					if (isFirstPage) {
 						this.entries = []
 					}
+					this.cursor = null
 					this.degraded = this.unavailableLabel
 				} else {
-					if (this.page === 1) {
+					if (isFirstPage) {
 						this.entries = []
 					}
+					this.cursor = null
 					this.error = t('nextcloud-vue', 'Could not load activity.')
 				}
 			} catch (err) {
 				// eslint-disable-next-line no-console
 				console.error('[CnActivityTab] failed to fetch activity', err)
-				if (this.page === 1) {
+				if (isFirstPage) {
 					this.entries = []
 				}
+				this.cursor = null
 				this.error = t('nextcloud-vue', 'Could not load activity.')
 			} finally {
 				this.loading = false
@@ -344,7 +473,9 @@ export default {
 		},
 
 		loadMore() {
-			this.page += 1
+			if (this.cursor === null) {
+				return
+			}
 			this.fetchEntries()
 		},
 	},
@@ -362,6 +493,64 @@ export default {
 	background: var(--color-warning, #e9a40f);
 	color: var(--color-main-background);
 	font-size: 0.9em;
+}
+
+.cn-activity-tab__filters {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.cn-activity-tab__filter-row {
+	display: flex;
+	gap: 8px;
+}
+
+.cn-activity-tab__filter {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-activity-tab__filter-label {
+	font-size: 0.78em;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-activity-tab__select {
+	width: 100%;
+	min-height: 34px;
+	padding: 4px 6px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-activity-tab__range {
+	display: flex;
+	gap: 4px;
+}
+
+.cn-activity-tab__range-btn {
+	flex: 1;
+	padding: 4px 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-text-maxcontrast);
+	font-size: 0.82em;
+	cursor: pointer;
+}
+
+.cn-activity-tab__range-btn--active {
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	border-color: var(--color-primary-element);
 }
 
 .cn-activity-tab__error {
