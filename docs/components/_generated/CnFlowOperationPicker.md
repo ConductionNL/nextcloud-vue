@@ -10,7 +10,7 @@
 
 ### Events
 
-| Name    | Payload | Description |
-| ------- | ------- | ----------- |
-| `close` | —       |             |
-| `link`  | —       |             |
+| Name    | Payload | Description                                                               |
+| ------- | ------- | ------------------------------------------------------------------------- |
+| `close` | —       | Emitted when the dialog should be closed (cancel or close button).        |
+| `link`  | —       | Emitted when the user confirms the selection. Payload: `{ operationId }`. |

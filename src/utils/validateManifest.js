@@ -235,6 +235,27 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 5. Detail `config.sidebarTabs[]` SHAPE validation (id/label
+	//    presence + id uniqueness) the JSON schema can't fully express.
+	//    Only fires when `sidebarTabs` is present — in v2 it usually
+	//    is NOT: the `liftSidebarTabWidgets` migration strips it,
+	//    lifting each tab's widgets to `slot:"sidebar"` + a
+	//    self-declaring `tabGroup`. So the v1 `tabGroup → sidebarTabs[].id`
+	//    cross-reference is deliberately NOT run for v2 — an
+	//    undeclared `tabGroup` is the designed post-lift state, not an
+	//    orphan. (Wiki register/schema is likewise not enforced — wiki
+	//    content comes from the xwiki leaf integration; see
+	//    ConductionNL/nextcloud-vue#445.)
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, index) => {
+			if (!page || page.type !== 'detail') return
+			const cfg = isPlainObject(page.config) ? page.config : null
+			const pathSlash = `/pages/${index}/config`
+			const pathBracket = `pages[${index}].config`
+			validateDetailSidebarTabs(cfg, pathSlash, pathBracket, errors)
+		})
+	}
+
 	return { valid: errors.length === 0, errors }
 }
 

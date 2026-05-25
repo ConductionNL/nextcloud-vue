@@ -48,12 +48,6 @@
 			<!-- Results pane. -->
 			<section class="cn-search-page__results" data-testid="cn-search-page-results">
 				<div v-if="loading" class="cn-search-page__loading">{{ loadingLabel }}</div>
-				<p v-else-if="results.length === 0 && hasSearched" class="cn-search-page__empty">
-					{{ emptyLabel }}
-				</p>
-				<p v-else-if="!hasSearched && idleLabel" class="cn-search-page__idle">
-					{{ idleLabel }}
-				</p>
 				<ol v-else-if="results.length > 0" class="cn-search-page__list">
 					<li v-for="result in results"
 						:key="result.id || (result.schema + ':' + (result.title || ''))"
@@ -73,6 +67,12 @@
 						</slot>
 					</li>
 				</ol>
+				<p v-else-if="hasSearched" class="cn-search-page__empty">
+					{{ emptyLabel }}
+				</p>
+				<p v-else-if="idleLabel" class="cn-search-page__idle">
+					{{ idleLabel }}
+				</p>
 
 				<div v-if="totalCount > 0 && totalCount > results.length" class="cn-search-page__more">
 					{{ totalCountLabel(totalCount, results.length) }}

@@ -147,14 +147,23 @@ export default {
 		eventsLimit: { type: Number, default: 100 },
 
 		// --- Pre-translated labels (ADR-007) ---
+		/** Pre-translated dialog title. */
 		title: { type: String, default: () => t('nextcloud-vue', 'Link an existing meeting') },
+		/** Pre-translated heading for the calendar-pick step. */
 		pickCalendarLabel: { type: String, default: () => t('nextcloud-vue', 'Pick a calendar') },
+		/** Pre-translated empty-state label when no calendars are available. */
 		noCalendarsLabel: { type: String, default: () => t('nextcloud-vue', 'No calendars available.') },
+		/** Pre-translated label for the Back button. */
 		backLabel: { type: String, default: () => t('nextcloud-vue', 'Back') },
+		/** Pre-translated placeholder for the event filter field. */
 		filterLabel: { type: String, default: () => t('nextcloud-vue', 'Filter events…') },
+		/** Pre-translated fallback label for an event with no title. */
 		untitledLabel: { type: String, default: () => t('nextcloud-vue', '(no title)') },
+		/** Pre-translated empty-state label when no events are found. */
 		noEventsLabel: { type: String, default: () => t('nextcloud-vue', 'No events found.') },
+		/** Pre-translated label for the Cancel button. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Pre-translated label for the confirm (Link) button. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Link event') },
 	},
 
@@ -278,7 +287,7 @@ export default {
 		},
 
 		onClose() {
-			/** @event close */
+			/** @event close Emitted when the dialog should be closed (cancel or close button). */
 			this.$emit('close')
 		},
 

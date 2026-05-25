@@ -4,10 +4,16 @@
  * Covers:
  *   - schema (v2): `config.sidebarTabs[]` typed array on detail pages.
  *   - validator: validateDetailSidebarTabs catches missing id/label,
- *     duplicate ids, non-array shape, malformed entry fields.
- *   - cross-ref: validateSidebarTabGroupRefs flags `widgets[]`
- *     entries with `slot:'sidebar'` referencing a tabGroup that
- *     isn't declared in `config.sidebarTabs[].id`.
+ *     duplicate ids, non-array shape, malformed entry fields (only when
+ *     `sidebarTabs` is present).
+ *
+ * Note: in v2 a sidebar widget's `tabGroup` is SELF-DECLARING. The
+ * `liftSidebarTabWidgets` migration lifts each `config.sidebarTabs[].widgets[]`
+ * to a `slot:'sidebar'` widget carrying `tabGroup: tab.id` and then
+ * REMOVES `sidebarTabs` from config. So a `tabGroup` with no matching
+ * `sidebarTabs[].id` (or no `sidebarTabs` at all) is the normal post-lift
+ * state, NOT an orphan — v2 does not run the v1 cross-reference check.
+ * See ConductionNL/nextcloud-vue#445.
  */
 
 import { validateManifest } from '../../src/utils/validateManifest.js'
@@ -114,7 +120,11 @@ describe('config.sidebarTabs — manifest-detail-sidebartabs', () => {
 		expect(result.errors.some((e) => e.includes('sidebarTabs'))).toBe(true)
 	})
 
-	it('rejects a widget tabGroup that does not match any declared tab', () => {
+	// In v2 `tabGroup` is self-declaring (see header note + #445): a
+	// sidebar widget referencing a tabGroup that isn't in sidebarTabs[]
+	// is the normal post-lift state, so it is ALLOWED — the v1
+	// cross-reference check is not run for v2 manifests.
+	it('allows a widget tabGroup with no matching sidebarTabs entry (self-declaring in v2)', () => {
 		const result = validateManifest(manifestWithDetail(
 			{
 				register: 'myapp',
@@ -122,19 +132,18 @@ describe('config.sidebarTabs — manifest-detail-sidebartabs', () => {
 				sidebarTabs: [{ id: 'overview', label: 'Overview' }],
 			},
 			[
-				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'typo', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
+				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'extra', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
 			],
 		))
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => /tabGroup.*typo/.test(e))).toBe(true)
+		expect(result.valid).toBe(true)
+		expect(result.errors).toEqual([])
 	})
 
-	it('passes when widget tabGroup matches a declared tab', () => {
+	it('allows a widget tabGroup when sidebarTabs is absent (designed post-lift state)', () => {
 		const result = validateManifest(manifestWithDetail(
 			{
 				register: 'myapp',
 				schema: 'item',
-				sidebarTabs: [{ id: 'overview', label: 'Overview' }],
 			},
 			[
 				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'overview', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
@@ -142,19 +151,5 @@ describe('config.sidebarTabs — manifest-detail-sidebartabs', () => {
 		))
 		expect(result.valid).toBe(true)
 		expect(result.errors).toEqual([])
-	})
-
-	it('flags a widget tabGroup when sidebarTabs is missing entirely', () => {
-		const result = validateManifest(manifestWithDetail(
-			{
-				register: 'myapp',
-				schema: 'item',
-			},
-			[
-				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'overview', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
-			],
-		))
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('config.sidebarTabs'))).toBe(true)
 	})
 })

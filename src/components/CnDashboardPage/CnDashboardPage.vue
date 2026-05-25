@@ -36,6 +36,35 @@
 					</template>
 					{{ isEditing ? doneLabel : editLabel }}
 				</NcButton>
+				<!-- Page-level overflow Actions menu (Refresh / Documentation /
+				     Request a feature). Separate from the per-widget menus.
+				     On by default; opt out per item, supply documentation-url
+				     to surface a docs link. -->
+				<CnActionsMenu
+					:show-refresh="showRefresh"
+					:show-request-feature="showRequestFeature"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel"
+					:refresh-label="refreshLabel"
+					:request-feature-label="requestFeatureLabel"
+					:actions-menu-label="actionsMenuLabel"
+					:refreshing="refreshing"
+					:optimistic-spin-ms="optimisticSpinMs"
+					:widget-id="resolvedPageId"
+					:title="title"
+					:surface="`dashboard:${resolvedPageId}`"
+					:spec-ref="specRef"
+					refresh-channel="cn:page:refresh"
+					testid-base="cn-dashboard-page"
+					@refresh="onActionsRefresh"
+					@request-feature="onActionsRequestFeature">
+					<!-- @slot action-items Additional NcActionButton-family
+					     items appended inside the page-level overflow menu,
+					     after Refresh / Documentation / Request a feature. -->
+					<template v-if="hasActionItemsSlot" #action-items>
+						<slot name="action-items" />
+					</template>
+				</CnActionsMenu>
 			</div>
 		</div>
 
@@ -288,6 +317,7 @@ import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -405,6 +435,7 @@ export default {
 		CnStatsBlockWidget,
 		CnWidgetRefItem,
 		CnDateRangePicker,
+		CnActionsMenu,
 	},
 
 	inject: {
@@ -602,9 +633,90 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Show the built-in Refresh item in the page-level overflow Actions
+		 * menu (distinct from the per-widget menus). On by default. The
+		 * default handler emits `@refresh` and, unless suppressed, fires
+		 * the `cn:page:refresh` event-bus channel.
+		 *
+		 * @type {boolean}
+		 */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the built-in Request-a-feature item in the page-level
+		 * overflow Actions menu. On by default; opens the
+		 * CnSuggestFeatureModal when mounted under CnAppRoot.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Documentation link for this dashboard. When a non-empty URL is
+		 * set, the page-level overflow menu renders a "Documentation" item
+		 * that opens the link in a new tab. Empty (the default) hides it.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/** Pre-translated label for the Documentation action. Defaults to "Documentation". */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
+		},
+		/**
+		 * Stable id for this dashboard, used in the `@refresh` /
+		 * `@request-feature` payloads and the `surface: "dashboard:<id>"`
+		 * field on the feature-request modal. Falls back to a slugified
+		 * `title` when unset.
+		 *
+		 * @type {string}
+		 */
+		pageId: {
+			type: String,
+			default: '',
+		},
+		/** Optional `specRef` forwarded to the feature-request modal. */
+		specRef: {
+			type: String,
+			default: '',
+		},
+		/** Whether a page-level refresh is in flight (drives the Refresh icon spin). */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Optimistic Refresh-icon spin duration (ms) when `refreshing` is unbound. */
+		optimisticSpinMs: {
+			type: Number,
+			default: 800,
+		},
+		/** Pre-translated label for the Refresh action. */
+		refreshLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Refresh'),
+		},
+		/** Pre-translated label for the Request-a-feature action. */
+		requestFeatureLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Request a feature'),
+		},
+		/** Pre-translated aria-label / tooltip for the overflow menu trigger. */
+		actionsMenuLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Actions'),
+		},
 	},
 
-	emits: ['layout-change', 'edit-toggle', 'date-range-change'],
+	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'refresh', 'request-feature'],
 
 	data() {
 		return {
@@ -639,6 +751,29 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Stable id for the page-level Actions menu. Prefers the explicit
+		 * `pageId` prop; falls back to a slugified `title`, then
+		 * `'dashboard'`.
+		 *
+		 * @return {string}
+		 */
+		resolvedPageId() {
+			if (this.pageId) return this.pageId
+			const slug = (this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+			return slug || 'dashboard'
+		},
+		/**
+		 * Whether the caller supplied an `action-items` slot — forwarded
+		 * conditionally so the shared CnActionsMenu doesn't treat an
+		 * always-present pass-through template as content.
+		 *
+		 * @return {boolean}
+		 */
+		hasActionItemsSlot() {
+			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+		},
+
 		/**
 		 * True when the date-range header should render. `false`,
 		 * `null`, and `{ enabled: false }` all collapse to `false`.
@@ -727,6 +862,48 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Re-emit the page-level CnActionsMenu `@refresh` to the host,
+		 * passing the synthetic event through so a host listener can
+		 * `preventDefault()` the built-in default (event-bus emit on
+		 * `cn:page:refresh`). Distinct from `@widget-refresh`, which the
+		 * per-widget menus emit.
+		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
+		 */
+		onActionsRefresh(payload, ev) {
+			/**
+			 * @event refresh User clicked Refresh in the page-level overflow
+			 * Actions menu. Payload: `{ widgetId, title }`. Handlers may
+			 * call the second arg's `preventDefault()` to suppress the
+			 * built-in default (event-bus emit on `cn:page:refresh`).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('refresh', payload, ev)
+		},
+
+		/**
+		 * Re-emit the page-level CnActionsMenu `@request-feature` to the
+		 * host. Distinct from `@widget-request-feature`.
+		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
+		 */
+		onActionsRequestFeature(payload, ev) {
+			/**
+			 * @event request-feature User clicked Request a feature in the
+			 * page-level overflow Actions menu. Payload: `{ widgetId,
+			 * title }`. Handlers may call the second arg's
+			 * `preventDefault()` to suppress the built-in default
+			 * (auto-opening CnSuggestFeatureModal).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('request-feature', payload, ev)
+		},
+
 		/**
 		 * Forward a widget's `@refresh` from CnWidgetWrapper to the
 		 * dashboard host. The host wires this to its data-fetching layer

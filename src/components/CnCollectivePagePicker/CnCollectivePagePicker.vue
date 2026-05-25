@@ -35,7 +35,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-collective-page-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-collective-page-picker">
 			<NcNoteCard v-if="error" type="error" class="cn-collective-page-picker__error">
 				{{ error }}
@@ -86,7 +86,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -187,6 +187,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		async fetchCollectives() {
 			try {
 				const response = await fetch(`${this.apiBase}/integrations/collectives/list`, {
@@ -263,6 +275,9 @@ export default {
 			if (this.selectedPageId === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ pageId }`.
+			 */
 			this.$emit('link', { pageId: this.selectedPageId })
 		},
 	},

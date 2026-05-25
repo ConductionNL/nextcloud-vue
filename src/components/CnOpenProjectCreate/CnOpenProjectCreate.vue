@@ -32,7 +32,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-openproject-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div v-if="unconfigured" class="cn-openproject-create">
 			<NcEmptyContent
 				:name="t('nextcloud-vue', 'OpenProject is not configured')"
@@ -85,7 +85,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -174,6 +174,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		async fetchProjects() {
 			this.error = ''
 			try {
@@ -216,6 +228,9 @@ export default {
 			if (!this.canSubmit) {
 				return
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ projectId, subject, type }`.
+			 */
 			this.$emit('create', {
 				projectId: this.resolvedProjectId,
 				subject: this.subject.trim(),

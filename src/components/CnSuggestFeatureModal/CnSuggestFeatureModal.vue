@@ -342,6 +342,9 @@ export default {
 		submitToGithub() {
 			if (!this.canSubmit) return
 			window.open(this.githubIssueUrl, '_blank', 'noopener,noreferrer')
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel, close button, or after a submit hand-off).
+			 */
 			this.$emit('close')
 		},
 		/**

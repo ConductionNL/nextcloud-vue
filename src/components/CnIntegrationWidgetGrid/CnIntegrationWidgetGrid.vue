@@ -24,6 +24,7 @@
 <template>
 	<div class="cn-integration-widget-grid" :data-surface="surface">
 		<div v-if="visibleIntegrations.length === 0" class="cn-integration-widget-grid__empty">
+			<!-- @slot empty Custom empty-state content shown when no integrations are visible. Defaults to the `emptyLabel` text. -->
 			<slot name="empty">
 				{{ emptyLabel }}
 			</slot>

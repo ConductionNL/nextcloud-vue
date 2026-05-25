@@ -283,6 +283,31 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 | `surface` | String | `'detail-page'` | Rendering surface forwarded to integration widgets in the grid layout (widget defs with `type === 'integration'`). Drives the AD-19 surface fallback. |
 | `integrationContext` (`integration-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. When omitted it is derived from `sidebarProps.register` / `sidebarProps.schema` (or `objectType`) and `objectId`. |
 
+## Built-in Actions menu
+
+The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Refresh and Request-a-feature are **on by default**; opt out per item with `:show-refresh="false"` / `:show-request-feature="false"`.
+
+- **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
+- **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
+- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "detail:<id>"` when mounted under `CnAppRoot`.
+
+Set `:page-id` for a stable id/surface (it otherwise falls back to a slugified `title`). All the menu props are forwarded to [`CnActionsMenu`](./cn-actions-menu):
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `documentationUrl` | `''` | When set, renders the **Documentation** entry (opens in a new tab). |
+| `documentationLabel` | `t('Documentation')` | Pre-translated Documentation label. |
+| `specRef` | `''` | Forwarded to the feature-request modal. |
+| `refreshing` | `false` | When bound, the Refresh icon spins while true. |
+| `optimisticSpinMs` | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshLabel` | `t('Refresh')` | Pre-translated Refresh label. |
+| `requestFeatureLabel` | `t('Request a feature')` | Pre-translated Request-a-feature label. |
+| `actionsMenuLabel` | `t('Actions')` | Pre-translated overflow-menu trigger label. |
+
+| Slot | Description |
+|------|-------------|
+| `action-items` | Extra items appended inside the overflow menu, after the built-in trio. |
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.

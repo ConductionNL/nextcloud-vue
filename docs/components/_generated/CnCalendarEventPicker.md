@@ -2,24 +2,24 @@
 
 ### Props
 
-| Name                | Type     | Required | Default                                                   | Description                                          |
-| ------------------- | -------- | -------- | --------------------------------------------------------- | ---------------------------------------------------- |
-| `apiBase`           | `string` |          | `'/apps/openregister/api'`                                | Base API URL for OpenRegister.                       |
-| `eventsAfter`       | `string` |          | `''`                                                      | Default "after" filter for picker step 2 (ISO 8601). |
-| `eventsLimit`       | `number` |          | `100`                                                     | Max number of events returned by the picker source.  |
-| `title`             | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing meeting')` |                                                      |
-| `pickCalendarLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Pick a calendar')`          |                                                      |
-| `noCalendarsLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'No calendars available.')`  |                                                      |
-| `backLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'Back')`                     |                                                      |
-| `filterLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Filter events…')`           |                                                      |
-| `untitledLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', '(no title)')`               |                                                      |
-| `noEventsLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'No events found.')`         |                                                      |
-| `cancelLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                   |                                                      |
-| `confirmLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Link event')`               |                                                      |
+| Name                | Type     | Required | Default                                                   | Description                                                       |
+| ------------------- | -------- | -------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `apiBase`           | `string` |          | `'/apps/openregister/api'`                                | Base API URL for OpenRegister.                                    |
+| `eventsAfter`       | `string` |          | `''`                                                      | Default "after" filter for picker step 2 (ISO 8601).              |
+| `eventsLimit`       | `number` |          | `100`                                                     | Max number of events returned by the picker source.               |
+| `title`             | `string` |          | `() =&gt; t('nextcloud-vue', 'Link an existing meeting')` | Pre-translated dialog title.                                      |
+| `pickCalendarLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Pick a calendar')`          | Pre-translated heading for the calendar-pick step.                |
+| `noCalendarsLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'No calendars available.')`  | Pre-translated empty-state label when no calendars are available. |
+| `backLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'Back')`                     | Pre-translated label for the Back button.                         |
+| `filterLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Filter events…')`           | Pre-translated placeholder for the event filter field.            |
+| `untitledLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', '(no title)')`               | Pre-translated fallback label for an event with no title.         |
+| `noEventsLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'No events found.')`         | Pre-translated empty-state label when no events are found.        |
+| `cancelLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                   | Pre-translated label for the Cancel button.                       |
+| `confirmLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Link event')`               | Pre-translated label for the confirm (Link) button.               |
 
 ### Events
 
 | Name    | Payload | Description                                                                             |
 | ------- | ------- | --------------------------------------------------------------------------------------- |
 | `link`  | —       | Emitted when the user confirms an event selection. Payload: \{ calendarUri, eventUid \} |
-| `close` | —       |                                                                                         |
+| `close` | —       | Emitted when the dialog should be closed (cancel or close button).                      |

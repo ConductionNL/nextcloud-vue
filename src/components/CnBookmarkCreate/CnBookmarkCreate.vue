@@ -26,7 +26,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-bookmark-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-bookmark-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-bookmark-create__error">
 				{{ error }}
@@ -60,7 +60,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -148,6 +148,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		submit() {
 			this.urlTouched = true
 			if (!this.canSubmit) {
@@ -159,6 +171,9 @@ export default {
 				description: this.description.trim(),
 				tags: this.parsedTags,
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ title, url, description, tags }`.
+			 */
 			this.$emit('create', payload)
 		},
 	},

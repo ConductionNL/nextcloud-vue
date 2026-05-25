@@ -220,6 +220,16 @@ export default {
 
 `CnChartWidget` consumes this injection automatically — see its [bucket data-source documentation](./cn-chart-widget.md#bucket-shorthand-time-series).
 
+## Built-in page-level Actions menu
+
+The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).
+
+- **Refresh** emits `@refresh` and, unless suppressed via `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
+- **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
+- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "dashboard:<id>"` when mounted under `CnAppRoot`.
+
+Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardPage/CnDashboardPage.vue) and update automatically whenever the component changes.
