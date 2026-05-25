@@ -77,12 +77,43 @@
 			</NcButton>
 		</div>
 
-		<!-- Album grid -->
+		<!-- Photo mosaic grid (mirrors the NC Photos timeline) -->
 		<div v-else class="cn-photos-tab__grid">
 			<div
 				v-for="album in albums"
 				:key="albumKey(album)"
 				class="cn-photos-tab__tile">
+				<a
+					:href="albumUrl(album)"
+					class="cn-photos-tab__tile-link"
+					target="_blank"
+					rel="noopener noreferrer"
+					:title="albumName(album)">
+					<div class="cn-photos-tab__cover">
+						<img
+							v-if="coverUrl(album)"
+							:src="coverUrl(album)"
+							:alt="albumName(album)"
+							class="cn-photos-tab__cover-img"
+							loading="lazy"
+							@error="onCoverError(album)">
+						<span v-else class="cn-photos-tab__cover-placeholder">
+							<ImageMultiple :size="36" class="cn-photos-tab__cover-fallback" />
+						</span>
+						<!-- Photo-count badge, top-left (mirrors album stack overlay) -->
+						<span v-if="photoCount(album) !== null" class="cn-photos-tab__badge">
+							<ImageMultiple :size="12" />
+							<span class="cn-photos-tab__badge-count">{{ photoCountLabel(album) }}</span>
+						</span>
+						<!-- Hover scrim with name + date -->
+						<div class="cn-photos-tab__meta">
+							<span class="cn-photos-tab__name">{{ albumName(album) }}</span>
+							<span v-if="lastEdited(album)" class="cn-photos-tab__when">
+								{{ formatWhen(lastEdited(album)) }}
+							</span>
+						</div>
+					</div>
+				</a>
 				<NcButton
 					type="tertiary-no-background"
 					:aria-label="t('nextcloud-vue', 'Unlink album')"
@@ -92,33 +123,6 @@
 						<LinkOff :size="16" />
 					</template>
 				</NcButton>
-				<a
-					:href="albumUrl(album)"
-					class="cn-photos-tab__tile-link"
-					target="_blank"
-					rel="noopener noreferrer">
-					<div class="cn-photos-tab__cover">
-						<img
-							v-if="coverUrl(album)"
-							:src="coverUrl(album)"
-							:alt="albumName(album)"
-							class="cn-photos-tab__cover-img"
-							loading="lazy"
-							@error="onCoverError(album)">
-						<ImageMultiple v-else :size="36" class="cn-photos-tab__cover-fallback" />
-					</div>
-					<div class="cn-photos-tab__meta">
-						<span class="cn-photos-tab__name">{{ albumName(album) }}</span>
-						<span class="cn-photos-tab__sub">
-							<span v-if="photoCount(album) !== null" class="cn-photos-tab__count">
-								{{ photoCountLabel(album) }}
-							</span>
-							<span v-if="lastEdited(album)" class="cn-photos-tab__when">
-								· {{ formatWhen(lastEdited(album)) }}
-							</span>
-						</span>
-					</div>
-				</a>
 			</div>
 		</div>
 
@@ -459,39 +463,42 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/*
+ * Dense edge-to-edge mosaic that mirrors the NC Photos timeline: square
+ * thumbnails packed tight with a thin main-background gutter (the same
+ * 2px border NC Photos draws between tiles), name + date revealed in a
+ * bottom scrim on hover/focus so the imagery dominates at rest.
+ */
 .cn-photos-tab__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-	gap: 10px;
+	grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+	gap: 2px;
+	border-radius: var(--border-radius-large, var(--border-radius));
+	overflow: hidden;
 }
 
 .cn-photos-tab__tile {
 	position: relative;
-	border-radius: var(--border-radius);
-	overflow: hidden;
-	background: var(--color-background-hover);
-	transition: transform 0.15s ease;
-}
-
-.cn-photos-tab__tile:hover,
-.cn-photos-tab__tile:focus-within {
-	transform: translateY(-2px);
-	background: var(--color-background-dark, var(--color-background-hover));
 }
 
 .cn-photos-tab__unlink {
 	position: absolute;
 	top: 4px;
 	right: 4px;
-	z-index: 2;
+	z-index: 3;
+	opacity: 0;
 	background: var(--color-main-background);
 	border-radius: 50%;
+	transition: opacity 0.15s ease;
+}
+
+.cn-photos-tab__tile:hover .cn-photos-tab__unlink,
+.cn-photos-tab__tile:focus-within .cn-photos-tab__unlink {
+	opacity: 1;
 }
 
 .cn-photos-tab__tile-link {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
+	display: block;
 	text-decoration: none;
 	color: inherit;
 }
@@ -500,11 +507,19 @@ export default {
 	position: relative;
 	aspect-ratio: 1 / 1;
 	width: 100%;
-	background: var(--color-background-darker, var(--color-background-dark));
+	/* Match the NC Photos selection outline on focus. */
+	border: 2px solid var(--color-main-background);
+	box-sizing: border-box;
+	background: var(--color-primary-element-light, var(--color-background-darker));
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	overflow: hidden;
+}
+
+.cn-photos-tab__tile-link:focus-visible .cn-photos-tab__cover {
+	outline: var(--color-primary-element) solid 2px;
+	outline-offset: -2px;
 }
 
 .cn-photos-tab__cover-img {
@@ -512,42 +527,83 @@ export default {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+	transition: transform 0.2s ease;
+}
+
+.cn-photos-tab__tile:hover .cn-photos-tab__cover-img,
+.cn-photos-tab__tile:focus-within .cn-photos-tab__cover-img {
+	transform: scale(1.04);
+}
+
+.cn-photos-tab__cover-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
 }
 
 .cn-photos-tab__cover-fallback {
-	color: var(--color-text-maxcontrast);
+	color: var(--color-primary-element);
 }
 
+/* Photo-count badge (mirrors the album stack count overlay). */
+.cn-photos-tab__badge {
+	position: absolute;
+	top: 4px;
+	left: 4px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px 1px 4px;
+	border-radius: var(--border-radius-pill, 12px);
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.6;
+}
+
+.cn-photos-tab__badge-count {
+	white-space: nowrap;
+}
+
+/* Bottom scrim: hidden at rest, revealed on hover/focus. */
 .cn-photos-tab__meta {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
-	padding: 6px 8px 8px;
-	min-width: 0;
+	gap: 1px;
+	padding: 16px 8px 6px;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+	opacity: 0;
+	transition: opacity 0.15s ease;
+	pointer-events: none;
+}
+
+.cn-photos-tab__tile:hover .cn-photos-tab__meta,
+.cn-photos-tab__tile:focus-within .cn-photos-tab__meta {
+	opacity: 1;
 }
 
 .cn-photos-tab__name {
-	font-size: 13px;
-	font-weight: 500;
-	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-
-.cn-photos-tab__sub {
-	font-size: 11px;
-	color: var(--color-text-maxcontrast);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.cn-photos-tab__count {
-	font-weight: 500;
 }
 
 .cn-photos-tab__when {
+	font-size: 10px;
+	color: rgba(255, 255, 255, 0.85);
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 </style>
