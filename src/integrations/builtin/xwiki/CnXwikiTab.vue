@@ -2,9 +2,12 @@
   CnXwikiTab — bespoke sidebar tab for the `xwiki` integration.
 
   Replaces the generic CnIntegrationTab for the `xwiki` leaf: renders
-  linked XWiki pages with a hierarchical breadcrumb path ("Space / Sub
-  / Page") + last-modified hint. Each row deep-links to the page on the
-  external XWiki host (target=_blank rel=noopener).
+  linked XWiki pages as an XWiki-style document list. Each row mirrors
+  an XWiki page-index entry — a document icon, the bold page title, a
+  space breadcrumb subline ("Space › Subspace"), a relative last-
+  modified hint (NcDateTime), and a one-line plain-text excerpt of the
+  page body. Each row deep-links to the page on the external XWiki host
+  (target=_blank rel=noopener).
 
   Talks to the same OpenRegister pluggable-integration sub-resource
     `/api/objects/{register}/{schema}/{objectId}/integrations/xwiki`
@@ -13,9 +16,10 @@
   → OpenConnector `xwiki` source → remote XWiki REST API). Provider
   payload shape per `normalizeRow()`:
     { id, reference, title, space, page, breadcrumb, url, content, ... }
-  where `breadcrumb` is an array (the UI joins it with " / "), and
+  where `breadcrumb` is an array (the UI joins it with " › "), and
   `content` (when present, e.g. on the detail-page surface) is the
-  HTML-rendered body — the widget reads the text only, never injects.
+  HTML-rendered body — the excerpt strips HTML/macros to inert text and
+  is bound via {{ }} interpolation, never injected.
 
   Surface behaviour:
     - Empty state ("No XWiki pages linked yet") when the provider
@@ -90,34 +94,57 @@
 		</div>
 
 		<ul v-else-if="pages.length > 0" class="cn-xwiki-tab__list">
-			<li
+			<NcListItem
 				v-for="page in pages"
 				:key="pageKey(page)"
-				class="cn-xwiki-tab__row">
-				<div class="cn-xwiki-tab__row-header">
-					<FileDocumentMultiple :size="20" class="cn-xwiki-tab__row-icon" />
-					<a
-						:href="pageUrl(page)"
-						target="_blank"
-						rel="noopener"
-						class="cn-xwiki-tab__title">{{ pageTitle(page) }}</a>
-					<NcButton
-						type="tertiary-no-background"
-						:aria-label="t('nextcloud-vue', 'Unlink page')"
+				class="cn-xwiki-tab__row"
+				:name="pageTitle(page)"
+				:bold="true"
+				:href="pageHref(page)"
+				:target="pageHref(page) ? '_blank' : undefined"
+				:force-display-actions="true">
+				<template #icon>
+					<span class="cn-xwiki-tab__row-icon">
+						<FileDocumentOutline :size="22" />
+					</span>
+				</template>
+				<template #subname>
+					<span class="cn-xwiki-tab__subline">
+						<span v-if="breadcrumbLabel(page)" class="cn-xwiki-tab__breadcrumb">
+							{{ breadcrumbLabel(page) }}
+						</span>
+						<NcDateTime
+							v-if="modifiedMs(page) !== null"
+							class="cn-xwiki-tab__date"
+							:timestamp="modifiedMs(page)"
+							:relative-time="'short'" />
+					</span>
+				</template>
+				<template v-if="excerpt(page)" #extra>
+					<span class="cn-xwiki-tab__excerpt">{{ excerpt(page) }}</span>
+				</template>
+				<template #actions>
+					<NcActionButton
+						v-if="pageHref(page)"
+						class="cn-xwiki-tab__open"
+						:close-after-click="true"
+						@click="openPage(page)">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Open in XWiki') }}
+					</NcActionButton>
+					<NcActionButton
 						class="cn-xwiki-tab__unlink"
+						:close-after-click="true"
 						@click="unlinkPage(page)">
 						<template #icon>
-							<LinkOff :size="16" />
+							<LinkOff :size="20" />
 						</template>
-					</NcButton>
-				</div>
-				<div v-if="breadcrumbLabel(page)" class="cn-xwiki-tab__breadcrumb">
-					{{ breadcrumbLabel(page) }}
-				</div>
-				<div v-if="metaLabel(page)" class="cn-xwiki-tab__meta">
-					{{ metaLabel(page) }}
-				</div>
-			</li>
+						{{ t('nextcloud-vue', 'Unlink page') }}
+					</NcActionButton>
+				</template>
+			</NcListItem>
 		</ul>
 
 		<CnXwikiPagePicker
@@ -139,36 +166,43 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
+import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
 import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-const MS_PER_HOUR = 60 * 60 * 1000
+const EXCERPT_MAX_CHARS = 140
 
 /**
  * CnXwikiTab — bespoke sidebar list for the `xwiki` external integration.
  *
- * Renders linked XWiki pages with breadcrumb + last-modified, plus
- * prominent auth/config banners when the OpenConnector source is
- * missing/unhealthy.
+ * Renders linked XWiki pages as an XWiki-style document index: document
+ * icon, bold title, space breadcrumb, relative last-modified, and a
+ * one-line plain-text excerpt — plus prominent auth/config banners when
+ * the OpenConnector source is missing/unhealthy.
  */
 export default {
 	name: 'CnXwikiTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		FileDocumentMultiple,
+		FileDocumentOutline,
 		LinkOff,
 		LinkVariant,
+		OpenInNew,
 		Plus,
 		CnXwikiPagePicker,
 		CnXwikiPageCreate,
@@ -265,6 +299,20 @@ export default {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
 		},
 
+		/**
+		 * Open the page on the external XWiki host in a new tab. Used by
+		 * the per-row "Open in XWiki" action (the row itself is also a
+		 * deep-link via NcListItem's `href`).
+		 *
+		 * @param {object} page Provider row.
+		 */
+		openPage(page) {
+			const href = this.pageHref(page)
+			if (href && typeof window !== 'undefined') {
+				window.open(href, '_blank', 'noopener')
+			}
+		},
+
 		openPicker() {
 			this.pickerOpen = true
 		},
@@ -334,8 +382,17 @@ export default {
 			return String(page.title ?? page.page ?? page.reference ?? this.pageKey(page))
 		},
 
-		pageUrl(page) {
-			return page.url ?? ''
+		/**
+		 * External XWiki deep-link for the page. Empty string when the
+		 * provider didn't surface a `url`, so the row renders as a plain
+		 * (non-anchored) NcListItem rather than a dead link.
+		 *
+		 * @param {object} page Provider row.
+		 *
+		 * @return {string} Absolute XWiki URL or ''.
+		 */
+		pageHref(page) {
+			return String(page.url ?? '')
 		},
 
 		breadcrumbLabel(page) {
@@ -349,30 +406,46 @@ export default {
 				// Single-element breadcrumb (root page) — fall back to the space name.
 				return String(page.space ?? '')
 			}
-			return ancestors.map((c) => String(c)).filter((s) => s !== '').join(' / ')
+			// XWiki renders space paths with a "›" chevron separator.
+			return ancestors.map((c) => String(c)).filter((s) => s !== '').join(' › ')
 		},
 
-		metaLabel(page) {
-			const ms = this.modifiedMs(page)
-			if (ms === null) {
+		/**
+		 * One-line plain-text excerpt of the page body for the detail
+		 * surface. Strips `<script>`/`<style>` bodies, then all tags,
+		 * collapses whitespace and truncates — XWiki macros stay inert
+		 * text because the result is bound via {{ }} interpolation.
+		 *
+		 * @param {object} page Provider row.
+		 *
+		 * @return {string} Safe single-line excerpt (≤ EXCERPT_MAX_CHARS).
+		 */
+		excerpt(page) {
+			const raw = page.content ?? page.renderedContent ?? page.excerpt ?? ''
+			const str = String(raw)
+			if (str === '') {
 				return ''
 			}
-			const diff = Date.now() - ms
-			if (diff < 0) {
-				return ''
+			let text = str
+				.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+				.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+				.replace(/<[^>]+>/g, ' ')
+				.replace(/\s+/g, ' ')
+				.trim()
+			if (text.length > EXCERPT_MAX_CHARS) {
+				text = text.slice(0, EXCERPT_MAX_CHARS).trimEnd() + '…'
 			}
-			if (diff < MS_PER_HOUR) {
-				const minutes = Math.max(1, Math.floor(diff / (60 * 1000)))
-				return t('nextcloud-vue', 'Updated {n} minutes ago', { n: minutes })
-			}
-			if (diff < MS_PER_DAY) {
-				const hours = Math.max(1, Math.floor(diff / MS_PER_HOUR))
-				return t('nextcloud-vue', 'Updated {n} hours ago', { n: hours })
-			}
-			const days = Math.max(1, Math.floor(diff / MS_PER_DAY))
-			return t('nextcloud-vue', 'Updated {n} days ago', { n: days })
+			return text
 		},
 
+		/**
+		 * Last-modified timestamp in milliseconds for the page, suitable
+		 * for `NcDateTime`. Returns null when absent or unparseable.
+		 *
+		 * @param {object} page Provider row.
+		 *
+		 * @return {number|null} Epoch milliseconds or null.
+		 */
 		modifiedMs(page) {
 			const v = page.modified ?? page.lastModified ?? page.updated ?? null
 			if (v === null || v === undefined || v === '') {
@@ -526,58 +599,52 @@ export default {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-}
-
-.cn-xwiki-tab__row {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	padding: 10px 0;
-	border-bottom: 1px solid var(--color-border);
 }
 
-.cn-xwiki-tab__row:last-child {
-	border-bottom: none;
+/* XWiki-style document tile: a tinted square holding the page glyph. */
+.cn-xwiki-tab__row-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--border-radius);
+	background: var(--cn-xwiki-accent-soft, rgba(60, 162, 47, 0.12));
+	color: var(--cn-xwiki-accent, #3CA22F);
 }
 
-.cn-xwiki-tab__row-header {
-	display: flex;
+.cn-xwiki-tab__subline {
+	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-}
-
-.cn-xwiki-tab__row-icon {
-	color: var(--color-text-maxcontrast);
-	flex-shrink: 0;
-}
-
-.cn-xwiki-tab__title {
-	flex: 1;
+	flex-wrap: wrap;
 	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--color-main-text);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-a.cn-xwiki-tab__title:hover {
-	text-decoration: underline;
 }
 
 .cn-xwiki-tab__breadcrumb {
-	font-size: 0.8em;
 	color: var(--color-text-maxcontrast);
-	padding-left: 28px;
+	font-size: 0.9em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.cn-xwiki-tab__meta {
-	font-size: 0.8em;
+.cn-xwiki-tab__date {
 	color: var(--color-text-maxcontrast);
-	padding-left: 28px;
+	font-size: 0.9em;
+	white-space: nowrap;
+}
+
+.cn-xwiki-tab__excerpt {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
 }
 </style>

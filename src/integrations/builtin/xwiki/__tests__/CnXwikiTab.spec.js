@@ -66,27 +66,31 @@ describe('CnXwikiTab', () => {
 		wrapper.destroy()
 	})
 
-	it('renders a row with title, breadcrumb (ancestors only) and modified-meta', async () => {
+	it('renders an XWiki-style row with title, breadcrumb (chevron, ancestors only), last-modified and excerpt', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({
 			ok: true,
 			status: 200,
-			json: () => Promise.resolve({ results: [makePage()] }),
+			json: () => Promise.resolve({
+				results: [makePage({ content: '<p>The official <strong>policy</strong> manual.</p>' })],
+			}),
 		})
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
 		await wrapper.vm.$nextTick()
 		await wrapper.vm.$nextTick()
 		const rows = wrapper.findAll('.cn-xwiki-tab__row')
 		expect(rows).toHaveLength(1)
-		const text = wrapper.text()
-		expect(text).toContain('Policy Manual')
-		// Breadcrumb drops the last element (title) — only ancestors show.
-		expect(wrapper.find('.cn-xwiki-tab__breadcrumb').text()).toBe('Wiki / Knowledge')
-		// Modified-meta hint present (~3 hours ago)
-		expect(wrapper.find('.cn-xwiki-tab__meta').text()).toMatch(/hours? ago/i)
-		// Link points at the external URL with target=_blank
-		const link = wrapper.find('a.cn-xwiki-tab__title')
-		expect(link.attributes('href')).toBe('https://wiki.example.org/bin/view/Knowledge/PolicyManual')
-		expect(link.attributes('target')).toBe('_blank')
+		// Title is passed to NcListItem via the `name` prop (rendered as the `name` attribute).
+		expect(rows.at(0).attributes('name')).toBe('Policy Manual')
+		// Breadcrumb drops the last element (title) and joins ancestors with a chevron.
+		expect(wrapper.find('.cn-xwiki-tab__breadcrumb').text()).toBe('Wiki › Knowledge')
+		// Last-modified rendered through NcDateTime (relative time present in the row).
+		expect(wrapper.find('.cn-xwiki-tab__date').exists()).toBe(true)
+		// One-line plain-text excerpt — HTML stripped, macros stay inert.
+		expect(wrapper.find('.cn-xwiki-tab__excerpt').text()).toBe('The official policy manual.')
+		// Row deep-links to the external XWiki URL (NcListItem renders an
+		// anchor from its `href`/`target` props at runtime).
+		expect(rows.at(0).attributes('href')).toBe('https://wiki.example.org/bin/view/Knowledge/PolicyManual')
+		expect(rows.at(0).attributes('target')).toBe('_blank')
 		wrapper.destroy()
 	})
 
