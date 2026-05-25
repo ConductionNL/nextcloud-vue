@@ -40,12 +40,18 @@
 		</div>
 
 		<!-- Date-range header (optional).
-		     Rendered only when `dateRange.enabled === true`. The picker
-		     is wired to `currentRange` (data) which mirrors the provided
-		     `cnDashboardDateRange` ref; all change handling, persistence,
-		     and event emission lives in `onDateRangeChange`. -->
+		     Rendered only when `dateRange.enabled === true` AND
+		     `dateRange.showHeaderPicker !== false`. The range STATE
+		     (currentRange / cnDashboardDateRange) is always initialised
+		     when the feature is enabled, so per-chart-widget date chips
+		     keep working even when this header picker is hidden — set
+		     `showHeaderPicker: false` to rely solely on the per-widget
+		     chips. The picker is wired to `currentRange` (data) which
+		     mirrors the provided `cnDashboardDateRange` ref; all change
+		     handling, persistence, and event emission lives in
+		     `onDateRangeChange`. -->
 		<div
-			v-if="dateRangeEnabled"
+			v-if="showHeaderDateRange"
 			class="cn-dashboard-page__date-range"
 			data-testid="cn-dashboard-page-date-range">
 			<CnDateRangePicker
@@ -639,6 +645,20 @@ export default {
 		 */
 		dateRangeEnabled() {
 			return !!(this.dateRange && this.dateRange.enabled === true)
+		},
+
+		/**
+		 * True when the header date-range picker should render. The
+		 * range feature must be enabled AND `showHeaderPicker` must not
+		 * be explicitly false. Defaults to showing the header (backwards
+		 * compatible) — consumers that drive the range entirely through
+		 * per-widget chart chips set `dateRange.showHeaderPicker: false`
+		 * to drop the redundant header control.
+		 *
+		 * @return {boolean}
+		 */
+		showHeaderDateRange() {
+			return this.dateRangeEnabled && this.dateRange.showHeaderPicker !== false
 		},
 
 		/**
