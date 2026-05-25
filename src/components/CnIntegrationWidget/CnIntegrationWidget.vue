@@ -171,6 +171,12 @@ import CnIntegrationWidgetEmpty from './CnIntegrationWidgetEmpty.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { resolveProviderAvailability } from './availability.js'
+import { registerIntegrationIcons } from '../../integrations/icons.js'
+
+// Ensure every descriptor's MDI icon resolves through CnIcon regardless
+// of what the host app registered at bootstrap — otherwise tabs fall
+// back to the generic HelpCircleOutline glyph. Idempotent.
+registerIntegrationIcons()
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 

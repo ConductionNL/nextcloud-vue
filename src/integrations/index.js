@@ -23,3 +23,8 @@ export {
 // registration's `tab` / `widget` is repointed without touching
 // consumers. Register the whole set via `registerLeafIntegrations()`.
 export { leafIntegrations, registerLeafIntegrations } from './builtin/leaves.js'
+
+// Integration icon set — registers every descriptor's MDI glyph with
+// CnIcon so the tabbed widget renders per-app icons (not the generic
+// fallback) regardless of the host app's registerIcons() call.
+export { registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './icons.js'
