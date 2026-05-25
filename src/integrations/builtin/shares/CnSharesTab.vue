@@ -65,47 +65,67 @@
 					<span class="cn-shares-tab__group-count">{{ group.rows.length }}</span>
 				</header>
 				<ul class="cn-shares-tab__list">
-					<li
+					<NcListItem
 						v-for="share in group.rows"
 						:key="shareKey(share)"
-						class="cn-shares-tab__row">
-						<div class="cn-shares-tab__row-icon">
-							<component :is="group.icon" :size="20" />
-						</div>
-						<div class="cn-shares-tab__row-main">
-							<span class="cn-shares-tab__title">
-								{{ shareTarget(share) }}
+						class="cn-shares-tab__row"
+						:name="shareTarget(share)"
+						:bold="true"
+						:force-display-actions="true">
+						<template #icon>
+							<span class="cn-shares-tab__avatar" :aria-hidden="true">
+								<component :is="iconFor(shareType(share))" :size="20" />
+								<LockOutline
+									v-if="isPasswordProtected(share)"
+									class="cn-shares-tab__avatar-lock"
+									:size="12"
+									:title="passwordProtectedLabel"
+									:aria-label="passwordProtectedLabel" />
 							</span>
+						</template>
+						<template #subname>
 							<span class="cn-shares-tab__permissions">
-								{{ permissionLabel(share) }}
+								<CnStatusBadge
+									v-for="badge in permissionBadges(share)"
+									:key="badge.key"
+									class="cn-shares-tab__badge"
+									size="small"
+									:variant="badge.variant"
+									:label="badge.label" />
+								<CnStatusBadge
+									v-if="isPasswordProtected(share)"
+									class="cn-shares-tab__badge"
+									size="small"
+									variant="warning"
+									:label="passwordProtectedLabel" />
 							</span>
-							<span v-if="shareExpiry(share)" class="cn-shares-tab__expiry">
-								{{ expiryLabel }}: {{ shareExpiry(share) }}
+						</template>
+						<template v-if="shareExpiryMs(share)" #details>
+							<span class="cn-shares-tab__expiry" :title="expiryLabel">
+								<ClockOutline :size="13" />
+								<NcDateTime
+									:timestamp="shareExpiryMs(share)"
+									:relative-time="'short'" />
 							</span>
-						</div>
-						<div class="cn-shares-tab__row-flags">
-							<LockOutline
-								v-if="isPasswordProtected(share)"
-								:size="16"
-								:title="passwordProtectedLabel"
-								:aria-label="passwordProtectedLabel" />
-							<NcButton
+						</template>
+						<template #actions>
+							<NcActionButton
 								v-if="canRevoke(share)"
-								type="tertiary"
-								:aria-label="revokeLabel"
+								:close-after-click="true"
 								@click="revoke(share)">
 								<template #icon>
-									<CloseCircleOutline :size="16" />
+									<CloseCircleOutline :size="20" />
 								</template>
-							</NcButton>
-							<span
-								v-else
-								class="cn-shares-tab__revoke-disabled"
-								:title="revokeDisabledLabel">
-								<CloseCircleOutline :size="16" />
-							</span>
-						</div>
-					</li>
+								{{ revokeLabel }}
+							</NcActionButton>
+							<NcActionButton :close-after-click="true" @click="openFilesApp">
+								<template #icon>
+									<FolderOutline :size="20" />
+								</template>
+								{{ openFilesLabel }}
+							</NcActionButton>
+						</template>
+					</NcListItem>
 				</ul>
 			</section>
 			<div class="cn-shares-tab__footer">
@@ -132,17 +152,20 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
 import AccountGroupOutline from 'vue-material-design-icons/AccountGroupOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import Earth from 'vue-material-design-icons/Earth.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import Share from 'vue-material-design-icons/Share.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { CnShareCreate } from '../../../components/CnShareCreate/index.js'
 import { buildHeaders } from '../../../utils/index.js'
 
@@ -150,6 +173,7 @@ import { buildHeaders } from '../../../utils/index.js'
 const SHARE_TYPE_USER = 0
 const SHARE_TYPE_GROUP = 1
 const SHARE_TYPE_LINK = 3
+const SHARE_TYPE_EMAIL = 4
 const SHARE_TYPE_REMOTE = 6
 const SHARE_TYPE_REMOTE_GROUP = 9
 
@@ -172,18 +196,24 @@ export default {
 	name: 'CnSharesTab',
 
 	components: {
+		NcActionButton,
 		NcButton,
+		NcDateTime,
+		NcListItem,
 		NcLoadingIcon,
 		AlertCircleOutline,
 		AccountOutline,
 		AccountGroupOutline,
 		LinkVariant,
+		EmailOutline,
 		Earth,
 		LockOutline,
+		ClockOutline,
 		CloseCircleOutline,
 		FolderOutline,
 		Share,
 		Plus,
+		CnStatusBadge,
 		CnShareCreate,
 	},
 
@@ -238,6 +268,7 @@ export default {
 				{ key: 'user', label: t('nextcloud-vue', 'Users'), icon: 'AccountOutline', match: (s) => this.shareType(s) === SHARE_TYPE_USER },
 				{ key: 'group', label: t('nextcloud-vue', 'Groups'), icon: 'AccountGroupOutline', match: (s) => this.shareType(s) === SHARE_TYPE_GROUP },
 				{ key: 'link', label: t('nextcloud-vue', 'Public links'), icon: 'LinkVariant', match: (s) => this.shareType(s) === SHARE_TYPE_LINK },
+				{ key: 'email', label: t('nextcloud-vue', 'Email'), icon: 'EmailOutline', match: (s) => this.shareType(s) === SHARE_TYPE_EMAIL },
 				{ key: 'federated', label: t('nextcloud-vue', 'Federated'), icon: 'Earth', match: (s) => this.shareType(s) === SHARE_TYPE_REMOTE || this.shareType(s) === SHARE_TYPE_REMOTE_GROUP },
 			]
 			return groups
@@ -337,42 +368,68 @@ export default {
 		shareTarget(share) {
 			const type = this.shareType(share)
 			if (type === SHARE_TYPE_LINK) {
-				return share.shareWithDisplayname || share.token || t('nextcloud-vue', 'Public link')
+				// Public links surface as a generic "Share link" label,
+				// mirroring NC core's share list (the raw token is never
+				// shown as a recipient name).
+				return share.shareWithDisplayname || share.label || t('nextcloud-vue', 'Share link')
 			}
 			return share.shareWithDisplayname || share.shareWith || share.share_with || share.targetDisplayName || ''
 		},
 
-		permissionLabel(share) {
-			const perms = Number(share.permissions ?? share.permission ?? 0)
-			const parts = []
-			if ((perms & PERMISSION_READ) === PERMISSION_READ) {
-				parts.push(t('nextcloud-vue', 'read'))
+		// Picks the recipient/share-type icon component for a row,
+		// mirroring NC core's share list (user / group / link / email /
+		// federated).
+		iconFor(type) {
+			if (type === SHARE_TYPE_GROUP) {
+				return 'AccountGroupOutline'
 			}
-			if ((perms & PERMISSION_UPDATE) === PERMISSION_UPDATE
-				|| (perms & PERMISSION_CREATE) === PERMISSION_CREATE
-				|| (perms & PERMISSION_DELETE) === PERMISSION_DELETE) {
-				parts.push(t('nextcloud-vue', 'write'))
+			if (type === SHARE_TYPE_LINK) {
+				return 'LinkVariant'
 			}
-			if ((perms & PERMISSION_SHARE) === PERMISSION_SHARE) {
-				parts.push(t('nextcloud-vue', 'share'))
+			if (type === SHARE_TYPE_EMAIL) {
+				return 'EmailOutline'
 			}
-			return parts.length > 0 ? parts.join(' · ') : t('nextcloud-vue', 'no permissions')
+			if (type === SHARE_TYPE_REMOTE || type === SHARE_TYPE_REMOTE_GROUP) {
+				return 'Earth'
+			}
+			return 'AccountOutline'
 		},
 
-		shareExpiry(share) {
+		permissionLabel(share) {
+			return this.permissionBadges(share).map((b) => b.label).join(' · ')
+		},
+
+		// Decomposes the NC permission bitmask into the badge set the real
+		// share UI shows: "Can edit" / "Read only" (mutually exclusive),
+		// plus "Can reshare" when the share permission bit is set.
+		permissionBadges(share) {
+			const perms = Number(share.permissions ?? share.permission ?? 0)
+			const canEdit = (perms & PERMISSION_UPDATE) === PERMISSION_UPDATE
+				|| (perms & PERMISSION_CREATE) === PERMISSION_CREATE
+				|| (perms & PERMISSION_DELETE) === PERMISSION_DELETE
+			const canRead = (perms & PERMISSION_READ) === PERMISSION_READ
+			const badges = []
+			if (canEdit) {
+				badges.push({ key: 'edit', variant: 'success', label: t('nextcloud-vue', 'Can edit') })
+			} else if (canRead) {
+				badges.push({ key: 'read', variant: 'default', label: t('nextcloud-vue', 'Read only') })
+			}
+			if ((perms & PERMISSION_SHARE) === PERMISSION_SHARE) {
+				badges.push({ key: 'reshare', variant: 'info', label: t('nextcloud-vue', 'Can reshare') })
+			}
+			return badges
+		},
+
+		// Returns the expiry as epoch-ms for <NcDateTime>, or 0 when there
+		// is no (valid) expiry so the template can `v-if` it away.
+		shareExpiryMs(share) {
 			const value = share.expiration ?? share.expirationDate ?? share.expiry ?? null
 			if (!value) {
-				return ''
+				return 0
 			}
-			try {
-				const date = new Date(value)
-				if (Number.isNaN(date.getTime())) {
-					return ''
-				}
-				return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
-			} catch (e) {
-				return ''
-			}
+			const date = new Date(value)
+			const ms = date.getTime()
+			return Number.isNaN(ms) ? 0 : ms
 		},
 
 		isPasswordProtected(share) {
@@ -520,60 +577,46 @@ export default {
 	padding: 0;
 }
 
-.cn-shares-tab__row {
-	display: flex;
+/* Share-type icon tile, mirroring the NcAvatar slot in NC's share list. */
+.cn-shares-tab__avatar {
+	position: relative;
+	display: inline-flex;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.cn-shares-tab__row:last-child {
-	border-bottom: none;
-}
-
-.cn-shares-tab__row-icon {
-	flex-shrink: 0;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-shares-tab__row-main {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.cn-shares-tab__title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: var(--color-background-dark);
 	color: var(--color-main-text);
-	font-weight: 500;
+}
+
+.cn-shares-tab__avatar-lock {
+	position: absolute;
+	right: -2px;
+	bottom: -2px;
+	color: var(--color-warning, #e9a40f);
+	background: var(--color-main-background);
+	border-radius: 50%;
 }
 
 .cn-shares-tab__permissions {
-	font-size: 0.8em;
-	color: var(--color-text-maxcontrast);
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.cn-shares-tab__badge {
+	white-space: nowrap;
 }
 
 .cn-shares-tab__expiry {
-	font-size: 0.75em;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-shares-tab__row-flags {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-shares-tab__revoke-disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
 	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
 }
 
 .cn-shares-tab__footer {
