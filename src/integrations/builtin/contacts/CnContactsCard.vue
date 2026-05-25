@@ -25,9 +25,15 @@
 		v-if="surface === 'single-entity'"
 		class="cn-contacts-card cn-contacts-card--chip"
 		:title="chipTitle">
-		<div class="cn-contacts-card__avatar cn-contacts-card__avatar--sm">
-			{{ initialsFor(primaryContact || {}) }}
-		</div>
+		<NcAvatar
+			:size="28"
+			:display-name="(primaryContact && primaryContact.displayName) || unknownLabel"
+			:user="avatarSeed(primaryContact)"
+			:url="(primaryContact && primaryContact.avatarUrl) || undefined"
+			:is-no-user="true"
+			:disable-menu="true"
+			:disable-tooltip="true"
+			:show-user-status="false" />
 		<div class="cn-contacts-card__chip-text">
 			<span class="cn-contacts-card__chip-name">
 				{{ (primaryContact && primaryContact.displayName) || unknownLabel }}
@@ -66,16 +72,24 @@
 				v-for="item in displayedContacts"
 				:key="item.id"
 				class="cn-contacts-card__item">
-				<div class="cn-contacts-card__avatar cn-contacts-card__avatar--sm">
-					{{ initialsFor(item) }}
-				</div>
+				<NcAvatar
+					:size="32"
+					:display-name="item.displayName || unknownLabel"
+					:user="avatarSeed(item)"
+					:url="item.avatarUrl || undefined"
+					:is-no-user="true"
+					:disable-menu="true"
+					:disable-tooltip="true"
+					:show-user-status="false" />
 				<div class="cn-contacts-card__item-text">
 					<span class="cn-contacts-card__item-name">{{ item.displayName || unknownLabel }}</span>
 					<span v-if="item.email" class="cn-contacts-card__item-email">{{ item.email }}</span>
 				</div>
-				<span v-if="item.role" class="cn-contacts-card__item-role">
-					{{ item.role }}
-				</span>
+				<CnStatusBadge
+					v-if="item.role"
+					:label="item.role"
+					variant="default"
+					size="small" />
 			</li>
 		</ul>
 
@@ -92,10 +106,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
 import AccountMultiple from 'vue-material-design-icons/AccountMultiple.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -118,9 +133,11 @@ export default {
 	name: 'CnContactsCard',
 
 	components: {
+		NcAvatar,
 		NcLoadingIcon,
 		AccountMultiple,
 		AlertCircleOutline,
+		CnStatusBadge,
 	},
 
 	props: {
@@ -226,6 +243,18 @@ export default {
 			const parts = name.split(/\s+/).filter(Boolean)
 			if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
 			return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+		},
+
+		/**
+		 * Stable seed for NcAvatar's deterministic colour + initials.
+		 *
+		 * @param {?object} contact ContactLink JSON (may be null).
+		 *
+		 * @return {string}
+		 */
+		avatarSeed(contact) {
+			if (!contact) return '?'
+			return contact.contactUid || contact.email || contact.displayName || '?'
 		},
 
 		async fetchContacts() {
@@ -370,26 +399,6 @@ export default {
 
 .cn-contacts-card__item:last-child {
 	border-bottom: none;
-}
-
-.cn-contacts-card__avatar {
-	border-radius: 50%;
-	background-color: var(--color-primary-element-light, var(--color-primary-light));
-	color: var(--color-primary-element-text, var(--color-primary-text));
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 600;
-	flex-shrink: 0;
-	width: 32px;
-	height: 32px;
-	font-size: 12px;
-}
-
-.cn-contacts-card__avatar--sm {
-	width: 28px;
-	height: 28px;
-	font-size: 11px;
 }
 
 .cn-contacts-card__item-text {
