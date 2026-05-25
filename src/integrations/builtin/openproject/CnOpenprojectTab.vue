@@ -56,6 +56,24 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<!-- Link / Create actions — hidden while unconfigured (the empty
+		     state below carries the Configure CTA instead) and while an
+		     auth banner is showing. -->
+		<div v-if="!unconfigured && !authBanner" class="cn-openproject-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link work package') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create work package') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 
 		<!-- Unconfigured: provider reports the OpenConnector `openproject` source is absent. -->
@@ -105,6 +123,15 @@
 						:class="typeBadgeClass(wp)">
 						{{ wpType(wp) }}
 					</span>
+					<NcButton
+						type="tertiary-no-background"
+						:aria-label="t('nextcloud-vue', 'Unlink work package')"
+						class="cn-openproject-tab__unlink"
+						@click="unlinkWorkPackage(wp)">
+						<template #icon>
+							<LinkOff :size="16" />
+						</template>
+					</NcButton>
 				</div>
 				<div class="cn-openproject-tab__row-meta">
 					<span
@@ -136,6 +163,20 @@
 				</div>
 			</li>
 		</ul>
+
+		<CnOpenProjectPicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			:openconnector-url="openconnectorUrl"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnOpenProjectCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			:openconnector-url="openconnectorUrl"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -148,8 +189,13 @@ import Briefcase from 'vue-material-design-icons/Briefcase.vue'
 import ChevronDoubleUp from 'vue-material-design-icons/ChevronDoubleUp.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import CogOutline from 'vue-material-design-icons/CogOutline.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
+import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
 /**
@@ -172,8 +218,13 @@ export default {
 		ChevronDoubleUp,
 		ChevronUp,
 		CogOutline,
+		LinkOff,
+		LinkVariant,
 		LockOutline,
 		OpenInNew,
+		Plus,
+		CnOpenProjectPicker,
+		CnOpenProjectCreate,
 	},
 
 	props: {
@@ -242,6 +293,8 @@ export default {
 			degraded: '',
 			authBanner: '',
 			unconfigured: false,
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -252,8 +305,91 @@ export default {
 	},
 
 	methods: {
+		t,
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
+		},
+
+		/**
+		 * Base for the Tier-2 openproject endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		openProjectEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/openproject`
+		},
+
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.openProjectEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchWorkPackages()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This work package is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link work package.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnOpenprojectTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link work package.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.openProjectEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchWorkPackages()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create work package.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnOpenprojectTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create work package.')
+			}
+		},
+
+		async unlinkWorkPackage(wp) {
+			const id = this.wpKey(wp)
+			if (!id) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.openProjectEndpoint()}/${id}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchWorkPackages()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink work package.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnOpenprojectTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink work package.')
+			}
 		},
 
 		wpKey(wp) {
@@ -413,6 +549,16 @@ export default {
 </script>
 
 <style scoped>
+.cn-openproject-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.cn-openproject-tab__unlink {
+	flex-shrink: 0;
+}
+
 .cn-openproject-tab__banner {
 	display: flex;
 	align-items: center;
