@@ -192,4 +192,21 @@ describe('CnTalkTab', () => {
 		expect(delCall).toBeTruthy()
 		wrapper.destroy()
 	})
+
+	it('humanises Talk system messages instead of rendering raw JSON', () => {
+		const wrapper = mount(CnTalkTab, { propsData: { ...DEFAULT_PROPS } })
+		const vm = wrapper.vm
+		// Bare snake_case key.
+		expect(vm.roomPreview({ lastMessage: { systemMessage: 'user_added', message: 'user_added', parameters: { user: 'admin' } } }))
+			.toBe('User added')
+		// Rich template with parameter substitution.
+		expect(vm.roomPreview({ lastMessage: { systemMessage: 'call_started', message: '{actor} started a call', messageParameters: { actor: { name: 'Anna' } } } }))
+			.toBe('Anna started a call')
+		// A lastMessage handed over as a JSON string must never leak as JSON.
+		expect(vm.roomPreview({ lastMessage: '{"message":"user_added","parameters":{"user":"admin"}}' }))
+			.not.toContain('{')
+		// Plain chat text passes through.
+		expect(vm.roomPreview({ lastMessage: { message: 'Hello team' } })).toBe('Hello team')
+		wrapper.destroy()
+	})
 })
