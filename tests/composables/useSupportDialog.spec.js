@@ -63,4 +63,60 @@ describe('useSupportDialog', () => {
 		expect(() => handle.hide()).not.toThrow()
 		expect(() => handle.reset()).not.toThrow()
 	})
+
+	describe('server persistence', () => {
+		const flush = () => new Promise((r) => setTimeout(r, 0))
+
+		it('starts hidden, then becomes visible when the server says not-seen', async () => {
+			const http = {
+				get: jest.fn().mockResolvedValue({ data: { value: null } }),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const { visible } = useSupportDialog('srv-notseen', { persistence: 'server', storage: makeStorage(), http })
+			expect(visible.value).toBe(false) // no flash before the GET resolves
+			await flush()
+			expect(http.get).toHaveBeenCalledWith(expect.stringContaining('/apps/srv-notseen/api/preferences/support-dialog-seen'))
+			expect(visible.value).toBe(true)
+		})
+
+		it('stays hidden when the server says seen', async () => {
+			const http = {
+				get: jest.fn().mockResolvedValue({ data: { value: '1' } }),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const storage = makeStorage()
+			const { visible } = useSupportDialog('srv-seen', { persistence: 'server', storage, http })
+			await flush()
+			expect(visible.value).toBe(false)
+			// mirrors the server answer into localStorage
+			expect(storage.getItem('cn-support-dialog-shown:srv-seen')).toBe('1')
+		})
+
+		it('hide() PUTs the flag to the server and hides', async () => {
+			const http = {
+				get: jest.fn().mockResolvedValue({ data: { value: null } }),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const { visible, hide } = useSupportDialog('srv-hide', { persistence: 'server', storage: makeStorage(), http })
+			await flush()
+			expect(visible.value).toBe(true)
+			hide()
+			expect(visible.value).toBe(false)
+			expect(http.put).toHaveBeenCalledWith(
+				expect.stringContaining('/apps/srv-hide/api/preferences/support-dialog-seen'),
+				{ value: '1' },
+			)
+		})
+
+		it('falls back to localStorage when the GET rejects (unauthenticated/offline)', async () => {
+			const http = {
+				get: jest.fn().mockRejectedValue(new Error('401')),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const storage = makeStorage() // empty → not seen
+			const { visible } = useSupportDialog('srv-fallback', { persistence: 'server', storage, http })
+			await flush()
+			expect(visible.value).toBe(true)
+		})
+	})
 })

@@ -113,6 +113,11 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 				isLoading: isLoading.value,
 				appId: 'fixture-app',
 				requiresApps: [],
+				// The first-open support note resolves its "seen" flag from a
+				// per-user preferences endpoint (one generateUrl + axios.get).
+				// A fully-offline in-memory mount opts out so the zero-HTTP /
+				// zero-URL-computation guarantee below still holds.
+				supportDialog: false,
 			},
 			mocks: { $route: { name: 'home' } },
 			stubs: { 'router-view': ManifestInjectingRouterView },
