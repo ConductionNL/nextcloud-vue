@@ -77,24 +77,63 @@
 						:key="cardKey(card)"
 						class="cn-deck-tab__card"
 						:class="{ 'cn-deck-tab__card--overdue': isOverdue(card) }">
-						<a
-							:href="cardUrl(card)"
-							target="_blank"
-							rel="noopener"
-							class="cn-deck-tab__card-title">{{ cardTitle(card) }}</a>
+						<!-- Colored label strip along the top edge, like a real Deck card. -->
 						<div v-if="cardLabels(card).length > 0" class="cn-deck-tab__card-labels">
 							<span
 								v-for="label in cardLabels(card)"
 								:key="label.id || label.title"
 								class="cn-deck-tab__chip"
-								:style="chipStyle(label)">
+								:style="chipStyle(label)"
+								:title="chipText(label)">
 								{{ chipText(label) }}
 							</span>
 						</div>
-						<span v-if="dueLabel(card)" class="cn-deck-tab__card-meta">
-							<ClockOutline :size="14" />
-							{{ dueLabel(card) }}
+
+						<!-- Board / stack context badge above the title. -->
+						<span v-if="boardBadge(card)" class="cn-deck-tab__card-board">
+							<ViewColumnOutline :size="12" />
+							{{ boardBadge(card) }}
 						</span>
+
+						<a
+							:href="cardUrl(card)"
+							target="_blank"
+							rel="noopener"
+							class="cn-deck-tab__card-title">{{ cardTitle(card) }}</a>
+
+						<!-- Footer: due-date chip + assignee avatars, like Deck's card footer. -->
+						<div
+							v-if="dueLabel(card) || cardAssignees(card).length > 0"
+							class="cn-deck-tab__card-footer">
+							<CnStatusBadge
+								v-if="dueLabel(card)"
+								:label="dueLabel(card)"
+								:variant="dueVariant(card)"
+								size="small">
+								<template #icon>
+									<ClockOutline :size="12" class="cn-deck-tab__due-icon" />
+								</template>
+							</CnStatusBadge>
+							<div
+								v-if="cardAssignees(card).length > 0"
+								class="cn-deck-tab__avatars">
+								<NcAvatar
+									v-for="assignee in visibleAssignees(card)"
+									:key="assigneeKey(assignee)"
+									class="cn-deck-tab__avatar"
+									:size="24"
+									:display-name="assigneeName(assignee)"
+									:user="assigneeSeed(assignee)"
+									:is-no-user="true"
+									:disable-menu="true"
+									:disable-tooltip="false"
+									:show-user-status="false" />
+								<span
+									v-if="assigneeOverflow(card) > 0"
+									class="cn-deck-tab__avatar-overflow"
+									:title="overflowTitle(card)">+{{ assigneeOverflow(card) }}</span>
+							</div>
+						</div>
 					</li>
 				</ul>
 			</section>
@@ -116,7 +155,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
@@ -124,7 +163,11 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
+import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
+
+/** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
+const MAX_VISIBLE_ASSIGNEES = 3
 
 /**
  * CnDeckTab — kanban-mini sidebar tab for the `deck` integration.
@@ -137,6 +180,7 @@ export default {
 	name: 'CnDeckTab',
 
 	components: {
+		NcAvatar,
 		NcButton,
 		NcLoadingIcon,
 		AlertCircleOutline,
@@ -146,6 +190,7 @@ export default {
 		ViewColumnOutline,
 		CnDeckCardPicker,
 		CnDeckCardCreate,
+		CnStatusBadge,
 	},
 
 	props: {
@@ -321,9 +366,31 @@ export default {
 			if (typeof label === 'object' && label.color) {
 				const colour = String(label.color)
 				const fill = colour.startsWith('#') ? colour : `#${colour}`
-				return { background: fill }
+				return { background: fill, color: this.readableTextColour(fill) }
 			}
 			return {}
+		},
+
+		/**
+		 * Pick black or white text for a hex background so Deck's coloured
+		 * label chips stay legible (per-channel luminance, ITU-R BT.601).
+		 *
+		 * @param {string} hex background colour, e.g. `#31cc7c`
+		 * @return {string} `#000000` or `#ffffff`
+		 */
+		readableTextColour(hex) {
+			const clean = hex.replace('#', '')
+			const full = clean.length === 3
+				? clean.split('').map((c) => c + c).join('')
+				: clean
+			if (full.length < 6) {
+				return '#ffffff'
+			}
+			const r = parseInt(full.slice(0, 2), 16)
+			const g = parseInt(full.slice(2, 4), 16)
+			const b = parseInt(full.slice(4, 6), 16)
+			const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+			return luminance > 0.6 ? '#000000' : '#ffffff'
 		},
 
 		isOverdue(card) {
@@ -348,6 +415,111 @@ export default {
 				return ''
 			}
 			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+		},
+
+		/**
+		 * Status-badge variant for the due-date chip: red when overdue,
+		 * neutral otherwise — mirrors Deck's own overdue-date highlight.
+		 *
+		 * @param {object} card the card row
+		 * @return {string} CnStatusBadge variant
+		 */
+		dueVariant(card) {
+			return this.isOverdue(card) ? 'error' : 'default'
+		},
+
+		/**
+		 * Short board/stack context label rendered as a badge above the
+		 * title — the "where does this card live" signal a real Deck card
+		 * carries via its board colour bar + stack column.
+		 *
+		 * @param {object} card the card row
+		 * @return {string} board (or board · stack) label, or '' when unknown
+		 */
+		boardBadge(card) {
+			const board = card.boardTitle ?? card.board?.title ?? ''
+			const stack = card.stackTitle ?? card.stack?.title ?? ''
+			if (board && stack) {
+				return `${board} · ${stack}`
+			}
+			return board || stack || ''
+		},
+
+		/**
+		 * Normalised assignee list for a card. Accepts Deck's
+		 * `assignedUsers` (objects with a nested `participant`) as well as
+		 * a plain `assignees` array of strings/objects.
+		 *
+		 * @param {object} card the card row
+		 * @return {Array} assignee entries
+		 */
+		cardAssignees(card) {
+			const raw = card.assignedUsers ?? card.assignees ?? card.users ?? []
+			return Array.isArray(raw) ? raw : []
+		},
+
+		/**
+		 * The first {@link MAX_VISIBLE_ASSIGNEES} assignees to render as
+		 * avatars; the remainder collapse into a +N overflow badge.
+		 *
+		 * @param {object} card the card row
+		 * @return {Array} visible assignee entries
+		 */
+		visibleAssignees(card) {
+			return this.cardAssignees(card).slice(0, MAX_VISIBLE_ASSIGNEES)
+		},
+
+		/**
+		 * Count of assignees hidden behind the +N overflow badge.
+		 *
+		 * @param {object} card the card row
+		 * @return {number} overflow count (0 when all fit)
+		 */
+		assigneeOverflow(card) {
+			const extra = this.cardAssignees(card).length - MAX_VISIBLE_ASSIGNEES
+			return extra > 0 ? extra : 0
+		},
+
+		/**
+		 * Tooltip listing the assignees collapsed into the overflow badge.
+		 *
+		 * @param {object} card the card row
+		 * @return {string} comma-separated overflow assignee names
+		 */
+		overflowTitle(card) {
+			return this.cardAssignees(card)
+				.slice(MAX_VISIBLE_ASSIGNEES)
+				.map((a) => this.assigneeName(a))
+				.join(', ')
+		},
+
+		/**
+		 * Unwrap an assignee entry to its participant payload — Deck nests
+		 * the user under `participant`; flat shapes pass through.
+		 *
+		 * @param {object|string} assignee raw assignee entry
+		 * @return {object} normalised participant object
+		 */
+		assigneeParticipant(assignee) {
+			if (typeof assignee === 'string') {
+				return { uid: assignee, displayname: assignee }
+			}
+			return assignee.participant ?? assignee
+		},
+
+		assigneeName(assignee) {
+			const p = this.assigneeParticipant(assignee)
+			return p.displayname ?? p.displayName ?? p.uid ?? p.id ?? t('nextcloud-vue', 'Unknown')
+		},
+
+		assigneeSeed(assignee) {
+			const p = this.assigneeParticipant(assignee)
+			return String(p.uid ?? p.id ?? p.displayname ?? p.displayName ?? '')
+		},
+
+		assigneeKey(assignee) {
+			const p = this.assigneeParticipant(assignee)
+			return String(p.uid ?? p.id ?? p.displayname ?? p.displayName ?? Math.random())
 		},
 
 		openDeckApp() {
@@ -477,21 +649,45 @@ export default {
 .cn-deck-tab__card {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	padding: 6px 8px;
+	gap: 5px;
+	padding: 8px 10px;
 	border-radius: var(--border-radius);
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+	transition: box-shadow 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.cn-deck-tab__card:hover {
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+	border-color: var(--color-border-dark);
 }
 
 .cn-deck-tab__card--overdue {
 	border-color: var(--color-error);
 }
 
+.cn-deck-tab__card-board {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	align-self: flex-start;
+	max-width: 100%;
+	padding: 1px 7px;
+	font-size: 0.7em;
+	font-weight: 500;
+	border-radius: 10px;
+	background: var(--color-background-dark);
+	color: var(--color-text-maxcontrast);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .cn-deck-tab__card-title {
 	color: var(--color-main-text);
 	text-decoration: none;
-	font-weight: 500;
+	font-weight: 600;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -507,24 +703,64 @@ a.cn-deck-tab__card-title:hover {
 	gap: 4px;
 }
 
+/* Deck label chips: solid card-label colour with a readable text shade. */
 .cn-deck-tab__chip {
 	display: inline-block;
-	padding: 1px 6px;
+	max-width: 100%;
+	padding: 1px 8px;
 	font-size: 0.7em;
+	font-weight: 500;
+	line-height: 1.5;
 	border-radius: 8px;
 	background: var(--color-background-dark);
 	color: var(--color-main-text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.cn-deck-tab__card-meta {
+.cn-deck-tab__card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 2px;
+}
+
+.cn-deck-tab__due-icon {
+	display: inline-flex;
+	margin-right: 2px;
+	vertical-align: text-bottom;
+}
+
+.cn-deck-tab__avatars {
+	display: flex;
+	align-items: center;
+	margin-left: auto;
+}
+
+.cn-deck-tab__avatar {
+	border: 2px solid var(--color-main-background);
+	border-radius: 50%;
+}
+
+.cn-deck-tab__avatar:not(:first-child) {
+	margin-left: -8px;
+}
+
+.cn-deck-tab__avatar-overflow {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	font-size: 0.75em;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-left: -8px;
+	border: 2px solid var(--color-main-background);
+	border-radius: 50%;
+	background: var(--color-background-dark);
 	color: var(--color-text-maxcontrast);
-}
-
-.cn-deck-tab__card--overdue .cn-deck-tab__card-meta {
-	color: var(--color-error);
+	font-size: 0.65em;
+	font-weight: 600;
 }
 </style>
