@@ -90,7 +90,7 @@ Use `reset()` from the same composable to re-enable the dialog (tests, admin "sh
 | `conductionUrl` | `String` | `https://www.conduction.nl` | Target of the inline "Conduction" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `appsUrl` | `String` | `https://www.conduction.nl/apps` | Target of the inline "apps" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `founderName` | `String` | `Ruben van der Linde` | Rendered in the handwritten signature. |
-| `founderTitle` | `String` | `Founder of Conduction` | Title under the signature. |
+| `founderTitle` | `String` | `a founder of Conduction` | Title under the signature. |
 | `founderAvatarUrl` | `String` | bundled portrait (data URI) | Avatar shown left of the signature. Defaults to the self-hosted founder portrait (no third-party request). Override with any URL or data URI when signing your own apps. |
 | `founderProfileUrl` | `String` | `https://www.linkedin.com/in/rubenlinde/` | Profile the avatar links to (new tab). Pass `''` to render the avatar without a link. |
 | `bodyParagraphs` | `Array<String>` | `[]` | Override the default Conduction body copy with a host-specific message (release announcement, pricing change, etc). When non-empty, the built-in paragraphs and inline links are skipped. |

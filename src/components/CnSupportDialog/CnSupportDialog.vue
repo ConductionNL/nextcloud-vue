@@ -251,11 +251,12 @@ export default {
 		},
 		/**
 		 * Title shown under the signature name. Defaults to
-		 * "Founder of Conduction"; override when signing your own apps.
+		 * "a founder of Conduction" (Conduction has more than one
+		 * founder); override when signing your own apps.
 		 */
 		founderTitle: {
 			type: String,
-			default: 'Founder of Conduction',
+			default: 'a founder of Conduction',
 		},
 		/**
 		 * Avatar shown to the left of the signature. Defaults to the
@@ -300,7 +301,7 @@ export default {
 		},
 		greetingHi() { return t('nextcloud-vue', 'Hi,') },
 		introLead() {
-			return t('nextcloud-vue', 'I\'m {founderName}, founder of', { founderName: this.founderName })
+			return t('nextcloud-vue', 'I\'m {founderName}, a founder of', { founderName: this.founderName })
 		},
 		conductionLabel() { return t('nextcloud-vue', 'Conduction') },
 		teamLead() {
