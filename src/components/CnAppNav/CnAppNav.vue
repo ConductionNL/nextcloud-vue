@@ -496,7 +496,11 @@ export default {
 .cn-app-nav__footer-list {
 	list-style: none;
 	margin: 0;
-	padding: 0 !important;
+	/* Match the native NcAppNavigationSettings footer rhythm: its
+	   `#app-settings` root carries `padding: 3px`, so the footer group
+	   reads with the same breathing room rather than butting flush
+	   against the scroll list / the settings foldout below. */
+	padding: 3px 3px 0 !important;
 	overflow: visible !important;
 	flex: 0 0 auto;
 }
