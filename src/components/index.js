@@ -152,3 +152,7 @@ export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'
 // Bookmarks integration leaf (Tier-2)
 export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
 export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
+
+// Collectives integration leaf (Tier-2)
+export { CnCollectivePagePicker } from './CnCollectivePagePicker/index.js'
+export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'

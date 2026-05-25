@@ -43,6 +43,21 @@
 			<span>{{ degraded }}</span>
 		</div>
 
+		<div v-if="!degraded" class="cn-collectives-tab__actions">
+			<NcButton type="secondary" @click="openPicker">
+				<template #icon>
+					<LinkVariant :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Link existing page') }}
+			</NcButton>
+			<NcButton type="primary" @click="openCreate">
+				<template #icon>
+					<Plus :size="18" />
+				</template>
+				{{ t('nextcloud-vue', 'Create new page') }}
+			</NcButton>
+		</div>
+
 		<NcLoadingIcon v-if="loading" />
 
 		<div v-else-if="error" class="cn-collectives-tab__error" role="alert">
@@ -94,10 +109,31 @@
 								{{ metaLabel(page) }}
 							</span>
 						</div>
+						<NcButton
+							type="tertiary-no-background"
+							:aria-label="t('nextcloud-vue', 'Unlink page')"
+							class="cn-collectives-tab__unlink"
+							@click="unlinkPage(page)">
+							<template #icon>
+								<LinkOff :size="16" />
+							</template>
+						</NcButton>
 					</li>
 				</ul>
 			</section>
 		</div>
+
+		<CnCollectivePagePicker
+			v-if="pickerOpen"
+			:api-base="apiBase"
+			@close="pickerOpen = false"
+			@link="onLinkPick" />
+
+		<CnCollectivePageCreate
+			v-if="createOpen"
+			:api-base="apiBase"
+			@close="createOpen = false"
+			@create="onCreatePick" />
 	</div>
 </template>
 
@@ -106,6 +142,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
+import LinkOff from 'vue-material-design-icons/LinkOff.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnCollectivePageCreate from '../../../components/CnCollectivePageCreate/CnCollectivePageCreate.vue'
+import CnCollectivePagePicker from '../../../components/CnCollectivePagePicker/CnCollectivePagePicker.vue'
 import { buildHeaders } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
@@ -124,7 +165,17 @@ const SNIPPET_MAX_CHARS = 160
 export default {
 	name: 'CnCollectivesTab',
 
-	components: { NcButton, NcLoadingIcon, AlertCircleOutline, BookOpenPageVariant },
+	components: {
+		NcButton,
+		NcLoadingIcon,
+		AlertCircleOutline,
+		BookOpenPageVariant,
+		LinkOff,
+		LinkVariant,
+		Plus,
+		CnCollectivePagePicker,
+		CnCollectivePageCreate,
+	},
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'collectives'`). */
@@ -153,6 +204,8 @@ export default {
 			loading: false,
 			error: '',
 			degraded: '',
+			pickerOpen: false,
+			createOpen: false,
 		}
 	},
 
@@ -181,18 +234,39 @@ export default {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},
 
+		/**
+		 * Base for the Tier-2 collectives endpoints (list/link/new/destroy).
+		 *
+		 * @return {string} The endpoint URL.
+		 */
+		collectivesEndpoint() {
+			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/collectives`
+		},
+
+		/**
+		 * Resolve the numeric page id from a row (top-level or `data.*`).
+		 *
+		 * @param {object} page Provider/link row.
+		 *
+		 * @return {(number|string)} The page id, or '' when absent.
+		 */
+		pageId(page) {
+			const d = this.dataOf(page)
+			return page.pageId ?? d.pageId ?? page.id ?? d.id ?? ''
+		},
+
 		dataOf(page) {
 			return (page && typeof page.data === 'object' && page.data !== null) ? page.data : {}
 		},
 
 		pageKey(page) {
 			const d = this.dataOf(page)
-			return page.id ?? d.id ?? page.slug ?? d.slug ?? ''
+			return page.pageId ?? d.pageId ?? page.id ?? d.id ?? page.slug ?? d.slug ?? ''
 		},
 
 		pageTitle(page) {
 			const d = this.dataOf(page)
-			const candidate = page.title ?? d.title ?? d.slug ?? page.slug ?? ''
+			const candidate = page.pageTitle ?? d.pageTitle ?? page.title ?? d.title ?? d.slug ?? page.slug ?? ''
 			// Provider returns the slug (which carries the `[or:{uuid}]`
 			// marker) when no real title is available. Strip the marker
 			// AND any dangling slug separator (`-`, `_`, `.`) left
@@ -285,6 +359,78 @@ export default {
 			}
 		},
 
+		openPicker() {
+			this.pickerOpen = true
+		},
+
+		openCreate() {
+			this.createOpen = true
+		},
+
+		async onLinkPick(payload) {
+			this.pickerOpen = false
+			try {
+				const response = await fetch(this.collectivesEndpoint(), {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				} else if (response.status === 409) {
+					this.error = t('nextcloud-vue', 'This page is already linked.')
+				} else {
+					this.error = t('nextcloud-vue', 'Could not link page.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCollectivesTab] link failed', err)
+				this.error = t('nextcloud-vue', 'Could not link page.')
+			}
+		},
+
+		async onCreatePick(payload) {
+			this.createOpen = false
+			try {
+				const response = await fetch(`${this.collectivesEndpoint()}/new`, {
+					method: 'POST',
+					headers: { ...buildHeaders(), 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not create page.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCollectivesTab] create failed', err)
+				this.error = t('nextcloud-vue', 'Could not create page.')
+			}
+		},
+
+		async unlinkPage(page) {
+			const id = this.pageId(page)
+			if (!id) {
+				return
+			}
+			try {
+				const response = await fetch(`${this.collectivesEndpoint()}/${id}`, {
+					method: 'DELETE',
+					headers: buildHeaders(),
+				})
+				if (response.ok) {
+					await this.fetchPages()
+				} else {
+					this.error = t('nextcloud-vue', 'Could not unlink page.')
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCollectivesTab] unlink failed', err)
+				this.error = t('nextcloud-vue', 'Could not unlink page.')
+			}
+		},
+
 		async fetchPages() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -293,12 +439,12 @@ export default {
 			this.error = ''
 			this.degraded = ''
 			try {
-				const response = await fetch(this.baseUrl(), { headers: buildHeaders() })
+				const response = await fetch(this.collectivesEndpoint(), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					const rows = data.results || data.items || (Array.isArray(data) ? data : []) || []
 					this.pages = rows
-				} else if (response.status === 503) {
+				} else if (response.status === 503 || response.status === 501) {
 					this.pages = []
 					this.degraded = this.unavailableLabel
 				} else {
@@ -319,6 +465,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-collectives-tab__actions {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
 .cn-collectives-tab__banner {
 	display: flex;
 	align-items: center;
@@ -377,6 +530,10 @@ export default {
 	gap: 10px;
 	padding: 8px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-collectives-tab__unlink {
+	flex-shrink: 0;
 }
 
 .cn-collectives-tab__row:last-child {
