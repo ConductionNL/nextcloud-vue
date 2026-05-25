@@ -61,7 +61,9 @@
 						data-testid="cn-widget-wrapper-action-refresh"
 						@click="onRefreshClick">
 						<template #icon>
-							<Refresh :size="20" />
+							<Refresh
+								:size="20"
+								:class="{ 'cn-widget-wrapper__refresh-icon--spinning': isRefreshing }" />
 						</template>
 						{{ refreshLabel }}
 					</NcActionButton>
@@ -341,6 +343,34 @@ export default {
 			default: '',
 		},
 		/**
+		 * Whether a refresh is currently in flight. When bound by the host
+		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
+		 * icon spins for exactly as long as this stays true — accurate
+		 * feedback. When left at its default `false`, clicking Refresh
+		 * still spins optimistically for a short fixed duration
+		 * (`optimisticSpinMs`) so the action feels responsive even without
+		 * host wiring.
+		 *
+		 * @type {boolean}
+		 */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Duration (ms) of the optimistic spin shown on Refresh click when
+		 * the host has NOT bound `:refreshing`. Defaults to 800ms — roughly
+		 * two rotations at the icon's spin speed. Set to 0 to disable the
+		 * optimistic spin entirely (icon only spins while `refreshing` is
+		 * true).
+		 *
+		 * @type {number}
+		 */
+		optimisticSpinMs: {
+			type: Number,
+			default: 800,
+		},
+		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
 		 * to the lib's translation of "Refresh" so callers usually don't
 		 * need to set this.
@@ -377,12 +407,37 @@ export default {
 			 * `@close` back to this component which resets it.
 			 */
 			featureRequestModalOpen: false,
+			/**
+			 * Optimistic-spin flag. Set true on Refresh click when the
+			 * host hasn't bound `:refreshing`, then auto-cleared after
+			 * `optimisticSpinMs`. OR-ed with the `refreshing` prop by the
+			 * `isRefreshing` computed to drive the icon spin class.
+			 */
+			optimisticSpinning: false,
+		}
+	},
+
+	beforeDestroy() {
+		if (this._optimisticSpinTimer) {
+			clearTimeout(this._optimisticSpinTimer)
+			this._optimisticSpinTimer = null
 		}
 	},
 
 	computed: {
 		displayTitle() {
 			return this.title || 'Widget'
+		},
+
+		/**
+		 * Whether the Refresh icon should spin. True while the host's
+		 * bound `:refreshing` prop is true OR during the short optimistic
+		 * window after a click when no prop is bound.
+		 *
+		 * @return {boolean}
+		 */
+		isRefreshing() {
+			return this.refreshing || this.optimisticSpinning
 		},
 
 		/**
@@ -468,6 +523,7 @@ export default {
 		 * @return {void}
 		 */
 		onRefreshClick() {
+			this.startOptimisticSpin()
 			const ev = createSyntheticEvent()
 			/**
 			 * @event refresh User clicked the Refresh item in the overflow
@@ -481,6 +537,25 @@ export default {
 				widgetId: this.resolvedWidgetId,
 				title: this.displayTitle,
 			})
+		},
+
+		/**
+		 * Spin the Refresh icon optimistically for `optimisticSpinMs`,
+		 * but ONLY when the host has not bound `:refreshing` (when they
+		 * have, the prop is the source of truth and we leave it alone).
+		 * No-op when `optimisticSpinMs` is 0.
+		 *
+		 * @return {void}
+		 */
+		startOptimisticSpin() {
+			if (this.refreshing) return
+			if (!this.optimisticSpinMs || this.optimisticSpinMs <= 0) return
+			this.optimisticSpinning = true
+			if (this._optimisticSpinTimer) clearTimeout(this._optimisticSpinTimer)
+			this._optimisticSpinTimer = setTimeout(() => {
+				this.optimisticSpinning = false
+				this._optimisticSpinTimer = null
+			}, this.optimisticSpinMs)
 		},
 
 		/**
@@ -534,6 +609,24 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	overflow: hidden;
+}
+
+/* Refresh icon spin — driven by the `isRefreshing` class binding.
+   One full rotation per 400ms, so the default 800ms optimistic window
+   reads as ~2 turns. Disabled under prefers-reduced-motion. */
+.cn-widget-wrapper__refresh-icon--spinning {
+	animation: cn-widget-wrapper-spin 400ms linear infinite;
+}
+
+@keyframes cn-widget-wrapper-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-widget-wrapper__refresh-icon--spinning {
+		animation: none;
+	}
 }
 
 .cn-widget-wrapper__content {

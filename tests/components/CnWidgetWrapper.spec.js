@@ -186,3 +186,46 @@ describe('CnWidgetWrapper — default Request-a-feature handler (widget-wrapper-
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).exists()).toBe(false)
 	})
 })
+
+describe('CnWidgetWrapper — refresh icon spin', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+		jest.useFakeTimers()
+		jest.spyOn(console, 'warn').mockImplementation(() => {})
+	})
+	afterEach(() => {
+		jest.runOnlyPendingTimers()
+		jest.useRealTimers()
+		jest.restoreAllMocks()
+	})
+
+	it('spins optimistically on click then stops after optimisticSpinMs', async () => {
+		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 800 })
+		expect(wrapper.vm.isRefreshing).toBe(false)
+		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
+		expect(wrapper.vm.isRefreshing).toBe(true)
+		jest.advanceTimersByTime(800)
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.isRefreshing).toBe(false)
+	})
+
+	it('does NOT optimistically spin when optimisticSpinMs is 0', async () => {
+		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 0 })
+		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
+		expect(wrapper.vm.isRefreshing).toBe(false)
+	})
+
+	it('spins for as long as the :refreshing prop is true (host-driven)', async () => {
+		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
+		expect(wrapper.vm.isRefreshing).toBe(true)
+		await wrapper.setProps({ refreshing: false })
+		expect(wrapper.vm.isRefreshing).toBe(false)
+	})
+
+	it('with :refreshing bound true, clicking does not leave an optimistic spin behind', async () => {
+		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
+		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
+		await wrapper.setProps({ refreshing: false })
+		expect(wrapper.vm.isRefreshing).toBe(false)
+	})
+})

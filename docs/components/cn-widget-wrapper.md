@@ -57,6 +57,8 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `titleIconColor` | String | `null` | CSS color value applied to the `title-icon` slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | `[]` | Footer button links: `[{ text, link }]` |
 | `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left } }` |
+| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins for exactly as long as this stays `true` (host-driven, accurate feedback). When left `false`, clicking Refresh spins optimistically for `optimisticSpinMs` |
+| `optimisticSpinMs` | Number | `800` | Duration (ms) of the optimistic Refresh spin shown on click when `refreshing` is not bound. ~2 rotations at the icon's spin speed. Set `0` to disable the optimistic spin (spin only while `refreshing` is `true`) |
 
 ### Slots
 
