@@ -37,6 +37,30 @@
 				"settingsLabel": {
 					"type": "string",
 					"description": "Override label for the settings foldout's gear button. Defaults to 'Settings'."
+				},
+				"primaryAction": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["label"],
+					"description": "Optional primary action rendered as an NcAppNavigationNew button above the main menu list (e.g. a 'new' button or an active-context switcher). The CnAppNav #primary-action slot takes precedence over this when provided.",
+					"properties": {
+						"label": {
+							"type": "string",
+							"description": "i18n translation key / text for the button, resolved by the consuming app's translate function."
+						},
+						"icon": {
+							"type": "string",
+							"description": "MDI icon name (e.g. 'Plus') resolved against CnIcon's ICON_MAP."
+						},
+						"route": {
+							"type": "string",
+							"description": "Named vue-router route to navigate to on click."
+						},
+						"href": {
+							"type": "string",
+							"description": "External URL opened in a new tab on click. Takes precedence over route."
+						}
+					}
 				}
 			}
 		},

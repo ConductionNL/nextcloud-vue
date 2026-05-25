@@ -7,6 +7,14 @@
   an order render last. Items with a `permission` are filtered against
   the `permissions` prop — when the prop is omitted, all items render.
 
+  An optional primary action renders above the main list as an
+  NcAppNavigationNew button (e.g. a "new" button or an active-context
+  switcher). Hosts supply it via the `#primary-action` slot (full
+  control over dynamic content + click handling); a static
+  `nav.primaryAction` ({ label, icon?, route?, href? }) manifest field
+  is the declarative fallback. The slot wins when both are present;
+  nothing renders when neither is.
+
   Items split into three groups by `section`:
   - `section: "main"` (default) — top of the navigation, scrollable.
   - `section: "footer"` — bottom-pinned entries rendered via
@@ -40,6 +48,22 @@
 -->
 <template>
 	<NcAppNavigation data-testid="cn-nav">
+		<!-- @slot primary-action Optional primary action rendered above the
+		     main list as NcAppNavigation's top region (e.g. an app's "new"
+		     button or an active-context switcher). When provided, it takes
+		     precedence over a manifest-declared nav.primaryAction. Omitted
+		     entirely when neither the slot nor nav.primaryAction is present. -->
+		<slot name="primary-action">
+			<NcAppNavigationNew
+				v-if="primaryAction"
+				:text="resolveLabel(primaryAction)"
+				data-testid="cn-nav-primary-action"
+				@click="onPrimaryActionClick">
+				<template v-if="mdiIconComponent(primaryAction)" #icon>
+					<component :is="mdiIconComponent(primaryAction)" :size="20" />
+				</template>
+			</NcAppNavigationNew>
+		</slot>
 		<template #list>
 			<NcAppNavigationItem
 				v-for="item in mainItems"
@@ -131,7 +155,7 @@
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationSettings } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
@@ -144,6 +168,7 @@ export default {
 	components: {
 		NcAppNavigation,
 		NcAppNavigationItem,
+		NcAppNavigationNew,
 		NcAppNavigationSettings,
 		Cog,
 	},
@@ -202,6 +227,17 @@ export default {
 		},
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
+		},
+		/**
+		 * Manifest-declared primary action (`nav.primaryAction`) rendered
+		 * as an NcAppNavigationNew button above the main list. Null when
+		 * not declared. Ignored when the host supplies the
+		 * `#primary-action` slot (the slot wins).
+		 *
+		 * @return {object|null} `{ label, icon?, route?, href? }` or null.
+		 */
+		primaryAction() {
+			return this.effectiveManifest?.nav?.primaryAction ?? null
 		},
 		/**
 		 * All visible items (filtered by permission and visibleIf conditions,
@@ -461,6 +497,35 @@ export default {
 		 */
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
+		},
+		/**
+		 * Click handler for the manifest-declared primary action. Emits
+		 * `primary-action-click` for host-side handling, then performs
+		 * default navigation: external `href` opens in a new tab; a
+		 * `route` pushes the named vue-router route. No-op when neither
+		 * is set. Not invoked when the host overrides the
+		 * `#primary-action` slot (it provides its own handler).
+		 *
+		 * @param {Event} [event] Native click event.
+		 * @return {void}
+		 */
+		onPrimaryActionClick(event) {
+			const action = this.primaryAction
+			if (!action) return
+			/**
+			 * @event primary-action-click Emitted when the manifest-declared primary-action button is clicked. Payload is the resolved nav.primaryAction object.
+			 */
+			this.$emit('primary-action-click', action)
+			if (action.href) {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				window.open(action.href, '_blank', 'noopener,noreferrer')
+				return
+			}
+			if (action.route && this.$router) {
+				this.$router.push({ name: action.route })
+			}
 		},
 	},
 }
