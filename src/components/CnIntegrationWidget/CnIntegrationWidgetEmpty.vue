@@ -41,6 +41,11 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent, NcButton } from '@nextcloud/vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { registerIntegrationIcons } from '../../integrations/icons.js'
+
+// The empty state can render before the widget's tab strip (single
+// mode / standalone), so register the integration icon set here too.
+registerIntegrationIcons()
 
 /**
  * CnIntegrationWidgetEmpty — NcEmptyContent set-up state for an
