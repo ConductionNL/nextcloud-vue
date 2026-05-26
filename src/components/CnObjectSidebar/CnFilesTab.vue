@@ -5,6 +5,17 @@
 			{{ uploadError }}
 		</div>
 
+		<!-- Share toggle — seeds from schema config (defaultAutoShare) or
+		     from the `defaultShare` prop. Hidden via `showShareToggle=false`. -->
+		<NcCheckboxRadioSwitch
+			v-if="showShareToggle"
+			class="cn-sidebar-tab__share"
+			:checked.sync="share"
+			:disabled="loading"
+			type="switch">
+			{{ shareLabel }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- File drop zone -->
 		<div
 			class="cn-sidebar-tab__dropzone"
@@ -74,7 +85,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
@@ -84,7 +95,7 @@ import { buildHeaders } from '../../utils/index.js'
 export default {
 	name: 'CnFilesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
+	components: { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
 
 	props: {
 		objectId: { type: String, required: true },
@@ -96,6 +107,23 @@ export default {
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Show the "Automatically publish" share toggle above the dropzone.
+		 * Set to false to hide the toggle entirely (forced `share=false` on upload).
+		 * @type {boolean}
+		 */
+		showShareToggle: { type: Boolean, default: true },
+		/**
+		 * Initial value for the share toggle. `null` (the default) means the
+		 * component looks up the active schema's `configuration.defaultAutoShare`
+		 * via the OpenRegister schema API and seeds from there (falling back to
+		 * false). A non-null Boolean wins over the schema lookup — let the
+		 * consumer override the schema default when needed.
+		 * @type {boolean|null}
+		 */
+		defaultShare: { type: Boolean, default: null },
+		/** Label rendered next to the share toggle. */
+		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Automatically publish') },
 	},
 
 	data() {
@@ -108,6 +136,7 @@ export default {
 			page: 1,
 			total: 0,
 			limit: 20,
+			share: false,
 		}
 	},
 
@@ -115,6 +144,14 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(id) { if (id) this.fetchFiles() },
+		},
+		schema: {
+			immediate: true,
+			handler() { this.applyShareDefault() },
+		},
+		defaultShare: {
+			immediate: true,
+			handler() { this.applyShareDefault() },
 		},
 	},
 
@@ -147,6 +184,36 @@ export default {
 			this.fetchFiles(true)
 		},
 
+		/**
+		 * Seed the `share` toggle. The `defaultShare` prop wins when set
+		 * (non-null); otherwise we look up the active schema's
+		 * `configuration.defaultAutoShare` from OpenRegister and use that.
+		 * Network failure or missing key → keep the safe default (false) so
+		 * a hiccup never silently flips uploads to "share".
+		 * @return {Promise<void>}
+		 */
+		async applyShareDefault() {
+			if (this.defaultShare !== null && this.defaultShare !== undefined) {
+				this.share = !!this.defaultShare
+				return
+			}
+			this.share = false
+			if (!this.schema) return
+			try {
+				const response = await fetch(
+					`${this.apiBase}/schemas/${this.schema}`,
+					{ headers: buildHeaders() },
+				)
+				if (!response.ok) return
+				const data = await response.json().catch(() => null)
+				if (data?.configuration?.defaultAutoShare === true) {
+					this.share = true
+				}
+			} catch (err) {
+				// Non-fatal — keep the safe default.
+			}
+		},
+
 		triggerFileInput() {
 			this.$refs.fileInput?.click()
 		},
@@ -173,6 +240,11 @@ export default {
 			const formData = new FormData()
 			for (const file of fileList) {
 				formData.append('files[]', file)
+			}
+			// Only forward the share flag when the toggle is actually visible.
+			// Hiding the toggle (showShareToggle=false) means "don't auto-publish".
+			if (this.showShareToggle) {
+				formData.append('share', String(this.share))
 			}
 
 			this.loading = true
@@ -268,6 +340,8 @@ export default {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
 }
+
+.cn-sidebar-tab__share { margin-bottom: 12px; }
 
 .cn-sidebar-tab__dropzone-icon { color: var(--color-text-maxcontrast); }
 .cn-sidebar-tab__dropzone--active .cn-sidebar-tab__dropzone-icon,
