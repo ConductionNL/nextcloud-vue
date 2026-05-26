@@ -51,7 +51,8 @@ the number of columns is determined by the slot name:
 Each entry's `widgetKey` is looked up in this order:
 
 1. Built-in registry (`BUILT_IN_WIDGETS`) — covers `object-table`,
-   `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`.
+   `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`,
+   `integration`.
 2. The consumer registry injected via `cnRegistry`.
 
 Unknown widget keys are skipped with a `console.warn` so a stale

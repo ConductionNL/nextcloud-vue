@@ -20,6 +20,7 @@ import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 
 /**
  * Built-in widget registry.
@@ -33,6 +34,13 @@ import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWi
  * widget's props (see CnWidgetGrid.resolvedWidgets), so the manifest entry
  * needs no per-widget `props`.
  *
+ * The `integration` key places an OpenRegister integration leaf
+ * (`CnIntegrationWidget`) on the page — e.g. OpenConnector's `sync-contract`
+ * ("Synced from"). Pick the leaf with `props.only: "<integrationId>"`; the
+ * object's `register` / `objectId` arrive via the detail-context merge, and
+ * the manifest should set `props.schema` to the schema slug (the merged
+ * context `schema` is the schema *object*, so an explicit slug prop wins).
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -42,4 +50,5 @@ export const BUILT_IN_WIDGETS = {
 	'card-grid': CnWidgetCardGrid,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
+	integration: CnIntegrationWidget,
 }
