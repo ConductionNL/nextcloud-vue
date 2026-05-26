@@ -30,7 +30,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-xwiki-page-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div v-if="unavailable" class="cn-xwiki-page-create__unconfigured" role="alert">
 			<AlertCircleOutline :size="32" class="cn-xwiki-page-create__unconfigured-icon" />
 			<strong>{{ t('nextcloud-vue', 'XWiki connection not configured') }}</strong>
@@ -60,7 +60,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -124,6 +124,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		openOpenConnector() {
 			if (typeof window !== 'undefined') {
 				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
@@ -134,6 +146,9 @@ export default {
 			if (!this.canSubmit) {
 				return
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ space, title }`.
+			 */
 			this.$emit('create', { space: this.space.trim(), title: this.title.trim() })
 		},
 	},

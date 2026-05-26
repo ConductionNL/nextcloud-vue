@@ -33,7 +33,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-map-poi-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-map-poi-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-map-poi-create__error">
 				{{ error }}
@@ -74,7 +74,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -146,11 +146,26 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		submit() {
 			if (!this.canSubmit) {
 				this.error = t('nextcloud-vue', 'Enter a name and valid coordinates (lat -90..90, lng -180..180).')
 				return
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ name, lat, lng, category, comment }`.
+			 */
 			this.$emit('create', {
 				name: this.name.trim(),
 				lat: Number(this.lat),

@@ -119,13 +119,21 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (ADR-007) ---
+		/** Pre-translated dialog title. */
 		title: { type: String, default: () => t('nextcloud-vue', 'New meeting') },
+		/** Pre-translated label for the summary field. */
 		summaryLabel: { type: String, default: () => t('nextcloud-vue', 'Summary') },
+		/** Pre-translated label for the start date-time field. */
 		startLabel: { type: String, default: () => t('nextcloud-vue', 'Start') },
+		/** Pre-translated label for the end date-time field. */
 		endLabel: { type: String, default: () => t('nextcloud-vue', 'End') },
+		/** Pre-translated label for the location field. */
 		locationLabel: { type: String, default: () => t('nextcloud-vue', 'Location') },
+		/** Pre-translated label for the description field. */
 		descriptionLabel: { type: String, default: () => t('nextcloud-vue', 'Description') },
+		/** Pre-translated label for the Cancel button. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Pre-translated label for the confirm (Create) button. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Create meeting') },
 	},
 
@@ -210,7 +218,7 @@ export default {
 		},
 
 		onClose() {
-			/** @event close */
+			/** @event close Emitted when the dialog should be closed (cancel or close button). */
 			this.$emit('close')
 		},
 	},

@@ -81,6 +81,21 @@
 				<!-- @slot action-items Custom primary action items rendered inside the overflow dropdown, after Refresh + `headerActions[]`, before the mass-actions group. -->
 				<slot name="action-items" />
 
+				<!-- Built-in Documentation link (opt-in via documentationUrl).
+				     Opens the host-provided docs URL in a new tab. Mirrors
+				     the widget Actions menu's Documentation entry. -->
+				<NcActionLink
+					v-if="documentationUrl"
+					:href="documentationUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					data-testid="cn-actions-bar-documentation">
+					<template #icon>
+						<BookOpenVariant :size="20" />
+					</template>
+					{{ documentationLabel }}
+				</NcActionLink>
+
 				<!-- Built-in Request-a-feature entry (opt-in via showRequestFeature).
 				     Emits @request-feature; the host (CnIndexPage) opens the
 				     CnSuggestFeatureModal. Mirrors the widget Actions menu. -->
@@ -144,11 +159,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionButton, NcActionLink, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Import from 'vue-material-design-icons/Import.vue'
@@ -187,6 +203,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		NcActionSeparator,
 		NcButton,
 		NcCheckboxRadioSwitch,
@@ -195,6 +212,7 @@ export default {
 		Plus,
 		Refresh,
 		LightbulbOutline,
+		BookOpenVariant,
 		ContentCopy,
 		TrashCanOutline,
 		Import,
@@ -289,6 +307,26 @@ export default {
 		showRequestFeature: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Documentation link for this page. When a non-empty URL is set,
+		 * the overflow dropdown renders a "Documentation" entry (before
+		 * Request a feature) that opens the link in a new tab. Empty (the
+		 * default) hides it. Mirrors the widget Actions menu.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Pre-translated label for the Documentation entry. Defaults to the
+		 * lib's translation of "Documentation".
+		 */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
 		},
 		/** Whether the Add button is disabled (e.g. when required selections are missing) */
 		addDisabled: {

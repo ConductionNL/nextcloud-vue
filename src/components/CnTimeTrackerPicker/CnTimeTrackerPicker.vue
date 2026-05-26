@@ -37,7 +37,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-time-tracker-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-time-tracker-picker">
 			<NcNoteCard v-if="error" type="error" class="cn-time-tracker-picker__error">
 				{{ error }}
@@ -77,7 +77,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -157,6 +157,18 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
 
 		async fetchEntries(searchTerm = '') {
 			this.loading = true
@@ -254,6 +266,9 @@ export default {
 			if (this.selected === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ entryType, id }`.
+			 */
 			this.$emit('link', { entryType: this.selected.entryType, id: this.selected.id })
 		},
 	},

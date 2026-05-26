@@ -17,7 +17,6 @@ jest.mock('../../src/components/CnWidgetGrid/builtInWidgets.js', () => ({
 	BUILT_IN_WIDGETS: {
 		'object-table': { template: '<div class="widget-table" />', name: 'CnWidgetObjectTable' },
 		'form-renderer': { template: '<div class="widget-form" />', name: 'CnWidgetFormRenderer' },
-		'wiki-renderer': { template: '<div class="widget-wiki" />', name: 'CnWidgetWikiRenderer' },
 		'map-viewer': { template: '<div class="widget-map" />', name: 'CnWidgetMapViewer' },
 		'card-grid': { template: '<div class="widget-cards" />', name: 'CnWidgetCardGrid' },
 	},

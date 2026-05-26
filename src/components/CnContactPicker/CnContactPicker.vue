@@ -27,7 +27,7 @@
 		:can-close="!loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-contact-picker">
 			<NcTextField
 				v-model="query"
@@ -91,7 +91,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
@@ -154,18 +154,32 @@ export default {
 	},
 
 	props: {
+		/** Base API URL for OR's contact-search proxy. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 
 		// --- Pre-translated labels (consumer-overridable) ---
+		/** Pre-translated dialog title. */
 		title: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
+		/** Pre-translated label for the search field. */
 		searchLabel: { type: String, default: () => t('nextcloud-vue', 'Search contacts') },
+		/** Pre-translated placeholder for the search field. */
 		searchPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Type a name or email…') },
+		/** Pre-translated heading shown when no contacts match. */
 		emptyLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts found') },
+		/** Pre-translated description shown when no contacts match. */
 		emptyDescription: { type: String, default: () => t('nextcloud-vue', 'Try a different search term or create a new contact.') },
+		/** Pre-translated fallback label for a contact with no display name. */
 		unknownLabel: { type: String, default: () => t('nextcloud-vue', 'Unknown contact') },
+		/** Pre-translated label for the role dropdown. */
 		roleLabel: { type: String, default: () => t('nextcloud-vue', 'Role') },
+		/** Pre-translated label for the Cancel button. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Pre-translated label for the confirm (Link) button. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
+		/**
+		 * Role options for the link's role dropdown.
+		 * @type {Array<{ label: string, value: string }>}
+		 */
 		roleOptions: {
 			type: Array,
 			default: () => [
@@ -203,6 +217,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the user cancels or closes the dialog.
+			 */
+			this.$emit('close')
+		},
+
 		/**
 		 * Initials from displayName ("Jan de Vries" → "JV"); falls back
 		 * to `?`.
@@ -285,6 +311,9 @@ export default {
 
 		confirm() {
 			if (!this.selected) return
+			/**
+			 * @event link Emitted when the user confirms a selection. Payload: `{ contactUid, addressbookId, contactUri, displayName, email, role }`.
+			 */
 			this.$emit('link', {
 				contactUid: this.selected.contactUid,
 				addressbookId: this.selected.addressbookId,

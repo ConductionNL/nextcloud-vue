@@ -31,7 +31,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-email-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-email-picker">
 			<ol class="cn-email-picker__steps">
 				<li :class="stepClass(1)">
@@ -143,7 +143,7 @@
 			<NcButton v-if="step > 1" @click="goBack">
 				{{ t('nextcloud-vue', 'Back') }}
 			</NcButton>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -179,8 +179,11 @@ export default {
 	components: { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcNoteCard, NcTextField, EmailOutline, FolderOutline },
 
 	props: {
+		/** Base API URL for OR. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Pre-translated dialog title. */
 		dialogTitle: { type: String, default: () => t('nextcloud-vue', 'Link an existing email') },
+		/** Page size for the message list (load-more pagination). */
 		pageSize: { type: Number, default: 50 },
 	},
 
@@ -368,10 +371,25 @@ export default {
 			}
 		},
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		confirm() {
 			if (this.selectedMessageId === null || this.selectedAccountId === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ mailAccountId, messageId, messageUid }`.
+			 */
 			this.$emit('link', {
 				mailAccountId: this.selectedAccountId,
 				messageId: String(this.selectedMessageId),

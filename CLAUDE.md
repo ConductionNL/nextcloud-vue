@@ -27,6 +27,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots. Overridable via `#header` and `#actions` slots.
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+- `CnActionsMenu` — Shared `…` overflow Actions menu (Refresh / Documentation / Request a feature) + auto-mounted CnSuggestFeatureModal. Used by `CnWidgetWrapper` and the page-level headers of `CnDetailPage` / `CnDashboardPage`; configure via `documentation-url` (opens a docs link in a new tab), `show-refresh`, `show-request-feature`.
 
 **Manifest Renderer (JSON-driven app shell)**
 - `CnAppRoot` — Top-level app wrapper. Orchestrates loading → dependency-check → shell phases. Provides `cnManifest`, `cnCustomComponents`, `cnTranslate` to descendants. Slots: `#loading`, `#dependency-missing`, `#menu`, `#header-actions`, `#sidebar`, `#footer` — each independently overridable. Use this when adopting the full manifest pattern; lower tiers (just `useAppManifest`, or `+ CnPageRenderer`, or `+ CnAppNav`) are also supported.

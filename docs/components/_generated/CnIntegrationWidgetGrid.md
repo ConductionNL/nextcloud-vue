@@ -15,6 +15,6 @@ title: CnIntegrationWidgetGrid
 
 ### Slots
 
-| Name    | Bindings | Description |
-| ------- | -------- | ----------- |
-| `empty` | —        |             |
+| Name    | Bindings | Description                                                                                                 |
+| ------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `empty` | —        | empty Custom empty-state content shown when no integrations are visible. Defaults to the `emptyLabel` text. |

@@ -16,5 +16,5 @@
 
 | Name                | Payload | Description                                                                                                                                                                                                   |
 | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `close`             | —       |                                                                                                                                                                                                               |
+| `close`             | —       | Emitted when the dialog should be closed (cancel, close button, or after a submit hand-off).                                                                                                                  |
 | `submit-conduction` | —       | Emitted when the user picks the Conduction (Path B) submission instead of GitHub. Parent must wire the actual intake endpoint; the modal just collects + forwards. Payload mirrors the Issue Form fields 1:1. |

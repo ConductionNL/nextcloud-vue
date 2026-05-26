@@ -32,7 +32,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-analytics-report-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-analytics-report-picker">
 			<NcNoteCard v-if="error" type="error" class="cn-analytics-report-picker__error">
 				{{ error }}
@@ -75,7 +75,7 @@
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -157,6 +157,18 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
 
 		async fetchReports(searchTerm = '') {
 			this.loading = true
@@ -246,6 +258,9 @@ export default {
 			if (this.selectedReportId === null) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ reportId }`.
+			 */
 			this.$emit('link', { reportId: this.selectedReportId })
 		},
 	},

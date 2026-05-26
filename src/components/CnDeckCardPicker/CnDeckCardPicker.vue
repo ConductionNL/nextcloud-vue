@@ -36,7 +36,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-deck-card-picker"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<div class="cn-deck-card-picker">
 			<!-- Step indicator -->
 			<ol class="cn-deck-card-picker__steps">
@@ -122,7 +122,7 @@
 			<NcButton v-if="step > 1" @click="goBack">
 				{{ t('nextcloud-vue', 'Back') }}
 			</NcButton>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -195,6 +195,18 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
 
 		stepClass(step) {
 			return {
@@ -319,6 +331,9 @@ export default {
 			if (!this.selectedCardId) {
 				return
 			}
+			/**
+			 * @event link Emitted when the user confirms the selection. Payload: `{ cardId }`.
+			 */
 			this.$emit('link', { cardId: this.selectedCardId })
 		},
 	},

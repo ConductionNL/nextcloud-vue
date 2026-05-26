@@ -25,7 +25,7 @@
 		size="normal"
 		:can-close="true"
 		data-testid="cn-poll-create"
-		@closing="$emit('close')">
+		@closing="onClose">
 		<form class="cn-poll-create" @submit.prevent="submit">
 			<NcNoteCard v-if="error" type="error" class="cn-poll-create__error">
 				{{ error }}
@@ -105,7 +105,7 @@
 		</form>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton @click="onClose">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
@@ -166,6 +166,18 @@ export default {
 	methods: {
 		t,
 
+		/**
+		 * Dismiss the dialog.
+		 *
+		 * @return {void}
+		 */
+		onClose() {
+			/**
+			 * @event close Emitted when the dialog should be closed (cancel or close button).
+			 */
+			this.$emit('close')
+		},
+
 		optionLabel(index) {
 			return t('nextcloud-vue', 'Option {n}', { n: index + 1 })
 		},
@@ -198,6 +210,9 @@ export default {
 				options: this.options.map(o => (o || '').trim()).filter(o => o !== ''),
 				deadline: this.deadline ? new Date(this.deadline).toISOString() : null,
 			}
+			/**
+			 * @event create Emitted when the user confirms creation. Payload: `{ title, description, type, options, deadline }`.
+			 */
 			this.$emit('create', payload)
 		},
 	},

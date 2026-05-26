@@ -41,6 +41,8 @@
 			:show-add="showAdd"
 			:header-actions="mergedHeaderActions"
 			:show-request-feature="showRequestFeature"
+			:documentation-url="documentationUrl"
+			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
 			@request-feature="onRequestFeatureClick"
@@ -764,6 +766,29 @@ export default {
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
+		},
+		/**
+		 * Documentation link for this list page. When a non-empty URL is
+		 * set, the CnActionsBar overflow renders a "Documentation" entry
+		 * (before Request a feature) that opens the link in a new tab.
+		 * Empty (the default) hides it.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Pre-translated label for the Documentation entry. When left
+		 * empty (the default) the CnActionsBar falls back to its own
+		 * translation of "Documentation".
+		 *
+		 * @type {string}
+		 */
+		documentationLabel: {
+			type: String,
+			default: '',
 		},
 		/** Whether to show the built-in form dialog for Add/Edit */
 		showFormDialog: {

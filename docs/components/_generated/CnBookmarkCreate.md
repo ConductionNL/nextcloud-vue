@@ -8,7 +8,7 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `close`  | —       |             |
-| `create` | —       |             |
+| Name     | Payload | Description                                                                            |
+| -------- | ------- | -------------------------------------------------------------------------------------- |
+| `close`  | —       | Emitted when the dialog should be closed (cancel or close button).                     |
+| `create` | —       | Emitted when the user confirms creation. Payload: `{ title, url, description, tags }`. |

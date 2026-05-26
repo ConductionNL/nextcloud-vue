@@ -86,6 +86,10 @@ Custom action items can be injected into the overflow menu:
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |
 
+## Documentation link
+
+Set `documentationUrl` to add a **Documentation** entry to the overflow menu (just before Request a feature). It renders as a link that opens the URL in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); customise the wording with `documentationLabel`. Empty (the default) hides it. This mirrors the widget Actions menu's Documentation entry. [`CnIndexPage`](./cn-index-page) forwards its own `documentationUrl` / `documentationLabel` props here.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.

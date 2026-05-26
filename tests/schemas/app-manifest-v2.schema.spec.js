@@ -43,8 +43,8 @@ describe('app-manifest-v2.schema.json — positive validation (REQ-MV2S-001)', (
 	})
 })
 
-describe('app-manifest-v2 — all 11 page types (REQ-MV2S-003)', () => {
-	const PAGE_TYPES = ['index', 'detail', 'dashboard', 'logs', 'settings', 'chat', 'files', 'form', 'wiki', 'map', 'custom']
+describe('app-manifest-v2 — all 10 page types (REQ-MV2S-003)', () => {
+	const PAGE_TYPES = ['index', 'detail', 'dashboard', 'logs', 'settings', 'chat', 'files', 'form', 'map', 'custom']
 
 	it('all 11 page types pass validation when _note is provided for custom', () => {
 		const pages = PAGE_TYPES.map((type, i) => {

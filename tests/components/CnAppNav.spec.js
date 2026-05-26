@@ -595,7 +595,7 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
 		})
 
-		it('does NOT mount the foldout when there are no settings items', () => {
+		it('still mounts the foldout (Personal settings only) when there are no settings items', () => {
 			const m = {
 				version: '1.0.0',
 				pages: [],
@@ -605,10 +605,26 @@ describe('CnAppNav', () => {
 				],
 			}
 			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			// New semantics: foldout mounts whenever personal settings is on
+			// (default), so every app shows a Settings gear + Personal settings.
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+		})
+
+		it('fully suppresses the foldout only when no settings items AND includePersonalSettings is false', () => {
+			const m = {
+				version: '1.0.0',
+				nav: { includePersonalSettings: false },
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'Home', route: 'home', order: 1 },
+					{ id: 'docs', label: 'Docs', href: 'https://x', section: 'footer', order: 10 },
+				],
+			}
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
 			expect(wrapper.vm.showSettingsFoldout).toBe(false)
 			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
-			// Footer still renders for the footer-section item.
-			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
 		})
 
 		it('uses nav.settingsLabel override for the foldout label', () => {
@@ -620,6 +636,67 @@ describe('CnAppNav', () => {
 		it('items with no section still default to main', () => {
 			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
 			expect(wrapper.vm.mainItems.every((i) => (i.section ?? 'main') === 'main')).toBe(true)
+		})
+	})
+
+	describe('primary action', () => {
+		const withPrimary = (primaryAction) => ({
+			version: '1.0.0',
+			pages: [],
+			nav: { primaryAction },
+			menu: [{ id: 'a', label: 'app.a', route: 'a', order: 1 }],
+		})
+
+		it('renders an NcAppNavigationNew when nav.primaryAction is declared', () => {
+			const wrapper = mountNav({
+				manifest: withPrimary({ label: 'app.new', icon: 'Plus', route: 'a' }),
+				useProps: true,
+				translate: (k) => k,
+			})
+			const btn = wrapper.find('[data-testid="cn-nav-primary-action"]')
+			expect(btn.exists()).toBe(true)
+			expect(wrapper.vm.primaryAction).toEqual({ label: 'app.new', icon: 'Plus', route: 'a' })
+		})
+
+		it('does not render a primary action when nav.primaryAction is absent', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
+			expect(wrapper.vm.primaryAction).toBeNull()
+		})
+
+		it('the #primary-action slot overrides the manifest field', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' } },
+				slots: { 'primary-action': '<button class="host-primary">Custom</button>' },
+			})
+			expect(wrapper.find('.host-primary').exists()).toBe(true)
+			// The default NcAppNavigationNew fallback is not rendered.
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
+		})
+
+		it('emits primary-action-click and pushes the named route on click', () => {
+			const push = jest.fn()
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
+				mocks: { $route: { name: 'b' }, $router: { push } },
+			})
+			wrapper.vm.onPrimaryActionClick()
+			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
+			expect(push).toHaveBeenCalledWith({ name: 'a' })
+		})
+
+		it('opens an external href in a new tab and does not navigate', () => {
+			const push = jest.fn()
+			const open = jest.spyOn(window, 'open').mockImplementation(() => {})
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.docs', href: 'https://example.test' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' }, $router: { push } },
+			})
+			wrapper.vm.onPrimaryActionClick()
+			expect(open).toHaveBeenCalledWith('https://example.test', '_blank', 'noopener,noreferrer')
+			expect(push).not.toHaveBeenCalled()
+			open.mockRestore()
 		})
 	})
 })
