@@ -228,7 +228,7 @@
 				@update:open="userSettingsOpen = $event">
 				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
 				<slot name="user-settings">
-					<CnNotificationPreferences />
+					<CnNotificationPreferences v-if="userSettingsOpen" />
 				</slot>
 			</NcAppSettingsDialog>
 
