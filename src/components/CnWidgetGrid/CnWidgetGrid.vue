@@ -71,6 +71,15 @@ export default {
 
 	inject: {
 		cnRegistry: { default: () => ({}) },
+		/**
+		 * Object context for a `type:"detail"` page, published by
+		 * `CnPageRenderer` (reactive holder `{ value: { objectData, schema,
+		 * objectType, objectId, register, store } | null }`). Merged UNDER
+		 * each widget's own `props` so detail widgets (`data`, `metadata`,
+		 * `file-manager`, …) receive the loaded object without the manifest
+		 * having to author per-widget props. `null` outside a detail page.
+		 */
+		cnDetailObjectContext: { default: null },
 	},
 
 	props: {
@@ -111,6 +120,28 @@ export default {
 		},
 		effectiveRegistry() {
 			return this.registry ?? this.cnRegistry ?? {}
+		},
+		/**
+		 * Resolved detail-page object context (or `{}`). Read from the
+		 * reactive holder published by `CnPageRenderer`; the `.value`
+		 * indirection lets the grid re-render once the async object load
+		 * resolves. Only the well-known object keys are forwarded to
+		 * widgets — see `resolvedWidgets`.
+		 *
+		 * @return {object}
+		 */
+		detailContextProps() {
+			const ctx = this.cnDetailObjectContext?.value
+			if (!ctx || typeof ctx !== 'object') {
+				return {}
+			}
+			const out = {}
+			for (const key of ['objectData', 'schema', 'objectType', 'objectId', 'register', 'store']) {
+				if (ctx[key] !== undefined) {
+					out[key] = ctx[key]
+				}
+			}
+			return out
 		},
 		containerStyle() {
 			return {
@@ -163,7 +194,9 @@ export default {
 				result.push({
 					widgetKey: key,
 					component,
-					props: widget.props ?? {},
+					// Detail-page object context first, the manifest's
+					// per-widget `props` last so explicit props always win.
+					props: { ...this.detailContextProps, ...(widget.props ?? {}) },
 					gridX: typeof widget.gridX === 'number' ? widget.gridX : 0,
 					gridY: typeof widget.gridY === 'number' ? widget.gridY : 0,
 					gridWidth,

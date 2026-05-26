@@ -205,6 +205,36 @@ For per-tab content on the built-in `CnObjectSidebar` (Files / Notes / Tags / Ta
 
 The renderer mounts the resolved registry components inside the dispatched page component's scoped slots — so the page component receives them under its standard `#header` / `#footer` names with whatever scope it provides.
 
+## Detail-page object loading
+
+For a `type:"detail"` page, the renderer **loads the object** the page is
+about and publishes it to descendant widgets — so the body/sidebar
+widgets (`data`, `metadata`, `file-manager`, …) render the object with
+no per-widget `props`.
+
+It resolves `{ register, schema, objectId }` from the page `config`
+(`register`, `schema`, and `idParam` — typically a `@route.*` sentinel
+like `"@route.id"`, falling back to the `:objectId` / `:id` route param),
+registers the `${register}-${schema}` object type, fetches the object +
+schema via `useObjectStore`, and exposes them on the `cnDetailObjectContext`
+inject (a reactive `{ value }` holder). [CnWidgetGrid](./cn-widget-grid.md)
+merges that context under each widget's props. The load is defensive (a
+Pinia-less harness or a failed fetch leaves the context null and the page
+still mounts) and re-runs when the register/schema/objectId triple changes.
+
+```json
+{
+  "id": "PublicationDetail",
+  "route": "/publications/:catalogSlug/:id",
+  "type": "detail",
+  "config": { "register": "publication", "schema": "publication", "idParam": "@route.id" },
+  "widgets": [
+    { "widgetKey": "data", "slot": "body", "gridWidth": 8, "gridHeight": 4 },
+    { "widgetKey": "metadata", "slot": "sidebar", "gridWidth": 1, "gridHeight": 2 }
+  ]
+}
+```
+
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — Provides manifest / customComponents / pageTypes via inject.

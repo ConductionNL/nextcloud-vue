@@ -18,9 +18,20 @@ import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
 import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
+import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 
 /**
  * Built-in widget registry.
+ *
+ * The `data` and `metadata` keys are the canonical object-detail widgets:
+ * a manifest `type:"detail"` page that places `widgetKey:"data"` /
+ * `widgetKey:"metadata"` gets the object's editable property grid /
+ * read-only `@self` metadata respectively. Both need the loaded object —
+ * `CnPageRenderer` loads it for the detail page and `CnWidgetGrid` merges
+ * `{ objectData, schema, objectType, objectId, register, store }` into each
+ * widget's props (see CnWidgetGrid.resolvedWidgets), so the manifest entry
+ * needs no per-widget `props`.
  *
  * @type {Record<string, import('vue').Component>}
  */
@@ -29,4 +40,6 @@ export const BUILT_IN_WIDGETS = {
 	'form-renderer': CnWidgetFormRenderer,
 	'map-viewer': CnWidgetMapViewer,
 	'card-grid': CnWidgetCardGrid,
+	data: CnObjectDataWidget,
+	metadata: CnObjectMetadataWidget,
 }

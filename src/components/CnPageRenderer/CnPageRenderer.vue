@@ -205,6 +205,10 @@ export default {
 		return {
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
+			// Loaded object for a type:"detail" page (reactive holder). See
+			// data().detailObjectContext. Descendant CnWidgetGrid reads this
+			// to feed `objectData` / `schema` / `objectType` to detail widgets.
+			cnDetailObjectContext: this.detailObjectContext,
 			/**
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
@@ -287,6 +291,16 @@ export default {
 		return {
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
+			// Reactive holder for the loaded object of a `type:"detail"`
+			// page. `null` until the async load resolves (and on non-detail
+			// pages). Shape when populated:
+			// `{ objectData, schema, objectType, objectId, register, store }`.
+			// Published via provide() as `cnDetailObjectContext` and read by
+			// descendant CnWidgetGrid instances, which merge it into each
+			// body/sidebar widget's props so `data` / `metadata` /
+			// `file-manager` widgets receive the object with no per-widget
+			// manifest props.
+			detailObjectContext: { value: null },
 		}
 	},
 
@@ -522,6 +536,39 @@ export default {
 			return { ...topLevel, ...normalizedConfig, ...params }
 		},
 		/**
+		 * Resolved `{ register, schema, objectId, slug }` for a
+		 * `type:"detail"` page, or `null` for any other page (or when the
+		 * triple is incomplete). `objectId` comes from the resolved
+		 * `config.idParam` (a `@route.*` sentinel like `"@route.id"`),
+		 * falling back to `config.objectId`, the `:objectId` route param,
+		 * then the `:id` route param. `slug` is the `${register}-${schema}`
+		 * object-type key registered in the store (matches the convention
+		 * used by `autoRegisterCustomTypes` and CnIndexPage self-fetch).
+		 *
+		 * Drives `loadDetailObject` (watched below). Kept separate from
+		 * `resolvedProps` so the (potentially async) object load only runs
+		 * for detail pages and only re-runs when the triple changes.
+		 *
+		 * @return {{register: string, schema: string, objectId: string, slug: string}|null}
+		 */
+		detailLoadContext() {
+			const page = this.currentPage
+			if (!page || page.type !== 'detail') {
+				return null
+			}
+			const params = { ...(this.$route?.params ?? {}) }
+			const config = resolveRouteSentinels(page.config ?? {}, params, page.id ?? '<unknown>')
+			const register = config.register
+			const schema = config.schema
+			const objectId = config.idParam || config.objectId || params.objectId || params.id
+			if (typeof register !== 'string' || register.length === 0
+				|| typeof schema !== 'string' || schema.length === 0
+				|| typeof objectId !== 'string' || objectId.length === 0) {
+				return null
+			}
+			return { register, schema, objectId, slug: `${register}-${schema}` }
+		},
+		/**
 		 * Combined slot-override map for the dispatched page component.
 		 * Sources:
 		 *   1. `page.slots` — generic { slotName: registryName } map.
@@ -671,6 +718,21 @@ export default {
 				this.pageSidebarComponent.value = component
 			},
 		},
+		/**
+		 * Load (and reload on change) the object backing a `type:"detail"`
+		 * page so its body/sidebar widgets can render it. Runs
+		 * `immediate: true` so the first paint kicks the fetch; re-runs
+		 * whenever the register/schema/objectId triple changes (e.g.
+		 * navigating between two detail routes on the same renderer).
+		 * Clears the context on non-detail pages.
+		 */
+		detailLoadContext: {
+			immediate: true,
+			deep: true,
+			handler() {
+				this.loadDetailObject()
+			},
+		},
 	},
 
 	created() {
@@ -689,6 +751,100 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Load the object + schema backing a `type:"detail"` page and
+		 * publish them on the reactive `detailObjectContext` holder so
+		 * descendant CnWidgetGrid instances can feed `objectData` /
+		 * `schema` / `objectType` to the body/sidebar widgets.
+		 *
+		 * Steps (all defensive — a Pinia-less test harness, a missing
+		 * store method, or a failed fetch each degrade to leaving the
+		 * context null, so the page still mounts):
+		 *   1. Resolve `detailLoadContext` (null → clear + return).
+		 *   2. Register the `${register}-${schema}` object type (idempotent).
+		 *   3. Fetch schema + object in parallel.
+		 *   4. Publish `{ objectData, schema, objectType, objectId,
+		 *      register, store }`.
+		 *
+		 * The holder is published immediately with the known ids (and a
+		 * null objectData/schema) so widgets that only need objectId /
+		 * register (e.g. file-manager) render without waiting for the
+		 * object body; objectData/schema are filled in when the fetch
+		 * resolves.
+		 */
+		async loadDetailObject() {
+			const ctx = this.detailLoadContext
+			if (!ctx) {
+				this.detailObjectContext.value = null
+				return
+			}
+
+			let store = null
+			try {
+				store = useObjectStore()
+			} catch (err) {
+				// Pinia not installed (unit tests). Publish the ids so
+				// id-only widgets still work; skip the object fetch.
+				this.detailObjectContext.value = {
+					objectData: null,
+					schema: null,
+					objectType: ctx.slug,
+					objectId: ctx.objectId,
+					register: ctx.register,
+					store: null,
+				}
+				return
+			}
+
+			// Register the object type (idempotent — registerObjectType
+			// replaces the entry each call).
+			try {
+				if (typeof store.registerObjectType === 'function') {
+					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] Failed to register object type "${ctx.slug}" for detail page "${this.currentPage?.id}":`, err)
+			}
+
+			// Publish ids immediately (objectData/schema fill in on fetch).
+			this.detailObjectContext.value = {
+				objectData: store.getObject?.(ctx.slug, ctx.objectId) ?? null,
+				schema: store.getSchema?.(ctx.slug) ?? null,
+				objectType: ctx.slug,
+				objectId: ctx.objectId,
+				register: ctx.register,
+				store,
+			}
+
+			// Fetch schema + object; tolerate either failing.
+			const tasks = []
+			if (typeof store.fetchSchema === 'function') {
+				tasks.push(store.fetchSchema(ctx.slug).catch(() => null))
+			} else {
+				tasks.push(Promise.resolve(null))
+			}
+			if (typeof store.fetchObject === 'function') {
+				tasks.push(store.fetchObject(ctx.slug, ctx.objectId).catch(() => null))
+			} else {
+				tasks.push(Promise.resolve(null))
+			}
+			const [schema, objectData] = await Promise.all(tasks)
+
+			// Guard against a race: only publish if the context still
+			// matches (the user may have navigated away mid-fetch).
+			if (this.detailLoadContext?.objectId !== ctx.objectId) {
+				return
+			}
+			this.detailObjectContext.value = {
+				objectData: objectData ?? store.getObject?.(ctx.slug, ctx.objectId) ?? null,
+				schema: schema ?? store.getSchema?.(ctx.slug) ?? null,
+				objectType: ctx.slug,
+				objectId: ctx.objectId,
+				register: ctx.register,
+				store,
+			}
+		},
 		/**
 		 * Auto-register object types declared on the current
 		 * `type:"custom"` page's `config`. No-op for any other page

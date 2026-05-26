@@ -51,11 +51,23 @@ the number of columns is determined by the slot name:
 Each entry's `widgetKey` is looked up in this order:
 
 1. Built-in registry (`BUILT_IN_WIDGETS`) — covers `object-table`,
-   `form-renderer`, `map-viewer`, `card-grid`, etc.
+   `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`.
 2. The consumer registry injected via `cnRegistry`.
 
 Unknown widget keys are skipped with a `console.warn` so a stale
 manifest doesn't blow up rendering of the rest of the slot.
+
+## Detail-page object context
+
+On a `type:"detail"` page, `CnPageRenderer` loads the page's object and
+publishes it via the `cnDetailObjectContext` inject (a reactive
+`{ value: { objectData, schema, objectType, objectId, register, store } }`
+holder). `CnWidgetGrid` merges those fields **under** each widget's own
+`props`, so object-detail widgets — `data` (`CnObjectDataWidget`),
+`metadata` (`CnObjectMetadataWidget`), `file-manager`, … — receive the
+loaded object **without the manifest authoring any per-widget `props`**.
+Explicit `widget.props` still win on key collision, and the context is
+ignored outside a detail page (the holder's `value` is `null`).
 
 ## Spec
 
