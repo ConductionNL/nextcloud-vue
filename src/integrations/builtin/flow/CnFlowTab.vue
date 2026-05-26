@@ -53,11 +53,11 @@
 			{{ error }}
 		</div>
 		<div v-else-if="operations.length === 0" class="cn-sidebar-tab__empty cn-flow-tab__empty">
-			<RobotOutline :size="32" class="cn-flow-tab__empty-icon" />
+			<SitemapOutline :size="32" class="cn-flow-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
 			<NcButton type="primary" @click="openFlowSettings">
 				<template #icon>
-					<RobotOutline :size="20" />
+					<SitemapOutline :size="20" />
 				</template>
 				{{ openSettingsLabel }}
 			</NcButton>
@@ -75,7 +75,7 @@
 				:force-display-actions="isAdmin">
 				<template #icon>
 					<span class="cn-flow-tab__avatar" :class="enabledClass(op)" :aria-hidden="true">
-						<RobotOutline :size="20" />
+						<SitemapOutline :size="20" />
 					</span>
 				</template>
 				<template #subname>
@@ -132,7 +132,7 @@ import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
+import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders } from '../../../utils/index.js'
@@ -146,7 +146,7 @@ import { buildHeaders } from '../../../utils/index.js'
 export default {
 	name: 'CnFlowTab',
 
-	components: { NcActionButton, NcButton, NcListItem, NcLoadingIcon, AlertCircleOutline, Close, Plus, RobotOutline, CnFlowOperationPicker, CnStatusBadge },
+	components: { NcActionButton, NcButton, NcListItem, NcLoadingIcon, AlertCircleOutline, Close, Plus, SitemapOutline, CnFlowOperationPicker, CnStatusBadge },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'flow'`). */

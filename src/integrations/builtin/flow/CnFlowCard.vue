@@ -27,7 +27,7 @@
 		<!-- single-entity surface: chip -->
 		<template v-else-if="surface === 'single-entity'">
 			<span v-if="entity" class="cn-flow-card__chip" :title="chipSubtitle(entity)">
-				<RobotOutline :size="14" />
+				<SitemapOutline :size="14" />
 				<a
 					:href="opUrl(entity)"
 					target="_blank"
@@ -52,7 +52,7 @@
 					<strong>{{ countHeadline }}</strong>
 				</div>
 				<div v-if="mostRecent" class="cn-flow-card__headline-recent">
-					<RobotOutline :size="14" />
+					<SitemapOutline :size="14" />
 					<a
 						:href="opUrl(mostRecent)"
 						target="_blank"
@@ -81,7 +81,7 @@
 					class="cn-flow-card__row"
 					:class="{ 'cn-flow-card__row--disabled': isDisabled(op) }">
 					<div class="cn-flow-card__row-header">
-						<RobotOutline :size="16" class="cn-flow-card__row-icon" />
+						<SitemapOutline :size="16" class="cn-flow-card__row-icon" />
 						<a
 							:href="opUrl(op)"
 							target="_blank"
@@ -102,7 +102,7 @@
 <script>
 import { translate as t, translatePlural as n } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import RobotOutline from 'vue-material-design-icons/RobotOutline.vue'
+import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../../utils/index.js'
 
@@ -118,7 +118,7 @@ const COMPACT_LIMIT = 5
 export default {
 	name: 'CnFlowCard',
 
-	components: { CnDetailCard, NcLoadingIcon, RobotOutline },
+	components: { CnDetailCard, NcLoadingIcon, SitemapOutline },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'flow'`). */
@@ -140,7 +140,7 @@ export default {
 		/** Pre-translated card title. */
 		title: { type: String, default: () => t('nextcloud-vue', 'Automation') },
 		/** Optional Material Design Icon component. */
-		icon: { type: Object, default: () => RobotOutline },
+		icon: { type: Object, default: () => SitemapOutline },
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Whether the card body is collapsible. */

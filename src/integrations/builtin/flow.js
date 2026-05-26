@@ -43,7 +43,7 @@ export const flowIntegration = {
 	id: 'flow',
 	label: t('nextcloud-vue', 'Flow'),
 	appName: t('nextcloud-vue', 'Flow'),
-	icon: 'RobotOutline',
+	icon: 'SitemapOutline',
 	accentColor: '#0082c9',
 	requiredApp: 'workflowengine',
 	order: 64,
