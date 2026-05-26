@@ -287,14 +287,14 @@ export default {
 		 * Schema columns take precedence when schema is provided and no manual columns given.
 		 */
 		effectiveColumns() {
-			if (this.schema && this.columns.length === 0) {
-				return columnsFromSchema(this.schema, {
+			const cols = (this.schema && this.columns.length === 0)
+				? columnsFromSchema(this.schema, {
 					exclude: this.excludeColumns,
 					include: this.includeColumns,
 					overrides: this.columnOverrides,
 				})
-			}
-			return this.columns
+				: this.columns
+			return (cols || []).map((c) => (typeof c === 'string' ? { key: c, label: c } : c))
 		},
 
 		totalColumns() {
