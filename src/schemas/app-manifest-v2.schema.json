@@ -401,6 +401,10 @@
 				"handler": {
 					"type": "string",
 					"description": "Registry key for type: 'handler'. Resolved against the customComponents map passed to CnAppRoot."
+				},
+				"icon": {
+					"type": "string",
+					"description": "Optional icon for the action, rendered by CnActionsBar. Either an MDI icon name (e.g. 'TextBoxOutline') or a CSS icon class (e.g. 'icon-file')."
 				}
 			}
 		},
