@@ -162,10 +162,19 @@ const baseActions = {
 	 * Call once before using the store if you need a custom base URL.
 	 *
 	 * @param {object} options Configuration options
-	 * @param {string} [options.baseUrl] Custom base URL for API calls
+	 * @param {string} [options.baseUrl] Custom base URL for API calls.
+	 *   The URL is normalized through `prefixUrl()` so it works correctly
+	 *   on both pretty-URL and `/index.php`-routed Nextcloud instances.
+	 *   (Without normalization, a runtime `configure({ baseUrl })` call
+	 *   silently breaks on instances where the admin has disabled
+	 *   htaccess URL rewriting.)
 	 */
 	configure(options) {
-		Object.assign(this._options, options)
+		const normalized = { ...options }
+		if (normalized.baseUrl) {
+			normalized.baseUrl = prefixUrl(normalized.baseUrl)
+		}
+		Object.assign(this._options, normalized)
 	},
 
 	/**
@@ -529,6 +538,28 @@ const baseActions = {
 			this.objects = {
 				...this.objects,
 				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+
+			// Keep collections in sync so list-view components that bind
+			// getCollection() reflect the change without a full re-fetch.
+			// Mirrors the deleteObject pattern (lines below) but in reverse:
+			//   - update: replace the existing entry in-place by id.
+			//   - create: append to the end of the array.
+			if (this.collections[type]) {
+				const existing = this.collections[type]
+				const idx = existing.findIndex((obj) => obj.id === savedId)
+				if (idx !== -1) {
+					// In-place update — replace the stale entry
+					const updated = [...existing]
+					updated[idx] = data
+					this.collections = { ...this.collections, [type]: updated }
+				} else {
+					// New object — append to the collection
+					this.collections = {
+						...this.collections,
+						[type]: [...existing, data],
+					}
+				}
 			}
 
 			return data
