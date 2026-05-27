@@ -296,6 +296,49 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.resolvedComponent).toBe(LegacyStub)
 			expect(wrapper.vm.resolvedComponent).not.toBe(WidgetEntry)
 		})
+
+		it('resolves non-page registry kinds (widget/section/actions) for slot-override names', () => {
+			// Slot overrides (page.slots, page.actionsComponent,
+			// page.config.sections[].component) are kind-agnostic — any
+			// registry entry with a `component` field wins. This lets
+			// consumers fully migrate off customComponents by parking
+			// dashboard widgets / settings sections / action menus in
+			// `registry.js` with semantic kinds (widget/section/actions).
+			const WidgetStub = { name: 'WidgetStub', template: '<div data-stub="widget" />' }
+			const ActionsStub = { name: 'ActionsStub', template: '<div data-stub="actions" />' }
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [
+					{
+						id: 'dash',
+						route: '/dash',
+						type: 'custom',
+						title: 'Dashboard',
+						component: 'DashboardPage',
+						actionsComponent: 'DashboardActions',
+					},
+				],
+			}
+			const DashboardPage = { name: 'DashboardPage', template: '<div data-stub="page" />' }
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: manifest,
+					cnRegistry: {
+						DashboardPage: { kind: 'page', component: DashboardPage },
+						DashboardActions: { kind: 'actions', component: ActionsStub },
+						SomeWidget: { kind: 'widget', component: WidgetStub },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'dash' } },
+			})
+			// page dispatch still uses kind:"page" (DashboardPage).
+			expect(wrapper.vm.resolvedComponent).toBe(DashboardPage)
+			// actionsComponent slot resolves kind:"actions" — kind-agnostic.
+			expect(wrapper.vm.actionsOverride).toBe(ActionsStub)
+		})
 	})
 
 	describe('config forwarding', () => {

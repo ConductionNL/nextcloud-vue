@@ -6,10 +6,15 @@ Page types are resolved via the `pageTypes` registry. The library ships a built-
 
 The renderer resolves custom-component names in this order (ADR-036):
 
-1. **`registry` prop** / `cnRegistry` inject — the v2 kind-tagged registry. An entry with `{ kind: "page", component }` matching the name wins.
+1. **`registry` prop** / `cnRegistry` inject — the v2 kind-tagged registry. An entry matching the name wins.
 2. **`customComponents` prop** / `cnCustomComponents` inject — the legacy flat `{ name: Component }` map.
 
-Both can co-exist while consumers migrate; pass either. The legacy map is the deprecated source per ADR-036, kept as a backward-compat fallback. The v2 registry's non-page entries (`widget`, `modal`, `form-field`, `cell-renderer`) are never used for page dispatch — only `kind: "page"` shadows the legacy map.
+Both can co-exist while consumers migrate; pass either. The legacy map is the deprecated source per ADR-036, kept as a backward-compat fallback.
+
+The discriminator on registry lookups depends on the resolution site:
+
+- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map.
+- **Slot overrides** (`page.slots[*]`, `page.headerComponent`, `page.actionsComponent`, `page.config.sections[*].component`) are kind-agnostic — any registry entry with a `component` field resolves, so consumers can fully migrate off `customComponents` by parking dashboard widgets / settings sections / action menus in `registry.js` with semantic kinds (`widget` / `section` / `actions`).
 
 Each entry in `pageTypes` is wrapped in `defineAsyncComponent`, so apps using only a subset pay no bundle cost for the others (notably the GridStack-backed `dashboard`).
 
