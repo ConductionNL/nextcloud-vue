@@ -283,9 +283,15 @@ export default {
 		// Integration registry: on by default via the `useRegistry`
 		// prop (ADR-019). We always wire the composable up so consumers
 		// can toggle `useRegistry` reactively without a remount.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+		const { integrations: registryIntegrations, resolveWidget, resolveTab } = useIntegrationRegistry()
 		exposed.registryIntegrations = registryIntegrations
 		exposed.resolveRegistryWidget = resolveWidget
+		// `resolveTab` is local-first (LIB_INTEGRATION_COMPONENTS) so the
+		// dispatched sidebar tab component is bound to this rendering
+		// bundle's Vue — sidesteps the dual-runtime ADR-019 trap that
+		// surfaced as `useNcFormBox(...)` undefined on cross-bundle
+		// registrations. See openregister#1958.
+		exposed.resolveRegistryTabComponent = resolveTab
 
 		// Auto-subscribe to live updates for the active object. No-op
 		// when `objectStore` is null (no Pinia active) or when the
@@ -548,19 +554,25 @@ export default {
 		},
 
 		/**
-		 * Resolve a registry provider's tab component. Returns the
-		 * registered `tab` Vue component, or null when the provider is
-		 * malformed (the parity gate normally prevents this, but
-		 * third-party registrations might slip through).
+		 * Resolve a registry provider's tab component, preferring the
+		 * LOCAL lib-owned component (rendering-bundle Vue) over the
+		 * shared registry's stored object. Falls back to the stored
+		 * `provider.tab` for consumer-custom ids (which live in the
+		 * consumer's own bundle and therefore render under the same
+		 * Vue instance with no mismatch). See openregister#1958.
 		 *
 		 * @param {object} provider Normalised registry entry.
 		 * @return {object|null} Vue component, or null.
 		 */
 		resolveRegistryTab(provider) {
-			if (provider && provider.tab) {
-				return provider.tab
+			if (!provider || typeof provider.id !== 'string') {
+				return null
 			}
-			return null
+			const local = this.resolveRegistryTabComponent(provider.id)
+			if (local) {
+				return local
+			}
+			return provider.tab || null
 		},
 
 		/**

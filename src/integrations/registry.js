@@ -133,6 +133,14 @@ export function createIntegrationRegistry() {
 			docsUrl: typeof entry.docsUrl === 'string' && entry.docsUrl !== ''
 				? entry.docsUrl
 				: `https://openregister.conduction.nl/docs/Integrations/${entry.id}/`,
+			// Marker set by `registerBuiltinIntegrations` /
+			// `registerLeafIntegrations` so `useIntegrationRegistry` can
+			// distinguish lib-owned registrations (whose components must
+			// resolve locally per render-bundle to avoid the ADR-019
+			// cross-Vue trap, openregister#1958) from consumer-custom
+			// registrations (whose components live in the consumer's own
+			// bundle and must NOT be swapped).
+			__libOwned: entry.__libOwned === true,
 		}
 		providers.set(entry.id, normalised)
 		notify()

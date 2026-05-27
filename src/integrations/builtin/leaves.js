@@ -113,7 +113,8 @@ export function registerLeafIntegrations(registry) {
 		if (target.has(descriptor.id) === true) {
 			continue
 		}
-		const result = target.register(descriptor)
+		// Mark as lib-owned (see openregister#1958 / registerBuiltinIntegrations).
+		const result = target.register({ ...descriptor, __libOwned: true })
 		if (result !== null) {
 			registered.push(descriptor.id)
 		}

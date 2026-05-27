@@ -113,7 +113,12 @@ export function registerBuiltinIntegrations(registry) {
 		if (target.has(descriptor.id) === true) {
 			continue
 		}
-		const result = target.register(descriptor)
+		// Mark as lib-owned so useIntegrationRegistry's resolveTab /
+		// resolveWidget can swap to the rendering bundle's LOCAL
+		// component for these ids (avoiding the ADR-019 dual-Vue trap —
+		// see openregister#1958). Consumer-custom registrations omit the
+		// marker and continue to resolve via their stored component.
+		const result = target.register({ ...descriptor, __libOwned: true })
 		if (result !== null) {
 			registered.push(descriptor.id)
 		}
