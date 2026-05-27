@@ -150,3 +150,4 @@ export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, va
 export { validateManifest } from './utils/validateManifest.js'
 export { clearResolveCache, resolveManifestSentinels } from './utils/resolveManifestSentinels.js'
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'
+export { safeHref, safeSvgPath } from './utils/index.js'

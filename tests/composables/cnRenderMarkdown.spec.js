@@ -2,7 +2,8 @@
  * Tests for cnRenderMarkdown.
  *
  * Covers REQ-MWPT (manifest-wiki-page-type) — wraps `marked.parse()`
- * with a defensive shim that returns `''` for null / non-string input.
+ * with a defensive shim that returns `''` for null / non-string input,
+ * and passes all output through DOMPurify to prevent XSS.
  */
 
 import { cnRenderMarkdown } from '@/composables/cnRenderMarkdown.js'
@@ -61,5 +62,32 @@ describe('cnRenderMarkdown', () => {
 
 	it('returns empty string for empty string', () => {
 		expect(cnRenderMarkdown('')).toBe('')
+	})
+
+	// ── XSS / DOMPurify sanitisation ──────────────────────────────────────
+
+	it('strips onerror event handler from img tag (XSS #460)', () => {
+		// A user pasting this into a CnMarkdownEditor preview pane must NOT
+		// produce an executable onerror attribute in the rendered HTML.
+		const html = cnRenderMarkdown('<img src=x onerror=alert(document.cookie)>')
+		expect(html).not.toContain('onerror')
+		expect(html).not.toContain('alert')
+	})
+
+	it('strips javascript: href (XSS)', () => {
+		const html = cnRenderMarkdown('[click](javascript:alert(1))')
+		expect(html).not.toContain('javascript:')
+	})
+
+	it('strips script tags (XSS)', () => {
+		const html = cnRenderMarkdown('<script>alert(1)</script>')
+		expect(html).not.toContain('<script>')
+		expect(html).not.toContain('alert(1)')
+	})
+
+	it('preserves safe inline elements after sanitisation', () => {
+		const html = cnRenderMarkdown('**bold** and _italic_')
+		expect(html).toContain('<strong>bold</strong>')
+		expect(html).toContain('<em>italic</em>')
 	})
 })
