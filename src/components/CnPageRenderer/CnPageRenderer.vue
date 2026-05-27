@@ -387,6 +387,17 @@ export default {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
 		/**
+		 * Effective v2 component registry. Provided by CnAppRoot via the
+		 * `registry` prop (kind-tagged entries: `widget`, `modal`, `page`,
+		 * `form-field`, `cell-renderer`). Empty when consumers haven't
+		 * migrated off the legacy `customComponents` prop yet. ADR-036.
+		 *
+		 * @return {object}
+		 */
+		effectiveRegistry() {
+			return this.cnRegistry ?? {}
+		},
+		/**
 		 * Effective page-type registry. Prop wins over inject; both
 		 * fall back to the library's `defaultPageTypes`. Apps that want
 		 * the library defaults plus extras typically construct the prop
@@ -425,7 +436,7 @@ export default {
 			}
 			if (page.type === 'custom') {
 				const name = page.component
-				const resolved = this.effectiveCustomComponents[name]
+				const resolved = this.resolveCustomComponent(name)
 				if (!resolved) {
 					// eslint-disable-next-line no-console
 					console.warn(
@@ -628,11 +639,11 @@ export default {
 				return null
 			}
 			const name = page.sidebarComponent
-			const resolved = this.effectiveCustomComponents[name]
+			const resolved = this.resolveCustomComponent(name)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(
-					`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in customComponents registry.`,
+					`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`,
 				)
 				return null
 			}
@@ -751,6 +762,44 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a custom-component reference (page.component,
+		 * page.headerComponent, page.actionsComponent, page.sidebarComponent,
+		 * etc.) by name. Source precedence (ADR-036):
+		 *
+		 *   1. The v2 `registry` prop's `kind: "page"` entries (when present).
+		 *      Each entry's `component` field is the Vue component to render.
+		 *   2. Legacy `customComponents` map (`{ name: Component }`). Used
+		 *      until consumers complete the registry migration.
+		 *
+		 * Returns `null` when neither source has the name.
+		 *
+		 * @param {string} name The component name referenced by the manifest.
+		 *
+		 * @return {object|null} The resolved Vue component, or null.
+		 */
+		resolveCustomComponent(name) {
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
+
+			const registryEntry = this.effectiveRegistry[name]
+			if (registryEntry !== undefined
+				&& registryEntry !== null
+				&& registryEntry.kind === 'page'
+				&& registryEntry.component
+			) {
+				return registryEntry.component
+			}
+
+			const legacy = this.effectiveCustomComponents[name]
+			if (legacy) {
+				return legacy
+			}
+
+			return null
+		},
+
 		/**
 		 * Load the object + schema backing a `type:"detail"` page and
 		 * publish them on the reactive `detailObjectContext` holder so
@@ -961,7 +1010,7 @@ export default {
 		 * @return {object|null}
 		 */
 		resolveRegistryName(registryName, slotName) {
-			const resolved = this.effectiveCustomComponents[registryName]
+			const resolved = this.resolveCustomComponent(registryName)
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(

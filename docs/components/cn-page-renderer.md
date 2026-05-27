@@ -2,7 +2,14 @@
 
 JSON-driven page dispatcher. Mounted inside `<router-view>`, CnPageRenderer reads the manifest, finds the page definition whose `id` matches the current route name (`$route.name === page.id`), and renders the appropriate component by dispatching on `page.type`.
 
-Page types are resolved via the `pageTypes` registry. The library ships a built-in registry ([`defaultPageTypes`](../utilities/default-page-types.md) — `index`, `detail`, `dashboard`) and consumers extend it by passing a merged map. The `custom` type is special: it resolves `page.component` against the `customComponents` registry rather than `pageTypes`.
+Page types are resolved via the `pageTypes` registry. The library ships a built-in registry ([`defaultPageTypes`](../utilities/default-page-types.md) — `index`, `detail`, `dashboard`) and consumers extend it by passing a merged map. The `custom` type is special: it resolves `page.component` (and `page.sidebarComponent` / slot-override names) against a custom-component registry rather than `pageTypes`.
+
+The renderer resolves custom-component names in this order (ADR-036):
+
+1. **`registry` prop** / `cnRegistry` inject — the v2 kind-tagged registry. An entry with `{ kind: "page", component }` matching the name wins.
+2. **`customComponents` prop** / `cnCustomComponents` inject — the legacy flat `{ name: Component }` map.
+
+Both can co-exist while consumers migrate; pass either. The legacy map is the deprecated source per ADR-036, kept as a backward-compat fallback. The v2 registry's non-page entries (`widget`, `modal`, `form-field`, `cell-renderer`) are never used for page dispatch — only `kind: "page"` shadows the legacy map.
 
 Each entry in `pageTypes` is wrapped in `defineAsyncComponent`, so apps using only a subset pay no bundle cost for the others (notably the GridStack-backed `dashboard`).
 
