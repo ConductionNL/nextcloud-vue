@@ -65,12 +65,19 @@ try {
 /**
  * Compute a stable cache key for dedup of fetchCollection calls.
  *
+ * Keys are built with sorted JSON so that two semantically-identical
+ * parameter objects with different key-insertion order produce the same
+ * cache key and are correctly deduplicated. Without sorting,
+ * `{ type: 'case', register: '1' }` and `{ register: '1', type: 'case' }`
+ * would yield different strings and trigger duplicate live-update
+ * subscriptions (#466).
+ *
  * @param {string} type Object type slug
  * @param {object} params Query params
  * @return {string}
  */
 function collectionDedupKey(type, params) {
-	return `${type}:${JSON.stringify(params)}`
+	return `${type}:${JSON.stringify(params, Object.keys(params).sort())}`
 }
 
 /**
@@ -160,8 +167,13 @@ export function liveUpdatesPlugin(opts = {}) {
 				if (!this.__liveStatusObserverRegistered) {
 					this.__liveStatusObserverRegistered = true
 					liveUpdates.onStatusChange((newStatus) => {
-						this.liveStatus = { ...this.liveStatus, valueOf: undefined, toString: undefined }
-						// Vue 2 spread pattern for primitive reactive update
+						// Direct assignment — `liveStatus` is a Pinia reactive
+						// state property whose setter is installed by Vue.set()
+						// at store init, so the assignment triggers reactivity.
+						// The prior spread `{ ...this.liveStatus, valueOf: ... }`
+						// was dead code: spreading a primitive string yields a
+						// char-index map ({0:'o', 1:'f', ...}) which was
+						// immediately overwritten anyway (#465).
 						this.liveStatus = newStatus
 					})
 				}

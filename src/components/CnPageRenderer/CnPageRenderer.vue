@@ -32,9 +32,21 @@
 		:data-testid-page-id="currentPage.id"
 		class="cn-page-renderer"
 		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		<!-- Permission guard: when the page declares a permission and the
+		     current user lacks it, render a 403 empty-content instead of
+		     mounting the page component. This is defence-in-depth — the
+		     backend MUST still enforce authorization independently.
+		     When `permissions` is omitted (undefined / empty array), the
+		     check is bypassed so existing apps that don't pass this prop
+		     are unaffected. -->
+		<NcEmptyContent
+			v-if="isPermissionDenied"
+			:name="t('nextcloud-vue', 'Access denied')"
+			:description="t('nextcloud-vue', 'You do not have permission to view this page.')"
+			data-testid="cn-page-403" />
 		<component
 			:is="resolvedComponent"
-			v-if="resolvedComponent"
+			v-else-if="resolvedComponent"
 			v-bind="resolvedProps">
 			<template
 				v-for="entry in resolvedSlotEntries"
@@ -49,6 +61,8 @@
 </template>
 
 <script>
+import { NcEmptyContent } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
 import { defaultPageTypes } from './pageTypes.js'
 
 /**
@@ -71,6 +85,8 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 
 export default {
 	name: 'CnPageRenderer',
+
+	components: { NcEmptyContent },
 
 	inject: {
 		cnManifest: { default: null },
@@ -161,6 +177,30 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * List of permission strings the current user holds.
+		 *
+		 * When provided, CnPageRenderer checks the active page's
+		 * `permission` field against this list before mounting the page
+		 * component. If the user lacks the required permission a 403
+		 * `NcEmptyContent` is rendered instead — defence-in-depth
+		 * complementing CnAppNav's menu filter.
+		 *
+		 * **Important:** This is a client-side presentation guard only.
+		 * Backend endpoints MUST enforce authorization independently.
+		 * Do not rely on this guard as the sole ACL check.
+		 *
+		 * When omitted (default `undefined`) or passed as an empty array,
+		 * the check is bypassed and all pages are accessible — existing
+		 * apps that do not pass this prop are unaffected.
+		 *
+		 * @type {Array<string>|undefined}
+		 */
+		permissions: {
+			type: Array,
+			default: undefined,
+		},
 	},
 
 	data() {
@@ -184,6 +224,30 @@ export default {
 		 */
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
+		},
+
+		/**
+		 * True when the active page declares a `permission` AND the
+		 * `permissions` prop is provided AND the user's permission list
+		 * does not include the required permission.
+		 *
+		 * Short-circuits to `false` (allow) when:
+		 *   - The page has no `permission` field (most pages).
+		 *   - `permissions` prop is `undefined` (caller opted out of
+		 *     the guard — backwards-compatible default).
+		 *   - `permissions` is an empty array (same: no restriction).
+		 *
+		 * @return {boolean}
+		 */
+		isPermissionDenied() {
+			const page = this.currentPage
+			if (!page || !page.permission) {
+				return false
+			}
+			if (!this.permissions || this.permissions.length === 0) {
+				return false
+			}
+			return !this.permissions.includes(page.permission)
 		},
 
 		/** Effective manifest: explicit prop wins over injected value. */
@@ -433,6 +497,15 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Translation helper. Components using this method in templates
+		 * need it available as an instance method; apps install it globally
+		 * via `Vue.mixin({ methods: { t } })` — this local binding ensures
+		 * it is available even in tests that mount CnPageRenderer in
+		 * isolation.
+		 */
+		t,
+
 		/**
 		 * Resolve a registry component name. Logs a single console.warn
 		 * naming the slot if the name is not in the registry.
