@@ -172,7 +172,10 @@ export default {
 		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
-		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}>}
+		 * Each entry may be a full column object OR a bare string key; bare strings
+		 * are normalised to `{ key, label }` by `effectiveColumns` so manifest-driven
+		 * pages that pass `config.columns` as a string array work without extra mapping.
+		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
 		 */
 		columns: {
 			type: Array,
