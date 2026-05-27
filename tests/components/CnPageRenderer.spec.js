@@ -217,6 +217,85 @@ describe('CnPageRenderer', () => {
 			// Wrapper still renders (page exists), but no inner content.
 			expect(wrapper.attributes('data-page-id')).toBe('broken')
 		})
+
+		it('resolves type=custom pages from the v2 cnRegistry (kind:"page") with precedence over legacy customComponents', () => {
+			// ADR-036 — the v2 `registry` prop ({ key: { kind, component }})
+			// MUST be honoured by CnPageRenderer for kind:"page" entries so
+			// fleet apps can migrate off the deprecated `customComponents`
+			// prop without losing page-dispatch.
+			const RegistryStub = {
+				name: 'RegistryStub',
+				template: '<section data-stub="registry-page" />',
+			}
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					// Legacy map has the same name — registry MUST win.
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					cnRegistry: { SettingsPage: { kind: 'page', component: RegistryStub } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(RegistryStub)
+			expect(wrapper.vm.resolvedComponent).not.toBe(LegacyStub)
+		})
+
+		it('falls back to legacy customComponents when the v2 registry has no kind:"page" entry for the name', () => {
+			// ADR-036 backward-compat — until every fleet app migrates,
+			// CnPageRenderer MUST still resolve names from the legacy
+			// `customComponents` prop / inject when the v2 registry is
+			// silent on that name.
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					// Registry has an unrelated widget entry; no page kind for SettingsPage.
+					cnRegistry: { SomeWidget: { kind: 'widget', component: {} } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(LegacyStub)
+		})
+
+		it('ignores v2 registry entries whose kind is not "page" when resolving a page component', () => {
+			// Only kind:"page" entries should be a source of truth for
+			// CnPageRenderer's page dispatch — a kind:"widget" entry must
+			// NOT shadow the legacy customComponents map.
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const WidgetEntry = {
+				name: 'WidgetEntry',
+				template: '<section data-stub="widget" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					cnRegistry: {
+						SettingsPage: { kind: 'widget', component: WidgetEntry, defaultSize: { w: 2, h: 2 } },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(LegacyStub)
+			expect(wrapper.vm.resolvedComponent).not.toBe(WidgetEntry)
+		})
 	})
 
 	describe('config forwarding', () => {
