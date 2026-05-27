@@ -436,7 +436,7 @@ export default {
 			}
 			if (page.type === 'custom') {
 				const name = page.component
-				const resolved = this.resolveCustomComponent(name)
+				const resolved = this.resolveCustomComponent(name, 'page')
 				if (!resolved) {
 					// eslint-disable-next-line no-console
 					console.warn(
@@ -639,7 +639,7 @@ export default {
 				return null
 			}
 			const name = page.sidebarComponent
-			const resolved = this.resolveCustomComponent(name)
+			const resolved = this.resolveCustomComponent(name, 'page')
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(
@@ -765,20 +765,27 @@ export default {
 		/**
 		 * Resolve a custom-component reference (page.component,
 		 * page.headerComponent, page.actionsComponent, page.sidebarComponent,
-		 * etc.) by name. Source precedence (ADR-036):
+		 * slot overrides, etc.) by name. Source precedence (ADR-036):
 		 *
-		 *   1. The v2 `registry` prop's `kind: "page"` entries (when present).
-		 *      Each entry's `component` field is the Vue component to render.
+		 *   1. The v2 `registry` prop. When `requireKind` is set, only entries
+		 *      with a matching `kind` field are considered; otherwise any
+		 *      entry whose `component` is set wins. Each entry's `component`
+		 *      field is the Vue component to render.
 		 *   2. Legacy `customComponents` map (`{ name: Component }`). Used
 		 *      until consumers complete the registry migration.
 		 *
 		 * Returns `null` when neither source has the name.
 		 *
 		 * @param {string} name The component name referenced by the manifest.
+		 * @param {string|null} [requireKind] Optional kind discriminator —
+		 *   `'page'` for page dispatch (page.component, page.sidebarComponent).
+		 *   Omit for slot/actions/section/header lookups where any kind with
+		 *   a `component` field is acceptable (widget, modal, form-field,
+		 *   cell-renderer, custom kinds…).
 		 *
 		 * @return {object|null} The resolved Vue component, or null.
 		 */
-		resolveCustomComponent(name) {
+		resolveCustomComponent(name, requireKind = null) {
 			if (typeof name !== 'string' || name === '') {
 				return null
 			}
@@ -786,8 +793,8 @@ export default {
 			const registryEntry = this.effectiveRegistry[name]
 			if (registryEntry !== undefined
 				&& registryEntry !== null
-				&& registryEntry.kind === 'page'
 				&& registryEntry.component
+				&& (requireKind === null || registryEntry.kind === requireKind)
 			) {
 				return registryEntry.component
 			}
