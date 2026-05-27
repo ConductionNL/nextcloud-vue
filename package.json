@@ -12,11 +12,18 @@
 	},
 	"license": "EUPL-1.2",
 	"author": "Conduction B.V. <info@conduction.nl>",
-	"sideEffects": true,
+	"sideEffects": ["**/*.css", "**/*.vue"],
 	"main": "dist/nextcloud-vue.cjs.js",
 	"module": "dist/nextcloud-vue.esm.js",
 	"types": "src/types/index.d.ts",
 	"style": "dist/nextcloud-vue.css",
+	"exports": {
+		".": {
+			"import": "./dist/nextcloud-vue.esm.js",
+			"require": "./dist/nextcloud-vue.cjs.js"
+		},
+		"./dist/*.css": "./dist/*.css"
+	},
 	"files": [
 		"dist/",
 		"src/",
@@ -71,8 +78,7 @@
 		"style-mod": "^4.0.0",
 		"vue-apexcharts": "^1.7.0",
 		"vue-codemirror6": "^1.4.3",
-		"vue-color": "^2.8.2",
-		"vue-template-compiler": "^2.7.16"
+		"vue-color": "^2.8.2"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.0",
@@ -117,7 +123,8 @@
 		"typescript": "^6.0.3",
 		"vue": "^2.7.16",
 		"vue-frag": "^1.4.3",
-		"vue-material-design-icons": "^5.2.0"
+		"vue-material-design-icons": "^5.2.0",
+		"vue-template-compiler": "^2.7.16"
 	},
 	"peerDependencies": {
 		"@nextcloud/auth": "^2.0.0 || ^3.0.0",
