@@ -254,6 +254,7 @@ export { validateManifest, validateManifestV2 } from './utils/validateManifest.j
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
+export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 
 // Errors
