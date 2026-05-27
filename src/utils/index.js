@@ -4,3 +4,4 @@ export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, va
 export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './widgetVisibility.js'
 export { isAppInstalled } from './appInstalled.js'
 export { passesContextPredicates } from './visibleIfContext.js'
+export { safeHref, safeSvgPath } from './safeHref.js'
