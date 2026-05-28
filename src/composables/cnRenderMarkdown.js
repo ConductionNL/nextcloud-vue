@@ -80,11 +80,12 @@ export function cnRenderMarkdown(text) {
 	try {
 		const raw = markedInstance.parse(text)
 		return DOMPurify.sanitize(raw, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
-	} catch {
+	} catch (e) {
 		// `marked` is generally safe; the catch is a belt-and-braces
 		// guard so a malformed input (e.g. a corrupted code-fence) can
 		// never blank the page. Empty string falls through to the
 		// CnWikiPage empty-state.
+		console.warn('[cnRenderMarkdown] markdown parse/sanitise failed; returning empty string', e)
 		return ''
 	}
 }

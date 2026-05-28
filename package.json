@@ -22,7 +22,8 @@
 			"import": "./dist/nextcloud-vue.esm.js",
 			"require": "./dist/nextcloud-vue.cjs.js"
 		},
-		"./dist/*.css": "./dist/*.css"
+		"./dist/*.css": "./dist/*.css",
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist/",

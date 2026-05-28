@@ -24,7 +24,7 @@
 			<div class="cn-widget-wrapper__header-left">
 				<img
 					v-if="iconUrl"
-					:src="iconUrl"
+					:src="safeImageSrc(iconUrl)"
 					:alt="displayTitle"
 					class="cn-widget-wrapper__icon">
 				<span
@@ -57,7 +57,7 @@
 				<a
 					v-for="button in buttons"
 					:key="button.link"
-					:href="button.link"
+					:href="safeHref(button.link)"
 					class="cn-widget-wrapper__footer-link">
 					{{ button.text }}
 				</a>
@@ -68,6 +68,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { safeHref, safeImageSrc } from '../../utils/safeHref.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -166,6 +167,11 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+	},
+
+	methods: {
+		safeHref,
+		safeImageSrc,
 	},
 
 	computed: {

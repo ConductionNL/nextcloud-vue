@@ -76,9 +76,7 @@ import {
 	NcTextArea,
 	NcTextField,
 } from '@nextcloud/vue'
-import DOMPurify from 'dompurify'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 export default {
 	name: 'CnSuggestFeatureModal',
@@ -126,8 +124,9 @@ export default {
 
 	computed: {
 		sanitizedPreview() {
-			const html = cnRenderMarkdown(this.form.body)
-			return DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+			// cnRenderMarkdown already sanitises via DOMPurify internally —
+			// no second pass needed (L1: double-sanitisation removed).
+			return cnRenderMarkdown(this.form.body)
 		},
 
 		titleError() {

@@ -562,6 +562,13 @@ const baseActions = {
 				}
 			}
 
+			// Invalidate cached facets for this type — the saved object may
+			// have changed enum/facetable field values, so the cached facet
+			// counts are stale. The next fetchCollection will recompute them.
+			if (this.facets[type]) {
+				this.facets = { ...this.facets, [type]: {} }
+			}
+
 			return data
 		} catch (error) {
 			this.errors = {
