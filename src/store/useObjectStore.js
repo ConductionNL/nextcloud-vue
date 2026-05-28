@@ -277,9 +277,9 @@ const baseActions = {
 	 */
 	_buildUrl(type, id = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		let url = `${this._options.baseUrl}/${encodeURIComponent(config.register)}/${encodeURIComponent(config.schema)}`
 		if (id) {
-			url += `/${id}`
+			url += `/${encodeURIComponent(id)}`
 		}
 		return url
 	},

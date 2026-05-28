@@ -618,7 +618,7 @@ export default {
 
 			try {
 				const response = await fetch(
-					`/apps/openregister/api/registers/${id}?_extend[]=schemas`,
+					`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`,
 					{ method: 'GET', headers: buildHeaders() },
 				)
 				if (!response.ok) return

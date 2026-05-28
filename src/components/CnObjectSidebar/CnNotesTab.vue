@@ -128,7 +128,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -147,7 +147,7 @@ export default {
 			this.saving = true
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -178,7 +178,7 @@ export default {
 			this.saving = true
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${this.editingNoteId}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes/${encodeURIComponent(this.editingNoteId)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -202,7 +202,7 @@ export default {
 		async deleteNote(note) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes/${encodeURIComponent(note.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.notes = this.notes.filter((n) => n.id !== note.id)

@@ -61,8 +61,8 @@
 </template>
 
 <script>
-import { NcEmptyContent } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NcEmptyContent } from '@nextcloud/vue'
 import { defaultPageTypes } from './pageTypes.js'
 
 /**

@@ -268,7 +268,7 @@ export function createCrudStore(name, config = {}) {
 					this.loading = true
 				}
 				try {
-					const response = await fetch(`${this._options.baseApiUrl}/${id}`, {
+					const response = await fetch(`${this._options.baseApiUrl}/${encodeURIComponent(id)}`, {
 						method: 'GET',
 						headers: buildHeaders(),
 					})
@@ -304,7 +304,7 @@ export function createCrudStore(name, config = {}) {
 					this.loading = true
 				}
 				try {
-					const response = await fetch(`${this._options.baseApiUrl}/${item.id}`, {
+					const response = await fetch(`${this._options.baseApiUrl}/${encodeURIComponent(item.id)}`, {
 						method: 'DELETE',
 						headers: buildHeaders(),
 					})
@@ -358,7 +358,7 @@ export function createCrudStore(name, config = {}) {
 				const isNew = !item.id
 				const url = isNew
 					? this._options.baseApiUrl
-					: `${this._options.baseApiUrl}/${item.id}`
+					: `${this._options.baseApiUrl}/${encodeURIComponent(item.id)}`
 				const method = isNew ? 'POST' : 'PUT'
 				const body = this.cleanForSave(item)
 

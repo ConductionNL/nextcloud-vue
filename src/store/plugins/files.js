@@ -154,7 +154,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${fileId}/publish`
+					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}/publish`
 
 					const response = await fetch(url, {
 						method: 'POST',
@@ -189,7 +189,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${fileId}/depublish`
+					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}/depublish`
 
 					const response = await fetch(url, {
 						method: 'POST',
@@ -224,7 +224,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${fileId}`
+					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}`
 
 					const response = await fetch(url, {
 						method: 'DELETE',

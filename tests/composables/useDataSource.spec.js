@@ -13,6 +13,33 @@ jest.mock('@nextcloud/router', () => ({
 const axios = require('@nextcloud/axios').default
 const { useDataSource, buildCountQuery } = require('../../src/composables/useDataSource.js')
 
+describe('buildCountQuery — GraphQL injection guard (C2)', () => {
+	test('throws on invalid schemaSlug containing injection payload', () => {
+		expect(() => buildCountQuery('} ) { __schema { types { name } } } #', null))
+			.toThrow(TypeError)
+	})
+
+	test('throws on schemaSlug starting with a digit', () => {
+		expect(() => buildCountQuery('1meeting', null)).toThrow(TypeError)
+	})
+
+	test('throws on schemaSlug with spaces', () => {
+		expect(() => buildCountQuery('my meeting', null)).toThrow(TypeError)
+	})
+
+	test('throws on filter key containing injection payload', () => {
+		expect(() => buildCountQuery('meeting', { '} { __schema': 'x' })).toThrow(TypeError)
+	})
+
+	test('throws on filter key starting with a digit', () => {
+		expect(() => buildCountQuery('meeting', { '1field': 'x' })).toThrow(TypeError)
+	})
+
+	test('allows valid schemaSlug and filter keys', () => {
+		expect(() => buildCountQuery('meeting', { lifecycle: 'review', _status: 'open' })).not.toThrow()
+	})
+})
+
 describe('buildCountQuery', () => {
 	test('omits filter arg when empty', () => {
 		expect(buildCountQuery('meeting', null)).toBe('{ meeting { totalCount } }')

@@ -216,7 +216,7 @@ export default {
 			try {
 				const query = this.buildQueryParams()
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${query}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/audit-trails?${query}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {

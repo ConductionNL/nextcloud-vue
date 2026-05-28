@@ -114,7 +114,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -160,7 +160,7 @@ export default {
 			this.showSuggestions = false
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -183,7 +183,7 @@ export default {
 			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags/${encodeURIComponent(tagName)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				if (response.ok) {

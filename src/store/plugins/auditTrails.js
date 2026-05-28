@@ -199,7 +199,7 @@ export function auditTrailsPlugin(options = {}) {
 				this.globalAuditTrailsError = null
 
 				try {
-					const url = buildGlobalUrl(this._options.baseUrl) + `/${id}`
+					const url = buildGlobalUrl(this._options.baseUrl) + `/${encodeURIComponent(id)}`
 
 					const response = await fetch(url, {
 						method: 'DELETE',

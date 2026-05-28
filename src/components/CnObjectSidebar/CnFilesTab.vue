@@ -80,6 +80,7 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import { buildHeaders } from '../../utils/index.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnFilesTab',
@@ -138,7 +139,7 @@ export default {
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/files?${params}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -191,7 +192,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/filesMultipart`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/filesMultipart`,
 					{
 						method: 'POST',
 						headers: { requesttoken: OC?.requestToken || '', 'OCS-APIREQUEST': 'true' },
@@ -214,7 +215,15 @@ export default {
 
 		openFile(file) {
 			if (file.accessUrl) {
-				window.open(file.accessUrl, '_blank')
+				// Security: accessUrl originates from the OR files API and may be
+				// attacker-controlled. Validate the scheme via safeHref before
+				// opening — this blocks javascript: / data: payloads. Add
+				// noopener,noreferrer to prevent the opened tab from accessing
+				// window.opener and to strip the Referer header.
+				const safe = safeHref(file.accessUrl)
+				if (safe !== '#') {
+					window.open(safe, '_blank', 'noopener,noreferrer')
+				}
 			} else if (file.id) {
 				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
 				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
@@ -226,7 +235,7 @@ export default {
 			if (!this.register || !this.schema) return
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
+					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/files/${encodeURIComponent(file.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				this.files = this.files.filter((f) => f.id !== file.id)

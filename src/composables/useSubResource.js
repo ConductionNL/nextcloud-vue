@@ -63,7 +63,7 @@ export function useSubResource(store, endpoint, options = {}) {
 		if (!config) {
 			throw new Error(`Object type "${type}" is not registered in the store.`)
 		}
-		return `${store._options.baseUrl}/${config.register}/${config.schema}/${objectId}/${endpoint}`
+		return `${store._options.baseUrl}/${encodeURIComponent(config.register)}/${encodeURIComponent(config.schema)}/${encodeURIComponent(objectId)}/${encodeURIComponent(endpoint)}`
 	}
 
 	/**
