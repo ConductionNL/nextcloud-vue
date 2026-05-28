@@ -119,9 +119,17 @@ export default {
 		 * via the OpenRegister schema API and seeds from there (falling back to
 		 * false). A non-null Boolean wins over the schema lookup — let the
 		 * consumer override the schema default when needed.
+		 *
+		 * `type` is intentionally omitted so Vue 2 accepts `null` without
+		 * emitting a prop-type-check warning when a consumer passes
+		 * `:default-share="null"` explicitly. The validator below enforces
+		 * the actual contract.
 		 * @type {boolean|null}
 		 */
-		defaultShare: { type: Boolean, default: null },
+		defaultShare: {
+			default: null,
+			validator: v => v === null || typeof v === 'boolean',
+		},
 		/** Label rendered next to the share toggle. */
 		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Automatically publish') },
 	},
@@ -141,17 +149,16 @@ export default {
 	},
 
 	watch: {
+		// Match every other CnObjectSidebar tab — a single immediate
+		// `objectId` watcher drives all initial loads. Folding the
+		// share-toggle seed in here avoids two concurrent GETs of
+		// `schemas/{schema}` on mount (one per immediate watcher).
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) this.fetchFiles() },
-		},
-		schema: {
-			immediate: true,
-			handler() { this.applyShareDefault() },
-		},
-		defaultShare: {
-			immediate: true,
-			handler() { this.applyShareDefault() },
+			handler(id) {
+				if (id) this.fetchFiles()
+				this.applyShareDefault()
+			},
 		},
 	},
 
@@ -210,7 +217,9 @@ export default {
 					this.share = true
 				}
 			} catch (err) {
-				// Non-fatal — keep the safe default.
+				// Non-fatal — keep the safe default, but surface the
+				// failure so a missing toggle default isn't silent.
+				console.error('CnFilesTab: Failed to fetch schema default for share toggle', err)
 			}
 		},
 
