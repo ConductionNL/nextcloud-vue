@@ -74,6 +74,7 @@
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
+import { safeHref } from '../../utils/safeHref.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -253,7 +254,9 @@ export default {
 		 * Resolved external href for the built-in `widget:"link"` when
 		 * `widgetProps.href` is set. `{key}` placeholders in the href
 		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
-		 * → `"/x/42"`). Returns null when `href` isn't set.
+		 * → `"/x/42"`). The final computed value is validated with
+		 * `safeHref` so row-injected values cannot introduce unsafe
+		 * schemes. Returns null when `href` isn't set.
 		 *
 		 * @return {string|null}
 		 */

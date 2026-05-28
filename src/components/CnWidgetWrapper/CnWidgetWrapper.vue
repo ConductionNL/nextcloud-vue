@@ -108,6 +108,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { safeHref, safeImageSrc } from '../../utils/safeHref.js'
 
 /**
  * CnWidgetWrapper — Widget container with header, content, and footer.
@@ -353,6 +354,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
 		},
+	},
+
+	methods: {
+		safeHref,
+		safeImageSrc,
 	},
 
 	methods: {

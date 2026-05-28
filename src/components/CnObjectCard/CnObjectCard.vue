@@ -63,6 +63,7 @@
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { safeImageSrc } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
+import { safeImageSrc } from '../../utils/safeHref.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
 /**
