@@ -14,7 +14,7 @@
 			<slot name="logo">
 				<img
 					v-if="logoUrl"
-					:src="logoUrl"
+					:src="safeImageSrc(logoUrl)"
 					alt=""
 					class="cn-app-loading__logo">
 			</slot>
@@ -28,6 +28,7 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { safeImageSrc } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnAppLoading',
@@ -59,6 +60,10 @@ export default {
 			type: String,
 			default: '',
 		},
+	},
+
+	methods: {
+		safeImageSrc,
 	},
 }
 </script>

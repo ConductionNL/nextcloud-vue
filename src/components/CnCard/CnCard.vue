@@ -55,7 +55,7 @@
 				<a
 					v-for="(link, i) in footerLinks"
 					:key="'link-' + i"
-					:href="link.url"
+					:href="safeHref(link.url)"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="cn-card__footer-link">
@@ -75,6 +75,7 @@
 
 <script>
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnCard — Generic prop-driven card component.
@@ -284,6 +285,8 @@ export default {
 	},
 
 	methods: {
+		safeHref,
+
 		onClick(event) {
 			if (this.clickable) {
 				this.$emit('click', event)

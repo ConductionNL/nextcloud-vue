@@ -16,7 +16,7 @@
 			<div class="cn-object-card__header">
 				<img
 					v-if="imageUrl"
-					:src="imageUrl"
+					:src="safeImageSrc(imageUrl)"
 					:alt="title"
 					class="cn-object-card__image">
 
@@ -62,6 +62,7 @@
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { formatValue } from '../../utils/schema.js'
+import { safeImageSrc } from '../../utils/safeHref.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
 /**
@@ -194,6 +195,7 @@ export default {
 
 	methods: {
 		formatValue,
+		safeImageSrc,
 	},
 }
 </script>

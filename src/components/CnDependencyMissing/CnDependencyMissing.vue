@@ -36,6 +36,8 @@
 </template>
 
 <script>
+import { safeHref } from '../../utils/safeHref.js'
+
 export default {
 	name: 'CnDependencyMissing',
 
@@ -95,7 +97,7 @@ export default {
 
 	methods: {
 		resolveLink(dep) {
-			if (dep.installUrl) return dep.installUrl
+			if (dep.installUrl) return safeHref(dep.installUrl)
 			return '/index.php/settings/apps'
 		},
 	},

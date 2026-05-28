@@ -41,8 +41,8 @@
 		     are unaffected. -->
 		<NcEmptyContent
 			v-if="isPermissionDenied"
-			:name="t('nextcloud-vue', 'Access denied')"
-			:description="t('nextcloud-vue', 'You do not have permission to view this page.')"
+			:name="permissionDeniedTitle || t('nextcloud-vue', 'Access denied')"
+			:description="permissionDeniedDescription || t('nextcloud-vue', 'You do not have permission to view this page.')"
 			data-testid="cn-page-403" />
 		<component
 			:is="resolvedComponent"
@@ -200,6 +200,33 @@ export default {
 		permissions: {
 			type: Array,
 			default: undefined,
+		},
+
+		/**
+		 * Custom heading for the 403 permission-denied screen.
+		 *
+		 * When omitted the library-default `t('nextcloud-vue', 'Access denied')`
+		 * is used. Override to provide a localised string from the host app
+		 * or to adjust the wording for a specific page context.
+		 *
+		 * @type {string|null}
+		 */
+		permissionDeniedTitle: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Custom description for the 403 permission-denied screen.
+		 *
+		 * When omitted the library-default `t('nextcloud-vue', 'You do not have
+		 * permission to view this page.')` is used.
+		 *
+		 * @type {string|null}
+		 */
+		permissionDeniedDescription: {
+			type: String,
+			default: null,
 		},
 	},
 
