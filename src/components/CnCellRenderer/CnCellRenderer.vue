@@ -75,6 +75,7 @@ import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
 import { safeHref } from '../../utils/safeHref.js'
+import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**

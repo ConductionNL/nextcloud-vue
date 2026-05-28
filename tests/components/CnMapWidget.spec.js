@@ -329,6 +329,89 @@ describe('CnMapWidget — events', () => {
 	})
 })
 
+describe('CnMapWidget — popup XSS sanitization (C1)', () => {
+	/**
+	 * The Leaflet mock fires onEachFeature with ephemeral child stubs
+	 * ({ on, bindPopup }) that are NOT stored in L.__instances.
+	 * We capture those calls by extracting the onEachFeature callback
+	 * from the geoJSON mock and replaying it against a fresh spy child.
+	 */
+	function getOnEachFeatureCallbacks() {
+		const L = require('leaflet').default
+		return L.geoJSON.mock.calls
+			.map((c) => c[1])
+			.filter((opts) => opts && typeof opts.onEachFeature === 'function')
+			.map((opts) => opts.onEachFeature)
+	}
+
+	it('strips <script> payload from popupField before passing to bindPopup', async () => {
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+						properties: { desc: '<script>alert(1)<\/script>safe text' },
+					},
+				],
+				popupField: 'desc',
+			},
+		})
+		await flush(); await nextTick(); await flush()
+
+		const callbacks = getOnEachFeatureCallbacks()
+		expect(callbacks.length).toBeGreaterThan(0)
+
+		const child = { on: jest.fn(), bindPopup: jest.fn() }
+		const feature = {
+			type: 'Feature',
+			geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+			properties: { desc: '<script>alert(1)<\/script>safe text' },
+		}
+		callbacks[callbacks.length - 1](feature, child)
+
+		if (child.bindPopup.mock.calls.length > 0) {
+			const arg = child.bindPopup.mock.calls[0][0]
+			expect(arg).not.toMatch(/<script/i)
+			expect(arg).toContain('safe text')
+		}
+		wrapper.destroy()
+	})
+
+	it('strips onerror event-handler attribute from popup HTML', async () => {
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+						properties: { desc: '<img src=x onerror=alert(1)>' },
+					},
+				],
+				popupField: 'desc',
+			},
+		})
+		await flush(); await nextTick(); await flush()
+
+		const callbacks = getOnEachFeatureCallbacks()
+		expect(callbacks.length).toBeGreaterThan(0)
+
+		const child = { on: jest.fn(), bindPopup: jest.fn() }
+		const feature = {
+			type: 'Feature',
+			geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+			properties: { desc: '<img src=x onerror=alert(1)>' },
+		}
+		callbacks[callbacks.length - 1](feature, child)
+
+		if (child.bindPopup.mock.calls.length > 0) {
+			const arg = child.bindPopup.mock.calls[0][0]
+			expect(arg).not.toMatch(/onerror/i)
+		}
+		wrapper.destroy()
+	})
+})
+
 describe('CnMapWidget — fallback', () => {
 	it('renders fallback slot when Leaflet fails to load', async () => {
 		// Force the dynamic import in CnMapWidget.mounted() to throw by
