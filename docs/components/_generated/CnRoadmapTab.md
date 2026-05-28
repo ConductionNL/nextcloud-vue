@@ -2,7 +2,7 @@
 
 ### Props
 
-| Name       | Type      | Required | Default | Description                                                                                                 |
-| ---------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `repo`     | `string`  | ✓        | —       | `<owner>/<repo>` of the app's GitHub repository. Passed through to the proxy as the `repo` query parameter. |
-| `disabled` | `boolean` |          | `false` | Admin opt-out flag — when true the tab renders the disabled empty state.                                    |
+| Name       | Type      | Required | Default | Description                                                                                                             |
+| ---------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `repo`     | `string`  | ✓        | —       | `&lt;owner&gt;/&lt;repo&gt;` of the app's GitHub repository. Passed through to the proxy as the `repo` query parameter. |
+| `disabled` | `boolean` |          | `false` | Admin opt-out flag — when true the tab renders the disabled empty state.                                                |
