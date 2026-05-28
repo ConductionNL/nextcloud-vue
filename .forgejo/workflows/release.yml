@@ -1,0 +1,81 @@
+name: Release
+
+# Auto-publish @conduction/nextcloud-vue to npm via semantic-release.
+#
+# CHANGED FROM GH VERSION:
+#   - npm Trusted Publisher (OIDC) is NOT supported on Codeberg.
+#     Only github.com and gitlab.com are accepted as OIDC publishers.
+#     We revert to NPM_TOKEN secret-based auth.
+#   - Provenance attestations (NPM_CONFIG_PROVENANCE) require OIDC, so disabled.
+#   - @semantic-release/github plugin removed (GitHub-only).
+#     Codeberg has no direct equivalent for release publishing;
+#     @semantic-release/git handles the tag + chore(release) commit, which is
+#     enough — GitHub Releases were never used here (releases were npm-only).
+#   - id-token permission removed (only needed for OIDC).
+#
+# REQUIRED CODEBERG SECRETS:
+#   - NPM_TOKEN: an npm "Automation" access token from
+#     https://www.npmjs.com/settings/<your-account>/tokens — granular,
+#     read-and-publish scope for @conduction/nextcloud-vue.
+#   - CODEBERG_TOKEN: a PAT with write:repository scope on this repo
+#     (so @semantic-release/git can push the chore(release) bump back).
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run semantic-release --dry-run only (no publish, no tag, no release)'
+        type: boolean
+        default: false
+
+jobs:
+  quality:
+    name: Quality Check
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci --legacy-peer-deps
+      - run: npm run lint
+      - run: npm run build
+
+  release:
+    name: Release
+    needs: quality
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure npm registry
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+          npm config set registry https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # @semantic-release/git pushes the chore(release) commit + tag.
+          # Forgejo's bundled token doesn't have push-from-CI write perms
+          # by default; use an org PAT explicitly.
+          GIT_CREDENTIALS: https://x-access-token:${{ secrets.CODEBERG_TOKEN }}@codeberg.org
+        run: |
+          # Configure git to use the PAT for pushing back to Codeberg
+          git config --global credential.helper store
+          echo "${GIT_CREDENTIALS}" > ~/.git-credentials
+          git config --global user.email "release-bot@conduction.nl"
+          git config --global user.name "Conduction Release Bot"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            npx semantic-release --dry-run
+          else
+            npx semantic-release
+          fi

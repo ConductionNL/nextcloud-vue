@@ -1,0 +1,50 @@
+name: Documentation (Dev)
+
+# Refreshes the dev styleguide on every development push.
+#
+# CHANGED FROM GH VERSION:
+#   - peaceiris/actions-gh-pages replaced with wrangler-based Cloudflare
+#     Pages deploy, mirroring documentation-beta.yml.
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-dev:
+    name: Deploy Dev Styleguide
+    runs-on: docker
+    container:
+      image: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install root + build validators
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build:validators
+
+      - name: Build styleguide
+        run: |
+          cd styleguide
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Deploy dev styleguide to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          npx -y wrangler@latest pages deploy styleguide/build \
+            --project-name=${{ secrets.CF_PAGES_PROJECT }}-styleguide-dev \
+            --branch=development \
+            --commit-hash=${{ github.sha }} \
+            --commit-message="Dev styleguide from Codeberg Actions"

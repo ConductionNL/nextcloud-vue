@@ -1,0 +1,57 @@
+name: Branch Protection
+
+# CHANGED FROM GH VERSION:
+#   - The GH version calls `ConductionNL/.github/.github/workflows/branch-protection.yml@main`,
+#     a centralized reusable workflow living in the org-shared `.github` repo.
+#   - Forgejo Actions does support `uses: codeberg.org/Conduction/<repo>/.forgejo/workflows/<file>.yml@<ref>`
+#     for reusable workflows, but we don't have a Conduction/workflows
+#     repo on Codeberg yet. For this pilot, inline the validation logic.
+#   - Once we set up `codeberg.org/Conduction/workflows` (planned), this
+#     can revert to a single-line `uses:` call again.
+
+on:
+  pull_request:
+    branches: [main, beta]
+
+jobs:
+  check-branch:
+    name: Validate source branch
+    runs-on: docker
+    container:
+      image: alpine:3.20
+    steps:
+      - name: Validate source branch
+        shell: bash
+        run: |
+          apk add --no-cache bash >/dev/null
+          TARGET="${{ github.base_ref }}"
+          SOURCE="${{ github.head_ref }}"
+
+          echo "PR: $SOURCE -> $TARGET"
+
+          if [[ "$TARGET" == "main" || "$TARGET" == "master" ]]; then
+            if [[ "$SOURCE" != "beta" ]] && ! [[ "$SOURCE" =~ ^hotfix ]]; then
+              echo "ERROR: Pull requests to main must come from 'beta' or a 'hotfix/*' branch."
+              echo ""
+              echo "Allowed patterns:"
+              echo "  beta -> main"
+              echo "  hotfix/* -> main"
+              echo ""
+              echo "Your branch '$SOURCE' does not match any allowed pattern."
+              exit 1
+            fi
+          elif [[ "$TARGET" == "beta" ]]; then
+            if [[ "$SOURCE" != "development" ]] && ! [[ "$SOURCE" =~ ^hotfix ]] && [[ "$SOURCE" != "main" ]] && [[ "$SOURCE" != "master" ]]; then
+              echo "ERROR: Pull requests to beta must come from 'development', 'main', or a 'hotfix/*' branch."
+              echo ""
+              echo "Allowed patterns:"
+              echo "  development -> beta"
+              echo "  hotfix/* -> beta"
+              echo "  main -> beta (backport)"
+              echo ""
+              echo "Your branch '$SOURCE' does not match any allowed pattern."
+              exit 1
+            fi
+          fi
+
+          echo "OK: branch check passed: $SOURCE -> $TARGET"
