@@ -158,7 +158,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import { buildHeaders } from '../../utils/headers.js'
+import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
@@ -572,7 +572,7 @@ export default {
 			this.registersError = null
 
 			try {
-				const response = await fetch('/apps/openregister/api/registers?_extend[]=schemas', {
+				const response = await fetch(prefixUrl('/apps/openregister/api/registers?_extend[]=schemas'), {
 					method: 'GET',
 					headers: buildHeaders(),
 				})
@@ -618,7 +618,7 @@ export default {
 
 			try {
 				const response = await fetch(
-					`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`,
+					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
 					{ method: 'GET', headers: buildHeaders() },
 				)
 				if (!response.ok) return
