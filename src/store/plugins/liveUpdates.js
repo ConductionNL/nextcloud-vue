@@ -63,21 +63,43 @@ try {
 }
 
 /**
+ * Recursively produce a deterministic JSON string with object keys sorted at
+ * every nesting level. This is necessary because `JSON.stringify(v, replacer)`
+ * only applies the replacer-as-allowlist to the **top-level** keys; nested
+ * objects still serialize in insertion order and collapse to `{}` when the
+ * replacer array omits them entirely.
+ *
+ * @param {*} v Any JSON-serialisable value
+ * @return {string}
+ */
+function stableStringify(v) {
+	if (v && typeof v === 'object' && !Array.isArray(v)) {
+		return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}'
+	}
+	return JSON.stringify(v)
+}
+
+/**
  * Compute a stable cache key for dedup of fetchCollection calls.
  *
- * Keys are built with sorted JSON so that two semantically-identical
+ * Keys are built with recursively sorted JSON so that two semantically-identical
  * parameter objects with different key-insertion order produce the same
  * cache key and are correctly deduplicated. Without sorting,
  * `{ type: 'case', register: '1' }` and `{ register: '1', type: 'case' }`
  * would yield different strings and trigger duplicate live-update
  * subscriptions (#466).
  *
+ * `stableStringify` is used instead of the `JSON.stringify(v, replacer)` array
+ * form because the replacer-as-allowlist only applies at the top level —
+ * nested objects pass through unsorted and collapse to `{}` when their keys
+ * are not in the array.
+ *
  * @param {string} type Object type slug
  * @param {object} params Query params
  * @return {string}
  */
 function collectionDedupKey(type, params) {
-	return `${type}:${JSON.stringify(params, Object.keys(params).sort())}`
+	return `${type}:${stableStringify(params)}`
 }
 
 /**

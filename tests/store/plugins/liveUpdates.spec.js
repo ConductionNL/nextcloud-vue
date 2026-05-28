@@ -306,6 +306,36 @@ describe('liveUpdatesPlugin', () => {
 
 			expect(global.fetch).toHaveBeenCalledTimes(1)
 		})
+
+		it('deduplicates params with different key-insertion order (stableStringify)', async () => {
+			// Regression test for #466: JSON.stringify(v, Object.keys(v).sort()) only
+			// applies the replacer allowlist at the top level — nested objects passed
+			// through unsorted and collapsed to `{}`. stableStringify recurses.
+			store.registerObjectType('melding', 'schema-uuid', 'register-uuid', {
+				registerSlug: 'zaken',
+				schemaSlug: 'meldingen',
+			})
+
+			let resolve
+			const pending = new Promise((res) => { resolve = res })
+			global.fetch = jest.fn().mockReturnValue(
+				pending.then(() => okJson({ results: [], total: 0, page: 1, pages: 1 })),
+			)
+
+			// Same params, different key insertion order — must map to same dedup key
+			const paramsA = { _limit: 10, _search: 'test', filter: { status: 'open', type: 'bug' } }
+			const paramsB = { _search: 'test', filter: { type: 'bug', status: 'open' }, _limit: 10 }
+			const p1 = store.fetchCollection('melding', paramsA)
+			const p2 = store.fetchCollection('melding', paramsB)
+
+			// Should have been coalesced into 1 request
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+
+			resolve()
+			await Promise.all([p1, p2])
+
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+		})
 	})
 
 	// --- Lazy slug resolution ---
