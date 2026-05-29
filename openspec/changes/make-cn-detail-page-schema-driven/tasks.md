@@ -73,11 +73,11 @@
   - `#sidebar` slot present → auto-mount suppressed
   - `objectSidebarState.active = false` → no auto-mount
 
-## 9. Manual browser verification (openbuilt)
+## 9. Manual browser verification (openbuild)
 
-- [ ] 9.1 In the openbuilt working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`.
-- [ ] 9.2 Deploy: `docker cp js/openbuilt-main.js nextcloud:/var/www/html/custom_apps/openbuilt/js/openbuilt-mainv$(date +%s).js`, bump the `Util::addScript` template name, `apache2ctl graceful`.
-- [ ] 9.3 Navigate to `/index.php/apps/openbuilt/applications`, click the Hello World card, verify: header shows "Virtual app" title from manifest; body shows data widget (manifest JSON) + metadata widget (id, register, schema, created, updated, owner); right sidebar shows Overview / Manifest / Version history / Diff / Audit tabs.
+- [ ] 9.1 In the openbuild working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`.
+- [ ] 9.2 Deploy: `docker cp js/openbuild-main.js nextcloud:/var/www/html/custom_apps/openbuild/js/openbuild-mainv$(date +%s).js`, bump the `Util::addScript` template name, `apache2ctl graceful`.
+- [ ] 9.3 Navigate to `/index.php/apps/openbuild/applications`, click the Hello World card, verify: header shows "Virtual app" title from manifest; body shows data widget (manifest JSON) + metadata widget (id, register, schema, created, updated, owner); right sidebar shows Overview / Manifest / Version history / Diff / Audit tabs.
 - [ ] 9.4 Screenshot the working detail page and attach to the PR description.
 
 ## 10. PR

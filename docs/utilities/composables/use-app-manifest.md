@@ -74,7 +74,7 @@ useAppManifest('decidesk', bundledManifest, {
 
 ## Mounting an in-memory manifest
 
-For consumers that build their manifest in memory from runtime state — for example the OpenBuilt app builder, which mounts virtual apps from store data and has no backend `/api/manifest` route — pass an options object whose `manifest` field is the canonical, fully-constructed manifest. The composable enters a separate, synchronous code path: no HTTP fetch, no deep-merge, no sentinel resolution.
+For consumers that build their manifest in memory from runtime state — for example the OpenBuild app builder, which mounts virtual apps from store data and has no backend `/api/manifest` route — pass an options object whose `manifest` field is the canonical, fully-constructed manifest. The composable enters a separate, synchronous code path: no HTTP fetch, no deep-merge, no sentinel resolution.
 
 ```js
 import { useAppManifest } from '@conduction/nextcloud-vue'
@@ -108,7 +108,7 @@ if (validationErrors.value) {
 | Signature | Use when |
 |-----------|----------|
 | `useAppManifest(appId, bundled, options?)` | The app ships a static `manifest.json` and (optionally) a backend route at `/index.php/apps/{appId}/api/manifest` that returns a partial override. Default for all production Conduction apps. |
-| `useAppManifest({ manifest })` | The host renders a virtual app whose manifest is constructed in memory at runtime (no static file, no backend route). Canonical consumer: the OpenBuilt app builder — see the `bootstrap-openbuilt` change for the full virtual-host pattern. |
+| `useAppManifest({ manifest })` | The host renders a virtual app whose manifest is constructed in memory at runtime (no static file, no backend route). Canonical consumer: the OpenBuild app builder — see the `bootstrap-openbuild` change for the full virtual-host pattern. |
 
 ### Guarantees of the in-memory branch
 

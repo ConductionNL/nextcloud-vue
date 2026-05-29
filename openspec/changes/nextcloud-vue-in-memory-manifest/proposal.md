@@ -2,7 +2,7 @@
 kind: code
 depends_on: []
 chain:
-  - bootstrap-openbuilt           # consumer (lives in openbuilt repo)
+  - bootstrap-openbuild           # consumer (lives in openbuild repo)
   - nextcloud-vue-in-memory-manifest  # THIS spec
 ---
 
@@ -13,15 +13,15 @@ chain:
 `useAppManifest(appId, bundledManifest, options?)` always issues an asynchronous fetch against
 `/index.php/apps/{appId}/api/manifest` (or `options.endpoint`) and deep-merges the result over
 the bundled manifest. That signature assumes every consumer ships a static `manifest.json` plus
-an optional backend override endpoint. The OpenBuilt app builder breaks that assumption: it
+an optional backend override endpoint. The OpenBuild app builder breaks that assumption: it
 mounts *virtual* apps whose manifest is constructed in memory from store state and never lives
-on a backend route. Today OpenBuilt's `BuilderHost.vue` works around the missing overload by
-pointing `options.endpoint` at a per-slug fake URL (see openbuilt
-[`bootstrap-openbuilt/design.md`](https://codeberg.org/Conduction/openbuilt/src/branch/main/openspec/changes/bootstrap-openbuilt/design.md)
+on a backend route. Today OpenBuild's `BuilderHost.vue` works around the missing overload by
+pointing `options.endpoint` at a per-slug fake URL (see openbuild
+[`bootstrap-openbuild/design.md`](https://codeberg.org/Conduction/openbuild/src/branch/main/openspec/changes/bootstrap-openbuild/design.md)
 Decision 4). That bridge is temporary; the clean API is a direct in-memory overload.
 
-This spec adds that overload to `@conduction/nextcloud-vue` so OpenBuilt and any future
-virtual-app-host consumer (e.g. third-party apps that embed OpenBuilt-style mounting) can pass
+This spec adds that overload to `@conduction/nextcloud-vue` so OpenBuild and any future
+virtual-app-host consumer (e.g. third-party apps that embed OpenBuild-style mounting) can pass
 the manifest object directly without forcing a backend endpoint per virtual app.
 
 ## What Changes
@@ -43,7 +43,7 @@ the manifest object directly without forcing a backend endpoint per virtual app.
   docblock is updated to call out the in-memory mount path.
 - **Documentation**: `docs/components/cn-app-root.md` and
   `docs/utilities/composables/use-app-manifest.md` gain a "Mounting an in-memory manifest"
-  section. The OpenBuilt workaround documented in CnAppRoot.md is marked as historical.
+  section. The OpenBuild workaround documented in CnAppRoot.md is marked as historical.
 - **Unit tests**: cover (a) basic in-memory return, (b) `validate: true` happy path,
   (c) `validate: true` invalid manifest yields populated `validationErrors`, (d) the legacy
   signature still functions unchanged (regression).
@@ -75,7 +75,7 @@ No prop, event, or slot removals. Fully backwards-compatible. No theming impact.
   `tests/composables/use-app-manifest.spec.js`) — four new cases.
 - **Schema docblock**: header comment in `src/schemas/app-manifest.schema.json` (or the
   composable JSDoc that references it) calls out the in-memory mount path.
-- **Consumer apps**: OpenBuilt (immediate consumer — collapses its `BuilderHost.vue`
+- **Consumer apps**: OpenBuild (immediate consumer — collapses its `BuilderHost.vue`
   workaround); no impact on OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, decidesk,
   docudesk, larpingapp, mydash, softwarecatalog, or any other current consumer because the
   legacy positional signature is preserved verbatim.

@@ -49,4 +49,4 @@ This is spec **2 of 3** in the `manifest-v2-library` chain (hydra ADR-036, merge
 - **`src/index.js` barrel** — exports for `useRuntimeManifest`, new widget components, `RegistryKindError`
 - **Consumers** (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) — zero impact on existing v1 apps; opt-in by adopting `registry` prop + v2 manifests
 - **mydash** — primary beneficiary of `useRuntimeManifest` (runtime per-user dashboard manifests)
-- **OpenBuilt** — primary beneficiary of the five-kind registry (OpenBuilt manages registry entries through its UI)
+- **OpenBuild** — primary beneficiary of the five-kind registry (OpenBuild manages registry entries through its UI)

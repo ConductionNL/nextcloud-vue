@@ -125,14 +125,14 @@ export default {
 }
 ```
 
-### In-memory manifest (virtual-app hosts, e.g. OpenBuilt)
+### In-memory manifest (virtual-app hosts, e.g. OpenBuild)
 
 Virtual-app hosts build their manifest in memory and have no backend route. Pass an options object with the constructed manifest and the composable skips the fetch entirely:
 
 ```vue
 <template>
   <CnAppRoot
-    app-id="openbuilt"
+    app-id="openbuild"
     :manifest="manifest"
     :is-loading="isLoading">
     <router-view />
@@ -171,4 +171,4 @@ See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilitie
 
 ## Mounting an in-memory manifest
 
-Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuilt app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuilt) above.
+Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuild app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuild) above.

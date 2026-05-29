@@ -150,7 +150,7 @@ block:
   "type": "detail",
   "title": "Virtual app",
   "config": {
-    "register": "openbuilt",
+    "register": "openbuild",
     "schema": "application",
     "actionsComponent": "ApplicationDetailActions",
     "sidebarTabs": [

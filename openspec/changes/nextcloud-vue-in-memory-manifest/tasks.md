@@ -69,7 +69,7 @@
 - [x] 5.1 Add a "Mounting an in-memory manifest" section to
   `docs/utilities/composables/use-app-manifest.md` (or `docs/utilities/composables/<kebab>.md`
   for the actual current location) showing the new overload, when to use it, and the
-  validation flag. Link out to the `bootstrap-openbuilt` change as the canonical consumer.
+  validation flag. Link out to the `bootstrap-openbuild` change as the canonical consumer.
   - spec_ref: REQ-IMM-001, REQ-IMM-003
   - files_likely_affected: `docs/utilities/composables/use-app-manifest.md`
 - [x] 5.2 Update `docs/components/cn-app-root.md` to mention that the in-memory overload is

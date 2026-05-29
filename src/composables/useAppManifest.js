@@ -33,7 +33,7 @@ import { validateManifest } from '../utils/validateManifest.js'
  *     `useAppManifest({ manifest, validate? })`.
  *     Mounts an already-constructed manifest object synchronously, with no
  *     backend fetch, no deep-merge, and no sentinel resolution. Designed
- *     for virtual-app hosts (e.g. the OpenBuilt app builder) that build
+ *     for virtual-app hosts (e.g. the OpenBuild app builder) that build
  *     their manifests in memory from store state. When `validate: true`,
  *     `validateManifest` is called synchronously before returning and any
  *     failures populate `validationErrors`; validation is informational —
@@ -90,7 +90,7 @@ import { validateManifest } from '../utils/validateManifest.js'
  * // unresolvedSentinels.value is e.g. ['voorzieningen_register']
  * // when that IAppConfig key is unset on the tenant.
  *
- * @example In-memory manifest (virtual-app host, e.g. OpenBuilt)
+ * @example In-memory manifest (virtual-app host, e.g. OpenBuild)
  * const builderManifest = buildManifestFromStore()
  * const { manifest, isLoading } = useAppManifest({ manifest: builderManifest })
  * // isLoading.value === false immediately; no HTTP fetch is issued.

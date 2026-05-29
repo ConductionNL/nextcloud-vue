@@ -70,7 +70,7 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		// inject('objectSidebarState')`, so any legacy app that doesn't provide
 		// `sidebarState` ends up writing CnIndexPage's `active: true` into our
 		// objectSidebarState holder. Without this gate the auto-mount renders
-		// an empty CnObjectSidebar on every index page — the openbuilt double-
+		// an empty CnObjectSidebar on every index page — the openbuild double-
 		// sidebar regression. With this gate, active alone is not enough.
 		const wrapper = shallowMount(CnAppRoot, {
 			propsData: { manifest, requiresApps: [] },

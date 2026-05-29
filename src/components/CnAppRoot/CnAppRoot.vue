@@ -196,7 +196,7 @@
 			  AND (b) no ancestor already owns the holder (decidesk's
 			  / procest's pattern — those keep their own
 			  `<CnObjectSidebar>` mount). Manifest-only apps
-			  (openbuilt, mydash) get the sidebar for free; ADR-017
+			  (openbuild, mydash) get the sidebar for free; ADR-017
 			  compliant because the component mounts here at
 			  `NcContent` level, not inside `NcAppContent`.
 			-->
@@ -342,7 +342,7 @@ export default {
 			 *      this CnAppRoot subtree write to the same object the
 			 *      consumer's `#sidebar` slot reads from. Preserves the
 			 *      pre-change behaviour for those apps with zero change.
-			 *   2. **Local fallback** — manifest-only apps (openbuilt,
+			 *   2. **Local fallback** — manifest-only apps (openbuild,
 			 *      mydash) hit this branch; CnAppRoot's own observable
 			 *      holder backs the auto-mounted `<CnObjectSidebar>`
 			 *      below and the CnDetailPage publish path. ADR-017
@@ -366,7 +366,7 @@ export default {
 			 * `localObjectSidebarState` and CnIndexPage's writes were
 			 * setting `active: true` on it — so the auto-mounted
 			 * `<CnObjectSidebar>` rendered alongside `<CnIndexSidebar>`
-			 * on index pages. See the openbuilt index-page double-
+			 * on index pages. See the openbuild index-page double-
 			 * sidebar regression that surfaced after PR #227.
 			 */
 			sidebarState: this.localIndexPageSidebarState,

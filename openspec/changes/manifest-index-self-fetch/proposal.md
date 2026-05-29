@@ -96,7 +96,7 @@ abstractions the conversion wave still needs:
   Clients/Requests/Forms/Automations/…, procest's Cases/Voorstellen/…,
   larpingapp's 9) start rendering data; a follow-up wave converts the remaining
   filtered-list / aggregate-column custom pages (pipelinq Queues / AutomationHistory,
-  openbuilt Exports, …).
+  openbuild Exports, …).
 
 ## Scope
 
