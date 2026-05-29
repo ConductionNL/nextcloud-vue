@@ -23,7 +23,7 @@
 
 import { validateManifestV2 } from '../../src/utils/validateManifest.js'
 
-const V2_SCHEMA_URL = 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json'
+const V2_SCHEMA_URL = 'https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json'
 
 /**
  * Build a minimal v2 manifest wrapping a single page.

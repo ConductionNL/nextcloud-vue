@@ -164,7 +164,7 @@ manifest-migrate --input src/manifest.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+  "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json",
   "version": "1.0.0",
   "menu": [{ "id": "home", "label": "Home", "route": "home" }],
   "pages": [
@@ -186,7 +186,7 @@ manifest-migrate --input src/manifest.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+  "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
   "version": "1.0.0",
   "menu": [{ "id": "home", "label": "Home", "route": "home" }],
   "pages": [

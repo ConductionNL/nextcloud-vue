@@ -24,9 +24,9 @@ describe('app-manifest.schema.json (metadata)', () => {
 		expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema')
 	})
 
-	it('uses the GitHub raw URL on `main` as $id', () => {
+	it('uses the Codeberg raw URL on `main` as $id', () => {
 		expect(schema.$id).toBe(
-			'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json',
+			'https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json',
 		)
 	})
 

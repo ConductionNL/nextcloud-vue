@@ -260,7 +260,7 @@ Minimal manifest:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+  "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json",
   "version": "1.0.0",
   "dependencies": ["openregister"],
   "menu": [

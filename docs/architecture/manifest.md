@@ -153,7 +153,7 @@ In v2, `$schema` is **required** at the top level:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+  "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
   "version": "2.0.0",
   "menu": [],
   "pages": []

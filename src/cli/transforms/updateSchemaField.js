@@ -6,7 +6,7 @@
 /**
  * The canonical v2 schema URL.
  */
-const V2_SCHEMA_URL = 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json'
+const V2_SCHEMA_URL = 'https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json'
 
 /**
  * Set the manifest's $schema field to the v2 canonical URL.

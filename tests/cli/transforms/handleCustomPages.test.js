@@ -114,7 +114,7 @@ describe('updateSchemaField', () => {
 
 	it('replaces existing $schema', () => {
 		const manifest = {
-			$schema: 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json',
+			$schema: 'https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json',
 			version: '1.0.0',
 			menu: [],
 			pages: [],
