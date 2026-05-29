@@ -62,7 +62,7 @@ const config = createConfig({
           path: '../docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: ({ docPath }) =>
-            `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}`,
+            `https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/docs/${docPath}`,
         },
         blog: false,
         theme: {
@@ -87,8 +87,8 @@ const config = createConfig({
         label: 'Documentation',
       },
       {
-        href: 'https://github.com/ConductionNL/nextcloud-vue',
-        label: 'GitHub',
+        href: 'https://codeberg.org/Conduction/nextcloud-vue',
+        label: 'Codeberg',
         position: 'right',
       },
       { type: 'localeDropdown', position: 'right' },
