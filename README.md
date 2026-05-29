@@ -10,15 +10,15 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@conduction/nextcloud-vue"><img src="https://img.shields.io/npm/v/@conduction/nextcloud-vue" alt="npm version"></a>
-  <a href="https://github.com/ConductionNL/nextcloud-vue/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-EUPL--1.2-blue" alt="License"></a>
-  <a href="https://github.com/ConductionNL/nextcloud-vue/actions"><img src="https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?label=quality" alt="Code quality"></a>
+  <a href="https://codeberg.org/Conduction/nextcloud-vue/src/branch/main/LICENSE"><img src="https://img.shields.io/badge/license-EUPL--1.2-blue" alt="License"></a>
+  <a href="https://ci.codeberg.org/repos/Conduction/nextcloud-vue"><img src="https://ci.codeberg.org/api/badges/Conduction/nextcloud-vue/status.svg" alt="Code quality"></a>
 </p>
 
 ---
 
 `@conduction/nextcloud-vue` is an npm component library that sits on top of `@nextcloud/vue` and provides higher-level, opinionated components for building Nextcloud apps. It handles the repetitive patterns — schema-driven tables, CRUD dialogs, paginated lists, faceted search — so each app only writes the domain-specific parts.
 
-Used internally by [Pipelinq](https://github.com/ConductionNL/pipelinq), [Procest](https://github.com/ConductionNL/procest), [Larping](https://github.com/ConductionNL/larpingapp), and other Conduction Nextcloud apps.
+Used internally by [Pipelinq](https://codeberg.org/Conduction/pipelinq), [Procest](https://codeberg.org/Conduction/procest), [Larping](https://codeberg.org/Conduction/larpingapp), and other Conduction Nextcloud apps.
 
 > **Requires:** Vue 2.7, Pinia 2, @nextcloud/vue 8
 
