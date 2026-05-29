@@ -2,7 +2,7 @@
 
 ## Why
 
-The scholiq triage ([scholiq#131](https://github.com/ConductionNL/scholiq/pull/131)) flagged `AuditPackExportModal` and `RequestExportModal` as customs because they share the same "configurable export trigger" shape but no lib widget covers it. Both pick scope (regulation + date range), pick format, pick delivery, and emit a server-side export. Other fleet apps (opencatalogi data-exchange, decidesk audit pack) have the same shape coming.
+The scholiq triage ([scholiq#131](https://codeberg.org/Conduction/scholiq/pulls/131)) flagged `AuditPackExportModal` and `RequestExportModal` as customs because they share the same "configurable export trigger" shape but no lib widget covers it. Both pick scope (regulation + date range), pick format, pick delivery, and emit a server-side export. Other fleet apps (opencatalogi data-exchange, decidesk audit pack) have the same shape coming.
 
 `CnMassExportDialog` exists but is format-only (no scope, no delivery). `CnFormDialog` is too generic (no export-specific UX, no result-phase jobId surface). The export-wizard pattern needs its own widget.
 
@@ -32,6 +32,6 @@ Available for future use by opencatalogi data-exchange + decidesk audit-pack.
 
 ## References
 
-- [nextcloud-vue#283](https://github.com/ConductionNL/nextcloud-vue/issues/283)
-- [scholiq#131](https://github.com/ConductionNL/scholiq/pull/131) — consuming-app PR documenting the lib gap.
+- [nextcloud-vue#283](https://codeberg.org/Conduction/nextcloud-vue/issues/283)
+- [scholiq#131](https://codeberg.org/Conduction/scholiq/pulls/131) — consuming-app PR documenting the lib gap.
 - `CnFormDialog`, `CnMassExportDialog` — adjacent patterns.

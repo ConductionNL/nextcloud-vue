@@ -26,7 +26,7 @@ describe('app-manifest.schema.json (metadata)', () => {
 
 	it('uses the GitHub raw URL on `main` as $id', () => {
 		expect(schema.$id).toBe(
-			'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json',
+			'https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json',
 		)
 	})
 

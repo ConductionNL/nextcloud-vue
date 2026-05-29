@@ -43,7 +43,7 @@ The thin-glue exception under ADR-032 covers the validateManifest dispatch + use
 
 ### Decision 1: Keep v1 schema at its existing `$id` URL
 
-**Choice:** `src/schemas/app-manifest.schema.json` is NOT renamed or modified. Its `$id` (`https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json`) remains canonical for v1.
+**Choice:** `src/schemas/app-manifest.schema.json` is NOT renamed or modified. Its `$id` (`https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json`) remains canonical for v1.
 
 **Rationale:** Multiple deployed apps have `$schema` or tooling pointed at the v1 URL. Changing it would silently break editor validation in every consuming app. The v2 schema gets a new `$id` at `…/app-manifest-v2.schema.json`.
 
@@ -118,8 +118,8 @@ This change introduces a schema file (pure config) and ≤20 LOC of validator wi
 
 ### Schema URL convention
 
-- **v1:** `https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json`
-- **v2:** `https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json`
+- **v1:** `https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json`
+- **v2:** `https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json`
 
 Both resolve on the `main` branch. During development (on `beta`) editors can point at the raw beta URL; the `$id` always points at `main` to keep the canonical URL stable after merge.
 

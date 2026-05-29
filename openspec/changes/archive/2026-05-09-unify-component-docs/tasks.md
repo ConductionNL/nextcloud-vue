@@ -2,8 +2,8 @@
 
 ## Phase 0 — Unblock root (already in flight)
 
-- [x] Land [#135](https://github.com/ConductionNL/nextcloud-vue/pull/135) — `baseUrl: '/'`, custom-domain `url`, function-form `editUrl`, two pre-existing MDX-3 brace bugs fixed.
-- [x] Land [#134](https://github.com/ConductionNL/nextcloud-vue/pull/134) — forward-merge `feature/styleguide-component-fixes` → `development` (then development → beta as a follow-up). Keeps source branch as backup.
+- [x] Land [#135](https://codeberg.org/Conduction/nextcloud-vue/pulls/135) — `baseUrl: '/'`, custom-domain `url`, function-form `editUrl`, two pre-existing MDX-3 brace bugs fixed.
+- [x] Land [#134](https://codeberg.org/Conduction/nextcloud-vue/pulls/134) — forward-merge `feature/styleguide-component-fixes` → `development` (then development → beta as a follow-up). Keeps source branch as backup.
 - [ ] Once both lands on `beta`, verify https://nextcloud-vue.conduction.nl/ renders and `/beta/styleguide/` is preserved.
 
 ## Phase 1 — Autodoc infrastructure (CnDataTable as proving ground)

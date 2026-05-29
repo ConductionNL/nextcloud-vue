@@ -4,7 +4,7 @@
 
 `type:'wiki'` (`CnWikiPage`) is fully implemented at the renderer level — it lives in `defaultPageTypes`, has a 16-prop API, and is validated for `register`+`schema` in `validateTypeConfig`. But every other config field (`contentField`, `titleField`, `idParam`, `treeField`, `sidebarRegister`, `sidebarSchema`, `sidebarTitleField`, `emptyText`, `emptyDescription`, `emptyBodyText`, `emptyBodyDescription`) is undocumented in the JSON Schema. Consumers rely on `additionalProperties:true` to smuggle them through and the validator never catches `contentFeild` typos.
 
-The opencatalogi triage ([opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636)) flagged `ArticleDetailView` as "could be type:'wiki' once that page-type stabilises across the fleet". Stabilisation here means:
+The opencatalogi triage ([opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636)) flagged `ArticleDetailView` as "could be type:'wiki' once that page-type stabilises across the fleet". Stabilisation here means:
 
 1. **Discoverability** — schema declares the typed shape so IDE completion + hover docs work.
 2. **Validation** — typed errors with JSON-pointer paths on typos / wrong types.
@@ -35,6 +35,6 @@ Each flips from `type:'custom'` to `type:'wiki'` + typed `config.contentField` /
 
 ## References
 
-- [nextcloud-vue#277](https://github.com/ConductionNL/nextcloud-vue/issues/277)
+- [nextcloud-vue#277](https://codeberg.org/Conduction/nextcloud-vue/issues/277)
 - `src/components/CnWikiPage/CnWikiPage.vue` — the 16-prop component this stabilises.
 - `validateTypeConfig` `case 'wiki':` — existing register/schema validation.

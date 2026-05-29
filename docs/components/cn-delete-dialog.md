@@ -115,6 +115,6 @@ export default {
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDeleteDialog/CnDeleteDialog.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDeleteDialog.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnDeleteDialog/CnDeleteDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

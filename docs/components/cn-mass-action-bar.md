@@ -66,6 +66,6 @@ Mass action dropdown button for selected items. Appears when items are selected 
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassActionBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassActionBar/CnMassActionBar.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassActionBar.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnMassActionBar/CnMassActionBar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

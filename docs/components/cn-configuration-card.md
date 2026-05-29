@@ -48,6 +48,6 @@ Configuration card with title, actions, and status indicator. Used for feature t
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnConfigurationCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnConfigurationCard/CnConfigurationCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnConfigurationCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnConfigurationCard/CnConfigurationCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

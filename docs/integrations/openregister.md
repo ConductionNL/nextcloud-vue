@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # OpenRegister Integration
 
-`@conduction/nextcloud-vue` is designed to work with [OpenRegister](https://github.com/ConductionNL/openregister) — a schema-driven object store for Nextcloud.
+`@conduction/nextcloud-vue` is designed to work with [OpenRegister](https://codeberg.org/Conduction/openregister) — a schema-driven object store for Nextcloud.
 
 ## What is OpenRegister?
 

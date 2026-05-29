@@ -105,6 +105,6 @@ Sortable data table with row selection, loading states, and schema-driven column
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

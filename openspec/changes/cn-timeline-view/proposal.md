@@ -16,5 +16,5 @@ The scholiq triage flagged `CohortTimetable` as a custom because no lib widget r
 
 ## References
 
-- [nextcloud-vue#284](https://github.com/ConductionNL/nextcloud-vue/issues/284).
+- [nextcloud-vue#284](https://codeberg.org/Conduction/nextcloud-vue/issues/284).
 - scholiq `CohortTimetable`.

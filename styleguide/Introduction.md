@@ -1,7 +1,7 @@
 [![npm last version](https://img.shields.io/npm/v/@conduction/nextcloud-vue.svg?style=flat-square)](https://www.npmjs.com/package/@conduction/nextcloud-vue)
-[![build status](https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?branch=main&style=flat-square)](https://github.com/ConductionNL/nextcloud-vue/actions/workflows/code-quality.yml?query=branch%3Amain)
+[![build status](https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?branch=main&style=flat-square)](https://codeberg.org/Conduction/nextcloud-vue/actions/workflows/code-quality.yml?query=branch%3Amain)
 [![Dependabot status](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?longCache=true&style=flat-square&logo=dependabot)](https://dependabot.com)
-[![test status](https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?branch=main&style=flat-square&label=Test%20status)](https://github.com/ConductionNL/nextcloud-vue/actions/workflows/code-quality.yml?query=branch%3Amain)
+[![test status](https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?branch=main&style=flat-square&label=Test%20status)](https://codeberg.org/Conduction/nextcloud-vue/actions/workflows/code-quality.yml?query=branch%3Amain)
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg?style=flat-square)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
 
 > 🏗️ Higher-level Vue 2 component library for building Conduction Nextcloud apps
@@ -9,7 +9,7 @@
 - ✨ 50+ production-ready UI components
 - 🛠️ Composables, store factories, and frontend utilities
 - 📋 Schema-driven forms, tables, and filters from [JSON Schema](https://json-schema.org)
-- 🗺️ [Manifest-driven app shell](https://github.com/ConductionNL/nextcloud-vue/blob/main/docs/manifest-renderer.md) — declare routes, navigation, and dependencies in one JSON file
+- 🗺️ [Manifest-driven app shell](https://codeberg.org/Conduction/nextcloud-vue/src/branch/main/docs/manifest-renderer.md) — declare routes, navigation, and dependencies in one JSON file
 - 🎨 Automatic theming via [NL Design System](https://nldesignsystem.nl) and Nextcloud CSS variables
 
 ## 📄 Documentation

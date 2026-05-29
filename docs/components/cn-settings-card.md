@@ -48,6 +48,6 @@ Collapsible card for organizing settings into sections. Used in admin settings p
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsCard/CnSettingsCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnSettingsCard/CnSettingsCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

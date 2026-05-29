@@ -2,7 +2,7 @@
 
 ## Why
 
-The opencatalogi customs-to-zero triage (issue #274 / [opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636)) flagged that 6 of the 16 customs are thin wrappers around `CnIndexPage` that exist **only** to set the action-toggle props (`showMassDelete`, `showMassCopy`, `showMassExport`, `showMassImport`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showAdd`, `showViewToggle`).
+The opencatalogi customs-to-zero triage (issue #274 / [opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636)) flagged that 6 of the 16 customs are thin wrappers around `CnIndexPage` that exist **only** to set the action-toggle props (`showMassDelete`, `showMassCopy`, `showMassExport`, `showMassImport`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showAdd`, `showViewToggle`).
 
 Mechanically, the renderer already forwards arbitrary `config.*` keys as Vue props on the dispatched component (see `CnPageRenderer.resolvedProps()` — `{ ...config, ...params }`), and the v2 schema's `config` field is `additionalProperties: true`. So `config.showAdd: false` and friends already work. But:
 
@@ -32,7 +32,7 @@ Unblocks opencatalogi: `CatalogiIndexView`, `OrganizationIndexView`, `ThemeIndex
 
 ## References
 
-- [nextcloud-vue#274](https://github.com/ConductionNL/nextcloud-vue/issues/274) — tracking issue.
-- [opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636) — consuming-app PR documenting the lib gap on each affected page.
+- [nextcloud-vue#274](https://codeberg.org/Conduction/nextcloud-vue/issues/274) — tracking issue.
+- [opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636) — consuming-app PR documenting the lib gap on each affected page.
 - `CnPageRenderer.resolvedProps()` + `READ_ONLY_DEFAULTS` — existing precedent for the flattening pattern.
 <!-- CI trigger probe 2026-05-20T21:08:53Z -->

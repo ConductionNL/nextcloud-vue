@@ -11,7 +11,7 @@ sidebar_position: 1
 ## Current Status & Scope
 
 :::info OpenRegister-first development
-This library is currently developed and tested primarily against **[OpenRegister](https://github.com/ConductionNL/openregister)** — an open-source Nextcloud app that provides a schema-driven object store with registers, schemas, and JSON-based objects.
+This library is currently developed and tested primarily against **[OpenRegister](https://codeberg.org/Conduction/openregister)** — an open-source Nextcloud app that provides a schema-driven object store with registers, schemas, and JSON-based objects.
 
 **The goal is broader applicability.** The components are designed around standard JSON Schema and generic REST conventions, not OpenRegister internals. Future work will make the store layer configurable so apps can target any backend that follows the same schema/object model.
 
@@ -26,7 +26,7 @@ What this means today:
 
 - Nextcloud development environment (Docker recommended)
 - Node.js 18+
-- [OpenRegister](https://github.com/ConductionNL/openregister) app installed and enabled (for the full store integration)
+- [OpenRegister](https://codeberg.org/Conduction/openregister) app installed and enabled (for the full store integration)
 - A Nextcloud app scaffold (see [Nextcloud App Development](https://docs.nextcloud.com/server/stable/developer_manual/app_development/index.html))
 
 ## Install the Library
@@ -283,7 +283,7 @@ The four ideas every `Cn*` component is built on:
 
 ## Consumer apps
 
-`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **MyDash**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
+`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **MyDash**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
 
 ## Next Steps
 

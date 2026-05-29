@@ -2,7 +2,7 @@
 
 ## Why
 
-The opencatalogi triage ([opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636)) flagged that 5 detail-page wrappers exist partly because the sidebar-tab declaration in their manifests is undocumented and unvalidated. Consumers can declare `config.sidebarTabs[]` on a `type:'detail'` page (the `liftSidebarTabWidgets` CLI transform expects exactly that shape), but the JSON Schema doesn't describe it and the runtime validator never catches typos.
+The opencatalogi triage ([opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636)) flagged that 5 detail-page wrappers exist partly because the sidebar-tab declaration in their manifests is undocumented and unvalidated. Consumers can declare `config.sidebarTabs[]` on a `type:'detail'` page (the `liftSidebarTabWidgets` CLI transform expects exactly that shape), but the JSON Schema doesn't describe it and the runtime validator never catches typos.
 
 Today:
 - The CLI transform (`src/cli/transforms/liftSidebarTabWidgets.js`) lifts `config.sidebarTabs[]` into top-level `widgets[]` with `slot:"sidebar"` + `tabGroup`. The lift is a one-shot build-time conversion.
@@ -36,6 +36,6 @@ Unblocks opencatalogi: `CatalogDetailPageView`, `ThemeDetailPageView`, `Glossary
 
 ## References
 
-- [nextcloud-vue#275](https://github.com/ConductionNL/nextcloud-vue/issues/275) — tracking issue.
+- [nextcloud-vue#275](https://codeberg.org/Conduction/nextcloud-vue/issues/275) — tracking issue.
 - `src/cli/transforms/liftSidebarTabWidgets.js` — the shape consumers actually author.
-- [opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636) — consuming-app PR documenting the lib gap.
+- [opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636) — consuming-app PR documenting the lib gap.

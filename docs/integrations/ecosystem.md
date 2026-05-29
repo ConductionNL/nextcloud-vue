@@ -10,7 +10,7 @@ These apps are built with `@conduction/nextcloud-vue`, demonstrating different p
 
 ### OpenCatalogi
 
-**Repository**: [ConductionNL/opencatalogi](https://github.com/ConductionNL/opencatalogi)
+**Repository**: [ConductionNL/opencatalogi](https://codeberg.org/Conduction/opencatalogi)
 
 Large-scale catalog application with faceted search and public page rendering. Demonstrates:
 - **CnFacetSidebar** — complex faceted search across multiple schemas
@@ -20,7 +20,7 @@ Large-scale catalog application with faceted search and public page rendering. D
 
 ### Pipelinq
 
-**Repository**: [ConductionNL/pipelinq](https://github.com/ConductionNL/pipelinq)
+**Repository**: [ConductionNL/pipelinq](https://codeberg.org/Conduction/pipelinq)
 
 CRM and pipeline management. Demonstrates:
 - **CnIndexPage** — client, lead, and request list views
@@ -31,7 +31,7 @@ CRM and pipeline management. Demonstrates:
 
 ### Procest
 
-**Repository**: [ConductionNL/procest](https://github.com/ConductionNL/procest)
+**Repository**: [ConductionNL/procest](https://codeberg.org/Conduction/procest)
 
 Case management with workflow states. Demonstrates:
 - **CnStatusBadge** — workflow state indicators with color maps
@@ -41,7 +41,7 @@ Case management with workflow states. Demonstrates:
 
 ### LarpingApp
 
-**Repository**: [ConductionNL/larpingapp](https://github.com/ConductionNL/larpingapp)
+**Repository**: [ConductionNL/larpingapp](https://codeberg.org/Conduction/larpingapp)
 
 Character and event management for LARP (Live Action Role Playing). Demonstrates:
 - **registerIcons** — registering domain-specific icons (Sword, MagicStaff, ShieldSwordOutline)
@@ -51,7 +51,7 @@ Character and event management for LARP (Live Action Role Playing). Demonstrates
 
 ### MyDash
 
-**Repository**: [ConductionNL/mydash](https://github.com/ConductionNL/mydash)
+**Repository**: [ConductionNL/mydash](https://codeberg.org/Conduction/mydash)
 
 Dashboard app with KPI widgets. Demonstrates:
 - **CnKpiGrid** — responsive grid layout for dashboard cards

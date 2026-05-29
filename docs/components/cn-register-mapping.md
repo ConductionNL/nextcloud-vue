@@ -75,6 +75,6 @@ This component is typically used in the admin settings page of an app to let adm
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRegisterMapping.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnRegisterMapping/CnRegisterMapping.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnRegisterMapping.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnRegisterMapping/CnRegisterMapping.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -26,7 +26,7 @@ spec section 3).
 The Roadmap tab inside this view consumes
 `GET /index.php/apps/openregister/api/github/issues?labels=enhancement,feature`
 and the Suggest modal POSTs to the same endpoint. Full backend contract:
-[`openregister/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy/spec.md`](https://github.com/ConductionNL/openregister/tree/development/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy).
+[`openregister/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy/spec.md`](https://codeberg.org/Conduction/openregister/src/branch/development/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy).
 
 ## Reference
 

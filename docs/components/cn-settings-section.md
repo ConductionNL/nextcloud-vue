@@ -63,6 +63,6 @@ Admin settings section with loading and error states. Wraps NcSettingsSection wi
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsSection.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnSettingsSection/CnSettingsSection.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnSettingsSection.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnSettingsSection/CnSettingsSection.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

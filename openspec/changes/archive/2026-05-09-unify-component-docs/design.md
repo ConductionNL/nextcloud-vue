@@ -88,7 +88,7 @@ import GeneratedRef from './_generated/CnDataTable.md'
 - `editUrl`: function form pointing at `edit/beta/docs/<docPath>`
 - `/styleguide/` deployed alongside Docusaurus build (the existing `documentation.yml` workflow on `main` already does this; `documentation-beta.yml` and `documentation-dev.yml` keep the `/beta/styleguide/` and `/dev/styleguide/` subpaths working with `keep_files: true`).
 
-This is what [#135](https://github.com/ConductionNL/nextcloud-vue/pull/135) makes real for `beta`. The spec needs to be MODIFIED to match (currently it mandates the GitHub Pages defaults).
+This is what [#135](https://codeberg.org/Conduction/nextcloud-vue/pulls/135) makes real for `beta`. The spec needs to be MODIFIED to match (currently it mandates the GitHub Pages defaults).
 
 **Why not flat-rebrand to docs.conduction.nl or similar:** breaks every existing inbound link. The CNAME is established.
 

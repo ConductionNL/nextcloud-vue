@@ -16,5 +16,5 @@ The pipelinq + opencatalogi triages flagged `CategoryManager` / `MenuDetailPageV
 
 ## References
 
-- [nextcloud-vue#278](https://github.com/ConductionNL/nextcloud-vue/issues/278).
+- [nextcloud-vue#278](https://codeberg.org/Conduction/nextcloud-vue/issues/278).
 - pipelinq `CategoryManager`, opencatalogi `MenuDetailPageView`.

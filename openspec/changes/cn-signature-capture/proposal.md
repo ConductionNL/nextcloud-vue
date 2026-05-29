@@ -15,9 +15,9 @@ New `src/components/CnSignatureCapture/CnSignatureCapture.vue` (~440 LOC). Two c
 
 ## Consumer impact
 
-Refs [#282](https://github.com/ConductionNL/nextcloud-vue/issues/282). Unblocks scholiq `SignPlanModal` (drop the widget into a `CnWizardDialog` step). Available for opencatalogi / decidesk future sign-off flows.
+Refs [#282](https://codeberg.org/Conduction/nextcloud-vue/issues/282). Unblocks scholiq `SignPlanModal` (drop the widget into a `CnWizardDialog` step). Available for opencatalogi / decidesk future sign-off flows.
 
 ## References
 
-- [scholiq#131](https://github.com/ConductionNL/scholiq/pull/131).
+- [scholiq#131](https://codeberg.org/Conduction/scholiq/pulls/131).
 - `CnWizardDialog` (#281 / PR #300) — typical host.

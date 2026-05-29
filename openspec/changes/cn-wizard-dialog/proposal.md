@@ -25,16 +25,16 @@ The pipelinq + scholiq triage flagged 7 customs as the highest-leverage cluster 
 
 ## Non-goals
 
-- Signature capture — lives in [`CnSignatureCapture` #282](https://github.com/ConductionNL/nextcloud-vue/issues/282), a separate component used inside one of the wizard's slots.
+- Signature capture — lives in [`CnSignatureCapture` #282](https://codeberg.org/Conduction/nextcloud-vue/issues/282), a separate component used inside one of the wizard's slots.
 - Async-batch progress polling — consumer-side. The wizard exposes `setResult({jobId})` and a `#result-extra` slot so consumers can drop a progress widget into the result phase.
 - Field-schema integration in CnRichSubmitDialog — that path stays on `CnFormDialog`.
 
 ## Consumer impact
 
-Refs [#281](https://github.com/ConductionNL/nextcloud-vue/issues/281). Unblocks 7 customs across pipelinq + scholiq once consumer-side flips land in follow-up PRs.
+Refs [#281](https://codeberg.org/Conduction/nextcloud-vue/issues/281). Unblocks 7 customs across pipelinq + scholiq once consumer-side flips land in follow-up PRs.
 
 ## References
 
-- [pipelinq#415](https://github.com/ConductionNL/pipelinq/pull/415), [scholiq#131](https://github.com/ConductionNL/scholiq/pull/131) — consuming-app PRs documenting the lib gap.
+- [pipelinq#415](https://codeberg.org/Conduction/pipelinq/pulls/415), [scholiq#131](https://codeberg.org/Conduction/scholiq/pulls/131) — consuming-app PRs documenting the lib gap.
 - `CnFormDialog`, `CnAdvancedFormDialog` — single-step relatives.
 - `CnExportWizard` (#283 / PR #299) — adjacent pre-built wizard for the export shape.

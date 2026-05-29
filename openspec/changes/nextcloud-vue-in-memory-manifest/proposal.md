@@ -17,7 +17,7 @@ an optional backend override endpoint. The OpenBuilt app builder breaks that ass
 mounts *virtual* apps whose manifest is constructed in memory from store state and never lives
 on a backend route. Today OpenBuilt's `BuilderHost.vue` works around the missing overload by
 pointing `options.endpoint` at a per-slug fake URL (see openbuilt
-[`bootstrap-openbuilt/design.md`](https://github.com/ConductionNL/openbuilt/blob/main/openspec/changes/bootstrap-openbuilt/design.md)
+[`bootstrap-openbuilt/design.md`](https://codeberg.org/Conduction/openbuilt/src/branch/main/openspec/changes/bootstrap-openbuilt/design.md)
 Decision 4). That bridge is temporary; the clean API is a direct in-memory overload.
 
 This spec adds that overload to `@conduction/nextcloud-vue` so OpenBuilt and any future

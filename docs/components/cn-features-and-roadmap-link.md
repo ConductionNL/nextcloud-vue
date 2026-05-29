@@ -24,7 +24,7 @@ Settings gear. Apps that have disabled the Features & Roadmap surface via the
 
 The link itself is purely UI. The downstream view this entry navigates to consumes
 OpenRegister's `github-issue-proxy` capability (see
-[`openregister/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy/spec.md`](https://github.com/ConductionNL/openregister/tree/development/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy)).
+[`openregister/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy/spec.md`](https://codeberg.org/Conduction/openregister/src/branch/development/openspec/changes/add-features-roadmap-menu/specs/github-issue-proxy)).
 
 ## Reference
 

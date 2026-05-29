@@ -17,5 +17,5 @@ The opencatalogi triage flagged `ThemeDetailPageView` as a custom because no lib
 
 ## References
 
-- [nextcloud-vue#290](https://github.com/ConductionNL/nextcloud-vue/issues/290).
+- [nextcloud-vue#290](https://codeberg.org/Conduction/nextcloud-vue/issues/290).
 - Fleet brand hex reference in memory.

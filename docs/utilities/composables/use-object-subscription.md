@@ -30,4 +30,4 @@ const { status, lastEventAt } = useObjectSubscription(objectStore, type, id, opt
 
 - Used by default inside [`CnDetailPage`](../../components/cn-detail-page.md) and [`CnObjectSidebar`](../../components/cn-object-sidebar.md). Set `subscribe: false` on those components to opt out.
 - The composable does not refetch on its own; the `liveUpdatesPlugin` already invalidates the store cache on each `or-object-{uuid}` event, which triggers a refetch and a reactive re-render in any consumer reading from `objectStore.objects[type][id]`.
-- See [OpenRegister push events docs](https://github.com/ConductionNL/openregister/blob/development/docs/Integrations/OpenRegister.md) for the wire format.
+- See [OpenRegister push events docs](https://codeberg.org/Conduction/openregister/src/branch/development/docs/Integrations/OpenRegister.md) for the wire format.

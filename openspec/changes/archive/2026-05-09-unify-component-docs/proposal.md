@@ -4,7 +4,7 @@
 
 Today the library publishes documentation through **two parallel systems**, neither of which can serve a developer end-to-end:
 
-- **Docusaurus** at https://nextcloud-vue.conduction.nl/ — the broader "how to design and build apps with this library" surface (architecture, layouts, i18n, integrations, store, getting-started, hand-written component pages). Until [#135](https://github.com/ConductionNL/nextcloud-vue/pull/135) the root URL was rendering the official "site did not load properly" red banner because of a CNAME-vs-baseUrl mismatch — the entry point of our docs has been broken.
+- **Docusaurus** at https://nextcloud-vue.conduction.nl/ — the broader "how to design and build apps with this library" surface (architecture, layouts, i18n, integrations, store, getting-started, hand-written component pages). Until [#135](https://codeberg.org/Conduction/nextcloud-vue/pulls/135) the root URL was rendering the official "site did not load properly" red banner because of a CNAME-vs-baseUrl mismatch — the entry point of our docs has been broken.
 - **Vue Styleguidist** at https://nextcloud-vue.conduction.nl/beta/styleguide/ and `/dev/styleguide/` — the live, interactive component playground. Auto-introspects SFC props/slots/events from source, ships mocks for runtime data, exposes design-token + animation reference pages.
 
 The two are almost orthogonal in content (no real duplication beyond the per-component overlap), but they're discovered separately, themed differently, and have no shared navigation. A developer landing on either site has to know the other exists and what to look for in each. Worse, the per-component pages exist in **both** systems with different shapes — markdown stub in Docusaurus vs auto-generated playground in Styleguidist — so the canonical source of truth for each component is genuinely unclear.
@@ -25,7 +25,7 @@ The library is also moving fast (1.0.0-beta.1 just shipped, manifest renderer la
 
 **Spec drift cleanup.** The existing [docs-site-infrastructure spec](../../../specs/docs-site-infrastructure/spec.md) hard-codes `url: 'https://conductionnl.github.io'` + `baseUrl: '/nextcloud-vue/'`, which is what made the root broken in the first place. The CNAME-driven custom-domain config from #135 becomes the spec.
 
-**Branch-protection awareness.** The `feature/styleguide-component-fixes` branch (the live source of `/beta/styleguide/`) stays around as a backup reference but is no longer the integration branch — its 13 commits of component fixes flow back through the standard `feature → development → beta` flow ([#134](https://github.com/ConductionNL/nextcloud-vue/pull/134)).
+**Branch-protection awareness.** The `feature/styleguide-component-fixes` branch (the live source of `/beta/styleguide/`) stays around as a backup reference but is no longer the integration branch — its 13 commits of component fixes flow back through the standard `feature → development → beta` flow ([#134](https://codeberg.org/Conduction/nextcloud-vue/pulls/134)).
 
 ## What Does Not Change (deliberate)
 

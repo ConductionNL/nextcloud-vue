@@ -315,6 +315,6 @@ const fields = [
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

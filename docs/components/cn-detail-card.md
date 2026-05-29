@@ -63,6 +63,6 @@ Card container for sections on detail pages. Provides a consistent header (icon 
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailCard/CnDetailCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnDetailCard/CnDetailCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

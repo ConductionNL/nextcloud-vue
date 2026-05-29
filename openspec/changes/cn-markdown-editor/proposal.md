@@ -16,5 +16,5 @@ The pipelinq + opencatalogi triages flagged knowledge-base article editors (`Art
 
 ## References
 
-- [nextcloud-vue#286](https://github.com/ConductionNL/nextcloud-vue/issues/286).
+- [nextcloud-vue#286](https://codeberg.org/Conduction/nextcloud-vue/issues/286).
 - pipelinq `ArticleEditorView`, opencatalogi `PageDetailPageView`.

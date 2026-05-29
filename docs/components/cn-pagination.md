@@ -74,6 +74,6 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPagination.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPagination/CnPagination.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPagination.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnPagination/CnPagination.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

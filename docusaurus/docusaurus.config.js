@@ -29,7 +29,7 @@ const config = createConfig({
   // in markdown (`./layouts/`, `./components/`) need to be absolute or
   // .md-suffixed under this setting; see fix in docs/getting-started.md.
 
-  organizationName: 'ConductionNL',
+  organizationName: 'Conduction',
   projectName: 'nextcloud-vue',
 
   /* Library docs ship en + nl markdown only; the brand preset's default
@@ -62,7 +62,7 @@ const config = createConfig({
           path: '../docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: ({ docPath }) =>
-            `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}`,
+            `https://codeberg.org/Conduction/nextcloud-vue/_edit/branch/beta/docs/${docPath}`,
         },
         blog: false,
         theme: {
@@ -87,7 +87,7 @@ const config = createConfig({
         label: 'Documentation',
       },
       {
-        href: 'https://github.com/ConductionNL/nextcloud-vue',
+        href: 'https://codeberg.org/Conduction/nextcloud-vue',
         label: 'GitHub',
         position: 'right',
       },

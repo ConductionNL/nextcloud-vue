@@ -26,7 +26,7 @@ const baseItem = {
 	number: 42,
 	title: 'Add GraphQL support',
 	body: 'A description.',
-	html_url: 'https://github.com/ConductionNL/openregister/issues/42',
+	html_url: 'https://codeberg.org/Conduction/openregister/issues/42',
 	user: { login: 'octocat', avatar_url: 'https://avatars.githubusercontent.com/u/1' },
 	reactions: { total_count: 12, '+1': 10 },
 	created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),

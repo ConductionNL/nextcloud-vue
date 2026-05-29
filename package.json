@@ -2,13 +2,13 @@
 	"name": "@conduction/nextcloud-vue",
 	"version": "1.0.0-beta.7",
 	"description": "Shared Vue component library for Conduction Nextcloud apps — complements @nextcloud/vue with higher-level components, OpenRegister integration, and NL Design System support",
-	"homepage": "https://github.com/ConductionNL/nextcloud-vue#readme",
+	"homepage": "https://codeberg.org/Conduction/nextcloud-vue#readme",
 	"bugs": {
-		"url": "https://github.com/ConductionNL/nextcloud-vue/issues"
+		"url": "https://codeberg.org/Conduction/nextcloud-vue/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ConductionNL/nextcloud-vue.git"
+		"url": "git+https://codeberg.org/Conduction/nextcloud-vue.git"
 	},
 	"license": "EUPL-1.2",
 	"author": "Conduction B.V. <info@conduction.nl>",

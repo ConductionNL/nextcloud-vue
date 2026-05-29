@@ -63,6 +63,6 @@ Pass pre-translated labels when your app handles i18n:
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnNotesCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnNotesCard/CnNotesCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnNotesCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnNotesCard/CnNotesCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

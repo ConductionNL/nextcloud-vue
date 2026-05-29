@@ -19,7 +19,7 @@ The `docusaurus.config.js` MUST configure:
 - `baseUrl`: `/` (root — the custom domain serves Docusaurus at the apex, not under a project subpath)
 - `organizationName`: `ConductionNL`
 - `projectName`: `nextcloud-vue`
-- `editUrl`: A function form `({ docPath }) => \`https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}\`` (string-form editUrl produces broken `tree/<branch>/docusaurus/../docs/...` links because the docs `path` is `'../docs'`; a function form sidesteps the relpath doubling)
+- `editUrl`: A function form `({ docPath }) => \`https://codeberg.org/Conduction/nextcloud-vue/_edit/branch/beta/docs/${docPath}\`` (string-form editUrl produces broken `tree/<branch>/docusaurus/../docs/...` links because the docs `path` is `'../docs'`; a function form sidesteps the relpath doubling)
 - Docs preset with `path: '../docs'` and auto-generated sidebars
 - Mermaid theme support via `@docusaurus/theme-mermaid`
 - Client-side redirects via `@docusaurus/plugin-client-redirects` (used by Phase 5 of the unification)
@@ -37,7 +37,7 @@ The `docusaurus.config.js` MUST configure:
 
 - GIVEN a published docs page (e.g. `/docs/components/cn-data-table`)
 - WHEN a reader clicks "Edit this page"
-- THEN they MUST land on `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/components/cn-data-table.md` with no `..` segments in the URL
+- THEN they MUST land on `https://codeberg.org/Conduction/nextcloud-vue/_edit/branch/beta/docs/components/cn-data-table.md` with no `..` segments in the URL
 
 #### Scenario: Navbar navigation
 (unchanged — still mandates Documentation + GitHub links)

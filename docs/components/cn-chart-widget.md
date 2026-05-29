@@ -86,6 +86,6 @@ The dispatcher forwards `props.chartKind` as the apex `type` and passes through 
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnChartWidget.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnChartWidget/CnChartWidget.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnChartWidget.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnChartWidget/CnChartWidget.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

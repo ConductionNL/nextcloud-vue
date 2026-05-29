@@ -120,6 +120,6 @@ The sidebar header displays an icon from the `icon` prop (or `schema.icon`). Ico
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexSidebar/CnIndexSidebar.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexSidebar.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnIndexSidebar/CnIndexSidebar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -17,5 +17,5 @@ The scholiq triage flagged `GradebookView` (cohort × plan grid with inline-edit
 
 ## References
 
-- [nextcloud-vue#293](https://github.com/ConductionNL/nextcloud-vue/issues/293).
+- [nextcloud-vue#293](https://codeberg.org/Conduction/nextcloud-vue/issues/293).
 - scholiq `GradebookView`.

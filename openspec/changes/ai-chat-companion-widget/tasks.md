@@ -73,7 +73,7 @@
 - **spec_ref**: `openspec/specs/ai-chat-companion-widget/spec.md#requirement-history-browser`
 - **files**: `src/dialogs/CnAiHistoryDialog.vue`, `src/dialogs/CnAiHistoryDialog.md`
 - **acceptance_criteria**:
-  - Wraps `NcDialog` from `@nextcloud/vue` (re-exported via `@conduction/nextcloud-vue`); MUST live in its own `.vue` file under `src/dialogs/` per [ADR-004](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-004-frontend.md) modal/dialog file-isolation rule
+  - Wraps `NcDialog` from `@nextcloud/vue` (re-exported via `@conduction/nextcloud-vue`); MUST live in its own `.vue` file under `src/dialogs/` per [ADR-004](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-004-frontend.md) modal/dialog file-isolation rule
   - Accepts `:open` (boolean, controls visibility) and `:active-conversation-uuid` (optional) props
   - Emits `update:open` (close intent) and `select` (with conversation UUID) events
   - On open, fetches conversation list from `GET /index.php/apps/openregister/api/chat/conversations?limit=50` via `axios` from `@nextcloud/axios` (50 most-recent, no pagination in v1)
@@ -313,7 +313,7 @@
 - **spec_ref**: `openspec/specs/ai-chat-companion-widget/spec.md#requirement-openregister-health-probe-and-silent-no-op`, `#requirement-streaming-chat-composable-useaichatstream`
 - **files**: n/a
 - **acceptance_criteria**:
-  - With sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) shipped to dev env: FAB renders on a detail page, opens, sends, streams a real OpenAI/Ollama response, tool-call expands, history loads
+  - With sibling [openregister/ai-chat-companion-orchestrator](https://codeberg.org/Conduction/openregister) shipped to dev env: FAB renders on a detail page, opens, sends, streams a real OpenAI/Ollama response, tool-call expands, history loads
   - With OR not installed (or orchestrator change not yet shipped): FAB does not render, no console warnings
 - [ ] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session.
 
@@ -321,4 +321,4 @@
 - [ ] All tasks above checked off
 - [ ] `openspec validate ai-chat-companion-widget --strict` passes
 - [ ] Manual testing against acceptance criteria documented in PR description
-- [ ] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md)
+- [ ] Code review against [hydra ADR-034](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/specs/ai-chat-companion/spec.md)

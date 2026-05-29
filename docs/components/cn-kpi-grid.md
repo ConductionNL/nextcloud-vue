@@ -41,6 +41,6 @@ Responsive grid layout for KPI/statistics cards. Adapts columns to screen width.
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnKpiGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnKpiGrid/CnKpiGrid.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnKpiGrid.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnKpiGrid/CnKpiGrid.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -54,6 +54,6 @@ Page header with an optional MDI icon, title, and description. Used at the top o
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPageHeader.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnPageHeader/CnPageHeader.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnPageHeader.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnPageHeader/CnPageHeader.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -66,6 +66,6 @@ The schema's `configuration` object controls card layout:
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnObjectCard/CnObjectCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnObjectCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnObjectCard/CnObjectCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

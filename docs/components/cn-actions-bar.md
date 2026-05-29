@@ -86,6 +86,6 @@ Custom action items can be injected into the overflow menu:
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

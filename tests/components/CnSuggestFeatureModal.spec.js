@@ -77,7 +77,7 @@ describe('CnSuggestFeatureModal', () => {
 	})
 
 	it('POSTs {repo, title, body} and emits submitted + close on 201', async () => {
-		axios.post.mockResolvedValue({ status: 201, data: { number: 1247, html_url: 'https://github.com/ConductionNL/openregister/issues/1247', state: 'open' } })
+		axios.post.mockResolvedValue({ status: 201, data: { number: 1247, html_url: 'https://codeberg.org/Conduction/openregister/issues/1247', state: 'open' } })
 		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/openregister' } })
 		await fillForm(wrapper, { title: 'Add dark mode', body: 'A detailed description, at least ten chars.' })
 		await submitButton(wrapper).trigger('click')

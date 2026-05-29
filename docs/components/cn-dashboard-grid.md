@@ -67,6 +67,6 @@ function onLayoutChange(updated) {
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardGrid/CnDashboardGrid.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardGrid.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnDashboardGrid/CnDashboardGrid.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

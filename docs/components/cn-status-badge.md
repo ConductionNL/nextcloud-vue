@@ -54,6 +54,6 @@ Color-coded pill badge for status, priority, or category display. Supports autom
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatusBadge.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnStatusBadge/CnStatusBadge.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatusBadge.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnStatusBadge/CnStatusBadge.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

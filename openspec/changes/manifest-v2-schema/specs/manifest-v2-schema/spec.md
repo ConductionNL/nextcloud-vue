@@ -17,12 +17,12 @@ Defines the v2 JSON Schema for the Conduction app manifest, the per-slot grid co
 
 ### Requirement: REQ-MV2S-001 — v2 Schema File Location and URL
 
-A JSON Schema file MUST exist at `src/schemas/app-manifest-v2.schema.json`. Its `$id` MUST be `https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json`. The v1 schema at `src/schemas/app-manifest.schema.json` MUST NOT be modified; its `$id` URL MUST remain stable.
+A JSON Schema file MUST exist at `src/schemas/app-manifest-v2.schema.json`. Its `$id` MUST be `https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json`. The v1 schema at `src/schemas/app-manifest.schema.json` MUST NOT be modified; its `$id` URL MUST remain stable.
 
 #### Scenario: v2 schema file resolves at the canonical URL
 
 - **WHEN** the file `src/schemas/app-manifest-v2.schema.json` is read
-- **THEN** its `$id` field SHALL equal `https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json`
+- **THEN** its `$id` field SHALL equal `https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json`
 
 #### Scenario: v1 schema file is unchanged
 
@@ -42,7 +42,7 @@ A v2 manifest MUST include a `$schema` field at the top level whose value points
 
 #### Scenario: v2 manifest with correct `$schema` passes validation
 
-- **WHEN** a manifest includes `"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json"` plus valid `version`, `menu`, and `pages`
+- **WHEN** a manifest includes `"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json"` plus valid `version`, `menu`, and `pages`
 - **THEN** validation SHALL pass with no errors
 
 ---

@@ -16,5 +16,5 @@ The scholiq triage flagged `OsoDossierReviewView` as a custom because no lib wid
 
 ## References
 
-- [nextcloud-vue#292](https://github.com/ConductionNL/nextcloud-vue/issues/292).
+- [nextcloud-vue#292](https://codeberg.org/Conduction/nextcloud-vue/issues/292).
 - scholiq `OsoDossierReviewView`.

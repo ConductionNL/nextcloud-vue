@@ -9,7 +9,7 @@ chain:
 
 ## Why
 
-The cross-app AI Chat Companion architecture is defined in hydra's `ai-chat-companion` change (promoted as [ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md)). The widget — a floating, context-aware FAB + chat panel — ships from `@conduction/nextcloud-vue`; every Conduction app that imports the library gets the widget for free. This change implements the frontend contracts so the ~13 consuming apps can mount a single line and have AI chat available with full page/object context.
+The cross-app AI Chat Companion architecture is defined in hydra's `ai-chat-companion` change (promoted as [ADR-034](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-034-ai-chat-companion.md)). The widget — a floating, context-aware FAB + chat panel — ships from `@conduction/nextcloud-vue`; every Conduction app that imports the library gets the widget for free. This change implements the frontend contracts so the ~13 consuming apps can mount a single line and have AI chat available with full page/object context.
 
 ## What Changes
 
@@ -43,16 +43,16 @@ The cross-app AI Chat Companion architecture is defined in hydra's `ai-chat-comp
 - **Test coverage**: Vitest mount + render tests for each new component (~3 each, covering: renders correctly with mock context, hides when health-probe fails, emits expected events). ~3 tests for `useAiChatStream` covering the six event-types parser. `npm run lint` + `npm run stylelint` MUST pass.
 - **Browser-side smoke test**: against the live OR backend (sibling change shipped + dev env running), confirm the FAB renders on a detail page, opens, sends, streams.
 - **May run in parallel with the sibling `openregister/ai-chat-companion-orchestrator` change** — frontend can mock the SSE endpoint locally for dev. e2e tests block on the orchestrator change shipping.
-- **Compatibility with [adr-004-frontend.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-004-frontend.md)**: Vue 2, axios from `@nextcloud/axios` (for non-streaming calls), `t()` for all user-visible strings (en + nl), modals in their own files, CSS variables only, NEVER `fetch()` for mutations, EventSource for SSE (browser-native streaming primitive — not axios).
-- **Compatibility with [adr-017-component-composition.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-017-component-composition.md)**: each new component is self-contained (renders its own card / panel / button); consumers MUST NOT wrap them in `CnDetailCard` or similar.
-- **Compatibility with [adr-022-apps-consume-or-abstractions.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-022-apps-consume-or-abstractions.md)**: widget calls OR's HTTP API at runtime. Library itself acquires NO PHP/composer dep on OR (this is a JS library); consuming apps acquire a runtime-only dep on OR being reachable.
+- **Compatibility with [adr-004-frontend.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-004-frontend.md)**: Vue 2, axios from `@nextcloud/axios` (for non-streaming calls), `t()` for all user-visible strings (en + nl), modals in their own files, CSS variables only, NEVER `fetch()` for mutations, EventSource for SSE (browser-native streaming primitive — not axios).
+- **Compatibility with [adr-017-component-composition.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-017-component-composition.md)**: each new component is self-contained (renders its own card / panel / button); consumers MUST NOT wrap them in `CnDetailCard` or similar.
+- **Compatibility with [adr-022-apps-consume-or-abstractions.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-022-apps-consume-or-abstractions.md)**: widget calls OR's HTTP API at runtime. Library itself acquires NO PHP/composer dep on OR (this is a JS library); consuming apps acquire a runtime-only dep on OR being reachable.
 - **Apps that consume only the widget (e.g. `mydash`)**: zero install-time changes. Bumping `@conduction/nextcloud-vue` to the version shipping this change is the entire integration. The widget no-ops gracefully if OR isn't installed/reachable.
-- **i18n**: every new user-visible string in `l10n/en.json` + `l10n/nl.json` (per [adr-007-i18n.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-007-i18n.md)). Keys: `Open AI chat`, `Send`, `Start new chat`, `History`, `Close`, `Connecting...`, etc.
+- **i18n**: every new user-visible string in `l10n/en.json` + `l10n/nl.json` (per [adr-007-i18n.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-007-i18n.md)). Keys: `Open AI chat`, `Send`, `Start new chat`, `History`, `Close`, `Connecting...`, etc.
 - **Rollback**: bump the consuming app back to a previous nc-vue version. No data migration.
 
 ## Future / out-of-scope
 
-- Per-app pilot mounts ([opencatalogi#549](https://github.com/ConductionNL/opencatalogi/issues/549) is the first pilot).
-- Refactoring OR's existing full-page chat onto `CnAiMessageList` / `CnAiInput` ([openregister#1459](https://github.com/ConductionNL/openregister/issues/1459)).
+- Per-app pilot mounts ([opencatalogi#549](https://codeberg.org/Conduction/opencatalogi/issues/549) is the first pilot).
+- Refactoring OR's existing full-page chat onto `CnAiMessageList` / `CnAiInput` ([openregister#1459](https://codeberg.org/Conduction/openregister/issues/1459)).
 - Agent picker UI (one-agent-per-user assumed in v1, see hydra design.md Open Questions).
 - Tool-call expansion / drill-down UI for advanced users.

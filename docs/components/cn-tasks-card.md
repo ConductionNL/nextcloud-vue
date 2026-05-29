@@ -66,6 +66,6 @@ Pass pre-translated labels when your app handles i18n:
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTasksCard.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnTasksCard/CnTasksCard.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTasksCard.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnTasksCard/CnTasksCard.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

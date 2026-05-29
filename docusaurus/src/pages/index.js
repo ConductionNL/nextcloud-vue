@@ -202,7 +202,7 @@ export default function Home() {
             </Button>
             <Button
               variant="ghost"
-              href="https://github.com/ConductionNL/nextcloud-vue"
+              href="https://codeberg.org/Conduction/nextcloud-vue"
             >
               View on GitHub
             </Button>

@@ -75,6 +75,6 @@ OpenRegister schemas reference icons by PascalCase name in their `icon` property
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIcon.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIcon/CnIcon.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIcon.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnIcon/CnIcon.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -16,5 +16,5 @@ The opencatalogi triage flagged `DirectoryIndexView` as a custom because no lib 
 
 ## References
 
-- [nextcloud-vue#288](https://github.com/ConductionNL/nextcloud-vue/issues/288).
+- [nextcloud-vue#288](https://codeberg.org/Conduction/nextcloud-vue/issues/288).
 - opencatalogi `DirectoryIndexView` (PR #636).

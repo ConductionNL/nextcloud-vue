@@ -22,7 +22,7 @@ A JSON Schema file at `src/schemas/app-manifest.schema.json` MUST define the can
 
 **Schema metadata (JSON Schema draft 2020-12):**
 - `"$schema": "https://json-schema.org/draft/2020-12/schema"`
-- `"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json"` (resolves to the schema file on the main branch; editors can fetch and validate against it)
+- `"$id": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json"` (resolves to the schema file on the main branch; editors can fetch and validate against it)
 - `"title": "Conduction App Manifest"`
 - `"description"`: brief description of purpose
 - `"version"`: semver of the schema definition itself (e.g. `"1.0.0"`); bump when the schema shape changes
@@ -30,7 +30,7 @@ A JSON Schema file at `src/schemas/app-manifest.schema.json` MUST define the can
 The schema MUST define the following top-level structure:
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
+  "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json",
   "version": "<semver string — content version, bumped when manifest changes>",
   "menu": [ <menu items> ],
   "pages": [ <page items> ],
@@ -77,7 +77,7 @@ The `type` field MUST be a closed enum. Adding new types requires a library sche
 
 #### Scenario: Schema validates manifest with `$schema` field set
 
-- GIVEN a manifest `{ "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json", "version": "1.0.0", "menu": [], "pages": [] }`
+- GIVEN a manifest `{ "$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json", "version": "1.0.0", "menu": [], "pages": [] }`
 - WHEN validated against `app-manifest.schema.json`
 - THEN validation MUST pass
 
@@ -639,5 +639,5 @@ All deferred questions raised during artifact generation and the post-review pat
 - `useAppManifest` accepts `bundledManifest` as an explicit argument (not dynamic import). See REQ-JMR-002.
 - `CnAppNav` supports one level of `children[]` nesting. Deeper nesting is a non-breaking future extension. See REQ-JMR-004.
 - `CnPageRenderer` forwards `config.*` fields as individual props matching existing page component interfaces (no breaking changes to `CnIndexPage`/`CnDetailPage`/`CnDashboardPage`). See REQ-JMR-005.
-- The JSON Schema's `$id` is the GitHub raw URL on the `main` branch — `https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json`. Resolves today; updates with each merge to `main`.
+- The JSON Schema's `$id` is the GitHub raw URL on the `main` branch — `https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest.schema.json`. Resolves today; updates with each merge to `main`.
 - The dependency-check composable is generalised as `useAppStatus(appId)` rather than `useAppStatus`. Cached per `appId` for the page lifetime. See REQ-JMR-012.

@@ -48,4 +48,4 @@ The library builds:
 
 ## Notes
 
-- The shorthand currently only supports `aggregate: 'count'`. Richer aggregates (`groupBy`, `sum`, `avg`) require the OR backend changes tracked in [openregister#1455](https://github.com/ConductionNL/openregister/issues/1455).
+- The shorthand currently only supports `aggregate: 'count'`. Richer aggregates (`groupBy`, `sum`, `avg`) require the OR backend changes tracked in [openregister#1455](https://codeberg.org/Conduction/openregister/issues/1455).

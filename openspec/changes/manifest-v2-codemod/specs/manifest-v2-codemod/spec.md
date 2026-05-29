@@ -59,7 +59,7 @@ When the input manifest's `$schema` field references the v2 schema URL, the CLI 
 
 #### Scenario: Already-v2 manifest is a no-op
 
-- **WHEN** the input manifest contains `"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json"`
+- **WHEN** the input manifest contains `"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json"`
 - **THEN** the CLI validates it against the v2 schema, writes nothing, and exits 0
 
 #### Scenario: Idempotent second run
@@ -189,7 +189,7 @@ The CLI SHALL apply the following transformation rules in order to every input m
 #### Scenario: Update $schema to v2 URL
 
 - **WHEN** any v1 manifest is transformed
-- **THEN** the output manifest's `$schema` field is set to `"https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json"`
+- **THEN** the output manifest's `$schema` field is set to `"https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json"`
 
 #### Scenario: Map customComponents to registry
 

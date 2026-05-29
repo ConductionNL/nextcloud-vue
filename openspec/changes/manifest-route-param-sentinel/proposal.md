@@ -2,7 +2,7 @@
 
 ## Why
 
-The opencatalogi customs-to-zero triage ([opencatalogi#636](https://github.com/ConductionNL/opencatalogi/pull/636)) flagged that `PublicationIndexView` is a `type:'custom'` wrapper *only* because its filter depends on a route parameter:
+The opencatalogi customs-to-zero triage ([opencatalogi#636](https://codeberg.org/Conduction/opencatalogi/pulls/636)) flagged that `PublicationIndexView` is a `type:'custom'` wrapper *only* because its filter depends on a route parameter:
 
 ```js
 // /publications/:catalogSlug
@@ -47,6 +47,6 @@ Unblocks opencatalogi `PublicationIndexView`:
 
 ## References
 
-- [nextcloud-vue#276](https://github.com/ConductionNL/nextcloud-vue/issues/276)
+- [nextcloud-vue#276](https://codeberg.org/Conduction/nextcloud-vue/issues/276)
 - `src/utils/resolveManifestSentinels.js` — `@resolve:` precedent.
 - `CnPageRenderer.resolvedProps()` — where the merge already happens.

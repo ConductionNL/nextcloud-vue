@@ -19,5 +19,5 @@ MVP — drag-drop reorder deferred to follow-up (issue #279). The contract is fo
 
 ## References
 
-- [nextcloud-vue#279](https://github.com/ConductionNL/nextcloud-vue/issues/279).
+- [nextcloud-vue#279](https://codeberg.org/Conduction/nextcloud-vue/issues/279).
 - pipelinq `SurveyFormView` + `FormBuilderView`.

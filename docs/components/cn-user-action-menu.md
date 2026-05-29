@@ -66,6 +66,6 @@ Inline popover that appears when a user's name is clicked. Shows the user's avat
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnUserActionMenu.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnUserActionMenu/CnUserActionMenu.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnUserActionMenu.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnUserActionMenu/CnUserActionMenu.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -284,6 +284,6 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

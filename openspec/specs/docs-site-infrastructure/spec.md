@@ -51,7 +51,7 @@ The `docusaurus.config.js` MUST configure:
 - `baseUrl`: `/` (root — the custom domain serves Docusaurus at the apex, not under a project subpath)
 - `organizationName`: `ConductionNL`
 - `projectName`: `nextcloud-vue`
-- `editUrl`: A function form `({ docPath }) => \`https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/${docPath}\`` — string-form editUrl produces broken `tree/<branch>/docusaurus/../docs/...` links because the docs `path` is `'../docs'`; a function form sidesteps the relpath doubling
+- `editUrl`: A function form `({ docPath }) => \`https://codeberg.org/Conduction/nextcloud-vue/_edit/branch/beta/docs/${docPath}\`` — string-form editUrl produces broken `tree/<branch>/docusaurus/../docs/...` links because the docs `path` is `'../docs'`; a function form sidesteps the relpath doubling
 - Docs preset with `path: '../docs'` and an explicit IA in `sidebars.js` (Phase 5 of unify-component-docs replaced flat autogen with intent-grouped categories: Getting Started, Architecture, Building Apps, Components, Composables, Utilities, Design Tokens)
 - Mermaid theme support via `@docusaurus/theme-mermaid`
 - `themeConfig.playground.styleguideUrl` resolved from `process.env.STYLEGUIDE_URL || '/styleguide'` — read by the [Live-demo Playground component](#requirement-live-demo-playground-component)
@@ -69,7 +69,7 @@ The `docusaurus.config.js` MUST configure:
 
 - GIVEN a published docs page (e.g. `/docs/components/cn-data-table`)
 - WHEN a reader clicks "Edit this page"
-- THEN they MUST land on `https://github.com/ConductionNL/nextcloud-vue/edit/beta/docs/components/cn-data-table.md` with no `..` segments in the URL
+- THEN they MUST land on `https://codeberg.org/Conduction/nextcloud-vue/_edit/branch/beta/docs/components/cn-data-table.md` with no `..` segments in the URL
 
 #### Scenario: Navbar navigation
 

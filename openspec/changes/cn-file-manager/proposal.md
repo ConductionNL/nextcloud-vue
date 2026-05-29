@@ -19,5 +19,5 @@ The widget owns the UI; consumers wire the network layer.
 
 ## References
 
-- [nextcloud-vue#285](https://github.com/ConductionNL/nextcloud-vue/issues/285).
+- [nextcloud-vue#285](https://codeberg.org/Conduction/nextcloud-vue/issues/285).
 - opencatalogi `PublicationDetailPageView` + `PageDetailPageView`.

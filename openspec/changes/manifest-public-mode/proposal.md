@@ -29,7 +29,7 @@ Unblocks:
 
 ## References
 
-- [nextcloud-vue#280](https://github.com/ConductionNL/nextcloud-vue/issues/280)
-- [nextcloud-vue#276](https://github.com/ConductionNL/nextcloud-vue/pull/296) — `@route.<param>` sentinel for token binding.
+- [nextcloud-vue#280](https://codeberg.org/Conduction/nextcloud-vue/issues/280)
+- [nextcloud-vue#276](https://codeberg.org/Conduction/nextcloud-vue/pulls/296) — `@route.<param>` sentinel for token binding.
 - `CnFormPage.vue` line 228: existing `mode` prop with `public` value.
 - `validateTypeConfig` `case 'form':` — existing enum check.

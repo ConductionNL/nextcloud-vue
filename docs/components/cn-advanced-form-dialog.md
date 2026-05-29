@@ -259,6 +259,6 @@ Both support the same two-phase confirm/result pattern and `setResult()`.
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnAdvancedFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnAdvancedFormDialog.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

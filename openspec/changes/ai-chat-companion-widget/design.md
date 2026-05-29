@@ -4,19 +4,19 @@
 
 This change ships the frontend half of the cross-app AI Chat Companion architecture. The architecture has already been locked upstream:
 
-- **Cross-app contracts (hydra)**: [adr-034-ai-chat-companion.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and the archived shared spec at [hydra/openspec/specs/ai-chat-companion/spec.md](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md).
-- **Sibling backend change**: [openregister/openspec/changes/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) — implements `IMcpToolProvider`, the `McpToolsService` discovery refactor, the SSE endpoint, the `Message.context` migration. Runs in parallel with this change; the widget MUST work today against the existing `POST /api/chat/send` and progressively enhance to SSE when the orchestrator ships.
+- **Cross-app contracts (hydra)**: [adr-034-ai-chat-companion.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-034-ai-chat-companion.md) and the archived shared spec at [hydra/openspec/specs/ai-chat-companion/spec.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/specs/ai-chat-companion/spec.md).
+- **Sibling backend change**: [openregister/openspec/changes/ai-chat-companion-orchestrator](https://codeberg.org/Conduction/openregister) — implements `IMcpToolProvider`, the `McpToolsService` discovery refactor, the SSE endpoint, the `Message.context` migration. Runs in parallel with this change; the widget MUST work today against the existing `POST /api/chat/send` and progressively enhance to SSE when the orchestrator ships.
 
 The library today already exposes ~80 components via barrel exports from `src/index.js`. `CnAppRoot` is the well-known wrapper every consuming app mounts at the top of its tree; it already provides `cnManifest`, `cnCustomComponents`, `cnTranslate`, `cnOpenUserSettings`, `cnPageTypes`, `cnIndexSidebarConfig`, `cnHostsIndexSidebar` via Vue 2 `provide()`. The three page wrappers `CnIndexPage`, `CnDetailPage`, `CnDashboardPage` already know the register/schema/object they render — they are the natural place to push reactive `cnAiContext` overrides.
 
 Constraints inherited from the workspace:
 
-- Vue 2.7 Options API only; no Composition API ([adr-004-frontend.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-004-frontend.md)).
+- Vue 2.7 Options API only; no Composition API ([adr-004-frontend.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-004-frontend.md)).
 - `axios` from `@nextcloud/axios` for non-streaming HTTP; `EventSource` / `fetch` with streaming reader for SSE specifically because `axios` lacks native SSE support.
 - CSS classes use `cn-` prefix; only Nextcloud CSS variables, never `--nldesign-*` directly.
-- `t()` for every user-visible string; Dutch + English mandatory ([adr-007-i18n.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-007-i18n.md)).
-- Modals/dialogs live in their own files under `src/modals/` or `src/dialogs/` per [adr-004-frontend.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-004-frontend.md). The chat panel is a slide-out, not a modal — it lives at `src/components/CnAiCompanion/CnAiChatPanel.vue`.
-- Self-contained components per [adr-017-component-composition.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-017-component-composition.md) — consumers MUST NOT wrap them in `CnDetailCard` or similar.
+- `t()` for every user-visible string; Dutch + English mandatory ([adr-007-i18n.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-007-i18n.md)).
+- Modals/dialogs live in their own files under `src/modals/` or `src/dialogs/` per [adr-004-frontend.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-004-frontend.md). The chat panel is a slide-out, not a modal — it lives at `src/components/CnAiCompanion/CnAiChatPanel.vue`.
+- Self-contained components per [adr-017-component-composition.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-017-component-composition.md) — consumers MUST NOT wrap them in `CnDetailCard` or similar.
 
 Stakeholders:
 
@@ -38,7 +38,7 @@ Stakeholders:
 
 - An agent picker UI — v1 assumes one agent per user (per hydra design.md Open Questions). Future work tracked separately.
 - Tool-call drill-down power features beyond the collapse/expand summary.
-- Refactoring OpenRegister's existing full-page chat at `src/views/chat/ChatIndex.vue` onto the new primitives. Tracked as [openregister#1459](https://github.com/ConductionNL/openregister/issues/1459) follow-up.
+- Refactoring OpenRegister's existing full-page chat at `src/views/chat/ChatIndex.vue` onto the new primitives. Tracked as [openregister#1459](https://codeberg.org/Conduction/openregister/issues/1459) follow-up.
 - Per-app `IMcpToolProvider` implementations — those live in each consuming app's repo.
 - Conversation export, search across history, or sharing — out of scope for v1.
 - Voice input or speech output.
@@ -91,7 +91,7 @@ Stakeholders:
 
 **Rationale**:
 - The sibling orchestrator change may not be shipped when this widget lands in production. Falling back to the existing endpoint keeps the widget functional during the rollout window.
-- Even after the orchestrator ships, Apache + `mod_php` + reverse-proxy buffering can collapse SSE streams ([hydra ADR-034 Negative Consequence #2](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md)). The fallback ladder is a reliability buffer.
+- Even after the orchestrator ships, Apache + `mod_php` + reverse-proxy buffering can collapse SSE streams ([hydra ADR-034 Negative Consequence #2](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-034-ai-chat-companion.md)). The fallback ladder is a reliability buffer.
 - Synthesising the `final` event in the fallback path means `CnAiMessageList` / state shape has exactly one rendering codepath — simpler tests, simpler code review.
 
 **SSE transport mechanism**: use the `@microsoft/fetch-event-source` library (MIT, ~3KB minified) as the streaming primitive. Native `EventSource` does not support `POST` bodies; a hand-rolled `fetch()` + `ReadableStream.getReader()` would need to re-solve reconnection, abort signal handling, and SSE frame parsing — all of which the library already handles. The library is well-maintained (Microsoft, used by Azure AI / Copilot tooling), explicitly designed for this use case, and ~3KB.
@@ -132,7 +132,7 @@ The ADR-004 "no `fetch()` for mutations" rule is satisfied because the actual wr
 
 ### 7. History UX: `NcDialog` overlay on top of the chat panel
 
-**Decision**: Clicking the History button in the chat panel header opens `CnAiHistoryDialog.vue` — a separate `NcDialog`-based component living at `src/dialogs/CnAiHistoryDialog.vue` per [ADR-004](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-004-frontend.md)'s rule that every `NcDialog`-based component lives in its own file under `src/dialogs/`. The dialog overlays on top of the chat panel; the chat panel stays mounted underneath. Selecting a conversation loads its messages into the panel and closes the dialog. Closing the dialog (X or Escape) returns focus to the panel's History button.
+**Decision**: Clicking the History button in the chat panel header opens `CnAiHistoryDialog.vue` — a separate `NcDialog`-based component living at `src/dialogs/CnAiHistoryDialog.vue` per [ADR-004](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-004-frontend.md)'s rule that every `NcDialog`-based component lives in its own file under `src/dialogs/`. The dialog overlays on top of the chat panel; the chat panel stays mounted underneath. Selecting a conversation loads its messages into the panel and closes the dialog. Closing the dialog (X or Escape) returns focus to the panel's History button.
 
 **Rationale**:
 - Clean separation: the chat panel renders chat; the dialog renders the conversation list. Each component has one job.
@@ -173,11 +173,11 @@ The ADR-004 "no `fetch()` for mutations" rule is satisfied because the actual wr
 
 ## Seed Data
 
-**N/A** — this is a frontend Vue library change. No schemas are introduced and no JSON seed objects land in `openspec/seed/`. The orchestrator-side `Message.context` field and any default-agent seed work belongs to the sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) change.
+**N/A** — this is a frontend Vue library change. No schemas are introduced and no JSON seed objects land in `openspec/seed/`. The orchestrator-side `Message.context` field and any default-agent seed work belongs to the sibling [openregister/ai-chat-companion-orchestrator](https://codeberg.org/Conduction/openregister) change.
 
 ## Declarative-vs-Imperative
 
-**N/A** — [ADR-031](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-031-declarative-vs-imperative.md) governs schema-level trigger behaviours in OpenRegister. This change ships no schema and no triggers. Conversation persistence and tool dispatch are imperative orchestrator concerns owned by the sibling change.
+**N/A** — [ADR-031](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-031-declarative-vs-imperative.md) governs schema-level trigger behaviours in OpenRegister. This change ships no schema and no triggers. Conversation persistence and tool dispatch are imperative orchestrator concerns owned by the sibling change.
 
 ## File Structure
 
@@ -234,7 +234,7 @@ l10n/
 
 ## API Design
 
-This change introduces no new HTTP endpoints — those are owned by [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister). The widget consumes:
+This change introduces no new HTTP endpoints — those are owned by [openregister/ai-chat-companion-orchestrator](https://codeberg.org/Conduction/openregister). The widget consumes:
 
 ### `GET /index.php/apps/openregister/api/chat/health`
 
@@ -264,7 +264,7 @@ Response: existing JSON shape. The widget treats this as a synthetic single `fin
 
 ### `POST /index.php/apps/openregister/api/chat/stream` (SSE — sibling change)
 
-The widget consumes the six-event envelope per [hydra spec / SSE streaming envelope on POST /api/chat/stream](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md). Implementation uses `@microsoft/fetch-event-source` (MIT, ~3KB minified) which handles POST bodies, abort signals, automatic reconnect, and SSE frame parsing.
+The widget consumes the six-event envelope per [hydra spec / SSE streaming envelope on POST /api/chat/stream](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/specs/ai-chat-companion/spec.md). Implementation uses `@microsoft/fetch-event-source` (MIT, ~3KB minified) which handles POST bodies, abort signals, automatic reconnect, and SSE frame parsing.
 
 ### `GET /index.php/apps/openregister/api/chat/conversations`
 
@@ -325,7 +325,7 @@ export function useAiChatStream(): UseAiChatStreamReturn
 
 ## NL Design System
 
-The widget uses Nextcloud CSS variables only. NL Design overrides flow through Nextcloud's variable indirection automatically — apps that ship the nldesign theme get NL-styled FAB, panel, and message bubbles without component changes. No `--nldesign-*` variable is referenced directly. Conformance with [adr-010-nl-design.md](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-010-nl-design.md) is by construction.
+The widget uses Nextcloud CSS variables only. NL Design overrides flow through Nextcloud's variable indirection automatically — apps that ship the nldesign theme get NL-styled FAB, panel, and message bubbles without component changes. No `--nldesign-*` variable is referenced directly. Conformance with [adr-010-nl-design.md](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-010-nl-design.md) is by construction.
 
 ## Risks / Trade-offs
 
@@ -344,8 +344,8 @@ The widget uses Nextcloud CSS variables only. NL Design overrides flow through N
 
 1. **Implementation lands on a feature branch from `beta`** (per `nextcloud-vue` library branching exception — beta is the active integration branch, not development).
 2. PR merged to `beta`; library publishes a new minor version (e.g. `0.next.0`).
-3. Sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) merges and ships its OR release in parallel. Either order is OK because the widget falls back to existing `/api/chat/send` until streaming endpoint is live.
-4. First pilot app ([opencatalogi#549](https://github.com/ConductionNL/opencatalogi/issues/549)) bumps `@conduction/nextcloud-vue` to the new version; integration is the bump + no other change.
+3. Sibling [openregister/ai-chat-companion-orchestrator](https://codeberg.org/Conduction/openregister) merges and ships its OR release in parallel. Either order is OK because the widget falls back to existing `/api/chat/send` until streaming endpoint is live.
+4. First pilot app ([opencatalogi#549](https://codeberg.org/Conduction/opencatalogi/issues/549)) bumps `@conduction/nextcloud-vue` to the new version; integration is the bump + no other change.
 5. Remaining 12 apps bump on their normal release cadence.
 6. Health probe ensures apps without OR installed (or with OR but no orchestrator change yet) get a silent no-op — no breakage.
 

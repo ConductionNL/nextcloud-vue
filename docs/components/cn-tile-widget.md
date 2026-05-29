@@ -62,6 +62,6 @@ const WIDGETS = [
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTileWidget.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnTileWidget/CnTileWidget.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnTileWidget.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnTileWidget/CnTileWidget.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

@@ -16,5 +16,5 @@ The opencatalogi triage flagged `GlossaryDetailPageView` as a custom because no 
 
 ## References
 
-- [nextcloud-vue#291](https://github.com/ConductionNL/nextcloud-vue/issues/291).
+- [nextcloud-vue#291](https://codeberg.org/Conduction/nextcloud-vue/issues/291).
 - opencatalogi `GlossaryDetailPageView`.

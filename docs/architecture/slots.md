@@ -98,4 +98,4 @@ All label props use `t()` from `@nextcloud/l10n` as defaults (sentence case). Co
 <CnDeleteDialog :item="item" :cancel-label="t('myapp', 'Go back')" />
 ```
 
-See [ADR-007](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-007-i18n.md) for the full i18n specification.
+See [ADR-007](https://codeberg.org/Conduction/hydra/src/branch/development/openspec/architecture/adr-007-i18n.md) for the full i18n specification.

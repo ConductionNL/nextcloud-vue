@@ -21,5 +21,5 @@ The widget owns the UI; the consumer wires the actual search backend in the `@se
 
 ## References
 
-- [nextcloud-vue#289](https://github.com/ConductionNL/nextcloud-vue/issues/289).
+- [nextcloud-vue#289](https://codeberg.org/Conduction/nextcloud-vue/issues/289).
 - opencatalogi `SearchIndexView`.
