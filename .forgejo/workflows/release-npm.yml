@@ -1,0 +1,18 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run semantic-release --dry-run only"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    uses: https://codeberg.org/Conduction/.github/.forgejo/workflows/release-npm.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+    secrets: inherit
