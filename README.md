@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/img/logo.svg" alt="@conduction/nextcloud-vue logo" width="80" height="80">
+  <img src="https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/img/logo.svg" alt="@conduction/nextcloud-vue logo" width="80" height="80">
 </p>
 
 <h1 align="center">@conduction/nextcloud-vue</h1>
