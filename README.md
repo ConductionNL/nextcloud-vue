@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@conduction/nextcloud-vue"><img src="https://img.shields.io/npm/v/@conduction/nextcloud-vue" alt="npm version"></a>
   <a href="https://codeberg.org/Conduction/nextcloud-vue/src/branch/main/LICENSE"><img src="https://img.shields.io/badge/license-EUPL--1.2-blue" alt="License"></a>
-  <a href="https://codeberg.org/Conduction/nextcloud-vue/actions"><img src="https://img.shields.io/github/actions/workflow/status/ConductionNL/nextcloud-vue/code-quality.yml?label=quality" alt="Code quality"></a>
+  <a href="https://ci.codeberg.org/repos/Conduction/nextcloud-vue"><img src="https://ci.codeberg.org/api/badges/Conduction/nextcloud-vue/status.svg" alt="Code quality"></a>
 </p>
 
 ---
