@@ -412,6 +412,132 @@ describe('CnMapWidget — popup XSS sanitization (C1)', () => {
 	})
 })
 
+describe('CnMapWidget — popup XSS sanitization WF3 regression (wave-12)', () => {
+	/**
+	 * Wave-9 fixed SAFE_MARKDOWN_DOMPURIFY_CONFIG with a tightened ALLOWED_URI_REGEXP
+	 * that blocks protocol-relative URLs (//attacker.com/...). However, the per-marker
+	 * DOMPurify call in CnMapWidget was using a hand-rolled config WITHOUT that regex,
+	 * falling back to DOMPurify's default ALLOWED_URI_REGEXP which contains the original
+	 * `[^a-z]` branch — allowing `//attacker.com/` through.
+	 *
+	 * Wave-12 fix: spread SAFE_MARKDOWN_DOMPURIFY_CONFIG so the tightened
+	 * ALLOWED_URI_REGEXP is inherited by the per-marker sanitization call.
+	 */
+	function getOnEachFeatureCallbacks() {
+		const L = require('leaflet').default
+		return L.geoJSON.mock.calls
+			.map((c) => c[1])
+			.filter((opts) => opts && typeof opts.onEachFeature === 'function')
+			.map((opts) => opts.onEachFeature)
+	}
+
+	it('strips protocol-relative href from popup anchor (WF1 bypass URL)', async () => {
+		// This is the exact WF1 bypass class applied to marker popup content.
+		// Before the fix, DOMPurify's default ALLOWED_URI_REGEXP allowed
+		// `//attacker.com/` through because `/` matched `[^a-z]`.
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+						properties: { desc: '<a href="//attacker.com/phish">click me</a>' },
+					},
+				],
+				popupField: 'desc',
+			},
+		})
+		await flush(); await nextTick(); await flush()
+
+		const callbacks = getOnEachFeatureCallbacks()
+		expect(callbacks.length).toBeGreaterThan(0)
+
+		const child = { on: jest.fn(), bindPopup: jest.fn() }
+		const feature = {
+			type: 'Feature',
+			geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+			properties: { desc: '<a href="//attacker.com/phish">click me</a>' },
+		}
+		callbacks[callbacks.length - 1](feature, child)
+
+		if (child.bindPopup.mock.calls.length > 0) {
+			const arg = child.bindPopup.mock.calls[0][0]
+			expect(arg).not.toContain('//attacker.com')
+		}
+		wrapper.destroy()
+	})
+
+	it('strips javascript: href from popup anchor (defense-in-depth for script schemes)', async () => {
+		// Verifies that SAFE_MARKDOWN_DOMPURIFY_CONFIG also blocks javascript:
+		// URIs, which DOMPurify strips via its default behavior + our FORBID_ATTR.
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+						properties: { desc: '<a href="javascript:alert(1)">click me</a>' },
+					},
+				],
+				popupField: 'desc',
+			},
+		})
+		await flush(); await nextTick(); await flush()
+
+		const callbacks = getOnEachFeatureCallbacks()
+		expect(callbacks.length).toBeGreaterThan(0)
+
+		const child = { on: jest.fn(), bindPopup: jest.fn() }
+		const feature = {
+			type: 'Feature',
+			geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+			properties: { desc: '<a href="javascript:alert(1)">click me</a>' },
+		}
+		callbacks[callbacks.length - 1](feature, child)
+
+		if (child.bindPopup.mock.calls.length > 0) {
+			const arg = child.bindPopup.mock.calls[0][0]
+			expect(arg).not.toContain('javascript:')
+			expect(arg).not.toContain('alert(1)')
+		}
+		wrapper.destroy()
+	})
+
+	it('preserves safe https: href in popup anchor (no regression)', async () => {
+		const wrapper = mountWidget({
+			markers: {
+				features: [
+					{
+						type: 'Feature',
+						geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+						properties: { desc: '<a href="https://safe.example.com/info">details</a>' },
+					},
+				],
+				popupField: 'desc',
+			},
+		})
+		await flush(); await nextTick(); await flush()
+
+		const callbacks = getOnEachFeatureCallbacks()
+		expect(callbacks.length).toBeGreaterThan(0)
+
+		const child = { on: jest.fn(), bindPopup: jest.fn() }
+		const feature = {
+			type: 'Feature',
+			geometry: { type: 'Point', coordinates: [5.2, 52.1] },
+			properties: { desc: '<a href="https://safe.example.com/info">details</a>' },
+		}
+		callbacks[callbacks.length - 1](feature, child)
+
+		if (child.bindPopup.mock.calls.length > 0) {
+			const arg = child.bindPopup.mock.calls[0][0]
+			expect(arg).toContain('https://safe.example.com/info')
+			expect(arg).toContain('details')
+		}
+		wrapper.destroy()
+	})
+})
+
 describe('CnMapWidget — fallback', () => {
 	it('renders fallback slot when Leaflet fails to load', async () => {
 		// Force the dynamic import in CnMapWidget.mounted() to throw by

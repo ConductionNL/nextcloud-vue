@@ -67,6 +67,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -487,20 +488,14 @@ export default {
 						// Leaflet's bindPopup, which renders its string argument as
 						// HTML (innerHTML). Without this, attacker-controlled marker
 						// properties execute script in the Nextcloud origin.
+						// Security: spread SAFE_MARKDOWN_DOMPURIFY_CONFIG to inherit the
+						// ALLOWED_URI_REGEXP that blocks protocol-relative URL bypasses
+						// (wave-3 C1 / wave-9 fix). Override ALLOWED_TAGS to a tighter
+						// popup-safe subset and ALLOWED_ATTR to the popup-relevant attrs.
 						const safePopup = DOMPurify.sanitize(String(popupHtml), {
+							...SAFE_MARKDOWN_DOMPURIFY_CONFIG,
 							ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'span', 'a', 'br', 'p'],
 							ALLOWED_ATTR: ['href', 'target', 'rel', 'title'],
-							FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-							FORBID_ATTR: [
-								'onerror',
-								'onload',
-								'onclick',
-								'onmouseover',
-								'onfocus',
-								'onblur',
-								'onchange',
-								'onsubmit',
-							],
 						})
 						lyr.bindPopup(safePopup)
 					}

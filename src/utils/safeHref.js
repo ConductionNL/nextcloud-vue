@@ -31,6 +31,14 @@
  *   - `data:...`
  *   - `vbscript:...`
  *   - Protocol-relative `//attacker.com/...` (ambiguous origin)
+ *   - Backslash-prefixed variants (`\\evil.com`, `/\evil.com`) — the WHATWG
+ *     URL parser normalises backslashes to forward slashes for special-scheme
+ *     bases, so `new URL('\\\\evil.com/x', origin)` resolves to the attacker's
+ *     origin. We normalise backslashes to forward slashes before checking.
+ *   - Leading-whitespace variants (`' //evil.com'`) — the HTML spec strips
+ *     leading whitespace when assigning to `href` at navigation time, turning
+ *     a seemingly safe value into a protocol-relative redirect. We reject any
+ *     raw input that contains leading whitespace.
  *   - Any other unrecognised scheme
  *   - `null`, `undefined`, empty string
  *
@@ -44,19 +52,38 @@
  *   safeHref('javascript:alert(1)')        // -> '#'
  *   safeHref('data:text/html,<h1>x</h1>') // -> '#'
  *   safeHref('//attacker.com/x')           // -> '#'
+ *   safeHref('\\\\evil.com/x')             // -> '#'
+ *   safeHref('/\\evil.com/x')              // -> '#'
+ *   safeHref(' //evil.com')                // -> '#'
  *   safeHref(null)                         // -> '#'
  */
 export function safeHref(url) {
 	if (!url || typeof url !== 'string') {
 		return '#'
 	}
-	// Reject protocol-relative URLs — `//attacker.com/x` looks like a relative
-	// path but resolves to an arbitrary origin, bypassing same-origin intent.
-	if (url.startsWith('//')) {
+	// Reject inputs with leading whitespace — the HTML spec strips leading C0
+	// control characters and spaces when assigning to `href` at navigation time,
+	// so ' //evil.com' becomes '//evil.com' in the browser. We must reject
+	// BEFORE any other check, using the raw (un-trimmed) value.
+	if (/^\s/.test(url)) {
 		return '#'
 	}
-	// Allow root-relative paths (same-origin navigation)
-	if (url.startsWith('/')) {
+	// Normalise backslashes to forward slashes so that '\\evil.com/x' and
+	// '/\evil.com/x' are treated the same as '//evil.com/x'. The WHATWG URL
+	// parser performs this normalisation itself for special-scheme bases, which
+	// is exactly what the browser does at navigation time — we must mirror it
+	// here so that the protocol-relative check below catches these variants.
+	const normalised = url.replace(/\\/g, '/')
+	// Reject protocol-relative URLs — `//attacker.com/x` (and its
+	// backslash-normalised variants) looks like a relative path but resolves to
+	// an arbitrary origin, bypassing same-origin intent.
+	if (normalised.startsWith('//')) {
+		return '#'
+	}
+	// Allow root-relative paths (same-origin navigation).
+	// Use the normalised form for the check but return the original url so
+	// that callers (e.g. NC router) receive the value they provided.
+	if (normalised.startsWith('/')) {
 		return url
 	}
 	try {
@@ -96,8 +123,14 @@ export function safeImageSrc(url) {
 	if (/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(url)) {
 		return url
 	}
+	// Reject leading-whitespace (same bypass class as safeHref — see above)
+	if (/^\s/.test(url)) {
+		return ''
+	}
+	// Normalise backslashes to catch '\\evil.com/x' and '/\evil.com/x'
+	const normalised = url.replace(/\\/g, '/')
 	// Reject protocol-relative
-	if (url.startsWith('//')) {
+	if (normalised.startsWith('//')) {
 		return ''
 	}
 	try {
