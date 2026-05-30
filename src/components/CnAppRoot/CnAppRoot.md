@@ -75,7 +75,7 @@ With loading state, custom components, translate, permissions, and custom page t
 | `permissions` | Array | No | `[]` | Permission strings for the current user; forwarded to `CnAppNav` for menu filtering |
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
 | `userSettingsTitle` | String | No | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')`. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
-| `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
+| `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
 
 ## Slots
 
@@ -125,14 +125,14 @@ export default {
 }
 ```
 
-### In-memory manifest (virtual-app hosts, e.g. OpenBuilt)
+### In-memory manifest (virtual-app hosts, e.g. OpenBuild)
 
 Virtual-app hosts build their manifest in memory and have no backend route. Pass an options object with the constructed manifest and the composable skips the fetch entirely:
 
 ```vue
 <template>
   <CnAppRoot
-    app-id="openbuilt"
+    app-id="openbuild"
     :manifest="manifest"
     :is-loading="isLoading">
     <router-view />
@@ -171,4 +171,4 @@ See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilitie
 
 ## Mounting an in-memory manifest
 
-Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuilt app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuilt) above.
+Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuild app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuild) above.

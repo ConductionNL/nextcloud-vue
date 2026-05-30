@@ -442,7 +442,7 @@ describe('useAppManifest', () => {
 	// The new overload `useAppManifest({ manifest, validate? })` mounts an
 	// already-constructed manifest object synchronously, with no backend
 	// fetch, no deep-merge, no sentinel resolution. Designed for
-	// virtual-app hosts (OpenBuilt) and any future consumer that
+	// virtual-app hosts (OpenBuild) and any future consumer that
 	// constructs its manifest in memory.
 	describe('in-memory manifest overload', () => {
 		it('returns the input manifest by reference and emits no HTTP request', () => {

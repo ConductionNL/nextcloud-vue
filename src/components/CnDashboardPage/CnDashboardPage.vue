@@ -23,7 +23,7 @@
 			</div>
 			<div class="cn-dashboard-page__header-actions">
 				<!-- Public slot. Documented in CLAUDE.md and used by every
-				     existing consumer (decidesk, mydash, opencatalogi,
+				     existing consumer (decidesk, launchpad, opencatalogi,
 				     pipelinq, procest). -->
 				<slot name="header-actions" />
 				<!-- Back-compat alias: original slot name shipped before

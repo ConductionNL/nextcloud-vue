@@ -2,12 +2,12 @@
 
 The library's manifest renderer (`CnPageRenderer` + `CnAppRoot` + `defaultPageTypes`) treats four page types as built-ins: `index`, `detail`, `dashboard`, `logs`, `settings`, `chat`, `files`, `form`, `wiki`, `map`. Of those, only `index` (via `CnIndexPage`) and `logs` (via `CnLogsPage`) are *schema-driven*: declare `register`+`schema` in the manifest, the component fetches, the component renders. `detail` (via `CnDetailPage`) is not — it's a generic layout shell expecting the caller to wire fetch + content + sidebar.
 
-Browser-verified consequence (openbuilt `VirtualAppDetail`, 2026-05-13): a manifest entry of
+Browser-verified consequence (openbuild `VirtualAppDetail`, 2026-05-13): a manifest entry of
 
 ```json
 { "id": "VirtualAppDetail", "route": "/applications/:objectId", "type": "detail",
   "title": "Virtual app",
-  "config": { "register": "openbuilt", "schema": "application",
+  "config": { "register": "openbuild", "schema": "application",
               "sidebarTabs": [...], "actionsComponent": "ApplicationDetailActions" } }
 ```
 
@@ -23,7 +23,7 @@ Constraints:
 - Vue 2.7 Options API across the board (existing `CnDetailPage` mixes Options + a small `setup()` block for composables; we keep that shape).
 - ADR-017 forbids inline `CnObjectSidebar` inside `NcAppContent`; the sidebar must live at `NcContent` level. `CnDetailPage` already publishes to `objectSidebarState` via inject — we just have to feed the new `sidebarTabs` into that state, and add the matching auto-mount in `CnAppRoot`.
 - ADR-022 forbids axios in components; fetch must flow through `useObjectStore` (the same path `CnIndexPage`/`CnLogsPage` use).
-- Backwards-compat: every existing `CnDetailPage` consumer (call sites in OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, decidesk, openbuilt itself for non-manifest routes) must keep working unchanged.
+- Backwards-compat: every existing `CnDetailPage` consumer (call sites in OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, decidesk, openbuild itself for non-manifest routes) must keep working unchanged.
 
 ## Goals / Non-Goals
 
@@ -32,7 +32,7 @@ Constraints:
 - Make `type: "detail"` end-to-end functional from manifest alone: header from `page.title`, object data from `register`+`schema`+`objectId`, sidebar tabs from `config.sidebarTabs`.
 - Mirror `CnIndexPage`'s schema-driven contract on the detail surface (props, store wiring, ADR-017-compliant sidebar hoist) so future apps copy one symmetric pattern.
 - Keep the change additive — no removed props, no reordered prop precedence, no slot semantics changed.
-- Land one Vue-library PR that openbuilt and every other manifest-using consumer can adopt without code changes on their side beyond a (one-time) `CnAppRoot` re-render.
+- Land one Vue-library PR that openbuild and every other manifest-using consumer can adopt without code changes on their side beyond a (one-time) `CnAppRoot` re-render.
 
 **Non-Goals:**
 
@@ -46,7 +46,7 @@ Constraints:
 
 ### Decision 1 — `register`+`schema` props on `CnDetailPage`, not a fused `objectType`
 
-`CnDetailPage` already has an `objectType` prop (used for subscription + lock). The manifest sends `register` + `schema` separately. We could either (a) require manifest authors to fuse them (`"objectType": "openbuilt-application"` in config), or (b) accept them separately and fuse internally.
+`CnDetailPage` already has an `objectType` prop (used for subscription + lock). The manifest sends `register` + `schema` separately. We could either (a) require manifest authors to fuse them (`"objectType": "openbuild-application"` in config), or (b) accept them separately and fuse internally.
 
 We pick (b): add `register: String` + `schema: String` props and derive `resolvedObjectType` internally as `objectType || (register && schema ? \`${register}-${schema}\` : '')`. Rationale:
 
@@ -152,9 +152,9 @@ Alternative considered: require manifests to move title into config. Rejected be
 1. Land this change on a feature branch off `beta` (per the `nextcloud-vue-uses-beta-branch` memory).
 2. `npm test`, `npm run check:docs`, `npm run check:jsdoc`. New tests for the schema-driven path + title/description/icon forwarding + auto-mount must pass.
 3. PR to ConductionNL/nextcloud-vue against `beta`. Self-review-approve + merge per the user's authorisation for nc-vue PRs.
-4. Bump the openbuilt `package.json` dep on `@conduction/nextcloud-vue` to the new beta tag.
-5. Rebuild openbuilt, redeploy to the dev container, browser-verify `/applications/<objectId>` renders: header (title=Hello World, description=app desc, icon), body (data widget showing manifest, metadata widget), right sidebar with Overview / Manifest / Version history / Diff / Audit tabs.
-6. Sweep the fleet — every app already on the manifest pattern (decidesk, mydash, openbuilt, plus the in-flight journeydoc rollouts) inherits the behaviour. No per-app code change required; per-app `npm i` + redeploy is enough.
+4. Bump the openbuild `package.json` dep on `@conduction/nextcloud-vue` to the new beta tag.
+5. Rebuild openbuild, redeploy to the dev container, browser-verify `/applications/<objectId>` renders: header (title=Hello World, description=app desc, icon), body (data widget showing manifest, metadata widget), right sidebar with Overview / Manifest / Version history / Diff / Audit tabs.
+6. Sweep the fleet — every app already on the manifest pattern (decidesk, launchpad, openbuild, plus the in-flight journeydoc rollouts) inherits the behaviour. No per-app code change required; per-app `npm i` + redeploy is enough.
 7. Rollback: revert the PR. Detail pages return to the current blank-body state. No data or state migration needed.
 
 ## Open Questions

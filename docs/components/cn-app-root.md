@@ -72,7 +72,7 @@ export default {
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
-| `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
 
 ## Provided values
 
@@ -134,7 +134,7 @@ Symmetric with the index-sidebar hoist above: `CnAppRoot` auto-mounts a `<CnObje
 Resolution order for the holder:
 
 1. **Ancestor-provided** — when an outer wrapper (decidesk's / procest's existing `App.vue` pattern) already exposes an `objectSidebarState` via its own `provide()`, `CnAppRoot` re-uses that holder. `CnDetailPage` writes are visible to the consumer's hand-rendered `<CnObjectSidebar>` exactly as before; the auto-mount **stays out of the way** so two sidebars don't stack.
-2. **Local fallback** — manifest-only apps (openbuilt, mydash) hit this branch: `CnAppRoot` creates an observable holder in its own `data()` and provides it down to descendants. The auto-mount renders from this holder.
+2. **Local fallback** — manifest-only apps (openbuild, launchpad) hit this branch: `CnAppRoot` creates an observable holder in its own `data()` and provides it down to descendants. The auto-mount renders from this holder.
 
 The auto-mount is also suppressed when the consumer fills the `#sidebar` slot — slot content always wins. Apps that want a custom sidebar layout fill the slot and CnAppRoot defers; the existing `objectSidebarState` channel still works inside their slot.
 
@@ -147,7 +147,7 @@ The auto-mount is also suppressed when the consumer fills the `#sidebar` slot �
 
 ## Mounting virtual apps with an in-memory manifest
 
-Most CnAppRoot consumers ship a static `manifest.json` and let `useAppManifest('myapp', bundled)` fetch the optional `/index.php/apps/myapp/api/manifest` override. Some consumers — notably the OpenBuilt app builder — render **virtual apps** whose manifest is constructed in memory at runtime, with no static file and no backend route.
+Most CnAppRoot consumers ship a static `manifest.json` and let `useAppManifest('myapp', bundled)` fetch the optional `/index.php/apps/myapp/api/manifest` override. Some consumers — notably the OpenBuild app builder — render **virtual apps** whose manifest is constructed in memory at runtime, with no static file and no backend route.
 
 For those hosts, `useAppManifest` now exposes a direct in-memory overload that mounts the manifest synchronously without any HTTP IO:
 
@@ -165,7 +165,7 @@ The composable returns the same `{ manifest, isLoading, validationErrors, unreso
 
 ### Historical workaround
 
-Before this overload existed, virtual-app hosts had to fake an HTTP fetch by passing a stub `options.endpoint` and an `options.fetcher` that resolved synchronously to the in-memory manifest. That workaround is documented in the OpenBuilt `bootstrap-openbuilt` change (Decision 4) and is now historical — the in-memory overload is the supported path. The legacy `options.endpoint` / `options.fetcher` parameters remain fully supported for their intended uses (tests, alternative-host deployments).
+Before this overload existed, virtual-app hosts had to fake an HTTP fetch by passing a stub `options.endpoint` and an `options.fetcher` that resolved synchronously to the in-memory manifest. That workaround is documented in the OpenBuild `bootstrap-openbuild` change (Decision 4) and is now historical — the in-memory overload is the supported path. The legacy `options.endpoint` / `options.fetcher` parameters remain fully supported for their intended uses (tests, alternative-host deployments).
 
 ## Related
 

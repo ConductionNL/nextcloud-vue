@@ -20,7 +20,7 @@
  *   5. Configuration over code → /docs/architecture/configuration-over-code
  *      (the "why JSON, why no Vue" page — also the AI-and-citizen-
  *      developer story, since the same JSON contract is what we hand
- *      to LLMs and to OpenBuilt's visual editor)
+ *      to LLMs and to OpenBuild's visual editor)
  */
 
 import React from 'react'

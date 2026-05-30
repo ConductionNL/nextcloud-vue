@@ -1,8 +1,8 @@
 ## Why
 
-A manifest page declared as `type: "detail"` with `{ register, schema, sidebarTabs, actionsComponent }` config today mounts `CnDetailPage` as a generic *layout shell*: the header is empty (the renderer never forwards `page.title`/`description`/`icon`), no object is fetched (CnDetailPage has no `register`/`schema` props), the manifest's `sidebarTabs` fall through as kebab-case DOM attributes (`sidebartabs="[object Object]..."`), and the body is blank unless the host app passes slot content. Browser-verified on openbuilt's `VirtualAppDetail` route (2026-05-13). Result: every consuming app has to write a per-route detail component instead of using `type: "detail"` end-to-end — defeating the manifest pattern.
+A manifest page declared as `type: "detail"` with `{ register, schema, sidebarTabs, actionsComponent }` config today mounts `CnDetailPage` as a generic *layout shell*: the header is empty (the renderer never forwards `page.title`/`description`/`icon`), no object is fetched (CnDetailPage has no `register`/`schema` props), the manifest's `sidebarTabs` fall through as kebab-case DOM attributes (`sidebartabs="[object Object]..."`), and the body is blank unless the host app passes slot content. Browser-verified on openbuild's `VirtualAppDetail` route (2026-05-13). Result: every consuming app has to write a per-route detail component instead of using `type: "detail"` end-to-end — defeating the manifest pattern.
 
-CnIndexPage already closes this gap symmetrically (declares `register`/`schema`/`columns` props, fetches via `useObjectStore`, publishes its sidebar config to `cnIndexSidebarConfig` so `CnAppRoot` hoists `CnIndexSidebar` at NcContent level — ADR-017-compliant). The detail surface needs the same end-to-end wiring so manifest-only apps (openbuilt, decidesk, mydash, and the in-flight per-app journeydocs) get a working detail page without bespoke views.
+CnIndexPage already closes this gap symmetrically (declares `register`/`schema`/`columns` props, fetches via `useObjectStore`, publishes its sidebar config to `cnIndexSidebarConfig` so `CnAppRoot` hoists `CnIndexSidebar` at NcContent level — ADR-017-compliant). The detail surface needs the same end-to-end wiring so manifest-only apps (openbuild, decidesk, launchpad, and the in-flight per-app journeydocs) get a working detail page without bespoke views.
 
 ## What Changes
 
@@ -27,7 +27,7 @@ _None._ The new capability is orthogonal to `detail-page-grid` (grid layout) and
 ## Impact
 
 - **Affected code**: `src/components/CnPageRenderer/CnPageRenderer.vue` (resolvedProps), `src/components/CnDetailPage/CnDetailPage.vue` (props + fetch + auto-body), `src/components/CnAppRoot/CnAppRoot.vue` (CnObjectSidebar hoist), `docs/components/cn-{detail-page,page-renderer,app-root}.md`.
-- **Affected consumers (immediate)**: openbuilt (`VirtualAppDetail` route works without a custom view), decidesk + mydash (existing detail routes keep working — auto-widgets only fire on empty slot).
+- **Affected consumers (immediate)**: openbuild (`VirtualAppDetail` route works without a custom view), decidesk + launchpad (existing detail routes keep working — auto-widgets only fire on empty slot).
 - **Affected consumers (downstream)**: every Conduction app considering the manifest pattern (procest, pipelinq, opencatalogi, larpingapp, scholiq, deskdesk, docudesk, planix, zaakafhandelapp) — the detail surface becomes a one-line manifest entry.
 - **ADR alignment**: ADR-017 (external-sidebar pattern enforced via CnAppRoot hoist), ADR-022 (object fetch through OR's objectStore, no direct axios), ADR-024 (manifest `type: "detail"` becomes truly closed-DSL — config is enough, no custom component required), ADR-031 (actions stay declarative via `actionsComponent` slot, unchanged).
 - **No theming / NL Design impact**: uses existing Nextcloud CSS variables via the underlying widget components.

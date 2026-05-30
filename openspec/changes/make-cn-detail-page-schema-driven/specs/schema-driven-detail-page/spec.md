@@ -18,11 +18,11 @@ This capability is the detail-surface counterpart of the existing schema-driven 
 `CnPageRenderer.resolvedProps` SHALL include the matching `page.title`, `page.description`, and `page.icon` fields from the manifest entry before merging `page.config` and `$route.params`. The precedence MUST be `$route.params` > `page.config` > top-level page fields, so an existing manifest that sets `config.title` (or any other shadowed field) keeps the same effective value. Forwarding MUST be additive — no existing key currently in `resolvedProps` is removed, renamed, or reordered relative to the existing two sources.
 
 #### Scenario: Manifest detail page sets only top-level title
-- GIVEN a manifest entry `{ id: "AppDetail", type: "detail", title: "Virtual app", config: { register: "openbuilt", schema: "application" } }`
+- GIVEN a manifest entry `{ id: "AppDetail", type: "detail", title: "Virtual app", config: { register: "openbuild", schema: "application" } }`
 - AND the route resolves with `params: { objectId: "abc-123" }`
 - WHEN `CnPageRenderer` mounts the dispatched `CnDetailPage`
 - THEN the child component receives `title: "Virtual app"` as a prop
-- AND the child component receives `register: "openbuilt"`, `schema: "application"`, `objectId: "abc-123"` as props
+- AND the child component receives `register: "openbuild"`, `schema: "application"`, `objectId: "abc-123"` as props
 - AND the rendered header h2 contains "Virtual app"
 
 #### Scenario: config.title overrides page.title
@@ -47,12 +47,12 @@ This capability is the detail-surface counterpart of the existing schema-driven 
 `CnDetailPage` SHALL declare `register: String` (default `''`), `schema: String` (default `''`), and `sidebarTabs: Array` (default `() => []`) as Vue props. The component MUST derive an internal `resolvedObjectType` computed as `objectType || (register && schema ? \`${register}-${schema}\` : '')` and use that value everywhere the existing `objectType` prop is consumed (subscription, lock, sidebar state). Existing call sites passing `objectType` directly MUST keep working unchanged.
 
 #### Scenario: Register and schema fuse into object-type slug
-- GIVEN a CnDetailPage with `register="openbuilt"`, `schema="application"`, no explicit `objectType`
+- GIVEN a CnDetailPage with `register="openbuild"`, `schema="application"`, no explicit `objectType`
 - WHEN the component computes `resolvedObjectType`
-- THEN it returns `"openbuilt-application"`
+- THEN it returns `"openbuild-application"`
 
 #### Scenario: Explicit objectType still wins
-- GIVEN a CnDetailPage with `objectType="legacy-slug"`, `register="openbuilt"`, `schema="application"`
+- GIVEN a CnDetailPage with `objectType="legacy-slug"`, `register="openbuild"`, `schema="application"`
 - WHEN the component computes `resolvedObjectType`
 - THEN it returns `"legacy-slug"`
 
@@ -68,15 +68,15 @@ This capability is the detail-surface counterpart of the existing schema-driven 
 When `register`, `schema`, and `objectId` are all non-empty AND no `objectStore` prop is supplied, `CnDetailPage` MUST lazy-resolve `useObjectStore()` and (a) call `objectStore.registerObjectType(resolvedObjectType, schema, register, { registerSlug: register, schemaSlug: schema })` exactly once for the resolved object-type slug, then (b) call `objectStore.fetchObject(resolvedObjectType, objectId)` on mount and on subsequent changes to `register`, `schema`, or `objectId`. Errors MUST be caught and exposed via the existing `error` state; loading MUST be exposed via the existing `loading` state. Apps that supply an explicit `objectStore` prop keep the same registration + fetch contract using their store.
 
 #### Scenario: Mount triggers fetch
-- GIVEN a CnDetailPage with `register="openbuilt"`, `schema="application"`, `objectId="abc-123"` and no `objectStore` prop
+- GIVEN a CnDetailPage with `register="openbuild"`, `schema="application"`, `objectId="abc-123"` and no `objectStore` prop
 - WHEN the component mounts
-- THEN `useObjectStore().registerObjectType` is called with `("openbuilt-application", "application", "openbuilt", { registerSlug: "openbuilt", schemaSlug: "application" })`
-- AND `useObjectStore().fetchObject` is called with `("openbuilt-application", "abc-123")`
+- THEN `useObjectStore().registerObjectType` is called with `("openbuild-application", "application", "openbuild", { registerSlug: "openbuild", schemaSlug: "application" })`
+- AND `useObjectStore().fetchObject` is called with `("openbuild-application", "abc-123")`
 
 #### Scenario: ObjectId change triggers refetch
 - GIVEN a CnDetailPage in schema-driven mode with `objectId="abc-123"`
 - WHEN the parent updates `objectId` to `"def-456"`
-- THEN `fetchObject` is called again with `("openbuilt-application", "def-456")`
+- THEN `fetchObject` is called again with `("openbuild-application", "def-456")`
 - AND the previously displayed object's content is replaced by the new object's content once resolved
 
 #### Scenario: Register change triggers re-registration + refetch
@@ -102,7 +102,7 @@ When `register`, `schema`, and `objectId` are all non-empty AND no `objectStore`
 When `resolvedObjectType` and `objectId` are both non-empty AND the loaded object is available AND the default slot is empty, `CnDetailPage` MUST render `CnObjectDataWidget` followed by `CnObjectMetadataWidget` for the loaded object inside `.cn-detail-page__content`. Each widget MUST receive enough context (object, register, schema, objectId, objectStore) to render and save without further wiring. When the default slot has content, the auto-body MUST NOT render — the slot content takes precedence.
 
 #### Scenario: Empty slot in schema-driven mode auto-renders widgets
-- GIVEN a CnDetailPage with `register="openbuilt"`, `schema="application"`, `objectId="abc-123"`
+- GIVEN a CnDetailPage with `register="openbuild"`, `schema="application"`, `objectId="abc-123"`
 - AND no consumer-supplied default slot content
 - AND `fetchObject` has resolved successfully
 - WHEN the component renders

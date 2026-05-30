@@ -39,7 +39,7 @@ If "building an app" reduces to **writing two JSON files** — a schema and a ma
 - **A typo is a validation error.** Both files are JSON Schema-validated at build time and at runtime by [`useAppManifest`](/docs/utilities/composables/use-app-manifest). The user sees a clear "this field is wrong" — never a white screen, never a runtime exception, never a console stack trace.
 - **There is no JavaScript to execute.** The user cannot ship a piece of code that an attacker can later use to compromise the host. The widest a manifest can reach is to reference a `customComponents` entry already shipped by the host bundle. Anything new the user adds is **data**, not behaviour.
 - **The blast radius is bounded.** A bad schema breaks one page. A bad manifest entry hides one menu item. The chassis still renders. The user is never offered an "edit `App.vue`" affordance from which they can take the workspace down.
-- **The change is reversible.** Both files are version-controlled, diffable, and round-trip through every editor — an admin UI, the OpenBuilt visual editor, an AI agent, a `git revert`. Anything reversible is testable; anything testable is safe to let non-engineers and AI touch.
+- **The change is reversible.** Both files are version-controlled, diffable, and round-trip through every editor — an admin UI, the OpenBuild visual editor, an AI agent, a `git revert`. Anything reversible is testable; anything testable is safe to let non-engineers and AI touch.
 
 That last point is the one that turns this from "nice architecture" into a deployable AI strategy. The reason it is hard to let an AI agent write a Nextcloud app today is the same reason it is hard to let a customer write one: the surface is too wide, and the failure modes are unbounded. Restrict the surface to a typed JSON contract and the work the AI has to do becomes generation **inside** a sandbox the platform owns. The output is constrained by the schema. The runtime stays the property of the library. The customer — or the model — never touches code that runs.
 
@@ -57,11 +57,11 @@ The workflow is a chain of skills. **`/opsx-explore`** is a thinking stance — 
 
 ### App builder
 
-The end state of the configuration-over-code shift is that you don't author either file by hand. **OpenBuilt** is the visual app builder we're building on top of the manifest contract: drag schemas in, point and click the navigation, preview the chassis, publish — no JSON editor, no terminal, no Vue, no review.
+The end state of the configuration-over-code shift is that you don't author either file by hand. **OpenBuild** is the visual app builder we're building on top of the manifest contract: drag schemas in, point and click the navigation, preview the chassis, publish — no JSON editor, no terminal, no Vue, no review.
 
-→ [OpenBuilt — visual app builder](https://conduction.nl/apps/openbuilt)
+→ [OpenBuild — visual app builder](https://conduction.nl/apps/openbuild)
 
-OpenBuilt's output is a `manifest.json` and a set of OpenRegister schemas. The same files this docs site teaches you to hand-write. **Anything you build by hand here, you can later open in OpenBuilt and keep editing — and vice versa.** The artifact is identical because the contract is identical.
+OpenBuild's output is a `manifest.json` and a set of OpenRegister schemas. The same files this docs site teaches you to hand-write. **Anything you build by hand here, you can later open in OpenBuild and keep editing — and vice versa.** The artifact is identical because the contract is identical.
 
 The same artifact is what we hand to an AI agent: today, an LLM that's been given the manifest schema and a list of available `register` + `schema` slugs can generate a working Conduction app in one shot. We're moving towards making that the default authoring loop, not the exception.
 
@@ -77,4 +77,4 @@ When you next add a feature to a Conduction app, the question to ask is not *"wh
 - **[Schemas and registers](./schemas-and-registers.md)** — the data side. How a single JSON Schema drives forms, columns, filters, and validation.
 - **[App design principles](./app-design-principles.md)** — the chassis and atoms the configuration composes.
 - **[Spec-driven development with OpenSpec](https://conduction.nl/academy/spec-driven-development)** — the tutorial. ADRs, the explore and apply skills, the n8n/Windmill codeless path, and the validation harness.
-- **[OpenBuilt](https://conduction.nl/apps/openbuilt)** — visual app builder. Same contract, no JSON editor.
+- **[OpenBuild](https://conduction.nl/apps/openbuild)** — visual app builder. Same contract, no JSON editor.

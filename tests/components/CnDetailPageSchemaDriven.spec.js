@@ -46,16 +46,16 @@ describe('CnDetailPage — schema-driven mode', () => {
 	describe('resolvedObjectType', () => {
 		it('fuses register + schema into ${register}-${schema}', () => {
 			const wrapper = mount(CnDetailPage, {
-				propsData: { register: 'openbuilt', schema: 'application', objectId: 'a-1' },
+				propsData: { register: 'openbuild', schema: 'application', objectId: 'a-1' },
 			})
-			expect(wrapper.vm.resolvedObjectType).toBe('openbuilt-application')
+			expect(wrapper.vm.resolvedObjectType).toBe('openbuild-application')
 		})
 
 		it('explicit objectType wins over register/schema fusion', () => {
 			const wrapper = mount(CnDetailPage, {
 				propsData: {
 					objectType: 'legacy-slug',
-					register: 'openbuilt',
+					register: 'openbuild',
 					schema: 'application',
 					objectId: 'a-1',
 				},
@@ -74,7 +74,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 			const store = makeFakeStore()
 			mount(CnDetailPage, {
 				propsData: {
-					register: 'openbuilt',
+					register: 'openbuild',
 					schema: 'application',
 					objectId: 'a-1',
 					objectStore: store,
@@ -83,13 +83,13 @@ describe('CnDetailPage — schema-driven mode', () => {
 			// flush microtasks
 			await Promise.resolve()
 			expect(store.registerObjectType).toHaveBeenCalledWith(
-				'openbuilt-application',
+				'openbuild-application',
 				'application',
-				'openbuilt',
-				{ registerSlug: 'openbuilt', schemaSlug: 'application' },
+				'openbuild',
+				{ registerSlug: 'openbuild', schemaSlug: 'application' },
 			)
-			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
-			expect(store.fetchSchema).toHaveBeenCalledWith('openbuilt-application')
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuild-application', 'a-1')
+			expect(store.fetchSchema).toHaveBeenCalledWith('openbuild-application')
 		})
 
 		it('skips the fetch path when only register+schema are set (missing objectId)', () => {
@@ -133,7 +133,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 			]
 			mount(CnDetailPage, {
 				propsData: {
-					register: 'openbuilt',
+					register: 'openbuild',
 					schema: 'application',
 					objectId: 'a-1',
 					objectStore: store,
@@ -144,7 +144,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 			})
 			expect(state.active).toBe(true)
 			expect(state.tabs).toBe(tabs)
-			expect(state.objectType).toBe('openbuilt-application')
+			expect(state.objectType).toBe('openbuild-application')
 		})
 
 		it('beforeDestroy resets active=false and clears tabs', () => {

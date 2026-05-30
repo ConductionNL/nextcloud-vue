@@ -95,7 +95,7 @@
 				},
 				"visibleIf": {
 					"$ref": "#/$defs/visibleIfCondition",
-					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"mydash\" }` — hides when mydash is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
+					"description": "Optional display condition evaluated at render time. When set, the entry only renders when ALL declared conditions are satisfied. Two forms are accepted: (1) `appInstalled` form — checks whether a given Nextcloud app is installed and enabled; (2) context-path-predicate map — each key is a dot-separated path into `manifest.runtime` (e.g. `\"user.primaryRole\"`) and the value is a predicate expression (`{ \"in\": [\"role-a\", \"role-b\"] }`, `true`/`false`, or an operator object). Items without `visibleIf` are always visible (backwards-compatible). Examples: `{ \"appInstalled\": \"launchpad\" }` — hides when launchpad is absent; `{ \"user.primaryRole\": { \"in\": [\"compliance-officer\", \"hr-coordinator\"] } }` — hides unless the user holds one of those roles."
 				},
 				"children": {
 					"type": "array",
@@ -722,7 +722,7 @@
 				"appInstalled": {
 					"type": "string",
 					"minLength": 1,
-					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in mydash' link should only show when mydash is enabled)."
+					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render. CnAppNav checks via `OC.appswebroots` (primary) or the capabilities API (fallback). Result is cached per page load. Use for cross-app links that are meaningless when the target app is absent (e.g. a 'View in launchpad' link should only show when launchpad is enabled)."
 				}
 			}
 		}

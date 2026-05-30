@@ -47,6 +47,6 @@ This is spec **2 of 3** in the `manifest-v2-library` chain (hydra ADR-036, merge
 - **`src/components/CnWidgetCardGrid/`** — new built-in widget
 - **`src/utils/actionsDispatcher.js`** — new unified actions dispatch utility
 - **`src/index.js` barrel** — exports for `useRuntimeManifest`, new widget components, `RegistryKindError`
-- **Consumers** (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) — zero impact on existing v1 apps; opt-in by adopting `registry` prop + v2 manifests
-- **mydash** — primary beneficiary of `useRuntimeManifest` (runtime per-user dashboard manifests)
-- **OpenBuilt** — primary beneficiary of the five-kind registry (OpenBuilt manages registry entries through its UI)
+- **Consumers** (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad) — zero impact on existing v1 apps; opt-in by adopting `registry` prop + v2 manifests
+- **launchpad** — primary beneficiary of `useRuntimeManifest` (runtime per-user dashboard manifests)
+- **OpenBuild** — primary beneficiary of the five-kind registry (OpenBuild manages registry entries through its UI)
