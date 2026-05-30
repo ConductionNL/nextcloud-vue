@@ -49,9 +49,9 @@ Character and event management for LARP (Live Action Role Playing). Demonstrates
 - **CnObjectCard** + **CnCardGrid** — card-based views for visual browsing
 - Multiple entity types (8+ schemas) all using the same shared components
 
-### MyDash
+### LaunchPad
 
-**Repository**: [ConductionNL/mydash](https://codeberg.org/Conduction/mydash)
+**Repository**: [ConductionNL/launchpad](https://codeberg.org/Conduction/launchpad)
 
 Dashboard app with KPI widgets. Demonstrates:
 - **CnKpiGrid** — responsive grid layout for dashboard cards
@@ -86,6 +86,6 @@ Software catalog for Dutch government organizations. Built on OpenCatalogi. Demo
 ### Some Apps Use
 
 - `CnFacetSidebar` for faceted search (OpenCatalogi, Softwarecatalogus)
-- `CnKpiGrid` + `CnStatsBlock` for dashboards (MyDash)
+- `CnKpiGrid` + `CnStatsBlock` for dashboards (LaunchPad)
 - `CnStatusBadge` for workflow states (Procest)
 - `CnCardGrid` + `CnObjectCard` for visual browsing (LarpingApp)

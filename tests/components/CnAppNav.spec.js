@@ -199,44 +199,44 @@ describe('CnAppNav', () => {
 			menu: [
 				{ id: 'always', label: 'app.always', route: 'always', order: 1 },
 				{
-					id: 'view-in-mydash',
-					label: 'scholiq.nav.viewInMydash',
-					href: '/index.php/apps/mydash#scholiq-compliance',
+					id: 'view-in-launchpad',
+					label: 'scholiq.nav.viewInLaunchPad',
+					href: '/index.php/apps/launchpad#scholiq-compliance',
 					order: 2,
-					visibleIf: { appInstalled: 'mydash' },
+					visibleIf: { appInstalled: 'launchpad' },
 				},
 			],
 		}
 
 		it('hides items where visibleIf.appInstalled names an app not in OC.appswebroots', () => {
-			// mydash not installed: OC.appswebroots empty, capabilities empty.
+			// launchpad not installed: OC.appswebroots empty, capabilities empty.
 			global.OC = { appswebroots: {} }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
 			expect(ids).toContain('always')
-			expect(ids).not.toContain('view-in-mydash')
+			expect(ids).not.toContain('view-in-launchpad')
 		})
 
 		it('shows items where visibleIf.appInstalled names an app in OC.appswebroots', () => {
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
 			expect(ids).toContain('always')
-			expect(ids).toContain('view-in-mydash')
+			expect(ids).toContain('view-in-launchpad')
 		})
 
 		it('shows items where visibleIf.appInstalled is in capabilities (fallback path)', () => {
-			// No OC.appswebroots, but capabilities advertise mydash.
+			// No OC.appswebroots, but capabilities advertise launchpad.
 			delete global.OC
-			getCapabilities.mockReturnValue({ mydash: {} })
+			getCapabilities.mockReturnValue({ launchpad: {} })
 
 			const wrapper = mountNav({ manifest: crossAppManifest, useProps: true })
 			const ids = wrapper.vm.visibleItems.map((i) => i.id)
-			expect(ids).toContain('view-in-mydash')
+			expect(ids).toContain('view-in-launchpad')
 		})
 
 		it('keeps items without visibleIf always visible (backwards-compatible)', () => {
@@ -260,10 +260,10 @@ describe('CnAppNav', () => {
 						children: [
 							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
 							{
-								id: 'child-mydash',
-								label: 'app.child-mydash',
-								href: '/index.php/apps/mydash',
-								visibleIf: { appInstalled: 'mydash' },
+								id: 'child-launchpad',
+								label: 'app.child-launchpad',
+								href: '/index.php/apps/launchpad',
+								visibleIf: { appInstalled: 'launchpad' },
 							},
 						],
 					},
@@ -276,7 +276,7 @@ describe('CnAppNav', () => {
 			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
-			expect(childIds).not.toContain('child-mydash')
+			expect(childIds).not.toContain('child-launchpad')
 		})
 
 		it('shows conditional children when the named app is installed', () => {
@@ -291,23 +291,23 @@ describe('CnAppNav', () => {
 						children: [
 							{ id: 'child-always', label: 'app.child-always', route: 'ca' },
 							{
-								id: 'child-mydash',
-								label: 'app.child-mydash',
-								href: '/index.php/apps/mydash',
-								visibleIf: { appInstalled: 'mydash' },
+								id: 'child-launchpad',
+								label: 'app.child-launchpad',
+								href: '/index.php/apps/launchpad',
+								visibleIf: { appInstalled: 'launchpad' },
 							},
 						],
 					},
 				],
 			}
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			getCapabilities.mockReturnValue({})
 
 			const wrapper = mountNav({ manifest, useProps: true })
 			const parent = wrapper.vm.visibleItems.find((i) => i.id === 'parent')
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
-			expect(childIds).toContain('child-mydash')
+			expect(childIds).toContain('child-launchpad')
 		})
 
 		it('passesVisibleIf returns true when visibleIf is absent', () => {
@@ -420,26 +420,26 @@ describe('CnAppNav', () => {
 		})
 
 		it('coexists with appInstalled — both conditions must pass', () => {
-			// Item requires mydash installed AND user.primaryRole === 'compliance-officer'.
+			// Item requires launchpad installed AND user.primaryRole === 'compliance-officer'.
 			const manifest = runtimeManifest(
 				{ user: { primaryRole: 'compliance-officer' } },
 				[{
 					id: 'combined',
 					label: 'scholiq.nav.combined',
-					href: '/apps/mydash#scholiq',
+					href: '/apps/launchpad#scholiq',
 					order: 2,
 					visibleIf: {
-						appInstalled: 'mydash',
+						appInstalled: 'launchpad',
 						'user.primaryRole': { in: ['compliance-officer'] },
 					},
 				}],
 			)
-			// mydash IS installed, role IS correct → visible.
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
+			// launchpad IS installed, role IS correct → visible.
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
 			const wrapperVisible = mountNav({ manifest, useProps: true })
 			expect(wrapperVisible.vm.visibleItems.map((i) => i.id)).toContain('combined')
 
-			// Reset and verify: mydash NOT installed → hidden despite correct role.
+			// Reset and verify: launchpad NOT installed → hidden despite correct role.
 			__resetAppInstalledCacheForTests()
 			global.OC = { appswebroots: {} }
 			getCapabilities.mockReturnValue({})

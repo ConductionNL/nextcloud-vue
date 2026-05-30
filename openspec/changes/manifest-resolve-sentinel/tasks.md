@@ -63,7 +63,7 @@
 
 ## Phase 5 — Coordinated consumer updates
 
-- [ ] After this change merges, update mydash / larpingapp /
+- [ ] After this change merges, update launchpad / larpingapp /
       softwarecatalog adoption changes (already merged at Phase 3)
       to drop their local pre-processor sketches and consume the
       canonical sentinel. Track via per-app issues, not blocking PRs

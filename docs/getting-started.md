@@ -283,7 +283,7 @@ The four ideas every `Cn*` component is built on:
 
 ## Consumer apps
 
-`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **MyDash**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
+`@conduction/nextcloud-vue` is used in production by **OpenRegister**, **OpenCatalogi**, **Procest**, **Pipelinq**, and **LaunchPad**. Changes to the library affect all of them — the [JSDoc completeness ratchet](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/CLAUDE.md#documenting-components-enforced) and the auto-generated component reference (see every `Cn*` page) are the safety nets that make per-app upgrades predictable.
 
 ## Next Steps
 

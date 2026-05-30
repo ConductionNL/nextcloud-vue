@@ -73,7 +73,7 @@
 
 ## 9. Out-of-scope follow-up issues (file at PR-open time, do NOT implement in this change)
 
-- [ ] 9.1 File issue: "Fleet rollout — migrate manifest section semantics" — one tracking issue plus one sub-issue per consuming app (procest, pipelinq, opencatalogi, decidesk, mydash, softwarecatalog, larpingapp, scholiq, openconnector, openregister, docudesk). Each app PR moves Documentation/Features & Roadmap entries to `section: "footer"` and any real settings pages into `section: "settings"`. Repo: `ConductionNL/nextcloud-vue` (or per-app).
+- [ ] 9.1 File issue: "Fleet rollout — migrate manifest section semantics" — one tracking issue plus one sub-issue per consuming app (procest, pipelinq, opencatalogi, decidesk, launchpad, softwarecatalog, larpingapp, scholiq, openconnector, openregister, docudesk). Each app PR moves Documentation/Features & Roadmap entries to `section: "footer"` and any real settings pages into `section: "settings"`. Repo: `ConductionNL/nextcloud-vue` (or per-app).
 - [ ] 9.2 File issue: "Add NcAppSettingsDialog mounts where missing" — audit which apps already wire `cnOpenUserSettings` to a real dialog vs. fall back to the no-op default; create per-app issues to mount one where missing. Repo: per-app.
 - [ ] 9.3 File issue: "Adopt counter badges across fleet" — for every consuming app's manifest, set `count: "auto"` on menu entries pointing at `type: "index"` pages. Repo: per-app.
 - [ ] 9.4 File issue: "Adopt primaryAction across fleet" — for every consuming app's `type: "index"` pages, declare a `primaryAction` that maps to the page's create flow. Repo: per-app.

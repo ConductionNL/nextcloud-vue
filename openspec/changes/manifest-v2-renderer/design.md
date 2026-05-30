@@ -12,7 +12,7 @@ Current GridStack usage: `CnDashboardGrid` wraps `gridstack` for dashboard drag-
 
 **Goals:**
 
-- Add `useRuntimeManifest` — a full-replacement runtime loader (no merge) for mydash-style apps
+- Add `useRuntimeManifest` — a full-replacement runtime loader (no merge) for launchpad-style apps
 - Add `registry` prop to `CnAppRoot` with five-kind validation at init
 - `RegistryKindError` on unknown `kind`; `console.warn` deprecation of `customComponents` when v2 manifest loaded
 - `CnPageRenderer` detects v2 manifest and dispatches to v2 slot+grid pipeline
@@ -132,7 +132,7 @@ Missing `type` is treated as `handler` for v1 backward compatibility.
 
 **Choice:** `useRuntimeManifest(appId, stubManifest?, options?)` fetches `GET /apps/${appId}/api/manifest` (via `@nextcloud/router`'s `generateUrl`). On 200, the response replaces the stub entirely (no deep-merge). On 404 or network error, falls back to `stubManifest` if provided (otherwise `manifest.value` stays `null`). Validates the fetched manifest against the v2 schema. Returns `{ manifest, isLoading, validationErrors }`.
 
-**Rationale:** ADR-036 Decision 8 explicitly states "does not merge". Runtime manifests are the canonical source of truth (mydash, OpenBuild); merging would silently override user-authored layouts with stale bundled defaults — a correctness hazard. The no-merge contract simplifies reasoning about manifest state.
+**Rationale:** ADR-036 Decision 8 explicitly states "does not merge". Runtime manifests are the canonical source of truth (launchpad, OpenBuild); merging would silently override user-authored layouts with stale bundled defaults — a correctness hazard. The no-merge contract simplifies reasoning about manifest state.
 
 **Alternative considered:** Reuse `useAppManifest` with `merge: false` option. Rejected — `useAppManifest` is a v1 convention with merge semantics as an invariant; adding a no-merge option risks caller confusion. A distinct composable has a clearer contract.
 

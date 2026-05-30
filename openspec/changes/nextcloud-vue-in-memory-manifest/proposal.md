@@ -76,8 +76,8 @@ No prop, event, or slot removals. Fully backwards-compatible. No theming impact.
 - **Schema docblock**: header comment in `src/schemas/app-manifest.schema.json` (or the
   composable JSDoc that references it) calls out the in-memory mount path.
 - **Consumer apps**: OpenBuild (immediate consumer — collapses its `BuilderHost.vue`
-  workaround); no impact on OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, decidesk,
-  docudesk, larpingapp, mydash, softwarecatalog, or any other current consumer because the
+  workaround); no impact on OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, decidesk,
+  docudesk, larpingapp, launchpad, softwarecatalog, or any other current consumer because the
   legacy positional signature is preserved verbatim.
 - **Library version**: minor bump (additive overload, no breaking change).
 - **Backward compatibility**: 100% preserved.
