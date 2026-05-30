@@ -14,7 +14,7 @@ jobs:
     uses: https://codeberg.org/Conduction/.github/.forgejo/workflows/documentation.yml@main
     with:
       cf-project-name: nextcloud-vue-docs
-      source-folder: docs
+      source-folder: docusaurus
     secrets:
       CF_API_TOKEN:   ${{ secrets.CF_API_TOKEN }}
       CF_ACCOUNT_ID:  ${{ secrets.CF_ACCOUNT_ID }}
