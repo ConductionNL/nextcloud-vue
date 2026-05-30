@@ -29,6 +29,7 @@
 				:is="widget.component"
 				:key="`${widget.widgetKey}-${index}`"
 				v-bind="widget.props"
+				:data-source="widget.dataSource"
 				:style="gridCellStyle(widget)" />
 		</template>
 	</div>
@@ -197,6 +198,9 @@ export default {
 					// Detail-page object context first, the manifest's
 					// per-widget `props` last so explicit props always win.
 					props: { ...this.detailContextProps, ...(widget.props ?? {}) },
+					// Forward the per-widget dataSource so GraphQL-backed widgets
+					// (e.g. stats-block counts) can resolve it via :data-source.
+					dataSource: widget.dataSource ?? null,
 					gridX: typeof widget.gridX === 'number' ? widget.gridX : 0,
 					gridY: typeof widget.gridY === 'number' ? widget.gridY : 0,
 					gridWidth,
