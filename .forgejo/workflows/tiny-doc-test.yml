@@ -1,0 +1,11 @@
+name: Tiny docs smoke
+on:
+  workflow_dispatch:
+jobs:
+  hello:
+    runs-on: codeberg-tiny
+    container:
+      image: node:24-bookworm
+    steps:
+      - run: echo "tiny container reached"
+      - run: node --version
