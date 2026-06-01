@@ -1,13 +1,37 @@
 <template>
 	<NcSettingsSection
 		:name="name"
-		:description="description"
-		:doc-url="docUrl"
 		data-testid="cn-settings-section"
 		v-bind="$attrs">
-		<!-- Action buttons positioned top-right -->
-		<div v-if="$slots.actions" class="cn-settings-section__actions">
-			<slot name="actions" />
+		<!--
+			Custom header: title (+ optional doc link) and brief description
+			on the left, action buttons on the right. Splitting them with
+			flexbox keeps the actions top-aligned with the title regardless
+			of description length. NcSettingsSection's own name/description
+			are not rendered here (native heading hidden via CSS) so the
+			actions can share the title's row.
+		-->
+		<div class="cn-settings-section__header">
+			<div class="cn-settings-section__heading">
+				<h2 class="cn-settings-section__name">
+					{{ name }}
+					<a v-if="docUrl"
+						class="cn-settings-section__doc-link"
+						:href="docUrl"
+						:title="t('nextcloud-vue', 'Documentation')"
+						:aria-label="t('nextcloud-vue', 'Documentation')"
+						target="_blank"
+						rel="noreferrer nofollow">
+						<HelpCircle :size="20" />
+					</a>
+				</h2>
+				<p v-if="description" class="cn-settings-section__heading-description">
+					{{ description }}
+				</p>
+			</div>
+			<div v-if="$slots.actions" class="cn-settings-section__actions">
+				<slot name="actions" />
+			</div>
 		</div>
 
 		<!-- Section Description (optional detailed description box) -->
@@ -63,6 +87,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
+import HelpCircle from 'vue-material-design-icons/HelpCircle.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 
@@ -113,9 +138,12 @@ export default {
 		NcSettingsSection,
 		NcLoadingIcon,
 		NcButton,
+		HelpCircle,
 		Refresh,
 		InformationOutline,
 	},
+
+	methods: { t },
 
 	inheritAttrs: false,
 
@@ -196,20 +224,61 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * Hide NcSettingsSection's native heading — we render our own in the
+ * flex header below so the action buttons can share the title's row.
+ */
+:deep(.settings-section__name) {
+	display: none;
+}
+
+/*
+ * Header: title (+ description) on the left, actions on the right, split
+ * with flexbox. Keeps the actions top-aligned with the title regardless
+ * of description length. Replaces a fragile float + fixed negative margin
+ * that overflowed the buttons into the section above when no description
+ * gave them height to pull up into.
+ */
+.cn-settings-section__header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+	max-width: none;
+}
+
+.cn-settings-section__name {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	margin: 0;
+	font-size: 20px;
+	font-weight: bold;
+	color: var(--color-main-text);
+}
+
+.cn-settings-section__doc-link {
+	display: inline-flex;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-settings-section__doc-link:hover,
+.cn-settings-section__doc-link:focus {
+	color: var(--color-main-text);
+}
+
+.cn-settings-section__heading-description {
+	margin: 4px 0 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-settings-section__actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
-	justify-content: flex-end;
-	float: right;
-	margin-top: -66px;
-	margin-bottom: 26px;
-	position: relative;
-	z-index: 10;
-}
-
-.cn-settings-section__content {
-	clear: both;
+	flex-shrink: 0;
 }
 
 .cn-settings-section__description-text {
@@ -274,12 +343,9 @@ export default {
 
 @media (max-width: 768px) {
 	.cn-settings-section__actions {
-		position: static;
-		margin-top: 0;
-		margin-bottom: 1rem;
-		float: none;
 		flex-direction: column;
 		align-items: stretch;
+		width: 100%;
 	}
 }
 </style>
