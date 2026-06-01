@@ -158,7 +158,7 @@ import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import { buildHeaders } from '../../utils/headers.js'
+import { buildHeaders, prefixUrl } from '../../utils/headers.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
 
 /**
@@ -317,6 +317,7 @@ export default {
 			schemasByRegister: {},
 			registersLoading: false,
 			registersError: null,
+			hasLoadedRegisters: false,
 			// Local state
 			localConfig: {},
 			expandedRows: {},
@@ -342,6 +343,7 @@ export default {
 		configuration: {
 			handler(newVal) {
 				this.localConfig = { ...newVal }
+				this.reconcileOptions()
 			},
 
 			immediate: true,
@@ -572,7 +574,7 @@ export default {
 			this.registersError = null
 
 			try {
-				const response = await fetch('/apps/openregister/api/registers?_extend[]=schemas', {
+				const response = await fetch(prefixUrl('/apps/openregister/api/registers?_extend[]=schemas'), {
 					method: 'GET',
 					headers: buildHeaders(),
 				})
@@ -602,6 +604,42 @@ export default {
 				this.registersError = error.message || 'Network error fetching registers'
 			} finally {
 				this.registersLoading = false
+				this.hasLoadedRegisters = true
+			}
+		},
+
+		/**
+		 * Ensure the fetched registers/schemas cover the current configuration.
+		 *
+		 * The `configuration` prop can change after mount — e.g. a parent
+		 * "re-import" that creates new registers and schemas on the backend
+		 * and hands back a config referencing them. Without this, the
+		 * selectors keep showing stale "Select a register" placeholders even
+		 * though the configured-count reflects the new config. When the
+		 * config points at a register we haven't loaded (or whose schemas
+		 * aren't cached yet), refetch so the selectors resolve. Configs that
+		 * only reference already-loaded registers skip the network entirely,
+		 * so ordinary user edits don't trigger redundant fetches.
+		 */
+		async reconcileOptions() {
+			// The immediate watcher run fires before mount; mounted() performs
+			// the initial load, so there's nothing to reconcile against yet.
+			if (!this.hasLoadedRegisters) return
+
+			const configuredRegisterIds = this.groups
+				.map((_, groupIdx) => String(this.localConfig[this.registerConfigKey(groupIdx)] || ''))
+				.filter(Boolean)
+
+			const knownIds = new Set(this.registers.map((r) => String(r.id)))
+			if (configuredRegisterIds.some((id) => !knownIds.has(id))) {
+				await this.loadRegisters()
+			}
+
+			// Backfill schemas for any configured register still uncached.
+			for (const id of configuredRegisterIds) {
+				if (!(this.schemasByRegister[id]?.length > 0)) {
+					await this.loadSchemasForRegister(id)
+				}
 			}
 		},
 
@@ -618,7 +656,7 @@ export default {
 
 			try {
 				const response = await fetch(
-					`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`,
+					prefixUrl(`/apps/openregister/api/registers/${encodeURIComponent(id)}?_extend[]=schemas`),
 					{ method: 'GET', headers: buildHeaders() },
 				)
 				if (!response.ok) return
