@@ -176,7 +176,11 @@ export default {
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
 		 *
-		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}>}
+		 * Each entry may be a full column object or a bare string key
+		 * (shorthand, e.g. `['name', 'type']`); string keys are normalised
+		 * to column objects, enriched from `schema` when one is provided.
+		 *
+		 * @type {Array<string|{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}>}
 		 */
 		columns: {
 			type: Array,
@@ -305,6 +309,13 @@ export default {
 		/**
 		 * Effective columns: schema-generated or manually provided.
 		 * Schema columns take precedence when schema is provided and no manual columns given.
+		 *
+		 * Manually-provided columns may be either full `{ key, label, … }`
+		 * objects or bare string keys (the manifest shorthand, e.g.
+		 * `columns: ['name', 'type']`). String entries are normalised to
+		 * column objects — enriched from the schema when one is available
+		 * (preserving the given order) — so the table never renders a column
+		 * without a `key`.
 		 */
 		effectiveColumns() {
 			if (this.schema && this.columns.length === 0) {
@@ -314,7 +325,17 @@ export default {
 					overrides: this.columnOverrides,
 				})
 			}
-			return this.columns
+			if (!this.columns.some((c) => typeof c === 'string')) {
+				return this.columns
+			}
+			const schemaCols = this.schema
+				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
+				: []
+			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
+			return this.columns.map((c) => {
+				if (typeof c !== 'string') return c
+				return byKey.get(c) || { key: c, label: c, sortable: true }
+			})
 		},
 
 		totalColumns() {
@@ -358,6 +379,9 @@ export default {
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
+			if (typeof key !== 'string') {
+				return undefined
+			}
 			if (key.includes('.')) {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
