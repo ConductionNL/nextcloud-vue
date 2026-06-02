@@ -112,6 +112,7 @@
 							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:label-outside="true"
 								:options="getEffectiveOptions(field)"
 								:model-value="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
@@ -146,6 +147,7 @@
 							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:label-outside="true"
 								:options="getEffectiveArrayOptions(field)"
 								:model-value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
@@ -182,6 +184,7 @@
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:label-outside="true"
 								:model-value="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
