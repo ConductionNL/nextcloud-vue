@@ -325,7 +325,17 @@ export default {
 					overrides: this.columnOverrides,
 				})
 				: this.columns
-			return (cols || []).map((c) => (typeof c === 'string' ? { key: c, label: c } : c))
+			if (!(cols || []).some((c) => typeof c === 'string')) {
+				return cols || []
+			}
+			const schemaCols = this.schema
+				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
+				: []
+			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
+			return (cols || []).map((c) => {
+				if (typeof c !== 'string') return c
+				return byKey.get(c) || { key: c, label: c, sortable: true }
+			})
 		},
 
 		totalColumns() {
@@ -368,12 +378,7 @@ export default {
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
-			// Guard against columns reaching cellValue without a `.key`
-			// (e.g. action / checkbox / row-selector columns, or a
-			// malformed column definition). Without this guard,
-			// `key.includes('.')` throws TypeError and breaks every
-			// row render in the table.
-			if (key === undefined || key === null) {
+			if (typeof key !== 'string') {
 				return undefined
 			}
 			if (key.includes('.')) {
