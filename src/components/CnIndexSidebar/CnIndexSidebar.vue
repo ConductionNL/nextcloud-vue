@@ -2,7 +2,6 @@
 	<NcAppSidebar
 		:name="resolvedName"
 		:title="resolvedName"
-		:subname="resolvedSubname"
 		:open.sync="internalOpen"
 		:active="internalActiveTab"
 		:compact="!!resolvedIcon"
@@ -13,6 +12,13 @@
 			<div class="cn-index-sidebar__header-icon">
 				<CnIcon :name="resolvedIcon" :size="32" />
 			</div>
+		</template>
+
+		<!-- Schema description — wraps to full text (subname would truncate). -->
+		<template v-if="resolvedDescription" #description>
+			<p class="cn-index-sidebar__description">
+				{{ resolvedDescription }}
+			</p>
 		</template>
 
 		<!-- Search Tab -->
@@ -360,8 +366,12 @@ export default {
 			return this.schema?.title || 'Search'
 		},
 
-		/** Sidebar subname — schema description, shown below the name */
-		resolvedSubname() {
+		/**
+		 * Sidebar description — schema description, rendered via NcAppSidebar's
+		 * `#description` slot so the full text wraps (the `subname` prop
+		 * truncates to a single line with no way to read the rest).
+		 */
+		resolvedDescription() {
 			return this.schema?.description || ''
 		},
 

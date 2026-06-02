@@ -17,6 +17,15 @@
 	color: var(--color-primary-element);
 }
 
+.cn-index-sidebar__description {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	line-height: 1.4;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 .cn-index-sidebar__header-emoji {
 	font-size: 28px;
 	line-height: 1;
