@@ -1196,6 +1196,8 @@ export default {
 			closeContextMenu,
 			isSelfFetch,
 			list,
+			selfObjectStore,
+			selfObjectType,
 			activeQuickFilterIndex,
 			// Exposed for onFormConfirm's self-fetch save path — see the
 			// hoist comment above the `if (isSelfFetch)` block.
@@ -2087,23 +2089,23 @@ export default {
 				}
 				return
 			}
-			// Self-fetch (manifest-v2) mode: CnPageRenderer mounts us with
-			// `register` + `schema` from `config` but no `store`/`objectType`
-			// prop. The internal store registered in setup() owns the save
-			// path so the dialog actually POSTs to OR. Without this branch
-			// the click below falls into the `@create` emit which has no
-			// listener through CnPageRenderer (props-only forwarding) and
-			// the dialog is a silent no-op.
-			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
-				const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
-				if (saved) {
-					this.setFormResult({ success: true })
-					this.$emit(this.editItem ? 'edit' : 'create', saved)
-					if (this.list && typeof this.list.refresh === 'function') {
-						this.list.refresh()
+			// Self-fetch mode (manifest-driven page): no `store`/`@create`
+			// listener is wired, so self-save via the same object store and
+			// type used for self-fetching, then resolve the dialog. Without
+			// this the dialog waits forever for a setFormResult() that never
+			// comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				try {
+					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
+					if (saved) {
+						this.setFormResult({ success: true })
+						this.$emit(this.editItem ? 'edit' : 'create', saved)
+						if (typeof this.list.refresh === 'function') this.list.refresh()
+					} else {
+						const err = this.selfObjectStore.getError?.(this.selfObjectType)
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
 					}
-				} else {
-					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+				} catch (err) {
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return
