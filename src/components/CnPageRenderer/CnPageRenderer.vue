@@ -93,6 +93,7 @@
 		<component
 			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
+			:key="currentPage.id"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners">
 			<template
@@ -132,24 +133,6 @@ function isKnownSlot(slotName) {
 	if (/^section:[^\s]+$/.test(slotName)) return true
 	return false
 }
-
-/**
- * Read-only defaults applied when a type='index' page declares
- * `config.readOnly: true` (REQ-MIPFU-4 of manifest-index-page-followups).
- * Merged UNDER the explicit `config.*` props by `resolvedProps`, so
- * any explicit prop the manifest sets still wins.
- */
-const READ_ONLY_DEFAULTS = Object.freeze({
-	selectable: false,
-	showAdd: false,
-	showFormDialog: false,
-	showEditAction: false,
-	showCopyAction: false,
-	showDeleteAction: false,
-	showMassImport: false,
-	showMassCopy: false,
-	showMassDelete: false,
-})
 
 /**
  * Read-only defaults applied when a type='index' page declares
