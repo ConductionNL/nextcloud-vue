@@ -93,6 +93,7 @@
 		<component
 			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
+			:key="currentPage.id"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners">
 			<template
