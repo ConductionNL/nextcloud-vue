@@ -386,11 +386,22 @@ export default {
 			// so explicit `config.showAdd:true` still wins. Strip the
 			// `readOnly` key before forwarding — CnIndexPage has no
 			// `readOnly` prop.
+			let merged
 			if (page?.type === 'index' && config.readOnly === true) {
 				const { readOnly, ...rest } = config
-				return { ...headerDefaults, ...READ_ONLY_DEFAULTS, ...rest, ...params }
+				merged = { ...headerDefaults, ...READ_ONLY_DEFAULTS, ...rest, ...params }
+			} else {
+				merged = { ...headerDefaults, ...config, ...params }
 			}
-			return { ...headerDefaults, ...config, ...params }
+			// type:'detail' pages expect an `objectId` prop, but detail routes
+			// conventionally carry the id in an `:id` param (and CnIndexPage's
+			// navigate action pushes `params: { id }`). Bridge them so
+			// CnDetailPage's schema-driven fetch (register + schema + objectId)
+			// fires; without this the page renders with no object data.
+			if (page?.type === 'detail' && merged.objectId === undefined && merged.id !== undefined) {
+				merged.objectId = merged.id
+			}
+			return merged
 		},
 
 		/**
