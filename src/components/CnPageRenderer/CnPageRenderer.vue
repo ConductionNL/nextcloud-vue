@@ -47,6 +47,7 @@
 		<component
 			:is="resolvedComponent"
 			v-else-if="resolvedComponent"
+			:key="currentPage.id"
 			v-bind="resolvedProps">
 			<template
 				v-for="entry in resolvedSlotEntries"
