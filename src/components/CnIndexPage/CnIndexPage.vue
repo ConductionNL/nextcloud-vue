@@ -993,10 +993,14 @@ export default {
 		}
 
 		let list = null
+		let selfObjectStore = null
+		let selfObjectType = ''
 		if (isSelfFetch) {
 			const objectType = `${props.register}-${props.schema}`
 			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 			const objectStore = useObjectStore()
+			selfObjectStore = objectStore
+			selfObjectType = objectType
 			// Register the `${register}-${schema}` type so the store has a slot
 			// for it before `useListView` issues the first fetch. The store's
 			// signature is `(slug, schemaId, registerId, slugs)` and it builds
@@ -1053,6 +1057,8 @@ export default {
 			closeContextMenu,
 			isSelfFetch,
 			list,
+			selfObjectStore,
+			selfObjectType,
 			activeQuickFilterIndex,
 		}
 	},
@@ -1742,6 +1748,27 @@ export default {
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
 				} else {
 					const err = this.store.getError?.(this.objectType)
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
+			// Self-fetch mode (manifest-driven page): no `store`/`@create`
+			// listener is wired, so self-save via the same object store and
+			// type used for self-fetching, then resolve the dialog. Without
+			// this the dialog waits forever for a setFormResult() that never
+			// comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				try {
+					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
+					if (saved) {
+						this.setFormResult({ success: true })
+						this.$emit(this.editItem ? 'edit' : 'create', saved)
+						if (typeof this.list.refresh === 'function') this.list.refresh()
+					} else {
+						const err = this.selfObjectStore.getError?.(this.selfObjectType)
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					}
+				} catch (err) {
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return
