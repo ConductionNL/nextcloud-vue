@@ -1,8 +1,13 @@
 name: Publish to npm
+
 on:
+  push:
+    branches: [main, beta]
   workflow_dispatch: {}
+
 jobs:
-  probe:
-    runs-on: codeberg-tiny
-    steps:
-      - run: echo npm-path-probe
+  publish:
+    uses: Conduction/.github/.forgejo/workflows/release-npm.yml@main
+    with:
+      node-version: "24"
+    secrets: inherit
