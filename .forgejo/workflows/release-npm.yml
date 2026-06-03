@@ -13,4 +13,6 @@ on:
 jobs:
   publish:
     uses: Conduction/.github/.forgejo/workflows/release-npm.yml@main
+    with:
+      node-version: "24"
     secrets: inherit
