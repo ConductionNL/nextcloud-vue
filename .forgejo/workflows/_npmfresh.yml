@@ -1,0 +1,8 @@
+name: npm fresh probe
+on:
+  workflow_dispatch: {}
+jobs:
+  probe:
+    runs-on: codeberg-tiny
+    steps:
+      - run: echo fresh-name-probe
