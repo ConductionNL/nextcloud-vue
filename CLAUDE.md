@@ -174,6 +174,12 @@ setup() {
 ```
 The `integrations` ref is sorted and reactive. Use `resolveWidget(id, surface)` to apply the AD-19 fallback rule when rendering a specific surface.
 
+**Surface components consume the registry (all opt-in, backwards-compatible):**
+
+- **`CnObjectSidebar`** — `useRegistry` (Boolean, default `false`): replace the hardcoded built-in tabs with one tab per registered provider. `excludeIntegrations` (`string[]`) and `hiddenTabs` filter the set. Mutually exclusive with the open-enum `tabs` prop (`tabs` wins, with a console.warn). Per-integration slot overrides aren't supported in registry mode — override a built-in by registering your own provider with the same id (collision policy: first wins).
+- **`CnDashboardPage`** / **`CnDetailPage`** — add an `integration` widget type to the layout: `{ id, title, type: 'integration', integrationId, props? }`. The component is resolved from the registry via `resolveWidget(integrationId, surface)`. `surface` prop defaults to `'app-dashboard'` (dashboard) / `'detail-page'` (detail). `integrationContext` prop (`{ register, schema, objectId }`) is forwarded to the widget — `CnDetailPage` derives it from `sidebarProps` + `objectId` when not given.
+- **`CnFormDialog`** / **`CnDetailGrid`** — a schema property (or detail item) carrying `referenceType: '<integration-id>'` (AD-18) renders that integration's single-entity widget (AD-19 fallback to its main `widget`) instead of a plain input/value. `referenceContext` prop (`{ register, schema, objectId }`) is forwarded. A consumer `#field-<key>` / `#item-<index>` slot still overrides it.
+
 ### CnIndexPage Dialog Override System
 
 CnIndexPage has built-in single-object dialogs (Delete, Copy, Form) that are **overridable at three levels**:

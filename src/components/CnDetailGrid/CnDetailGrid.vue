@@ -36,7 +36,16 @@
 			<!-- Value -->
 			<div class="cn-detail-grid__value">
 				<slot :name="'item-' + index" :item="item" :index="index">
-					{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+					<!-- referenceType (AD-18): render the integration's
+					     single-entity widget instead of a raw value. A
+					     consumer-supplied #item-<index> slot still wins. -->
+					<component
+						:is="resolveReferenceWidget(item)"
+						v-if="resolveReferenceWidget(item)"
+						v-bind="referenceWidgetProps(item)" />
+					<template v-else>
+						{{ item.value !== undefined && item.value !== null ? item.value : '-' }}
+					</template>
 				</slot>
 			</div>
 
@@ -53,6 +62,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
@@ -86,14 +96,43 @@ import { translate as t } from '@nextcloud/l10n'
 export default {
 	name: 'CnDetailGrid',
 
+	setup() {
+		// Pluggable integration registry — used to render items that
+		// declare `referenceType: '<integration-id>'` (AD-18) via the
+		// integration's single-entity widget. Cheap when no such
+		// items exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
+	},
+
 	props: {
 		/**
 		 * Array of detail items to render.
-		 * @type {Array<{ label: string, value: string|number }>}
+		 *
+		 * An item may carry `referenceType: '<integration-id>'` (AD-18)
+		 * to render the integration's single-entity widget for its
+		 * value instead of a plain string; `value` then acts as the
+		 * widget's input value.
+		 *
+		 * @type {Array<{ label: string, value: string|number, referenceType?: string }>}
 		 */
 		items: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Object context forwarded to integration single-entity
+		 * widgets rendered for items that declare a `referenceType` —
+		 * an object `{ register, schema, objectId }`. Optional.
+		 *
+		 * @type {object|null}
+		 */
+		referenceContext: {
+			type: Object,
+			default: null,
 		},
 		/**
 		 * Layout mode.
@@ -167,6 +206,45 @@ export default {
 		itemClasses() {
 			return {
 				'cn-detail-grid__item--horizontal': this.layout === 'horizontal',
+			}
+		},
+	},
+
+	methods: {
+		/**
+		 * Resolve an item's reference integration widget, if any.
+		 * Returns the integration's single-entity widget component
+		 * (AD-19 fallback to its main `widget`) when the item declares
+		 * a `referenceType` mapping to a registered integration; null
+		 * otherwise.
+		 *
+		 * @param {object} item A detail item.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveReferenceWidget(item) {
+			if (!item || typeof item.referenceType !== 'string' || item.referenceType === '') {
+				return null
+			}
+			if (typeof this.getRegistryIntegration === 'function' && this.getRegistryIntegration(item.referenceType) === null) {
+				return null
+			}
+			return this.resolveRegistryWidget(item.referenceType, 'single-entity')
+		},
+
+		/**
+		 * Props passed to a reference integration widget: the item's
+		 * value, the rendering surface, the item itself, and the
+		 * object context (from `referenceContext`).
+		 *
+		 * @param {object} item A detail item.
+		 * @return {object} Props object for the widget component.
+		 */
+		referenceWidgetProps(item) {
+			return {
+				surface: 'single-entity',
+				value: item.value,
+				item,
+				...(this.referenceContext || {}),
 			}
 		},
 	},
