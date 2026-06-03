@@ -12,7 +12,7 @@ on:
 
 jobs:
   publish:
-    uses: https://codeberg.org/Conduction/.github/.forgejo/workflows/release-npm.yml@main
+    uses: Conduction/.github/.forgejo/workflows/release-npm.yml@main
     with:
       dry-run: ${{ inputs.dry_run || false }}
     secrets: inherit
