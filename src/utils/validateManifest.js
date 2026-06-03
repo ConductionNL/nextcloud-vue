@@ -570,6 +570,27 @@ function validateSidebarConfig(page, pageIndex, errors) {
 			if (sb.tabs !== undefined) {
 				validateDetailTabsArray(sb.tabs, `${path}/tabs`, errors)
 			}
+			// Pluggable integration registry (ADR-019): the detail sidebar
+			// can be driven by the registry instead of an open-enum `tabs`
+			// array. `useRegistry` is mutually exclusive with `tabs`;
+			// `excludeIntegrations` filters the registry set (mirrors `hiddenTabs`).
+			if (sb.useRegistry !== undefined && typeof sb.useRegistry !== 'boolean') {
+				errors.push(`${path}/useRegistry must be a boolean`)
+			}
+			if (sb.useRegistry === true && sb.tabs !== undefined) {
+				errors.push(`${path}: useRegistry and tabs are mutually exclusive — set one or the other`)
+			}
+			if (sb.excludeIntegrations !== undefined) {
+				if (!Array.isArray(sb.excludeIntegrations)) {
+					errors.push(`${path}/excludeIntegrations must be an array of strings`)
+				} else {
+					sb.excludeIntegrations.forEach((id, i) => {
+						if (typeof id !== 'string') {
+							errors.push(`${path}/excludeIntegrations/${i} must be a string`)
+						}
+					})
+				}
+			}
 		}
 	}
 
