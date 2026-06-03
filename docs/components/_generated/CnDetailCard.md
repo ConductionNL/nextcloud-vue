@@ -2,13 +2,13 @@
 
 ### Props
 
-| Name          | Type               | Required | Default | Description                                                          |
-| ------------- | ------------------ | -------- | ------- | -------------------------------------------------------------------- |
-| `title`       | `string`           |          | `''`    | Card header title                                                    |
-| `icon`        | `object&#124;func` |          | `null`  | Optional MDI icon component for the header                           |
-| `collapsible` | `boolean`          |          | `false` | Whether the card can be collapsed                                    |
-| `collapsed`   | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)     |
-| `flush`       | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge. |
+| Name          | Type      | Required | Default | Description                                                          |
+| ------------- | --------- | -------- | ------- | -------------------------------------------------------------------- | ------------------------------------------ |
+| `title`       | `string`  |          | `''`    | Card header title                                                    |
+| `icon`        | `object   | func`    |         | `null`                                                               | Optional MDI icon component for the header |
+| `collapsible` | `boolean` |          | `false` | Whether the card can be collapsed                                    |
+| `collapsed`   | `boolean` |          | `false` | Initial collapsed state (only relevant when collapsible is true)     |
+| `flush`       | `boolean` |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge. |
 
 ### Events
 

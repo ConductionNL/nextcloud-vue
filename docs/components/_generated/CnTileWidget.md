@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name   | Type                                                                                                                                                                               | Required | Default | Description                |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | -------------------------- |
-| `tile` | `{ title: string, icon: string, iconType: 'svg'&#124;'class'&#124;'url'&#124;'emoji', backgroundColor: string, textColor: string, linkType: 'app'&#124;'url', linkValue: string }` | ✓        | —       | Tile configuration object. |
+| Name   | Type                                            | Required | Default | Description                                                          |
+| ------ | ----------------------------------------------- | -------- | ------- | -------------------------------------------------------------------- | --------------------------- | --- | --- | -------------------------- |
+| `tile` | `{ title: string, icon: string, iconType: 'svg' | 'class'  | 'url'   | 'emoji', backgroundColor: string, textColor: string, linkType: 'app' | 'url', linkValue: string }` | ✓   | —   | Tile configuration object. |
