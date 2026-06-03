@@ -16,6 +16,21 @@
 
 set -euo pipefail
 
+# ---------------------------------------------------------------------
+# Pluggable integration registry parity gate (AD-11/AD-13).
+#
+# When any src/integrations/ file is staged, run the parity check so a
+# descriptor missing its `tab` or `widget` is caught at commit time
+# rather than only at CI (code-quality.yml's "Integration parity gate"
+# step). Cheap — just requires one Node module. Runs before the Cn*
+# SFC early-exit below so it isn't skipped on integrations-only commits.
+# ---------------------------------------------------------------------
+if git diff --cached --name-only --diff-filter=ACMR \
+     | grep -qE '^src/integrations/'; then
+  echo '[pre-commit] src/integrations/ staged — running integration parity gate'
+  node scripts/check-integration-parity.js
+fi
+
 # Bail unless at least one Cn* SFC is staged. The check runs O(staged
 # files), so the cost is trivial when nothing in src/components/ moves.
 if ! git diff --cached --name-only --diff-filter=ACMR \
