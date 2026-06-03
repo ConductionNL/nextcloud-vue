@@ -76,7 +76,7 @@ function onAction({ action, row }) {
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `label` | String | ✓ | Display text for the action item. Also used as the `action` key in the emitted `action` event. |
-| `icon` | Object | — | Vue component to render as the icon (e.g., a vue-material-design-icons component) |
+| `icon` | Object\|String | — | The icon to render. A **component** (e.g. a vue-material-design-icons component) is rendered directly. A **string** is treated as a `CnIcon` registry name (PascalCase, e.g. `"Eye"`) and resolved via `registerIcons()`, falling back to the help-circle when unregistered — this lets manifest (JSON) actions declare icons by name. |
 | `handler` | Function | — | Called with the `row` value when the action is clicked: `(row) => void` |
 | `disabled` | Boolean\|Function | — | When `true`, or when a function returning `true` for the given row, the item is not clickable |
 | `visible` | Boolean\|Function | — | Controls whether the item appears in the menu at all. Omit for "always shown". Pass `false` or a function returning `false` for the row to hide it. Useful for state-dependent actions (e.g. show *Publish* only when the row is unpublished). |
