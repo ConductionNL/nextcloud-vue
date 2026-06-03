@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import CnRowActions from '@/components/CnRowActions/CnRowActions.vue'
+import CnIcon from '@/components/CnIcon/CnIcon.vue'
 
 const baseActions = [
 	{ label: 'Edit', handler: jest.fn() },
@@ -53,5 +54,25 @@ describe('CnRowActions visible predicate', () => {
 		})
 		const labels = wrapper.vm.visibleActions.map(a => a.label)
 		expect(labels).toEqual(['Shown'])
+	})
+})
+
+describe('CnRowActions icon rendering', () => {
+	it('renders a string icon as a CnIcon registry lookup (manifest actions)', () => {
+		const wrapper = mount(CnRowActions, {
+			propsData: { actions: [{ label: 'View', icon: 'Eye', handler: jest.fn() }] },
+		})
+		const icon = wrapper.findComponent(CnIcon)
+		expect(icon.exists()).toBe(true)
+		expect(icon.props('name')).toBe('Eye')
+	})
+
+	it('renders a component icon directly without CnIcon (runtime actions)', () => {
+		const StubIcon = { name: 'StubIcon', render: (h) => h('span', 'icon') }
+		const wrapper = mount(CnRowActions, {
+			propsData: { actions: [{ label: 'View', icon: StubIcon, handler: jest.fn() }] },
+		})
+		expect(wrapper.findComponent(CnIcon).exists()).toBe(false)
+		expect(wrapper.findComponent(StubIcon).exists()).toBe(true)
 	})
 })

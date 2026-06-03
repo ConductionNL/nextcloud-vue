@@ -13,7 +13,8 @@
 			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
-				<component :is="action.icon" :size="20" />
+				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+				<component :is="action.icon" v-else :size="20" />
 			</template>
 			{{ action.label }}
 		</NcActionButton>
@@ -22,6 +23,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnRowActions — Action menu wrapper for table rows and cards.
@@ -44,6 +46,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		CnIcon,
 	},
 
 	props: {
@@ -52,14 +55,18 @@ export default {
 		 *
 		 * Each action supports:
 		 * - `label` (string, required) — display text
-		 * - `icon` (component) — MDI icon
+		 * - `icon` (component | string) — MDI icon. A component renders
+		 *   directly; a string is treated as a registry name and rendered
+		 *   via `CnIcon` (PascalCase, e.g. `"Eye"`), falling back to the
+		 *   help-circle when unregistered. The string form lets manifest
+		 *   (JSON) actions declare icons by name.
 		 * - `handler` (function) — called with `row` on click
 		 * - `disabled` (boolean | (row) => boolean) — gray out the entry
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
 		 *
-		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
+		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
