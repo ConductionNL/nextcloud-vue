@@ -333,6 +333,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { useContextMenu, useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -1661,12 +1662,120 @@ export default {
 			this.$emit('mass-copy', payload)
 		},
 
-		onMassExportConfirm(payload) {
+		async onMassExportConfirm(payload) {
+			// Self-fetch (manifest-driven) mode: no `@mass-export` listener can
+			// be wired because CnPageRenderer forwards props, not events. Perform
+			// the export against OpenRegister's objects export endpoint and trigger
+			// the download here, then resolve the dialog — mirroring onFormConfirm's
+			// self-save path. Without this the dialog spins forever waiting for a
+			// setExportResult() that never comes. All other modes keep emitting
+			// `mass-export` for the parent to handle (backward compatible).
+			if (this.isSelfFetchMode && this.register && this.schema) {
+				try {
+					await this.runSelfExport(payload && payload.format)
+					this.setExportResult({ success: true })
+				} catch (err) {
+					this.setExportResult({ error: (err && err.message) || 'Export failed' })
+				}
+				return
+			}
 			this.$emit('mass-export', payload)
 		},
 
-		onMassImportConfirm(payload) {
+		/**
+		 * Self-fetch-mode export: download the current register/schema's objects
+		 * in the chosen format from OpenRegister's objects export endpoint
+		 * (`/api/objects/{register}/{schema}/export?type=`) and save the returned
+		 * file. Uses the same base URL + headers as the object store's fetches.
+		 * Only used when no `@mass-export` listener can be wired (manifest pages).
+		 *
+		 * @param {string} format The export format id from the dialog (e.g. 'excel', 'csv').
+		 * @return {Promise<void>}
+		 */
+		async runSelfExport(format) {
+			const base = `/apps/openregister/api/objects/${this.register}/${this.schema}/export`
+			const url = prefixUrl(base) + buildQueryString({ type: format })
+			const response = await fetch(url, { method: 'GET', headers: buildHeaders() })
+			if (!response.ok) {
+				throw new Error(`Export failed (${response.status})`)
+			}
+			const blob = await response.blob()
+			const disposition = response.headers.get('content-disposition') || ''
+			const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
+			const ext = format === 'excel' ? 'xlsx' : (format || 'csv')
+			const filename = match ? decodeURIComponent(match[1]) : `${this.register}_${this.schema}.${ext}`
+			this.triggerBlobDownload(blob, filename)
+		},
+
+		/**
+		 * Save a Blob to disk via a temporary object-URL anchor.
+		 *
+		 * @param {Blob} blob The file contents.
+		 * @param {string} filename Suggested download filename.
+		 */
+		triggerBlobDownload(blob, filename) {
+			const blobUrl = window.URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = blobUrl
+			a.download = filename
+			document.body.appendChild(a)
+			a.click()
+			document.body.removeChild(a)
+			window.URL.revokeObjectURL(blobUrl)
+		},
+
+		async onMassImportConfirm(payload) {
+			// Self-fetch (manifest-driven) mode: no `@mass-import` listener can be
+			// wired, so upload the file to OpenRegister's register import endpoint
+			// here, refresh the list, and resolve the dialog — mirroring the export
+			// self-handling. Other modes keep emitting for the parent to handle.
+			if (this.isSelfFetchMode && this.register) {
+				try {
+					await this.runSelfImport(payload && payload.file)
+					this.setImportResult({ success: true })
+					if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
+				} catch (err) {
+					this.setImportResult({ error: (err && err.message) || 'Import failed' })
+				}
+				return
+			}
 			this.$emit('mass-import', payload)
+		},
+
+		/**
+		 * Self-fetch-mode import: upload `file` to OpenRegister's register import
+		 * endpoint (`POST /api/registers/{register}/import`; object-level import is
+		 * disabled server-side). For CSV files the schema slug is passed so the
+		 * backend knows which schema the rows belong to (JSON/Excel carry their own
+		 * schema info). Uses `buildHeaders(null)` — CSRF token + OCS header but NO
+		 * Content-Type, so the browser sets the multipart boundary itself.
+		 *
+		 * @param {File} file The file selected in the import dialog.
+		 * @return {Promise<void>}
+		 */
+		async runSelfImport(file) {
+			if (!file) {
+				throw new Error('No file selected')
+			}
+			const ext = (file.name.split('.').pop() || '').toLowerCase()
+			const isCsv = ext === 'csv' && !!this.schema
+			let path = `/apps/openregister/api/registers/${this.register}/import`
+			if (isCsv) {
+				path += buildQueryString({ schema: this.schema })
+			}
+			const formData = new FormData()
+			formData.append('file', file)
+			if (isCsv) {
+				formData.append('schema', this.schema)
+			}
+			const response = await fetch(prefixUrl(path), {
+				method: 'POST',
+				headers: buildHeaders(null),
+				body: formData,
+			})
+			if (!response.ok) {
+				throw new Error(`Import failed (${response.status})`)
+			}
 		},
 
 		/**
