@@ -229,7 +229,9 @@ export default {
 				const response = await fetch(`${this.baseUrl()}?${params.toString()}`, { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
-					this.pages = data.results || data || []
+					// `items` (OR sub-resource controller) / `results` (custom
+					// source) / a bare array (raw upstream) are all accepted.
+					this.pages = data?.results ?? data?.items ?? (Array.isArray(data) ? data : [])
 				} else if (response.status === 503) {
 					this.pages = []
 					this.degraded = this.unavailableLabel
@@ -258,7 +260,8 @@ export default {
 					const data = await response.json()
 					let resolved = null
 					if (data) {
-						resolved = (Array.isArray(data.results) === true) ? (data.results[0] || null) : data
+						const rows = data.results ?? data.items ?? (Array.isArray(data) ? data : null)
+						resolved = Array.isArray(rows) ? (rows[0] || null) : data
 					}
 					this.entity = resolved
 				} else {

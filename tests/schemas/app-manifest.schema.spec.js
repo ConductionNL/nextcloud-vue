@@ -878,6 +878,54 @@ describe('validateManifest — manifest-detail-sidebar-config additions', () => 
 			// Missing label → error.
 			expect(result.errors.some((e) => e.includes('/config/sidebar/tabs/0/label'))).toBe(true)
 		})
+
+		// ADR-019 — pluggable integration registry: a detail sidebar can be
+		// driven by the registry via `useRegistry` instead of `tabs`.
+		it('accepts config.sidebar.useRegistry + excludeIntegrations', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
+				config: { register: 'crm', schema: 'lead', sidebar: { useRegistry: true, excludeIntegrations: ['tags'] } },
+			}))
+			expect(result.valid).toBe(true)
+		})
+
+		it('rejects non-boolean config.sidebar.useRegistry', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
+				config: { sidebar: { useRegistry: 'yes' } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar/useRegistry'))).toBe(true)
+		})
+
+		it('rejects useRegistry: true together with tabs (mutually exclusive)', () => {
+			const result = validateManifest(baseManifest({
+				id: 'd',
+				route: '/d/:id',
+				type: 'detail',
+				title: 't',
+				config: { sidebar: { useRegistry: true, tabs: [{ id: 'a', label: 'A', component: 'X' }] } },
+			}))
+			expect(result.errors.some((e) => e.includes('/config/sidebar') && /useRegistry and tabs are mutually exclusive/.test(e))).toBe(true)
+		})
+
+		it('rejects non-array excludeIntegrations and non-string entries', () => {
+			const r1 = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { excludeIntegrations: 'tags' } },
+			}))
+			expect(r1.errors.some((e) => e.includes('/config/sidebar/excludeIntegrations') && e.includes('must be an array'))).toBe(true)
+			const r2 = validateManifest(baseManifest({
+				id: 'd', route: '/d/:id', type: 'detail', title: 't',
+				config: { sidebar: { excludeIntegrations: ['tags', 7] } },
+			}))
+			expect(r2.errors.some((e) => e.includes('/config/sidebar/excludeIntegrations/1'))).toBe(true)
+		})
 	})
 
 	describe('schema metadata stability', () => {

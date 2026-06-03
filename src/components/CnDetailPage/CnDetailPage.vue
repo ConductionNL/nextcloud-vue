@@ -387,9 +387,19 @@ export default {
 		 *       hiddenTabs?: string[],
 		 *       title?: string,
 		 *       subtitle?: string,
-		 *       tabs?: Array<TabDef>,  // see manifest-abstract-sidebar
+		 *       tabs?: Array<TabDef>,            // open-enum tabs — see manifest-abstract-sidebar
+		 *       useRegistry?: boolean,           // ADR-019: render tabs from the pluggable integration registry instead of `tabs`
+		 *       excludeIntegrations?: string[],  // integration ids to hide in registry mode (mirrors `hiddenTabs`)
 		 *     }
 		 *     ```
+		 *     `useRegistry` is mutually exclusive with `tabs` — when both
+		 *     are set, `tabs` wins (CnObjectSidebar warns). Pushing
+		 *     `useRegistry` / `excludeIntegrations` into `objectSidebarState`
+		 *     only takes effect if the host App's `#sidebar` slot binds
+		 *     `:use-registry="objectSidebarState.useRegistry"` and
+		 *     `:exclude-integrations="objectSidebarState.excludeIntegrations"`
+		 *     on its `<CnObjectSidebar>` — see docs/components/cn-object-sidebar.md.
+		 *
 		 *     When BOTH `sidebar` (Object) and `sidebarProps` are set
 		 *     with overlapping fields, the Object form wins and a
 		 *     `console.warn` lists the conflicting fields once per
@@ -724,9 +734,20 @@ export default {
 				// not set so the consumer's CnObjectSidebar falls back to
 				// the built-in tab set.
 				this.objectSidebarState.tabs = merged.tabs
+				// Pluggable integration registry (ADR-019). When `useRegistry`
+				// is true the host's CnObjectSidebar renders one tab per
+				// registered provider; `excludeIntegrations` filters them
+				// (mirrors `hiddenTabs`). The host App's `#sidebar` slot must
+				// bind `:use-registry="objectSidebarState.useRegistry"` and
+				// `:exclude-integrations="objectSidebarState.excludeIntegrations"`
+				// for these to take effect — see docs/components/cn-object-sidebar.md.
+				this.objectSidebarState.useRegistry = merged.useRegistry === true
+				this.objectSidebarState.excludeIntegrations = merged.excludeIntegrations || []
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined
+				this.objectSidebarState.useRegistry = false
+				this.objectSidebarState.excludeIntegrations = []
 			}
 		},
 		/**
@@ -749,9 +770,15 @@ export default {
 				schema: objectForm?.schema ?? props.schema,
 				hiddenTabs: objectForm?.hiddenTabs ?? props.hiddenTabs,
 				tabs: objectForm?.tabs ?? props.tabs,
+				// Pluggable integration registry (ADR-019): when `useRegistry`
+				// is set the sidebar renders one tab per registered provider
+				// instead of the open-enum `tabs` array; `excludeIntegrations`
+				// filters that set (mirrors `hiddenTabs`).
+				useRegistry: objectForm?.useRegistry ?? props.useRegistry,
+				excludeIntegrations: objectForm?.excludeIntegrations ?? props.excludeIntegrations,
 			}
 			if (objectForm && !this.__sidebarConflictWarned) {
-				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
+				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs', 'useRegistry', 'excludeIntegrations']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
 					// eslint-disable-next-line no-console
