@@ -3,12 +3,7 @@ name: Publish to npm
 on:
   push:
     branches: [main, beta]
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Run semantic-release --dry-run only"
-        type: boolean
-        default: false
+  workflow_dispatch: {}
 
 jobs:
   publish:
