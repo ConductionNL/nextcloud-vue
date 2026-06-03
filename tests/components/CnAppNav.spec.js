@@ -535,4 +535,168 @@ describe('CnAppNav', () => {
 			window.open = originalOpen
 		})
 	})
+
+	describe('three-section model (main / footer / settings foldout)', () => {
+		const sectionManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'Home', route: 'home', order: 1 },
+				{ id: 'docs', label: 'Documentation', href: 'https://x', section: 'footer', order: 10 },
+				{ id: 'roadmap', label: 'Features & roadmap', route: 'roadmap', section: 'footer', order: 11 },
+				{ id: 'forms', label: 'Forms', route: 'forms', section: 'settings', order: 20 },
+				{ id: 'pipelines', label: 'Pipelines', route: 'pipelines', section: 'settings', order: 21 },
+			],
+		}
+
+		it('splits items into main / footer / settings computeds', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.mainItems.map((i) => i.id)).toEqual(['home'])
+			expect(wrapper.vm.footerItems.map((i) => i.id)).toEqual(['docs', 'roadmap'])
+			expect(wrapper.vm.settingsItems.map((i) => i.id)).toEqual(['forms', 'pipelines'])
+		})
+
+		it('renders footer-section items as native pinned NcAppNavigationItems', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			// Footer items render (bottom-pinned via NC's native `pinned` prop);
+			// the old hand-rolled custom footer-list wrapper is gone.
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-roadmap"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-app-nav__footer-list').exists()).toBe(false)
+		})
+
+		it('mounts the settings foldout with the settings items inside', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			// showSettingsFoldout drives the foldout mount; the settings
+			// entries rendering inside it is the observable proof (the dist
+			// NcAppNavigationSettings component name isn't reliably matchable
+			// via findComponent, so assert on its slot content instead).
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-pipelines"]').exists()).toBe(true)
+		})
+
+		it('auto-prepends a Personal settings entry that invokes cnOpenUserSettings', () => {
+			const openUserSettings = jest.fn()
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home', openUserSettings })
+			const personal = wrapper.find('[data-testid="cn-nav-personal-settings"]')
+			expect(personal.exists()).toBe(true)
+			wrapper.vm.onPersonalSettingsClick()
+			expect(openUserSettings).toHaveBeenCalledTimes(1)
+		})
+
+		it('suppresses Personal settings when nav.includePersonalSettings is false', () => {
+			const m = { ...sectionManifest, nav: { includePersonalSettings: false } }
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			expect(wrapper.vm.includePersonalSettings).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
+			// Foldout still mounts because there are settings items.
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-forms"]').exists()).toBe(true)
+		})
+
+		it('still mounts the foldout (Personal settings only) when there are no settings items', () => {
+			const m = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'Home', route: 'home', order: 1 },
+					{ id: 'docs', label: 'Docs', href: 'https://x', section: 'footer', order: 10 },
+				],
+			}
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			// New semantics: foldout mounts whenever personal settings is on
+			// (default), so every app shows a Settings gear + Personal settings.
+			expect(wrapper.vm.showSettingsFoldout).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-docs"]').exists()).toBe(true)
+		})
+
+		it('fully suppresses the foldout only when no settings items AND includePersonalSettings is false', () => {
+			const m = {
+				version: '1.0.0',
+				nav: { includePersonalSettings: false },
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'Home', route: 'home', order: 1 },
+					{ id: 'docs', label: 'Docs', href: 'https://x', section: 'footer', order: 10 },
+				],
+			}
+			const wrapper = mountNav({ manifest: m, routeName: 'home' })
+			expect(wrapper.vm.showSettingsFoldout).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
+		})
+
+		it('uses nav.settingsLabel override for the foldout label', () => {
+			const m = { ...sectionManifest, nav: { settingsLabel: 'Beheer' } }
+			const wrapper = mountNav({ manifest: m, routeName: 'home', translate: (k) => k })
+			expect(wrapper.vm.settingsFoldoutLabel).toBe('Beheer')
+		})
+
+		it('items with no section still default to main', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.mainItems.every((i) => (i.section ?? 'main') === 'main')).toBe(true)
+		})
+	})
+
+	describe('primary action', () => {
+		const withPrimary = (primaryAction) => ({
+			version: '1.0.0',
+			pages: [],
+			nav: { primaryAction },
+			menu: [{ id: 'a', label: 'app.a', route: 'a', order: 1 }],
+		})
+
+		it('renders an NcAppNavigationNew when nav.primaryAction is declared', () => {
+			const wrapper = mountNav({
+				manifest: withPrimary({ label: 'app.new', icon: 'Plus', route: 'a' }),
+				useProps: true,
+				translate: (k) => k,
+			})
+			const btn = wrapper.find('[data-testid="cn-nav-primary-action"]')
+			expect(btn.exists()).toBe(true)
+			expect(wrapper.vm.primaryAction).toEqual({ label: 'app.new', icon: 'Plus', route: 'a' })
+		})
+
+		it('does not render a primary action when nav.primaryAction is absent', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
+			expect(wrapper.vm.primaryAction).toBeNull()
+		})
+
+		it('the #primary-action slot overrides the manifest field', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' } },
+				slots: { 'primary-action': '<button class="host-primary">Custom</button>' },
+			})
+			expect(wrapper.find('.host-primary').exists()).toBe(true)
+			// The default NcAppNavigationNew fallback is not rendered.
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
+		})
+
+		it('emits primary-action-click and pushes the named route on click', () => {
+			const push = jest.fn()
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
+				mocks: { $route: { name: 'b' }, $router: { push } },
+			})
+			wrapper.vm.onPrimaryActionClick()
+			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
+			expect(push).toHaveBeenCalledWith({ name: 'a' })
+		})
+
+		it('opens an external href in a new tab and does not navigate', () => {
+			const push = jest.fn()
+			const open = jest.spyOn(window, 'open').mockImplementation(() => {})
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ label: 'app.docs', href: 'https://example.test' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' }, $router: { push } },
+			})
+			wrapper.vm.onPrimaryActionClick()
+			expect(open).toHaveBeenCalledWith('https://example.test', '_blank', 'noopener,noreferrer')
+			expect(push).not.toHaveBeenCalled()
+			open.mockRestore()
+		})
+	})
 })

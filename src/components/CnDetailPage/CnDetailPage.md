@@ -224,3 +224,25 @@ export default {
 |---|---|---|
 | `surface` | `'detail-page'` | Rendering surface forwarded to integration widgets (`type === 'integration'`) in the grid layout. Drives the AD-19 surface fallback. |
 | `integrationContext` (`integration-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. Derived from `sidebarProps` + `objectId` when omitted. |
+
+## Built-in Actions menu
+
+The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Refresh / Documentation / Request a feature) after any `#actions` slot content. Refresh and Request-a-feature are on by default.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRefresh` | Boolean | `true` | Show the Refresh item. Emits `@refresh`; default fires the `cn:page:refresh` event-bus channel. |
+| `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Opens CnSuggestFeatureModal with `surface: "detail:<id>"`. |
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |
+| `pageId` | String | `''` | Stable id for the menu surface + `@refresh`/`@request-feature` payloads; falls back to a slugified `title`. |
+| `specRef` | String | `''` | Forwarded to the feature-request modal so the issue links to the spec capability. |
+| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins while true. |
+| `optimisticSpinMs` | Number | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
+| `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
+| `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |
+
+| Slot | Description |
+|------|-------------|
+| `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in trio. |

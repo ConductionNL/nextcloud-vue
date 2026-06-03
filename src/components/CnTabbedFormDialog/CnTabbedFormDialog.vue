@@ -35,26 +35,38 @@
 			<!-- Optional content above tabs (e.g. metadata grid, detail cards) -->
 			<slot name="above-tabs" :loading="loading" />
 
-			<!-- Tabs -->
+			<!-- Tabs — hand-rolled to avoid the bootstrap-vue → bootstrap@4 → jquery
+			     missing-peer chain in consumer SBOM. UX parity with BTabs/BTab:
+			     justified tabs, icon + title, disabled state, content panel below. -->
 			<div class="cn-tabbed-form-dialog__tabs tabContainer">
-				<BTabs
-					v-model="activeTab"
-					content-class="mt-3"
-					justified
-					@input="$emit('update:activeTab', $event)">
-					<BTab
-						v-for="tab in tabs"
+				<ul class="cn-tabbed-form-dialog__tab-nav" role="tablist">
+					<li
+						v-for="(tab, idx) in tabs"
 						:key="tab.id"
-						:disabled="tab.disabled">
-						<template #title>
+						role="presentation"
+						class="cn-tabbed-form-dialog__tab-nav-item">
+						<button
+							type="button"
+							role="tab"
+							:aria-selected="activeTab === idx"
+							:aria-controls="'cn-tab-panel-' + tab.id"
+							:disabled="tab.disabled"
+							:class="['cn-tabbed-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+							@click="onTabClick(idx)">
 							<component :is="tab.icon" v-if="tab.icon" :size="16" />
 							<span>{{ tab.title }}</span>
-						</template>
-						<div class="cn-tabbed-form-dialog__tab-content form-editor">
-							<slot :name="'tab-' + tab.id" :loading="loading" />
-						</div>
-					</BTab>
-				</BTabs>
+						</button>
+					</li>
+				</ul>
+				<div
+					v-for="(tab, idx) in tabs"
+					v-show="activeTab === idx"
+					:id="'cn-tab-panel-' + tab.id"
+					:key="tab.id"
+					role="tabpanel"
+					class="cn-tabbed-form-dialog__tab-content form-editor">
+					<slot :name="'tab-' + tab.id" :loading="loading" />
+				</div>
 			</div>
 
 			<!-- Optional content below tabs (e.g. shared settings across all tabs) -->
@@ -120,7 +132,7 @@ import {
 	NcLoadingIcon,
 	NcNoteCard,
 } from '@nextcloud/vue'
-import { BTab, BTabs } from 'bootstrap-vue'
+
 import Cancel from 'vue-material-design-icons/Cancel.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -133,8 +145,6 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		NcCheckboxRadioSwitch,
-		BTabs,
-		BTab,
 		Cancel,
 		ContentSaveOutline,
 		Plus,
@@ -369,6 +379,18 @@ export default {
 
 	methods: {
 		/**
+		 * Switch to a tab by index, mirroring the BTabs `v-model` + `@input`
+		 * contract so existing parent listeners keep working.
+		 *
+		 * @param {number} idx Tab index to activate.
+		 */
+		onTabClick(idx) {
+			if (this.activeTab === idx) return
+			this.activeTab = idx
+			this.$emit('update:activeTab', idx)
+		},
+
+		/**
 		 * Set the result of the save operation. Call this from the parent
 		 * after the API call completes.
 		 *
@@ -585,5 +607,51 @@ export default {
 :deep(.tab-content) {
 	padding: 16px;
 	background-color: var(--color-main-background);
+}
+
+/* Hand-rolled tab nav — replaces the bootstrap-vue BTabs/BTab pair to
+   eliminate the bootstrap-vue → bootstrap@4 → jquery missing-peer chain
+   in consumer SBOM. Visual parity with the legacy .nav-tabs above. */
+.cn-tabbed-form-dialog__tab-nav {
+	display: flex;
+	gap: 0;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-tabbed-form-dialog__tab-nav-item {
+	flex: 1 1 0;
+}
+
+.cn-tabbed-form-dialog__tab-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: 100%;
+	padding: 10px 14px;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-tabbed-form-dialog__tab-button:hover:not(:disabled) {
+	border-bottom-color: var(--color-border);
+	color: var(--color-main-text);
+}
+
+.cn-tabbed-form-dialog__tab-button.is-active {
+	color: var(--color-main-text);
+	border-bottom-color: var(--color-primary);
+}
+
+.cn-tabbed-form-dialog__tab-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 </style>

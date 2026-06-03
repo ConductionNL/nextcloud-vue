@@ -54,16 +54,45 @@
 			</slot>
 			<div class="cn-detail-page__header-actions">
 				<slot name="actions" />
+				<!-- Built-in overflow Actions menu (Refresh / Documentation /
+				     Request a feature). On by default; opt out per item via
+				     show-refresh / show-request-feature, and supply
+				     documentation-url to surface a docs link. -->
+				<CnActionsMenu
+					:show-refresh="showRefresh"
+					:show-request-feature="showRequestFeature"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel"
+					:refresh-label="refreshLabel"
+					:request-feature-label="requestFeatureLabel"
+					:actions-menu-label="actionsMenuLabel"
+					:refreshing="refreshing"
+					:optimistic-spin-ms="optimisticSpinMs"
+					:widget-id="resolvedPageId"
+					:title="title"
+					:surface="`detail:${resolvedPageId}`"
+					:spec-ref="specRef"
+					refresh-channel="cn:page:refresh"
+					testid-base="cn-detail-page"
+					@refresh="onActionsRefresh"
+					@request-feature="onActionsRequestFeature">
+					<!-- @slot action-items Additional NcActionButton-family
+					     items appended inside the built-in overflow menu,
+					     after Refresh / Documentation / Request a feature. -->
+					<template v-if="hasActionItemsSlot" #action-items>
+						<slot name="action-items" />
+					</template>
+				</CnActionsMenu>
 			</div>
 		</div>
 
-		<!-- Locked-by-other banner. Renders only when an `_lockState`
+		<!-- Locked-by-other banner. Renders only when an `lockState`
 		     was wired by `setup()` AND a remote lock is active.
 		     Suppressed when the lock is held by the current user. -->
 		<CnLockedBanner
-			v-if="_lockState && _lockState.locked.value && !_lockState.lockedByMe.value"
-			:locked-by="_lockState.lockedBy.value"
-			:expires-at="_lockState.expiresAt.value" />
+			v-if="lockState && lockState.locked.value && !lockState.lockedByMe.value"
+			:locked-by="lockState.lockedBy.value"
+			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
 		<div v-if="loading" class="cn-detail-page__loading">
@@ -208,15 +237,11 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
-import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
-import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
-import { gridLayout } from '../../mixins/gridLayout.js'
-import { useObjectStore } from '../../store/index.js'
-import { CnIcon } from '../CnIcon/index.js'
+import { useObjectLock } from '../../composables/useObjectLock.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -304,8 +329,7 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnLockedBanner,
-		CnObjectDataWidget,
-		CnObjectMetadataWidget,
+		CnActionsMenu,
 	},
 
 	mixins: [gridLayout],
@@ -318,6 +342,44 @@ export default {
 		 * in created() and watches for changes. Resets on beforeDestroy().
 		 */
 		cnAiContext: { default: null },
+	},
+
+	setup(props) {
+		// Pluggable integration registry — used to resolve `type:
+		// 'integration'` widgets in the grid layout to their Vue
+		// component (AD-19 surface fallback). Always wired; cheap when
+		// no integration widgets are configured.
+		const { resolveWidget } = useIntegrationRegistry()
+		const registryExposed = { resolveRegistryWidget: resolveWidget }
+
+		// Auto-subscribe + reactive lock state for the current object.
+		// Both are no-ops when objectStore is null (no Pinia active),
+		// when subscribe is false (read-only / archive views), or when
+		// objectType / objectId aren't yet known. Using composables in
+		// setup() keeps the lifecycle bound to the component scope —
+		// `tryOnScopeDispose` releases the subscription on unmount.
+		if (!props.objectStore || !props.subscribe) {
+			return { ...registryExposed, lockState: null }
+		}
+		const subscription = useObjectSubscription(
+			props.objectStore,
+			() => props.objectType,
+			() => props.objectId,
+			{ enabled: () => Boolean(props.objectType && props.objectId) },
+		)
+		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || ''
+		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || ''
+		const lock = useObjectLock(
+			props.objectStore,
+			() => sidebarReg,
+			() => props.objectType || sidebarSchema,
+			() => props.objectId,
+		)
+		return {
+			...registryExposed,
+			subscriptionStatus: subscription.status,
+			lockState: lock,
+		}
 	},
 
 	props: {
@@ -415,13 +477,11 @@ export default {
 			type: String,
 			default: '',
 		},
-
-		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle) */
+		/** Additional sidebar configuration (register, schema, hiddenTabs, title, subtitle, useRegistry, excludeIntegrations) */
 		sidebarProps: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Rendering surface forwarded to integration widgets in the
 		 * grid layout (widget defs with `type === 'integration'`).
@@ -435,7 +495,6 @@ export default {
 			default: 'detail-page',
 			validator: (value) => INTEGRATION_SURFACES.includes(value),
 		},
-
 		/**
 		 * Object context forwarded to integration widgets:
 		 * `{ register, schema, objectId }`. When omitted it is derived
@@ -449,7 +508,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/** Whether the page is in an error state */
 		error: {
 			type: Boolean,
@@ -519,7 +577,6 @@ export default {
 			type: String,
 			default: '1200px',
 		},
-
 		/**
 		 * Whether to auto-subscribe to live updates for this object.
 		 * Defaults to true. When `useObjectStore` and `objectType` +
@@ -534,7 +591,6 @@ export default {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Optional explicit Pinia store instance to subscribe / lock
 		 * against. When omitted, the page resolves `useObjectStore()`
@@ -547,93 +603,86 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
-		 * OpenRegister register slug. Pair with `schema` to opt into the
-		 * schema-driven mode: the page fuses the two into an internal
-		 * `${register}-${schema}` object-type slug, registers it on the
-		 * store, fetches the object identified by `objectId`, and auto-
-		 * renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when no
-		 * default-slot content is supplied. Compatible with the existing
-		 * `objectType` prop — `objectType` wins on collision, so legacy
-		 * direct mounts are unaffected.
+		 * Show the built-in Refresh item in the header's overflow Actions
+		 * menu. On by default. The default handler emits `@refresh` and,
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 *
+		 * @type {boolean}
+		 */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the built-in Request-a-feature item in the header's overflow
+		 * Actions menu. On by default; opens the CnSuggestFeatureModal when
+		 * mounted under CnAppRoot (warns and skips otherwise).
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Documentation link for this page. When a non-empty URL is set,
+		 * the overflow menu renders a "Documentation" item that opens the
+		 * link in a new tab. Empty (the default) hides the item.
 		 *
 		 * @type {string}
 		 */
-		register: {
+		documentationUrl: {
 			type: String,
 			default: '',
 		},
-
+		/** Pre-translated label for the Documentation action. Defaults to "Documentation". */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
+		},
 		/**
-		 * OpenRegister schema slug. See `register` for the schema-driven
-		 * contract.
+		 * Stable id for this page, used in the `@refresh` /
+		 * `@request-feature` payloads and the `surface: "detail:<id>"`
+		 * field on the feature-request modal. Falls back to a slugified
+		 * `title` when unset.
 		 *
 		 * @type {string}
 		 */
-		schema: {
+		pageId: {
 			type: String,
 			default: '',
 		},
-
-		/**
-		 * Tab definitions forwarded to the host App's `CnObjectSidebar`
-		 * via the injected `objectSidebarState`. Each entry follows the
-		 * `CnObjectSidebar` tab shape (see that component for the exact
-		 * fields). When empty (default) the sidebar falls back to its
-		 * own default tab set. The actual `<CnObjectSidebar>` is rendered
-		 * at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar
-		 * pattern); this page only publishes the tabs.
-		 *
-		 * @type {Array<object>}
-		 */
-		sidebarTabs: {
-			type: Array,
-			default: () => [],
+		/** Optional `specRef` forwarded to the feature-request modal. */
+		specRef: {
+			type: String,
+			default: '',
 		},
-	},
-
-	setup(props) {
-		// Pluggable integration registry — used to resolve `type:
-		// 'integration'` widgets in the grid layout to their Vue
-		// component (AD-19 surface fallback). Always wired; cheap when
-		// no integration widgets are configured.
-		const { resolveWidget } = useIntegrationRegistry()
-		const registryExposed = { resolveRegistryWidget: resolveWidget }
-
-		// Auto-subscribe + reactive lock state for the current object.
-		// Both are no-ops when objectStore is null (no Pinia active),
-		// when subscribe is false (read-only / archive views), or when
-		// objectType / objectId aren't yet known. Using composables in
-		// setup() keeps the lifecycle bound to the component scope —
-		// `tryOnScopeDispose` releases the subscription on unmount.
-		if (!props.objectStore || !props.subscribe) {
-			return { ...registryExposed, _lockState: null }
-		}
-		// Resolve the effective object-type slug the same way `computed.resolvedObjectType`
-		// does — the explicit `objectType` prop wins, else fuse `register` + `schema`.
-		// The composables take getter functions so the resolution stays reactive when
-		// `register` / `schema` / `objectType` change at runtime.
-		const resolveType = () => props.objectType || (props.register && props.schema ? `${props.register}-${props.schema}` : '')
-		const subscription = useObjectSubscription(
-			props.objectStore,
-			resolveType,
-			() => props.objectId,
-			{ enabled: () => Boolean(resolveType() && props.objectId) },
-		)
-		const sidebarReg = props.sidebarProps?.register || props.resolvedSidebar?.register || props.register || ''
-		const sidebarSchema = props.sidebarProps?.schema || props.resolvedSidebar?.schema || props.schema || ''
-		const lock = useObjectLock(
-			props.objectStore,
-			() => sidebarReg,
-			() => resolveType() || sidebarSchema,
-			() => props.objectId,
-		)
-		return {
-			...registryExposed,
-			_subscriptionStatus: subscription.status,
-			_lockState: lock,
-		}
+		/** Whether a refresh is in flight (drives the Refresh icon spin). */
+		refreshing: {
+			type: Boolean,
+			default: false,
+		},
+		/** Optimistic Refresh-icon spin duration (ms) when `refreshing` is unbound. */
+		optimisticSpinMs: {
+			type: Number,
+			default: 800,
+		},
+		/** Pre-translated label for the Refresh action. */
+		refreshLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Refresh'),
+		},
+		/** Pre-translated label for the Request-a-feature action. */
+		requestFeatureLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Request a feature'),
+		},
+		/** Pre-translated aria-label / tooltip for the overflow menu trigger. */
+		actionsMenuLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Actions'),
+		},
 	},
 
 	computed: {
@@ -805,6 +854,28 @@ export default {
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
+		/**
+		 * Stable id for the built-in Actions menu. Prefers the explicit
+		 * `pageId` prop; falls back to a slugified `title`, then `'detail'`
+		 * so the surface string and payloads are never empty.
+		 *
+		 * @return {string}
+		 */
+		resolvedPageId() {
+			if (this.pageId) return this.pageId
+			const slug = (this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+			return slug || 'detail'
+		},
+		/**
+		 * Whether the caller supplied an `action-items` slot — forwarded
+		 * conditionally so the shared CnActionsMenu doesn't treat an
+		 * always-present pass-through template as content.
+		 *
+		 * @return {boolean}
+		 */
+		hasActionItemsSlot() {
+			return Boolean(this.$slots['action-items']) || Boolean(this.$scopedSlots && this.$scopedSlots['action-items'])
+		},
 	},
 
 	watch: {
@@ -816,33 +887,10 @@ export default {
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
-		// Schema-driven props feed both the sidebar state (via
-		// resolvedObjectType) and the auto-fetch path. Re-sync + re-fetch
-		// whenever any of the three move so the page stays consistent if
-		// a parent component swaps the active object.
-		register() {
-			this.syncSidebarState()
-			this.pushAiContext()
-			this.fetchObjectIfNeeded()
-		},
-
-		schema() {
-			this.syncSidebarState()
-			this.pushAiContext()
-			this.fetchObjectIfNeeded()
-		},
-
 		objectId() {
 			this.syncSidebarState()
 			this.pushAiContext()
-			this.fetchObjectIfNeeded()
 		},
-
-		sidebarTabs: {
-			deep: true,
-			handler() { this.syncSidebarState() },
-		},
-
 		sidebarProps: {
 			deep: true,
 			handler() { this.syncSidebarState() },
@@ -851,13 +899,6 @@ export default {
 
 	created() {
 		this.pushAiContext()
-	},
-
-	mounted() {
-		// Kick the schema-driven fetch once the component has mounted —
-		// `effectiveObjectStore` relies on a live Pinia context, which
-		// is guaranteed by mounted() but not by created().
-		this.fetchObjectIfNeeded()
 	},
 
 	beforeDestroy() {
@@ -874,53 +915,55 @@ export default {
 			this.cnAiContext.registerSlug = undefined
 			this.cnAiContext.schemaSlug = undefined
 		}
+		// Reset AI context fields so stale detail context doesn't leak
+		if (this.cnAiContext) {
+			this.cnAiContext.pageKind = 'custom'
+			this.cnAiContext.objectUuid = undefined
+			this.cnAiContext.registerSlug = undefined
+			this.cnAiContext.schemaSlug = undefined
+		}
 	},
 
 	methods: {
 		/**
-		 * Schema-driven fetch entry point — no-op outside the
-		 * `register`+`schema`+`objectId` mode. Registers the type on
-		 * the store with the canonical 4-arg signature (matches what
-		 * `CnIndexPage` does), then fetches the object and its schema
-		 * in parallel. Errors land on `this._fetchError` (exposed via
-		 * the `error` template gate); the loading flag is intentionally
-		 * left to the store's own per-type `loading[type]` so it
-		 * cooperates with parallel fetches from sibling components.
+		 * Re-emit the shared CnActionsMenu `@refresh` to the host, passing
+		 * the synthetic event through so a host listener can
+		 * `preventDefault()` the built-in default (event-bus emit on
+		 * `cn:page:refresh`).
 		 *
-		 * Called from `mounted()` and from the `register` / `schema` /
-		 * `objectId` watchers — every prop change re-runs in one
-		 * place so the request lifecycle stays predictable.
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
 		 */
-		async fetchObjectIfNeeded() {
-			if (!this.hasSchemaDrivenFetch) return
-			const store = this.effectiveObjectStore
-			if (!store) return
-			const type = this.resolvedObjectType
-			// (slug, schemaId, registerId, slugs) — same shape as the
-			// CnIndexPage / CnLogsPage fix. Passing the slug strings into
-			// the positional id slots is intentional (OR's REST accepts
-			// either numeric ids or kebab slugs there), and the 4th-arg
-			// hints feed the live-updates transport.
-			if (typeof store.registerObjectType === 'function') {
-				store.registerObjectType(
-					type,
-					this.schema,
-					this.register,
-					{ registerSlug: this.register, schemaSlug: this.schema },
-				)
-			}
-			try {
-				const tasks = []
-				if (typeof store.fetchObject === 'function') {
-					tasks.push(store.fetchObject(type, this.objectId))
-				}
-				if (typeof store.fetchSchema === 'function') {
-					tasks.push(store.fetchSchema(type))
-				}
-				await Promise.all(tasks)
-			} catch (err) {
-				console.error('[CnDetailPage] schema-driven fetch failed:', err)
-			}
+		onActionsRefresh(payload, ev) {
+			/**
+			 * @event refresh User clicked the Refresh item in the header's
+			 * overflow Actions menu. Payload: `{ widgetId, title }`.
+			 * Handlers may call the second arg's `preventDefault()` to
+			 * suppress the built-in default (event-bus emit on
+			 * `cn:page:refresh`).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('refresh', payload, ev)
+		},
+
+		/**
+		 * Re-emit the shared CnActionsMenu `@request-feature` to the host.
+		 *
+		 * @param {{ widgetId: string, title: string }} payload Action payload.
+		 * @param {{ defaultPrevented: boolean, preventDefault: Function }} ev Synthetic event.
+		 * @return {void}
+		 */
+		onActionsRequestFeature(payload, ev) {
+			/**
+			 * @event request-feature User clicked the Request a feature
+			 * item in the header's overflow Actions menu. Payload:
+			 * `{ widgetId, title }`. Handlers may call the second arg's
+			 * `preventDefault()` to suppress the built-in default
+			 * (auto-opening CnSuggestFeatureModal).
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('request-feature', payload, ev)
 		},
 
 		/**
@@ -965,8 +1008,8 @@ export default {
 			const def = this.findWidget(item)
 			const resolved = this.resolvedSidebar || {}
 			const derivedContext = {
-				register: resolved.register || this.sidebarProps?.register || this.register || '',
-				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				register: resolved.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.objectType || this.sidebarProps?.schema || '',
 				objectId: this.objectId ? String(this.objectId) : '',
 			}
 			return {
@@ -986,8 +1029,8 @@ export default {
 			const resolved = this.resolvedSidebar || {}
 			this.cnAiContext.pageKind = 'detail'
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
-			this.cnAiContext.registerSlug = resolved.register || this.register || this.sidebarProps?.register || undefined
-			this.cnAiContext.schemaSlug = resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || undefined
+			this.cnAiContext.registerSlug = resolved.register || this.sidebarProps?.register || undefined
+			this.cnAiContext.schemaSlug = resolved.schema || this.objectType || this.sidebarProps?.schema || undefined
 		},
 
 		/**
@@ -1019,18 +1062,21 @@ export default {
 				this.objectSidebarState.schema = merged.schema || this.schema || ''
 				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
-				// app's mounted CnObjectSidebar via inject). When the
-				// top-level `sidebarTabs` prop is non-empty it provides
-				// the tabs (manifest pattern); otherwise the merged
-				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
-				// Falls back to `undefined` so the host's CnObjectSidebar
-				// renders its built-in tab set.
-				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
-					? this.sidebarTabs
-					: merged.tabs
+				// app's mounted CnObjectSidebar via inject). Undefined when
+				// not set so the consumer's CnObjectSidebar falls back to
+				// the built-in tab set.
+				this.objectSidebarState.tabs = merged.tabs
+				// Pluggable-integration-registry (ADR-019) — host
+				// CnObjectSidebar reads useRegistry to flip into registry
+				// mode; excludeIntegrations filters specific provider ids
+				// out without disabling registry mode entirely.
+				this.objectSidebarState.useRegistry = merged.useRegistry === true
+				this.objectSidebarState.excludeIntegrations = merged.excludeIntegrations || []
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined
+				this.objectSidebarState.useRegistry = false
+				this.objectSidebarState.excludeIntegrations = []
 			}
 		},
 
@@ -1054,9 +1100,17 @@ export default {
 				schema: objectForm?.schema ?? props.schema,
 				hiddenTabs: objectForm?.hiddenTabs ?? props.hiddenTabs,
 				tabs: objectForm?.tabs ?? props.tabs,
+				// Pluggable-integration-registry forwarding (ADR-019):
+				// CnObjectSidebar reads these from objectSidebarState to
+				// flip into registry mode and filter the surfaced
+				// providers. Without them the sidebar falls back to the
+				// legacy hardcoded built-in tabs and `useRegistry: true`
+				// on the manifest is silently ignored.
+				useRegistry: objectForm?.useRegistry ?? props.useRegistry,
+				excludeIntegrations: objectForm?.excludeIntegrations ?? props.excludeIntegrations,
 			}
 			if (objectForm && !this.__sidebarConflictWarned) {
-				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs']
+				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs', 'useRegistry', 'excludeIntegrations']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
 					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)

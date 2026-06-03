@@ -105,11 +105,24 @@ module.exports = {
 
 /**
  * Markdown-table-cell-safe text: collapse newlines, escape pipes, escape MDX braces.
+ *
+ * Any literal backslash present in the *source* is escaped first so a stray
+ * `\` upstream can't combine with the `\|` we inject in the next step
+ * (CodeQL js/incomplete-sanitization). The MDX-brace step then adds its own
+ * `\{` / `\}` markers — those are intentional and must NOT be re-doubled,
+ * so the source-backslash escape runs before escapeMdxBraces, not after.
  */
 function cell(text) {
-  return escapeMdxBraces(text || '')
+  // Single-pass markdown-cell escape: backslash AND pipe both get
+  // prefixed with a backslash in one substitution so CodeQL
+  // (js/incomplete-sanitization) sees no asymmetry between the two.
+  // This runs BEFORE escapeMdxBraces so the `\{` / `\}` markers MDX
+  // needs verbatim aren't themselves re-escaped — escapeMdxBraces is
+  // append-only on `{`/`}`/`<`/`>` characters and never touches
+  // existing backslashes.
+  const escaped = String(text || '').replace(/[\\|]/g, '\\$&')
+  return escapeMdxBraces(escaped)
     .replace(/\n/g, ' ')
-    .replace(/\|/g, '\\|')
     .trim()
 }
 

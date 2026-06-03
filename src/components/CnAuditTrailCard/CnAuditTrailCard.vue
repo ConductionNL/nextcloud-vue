@@ -31,7 +31,7 @@
 			</li>
 		</ul>
 		<template v-if="entries.length > maxDisplay" #footer>
-			<button class="cn-audit-card__show-all" @click="emitShowAll">
+			<button class="cn-audit-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ entries.length }})
 			</button>
 		</template>
@@ -57,10 +57,6 @@ import { buildHeaders } from '../../utils/index.js'
  *   :object-id="objectId"
  *   surface="detail-page" />
  * ```
- *
- * @event {void} show-all — User clicked the "show all" footer button.
- *   Emitted with no payload; parent components typically open the host
- *   app's full audit-trail view in response.
  */
 export default {
 	name: 'CnAuditTrailCard',
@@ -80,7 +76,6 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
-
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -111,7 +106,6 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Audit trail')
 		},
-
 		displayedEntries() {
 			return this.entries.slice(0, this.maxDisplay)
 		},
@@ -120,30 +114,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) {
-				if (id) {
-					this.fetchEntries()
-				}
-			},
+			handler(id) { if (id) { this.fetchEntries() } },
 		},
 	},
 
 	methods: {
-		/**
-		 * Bubble the footer button's click up so parents can open the
-		 * host app's full audit-trail view.
-		 */
-		emitShowAll() {
-			/**
-			 * User clicked the "show all" footer button — emitted with
-			 * no payload. Parents typically open the host app's full
-			 * audit-trail view in response.
-			 *
-			 * @event show-all
-			 */
-			this.$emit('show-all')
-		},
-
 		async fetchEntries() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -162,6 +137,7 @@ export default {
 					this.entries = []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('[CnAuditTrailCard] failed to fetch audit trail', err)
 				this.entries = []
 			} finally {

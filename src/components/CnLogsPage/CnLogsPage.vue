@@ -330,16 +330,8 @@ export default {
 				this.error = null
 				try {
 					if (typeof this.objectStore.registerObjectType === 'function') {
-						// (slug, schemaId, registerId, slugs) — slugs go into the id
-						// slots because OR's REST accepts kebab slugs there, and into
-						// the 4th-arg slug hints for live-updates. Passing
-						// `{register, schema}` as the second arg breaks fetch URLs.
-						this.objectStore.registerObjectType(
-							this.objectType,
-							this.schema,
-							this.register,
-							{ registerSlug: this.register, schemaSlug: this.schema },
-						)
+						// Positional signature: (slug, schemaId, registerId, slugs?).
+						this.objectStore.registerObjectType(this.objectType, this.schema, this.register)
 					}
 					if (typeof this.objectStore.fetchCollection === 'function') {
 						await this.objectStore.fetchCollection(this.objectType)

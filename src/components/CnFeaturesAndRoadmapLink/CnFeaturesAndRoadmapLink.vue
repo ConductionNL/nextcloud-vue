@@ -49,7 +49,6 @@ export default {
 			type: String,
 			default: 'features-roadmap',
 		},
-
 		/**
 		 * When true the component renders nothing — the admin opt-out path
 		 * driven by `openregister::features_roadmap_enabled` IAppConfig.
@@ -58,7 +57,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Override the menu label. Defaults to the localized
 		 * "Features & roadmap" string from the `nextcloud-vue` catalog.

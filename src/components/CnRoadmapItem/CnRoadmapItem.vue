@@ -1,15 +1,25 @@
 <template>
 	<article class="cn-roadmap-item">
 		<header class="cn-roadmap-item__header">
-			<NcAvatar
-				v-if="item.user && item.user.login"
-				:user="item.user.login"
-				:url="item.user.avatar_url"
-				:size="24"
+			<!-- Plain <img> rather than <NcAvatar>: the GitHub login is not a
+			     Nextcloud user, and NcAvatar's resolution path triggers a
+			     `/avatar/<user>` lookup that returns 404 + initials instead
+			     of using the GitHub-hosted `avatar_url`. CSP `img-src *`
+			     allows external images on this surface. -->
+			<!-- Eager-load: `loading="lazy"` deferred the fetch indefinitely for
+			     cards below the fold, leaving the avatar as a broken-image
+			     glyph. These are 24px images so eager is cheap. -->
+			<img
+				v-if="item.user && item.user.avatar_url"
+				:src="item.user.avatar_url"
+				:alt="item.user.login || ''"
+				width="24"
+				height="24"
+				referrerpolicy="no-referrer"
 				class="cn-roadmap-item__avatar" />
 			<div class="cn-roadmap-item__meta">
 				<a
-					:href="safeHref(item.html_url)"
+					:href="item.html_url"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="cn-roadmap-item__title-link">
@@ -27,10 +37,10 @@
 			</div>
 		</header>
 
-		<!-- Sanitized markdown body — DOMPurify-cleaned HTML from cnRenderMarkdown.
-		     v-html is intentional here AND safe: cnRenderMarkdown runs marked then
-		     sanitises with SAFE_MARKDOWN_DOMPURIFY_CONFIG (strips <script>, on*
-		     attrs, javascript: URLs, <iframe>, <style>). Never bind raw item.body. -->
+		<!-- Sanitized markdown body — DOMPurify-cleaned HTML from marked.
+		     v-html is intentional here AND safe: the value flows through
+		     SAFE_MARKDOWN_DOMPURIFY_CONFIG which strips <script>, on* attrs,
+		     javascript: URLs, <iframe>, <style>. Never bind raw item.body. -->
 		<div
 			v-if="sanitizedBody !== ''"
 			class="cn-roadmap-item__body"
@@ -49,7 +59,6 @@
 </template>
 
 <script>
-import { NcAvatar } from '@nextcloud/vue'
 /**
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
@@ -65,15 +74,17 @@ import { NcAvatar } from '@nextcloud/vue'
  *
  * Spec: features-roadmap-component — Requirement "RoadmapItem".
  */
+import DOMPurify from 'dompurify'
 import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
+
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnRoadmapItem',
 
-	components: { NcAvatar, ThumbUpOutline },
+	components: { ThumbUpOutline },
 
 	props: {
 		/**
@@ -81,8 +92,7 @@ export default {
 		 * Shape: {number, title, body, html_url, user.{login, avatar_url},
 		 *        reactions.{total_count, +1}, created_at, updated_at,
 		 *        labels[].{name, color}}.
-		 *
-		 * @type {object}
+		 * @type {Object}
 		 */
 		item: {
 			type: Object,
@@ -92,9 +102,8 @@ export default {
 
 	computed: {
 		sanitizedBody() {
-			// cnRenderMarkdown already sanitises via DOMPurify internally —
-			// no second pass needed (L1: double-sanitisation removed).
-			return cnRenderMarkdown(this.item.body || '')
+			const html = cnRenderMarkdown(this.item.body || '')
+			return DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
 		},
 
 		thumbsUpCount() {
@@ -103,7 +112,9 @@ export default {
 
 		visibleLabels() {
 			const labels = Array.isArray(this.item.labels) ? this.item.labels : []
-			return labels.filter((label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name)))
+			return labels.filter(
+				(label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name))
+			)
 		},
 
 		relativeCreatedAt() {
@@ -121,8 +132,6 @@ export default {
 	},
 
 	methods: {
-		safeHref,
-
 		chipStyle(label) {
 			if (!label.color) {
 				return {}
@@ -132,7 +141,6 @@ export default {
 				color: this.contrastTextColor(label.color),
 			}
 		},
-
 		contrastTextColor(hexColor) {
 			// Simple luminance check — dark text on bright bg, white on dark.
 			const r = parseInt(hexColor.slice(0, 2), 16)
@@ -147,8 +155,28 @@ export default {
 
 <style scoped>
 .cn-roadmap-item {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
+	/* Position anchor for the ::after overlay that expands the title link's
+	   click area to the whole card. Inner anchors stay above the overlay
+	   via z-index: 2 so the body's inline links still work. */
+	position: relative;
+}
+
+.cn-roadmap-item__title-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	border-radius: inherit;
+}
+
+.cn-roadmap-item__body :deep(a),
+.cn-roadmap-item__labels {
+	position: relative;
+	z-index: 2;
 }
 
 .cn-roadmap-item__header {
@@ -156,6 +184,15 @@ export default {
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 8px;
+}
+
+.cn-roadmap-item__avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	object-fit: cover;
+	background: var(--color-background-darker);
 }
 
 .cn-roadmap-item__meta {
@@ -194,9 +231,23 @@ export default {
 	color: var(--color-main-text);
 	font-size: 0.95em;
 	line-height: 1.4;
+	/* Cap the rendered markdown so cards stay roughly feature-card-sized.
+	   Full body is reachable via the title link to the GitHub issue. */
+	max-height: 8.4em;
+	overflow: hidden;
+	position: relative;
+	mask-image: linear-gradient(to bottom, black 70%, transparent);
+	-webkit-mask-image: linear-gradient(to bottom, black 70%, transparent);
 }
 
 .cn-roadmap-item__body :deep(p) { margin: 4px 0; }
+.cn-roadmap-item__body :deep(h1),
+.cn-roadmap-item__body :deep(h2),
+.cn-roadmap-item__body :deep(h3) {
+	font-size: 1em;
+	margin: 4px 0;
+	font-weight: 600;
+}
 .cn-roadmap-item__body :deep(pre) { background: var(--color-background-hover); padding: 8px; border-radius: 4px; overflow-x: auto; }
 .cn-roadmap-item__body :deep(code) { background: var(--color-background-hover); padding: 2px 4px; border-radius: 3px; }
 

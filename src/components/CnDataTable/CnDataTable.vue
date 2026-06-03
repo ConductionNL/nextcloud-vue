@@ -115,8 +115,10 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { generateUrl } from '@nextcloud/router'
-import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import axios from '@nextcloud/axios'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
@@ -175,12 +177,10 @@ export default {
 		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
-		 *
-		 * Each entry may be a full column object or a bare string key
-		 * (shorthand, e.g. `['name', 'type']`); string keys are normalised
-		 * to column objects, enriched from `schema` when one is provided.
-		 *
-		 * @type {Array<string|{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}>}
+		 * Each entry may be a full column object OR a bare string key; bare strings
+		 * are normalised to `{ key, label }` by `effectiveColumns` so manifest-driven
+		 * pages that pass `config.columns` as a string array work without extra mapping.
+		 * @type {Array<{key: string, label: string, sortable: boolean, width: string, class: string, cellClass: string}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -318,24 +318,14 @@ export default {
 		 * without a `key`.
 		 */
 		effectiveColumns() {
-			if (this.schema && this.columns.length === 0) {
-				return columnsFromSchema(this.schema, {
+			const cols = (this.schema && this.columns.length === 0)
+				? columnsFromSchema(this.schema, {
 					exclude: this.excludeColumns,
 					include: this.includeColumns,
 					overrides: this.columnOverrides,
 				})
-			}
-			if (!this.columns.some((c) => typeof c === 'string')) {
-				return this.columns
-			}
-			const schemaCols = this.schema
-				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
-				: []
-			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
-			return this.columns.map((c) => {
-				if (typeof c !== 'string') return c
-				return byKey.get(c) || { key: c, label: c, sortable: true }
-			})
+				: this.columns
+			return (cols || []).map((c) => (typeof c === 'string' ? { key: c, label: c } : c))
 		},
 
 		totalColumns() {
@@ -359,7 +349,6 @@ export default {
 		rows: {
 			handler() { this.loadAggregates() },
 		},
-
 		effectiveColumns: {
 			handler() { this.loadAggregates() },
 			deep: false,
@@ -379,7 +368,12 @@ export default {
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
-			if (typeof key !== 'string') {
+			// Guard against columns reaching cellValue without a `.key`
+			// (e.g. action / checkbox / row-selector columns, or a
+			// malformed column definition). Without this guard,
+			// `key.includes('.')` throws TypeError and breaks every
+			// row render in the table.
+			if (key === undefined || key === null) {
 				return undefined
 			}
 			if (key.includes('.')) {
@@ -471,17 +465,20 @@ export default {
 					const agg = col.aggregate
 					if (!agg.register || !agg.schema) continue
 					const where = this.resolveAggregateWhere(agg.where, row)
-					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
-						params: { ...where, _limit: 0 },
-					})
-						.then((res) => {
-							const d = res && res.data
-							next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+					jobs.push(
+						axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
+							params: { ...where, _limit: 0 },
 						})
-						.catch((e) => {
-							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-							next[rowKey][col.key] = undefined
-						}))
+							.then((res) => {
+								const d = res && res.data
+								next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+							})
+							.catch((e) => {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
+								next[rowKey][col.key] = undefined
+							}),
+					)
 				}
 			}
 			await Promise.all(jobs)

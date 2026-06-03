@@ -560,4 +560,128 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 		expect(wrapper.findAll('nctextfield-stub, [name]').length).toBeGreaterThanOrEqual(0)
 		wrapper.destroy()
 	})
+
+	// === Conditional field visibility (#327) ===
+
+	describe('condition / visibleWhen', () => {
+		const conditionFields = [
+			{ key: 'jobClass', widget: 'select', label: 'Job class', enum: ['SyncAction', 'PingAction'] },
+			{
+				key: 'arguments',
+				widget: 'json',
+				label: 'Arguments',
+				condition: { field: 'jobClass', equals: 'SyncAction' },
+			},
+			{
+				key: 'syncId',
+				widget: 'text',
+				label: 'Sync',
+				required: true,
+				condition: { field: 'jobClass', equals: 'SyncAction' },
+			},
+		]
+
+		it('hides a field whose equals predicate does not match', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass'])
+		})
+
+		it('shows a field whose equals predicate matches', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'SyncAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['jobClass', 'arguments', 'syncId'])
+		})
+
+		it('clears form-data for fields that transition visible → hidden', async () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'SyncAction', arguments: { a: 1 }, syncId: 'sync-1' } },
+				stubs,
+			})
+			expect(wrapper.vm.formData.arguments).toEqual({ a: 1 })
+			wrapper.vm.updateField('jobClass', 'PingAction')
+			await wrapper.vm.$nextTick()
+			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'arguments')).toBe(false)
+			expect(Object.prototype.hasOwnProperty.call(wrapper.vm.formData, 'syncId')).toBe(false)
+		})
+
+		it('skips hidden required fields in requiredFieldsFilled', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			// syncId is required + hidden → still considered filled
+			expect(wrapper.vm.requiredFieldsFilled).toBe(true)
+		})
+
+		it('skips hidden fields in validate()', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: { fields: conditionFields, item: { jobClass: 'PingAction' } },
+				stubs,
+			})
+			expect(wrapper.vm.validate()).toBe(true)
+			expect(wrapper.vm.errors.syncId).toBeUndefined()
+		})
+
+		it('supports notEquals predicate', () => {
+			const fields = [
+				{ key: 'mode', widget: 'select', enum: ['a', 'b'] },
+				{ key: 'note', widget: 'text', condition: { field: 'mode', notEquals: 'a' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'a' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode'])
+			wrapper.vm.updateField('mode', 'b')
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+		})
+
+		it('supports in / notIn predicates', () => {
+			const fields = [
+				{ key: 'role', widget: 'select', enum: ['admin', 'editor', 'viewer'] },
+				{ key: 'adminOpts', widget: 'text', condition: { field: 'role', in: ['admin', 'editor'] } },
+				{ key: 'guestOpts', widget: 'text', condition: { field: 'role', notIn: ['admin'] } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { role: 'admin' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'adminOpts'])
+			wrapper.vm.updateField('role', 'viewer')
+			// adminOpts hides (viewer ∉ [admin, editor]) and guestOpts shows (viewer ∉ [admin])
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['role', 'guestOpts'])
+		})
+
+		it('supports truthy / falsy predicates', () => {
+			const fields = [
+				{ key: 'optIn', widget: 'checkbox' },
+				{ key: 'reason', widget: 'text', condition: { field: 'optIn', truthy: true } },
+				{ key: 'altReason', widget: 'text', condition: { field: 'optIn', falsy: true } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { optIn: false } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'altReason'])
+			wrapper.vm.updateField('optIn', true)
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['optIn', 'reason'])
+		})
+
+		it('accepts the visibleWhen alias', () => {
+			const fields = [
+				{ key: 'mode', widget: 'select', enum: ['a', 'b'] },
+				{ key: 'note', widget: 'text', visibleWhen: { field: 'mode', equals: 'b' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'b' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+		})
+
+		it('keeps the field visible (and warns) when condition has no recognised predicate', () => {
+			const spy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const fields = [
+				{ key: 'mode', widget: 'text' },
+				{ key: 'note', widget: 'text', condition: { field: 'mode' } },
+			]
+			const wrapper = mount(CnFormDialog, { propsData: { fields, item: { mode: 'x' } }, stubs })
+			expect(wrapper.vm.visibleFields.map(f => f.key)).toEqual(['mode', 'note'])
+			expect(spy).toHaveBeenCalled()
+			spy.mockRestore()
+		})
+	})
 })

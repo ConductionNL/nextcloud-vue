@@ -53,12 +53,23 @@ jobs:
       - name: Install and build component styleguide
         timeout-minutes: 10
         run: |
+          # Generate the gitignored Ajv-compiled validator that the
+          # component sources import (src/utils/validateManifestV2.compiled.js).
+          # The styleguide build resolves it as a file on disk, so it must
+          # exist before the sub-build runs. build:validators needs root deps.
+          npm ci --legacy-peer-deps
+          npm run build:validators
           cd styleguide
           npm ci --legacy-peer-deps
           npm run build
 
       - name: Clear build cache and install dependencies
-        timeout-minutes: 3
+        # 10m: covers `npm ci --legacy-peer-deps` (~1m) + `docusaurus build`
+        # for both en + nl locales (~6m together with cache cleared) +
+        # headroom. The previous 3m budget left no slack and started
+        # timing out as soon as the docusaurus dep tree grew, even when
+        # the build itself succeeded.
+        timeout-minutes: 10
         run: |
           cd docusaurus
           rm -rf node_modules/.cache

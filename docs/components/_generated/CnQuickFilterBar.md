@@ -9,6 +9,6 @@
 
 ### Events
 
-| Name                  | Payload | Description                                                                                                                                       |
-| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `update:active-index` | —       | Fired when the user clicks a different tab. Drives `v-model:active-index` on the parent; payload is the zero-based index of the newly active tab. |
+| Name                  | Payload | Description |
+| --------------------- | ------- | ----------- |
+| `update:active-index` | —       |             |

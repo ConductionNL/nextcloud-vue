@@ -11,8 +11,7 @@
 			type="button"
 			role="tab"
 			:aria-selected="i === activeIndex ? 'true' : 'false'"
-			class="cn-quick-filter-bar__tab"
-			:class="[{ 'cn-quick-filter-bar__tab--active': i === activeIndex }]"
+			:class="['cn-quick-filter-bar__tab', { 'cn-quick-filter-bar__tab--active': i === activeIndex }]"
 			@click="onClick(i)">
 			<CnIcon
 				v-if="tab.icon"
@@ -60,7 +59,6 @@ export default {
 			required: true,
 			validator: (arr) => Array.isArray(arr) && arr.every((t) => t && typeof t.label === 'string'),
 		},
-
 		/** Index of the currently active tab, or `null` for none active. */
 		activeIndex: {
 			type: Number,
@@ -77,14 +75,6 @@ export default {
 		 */
 		onClick(i) {
 			if (i === this.activeIndex) return
-			/**
-			 * Fired when the user clicks a different tab. Drives
-			 * `v-model:active-index` on the parent; payload is the
-			 * zero-based index of the newly active tab.
-			 *
-			 * @event update:active-index
-			 * @type {number}
-			 */
 			this.$emit('update:active-index', i)
 		},
 	},

@@ -25,8 +25,8 @@
 				class="cn-files-card__row">
 				<FileOutline :size="18" class="cn-files-card__icon" />
 				<a
-					v-if="file.url && safeHref(file.url) !== '#'"
-					:href="safeHref(file.url)"
+					v-if="file.url"
+					:href="file.url"
 					target="_blank"
 					rel="noopener"
 					class="cn-files-card__name">
@@ -41,7 +41,7 @@
 			</li>
 		</ul>
 		<template v-if="files.length > maxDisplay" #footer>
-			<button class="cn-files-card__show-all" @click="emitShowAll">
+			<button class="cn-files-card__show-all" @click="$emit('show-all')">
 				{{ showAllLabel }} ({{ files.length }})
 			</button>
 		</template>
@@ -51,11 +51,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
+import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnFilesCard — compact files widget rendered by the integration
@@ -69,10 +68,6 @@ import { safeHref } from '../../utils/safeHref.js'
  *   :object-id="objectId"
  *   surface="detail-page" />
  * ```
- *
- * @event {void} show-all — User clicked the "show all" footer button.
- *   Emitted with no payload; parent components typically open the host
- *   app's full files view in response.
  */
 export default {
 	name: 'CnFilesCard',
@@ -92,7 +87,6 @@ export default {
 			default: 'detail-page',
 			validator: (value) => ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity'].includes(value),
 		},
-
 		/** Base API URL. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Maximum rows to render. */
@@ -121,7 +115,6 @@ export default {
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Files')
 		},
-
 		displayedFiles() {
 			return this.files.slice(0, this.maxDisplay)
 		},
@@ -130,39 +123,11 @@ export default {
 	watch: {
 		objectId: {
 			immediate: true,
-			handler(id) {
-				if (id) {
-					this.fetchFiles()
-				}
-			},
+			handler(id) { if (id) { this.fetchFiles() } },
 		},
 	},
 
 	methods: {
-		/**
-		 * Validate a file URL before binding to :href.
-		 * Delegates to the shared safeHref utility.
-		 *
-		 * @param {string} url
-		 * @return {string}
-		 */
-		safeHref,
-
-		/**
-		 * Bubble the footer button's click up so parents can open the
-		 * host app's full files view.
-		 */
-		emitShowAll() {
-			/**
-			 * User clicked the "show all" footer button — emitted with
-			 * no payload. Parents typically open the host app's full
-			 * files view in response.
-			 *
-			 * @event show-all
-			 */
-			this.$emit('show-all')
-		},
-
 		async fetchFiles() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return
@@ -181,6 +146,7 @@ export default {
 					this.files = []
 				}
 			} catch (err) {
+				// eslint-disable-next-line no-console
 				console.error('[CnFilesCard] failed to fetch files', err)
 				this.files = []
 			} finally {

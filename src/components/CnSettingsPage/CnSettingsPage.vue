@@ -418,6 +418,33 @@ export default {
 		},
 
 		/**
+		 * Tab definitions (orchestration shape — manifest-settings-
+		 * orchestration REQ-MSO-2). When set, CnSettingsPage renders
+		 * a tab strip above the section area; the active tab's
+		 * `sections[]` flow into the same renderer used by the flat
+		 * shape. Mutually exclusive with `sections[]`.
+		 *
+		 * Each tab MUST be `{ id: string, label: string,
+		 * icon?: string, sections: array<Section> }`.
+		 *
+		 * @type {Array<object>}
+		 */
+		tabs: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Optional ID of the tab to activate on mount. When empty AND
+		 * `tabs[]` is non-empty, the first tab is active by default.
+		 * Unknown IDs fall back to the first tab.
+		 *
+		 * @type {string}
+		 */
+		initialTab: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * Initial values keyed by `field.key`. Defaults to an empty
 		 * object; in practice the consumer passes the current
 		 * IAppConfig snapshot loaded from their settings controller.
@@ -496,7 +523,7 @@ export default {
 		const tabs = Array.isArray(this.tabs) ? this.tabs : []
 		if (tabs.length > 0) {
 			if (typeof this.initialTab === 'string' && this.initialTab.length > 0
-				&& tabs.some((t) => t && t.id === this.initialTab)) {
+				&& tabs.some(t => t && t.id === this.initialTab)) {
 				activeTabId = this.initialTab
 			} else if (tabs[0] && typeof tabs[0].id === 'string') {
 				activeTabId = tabs[0].id
@@ -527,7 +554,6 @@ export default {
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
-
 		/**
 		 * Whether the page is in tabs orchestration mode. True when
 		 * `tabs[]` is non-empty — drives the tab-strip render gate
@@ -538,7 +564,6 @@ export default {
 		hasTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
 		},
-
 		/**
 		 * The sections to render right now. In flat mode, this is the
 		 * `sections` prop directly. In tabs mode, this is the
@@ -551,7 +576,7 @@ export default {
 		 */
 		activeSections() {
 			if (!this.hasTabs) return this.sections || []
-			const active = this.tabs.find((t) => t && t.id === this.activeTabId)
+			const active = this.tabs.find(t => t && t.id === this.activeTabId)
 			if (active && Array.isArray(active.sections)) return active.sections
 			// Defensive fallback — should not happen because
 			// `resolveInitialTabId` always lands on a known tab.
@@ -568,7 +593,6 @@ export default {
 				this.originalData = this.cloneInitial()
 			},
 		},
-
 		// When `tabs[]` changes (e.g. consumer swaps manifests at
 		// runtime), re-resolve the active tab so the page doesn't get
 		// stuck on a removed id.
@@ -577,12 +601,11 @@ export default {
 				this.activeTabId = this.resolveInitialTabId()
 			},
 		},
-
 		// When `initialTab` changes (consumer-controlled tab
 		// activation), follow it.
 		initialTab(next) {
 			if (typeof next === 'string' && next.length > 0) {
-				const exists = this.tabs.some((t) => t && t.id === next)
+				const exists = this.tabs.some(t => t && t.id === next)
 				if (exists) this.activeTabId = next
 			}
 		},
@@ -731,18 +754,24 @@ export default {
 		resolveWidgetComponent(widget) {
 			const type = widget && typeof widget.type === 'string' ? widget.type : ''
 			if (!type) return null
-			if (Object.hasOwn(BUILTIN_SETTINGS_WIDGETS, type)) {
+			if (Object.prototype.hasOwnProperty.call(BUILTIN_SETTINGS_WIDGETS, type)) {
 				const builtin = BUILTIN_SETTINGS_WIDGETS[type]
 				if (builtin === COMPONENT_DISCRIMINATOR) {
 					// REQ-MSO-6: discriminator — look up `componentName`.
 					const name = widget.componentName
 					if (typeof name !== 'string' || name.length === 0) {
-						console.warn('[CnSettingsPage] Widget {type:"component"} requires a non-empty `componentName`. Widget will be skipped.')
+						// eslint-disable-next-line no-console
+						console.warn(
+							'[CnSettingsPage] Widget {type:"component"} requires a non-empty `componentName`. Widget will be skipped.',
+						)
 						return null
 					}
 					const resolved = this.effectiveCustomComponents[name]
 					if (!resolved) {
-						console.warn(`[CnSettingsPage] Widget component "${name}" not found in customComponents registry. Widget will be skipped.`)
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnSettingsPage] Widget component "${name}" not found in customComponents registry. Widget will be skipped.`,
+						)
 						return null
 					}
 					return resolved
@@ -810,7 +839,7 @@ export default {
 		resolveInitialTabId() {
 			if (!this.hasTabs) return ''
 			if (typeof this.initialTab === 'string' && this.initialTab.length > 0) {
-				const exists = this.tabs.some((t) => t && t.id === this.initialTab)
+				const exists = this.tabs.some(t => t && t.id === this.initialTab)
 				if (exists) return this.initialTab
 			}
 			const first = this.tabs[0]

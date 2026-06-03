@@ -193,9 +193,9 @@ import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
-import Paperclip from 'vue-material-design-icons/Paperclip.vue'
-import TagOutline from 'vue-material-design-icons/TagOutline.vue'
-import CnAuditTrailTab from './CnAuditTrailTab.vue'
+import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+
 import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
 import CnTagsTab from './CnTagsTab.vue'
@@ -275,6 +275,37 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 	},
 
+	setup(props) {
+		const exposed = {}
+		// Integration registry: on by default via the `useRegistry`
+		// prop (ADR-019). We always wire the composable up so consumers
+		// can toggle `useRegistry` reactively without a remount.
+		const { integrations: registryIntegrations, resolveWidget, resolveTab } = useIntegrationRegistry()
+		exposed.registryIntegrations = registryIntegrations
+		exposed.resolveRegistryWidget = resolveWidget
+		// `resolveTab` is local-first (LIB_INTEGRATION_COMPONENTS) so the
+		// dispatched sidebar tab component is bound to this rendering
+		// bundle's Vue — sidesteps the dual-runtime ADR-019 trap that
+		// surfaced as `useNcFormBox(...)` undefined on cross-bundle
+		// registrations. See openregister#1958.
+		exposed.resolveRegistryTabComponent = resolveTab
+
+		// Auto-subscribe to live updates for the active object. No-op
+		// when `objectStore` is null (no Pinia active) or when the
+		// consumer disabled it via `subscribe: false`. The
+		// composable's reactive `id` argument keeps the subscription
+		// in sync as the user navigates between sidebar objects.
+		if (props.objectStore && props.subscribe) {
+			useObjectSubscription(
+				props.objectStore,
+				() => props.objectType,
+				() => props.objectId,
+				{ enabled: () => Boolean(props.objectType && props.objectId) },
+			)
+		}
+		return exposed
+	},
+
 	props: {
 		/** The entity type (e.g., "pipelinq_lead", "procest_case") */
 		objectType: {
@@ -305,25 +336,34 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
-		 * Opt into the pluggable integration registry. When `true`,
-		 * the hardcoded built-in tabs are replaced by one tab per
+		 * Use the pluggable integration registry to drive the sidebar
+		 * tabs. Defaults to `true` (ADR-019): tabs are rendered one per
 		 * provider registered on `window.OCA.OpenRegister.integrations`
-		 * (and via `useIntegrationRegistry()`). Slot overrides
-		 * `#tab-<id>` and `hiddenTabs` / `excludeIntegrations` still
-		 * apply.
+		 * (and via `useIntegrationRegistry()`). The canonical five
+		 * built-ins — files / notes / tags / tasks / audit-trail — are
+		 * shipped as providers in `builtinIntegrations` and registered by
+		 * OpenRegister's bootstrap (`registerBuiltinIntegrations()`), so
+		 * the default surface is unchanged for apps that register them.
 		 *
-		 * Mutually exclusive with the open-enum `tabs` prop — when
-		 * both are set, `tabs` wins and a console.warn is logged.
+		 * Set `false` to opt back into the legacy hardcoded-tabs path,
+		 * which renders the five built-in tabs directly from this
+		 * component and supports the `#tab-<id>` slot overrides. Use this
+		 * for consumers that do not call `registerBuiltinIntegrations()`
+		 * and want the built-in tabs without standing up the registry.
+		 *
+		 * `hiddenTabs` / `excludeIntegrations` and the `#extra-tabs` slot
+		 * apply in both modes.
+		 *
+		 * Mutually exclusive with the open-enum `tabs` prop — when both
+		 * are set, `tabs` wins and a console.warn is logged.
 		 *
 		 * @type {boolean}
 		 */
 		useRegistry: {
 			type: Boolean,
-			default: false,
+			default: true,
 		},
-
 		/**
 		 * Integration ids to exclude when rendering registry-driven
 		 * tabs. Mirrors `hiddenTabs` for the legacy mode.
@@ -334,7 +374,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Whether the sidebar is open */
 		open: {
 			type: Boolean,
@@ -363,6 +402,29 @@ export default {
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
+		},
+		/**
+		 * Whether to auto-subscribe to live updates for the
+		 * current object. Defaults to true. The sidebar calls
+		 * `objectStore.subscribe(objectType, objectId)` on mount and
+		 * unsubscribes on unmount via `tryOnScopeDispose`.
+		 *
+		 * @type {boolean}
+		 */
+		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Optional explicit Pinia store instance. When omitted,
+		 * the sidebar skips auto-subscribe (Pinia not yet active
+		 * in the consumer context).
+		 *
+		 * @type {object|null}
+		 */
+		objectStore: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -488,7 +550,6 @@ export default {
 		hasCustomTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
 		},
-
 		/**
 		 * Whether registry mode is active. Custom `tabs` always wins
 		 * (with a warning at mount) so consumers don't get a surprise
@@ -497,7 +558,6 @@ export default {
 		isRegistryMode() {
 			return this.useRegistry === true && this.hasCustomTabs === false
 		},
-
 		/**
 		 * Filtered registry snapshot: drops providers whose id is in
 		 * `excludeIntegrations` or `hiddenTabs`. Stays reactive on
@@ -511,7 +571,6 @@ export default {
 			const all = this.registryIntegrations || []
 			return all.filter((p) => excluded.has(p.id) === false)
 		},
-
 		/** Effective customComponents registry: prop wins, inject fallback. */
 		effectiveCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
@@ -547,6 +606,7 @@ export default {
 
 	mounted() {
 		if (this.useRegistry === true && this.hasCustomTabs === true) {
+			// eslint-disable-next-line no-console
 			console.warn('[CnObjectSidebar] `useRegistry` is true but `tabs` is also set — falling back to `tabs` (registry mode ignored). Pass one or the other.')
 		}
 	},
@@ -557,19 +617,25 @@ export default {
 		},
 
 		/**
-		 * Resolve a registry provider's tab component. Returns the
-		 * registered `tab` Vue component, or null when the provider is
-		 * malformed (the parity gate normally prevents this, but
-		 * third-party registrations might slip through).
+		 * Resolve a registry provider's tab component, preferring the
+		 * LOCAL lib-owned component (rendering-bundle Vue) over the
+		 * shared registry's stored object. Falls back to the stored
+		 * `provider.tab` for consumer-custom ids (which live in the
+		 * consumer's own bundle and therefore render under the same
+		 * Vue instance with no mismatch). See openregister#1958.
 		 *
 		 * @param {object} provider Normalised registry entry.
 		 * @return {object|null} Vue component, or null.
 		 */
 		resolveRegistryTab(provider) {
-			if (provider && provider.tab) {
-				return provider.tab
+			if (!provider || typeof provider.id !== 'string') {
+				return null
 			}
-			return null
+			const local = this.resolveRegistryTabComponent(provider.id)
+			if (local) {
+				return local
+			}
+			return provider.tab || null
 		},
 
 		/**

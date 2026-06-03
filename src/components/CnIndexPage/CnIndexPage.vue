@@ -39,8 +39,14 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:header-actions="mergedHeaderActions"
+			:show-request-feature="showRequestFeature"
+			:documentation-url="documentationUrl"
+			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
+			@request-feature="onRequestFeatureClick"
+			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -320,6 +326,18 @@
 			@search="onSearchEvent"
 			@columns-change="onColumnsEvent"
 			@filter-change="onFilterEvent" />
+
+		<!-- Built-in Request-a-feature modal (#7) — opened from the
+		     CnActionsBar overflow. surface = "index:<schema>" so triage
+		     can pinpoint which list the request came from. -->
+		<CnSuggestFeatureModal
+			v-if="featureRequestModalOpen"
+			:repo="cnFeatureRequestRepo"
+			:app="cnAppId"
+			:page="$route ? ($route.name || '') : ''"
+			:surface="requestFeatureSurface"
+			:conduction-submit-enabled="false"
+			@close="featureRequestModalOpen = false" />
 	</div>
 </template>
 
@@ -334,7 +352,9 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { useContextMenu, useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
+import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnDataTable } from '../CnDataTable/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
@@ -347,10 +367,24 @@ import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
-import { CnPageHeader } from '../CnPageHeader/index.js'
-import { CnPagination } from '../CnPagination/index.js'
-import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
-import { CnRowActions } from '../CnRowActions/index.js'
+import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnCopyDialog } from '../CnCopyDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { getCurrentInstance, inject, ref, watch } from 'vue'
+import { useContextMenu, useListView } from '../../composables/index.js'
+import { useObjectStore } from '../../store/index.js'
+
+/**
+ * Reserved `id` values for built-in CnActionsBar overflow items.
+ * Manifest-declared `headerActions[]` entries whose `id` matches one
+ * of these are dropped (with a `console.warn`) so consumers cannot
+ * accidentally shadow the built-in Refresh / Import / Export / Copy /
+ * Delete items.
+ */
+const RESERVED_HEADER_ACTION_IDS = ['refresh', 'import', 'export', 'copy', 'delete']
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -392,25 +426,26 @@ import { CnRowActions } from '../CnRowActions/index.js'
  * </CnIndexPage>
  * ```
  *
- * @event {void} add — Add button clicked (backward compat, only if listener attached)
- * @event {object} create — Form dialog create confirmed. Payload: formData object
- * @event {object} edit — Form dialog edit confirmed. Payload: formData object (includes id)
- * @event {string} delete — Single delete confirmed. Payload: item ID
- * @event {{ id: string, newName: string }} copy — Single copy confirmed
- * @event {string[]} mass-delete — Mass delete confirmed. Payload: array of IDs
- * @event {object} mass-copy — Mass copy confirmed. Payload: { ids, pattern }
- * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
- * @event {object} mass-import — Mass import confirmed. Payload: import data
- * @event {void} refresh — Refresh button clicked
- * @event {object} row-click — Table row or card clicked. Payload: row object
- * @event {{ key: string, order: string }} sort — Column sort changed
- * @event {number} page-changed — Pagination page changed
- * @event {number} page-size-changed — Pagination page size changed
- * @event {string[]} select — Selection changed. Payload: array of selected IDs
- * @event {object} action — Row action triggered. Payload: { action, row }
- * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event add Add button clicked (backward compat, only if listener attached).
+ * @event create Form dialog create confirmed. Payload: formData object.
+ * @event edit Form dialog edit confirmed. Payload: formData object (includes id).
+ * @event delete Single delete confirmed. Payload: item ID.
+ * @event copy Single copy confirmed. Payload: `{ id, newName }`.
+ * @event mass-delete Mass delete confirmed. Payload: array of IDs.
+ * @event mass-copy Mass copy confirmed. Payload: `{ ids, pattern }`.
+ * @event mass-export Mass export confirmed. Payload: `{ ids, format }`.
+ * @event mass-import Mass import confirmed. Payload: import data.
+ * @event refresh Refresh button clicked.
+ * @event header-action A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention). Emitted after the resolved handler (if any) runs; suppressed only when the action's `handler` is `"none"`.
+ * @event row-click Table row or card clicked. Payload: row object.
+ * @event sort Column sort changed. Payload: `{ key, order }`.
+ * @event page-changed Pagination page changed. Payload: number.
+ * @event page-size-changed Pagination page size changed. Payload: number.
+ * @event select Selection changed. Payload: array of selected IDs.
+ * @event action Row action triggered. Payload: `{ action, row }`.
+ * @event search Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event columns-change Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event filter-change Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`. Payload: `{ key, values }`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -450,6 +485,57 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
+		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
+	},
+
+	/**
+	 * Inject the customComponents registry from a CnAppRoot ancestor.
+	 * Used by:
+	 * - REQ-MAD-3 / REQ-MAD-8 (manifest-actions-dispatch): resolves
+	 *   `actions[].handler` registry names to functions called on
+	 *   row-action click.
+	 * - The cardComponent + form-dialog override paths: when set, the
+	 *   prop-level `customComponents` wins, but the inject is the
+	 *   default. See `effectiveCustomComponents`.
+	 *
+	 * Falls back to an empty object so `CnIndexPage` works standalone
+	 * (unit tests, isolated mount) without `CnAppRoot`.
+	 */
+	inject: {
+		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * App slug + feature-request repo from CnAppRoot — used by the
+		 * built-in Request-a-feature action to auto-fill the
+		 * CnSuggestFeatureModal. Default to empty so CnIndexPage works
+		 * standalone; the handler warns + skips opening when no repo.
+		 */
+		cnAppId: { default: () => '' },
+		cnFeatureRequestRepo: { default: () => '' },
+		/**
+		 * Reactive holder provided by CnAppRoot for hoisting the
+		 * embedded CnIndexSidebar to NcContent level. The default
+		 * `{ value: null }` is what we get when no CnAppRoot
+		 * ancestor exists; in that case we fall back to inline
+		 * rendering inside the cn-index-page wrapper. See
+		 * `shouldRenderInlineSidebar` and the mounted/beforeDestroy
+		 * hooks below.
+		 */
+		cnIndexSidebarConfig: { default: () => ({ value: null }) },
+		/**
+		 * Sentinel set to `true` when a CnAppRoot ancestor exists.
+		 * The default `false` is used for legacy apps that mount
+		 * CnIndexPage standalone — those keep the inline sidebar
+		 * render. See `shouldRenderInlineSidebar` for the gate.
+		 */
+		cnHostsIndexSidebar: { default: false },
+		/**
+		 * Reactive AI context holder provided by CnAppRoot. This page
+		 * component writes pageKind, registerSlug, schemaSlug in
+		 * created() and watches props for subsequent changes. On
+		 * beforeDestroy(), fields are reset to avoid stale context on
+		 * subsequent custom pages.
+		 */
+		cnAiContext: { default: null },
 	},
 
 	/**
@@ -521,7 +607,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Schema. Either a resolved schema object (consumer-managed path) OR a
 		 * schema-slug string — when a string is given together with `register`
@@ -534,7 +619,6 @@ export default {
 			type: [Object, String],
 			default: null,
 		},
-
 		/**
 		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
 		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
@@ -546,7 +630,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Self-fetch mode only — an array of clickable filter tabs rendered as
 		 * a strip above the table. Each entry is `{label, filter, default?, icon?}`;
@@ -563,7 +646,6 @@ export default {
 			type: Array,
 			default: null,
 		},
-
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -648,7 +730,32 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
+		/**
+		 * Page-level header action definitions rendered inside CnActionsBar's
+		 * overflow dropdown (after the built-in Refresh, before the
+		 * `#action-items` slot). Same `{ id, label, icon, handler, route }`
+		 * shape as the row-level `actions[]`, with one behavioural difference:
+		 * handlers receive no row context (the action is page-level).
+		 *
+		 * Handler dispatch keywords:
+		 * - `navigate` — `$router.push({ name: action.route })` (no `params.id`)
+		 * - `emit` — re-emits `@header-action({ action: id, id })`
+		 * - `none` — no-op + suppresses the emit
+		 * - any other string — looked up in `customComponents`; when a
+		 *   function, called as `fn({ actionId: id })`. When a non-function,
+		 *   `console.warn` + fall-through to emit-only. When unknown, silent
+		 *   fall-through to emit-only.
+		 *
+		 * Reserved built-in ids (`refresh`, `import`, `export`, `copy`,
+		 * `delete`) are dropped with a `console.warn` so manifest authors
+		 * cannot accidentally shadow a built-in.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
 		/** Text shown when no items found */
 		emptyText: {
 			type: String,
@@ -723,7 +830,42 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
+		/**
+		 * Show the built-in "Request a feature" entry in the CnActionsBar
+		 * overflow. On by default so every list view exposes it; opens the
+		 * CnSuggestFeatureModal with `surface: "index:<schema>"` context.
+		 * Requires a CnAppRoot ancestor (for the repo inject) to actually
+		 * open — otherwise the click warns and no-ops.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Documentation link for this list page. When a non-empty URL is
+		 * set, the CnActionsBar overflow renders a "Documentation" entry
+		 * (before Request a feature) that opens the link in a new tab.
+		 * Empty (the default) hides it.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Pre-translated label for the Documentation entry. When left
+		 * empty (the default) the CnActionsBar falls back to its own
+		 * translation of "Documentation".
+		 *
+		 * @type {string}
+		 */
+		documentationLabel: {
+			type: String,
+			default: '',
+		},
 		/** Whether to show the built-in form dialog for Add/Edit */
 		showFormDialog: {
 			type: Boolean,
@@ -876,7 +1018,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Effective register slug for the page. Forwarded as a prop to
 		 * the resolved card component (when `cardComponent` is set) so
@@ -891,7 +1032,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Optional name of a consumer-provided card component (registered
 		 * in the `customComponents` registry on `CnAppRoot`) to render in
@@ -913,7 +1053,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Optional explicit customComponents registry. When set, this
 		 * overrides the registry injected from `CnAppRoot` via
@@ -955,7 +1094,7 @@ export default {
 		const instance = getCurrentInstance()
 		const objectsProvided = !!(
 			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
-			&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
+			&& Object.prototype.hasOwnProperty.call(instance.proxy.$options.propsData, 'objects')
 		)
 		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
 
@@ -993,32 +1132,32 @@ export default {
 		}
 
 		let list = null
-		let selfObjectStore = null
+		// Hoisted out of the `if (isSelfFetch)` block so onFormConfirm
+		// (+ future onSingleDeleteConfirm hooks) can reach them as
+		// `this.selfStore` / `this.selfObjectType`. Without this lift,
+		// the manifest-v2 pipeline — which mounts CnIndexPage via
+		// CnPageRenderer with `register` + `schema` from `config` but
+		// NO `store`/`objectType` props — falls through onFormConfirm's
+		// final branch and emits `@create`/`@edit` to a parent
+		// (CnPageRenderer) that doesn't listen, so the dialog Create
+		// click is a silent no-op (no POST fires, dialog stays open).
 		let selfObjectType = ''
+		let selfObjectStore = null
 		if (isSelfFetch) {
 			const objectType = `${props.register}-${props.schema}`
+			selfObjectType = objectType
 			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 			const objectStore = useObjectStore()
 			selfObjectStore = objectStore
-			selfObjectType = objectType
-			// Register the `${register}-${schema}` type so the store has a slot
-			// for it before `useListView` issues the first fetch. The store's
-			// signature is `(slug, schemaId, registerId, slugs)` and it builds
-			// the fetch URL as `${baseUrl}/${registerId}/${schemaId}` —
-			// OpenRegister's REST accepts either numeric ids or kebab slugs in
-			// those segments, so the manifest's slug strings go into the
-			// positional id slots AND into the 4th-arg slug hints used by the
-			// live-updates transport. Previously we passed `{register, schema}`
-			// as the second arg, which the store stored under `config.schema`
-			// (an object) with `config.register` undefined — fetch URLs went to
-			// `/api/objects/undefined/[object Object]` and 404'd.
+			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
+			// store has a slot for it before `useListView` issues the first fetch.
 			if (typeof objectStore.registerObjectType === 'function') {
-				objectStore.registerObjectType(
-					objectType,
-					props.schema,
-					props.register,
-					{ registerSlug: props.register, schemaSlug: props.schema },
-				)
+				// useObjectStore.registerObjectType signature is positional:
+				// (slug, schemaId, registerId, slugs?). Passing an object as
+				// the second argument made schemaId === {register, schema} and
+				// registerId === undefined, which produced URLs like
+				// /apps/openregister/api/schemas/[object Object] at fetch time.
+				objectStore.registerObjectType(objectType, props.schema, props.register)
 			}
 			list = useListView(objectType, {
 				objectStore,
@@ -1038,7 +1177,7 @@ export default {
 					// the user's intent).
 					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
 					const activeIdx = activeQuickFilterIndex.value
-					const tabFilter = (tabs && activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
+					const tabFilter = (tabs && activeIdx != null) ? tabs[activeIdx]?.filter : null
 					return { ...base, ...resolveFilterMap(tabFilter, params) }
 				},
 			})
@@ -1057,9 +1196,11 @@ export default {
 			closeContextMenu,
 			isSelfFetch,
 			list,
+			activeQuickFilterIndex,
+			// Exposed for onFormConfirm's self-fetch save path — see the
+			// hoist comment above the `if (isSelfFetch)` block.
 			selfObjectStore,
 			selfObjectType,
-			activeQuickFilterIndex,
 		}
 	},
 
@@ -1079,10 +1220,23 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
+			// Built-in Request-a-feature modal (#7)
+			featureRequestModalOpen: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * `surface` value handed to the Request-a-feature modal — pins
+		 * the resulting issue to this list view, e.g. "index:client".
+		 *
+		 * @return {string}
+		 */
+		requestFeatureSurface() {
+			const schemaName = this.effectiveSchema?.name
+				|| (typeof this.effectiveSchema === 'string' ? this.effectiveSchema : '')
+			return `index:${schemaName || this.$route?.name || 'list'}`
+		},
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
@@ -1099,7 +1253,6 @@ export default {
 			if (this.isSelfFetchMode) return this.list.schema.value
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
-
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
@@ -1121,7 +1274,6 @@ export default {
 					: c
 			))
 		},
-
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
@@ -1238,6 +1390,57 @@ export default {
 			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
 		},
 
+		/**
+		 * Merged page-level header actions: drops entries whose `id`
+		 * collides with a built-in (Refresh / Import / Export / Copy /
+		 * Delete), pre-resolves string `handler` keywords to function
+		 * handlers via `resolveHeaderHandler`, and preserves function
+		 * handlers untouched (programmatic path).
+		 *
+		 * Mirrors `mergedActions` for the row-level path; the difference
+		 * is that header handlers receive `{}` (no row context) and the
+		 * suppression sentinel maps to `@header-action` rather than
+		 * `@action`.
+		 *
+		 * @return {Array<object>} Header actions, with handlers resolved.
+		 */
+		mergedHeaderActions() {
+			return this.headerActions
+				.filter((action) => {
+					if (!action || typeof action !== 'object') return false
+					if (RESERVED_HEADER_ACTION_IDS.includes(action.id)) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnIndexPage] headerActions[].id "${action.id}" collides with a built-in `
+							+ 'overflow item (Refresh / Import / Export / Copy / Delete); the manifest entry was dropped.',
+						)
+						return false
+					}
+					return true
+				})
+				.map((action) => {
+					if (typeof action.handler === 'function') {
+						// Programmatic function handler — keep as-is.
+						return action
+					}
+					if (typeof action.handler !== 'string' || action.handler.length === 0) {
+						// No handler → emit-only path.
+						return action
+					}
+					const isNone = action.handler === 'none'
+					const resolved = this.resolveHeaderHandler(action)
+					if (resolved) {
+						return isNone
+							? { ...action, handler: resolved, _dispatchSuppress: true }
+							: { ...action, handler: resolved }
+					}
+					// 'emit' / unknown registry name / non-function registry entry →
+					// strip handler so the click path emits `@header-action` only.
+					const { handler, ...rest } = action
+					return rest
+				})
+		},
+
 		/** Whether all visible items are selected */
 		allSelected() {
 			if (this.effectiveObjects.length === 0 || this.internalSelectedIds.length === 0) return false
@@ -1332,7 +1535,10 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
-				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`,
+				)
 				return null
 			}
 			return resolved
@@ -1347,7 +1553,6 @@ export default {
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
-
 		/**
 		 * Keep the hoisted sidebar in sync with reactive props.
 		 * The watcher fires whenever any of the props snapshot
@@ -1359,16 +1564,13 @@ export default {
 			handler() {
 				this.publishHoistedSidebar()
 			},
-
 			deep: false,
 		},
-
 		shouldRenderInlineSidebar() {
 			// When the gate flips (e.g. sidebar.show toggled), keep
 			// the hoist in sync.
 			this.publishHoistedSidebar()
 		},
-
 		// Re-push AI context when relevant props change
 		register() { this.pushAiContext() },
 		schema() { this.pushAiContext() },
@@ -1437,7 +1639,6 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
 			this.$emit('search', value)
 		},
-
 		/**
 		 * Quick-filter tab change. Updates the active index — the `setup()`
 		 * watcher then triggers `list.refresh(1)` so the new tab's filter
@@ -1452,7 +1653,6 @@ export default {
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
 		},
-
 		/**
 		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
 		 * @return {void}
@@ -1461,7 +1661,6 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
 			this.$emit('sort', payload)
 		},
-
 		/**
 		 * @param {number} page Requested page from CnPagination.
 		 * @return {void}
@@ -1470,7 +1669,6 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
 			this.$emit('page-changed', page)
 		},
-
 		/**
 		 * @param {{key: string, values: Array}} payload Facet-filter change from the sidebar.
 		 * @return {void}
@@ -1479,7 +1677,6 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
 			this.$emit('filter-change', payload)
 		},
-
 		/**
 		 * @param {Array} columns Visible-column change from the sidebar.
 		 * @return {void}
@@ -1488,11 +1685,29 @@ export default {
 			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
 			this.$emit('columns-change', columns)
 		},
-
 		/** @return {void} */
 		onRefreshEvent() {
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
 			this.$emit('refresh')
+		},
+
+		/**
+		 * Open the built-in Request-a-feature modal from the CnActionsBar
+		 * overflow (#7). Requires the `cnFeatureRequestRepo` inject (from
+		 * CnAppRoot); warns and no-ops when absent so standalone mounts
+		 * don't open a broken deep-link.
+		 *
+		 * @return {void}
+		 */
+		onRequestFeatureClick() {
+			if (!this.cnFeatureRequestRepo) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[CnIndexPage] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot).',
+				)
+				return
+			}
+			this.featureRequestModalOpen = true
 		},
 
 		/**
@@ -1550,8 +1765,11 @@ export default {
 			if (name === 'navigate') {
 				const route = action.route
 				if (typeof route !== 'string' || route.length === 0) {
-					console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
-						+ 'but route is missing; falling back to @action-only.')
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @action-only.',
+					)
 					return null
 				}
 				return (row) => {
@@ -1573,9 +1791,12 @@ export default {
 				return (row) => fn({ actionId: action.id, item: row })
 			}
 			if (fn !== undefined) {
-				console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
 					+ 'customComponents — components belong to slot overrides; falling '
-					+ 'back to @action-only.')
+					+ 'back to @action-only.',
+				)
 			}
 			return null
 		},
@@ -1594,6 +1815,82 @@ export default {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
 			if (matched && matched._dispatchSuppress) return
 			this.$emit('action', payload)
+		},
+
+		/**
+		 * Page-level analogue of `resolveHandler` for `headerActions[]`.
+		 * Resolves a string `handler` into a `() => void` function with
+		 * NO row context (header actions are page-level). Returns null
+		 * when the action should fall back to the page's `@header-action`
+		 * emit-only path.
+		 *
+		 * Keywords mirror the row-level dispatcher:
+		 * - `navigate` → `$router.push({ name: action.route })` (no `params.id`)
+		 * - `emit` → null (page still bubbles `@header-action`)
+		 * - `none` → no-op + sentinel for emit suppression
+		 * - registry name → `() => fn({ actionId: action.id })`
+		 * - unknown / non-function → null
+		 *
+		 * @param {object} action The header action object.
+		 * @return {Function|null}
+		 */
+		resolveHeaderHandler(action) {
+			const name = action.handler
+			if (typeof name !== 'string' || name.length === 0) return null
+			if (name === 'navigate') {
+				const route = action.route
+				if (typeof route !== 'string' || route.length === 0) {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnIndexPage] headerActions[].id "${action.id}" declares handler:"navigate" `
+						+ 'but route is missing; falling back to @header-action-only.',
+					)
+					return null
+				}
+				return () => {
+					this.$router.push({ name: route })
+				}
+			}
+			if (name === 'emit') return null
+			if (name === 'none') {
+				return () => {}
+			}
+			const fn = this.effectiveCustomComponents[name]
+			if (typeof fn === 'function') {
+				return () => fn({ actionId: action.id })
+			}
+			if (fn !== undefined) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnIndexPage] headerActions[].handler "${name}" resolved to a non-function in `
+					+ 'customComponents — components belong to slot overrides; falling back to '
+					+ '@header-action-only.',
+				)
+			}
+			return null
+		},
+
+		/**
+		 * Click handler for CnActionsBar `@header-action` events. Looks
+		 * up the matching `mergedHeaderActions` entry, invokes its
+		 * resolved function handler when present, then re-emits
+		 * `@header-action` to the parent (unless the entry is flagged
+		 * `_dispatchSuppress` via `handler: "none"`).
+		 *
+		 * Matches the row-level pattern (`onRowAction` /
+		 * `CnRowActions.handleAction`): handler runs AND `@header-action`
+		 * emits — consumers can wire either. `handler: "none"` is the
+		 * explicit emit-suppression escape hatch.
+		 *
+		 * @param {{action: string, id: string}} payload The CnActionsBar emit.
+		 */
+		onHeaderAction(payload) {
+			const matched = this.mergedHeaderActions.find((a) => a.id === payload.id)
+			if (matched && typeof matched.handler === 'function') {
+				matched.handler()
+			}
+			if (matched && matched._dispatchSuppress) return
+			this.$emit('header-action', payload)
 		},
 
 		/**
@@ -1653,7 +1950,25 @@ export default {
 
 		// --- Mass action handlers ---
 
-		onMassDeleteConfirm(ids) {
+		async onMassDeleteConfirm(ids) {
+			// Self-fetch (manifest-v2) parallel of onFormConfirm — own
+			// the bulk-delete via the internal store so the dialog
+			// closes and the list refreshes without an upstream
+			// `@mass-delete` listener.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
+				if (ok) {
+					this.setMassDeleteResult({ success: true })
+					this.$emit('mass-delete', ids)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setMassDeleteResult({ error: (err && err.message) || 'Mass delete failed' })
+				}
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
@@ -1728,7 +2043,21 @@ export default {
 
 		// --- Single-object dialog handlers ---
 
-		onSingleDeleteConfirm(id) {
+		async onSingleDeleteConfirm(id) {
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
+				if (ok) {
+					this.setSingleDeleteResult({ success: true })
+					this.$emit('delete', id)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			this.$emit('delete', id)
 		},
 
@@ -1737,6 +2066,9 @@ export default {
 		},
 
 		async onFormConfirm(formData) {
+			// Explicit store prop wins — host passed in a custom store
+			// + objectType, e.g. when the manifest binding is overridden
+			// or the consumer is in classic Options-API mode.
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
@@ -1746,29 +2078,32 @@ export default {
 				if (saved) {
 					this.setFormResult({ success: true })
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
+					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return
 			}
-			// Self-fetch mode (manifest-driven page): no `store`/`@create`
-			// listener is wired, so self-save via the same object store and
-			// type used for self-fetching, then resolve the dialog. Without
-			// this the dialog waits forever for a setFormResult() that never
-			// comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				try {
-					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
-					if (saved) {
-						this.setFormResult({ success: true })
-						this.$emit(this.editItem ? 'edit' : 'create', saved)
-						if (typeof this.list.refresh === 'function') this.list.refresh()
-					} else {
-						const err = this.selfObjectStore.getError?.(this.selfObjectType)
-						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+			// Self-fetch (manifest-v2) mode: CnPageRenderer mounts us with
+			// `register` + `schema` from `config` but no `store`/`objectType`
+			// prop. The internal store registered in setup() owns the save
+			// path so the dialog actually POSTs to OR. Without this branch
+			// the click below falls into the `@create` emit which has no
+			// listener through CnPageRenderer (props-only forwarding) and
+			// the dialog is a silent no-op.
+			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
+				const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
+				if (saved) {
+					this.setFormResult({ success: true })
+					this.$emit(this.editItem ? 'edit' : 'create', saved)
+					if (this.list && typeof this.list.refresh === 'function') {
+						this.list.refresh()
 					}
-				} catch (err) {
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return

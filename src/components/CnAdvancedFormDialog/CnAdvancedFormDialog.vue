@@ -42,64 +42,90 @@
 					v-if="$scopedSlots['register-schema-selection']"
 					name="register-schema-selection" />
 
-				<!-- Main tabs -->
+				<!-- Main tabs — hand-rolled to drop the bootstrap-vue → bootstrap@4 → jquery
+				     missing-peer chain. Same UX as the legacy BTabs justified/v-model layout. -->
 				<div v-else class="cn-advanced-form-dialog__tabs tabContainer">
-					<BTabs v-model="activeTab" content-class="mt-3" justified>
-						<!-- Properties tab — disabled when the active schema has no
-						     properties to render (a bare JSON blob is still
-						     editable via the Data tab). -->
-						<BTab
-							v-if="showPropertiesTable"
-							title="Properties"
-							:disabled="!hasSchemaProperties">
-							<slot
-								name="tab-properties"
+					<ul class="cn-advanced-form-dialog__tab-nav" role="tablist">
+						<li
+							v-for="(tab, idx) in resolvedTabs"
+							:key="tab.key"
+							role="presentation"
+							class="cn-advanced-form-dialog__tab-nav-item">
+							<button
+								type="button"
+								role="tab"
+								:aria-selected="activeTab === idx"
+								:disabled="tab.disabled"
+								:class="['cn-advanced-form-dialog__tab-button', { 'is-active': activeTab === idx }]"
+								@click="activeTab = idx">
+								{{ tab.title }}
+							</button>
+						</li>
+					</ul>
+
+					<!-- Properties tab — disabled when the active schema has no
+					     properties to render (a bare JSON blob is still
+					     editable via the Data tab). -->
+					<div
+						v-if="showPropertiesTable"
+						v-show="activeTab === tabIndex('properties')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot
+							name="tab-properties"
+							:form-data="formData"
+							:update-field="updateField"
+							:object-properties="objectPropertiesForSlot"
+							:selected-property="selectedProperty"
+							:get-property-display-name="getPropertyDisplayName"
+							:get-property-validation-class="getPropertyValidationClass"
+							:is-property-editable="isPropertyEditable"
+							:validation-display="validationDisplay">
+							<CnPropertiesTab
+								ref="propertiesTab"
+								:schema="schema"
+								:item="item"
 								:form-data="formData"
-								:update-field="updateField"
-								:object-properties="objectPropertiesForSlot"
 								:selected-property="selectedProperty"
-								:get-property-display-name="getPropertyDisplayName"
-								:get-property-validation-class="getPropertyValidationClass"
-								:is-property-editable="isPropertyEditable"
-								:validation-display="validationDisplay">
-								<CnPropertiesTab
-									ref="propertiesTab"
-									:schema="schema"
-									:item="item"
-									:form-data="formData"
-									:selected-property="selectedProperty"
-									:editable-types="editableTypes"
-									:validation-display="validationDisplay"
-									:exclude-fields="excludeFields"
-									:include-fields="includeFields"
-									@update:property-value="onPropertyValueUpdate"
-									@update:selected-property="selectedProperty = $event" />
-							</slot>
-						</BTab>
+								:editable-types="editableTypes"
+								:validation-display="validationDisplay"
+								:exclude-fields="excludeFields"
+								:include-fields="includeFields"
+								@update:property-value="onPropertyValueUpdate"
+								@update:selected-property="selectedProperty = $event" />
+						</slot>
+					</div>
 
-						<!-- Metadata tab -->
-						<BTab v-if="resolvedShowMetadataTab" title="Metadata">
-							<slot name="tab-metadata" :item="item" :form-data="formData">
-								<CnMetadataTab :item="item" :form-data="formData" />
-							</slot>
-						</BTab>
+					<!-- Metadata tab -->
+					<div
+						v-if="resolvedShowMetadataTab"
+						v-show="activeTab === tabIndex('metadata')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot name="tab-metadata" :item="item" :form-data="formData">
+							<CnMetadataTab :item="item" :form-data="formData" />
+						</slot>
+					</div>
 
-						<!-- Data (JSON) tab -->
-						<BTab v-if="showJsonTab" title="Data">
-							<slot
-								name="tab-data"
-								:json-data="jsonData"
-								:update-json="updateJsonFromExternal"
-								:is-valid="isValidJson(jsonData)"
-								:format-json="formatJSON">
-								<CnDataTab
-									:value="jsonData"
-									:dark="jsonEditorDark"
-									@update:value="jsonData = $event"
-									@format="onFormatResult" />
-							</slot>
-						</BTab>
-					</BTabs>
+					<!-- Data (JSON) tab -->
+					<div
+						v-if="showJsonTab"
+						v-show="activeTab === tabIndex('data')"
+						role="tabpanel"
+						class="cn-advanced-form-dialog__tab-content">
+						<slot
+							name="tab-data"
+							:json-data="jsonData"
+							:update-json="updateJsonFromExternal"
+							:is-valid="isValidJson(jsonData)"
+							:format-json="formatJSON">
+							<CnDataTab
+								:value="jsonData"
+								:dark="jsonEditorDark"
+								@update:value="jsonData = $event"
+								@format="onFormatResult" />
+						</slot>
+					</div>
 				</div>
 			</template>
 		</div>
@@ -136,7 +162,9 @@ import {
 } from '@nextcloud/vue'
 import { BTab, BTabs } from 'bootstrap-vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { fieldsFromSchema } from '../../utils/schema.js'
+import CnPropertiesTab from './CnPropertiesTab.vue'
+import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnPropertiesTab from './CnPropertiesTab.vue'
@@ -166,8 +194,6 @@ export default {
 		NcLoadingIcon,
 		Plus,
 		ContentSaveOutline,
-		BTabs,
-		BTab,
 		CnPropertiesTab,
 		CnMetadataTab,
 		CnDataTab,
@@ -227,6 +253,32 @@ export default {
 	computed: {
 		isCreateMode() {
 			return !this.item
+		},
+
+		/**
+		 * Visible-tab descriptors, computed from the show* flags so the
+		 * hand-rolled tab nav can render the right buttons + the right
+		 * activeTab index maps to the right panel. Order matters and
+		 * mirrors the legacy BTabs declaration order: properties → metadata → data.
+		 *
+		 * @return {Array<{ key: string, title: string, disabled: boolean }>}
+		 */
+		resolvedTabs() {
+			const tabs = []
+			if (this.showPropertiesTable) {
+				tabs.push({
+					key: 'properties',
+					title: t('nextcloud-vue', 'Properties'),
+					disabled: !this.hasSchemaProperties,
+				})
+			}
+			if (this.resolvedShowMetadataTab) {
+				tabs.push({ key: 'metadata', title: t('nextcloud-vue', 'Metadata'), disabled: false })
+			}
+			if (this.showJsonTab) {
+				tabs.push({ key: 'data', title: t('nextcloud-vue', 'Data'), disabled: false })
+			}
+			return tabs
 		},
 
 		schemaTitle() {
@@ -393,6 +445,18 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Find the activeTab index for a tab key. Used by the v-show panel
+		 * gating so a hidden tab (e.g. metadata off) doesn't desync the
+		 * tab-nav indexes from the panels.
+		 *
+		 * @param {string} key Tab key — 'properties' | 'metadata' | 'data'.
+		 * @return {number} Index in resolvedTabs, or -1 when not visible.
+		 */
+		tabIndex(key) {
+			return this.resolvedTabs.findIndex((t) => t.key === key)
+		},
+
 		initFormData(item) {
 			if (item) {
 				this.formData = JSON.parse(JSON.stringify(item))
@@ -650,5 +714,49 @@ export default {
 :deep(.tab-content) {
 	padding: 16px;
 	background-color: var(--color-main-background);
+}
+
+/* Hand-rolled tab nav — replaces bootstrap-vue's BTabs/BTab. */
+.cn-advanced-form-dialog__tab-nav {
+	display: flex;
+	gap: 0;
+	list-style: none;
+	padding: 0;
+	margin: 0 0 16px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-advanced-form-dialog__tab-nav-item {
+	flex: 1 1 0;
+}
+
+.cn-advanced-form-dialog__tab-button {
+	width: 100%;
+	padding: 10px 14px;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-advanced-form-dialog__tab-button:hover:not(:disabled) {
+	border-bottom-color: var(--color-border);
+	color: var(--color-main-text);
+}
+
+.cn-advanced-form-dialog__tab-button.is-active {
+	color: var(--color-main-text);
+	border-bottom-color: var(--color-primary);
+}
+
+.cn-advanced-form-dialog__tab-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.cn-advanced-form-dialog__tab-content {
+	padding: 16px 0;
 }
 </style>

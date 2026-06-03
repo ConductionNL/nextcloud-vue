@@ -84,6 +84,13 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 const WARNED_LINK_KEYS = new Set()
 
 /**
+ * Module-level set of column keys already warned about for a
+ * `widget:"link"` declaration with no resolvable target — guarantees
+ * one warning per (page, column-key) rather than per row × render.
+ */
+const WARNED_LINK_KEYS = new Set()
+
+/**
  * CnCellRenderer — Type-aware cell renderer for schema-driven tables.
  *
  * Renders a single cell value based on its schema property definition.
@@ -131,7 +138,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
 		 * When set and resolvable in the injected `cnFormatters` registry,
@@ -142,7 +148,6 @@ export default {
 			type: String,
 			default: null,
 		},
-
 		/**
 		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
 		 * name). When it resolves in `cnCellWidgets` the cell renders that
@@ -156,13 +161,11 @@ export default {
 			type: String,
 			default: null,
 		},
-
 		/** Extra props spread onto the resolved cell-widget component. */
 		widgetProps: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * The full row object — passed so a formatter can be a function of
 		 * the whole record (e.g. "days since `@self.updated`"), not just
@@ -172,13 +175,11 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/** Maximum string length before truncation */
 		truncate: {
 			type: Number,
 			default: 100,
 		},
-
 		/**
 		 * Row identifier field — used by the built-in `widget:"link"` when
 		 * the manifest doesn't specify an explicit `widgetProps.params`
@@ -252,9 +253,7 @@ export default {
 		 * Resolved external href for the built-in `widget:"link"` when
 		 * `widgetProps.href` is set. `{key}` placeholders in the href
 		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
-		 * → `"/x/42"`). The final computed value is validated with
-		 * `safeHref` so row-injected values cannot introduce unsafe
-		 * schemes. Returns null when `href` isn't set.
+		 * → `"/x/42"`). Returns null when `href` isn't set.
 		 *
 		 * @return {string|null}
 		 */
@@ -262,8 +261,9 @@ export default {
 			if (this.widget !== 'link') return null
 			const href = this.widgetProps && this.widgetProps.href
 			if (!href) return null
-			const resolved = String(href).replace(/\{(\w+)\}/g, (_, key) => this.row && this.row[key] !== null && this.row[key] !== undefined ? String(this.row[key]) : '')
-			return safeHref(resolved)
+			return String(href).replace(/\{(\w+)\}/g, (_, key) =>
+				this.row && this.row[key] != null ? String(this.row[key]) : '',
+			)
 		},
 
 		/**
@@ -287,6 +287,7 @@ export default {
 				try {
 					return this.formatterFn(this.value, this.row, this.property)
 				} catch (e) {
+					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
 				}
 			}
@@ -330,8 +331,10 @@ export default {
 			const key = this.property?.title || String(this.value).slice(0, 20)
 			if (!WARNED_LINK_KEYS.has(key)) {
 				WARNED_LINK_KEYS.add(key)
-
-				console.warn(`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnCellRenderer] widget:"link" on "${key}" has no resolvable target — set widgetProps.route (page id) or widgetProps.href (URL with optional {field} placeholders); cell falls back to plain text.`,
+				)
 			}
 		}
 	},

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import { getCurrentUser } from '@nextcloud/auth'
+import { computed, unref, onMounted, onBeforeUnmount } from 'vue'
+import { tryOnScopeDispose } from '@vueuse/core'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { tryOnScopeDispose } from '@vueuse/core'
-import { computed, onBeforeUnmount, onMounted, unref } from 'vue'
+import { getCurrentUser } from '@nextcloud/auth'
 
 /**
  * Thrown when an `acquire()` POST returns 409 (Conflict) or 423
@@ -13,6 +13,7 @@ import { computed, onBeforeUnmount, onMounted, unref } from 'vue'
  * a "Locked by X" banner without a second fetch.
  */
 export class LockConflictError extends Error {
+
 	/**
 	 * @param {string}      message  Human-readable description.
 	 * @param {object|null} info     Lock metadata (`{ user, displayName, expiresAt }`) parsed from the response.
@@ -23,6 +24,7 @@ export class LockConflictError extends Error {
 		this.lockedBy = info?.user ?? info?.displayName ?? null
 		this.expiresAt = info?.expiresAt ?? null
 	}
+
 }
 
 /**
@@ -30,10 +32,12 @@ export class LockConflictError extends Error {
  * Consumers may fall back to "edit without lock" UX.
  */
 export class PermissionError extends Error {
+
 	constructor(message) {
 		super(message)
 		this.name = 'PermissionError'
 	}
+
 }
 
 /**
@@ -73,15 +77,9 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 	const isVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
 	let renewTimer = null
 
-	function readType() {
-		return unref(schema)
-	}
-	function readId() {
-		return unref(id)
-	}
-	function readRegister() {
-		return unref(register)
-	}
+	function readType() { return unref(schema) }
+	function readId() { return unref(id) }
+	function readRegister() { return unref(register) }
 
 	function readSelfLock() {
 		const t = readType()
@@ -175,10 +173,7 @@ export function useObjectLock(objectStore, register, schema, id, options = {}) {
 		if (!autoRenew) return
 		renewTimer = setInterval(() => {
 			if (!isVisible()) return
-			if (!lockedByMe.value) {
-				stopRenewTimer()
-				return
-			}
+			if (!lockedByMe.value) { stopRenewTimer(); return }
 			// Re-issue acquire; idempotent on the server (resets TTL).
 			acquire().catch(() => stopRenewTimer())
 		}, renewIntervalMs)

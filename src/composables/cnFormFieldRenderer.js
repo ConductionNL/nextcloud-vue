@@ -57,9 +57,9 @@ import CnJsonViewer from '../components/CnJsonViewer/CnJsonViewer.vue'
 // @nextcloud/vue versions; falling back to NcTextField with a
 // `multiline` prop hint keeps this resilient. The actual textarea
 // rendering is delegated to the textarea fallback below.
-let NcTextArea
+let NcTextArea = null
 try {
-	// eslint-disable-next-line no-undef
+	// eslint-disable-next-line global-require
 	NcTextArea = require('@nextcloud/vue').NcTextArea ?? null
 } catch (_e) {
 	NcTextArea = null
@@ -105,11 +105,6 @@ function resolveEnumOptions(field) {
  * Resolve render bindings for a single form field.
  *
  * @param {object} args See module docblock.
- * @param args.field
- * @param args.value
- * @param args.onInput
- * @param args.t
- * @param args.componentMap
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
  */
 export function cnRenderFormField({ field, value, onInput, t, componentMap } = {}) {
@@ -236,8 +231,10 @@ export function cnRenderFormField({ field, value, onInput, t, componentMap } = {
 	if (!KNOWN_TYPES.includes(field.type)) {
 		if (!warned.has(field.type)) {
 			warned.add(field.type)
-
-			console.warn(`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`)
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[cnRenderFormField] Unknown field.type "${field.type}" for field "${field.key}". Falling back to NcTextField. Known types: ${KNOWN_TYPES.join(', ')}.`,
+			)
 		}
 		return {
 			kind: 'fallback',

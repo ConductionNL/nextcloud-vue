@@ -47,6 +47,20 @@ describe('app-manifest.schema.json (metadata)', () => {
 	it('disallows additional top-level properties', () => {
 		expect(schema.additionalProperties).toBe(false)
 	})
+
+	it('menu item section enum is the three-section model (main / footer / settings)', () => {
+		expect(schema.$defs.menuItem.properties.section.enum).toEqual(['main', 'footer', 'settings'])
+	})
+
+	it('child menu item section enum also includes footer', () => {
+		expect(schema.$defs.menuItemLeaf.properties.section.enum).toEqual(['main', 'footer', 'settings'])
+	})
+
+	it('declares the nav block with includePersonalSettings + settingsLabel', () => {
+		expect(schema.properties.nav).toBeDefined()
+		expect(schema.properties.nav.properties.includePersonalSettings).toMatchObject({ type: 'boolean' })
+		expect(schema.properties.nav.properties.settingsLabel).toMatchObject({ type: 'string' })
+	})
 })
 
 describe('validateManifest (FE)', () => {
@@ -163,93 +177,6 @@ describe('validateManifest — extended page types (manifest-page-type-extension
 
 	it('schema declares its version as 1.5.0', () => {
 		expect(schema.version).toBe('1.5.0')
-	})
-})
-
-describe('validateManifest — manifest-wiki-page-type', () => {
-	it('accepts a wiki page with register + schema', () => {
-		const result = validateManifest({
-			version: '1.1.0',
-			menu: [],
-			pages: [{
-				id: 'kb',
-				route: '/kb/:id',
-				type: 'wiki',
-				title: 't',
-				config: { register: 'pipelinq', schema: 'article' },
-			}],
-		})
-		expect(result.valid).toBe(true)
-		expect(result.errors).toEqual([])
-	})
-
-	it('accepts a wiki page with optional sidebar fields', () => {
-		const result = validateManifest({
-			version: '1.1.0',
-			menu: [],
-			pages: [{
-				id: 'kb',
-				route: '/kb/:id',
-				type: 'wiki',
-				title: 't',
-				config: {
-					register: 'pipelinq',
-					schema: 'article',
-					contentField: 'markdown',
-					sidebarSchema: 'category',
-					treeField: 'children',
-				},
-			}],
-		})
-		expect(result.valid).toBe(true)
-	})
-
-	it('rejects a wiki page missing register', () => {
-		const result = validateManifest({
-			version: '1.1.0',
-			menu: [],
-			pages: [{
-				id: 'kb',
-				route: '/kb/:id',
-				type: 'wiki',
-				title: 't',
-				config: { schema: 'article' },
-			}],
-		})
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('pages[0].config') && e.includes('wiki pages must declare register and schema'))).toBe(true)
-	})
-
-	it('rejects a wiki page missing schema', () => {
-		const result = validateManifest({
-			version: '1.1.0',
-			menu: [],
-			pages: [{
-				id: 'kb',
-				route: '/kb/:id',
-				type: 'wiki',
-				title: 't',
-				config: { register: 'pipelinq' },
-			}],
-		})
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('wiki pages must declare register and schema'))).toBe(true)
-	})
-
-	it('rejects a wiki page with empty register / schema strings', () => {
-		const result = validateManifest({
-			version: '1.1.0',
-			menu: [],
-			pages: [{
-				id: 'kb',
-				route: '/kb/:id',
-				type: 'wiki',
-				title: 't',
-				config: { register: '', schema: '' },
-			}],
-		})
-		expect(result.valid).toBe(false)
-		expect(result.errors.some((e) => e.includes('wiki pages must declare register and schema'))).toBe(true)
 	})
 })
 

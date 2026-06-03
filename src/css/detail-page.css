@@ -16,6 +16,10 @@
 	margin-bottom: calc(4 * var(--default-grid-baseline));
 	flex-wrap: wrap;
 	gap: calc(4 * var(--default-grid-baseline));
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content) plus 12px breathing
+	   room. Only the HEADER shifts right — body content keeps full width. */
+	padding-inline-start: 56px;
 }
 
 .cn-detail-page__header-left {

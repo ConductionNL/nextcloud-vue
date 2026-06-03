@@ -554,7 +554,11 @@ export default {
 
 		isValidEmail(v) {
 			if (!v) return false
-			return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+			// Forbid '.' inside each domain segment to remove the
+			// `[^\s@]+\.[^\s@]+` ambiguity that triggers ReDoS
+			// (codeql js/redos). Multi-label domains still match via the
+			// repeated `(\.[^\s@.]+)+` group.
+			return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v)
 		},
 
 		isValidUri(v) {

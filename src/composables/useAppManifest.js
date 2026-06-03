@@ -3,6 +3,7 @@ import { generateUrl } from '@nextcloud/router'
 import { ref } from 'vue'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 import { validateManifest } from '../utils/validateManifest.js'
+import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 
 /**
  * Composable that loads, resolves, and validates a Conduction app manifest.
@@ -148,7 +149,7 @@ function loadInMemory(input) {
 		const result = validateManifest(input.manifest)
 		if (!result.valid) {
 			validationErrors.value = result.errors
-
+			// eslint-disable-next-line no-console
 			console.warn(
 				'[useAppManifest] In-memory manifest failed schema validation; manifest is mounted unchanged (validation is informational).',
 				result.errors,
@@ -211,7 +212,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 				return
 			}
 			manifest.value = resolved
-		} catch (_err) {
+		} catch (err) {
 			// Silent fallback on 404, network errors, non-200 responses.
 			// Apps without a backend endpoint should keep working.
 		} finally {

@@ -93,6 +93,9 @@ import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
  *     this.$refs.copyDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user confirms copying. Payload: `{ id, newName }`.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnCopyDialog',
@@ -142,12 +145,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully copied.'),
 		},
-
-		/** Label for the cancel button */
+		/** Label for the cancel button (visible before the copy runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button */
+		/** Label for the close button (visible after copy completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
-		/** Label for the confirm / primary action button */
+		/** Label for the primary confirm button that triggers the copy. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Copy') },
 	},
 
@@ -192,11 +194,6 @@ export default {
 	beforeDestroy() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
-
-	/**
-	 * @event confirm Emitted when the user confirms copying. Payload: `{ id, newName }`.
-	 * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
-	 */
 
 	methods: {
 		applyPattern(name, patternId) {

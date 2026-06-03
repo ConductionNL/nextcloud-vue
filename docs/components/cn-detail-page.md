@@ -117,57 +117,40 @@ both `sidebar` (Object) and `sidebarProps` are set with overlapping
 fields, the Object form wins and a `console.warn` fires once per
 component instance listing the conflicting fields.
 
-## Schema-driven mode
+## Sidebar tabs from a manifest
 
-Setting `register` + `schema` + `objectId` (typically from a manifest
-`type: "detail"` page entry — `CnPageRenderer` forwards them as props
-from `page.config` and `$route.params`) opts CnDetailPage into the
-**schema-driven contract**:
-
-1. The page lazy-resolves `useObjectStore()` (or honours an explicit
-   `objectStore` prop) and registers the type slug
-   `${register}-${schema}` with the canonical 4-arg signature
-   (`slug, schemaId, registerId, { registerSlug, schemaSlug }`).
-2. On mount and on every `register` / `schema` / `objectId` change, it
-   calls `objectStore.fetchObject(slug, objectId)` and
-   `objectStore.fetchSchema(slug)` in parallel.
-3. When the object has loaded AND the default slot is empty AND the
-   grid-layout mode is not active, the body auto-renders
-   `<CnObjectDataWidget>` followed by `<CnObjectMetadataWidget>` for
-   the loaded object — no further wiring required.
-4. The `sidebarTabs` prop is forwarded via the injected
-   `objectSidebarState` to whatever `<CnObjectSidebar>` the host App
-   renders (or the one `CnAppRoot` auto-mounts at NcContent level when
-   the consumer doesn't provide their own).
-
-Manifest authors get a working detail surface from a single config
-block:
+Manifest `type:'detail'` pages declare their sidebar tabs in
+`config.sidebarTabs[]` (the human-authored source of truth). Each
+entry has `id` + `label` (required), optional `icon`, `order`,
+`component`, `_note`. Widgets bound to a tab carry
+`tabGroup: "<tab.id>"` on `slot:"sidebar"` entries.
 
 ```json
 {
-  "id": "VirtualAppDetail",
-  "route": "/applications/:objectId",
+  "id": "ZaakDetail",
+  "route": "/zaken/:id",
   "type": "detail",
-  "title": "Virtual app",
+  "title": "Case",
   "config": {
-    "register": "openbuilt",
-    "schema": "application",
-    "actionsComponent": "ApplicationDetailActions",
+    "register": "zaakafhandelapp",
+    "schema": "zaak",
     "sidebarTabs": [
-      { "id": "overview", "label": "Overview", "widgets": [{"type": "data"}, {"type": "metadata"}] },
-      { "id": "manifest", "label": "Manifest", "component": "ApplicationManifestTab" }
+      { "id": "overview", "label": "Overview", "order": 10 },
+      { "id": "history",  "label": "History",  "order": 20, "icon": "icon-history" }
     ]
-  }
+  },
+  "widgets": [
+    { "widgetKey": "data", "slot": "sidebar", "tabGroup": "overview", "gridX": 0, "gridY": 0, "gridWidth": 1, "gridHeight": 1 }
+  ]
 }
 ```
 
-To override the auto-body, pass content in the default slot — slot
-content always wins and the auto-widgets are suppressed.
+The validator checks two invariants:
 
-To override the auto-fetched object, pass an explicit `objectStore`
-prop (e.g. an app-scoped store with custom interceptors). The page
-calls the same `registerObjectType` + `fetchObject` lifecycle against
-your store.
+1. **Tab shape** — each `sidebarTabs[]` entry MUST have non-empty `id` + `label`; `id`s MUST be unique within the page.
+2. **Cross-reference** — every `widgets[]` entry with `slot:"sidebar"` and a `tabGroup` value MUST match a declared `sidebarTabs[].id`. Catches the silent-typo case where a tab-bound widget references a non-existent tab.
+
+The CLI `manifest-migrate` transform lifts `config.sidebarTabs[].widgets[]` into top-level `widgets[]` with `slot:"sidebar"` + `tabGroup` at build time. Component-only tab entries (declaring only `component`) are carried forward in the residual `sidebarTabs[]` for runtime resolution against the customComponents registry.
 
 ## Usage
 
@@ -252,6 +235,27 @@ When the auto-generated rows from `statsRows` aren't flexible enough, use the `#
 </template>
 ```
 
+## Public (unauthenticated) detail pages
+
+`pages[].config.mode: 'public'` marks a detail route as unauthenticated — token-scoped reader pages like credential verification or shared-link views. Pair with the `@route.<param>` sentinel (see [`resolveRouteSentinels`](../utilities/resolve-route-sentinels.md)) for the token binding:
+
+```json
+{
+  "id": "CredentialVerify",
+  "route": "/credentials/:token/verify",
+  "type": "detail",
+  "title": "Verify credential",
+  "config": {
+    "register": "scholiq",
+    "schema": "credential",
+    "mode": "public",
+    "filter": { "token": "@route.token" }
+  }
+}
+```
+
+The schema's typed `mode` enum (`edit | create | public`) gives consumers IDE completion + sharp validator errors on typos. Today the manifest carries the intent — `CnDetailPage` does not yet branch on `mode` for auth-header bypass; the host app skips auth headers based on the route. A follow-up will wire native public-mode handling into the component so consumers don't have to coordinate auth-bypass externally.
+
 ## When to use CnDetailPage vs other page components
 
 | Component | Use when... |
@@ -281,6 +285,31 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 |---|---|---|---|
 | `surface` | String | `'detail-page'` | Rendering surface forwarded to integration widgets in the grid layout (widget defs with `type === 'integration'`). Drives the AD-19 surface fallback. |
 | `integrationContext` (`integration-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. When omitted it is derived from `sidebarProps.register` / `sidebarProps.schema` (or `objectType`) and `objectId`. |
+
+## Built-in Actions menu
+
+The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Refresh and Request-a-feature are **on by default**; opt out per item with `:show-refresh="false"` / `:show-request-feature="false"`.
+
+- **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
+- **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
+- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "detail:<id>"` when mounted under `CnAppRoot`.
+
+Set `:page-id` for a stable id/surface (it otherwise falls back to a slugified `title`). All the menu props are forwarded to [`CnActionsMenu`](./cn-actions-menu):
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `documentationUrl` | `''` | When set, renders the **Documentation** entry (opens in a new tab). |
+| `documentationLabel` | `t('Documentation')` | Pre-translated Documentation label. |
+| `specRef` | `''` | Forwarded to the feature-request modal. |
+| `refreshing` | `false` | When bound, the Refresh icon spins while true. |
+| `optimisticSpinMs` | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshLabel` | `t('Refresh')` | Pre-translated Refresh label. |
+| `requestFeatureLabel` | `t('Request a feature')` | Pre-translated Request-a-feature label. |
+| `actionsMenuLabel` | `t('Actions')` | Pre-translated overflow-menu trigger label. |
+
+| Slot | Description |
+|------|-------------|
+| `action-items` | Extra items appended inside the overflow menu, after the built-in trio. |
 
 ## Reference (auto-generated)
 

@@ -94,6 +94,9 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  *     this.$refs.exportDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user clicks the export button. Payload: `{ format: string }` — the selected format ID.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnMassExportDialog',
@@ -140,14 +143,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export completed successfully.'),
 		},
-
-		/** Label for the export format selector */
+		/** Label rendered above the export format selector. */
 		formatLabel: { type: String, default: () => t('nextcloud-vue', 'Export format') },
-		/** Label for the cancel button */
+		/** Label for the cancel button (visible before the export runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button */
+		/** Label for the close button (visible after export completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
-		/** Label for the confirm / primary action button */
+		/** Label for the primary confirm button that triggers the export. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 

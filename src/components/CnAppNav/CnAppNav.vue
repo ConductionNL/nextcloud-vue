@@ -7,12 +7,30 @@
   an order render last. Items with a `permission` are filtered against
   the `permissions` prop — when the prop is omitted, all items render.
 
-  Items split into two groups by `section`:
+  An optional primary action renders above the main list as an
+  NcAppNavigationNew button (e.g. a "new" button or an active-context
+  switcher). Hosts supply it via the `#primary-action` slot (full
+  control over dynamic content + click handling); a static
+  `nav.primaryAction` ({ label, icon?, route?, href? }) manifest field
+  is the declarative fallback. The slot wins when both are present;
+  nothing renders when neither is.
+
+  Items split into three groups by `section`:
   - `section: "main"` (default) — top of the navigation, scrollable.
-  - `section: "settings"` — pinned to the bottom inside NcAppNavigation's
-    `#footer` slot, always visible above the close-toggle, separated
-    from the main list by a thin border. Use for documentation links,
-    settings entries, or anything that should sit at the bottom.
+  - `section: "footer"` — bottom-pinned entries rendered via
+    NcAppNavigationItem's native `pinned` prop (NC's own
+    `order: 2; margin-top: auto`), sticking to the bottom of the list
+    above the settings foldout. For always-visible, non-settings links:
+    Documentation, Features & Roadmap, About.
+  - `section: "settings"` — rendered INSIDE an NcAppNavigationSettings
+    foldout (the NC-native gear-icon button that slides a panel open).
+    A "Personal settings" entry is auto-prepended at the top of the
+    foldout (opens the host app's NcAppSettingsDialog via
+    cnOpenUserSettings); opt out with `nav.includePersonalSettings:
+    false`. The foldout mounts whenever there are settings items OR
+    personal settings is enabled — so every app shows a Settings gear
+    with at least Personal settings. It is only fully suppressed when
+    there are no settings items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -30,6 +48,22 @@
 -->
 <template>
 	<NcAppNavigation data-testid="cn-nav">
+		<!-- @slot primary-action Optional primary action rendered above the
+		     main list as NcAppNavigation's top region (e.g. an app's "new"
+		     button or an active-context switcher). When provided, it takes
+		     precedence over a manifest-declared nav.primaryAction. Omitted
+		     entirely when neither the slot nor nav.primaryAction is present. -->
+		<slot name="primary-action">
+			<NcAppNavigationNew
+				v-if="primaryAction"
+				:text="resolveLabel(primaryAction)"
+				data-testid="cn-nav-primary-action"
+				@click="onPrimaryActionClick">
+				<template v-if="mdiIconComponent(primaryAction)" #icon>
+					<component :is="mdiIconComponent(primaryAction)" :size="20" />
+				</template>
+			</NcAppNavigationNew>
+		</slot>
 		<template #list>
 			<NcAppNavigationItem
 				v-for="item in mainItems"
@@ -37,41 +71,94 @@
 				:name="resolveLabel(item)"
 				:to="itemTo(item)"
 				:exact="isExact(item)"
-				:icon="item.icon"
+				:icon="cssIconClass(item)"
 				:active="isActive(item)"
 				:data-testid="`cn-nav-entry-${item.id}`"
 				@click="onItemClick(item, $event)">
+				<template v-if="mdiIconComponent(item)" #icon>
+					<component :is="mdiIconComponent(item)" :size="20" />
+				</template>
 				<NcAppNavigationItem
 					v-for="child in visibleChildren(item)"
 					:key="child.id"
 					:name="resolveLabel(child)"
 					:to="itemTo(child)"
 					:exact="isExact(child)"
-					:icon="child.icon"
+					:icon="cssIconClass(child)"
 					:active="isActive(child)"
 					:data-testid="`cn-nav-entry-${child.id}`"
-					@click="onItemClick(child, $event)" />
+					@click="onItemClick(child, $event)">
+					<template v-if="mdiIconComponent(child)" #icon>
+						<component :is="mdiIconComponent(child)" :size="20" />
+					</template>
+				</NcAppNavigationItem>
+			</NcAppNavigationItem>
+
+			<!-- Footer-section entries (Documentation, Features & Roadmap,
+				     About) use NcAppNavigationItem's native `pinned` prop. NC
+				     bottom-pins them (above the settings foldout) via its own
+				     `order: 2; margin-top: auto` rule — no custom wrapper or
+				     CSS, just the native primitive. -->
+			<NcAppNavigationItem
+				v-for="item in footerItems"
+				:key="item.id"
+				:pinned="true"
+				:name="resolveLabel(item)"
+				:to="itemTo(item)"
+				:exact="isExact(item)"
+				:icon="cssIconClass(item)"
+				:active="isActive(item)"
+				:data-testid="`cn-nav-entry-${item.id}`"
+				@click="onItemClick(item, $event)">
+				<template v-if="mdiIconComponent(item)" #icon>
+					<component :is="mdiIconComponent(item)" :size="20" />
+				</template>
 			</NcAppNavigationItem>
 		</template>
-		<template v-if="settingsItems.length" #footer>
-			<ul class="cn-app-nav__footer-list" data-testid="cn-nav-footer">
-				<NcAppNavigationItem
-					v-for="item in settingsItems"
-					:key="item.id"
-					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:exact="isExact(item)"
-					:icon="item.icon"
-					:active="isActive(item)"
-					:data-testid="`cn-nav-entry-${item.id}`"
-					@click="onItemClick(item, $event)" />
-			</ul>
+		<template v-if="showSettingsFoldout" #footer>
+			<!-- Settings foldout (section: "settings" items). NC-native
+			     gear-icon button that slides open a panel; the first entry
+			     is an auto-prepended "Personal settings" that opens the
+			     host app's NcAppSettingsDialog via cnOpenUserSettings. -->
+			<NcAppNavigationSettings
+				v-if="showSettingsFoldout"
+				:name="settingsFoldoutLabel"
+				data-testid="cn-nav-settings">
+				<ul class="cn-app-nav__settings-list">
+					<NcAppNavigationItem
+						v-if="includePersonalSettings"
+						:name="personalSettingsLabel"
+						data-testid="cn-nav-personal-settings"
+						@click="onPersonalSettingsClick">
+						<template #icon>
+							<Cog :size="20" />
+						</template>
+					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-for="item in settingsItems"
+						:key="item.id"
+						:name="resolveLabel(item)"
+						:to="itemTo(item)"
+						:exact="isExact(item)"
+						:icon="cssIconClass(item)"
+						:active="isActive(item)"
+						:data-testid="`cn-nav-entry-${item.id}`"
+						@click="onItemClick(item, $event)">
+						<template v-if="mdiIconComponent(item)" #icon>
+							<component :is="mdiIconComponent(item)" :size="20" />
+						</template>
+					</NcAppNavigationItem>
+				</ul>
+			</NcAppNavigationSettings>
 		</template>
 	</NcAppNavigation>
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+import { translate as t } from '@nextcloud/l10n'
+import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
@@ -81,6 +168,9 @@ export default {
 	components: {
 		NcAppNavigation,
 		NcAppNavigationItem,
+		NcAppNavigationNew,
+		NcAppNavigationSettings,
+		Cog,
 	},
 
 	inject: {
@@ -143,6 +233,17 @@ export default {
 		},
 
 		/**
+		 * Manifest-declared primary action (`nav.primaryAction`) rendered
+		 * as an NcAppNavigationNew button above the main list. Null when
+		 * not declared. Ignored when the host supplies the
+		 * `#primary-action` slot (the slot wins).
+		 *
+		 * @return {object|null} `{ label, icon?, route?, href? }` or null.
+		 */
+		primaryAction() {
+			return this.effectiveManifest?.nav?.primaryAction ?? null
+		},
+		/**
 		 * All visible items (filtered by permission and visibleIf conditions,
 		 * sorted by order). Retained for backwards-compat with the previous
 		 * public API and tests that read this computed; new code should use
@@ -169,24 +270,108 @@ export default {
 		},
 
 		/**
-		 * Items that render inside the `#footer` slot of NcAppNavigation
-		 * — always visible at the bottom of the navigation, above the
-		 * close-toggle. Use for help / docs / settings entries that
-		 * should anchor to the bottom rather than scroll with the main
-		 * list.
+		 * Items pinned to the bottom of the navigation (section:
+		 * "footer") — rendered as flat NcAppNavigationItems above the
+		 * settings foldout. For always-visible, non-settings entries:
+		 * Documentation, Features & Roadmap, About.
+		 */
+		footerItems() {
+			return this.visibleItems.filter((item) => item.section === 'footer')
+		},
+		/**
+		 * Items that render INSIDE the NcAppNavigationSettings foldout
+		 * (section: "settings"). The foldout is the NC-native gear-icon
+		 * button that slides a panel open; these entries are app-level
+		 * configuration pages (Forms, Pipelines, Automations, …).
 		 */
 		settingsItems() {
 			return this.visibleItems.filter((item) => item.section === 'settings')
 		},
+		/**
+		 * Whether the settings foldout mounts. Mounts when there is at
+		 * least one `section: "settings"` item OR personal settings is
+		 * enabled — so every app shows a Settings gear with at least the
+		 * auto-prepended "Personal settings" entry. Only fully suppressed
+		 * when there are no settings items AND `nav.includePersonalSettings`
+		 * is explicitly `false`.
+		 *
+		 * @return {boolean}
+		 */
+		showSettingsFoldout() {
+			return this.settingsItems.length > 0 || this.includePersonalSettings
+		},
+		/**
+		 * Whether to auto-prepend the "Personal settings" entry at the top
+		 * of the foldout. On by default; opt out with
+		 * `manifest.nav.includePersonalSettings: false` (e.g. when the app
+		 * has no per-user NcAppSettingsDialog wired through
+		 * cnOpenUserSettings).
+		 *
+		 * @return {boolean}
+		 */
+		includePersonalSettings() {
+			return this.effectiveManifest?.nav?.includePersonalSettings !== false
+		},
+		/**
+		 * Label for the foldout's gear button. Manifest override:
+		 * `nav.settingsLabel`; defaults to "Settings".
+		 *
+		 * @return {string}
+		 */
+		settingsFoldoutLabel() {
+			const custom = this.effectiveManifest?.nav?.settingsLabel
+			if (typeof custom === 'string' && custom.length > 0) {
+				return this.effectiveTranslate(custom)
+			}
+			return t('nextcloud-vue', 'Settings')
+		},
+		/**
+		 * Label for the auto-prepended Personal-settings entry.
+		 *
+		 * @return {string}
+		 */
+		personalSettingsLabel() {
+			return t('nextcloud-vue', 'Personal settings')
+		},
 	},
 
 	methods: {
+		/**
+		 * Resolve a menu item's `icon` string to an MDI Vue component
+		 * via the per-app `registerIcons()` registry. Returns the
+		 * component when the icon name is a registered MDI key,
+		 * otherwise `null` so the template falls back to the
+		 * `:icon="cssIconClass(item)"` (CSS class) path.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {import('vue').Component|null}
+		 */
+		mdiIconComponent(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0) return null
+			if (icon.startsWith('icon-')) return null
+			return ICON_MAP[icon] || null
+		},
+		/**
+		 * Pass-through for the `:icon` prop on NcAppNavigationItem when
+		 * the manifest declares a Nextcloud CSS-class icon (`icon-*`).
+		 * Returns an empty string when the icon is an MDI name so
+		 * NcAppNavigationItem doesn't render a bogus CSS class — the
+		 * `#icon` slot above handles the MDI path.
+		 *
+		 * @param {{ icon?: string }} item Menu item descriptor.
+		 * @return {string}
+		 */
+		cssIconClass(item) {
+			const icon = item?.icon
+			if (typeof icon !== 'string' || icon.length === 0) return ''
+			return icon.startsWith('icon-') ? icon : ''
+		},
 		passesPermission(item) {
 			if (!item.permission) return true
 			if (!this.permissions || this.permissions.length === 0) return true
 			return this.permissions.includes(item.permission)
 		},
-
 		/**
 		 * Evaluate a menu item's `visibleIf` condition block.
 		 *
@@ -226,10 +411,11 @@ export default {
 
 			return true
 		},
-
 		visibleChildren(item) {
 			if (!Array.isArray(item.children)) return []
-			return item.children.filter((c) => this.passesPermission(c) && this.passesVisibleIf(c))
+			return item.children.filter(
+				(c) => this.passesPermission(c) && this.passesVisibleIf(c),
+			)
 		},
 
 		resolveLabel(item) {
@@ -313,6 +499,46 @@ export default {
 			}
 			window.open(item.href, '_blank', 'noopener,noreferrer')
 		},
+		/**
+		 * Click handler for the auto-prepended Personal-settings entry in
+		 * the settings foldout. Invokes the injected `cnOpenUserSettings`
+		 * (provided by CnAppRoot → opens the host's NcAppSettingsDialog).
+		 * No-op inject when mounted standalone.
+		 *
+		 * @return {void}
+		 */
+		onPersonalSettingsClick() {
+			this.cnOpenUserSettings()
+		},
+		/**
+		 * Click handler for the manifest-declared primary action. Emits
+		 * `primary-action-click` for host-side handling, then performs
+		 * default navigation: external `href` opens in a new tab; a
+		 * `route` pushes the named vue-router route. No-op when neither
+		 * is set. Not invoked when the host overrides the
+		 * `#primary-action` slot (it provides its own handler).
+		 *
+		 * @param {Event} [event] Native click event.
+		 * @return {void}
+		 */
+		onPrimaryActionClick(event) {
+			const action = this.primaryAction
+			if (!action) return
+			/**
+			 * @event primary-action-click Emitted when the manifest-declared primary-action button is clicked. Payload is the resolved nav.primaryAction object.
+			 */
+			this.$emit('primary-action-click', action)
+			if (action.href) {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				window.open(action.href, '_blank', 'noopener,noreferrer')
+				return
+			}
+			if (action.route && this.$router) {
+				this.$router.push({ name: action.route })
+			}
+		},
 	},
 }
 </script>
@@ -332,24 +558,26 @@ export default {
 }
 
 /*
- * Footer-list (section: "settings" items rendered in NcAppNavigation's
- * `#footer` slot). Reset list defaults so the entries align with the
- * main list, and add a thin separator above the group so it visually
- * detaches from the scrollable list when the two meet.
- *
- * NcAppNavigation's scoped style targets `.app-navigation__content >
- * ul` with `overflow-y: auto` + flex padding, and Vue 2 propagates the
- * parent's data-v attribute onto slot-root elements — so without these
- * overrides the footer list renders its own scrollbar even though the
- * footer area has plenty of room. The `!important` flags force-beat
- * the parent rule's specificity (which includes the data-v attribute).
+ * Footer-section items (section: "footer") now use NcAppNavigationItem's
+ * native `pinned` prop — NC bottom-pins them via its own
+ * `order: 2; margin-top: auto` rule. The previous hand-rolled
+ * `.cn-app-nav__footer-list` <ul> wrapper (with overflow/padding/border
+ * overrides) was the non-native bit that fought NC's layout and has been
+ * removed entirely.
  */
-.cn-app-nav__footer-list {
+
+/*
+ * Align the settings foldout's items with the main/footer list items,
+ * whose icons sit at a 16px inset. The foldout's items live in a bare
+ * <ul> inside NcAppNavigationSettings' panel (`#app-settings`, padding
+ * 3px), so without this they start ~5px further left and the icon
+ * column looks ragged. (The native settings-toggle button sits ~1px
+ * left of the 16px baseline, but NC owns that with an !important
+ * shorthand — a sub-pixel difference we leave to the native component.)
+ */
+.cn-app-nav__settings-list {
 	list-style: none;
 	margin: 0;
-	padding: 0 !important;
-	border-top: 1px solid var(--color-border);
-	overflow: visible !important;
-	flex: 0 0 auto;
+	padding-inline-start: 5px;
 }
 </style>

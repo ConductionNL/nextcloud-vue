@@ -1,6 +1,8 @@
 <template>
 	<NcSettingsSection
 		:name="name"
+		:description="description"
+		:doc-url="docUrl"
 		data-testid="cn-settings-section"
 		v-bind="$attrs">
 		<!--

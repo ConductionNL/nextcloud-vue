@@ -143,6 +143,107 @@ Every page entry can optionally override the default rendering of the [five atom
 
 The same JSON file that decides *what* pages exist also decides *what they look like*. No per-page Vue config files.
 
+## v2 Schema
+
+Manifest v2 introduces a set of structural improvements while keeping v1 manifests fully valid. You opt in by adding a `$schema` field pointing to the v2 schema URL.
+
+### The `$schema` field
+
+In v2, `$schema` is **required** at the top level:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+  "version": "2.0.0",
+  "menu": [],
+  "pages": []
+}
+```
+
+The validator reads this field to choose the right validation path: v2 schema ends with `/app-manifest-v2.schema.json`, anything else (including absent) uses the v1 hand-rolled validator. This means v1 and v2 manifests can coexist in the same monorepo — each file declares its own version.
+
+### Unified `widgets[]` model
+
+In v2, `widgets[]` is a first-class array on **every** page type, not just `dashboard`. Each widget entry uses a uniform shape:
+
+```json
+{
+  "widgetKey": "MyStatsWidget",
+  "slot": "body",
+  "gridX": 0,
+  "gridY": 0,
+  "gridWidth": 6,
+  "gridHeight": 2,
+  "props": { "title": "myapp.kpis" }
+}
+```
+
+This replaces the v1 dashboard `widgetDef` + `layoutItem` pair with a single declarative record.
+
+### Per-slot grid system
+
+Each `widgetEntry` specifies a `slot` that determines where it is placed. The grid is 12 columns wide. The cross-field constraint `gridX + gridWidth ≤ 12` is enforced at runtime by `validateManifest()` (it cannot be expressed in JSON Schema).
+
+#### Slot taxonomy
+
+| Slot | Description | Grid constraint |
+|------|-------------|-----------------|
+| `body` | Main content area | `gridWidth` 1–12 |
+| `sidebar` | Side panel | `gridWidth` **MUST be 1** |
+| `header-actions` | Top-right action zone | `gridY` **MUST be 0** |
+| `footer` | Bottom zone | `gridWidth` 1–12 |
+| `modal` | Overlay | `gridWidth` 1–12 |
+| `tab:<id>` | Named tab strip (e.g. `tab:details`) | `gridWidth` 1–12 |
+| `section:<id>` | Named section (e.g. `section:addresses`) | `gridWidth` 1–12 |
+
+The `sidebar` and `header-actions` slot constraints are enforced by the v2 JSON Schema via `allOf` + `if/then` clauses. `gridX + gridWidth ≤ 12` is documented here and enforced by the validator's post-schema arithmetic check.
+
+### Action type discriminator
+
+`pages[].actions[]` entries in v2 carry a `type` discriminator:
+
+```json
+{
+  "id": "delete",
+  "label": "app.action.delete",
+  "type": "open-modal",
+  "target": "confirm-delete-dialog"
+}
+```
+
+| `type` | Behaviour |
+|--------|-----------|
+| `handler` (default) | Calls a registry function by `handler` key |
+| `open-modal` | Opens a modal by `target` id |
+| `open-page` | Navigates to a named route in `target` |
+| `navigate` | Navigates to a URL in `target` |
+
+When `type` is omitted, the Ajv instance (compiled with `useDefaults: true`) fills in `"handler"` for back-compatibility with v1.3.0 action declarations.
+
+### Migration guide
+
+The `manifest-migrate` CLI codemod automates the mechanical parts of the v1 → v2 migration. See **[Migrating to v2](../migrating-to-v2.md)** for the full guide.
+
+Quick start:
+
+```bash
+npx @conduction/nextcloud-vue manifest-migrate \
+  --input src/manifest.json \
+  --report MIGRATION_REPORT.md
+```
+
+What the codemod handles automatically:
+
+1. Sets `"$schema"` to the v2 canonical URL
+2. Merges `config.widgets[]` + `config.layout[]` into the uniform top-level `pages[].widgets[]`
+3. Lifts `sidebarTabs[].widgets[]` to `slot: "sidebar"` widget entries
+4. Flattens settings `sections[].widgets[]` and `tabs[]` to `slot: "section:*"` / `slot: "tab:*"`
+5. Migrates `cardComponent` to a `card-grid` widget entry
+6. Adds explicit `type: "handler"` to action entries where `type` was omitted
+7. Migrates `customComponents` → `registry` map
+
+Items requiring manual attention are listed in the migration report (`--report`).
+
 ## Where to next
 
 - **[Migrating to the JSON manifest](/docs/migrating-to-manifest)** — the step-by-step guide for moving an existing hand-wired app onto the manifest pattern. Read this when you're ready to adopt.

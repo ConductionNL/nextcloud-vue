@@ -20,69 +20,27 @@
 /**
  * Strict DOMPurify configuration for sanitizing user-generated markdown HTML.
  *
- * @type {Readonly<object>}
+ * @type {Readonly<Object>}
  */
 export const SAFE_MARKDOWN_DOMPURIFY_CONFIG = Object.freeze({
 	ALLOWED_TAGS: [
-		'p',
-		'br',
-		'hr',
-		'strong',
-		'em',
-		'del',
-		'code',
-		'pre',
-		'h1',
-		'h2',
-		'h3',
-		'h4',
-		'h5',
-		'h6',
-		'ul',
-		'ol',
-		'li',
+		'p', 'br', 'hr',
+		'strong', 'em', 'del', 'code', 'pre',
+		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+		'ul', 'ol', 'li',
 		'blockquote',
 		'a',
 		'img',
-		'table',
-		'thead',
-		'tbody',
-		'tr',
-		'th',
-		'td',
+		'table', 'thead', 'tbody', 'tr', 'th', 'td',
 	],
 	ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title'],
-	// Tightened to prevent protocol-relative URL bypass (`//attacker.com/...`).
-	// The original `[^a-z]` branch matched `/` (non-alpha), so `//evil.com` passed
-	// because its first character `/` is non-alpha. Fix: exclude `/` from `[^a-z]`
-	// and add an explicit `\/(?!\/)` branch that allows a single leading slash
-	// (root-relative same-origin path) while rejecting `//` (protocol-relative).
-	// All other branches are unchanged.
-	ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z/]|[a-z+.-]+(?:[^a-z+.\-:]|$)|\/(?!\/))/i,
+	ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
 	FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'button'],
 	// Strip every event-handler attribute (onclick, onerror, ...).
 	FORBID_ATTR: [
-		'onerror',
-		'onload',
-		'onclick',
-		'onmouseover',
-		'onfocus',
-		'onblur',
-		'onchange',
-		'onsubmit',
-		'onkeydown',
-		'onkeyup',
-		'onkeypress',
-		'onmousedown',
-		'onmouseup',
-		'onmousemove',
-		'onmouseout',
-		'onmouseenter',
-		'onmouseleave',
-		'onabort',
-		'onbeforeunload',
-		'onunload',
-		'onhashchange',
-		'onpopstate',
+		'onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur',
+		'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'onkeypress',
+		'onmousedown', 'onmouseup', 'onmousemove', 'onmouseout', 'onmouseenter', 'onmouseleave',
+		'onabort', 'onbeforeunload', 'onunload', 'onhashchange', 'onpopstate',
 	],
 })

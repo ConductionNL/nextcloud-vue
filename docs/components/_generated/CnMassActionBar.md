@@ -11,22 +11,22 @@
 | `showCopy`          | `boolean` |          | `true`                                                    | Whether to show the built-in Copy action                         |
 | `showDelete`        | `boolean` |          | `true`                                                    | Whether to show the built-in Delete action                       |
 | `menuLabelTemplate` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Mass actions (\{count\})')` | Label template for the menu button. Use \{count\} for the count. |
-| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                   | Label for the import action                                      |
-| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                   | Label for the export action                                      |
-| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                     | Label for the copy action                                        |
-| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                   | Label for the delete action                                      |
+| `importLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                   | Label for the built-in Import mass-action button.                |
+| `exportLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Export')`                   | Label for the built-in Export mass-action button.                |
+| `copyLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'Copy')`                     | Label for the built-in Copy mass-action button.                  |
+| `deleteLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Delete')`                   | Label for the built-in Delete mass-action button.                |
 
 ### Events
 
-| Name          | Payload | Description |
-| ------------- | ------- | ----------- |
-| `mass-import` | —       |             |
-| `mass-export` | —       |             |
-| `mass-copy`   | —       |             |
-| `mass-delete` | —       |             |
+| Name          | Payload | Description                                            |
+| ------------- | ------- | ------------------------------------------------------ |
+| `mass-import` | —       | Emitted when the Import action is clicked. No payload. |
+| `mass-export` | —       | Emitted when the Export action is clicked. No payload. |
+| `mass-copy`   | —       | Emitted when the Copy action is clicked. No payload.   |
+| `mass-delete` | —       | Emitted when the Delete action is clicked. No payload. |
 
 ### Slots
 
-| Name      | Bindings                | Description |
-| --------- | ----------------------- | ----------- |
-| `actions` | `count`, `selected-ids` |             |
+| Name      | Bindings                | Description                                                                                |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------ |
+| `actions` | `count`, `selected-ids` | actions Additional app-specific mass-action buttons. Slot scope: `{ count, selectedIds }`. |

@@ -243,7 +243,7 @@ export default {
 		// downstream code (Vue Router, `<component :is>`) attaches its
 		// internal `_Ctor` cache. Pre-unwrapping yields the raw component
 		// options object, which is extensible.
-		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then((m) => m.default),
+		CnAdvancedFormDialog: () => import('./CnAdvancedFormDialog.vue').then(m => m.default),
 	},
 
 	props: {

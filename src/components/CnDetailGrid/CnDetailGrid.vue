@@ -96,6 +96,18 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 export default {
 	name: 'CnDetailGrid',
 
+	setup() {
+		// Pluggable integration registry — used to render items that
+		// declare `referenceType: '<integration-id>'` (AD-18) via the
+		// integration's single-entity widget. Cheap when no such
+		// items exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
+	},
+
 	props: {
 		/**
 		 * Array of detail items to render.
@@ -124,6 +136,17 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * Object context forwarded to integration single-entity
+		 * widgets rendered for items that declare a `referenceType`:
+		 * `{ register, schema, objectId }`. Optional.
+		 *
+		 * @type {object|null}
+		 */
+		referenceContext: {
+			type: Object,
+			default: null,
+		},
 		/**
 		 * Layout mode.
 		 * - 'grid': Responsive card grid, label stacked above value
