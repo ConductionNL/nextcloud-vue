@@ -300,6 +300,8 @@ A manifest `type:"index"` page dispatches to `CnIndexPage` via `CnPageRenderer`,
 
 In this mode the page's rows, loading, pagination, schema, sort and search term all come from the `useListView` instance rather than from props; `@search` / `@sort` / `@page-changed` / `@filter-change` / `@refresh` route to its handlers (and still `$emit` for observers).
 
+Form save (create/edit), **mass export**, and **mass import** are also self-handled in this mode, because the manifest path has no parent listening for `@create` / `@edit` / `@mass-export` / `@mass-import`. Confirming the export dialog downloads the register/schema's objects in the chosen format from OpenRegister's `/api/objects/{register}/{schema}/export?type=` endpoint; confirming the import dialog uploads the file to `/api/registers/{register}/import` (multipart; the schema slug is added for CSV) and refreshes the list. Both resolve their dialog with no consumer handler required. In consumer-managed mode (`objects` supplied) `@mass-export` / `@mass-import` still just emit for the parent to handle.
+
 ### Scoping a list to a parent — `config.filter`
 
 `config.filter` becomes the [`filter` prop](#props) and is applied to **every** fetch as a *fixed* filter (a user's facet selection for the same key cannot override it). String values of the form `"@route.<name>"` or `":<name>"` resolve against `$route.params`; everything else is passed through literally. The filter re-resolves when `$route.params` change, so a list nested under a parent route (`/forms/:id/submissions`, `/automations/:id/history`) is a fully declarative `type:"index"` page:
