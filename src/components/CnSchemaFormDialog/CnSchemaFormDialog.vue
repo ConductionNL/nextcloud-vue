@@ -326,6 +326,7 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
+					defaultAutoShare: false,
 				},
 				authorization: {},
 				hardValidation: false,
@@ -573,6 +574,7 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
+					defaultAutoShare: false,
 				},
 				authorization: {},
 				hardValidation: false,
@@ -609,6 +611,9 @@ export default {
 				}
 				if (this.schemaItem.configuration.autoPublish === undefined) {
 					this.schemaItem.configuration.autoPublish = false
+				}
+				if (this.schemaItem.configuration.defaultAutoShare === undefined) {
+					this.schemaItem.configuration.defaultAutoShare = false
 				}
 			}
 

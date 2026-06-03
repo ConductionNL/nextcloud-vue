@@ -133,6 +133,11 @@
 			:checked.sync="schema.configuration.autoPublish">
 			{{ t('nextcloud-vue', 'Auto-publish objects') }}
 		</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch
+			:disabled="loading"
+			:checked.sync="schema.configuration.defaultAutoShare">
+			{{ t('nextcloud-vue', 'Default "Automatically publish" toggle to on for new attachments') }}
+		</NcCheckboxRadioSwitch>
 		<NcTextField
 			v-model="allowedTagsInput"
 			:disabled="loading"
