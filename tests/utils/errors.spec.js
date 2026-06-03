@@ -30,6 +30,53 @@ describe('parseResponseError', () => {
 		expect(error.status).toBe(400)
 		expect(error.isValidation).toBe(true)
 		expect(error.fields).toBeTruthy()
+		// The actual field message surfaces instead of a generic fallback.
+		expect(error.message).toBe('Name is required')
+	})
+
+	it('surfaces the message from an array of { property, message } errors', async () => {
+		const detail = "Property 'slaDeadline' should match format 'date-time' but '2026-06-18T10:14' does not."
+		const response = {
+			status: 400,
+			statusText: 'Bad Request',
+			json: () => Promise.resolve({
+				status: 'error',
+				message: 'Validation failed',
+				errors: [{ property: 'slaDeadline', message: detail }],
+			}),
+		}
+
+		const error = await parseResponseError(response, 'pipelinq-complaint')
+
+		expect(error.isValidation).toBe(true)
+		expect(error.message).toBe(detail)
+		expect(error.message).not.toContain('Validation failed for')
+	})
+
+	it('joins multiple validation messages', async () => {
+		const response = {
+			status: 400,
+			statusText: 'Bad Request',
+			json: () => Promise.resolve({
+				errors: ['Title is required', 'Category is required'],
+			}),
+		}
+
+		const error = await parseResponseError(response, 'complaint')
+
+		expect(error.message).toBe('Title is required\nCategory is required')
+	})
+
+	it('falls back to a generic message when no detail is usable', async () => {
+		const response = {
+			status: 400,
+			statusText: 'Bad Request',
+			json: () => Promise.resolve({ errors: [{}] }),
+		}
+
+		const error = await parseResponseError(response, 'complaint')
+
+		expect(error.message).toBe('Validation failed for complaint')
 	})
 
 	it('parses validation errors (422)', async () => {
