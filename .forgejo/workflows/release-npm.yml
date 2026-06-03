@@ -13,6 +13,4 @@ on:
 jobs:
   publish:
     uses: Conduction/.github/.forgejo/workflows/release-npm.yml@main
-    with:
-      dry-run: ${{ inputs.dry_run || false }}
     secrets: inherit
