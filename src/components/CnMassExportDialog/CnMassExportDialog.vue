@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -32,8 +32,9 @@
 				<label for="cn-mass-export-format">{{ formatLabel }}</label>
 				<NcSelect
 					input-id="cn-mass-export-format"
-					:options="formatOptions"
-					:value="selectedFormat"
+					:labelOutside="true"
+					:options="formats"
+					:model-value="selectedFormat"
 					:clearable="false"
 					@input="selectedFormat = $event" />
 			</div>
@@ -45,7 +46,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeExport">
 				<template #icon>
@@ -60,7 +61,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**
@@ -94,9 +95,6 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  *     this.$refs.exportDialog.setResult({ error: e.message })
  *   }
  * }
- *
- * @event confirm Emitted when the user clicks the export button. Payload: `{ format: string }` — the selected format ID.
- * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnMassExportDialog',
@@ -116,11 +114,13 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
 		},
+
 		/** Description text shown above the format selector */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/** Available export formats */
 		formats: {
 			type: Array,
@@ -129,23 +129,26 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
+
 		/** Default selected format ID */
 		defaultFormat: {
 			type: String,
 			default: 'excel',
 		},
+
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export completed successfully.'),
 		},
-		/** Label rendered above the export format selector. */
+
+		/** Label for the export format selector */
 		formatLabel: { type: String, default: () => t('nextcloud-vue', 'Export format') },
-		/** Label for the cancel button (visible before the export runs). */
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button (visible after export completes). */
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
-		/** Label for the primary confirm button that triggers the export. */
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Export') },
 	},
 
@@ -173,6 +176,7 @@ export default {
 
 		/**
 		 * Set the result of the export operation.
+		 *
 		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

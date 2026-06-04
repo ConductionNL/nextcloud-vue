@@ -22,10 +22,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Install docusaurus dependencies (needed by check:jsdoc + prebuild:docs)
-        run: cd docusaurus && npm ci --legacy-peer-deps
+        run: cd docusaurus && npm ci
 
       - name: Documentation coverage
         run: npm run check:docs

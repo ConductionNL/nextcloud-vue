@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -38,7 +38,7 @@
 				<slot name="before-fields" />
 
 				<div
-					v-for="field in visibleFields"
+					v-for="field in resolvedFields"
 					:key="field.key"
 					class="cn-form-dialog__field">
 					<!-- Per-field override slot -->
@@ -64,7 +64,7 @@
 						<NcTextField
 							v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 							:label="field.label + (field.required ? ' *' : '')"
-							:value="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
 							:helper-text="errors[field.key] || field.description"
 							:error="!!errors[field.key]"
 							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
@@ -76,7 +76,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'number'"
 							:label="field.label + (field.required ? ' *' : '')"
-							:value="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
 							:helper-text="errors[field.key] || field.description"
 							:error="!!errors[field.key]"
 							type="number"
@@ -107,13 +107,11 @@
 
 						<!-- Select (enum, supports async function) -->
 						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveOptions(field)"
-								:value="getEffectiveSelectedOption(field)"
+								:model-value="getEffectiveSelectedOption(field)"
 								:clearable="!field.required"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
@@ -141,13 +139,11 @@
 
 						<!-- Multiselect (array with enum items, supports async function) -->
 						<div v-else-if="field.widget === 'multiselect'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
+								:input-label="field.label + (field.required ? ' *' : '')"
 								:options="getEffectiveArrayOptions(field)"
-								:value="getEffectiveSelectedArrayOptions(field)"
+								:model-value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
 								:clearable="true"
 								:disabled="field.readOnly"
@@ -176,13 +172,11 @@
 
 						<!-- Tags (array, freeform, supports async suggestions) -->
 						<div v-else-if="field.widget === 'tags'" class="cn-form-dialog__select-wrapper">
-							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
-								{{ field.label }}{{ field.required ? ' *' : '' }}
-							</label>
 							<!-- TODO: restore `:options` to `asyncState[field.key]?.options` once on Vue 3 (buble doesn't support optional chaining) -->
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
-								:value="formData[field.key] || []"
+								:input-label="field.label + (field.required ? ' *' : '')"
+								:model-value="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
 								:taggable="true"
@@ -214,7 +208,7 @@
 						<!-- Checkbox / Switch (boolean) -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'checkbox'"
-							:checked="!!formData[field.key]"
+							:model-value="!!formData[field.key]"
 							:disabled="field.readOnly"
 							type="switch"
 							@update:checked="value => updateField(field.key, value)">
@@ -225,7 +219,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'date'"
 							:label="field.label + (field.required ? ' *' : '')"
-							:value="formData[field.key] || ''"
+							:model-value="formData[field.key] || ''"
 							:helper-text="errors[field.key] || field.description"
 							:error="!!errors[field.key]"
 							type="date"
@@ -236,7 +230,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'datetime'"
 							:label="field.label + (field.required ? ' *' : '')"
-							:value="formData[field.key] || ''"
+							:model-value="formData[field.key] || ''"
 							:helper-text="errors[field.key] || field.description"
 							:error="!!errors[field.key]"
 							type="datetime-local"
@@ -284,7 +278,7 @@
 						<NcTextField
 							v-else
 							:label="field.label + (field.required ? ' *' : '')"
-							:value="formData[field.key] != null ? String(formData[field.key]) : ''"
+							:model-value="formData[field.key] != null ? String(formData[field.key]) : ''"
 							:helper-text="errors[field.key] || field.description"
 							:error="!!errors[field.key]"
 							:disabled="field.readOnly"
@@ -303,7 +297,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading || !requiredFieldsFilled || !jsonFieldsValid"
 				@click="executeConfirm">
 				<template #icon>
@@ -319,13 +313,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import { fieldsFromSchema } from '../../utils/schema.js'
-import { shouldShow } from '../../utils/fieldCondition.js'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -364,24 +357,6 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
  *   (or any type) to opt a property out of the default object-filter in `fieldsFromSchema`.
  * - `widget: 'code'` — Stores the raw string. Optional `field.language` chooses
  *   syntax highlighting (`'json'|'xml'|'html'|'text'|'auto'`, default `'auto'`).
- *
- * ## Conditional visibility (`condition` / `visibleWhen`)
- *
- * Any field may declare a `condition` (alias: `visibleWhen`) that gates its
- * visibility based on another field's current value:
- *
- * ```js
- * {
- *   key: 'arguments',
- *   widget: 'json',
- *   condition: { field: 'jobClass', equals: 'OCA\\OpenConnector\\Action\\SynchronizationAction' }
- * }
- * ```
- *
- * Supported predicates: `equals`, `notEquals`, `in`, `notIn`, `truthy`, `falsy`.
- * When a field transitions visible → hidden, its form-data value is cleared so
- * stale values aren't submitted. Hidden fields also skip the required-fields
- * and `validate()` checks.
  *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
@@ -453,54 +428,49 @@ export default {
 		ContentSaveOutline,
 	},
 
-	setup() {
-		// Pluggable integration registry — used to resolve fields that
-		// declare `referenceType: '<integration-id>'` (AD-18) to the
-		// integration's single-entity widget. Cheap when no such
-		// fields exist.
-		const { resolveWidget, getById } = useIntegrationRegistry()
-		return {
-			resolveRegistryWidget: resolveWidget,
-			getRegistryIntegration: getById,
-		}
-	},
-
 	props: {
 		/** Schema for auto-generating fields. Either schema or fields must be provided. */
 		schema: {
 			type: Object,
 			default: null,
 		},
+
 		/** Existing item for edit mode. Pass null for create mode. */
 		item: {
 			type: Object,
 			default: null,
 		},
+
 		/** Dialog title. Defaults to "Create {schema.title}" or "Edit {schema.title}". */
 		dialogTitle: {
 			type: String,
 			default: '',
 		},
+
 		/** Manual field definitions. Overrides schema-generated fields when provided. */
 		fields: {
 			type: Array,
 			default: null,
 		},
+
 		/** Field keys to exclude from auto-generated form */
 		excludeFields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Field keys to include (whitelist mode) */
 		includeFields: {
 			type: Array,
 			default: null,
 		},
+
 		/** Per-field overrides passed to fieldsFromSchema */
 		fieldOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Object context forwarded to integration single-entity
 		 * widgets rendered for fields that declare a `referenceType`
@@ -512,28 +482,46 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Which field is the "name" (used in result messages) */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** NcDialog size */
 		size: {
 			type: String,
 			default: 'normal',
 		},
+
 		/** Success message. Defaults to "Item saved successfully." */
 		successText: {
 			type: String,
 			default: '',
 		},
+
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: {
 			type: String,
 			default: '',
 		},
+	},
+
+	setup() {
+		// Pluggable integration registry — used to resolve fields that
+		// declare `referenceType: '<integration-id>'` (AD-18) to the
+		// integration's single-entity widget. Cheap when no such
+		// fields exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
 	},
 
 	data() {
@@ -578,9 +566,9 @@ export default {
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
-		/** Whether all required fields have a non-empty value (hidden fields are skipped) */
+		/** Whether all required fields have a non-empty value */
 		requiredFieldsFilled() {
-			return this.visibleFields
+			return this.resolvedFields
 				.filter((f) => f.required)
 				.every((f) => {
 					const val = this.formData[f.key]
@@ -606,21 +594,6 @@ export default {
 				overrides: this.fieldOverrides,
 			})
 		},
-
-		/**
-		 * Fields filtered through their per-field `condition` / `visibleWhen`
-		 * descriptor. Fields without a condition are always visible.
-		 *
-		 * The template iterates this computed instead of `resolvedFields`,
-		 * so hidden fields don't render at all. A watcher (below) clears
-		 * the form-data value for any field that transitions from visible
-		 * to hidden, so stale state is never submitted.
-		 *
-		 * @return {object[]} The visible subset of `resolvedFields`.
-		 */
-		visibleFields() {
-			return this.resolvedFields.filter((field) => shouldShow(field, this.formData))
-		},
 	},
 
 	watch: {
@@ -629,34 +602,6 @@ export default {
 			handler(newItem) {
 				this.initFormData(newItem)
 			},
-		},
-
-		/**
-		 * When a field transitions from visible to hidden, clear its
-		 * form-data value so a stale (now-irrelevant) value isn't
-		 * carried into the submitted payload. We diff key lists rather
-		 * than mutating during the computed itself.
-		 *
-		 * @param {object[]} newFields The new visible field set.
-		 * @param {object[]} oldFields The previous visible field set.
-		 */
-		visibleFields(newFields, oldFields) {
-			if (!Array.isArray(oldFields)) return
-			const newKeys = new Set(newFields.map((f) => f.key))
-			for (const oldField of oldFields) {
-				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
-					this.$delete(this.formData, oldField.key)
-					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
-						this.$delete(this.errors, oldField.key)
-					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
-						this.$delete(this.jsonErrors, oldField.key)
-					}
-					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
-						this.$delete(this.jsonDrafts, oldField.key)
-					}
-				}
-			}
 		},
 	},
 
@@ -750,14 +695,14 @@ export default {
 		 * @return {string} JSON string for the editor.
 		 */
 		jsonStringFor(field) {
-			if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, field.key)) {
+			if (Object.hasOwn(this.jsonDrafts, field.key)) {
 				return this.jsonDrafts[field.key]
 			}
 			const value = this.formData[field.key]
 			if (value === null || value === undefined) return ''
 			try {
 				return JSON.stringify(value, null, 2)
-			} catch (e) {
+			} catch {
 				return String(value)
 			}
 		},
@@ -1034,7 +979,7 @@ export default {
 		 */
 		validate() {
 			const newErrors = {}
-			for (const field of this.visibleFields) {
+			for (const field of this.resolvedFields) {
 				const value = this.formData[field.key]
 
 				// Required check
@@ -1066,7 +1011,7 @@ export default {
 								newErrors[field.key] = 'Invalid format.'
 							}
 						// TODO: restore to `catch {` (optional catch binding) once on Vue 3 (buble doesn't support it)
-						} catch (e) {
+						} catch (_e) {
 							// Ignore invalid regex patterns
 						}
 					}

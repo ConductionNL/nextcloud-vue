@@ -161,9 +161,13 @@ module.exports = {
 			// Force all module imports to resolve from the styleguide's own
 			// node_modules first, falling back to the root node_modules.
 			// This ensures a single Vue instance is used throughout.
+			// The trailing relative 'node_modules' makes webpack walk up the
+			// directory tree from each require site, so nested dependencies
+			// (e.g. @nextcloud/event-bus's own semver@7) resolve correctly.
 			modules: [
 				path.join(__dirname, 'node_modules'),
 				path.join(ROOT, 'node_modules'),
+				'node_modules',
 			],
 			extensions: ['.mjs', '.vue', '.json', '.js'],
 			mainFields: ['browser', 'main', 'module'],

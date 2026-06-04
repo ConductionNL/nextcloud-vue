@@ -10,6 +10,43 @@
  */
 
 /**
+ * Extract a human-readable message from a validation-error payload.
+ *
+ * The backend may express validation errors as a plain string, an array of
+ * strings, an array of `{ property, message }` objects (OpenRegister), or an
+ * object map of `field → message`. Pull every available message out so the
+ * actual problem is shown instead of a generic fallback.
+ *
+ * @param {string|Array|object|null} errors The raw error payload
+ * @return {string|null} Joined message string, or null when nothing usable
+ */
+function extractValidationMessage(errors) {
+	if (typeof errors === 'string') {
+		return errors
+	}
+
+	const pick = (entry) => {
+		if (typeof entry === 'string') {
+			return entry
+		}
+		if (entry && typeof entry === 'object') {
+			return entry.message || entry.error || null
+		}
+		return null
+	}
+
+	let messages = []
+	if (Array.isArray(errors)) {
+		messages = errors.map(pick)
+	} else if (errors && typeof errors === 'object') {
+		messages = Object.values(errors).map(pick)
+	}
+
+	messages = messages.filter(Boolean)
+	return messages.length ? messages.join('\n') : null
+}
+
+/**
  * Parse an HTTP error response into a unified ApiError shape.
  *
  * Merges the best of Pipelinq's _parseResponseError (field extraction)
@@ -23,7 +60,7 @@ export async function parseResponseError(response, type) {
 	const status = response.status
 	let details = null
 	let fields = null
-	let message = ''
+	let message
 
 	try {
 		const body = await response.json()
@@ -34,31 +71,47 @@ export async function parseResponseError(response, type) {
 	}
 
 	switch (true) {
-	case status === 400 || status === 422:
-		message = details && typeof details === 'string'
-			? details
-			: `Validation failed for ${type}`
-		return { status, message, details, isValidation: true, fields, toString() { return this.message } }
-	case status === 401:
-		message = 'Session expired, please log in again'
-		break
-	case status === 403:
-		message = 'You do not have permission to perform this action'
-		break
-	case status === 404:
-		message = `The requested ${type} could not be found`
-		break
-	case status === 409:
-		message = `This ${type} was modified by another user. Please reload.`
-		break
-	case status >= 500:
-		message = 'An unexpected server error occurred. Please try again.'
-		break
-	default:
-		message = response.statusText || 'An unexpected error occurred'
+		case status === 400 || status === 422:
+			message = extractValidationMessage(details) || `Validation failed for ${type}`
+			return {
+				status,
+				message,
+				details,
+				isValidation: true,
+				fields,
+				toString() {
+					return this.message
+				},
+			}
+		case status === 401:
+			message = 'Session expired, please log in again'
+			break
+		case status === 403:
+			message = 'You do not have permission to perform this action'
+			break
+		case status === 404:
+			message = `The requested ${type} could not be found`
+			break
+		case status === 409:
+			message = `This ${type} was modified by another user. Please reload.`
+			break
+		case status >= 500:
+			message = 'An unexpected server error occurred. Please try again.'
+			break
+		default:
+			message = response.statusText || 'An unexpected error occurred'
 	}
 
-	return { status, message, details, isValidation: false, fields, toString() { return this.message } }
+	return {
+		status,
+		message,
+		details,
+		isValidation: false,
+		fields,
+		toString() {
+			return this.message
+		},
+	}
 }
 
 /**

@@ -17,6 +17,6 @@
 
 ### Events
 
-| Name       | Payload | Description |
-| ---------- | ------- | ----------- |
-| `show-all` | —       |             |
+| Name       | Payload | Description                                                                                                                             |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `show-all` | —       | User clicked the "show all" footer button — emitted with no payload. Parents typically open the host app's full files view in response. |

@@ -2,13 +2,13 @@
 
 ### Props
 
-| Name                | Type                                               | Required | Default                                        | Description                            |
-| ------------------- | -------------------------------------------------- | -------- | ---------------------------------------------- | -------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `filters`           | `Array<{key: string, label: string, type: 'select' | 'text'   | 'checkbox', options: Array, value: any}>`      |                                        | `[]` | Filter definitions. Each item has `key`, `label`, `type` ('select'\|'text'\|'checkbox'), optional `options` (for select), and optional `value`. |
-| `searchValue`       | `string`                                           |          | `''`                                           | Current search text                    |
-| `searchPlaceholder` | `string`                                           |          | `() =&gt; t('nextcloud-vue', 'Search...')`     | Search input placeholder text          |
-| `showClearAll`      | `boolean`                                          |          | `true`                                         | Whether to show the "Clear all" button |
-| `clearAllLabel`     | `string`                                           |          | `() =&gt; t('nextcloud-vue', 'Clear filters')` | Clear all button label                 |
+| Name                | Type                                                                                                          | Required | Default                                        | Description                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filters`           | `Array<{key: string, label: string, type: 'select'&#124;'text'&#124;'checkbox', options: Array, value: any}>` |          | `[]`                                           | Filter definitions. Each item has `key`, `label`, `type` ('select'\|'text'\|'checkbox'), optional `options` (for select), and optional `value`. |
+| `searchValue`       | `string`                                                                                                      |          | `''`                                           | Current search text                                                                                                                             |
+| `searchPlaceholder` | `string`                                                                                                      |          | `() =&gt; t('nextcloud-vue', 'Search...')`     | Search input placeholder text                                                                                                                   |
+| `showClearAll`      | `boolean`                                                                                                     |          | `true`                                         | Whether to show the "Clear all" button                                                                                                          |
+| `clearAllLabel`     | `string`                                                                                                      |          | `() =&gt; t('nextcloud-vue', 'Clear filters')` | Clear all button label                                                                                                                          |
 
 ### Events
 

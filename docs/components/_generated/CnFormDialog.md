@@ -15,8 +15,8 @@
 | `nameField`        | `string` |          | `'title'`                               | Which field is the "name" (used in result messages)                                                                                                                   |
 | `size`             | `string` |          | `'normal'`                              | NcDialog size                                                                                                                                                         |
 | `successText`      | `string` |          | `''`                                    | Success message. Defaults to "Item saved successfully."                                                                                                               |
-| `cancelLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')` |                                                                                                                                                                       |
-| `closeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`  |                                                                                                                                                                       |
+| `cancelLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')` | Label for the cancel button                                                                                                                                           |
+| `closeLabel`       | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`  | Label for the close button                                                                                                                                            |
 | `confirmLabel`     | `string` |          | `''`                                    | Confirm button label. Defaults to "Create" or "Save".                                                                                                                 |
 
 ### Events

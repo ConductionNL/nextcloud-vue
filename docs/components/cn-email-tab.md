@@ -1,5 +1,4 @@
 import Playground from '@site/src/components/Playground'
-import GeneratedRef from './_generated/CnEmailTab.md'
 
 # CnEmailTab
 
@@ -42,6 +41,3 @@ With a custom page size and translated labels:
 | `pageSize` (`page-size`) | Number | `25` | Page size for paged fetches. The load-more button stays visible until `messages.length === total`. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL for the OR registry endpoint. |
 
-## Reference
-
-<GeneratedRef />

@@ -27,8 +27,11 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `loadingLabel` | String | `'Loading...'` | Message shown during loading |
 | `sidebar` | Boolean \| Object | `false` | Sidebar configuration. Accepts EITHER the legacy Boolean form (deprecated) OR the new Object form mirroring `CnIndexPage.sidebar`. See [Sidebar config object](#sidebar-config-object) below. |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts open (only relevant when `sidebar` is active) |
-| `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`) |
-| `objectId` | String\|Number | `''` | Object ID passed to the sidebar |
+| `objectType` | String | `''` | Object type slug passed to the sidebar (e.g. `'pipelinq_lead'`). Used by legacy direct mounts; manifest-driven detail pages prefer the `register` + `schema` pair below and let the page fuse them. |
+| `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |
+| `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
+| `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
+| `sidebarTabs` | Array | `[]` | Tab definitions for the host App's `CnObjectSidebar`. Forwarded via the injected `objectSidebarState`; mirrors `sidebar.tabs` / `sidebarProps.tabs` but lives at the top level so the manifest's `config.sidebarTabs` flows in directly. Empty array → the consumer's `CnObjectSidebar` falls back to its default tab set. |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration forwarded to `CnObjectSidebar` (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`, `tabs`). Set `sidebarProps.tabs` to an open-enum tab array to drive the host app's mounted `CnObjectSidebar` from `manifest.json` — see [CnObjectSidebar custom tabs](./cn-object-sidebar.md#custom-tabs). The array flows through the existing `objectSidebarState` provide/inject channel. **Note:** when both `sidebar` (Object) AND `sidebarProps` set the same field, the Object form wins and a `console.warn` lists the conflicting fields once per component instance. |
 | `error` | Boolean | `false` | Error state |
 | `errorMessage` | String | `'An error occurred'` | Message shown in error state |

@@ -3,6 +3,9 @@
  *
  * Covers Phase 4: empty state, populated (iframe) state, header/actions
  * slot override, conversation slot replacement.
+ *
+ * Security regression tests (C2) — verifies that `javascript:` and `data:`
+ * URIs in `conversationSource` are blocked and do not reach the iframe :src.
  */
 
 import { mount } from '@vue/test-utils'
@@ -79,5 +82,58 @@ describe('CnChatPage', () => {
 			},
 		})
 		expect(wrapper.find('.my-thread').text()).toBe('/c|/p|conversation')
+	})
+
+	describe('iframe XSS defence — C2 regression', () => {
+		it('does NOT render an iframe for a javascript: URI', () => {
+			// Suppress Vue's prop-validator warning for this intentional bad input.
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const wrapper = mount(CnChatPage, {
+				propsData: { conversationSource: 'javascript:alert(1)' },
+				stubs,
+			})
+			expect(wrapper.find('iframe').exists()).toBe(false)
+			warnSpy.mockRestore()
+		})
+
+		it('does NOT render an iframe for a data: URI', () => {
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const wrapper = mount(CnChatPage, {
+				propsData: { conversationSource: 'data:text/html,<script>alert(1)</script>' },
+				stubs,
+			})
+			expect(wrapper.find('iframe').exists()).toBe(false)
+			warnSpy.mockRestore()
+		})
+
+		it('does NOT render an iframe for a protocol-relative URL', () => {
+			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const wrapper = mount(CnChatPage, {
+				propsData: { conversationSource: '//attacker.com/evil' },
+				stubs,
+			})
+			expect(wrapper.find('iframe').exists()).toBe(false)
+			warnSpy.mockRestore()
+		})
+
+		it('renders an iframe for a safe https: URL', () => {
+			const wrapper = mount(CnChatPage, {
+				propsData: { conversationSource: 'https://talk.example.com/call/abc' },
+				stubs,
+			})
+			const iframe = wrapper.find('iframe')
+			expect(iframe.exists()).toBe(true)
+			expect(iframe.attributes('src')).toBe('https://talk.example.com/call/abc')
+		})
+
+		it('renders an iframe for a safe root-relative path', () => {
+			const wrapper = mount(CnChatPage, {
+				propsData: { conversationSource: '/apps/spreed/embed/abc' },
+				stubs,
+			})
+			const iframe = wrapper.find('iframe')
+			expect(iframe.exists()).toBe(true)
+			expect(iframe.attributes('src')).toBe('/apps/spreed/embed/abc')
+		})
 	})
 })

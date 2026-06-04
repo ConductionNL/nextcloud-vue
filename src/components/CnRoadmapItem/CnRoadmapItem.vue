@@ -19,7 +19,7 @@
 				class="cn-roadmap-item__avatar" />
 			<div class="cn-roadmap-item__meta">
 				<a
-					:href="item.html_url"
+					:href="safeHref(item.html_url)"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="cn-roadmap-item__title-link">
@@ -37,10 +37,10 @@
 			</div>
 		</header>
 
-		<!-- Sanitized markdown body — DOMPurify-cleaned HTML from marked.
-		     v-html is intentional here AND safe: the value flows through
-		     SAFE_MARKDOWN_DOMPURIFY_CONFIG which strips <script>, on* attrs,
-		     javascript: URLs, <iframe>, <style>. Never bind raw item.body. -->
+		<!-- Sanitized markdown body — DOMPurify-cleaned HTML from cnRenderMarkdown.
+		     v-html is intentional here AND safe: cnRenderMarkdown runs marked then
+		     sanitises with SAFE_MARKDOWN_DOMPURIFY_CONFIG (strips <script>, on*
+		     attrs, javascript: URLs, <iframe>, <style>). Never bind raw item.body. -->
 		<div
 			v-if="sanitizedBody !== ''"
 			class="cn-roadmap-item__body"
@@ -74,12 +74,12 @@
  *
  * Spec: features-roadmap-component — Requirement "RoadmapItem".
  */
-import DOMPurify from 'dompurify'
 import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
 
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnRoadmapItem',
@@ -102,8 +102,9 @@ export default {
 
 	computed: {
 		sanitizedBody() {
-			const html = cnRenderMarkdown(this.item.body || '')
-			return DOMPurify.sanitize(html, SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+			// cnRenderMarkdown already sanitises via DOMPurify internally —
+			// no second pass needed (L1: double-sanitisation removed).
+			return cnRenderMarkdown(this.item.body || '')
 		},
 
 		thumbsUpCount() {
@@ -132,6 +133,8 @@ export default {
 	},
 
 	methods: {
+		safeHref,
+
 		chipStyle(label) {
 			if (!label.color) {
 				return {}

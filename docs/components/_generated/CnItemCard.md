@@ -2,12 +2,12 @@
 
 ### Props
 
-| Name       | Type     | Required | Default | Description                       |
-| ---------- | -------- | -------- | ------- | --------------------------------- | ---------------------------------------- |
-| `title`    | `string` |          | `''`    | Card title                        |
-| `subtitle` | `string` |          | `''`    | Optional subtitle below the title |
-| `icon`     | `object  | func`    |         | `null`                            | Icon component (e.g., imported MDI icon) |
-| `iconSize` | `number` |          | `20`    | Icon size in pixels               |
+| Name       | Type               | Required | Default | Description                              |
+| ---------- | ------------------ | -------- | ------- | ---------------------------------------- |
+| `title`    | `string`           |          | `''`    | Card title                               |
+| `subtitle` | `string`           |          | `''`    | Optional subtitle below the title        |
+| `icon`     | `object&#124;func` |          | `null`  | Icon component (e.g., imported MDI icon) |
+| `iconSize` | `number`           |          | `20`    | Icon size in pixels                      |
 
 ### Events
 

@@ -13,7 +13,8 @@
 			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
-				<component :is="action.icon" :size="20" />
+				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+				<component :is="action.icon" v-else :size="20" />
 			</template>
 			{{ action.label }}
 		</NcActionButton>
@@ -21,7 +22,8 @@
 </template>
 
 <script>
-import { NcActions, NcActionButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnRowActions — Action menu wrapper for table rows and cards.
@@ -44,6 +46,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		CnIcon,
 	},
 
 	props: {
@@ -52,28 +55,36 @@ export default {
 		 *
 		 * Each action supports:
 		 * - `label` (string, required) — display text
-		 * - `icon` (component) — MDI icon
+		 * - `icon` (component | string) — MDI icon. A component renders
+		 *   directly; a string is treated as a registry name and rendered
+		 *   via `CnIcon` (PascalCase, e.g. `"Eye"`), falling back to the
+		 *   help-circle when unregistered. The string form lets manifest
+		 *   (JSON) actions declare icons by name.
 		 * - `handler` (function) — called with `row` on click
 		 * - `disabled` (boolean | (row) => boolean) — gray out the entry
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
-		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
+		 *
+		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** The row/object data (passed to action handlers) */
 		row: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether to use primary styling for the action menu trigger */
 		primary: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Label shown on the action menu trigger button */
 		menuName: {
 			type: String,
@@ -85,6 +96,7 @@ export default {
 		/**
 		 * Filter actions by their `visible` predicate. An action without a
 		 * `visible` field is always shown (backwards compatible).
+		 *
 		 * @return {Array} Visible actions for the current row.
 		 */
 		visibleActions() {
@@ -101,6 +113,7 @@ export default {
 	methods: {
 		/**
 		 * Resolve disabled state for an action — supports both boolean and function.
+		 *
 		 * @param {object} action - The action definition
 		 * @return {boolean} Whether the action is disabled
 		 */
@@ -110,10 +123,12 @@ export default {
 			}
 			return !!action.disabled
 		},
+
 		/**
 		 * Resolve the title (native tooltip) for an action — supports both
 		 * string and function forms. Returns undefined when no title is
 		 * provided so the attribute is not rendered.
+		 *
 		 * @param {object} action - The action definition
 		 * @return {string|undefined} The resolved tooltip text, or undefined.
 		 */
@@ -123,43 +138,28 @@ export default {
 			}
 			return action.title || undefined
 		},
+
 		onAction(action) {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
 			}
 			this.$emit('action', { action: action.label, row: this.row })
 		},
+
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
 		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
 		 * `:data-testid` binding on NcActionButton — does not affect runtime
 		 * behaviour or rendered text.
+		 *
 		 * @param {string} label - The action's display label
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			// Build the slug in a single linear pass: lowercase, fold
-			// non-[a-z0-9] runs into a single '-', then strip leading/trailing
-			// dashes by index instead of by regex (codeql js/redos).
-			const lower = String(label || '').toLowerCase()
-			let out = ''
-			let lastWasDash = false
-			for (let i = 0; i < lower.length; i++) {
-				const c = lower.charCodeAt(i)
-				const isAlnum = (c >= 48 && c <= 57) || (c >= 97 && c <= 122)
-				if (isAlnum) {
-					out += lower[i]
-					lastWasDash = false
-				} else if (!lastWasDash) {
-					out += '-'
-					lastWasDash = true
-				}
-			}
-			let start = 0
-			let end = out.length
-			while (start < end && out.charCodeAt(start) === 45) start++
-			while (end > start && out.charCodeAt(end - 1) === 45) end--
-			return out.slice(start, end)
+			return String(label || '')
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-+|-+$/g, '')
 		},
 	},
 }

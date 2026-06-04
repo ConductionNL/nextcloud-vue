@@ -39,14 +39,8 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
-			:header-actions="mergedHeaderActions"
-			:show-request-feature="showRequestFeature"
-			:documentation-url="documentationUrl"
-			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
-			@request-feature="onRequestFeatureClick"
-			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -326,58 +320,38 @@
 			@search="onSearchEvent"
 			@columns-change="onColumnsEvent"
 			@filter-change="onFilterEvent" />
-
-		<!-- Built-in Request-a-feature modal (#7) — opened from the
-		     CnActionsBar overflow. surface = "index:<schema>" so triage
-		     can pinpoint which list the request came from. -->
-		<CnSuggestFeatureModal
-			v-if="featureRequestModalOpen"
-			:repo="cnFeatureRequestRepo"
-			:app="cnAppId"
-			:page="$route ? ($route.name || '') : ''"
-			:surface="requestFeatureSurface"
-			:conduction-submit-enabled="false"
-			@close="featureRequestModalOpen = false" />
 	</div>
 </template>
 
 <script>
-import { NcLoadingIcon, NcEmptyContent } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import { CnPageHeader } from '../CnPageHeader/index.js'
+import { useContextMenu } from '../../composables/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
-import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
-import { CnDataTable } from '../CnDataTable/index.js'
+import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
-import { CnPagination } from '../CnPagination/index.js'
-import { CnRowActions } from '../CnRowActions/index.js'
-import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
+import { CnContextMenu } from '../CnContextMenu/index.js'
+import { CnCopyDialog } from '../CnCopyDialog/index.js'
+import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
+import { CnFormDialog } from '../CnFormDialog/index.js'
+import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
+import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
-import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
-import { CnCopyDialog } from '../CnCopyDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnContextMenu } from '../CnContextMenu/index.js'
-import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { getCurrentInstance, inject, ref, watch } from 'vue'
-import { useContextMenu, useListView } from '../../composables/index.js'
-import { useObjectStore } from '../../store/index.js'
-
-/**
- * Reserved `id` values for built-in CnActionsBar overflow items.
- * Manifest-declared `headerActions[]` entries whose `id` matches one
- * of these are dropped (with a `console.warn`) so consumers cannot
- * accidentally shadow the built-in Refresh / Import / Export / Copy /
- * Delete items.
- */
-const RESERVED_HEADER_ACTION_IDS = ['refresh', 'import', 'export', 'copy', 'delete']
+import { CnPageHeader } from '../CnPageHeader/index.js'
+import { CnPagination } from '../CnPagination/index.js'
+import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
+import { CnRowActions } from '../CnRowActions/index.js'
+import { applyAiContext } from './aiContext.js'
+import { buildDefaultActions } from './defaultActions.js'
+import { dispatchAction } from './manifestActionDispatch.js'
+import { createSelfModeActions } from './selfModeActions.js'
+import { useSelfFetchList } from './useSelfFetchList.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -419,26 +393,25 @@ const RESERVED_HEADER_ACTION_IDS = ['refresh', 'import', 'export', 'copy', 'dele
  * </CnIndexPage>
  * ```
  *
- * @event add Add button clicked (backward compat, only if listener attached).
- * @event create Form dialog create confirmed. Payload: formData object.
- * @event edit Form dialog edit confirmed. Payload: formData object (includes id).
- * @event delete Single delete confirmed. Payload: item ID.
- * @event copy Single copy confirmed. Payload: `{ id, newName }`.
- * @event mass-delete Mass delete confirmed. Payload: array of IDs.
- * @event mass-copy Mass copy confirmed. Payload: `{ ids, pattern }`.
- * @event mass-export Mass export confirmed. Payload: `{ ids, format }`.
- * @event mass-import Mass import confirmed. Payload: import data.
- * @event refresh Refresh button clicked.
- * @event header-action A `headerActions[]` entry was clicked. Payload: `{ action, id }` where `id` is the action's id and `action` aliases it (matches the row-level `@action` convention). Emitted after the resolved handler (if any) runs; suppressed only when the action's `handler` is `"none"`.
- * @event row-click Table row or card clicked. Payload: row object.
- * @event sort Column sort changed. Payload: `{ key, order }`.
- * @event page-changed Pagination page changed. Payload: number.
- * @event page-size-changed Pagination page size changed. Payload: number.
- * @event select Selection changed. Payload: array of selected IDs.
- * @event action Row action triggered. Payload: `{ action, row }`.
- * @event search Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event columns-change Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
- * @event filter-change Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`. Payload: `{ key, values }`.
+ * @event {void} add — Add button clicked (backward compat, only if listener attached)
+ * @event {object} create — Form dialog create confirmed. Payload: formData object
+ * @event {object} edit — Form dialog edit confirmed. Payload: formData object (includes id)
+ * @event {string} delete — Single delete confirmed. Payload: item ID
+ * @event {{ id: string, newName: string }} copy — Single copy confirmed
+ * @event {string[]} mass-delete — Mass delete confirmed. Payload: array of IDs
+ * @event {object} mass-copy — Mass copy confirmed. Payload: { ids, pattern }
+ * @event {object} mass-export — Mass export confirmed. Payload: { ids, format }
+ * @event {object} mass-import — Mass import confirmed. Payload: import data
+ * @event {void} refresh — Refresh button clicked
+ * @event {object} row-click — Table row or card clicked. Payload: row object
+ * @event {{ key: string, order: string }} sort — Column sort changed
+ * @event {number} page-changed — Pagination page changed
+ * @event {number} page-size-changed — Pagination page size changed
+ * @event {string[]} select — Selection changed. Payload: array of selected IDs
+ * @event {object} action — Row action triggered. Payload: { action, row }
+ * @event {string} search — Search input changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {string[]} columns-change — Visible columns changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
+ * @event {{ key: string, values: any[] }} filter-change — Facet filter changed in the embedded sidebar. Only emitted when `sidebar.enabled`.
  *
  * @slot mass-actions — Extra mass action buttons (shown when items are selected)
  * @slot action-items — Extra action bar buttons
@@ -478,7 +451,6 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
 	},
 
 	/**
@@ -496,14 +468,6 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
-		/**
-		 * App slug + feature-request repo from CnAppRoot — used by the
-		 * built-in Request-a-feature action to auto-fill the
-		 * CnSuggestFeatureModal. Default to empty so CnIndexPage works
-		 * standalone; the handler warns + skips opening when no repo.
-		 */
-		cnAppId: { default: () => '' },
-		cnFeatureRequestRepo: { default: () => '' },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -537,11 +501,13 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Whether to show the page header (icon, title, description) inline.
 		 * When false (default), the title is shown in the sidebar header instead.
@@ -550,11 +516,13 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
 		icon: {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Schema. Either a resolved schema object (consumer-managed path) OR a
 		 * schema-slug string — when a string is given together with `register`
@@ -567,17 +535,18 @@ export default {
 			type: [Object, String],
 			default: null,
 		},
+
+		/* eslint-disable vue/no-unused-properties -- used in useSelfFetchList */
 		/**
-		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
-		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
-		 * are interpolated from `$route.params`; everything else is a literal.
-		 * Applied as a FIXED filter — always wins over the user's facet filters.
-		 * No effect in consumer-managed mode (the consumer owns the fetch).
+		 * Base filter for the self-fetch path. String values of the form
+		 * `"@route.<name>"` / `":<name>"` are interpolated from `$route.params`.
 		 */
 		filter: {
 			type: Object,
 			default: null,
 		},
+		/* eslint-enable vue/no-unused-properties */
+
 		/**
 		 * Self-fetch mode only — an array of clickable filter tabs rendered as
 		 * a strip above the table. Each entry is `{label, filter, default?, icon?}`;
@@ -594,153 +563,152 @@ export default {
 			type: Array,
 			default: null,
 		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Object/row data array */
 		objects: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Pagination state: { page, pages, total, limit } */
 		pagination: {
 			type: Object,
 			default: null,
 		},
+
 		/** Whether data is loading */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether rows/cards can be selected */
 		selectable: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Currently selected IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** View mode: 'table' or 'cards' */
 		viewMode: {
 			type: String,
 			default: 'table',
 			validator: (v) => ['table', 'cards'].includes(v),
 		},
+
 		/** Current sort key */
 		sortKey: {
 			type: String,
 			default: null,
 		},
+
 		/** Current sort order */
 		sortOrder: {
 			type: String,
 			default: 'asc',
 		},
+
 		/** Unique row identifier property */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
+
 		/** Columns to exclude in schema mode */
 		excludeColumns: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Columns to include in schema mode (whitelist) */
 		includeColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Per-column overrides in schema mode */
 		columnOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Row action definitions (app-provided, merged with built-in actions) */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
-		/**
-		 * Page-level header action definitions rendered inside CnActionsBar's
-		 * overflow dropdown (after the built-in Refresh, before the
-		 * `#action-items` slot). Same `{ id, label, icon, handler, route }`
-		 * shape as the row-level `actions[]`, with one behavioural difference:
-		 * handlers receive no row context (the action is page-level).
-		 *
-		 * Handler dispatch keywords:
-		 * - `navigate` — `$router.push({ name: action.route })` (no `params.id`)
-		 * - `emit` — re-emits `@header-action({ action: id, id })`
-		 * - `none` — no-op + suppresses the emit
-		 * - any other string — looked up in `customComponents`; when a
-		 *   function, called as `fn({ actionId: id })`. When a non-function,
-		 *   `console.warn` + fall-through to emit-only. When unknown, silent
-		 *   fall-through to emit-only.
-		 *
-		 * Reserved built-in ids (`refresh`, `import`, `export`, `copy`,
-		 * `delete`) are dropped with a `console.warn` so manifest authors
-		 * cannot accidentally shadow a built-in.
-		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
-		 */
-		headerActions: {
-			type: Array,
-			default: () => [],
-		},
+
 		/** Text shown when no items found */
 		emptyText: {
 			type: String,
 			default: 'No items found',
 		},
+
 		/** Function returning CSS class(es) for a row */
 		rowClass: {
 			type: Function,
 			default: null,
 		},
+
 		/** Override label for the Add button. Defaults to "Add {schema.title}" */
 		addLabel: {
 			type: String,
 			default: '',
 		},
+
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
 			default: 0,
 		},
+
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Export action */
 		showMassExport: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Copy button */
 		showMassCopy: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to show the built-in mass Delete button */
 		showMassDelete: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Property name used to display item names in dialogs */
 		massActionNameField: {
 			type: String,
 			default: 'title',
 		},
+
 		/** Optional function to format item names in dialogs. Receives the item, returns a string. Overrides massActionNameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
+
 		/** Available export formats for the export dialog */
 		exportFormats: {
 			type: Array,
@@ -749,57 +717,25 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
+
 		/** Import option definitions for the import dialog */
 		importOptions: {
 			type: Array,
 			default: () => [],
 		},
-		/**
-		 * Show the built-in "Request a feature" entry in the CnActionsBar
-		 * overflow. On by default so every list view exposes it; opens the
-		 * CnSuggestFeatureModal with `surface: "index:<schema>"` context.
-		 * Requires a CnAppRoot ancestor (for the repo inject) to actually
-		 * open — otherwise the click warns and no-ops.
-		 *
-		 * @type {boolean}
-		 */
-		showRequestFeature: {
-			type: Boolean,
-			default: true,
-		},
-		/**
-		 * Documentation link for this list page. When a non-empty URL is
-		 * set, the CnActionsBar overflow renders a "Documentation" entry
-		 * (before Request a feature) that opens the link in a new tab.
-		 * Empty (the default) hides it.
-		 *
-		 * @type {string}
-		 */
-		documentationUrl: {
-			type: String,
-			default: '',
-		},
-		/**
-		 * Pre-translated label for the Documentation entry. When left
-		 * empty (the default) the CnActionsBar falls back to its own
-		 * translation of "Documentation".
-		 *
-		 * @type {string}
-		 */
-		documentationLabel: {
-			type: String,
-			default: '',
-		},
+
 		/** Whether to show the built-in form dialog for Add/Edit */
 		showFormDialog: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Use CnAdvancedFormDialog (properties table, JSON tab, optional metadata) instead of CnFormDialog for Add/Edit */
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
 		},
+
 		/**
 		 * Whether to add a View action to row actions. The action emits a
 		 * dedicated `view` event — independent of `row-click`. Bind `@view`
@@ -811,61 +747,73 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add an Edit action to row actions */
 		showEditAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add a Copy action to row actions */
 		showCopyAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether to add a Delete action to row actions */
 		showDeleteAction: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Field keys to exclude from the form dialog */
 		excludeFields: {
 			type: Array,
 			default: () => [],
 		},
+
 		/** Field keys to include in the form dialog (whitelist mode) */
 		includeFields: {
 			type: Array,
 			default: null,
 		},
+
 		/** Per-field overrides passed to CnFormDialog */
 		fieldOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/** Whether to show the Cards/Table view toggle in the actions bar */
 		showViewToggle: {
 			type: Boolean,
 			default: true,
 		},
+
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
 		refreshDisabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether the Add button is disabled (e.g. when required selections are missing) */
 		addDisabled: {
 			type: Boolean,
 			default: false,
 		},
+
 		/** Whether to show the Add button in the actions bar */
 		showAdd: {
 			type: Boolean,
 			default: true,
 		},
+
 		/**
 		 * Store instance for automatic save integration. When provided alongside
 		 * objectType, the form dialog saves directly to the store instead of
@@ -910,21 +858,25 @@ export default {
 			type: Object,
 			default: null,
 		},
+
 		/** Current search term (forwarded to the embedded sidebar when sidebar.enabled). */
 		searchValue: {
 			type: String,
 			default: '',
 		},
+
 		/** Currently visible column keys (forwarded to the embedded sidebar). */
 		visibleColumns: {
 			type: Array,
 			default: null,
 		},
+
 		/** Currently active facet filters: { fieldName: [values] } (forwarded to the embedded sidebar). */
 		activeFilters: {
 			type: Object,
 			default: () => ({}),
 		},
+
 		/**
 		 * Effective register slug for the page. Forwarded as a prop to
 		 * the resolved card component (when `cardComponent` is set) so
@@ -939,6 +891,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional name of a consumer-provided card component (registered
 		 * in the `customComponents` registry on `CnAppRoot`) to render in
@@ -960,6 +913,7 @@ export default {
 			type: String,
 			default: '',
 		},
+
 		/**
 		 * Optional explicit customComponents registry. When set, this
 		 * overrides the registry injected from `CnAppRoot` via
@@ -987,114 +941,13 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
-		// ── Self-fetch mode ──────────────────────────────────────────────────
-		// A manifest `type:"index"` page reaches CnIndexPage with `register` and
-		// `schema` from `config` but NEVER an `objects` prop (CnPageRenderer
-		// spreads `config`, not runtime data). So when `register` + `schema` are
-		// set AND the caller did not pass `objects`, we self-fetch: drive the
-		// list via `useListView('${register}-${schema}', …)` (which itself
-		// registers the object type, fetches the collection with
-		// _search/_order/_page/_limit/activeFilters, loads the schema, wires the
-		// sidebar and returns the search/sort/page/filter handlers). When
-		// `objects` IS passed (every existing consumer), nothing changes — the
-		// props win, no store is touched, the @events bubble as before.
-		const instance = getCurrentInstance()
-		const objectsProvided = !!(
-			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
-			&& Object.prototype.hasOwnProperty.call(instance.proxy.$options.propsData, 'objects')
-		)
-		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
-
-		// ── Quick-filter tabs (REQ-MIPFU-1) ─────────────────────────────────
-		// `props.quickFilters` declares clickable tabs above the table; the
-		// active tab's `filter` is merged into the useListView fetch (after
-		// `props.filter` so the tab wins). Initial active index: first entry
-		// with `default:true`, else 0 if non-empty, else null.
-		const quickInit = (() => {
-			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-			if (!tabs || tabs.length === 0) return null
-			const di = tabs.findIndex((t) => t && t.default === true)
-			return di >= 0 ? di : 0
-		})()
-		const activeQuickFilterIndex = ref(quickInit)
-
-		/**
-		 * Resolve a single filter map's values: `@route.<name>` / `:<name>`
-		 * pull from `$route.params`; literals pass through. Returns `{}` for
-		 * a non-object input (so callers can safely spread the result).
-		 *
-		 * @param {object|null|undefined} filterMap
-		 * @param {object} params Current `$route.params`.
-		 * @return {object}
-		 */
-		function resolveFilterMap(filterMap, params) {
-			if (!filterMap || typeof filterMap !== 'object') return {}
-			const out = {}
-			for (const [k, v] of Object.entries(filterMap)) {
-				if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
-				else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
-				else out[k] = v
-			}
-			return out
-		}
-
-		let list = null
-		// Hoisted out of the `if (isSelfFetch)` block so onFormConfirm
-		// (+ future onSingleDeleteConfirm hooks) can reach them as
-		// `this.selfStore` / `this.selfObjectType`. Without this lift,
-		// the manifest-v2 pipeline — which mounts CnIndexPage via
-		// CnPageRenderer with `register` + `schema` from `config` but
-		// NO `store`/`objectType` props — falls through onFormConfirm's
-		// final branch and emits `@create`/`@edit` to a parent
-		// (CnPageRenderer) that doesn't listen, so the dialog Create
-		// click is a silent no-op (no POST fires, dialog stays open).
-		let selfObjectType = ''
-		let selfObjectStore = null
-		if (isSelfFetch) {
-			const objectType = `${props.register}-${props.schema}`
-			selfObjectType = objectType
-			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
-			const objectStore = useObjectStore()
-			selfObjectStore = objectStore
-			// Register the `${register}-${schema}` type (mirrors CnLogsPage) so the
-			// store has a slot for it before `useListView` issues the first fetch.
-			if (typeof objectStore.registerObjectType === 'function') {
-				// useObjectStore.registerObjectType signature is positional:
-				// (slug, schemaId, registerId, slugs?). Passing an object as
-				// the second argument made schemaId === {register, schema} and
-				// registerId === undefined, which produced URLs like
-				// /apps/openregister/api/schemas/[object Object] at fetch time.
-				objectStore.registerObjectType(objectType, props.schema, props.register)
-			}
-			list = useListView(objectType, {
-				objectStore,
-				sidebarState,
-				defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
-				defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
-				// Re-read on every fetch so route-param changes (`/forms/:id/...`)
-				// AND quick-filter switches both flow into the next fetch. CnIndexPage
-				// also watches $route.params → list.refresh() (see watch:); changing
-				// `activeQuickFilterIndex` triggers a refresh below.
-				fixedFilters: () => {
-					const route = instance && instance.proxy && instance.proxy.$route
-					const params = (route && route.params) || {}
-					const base = resolveFilterMap(props.filter, params)
-					// Active quick-filter tab spread LAST so it overrides a
-					// colliding `props.filter` entry (intentional — the tab is
-					// the user's intent).
-					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-					const activeIdx = activeQuickFilterIndex.value
-					const tabFilter = (tabs && activeIdx != null) ? tabs[activeIdx]?.filter : null
-					return { ...base, ...resolveFilterMap(tabFilter, params) }
-				},
-			})
-
-			// Refresh when the user switches tabs. Reset to page 1 so the
-			// new filter starts from the top of its result set.
-			watch(activeQuickFilterIndex, () => {
-				if (list && typeof list.refresh === 'function') list.refresh(1)
-			})
-		}
+		const {
+			isSelfFetch,
+			list,
+			selfObjectStore,
+			selfObjectType,
+			activeQuickFilterIndex,
+		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
 			contextMenuOpen,
@@ -1103,11 +956,9 @@ export default {
 			closeContextMenu,
 			isSelfFetch,
 			list,
-			activeQuickFilterIndex,
-			// Exposed for onFormConfirm's self-fetch save path — see the
-			// hoist comment above the `if (isSelfFetch)` block.
 			selfObjectStore,
 			selfObjectType,
+			activeQuickFilterIndex,
 		}
 	},
 
@@ -1127,23 +978,10 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
-			// Built-in Request-a-feature modal (#7)
-			featureRequestModalOpen: false,
 		}
 	},
 
 	computed: {
-		/**
-		 * `surface` value handed to the Request-a-feature modal — pins
-		 * the resulting issue to this list view, e.g. "index:client".
-		 *
-		 * @return {string}
-		 */
-		requestFeatureSurface() {
-			const schemaName = this.effectiveSchema?.name
-				|| (typeof this.effectiveSchema === 'string' ? this.effectiveSchema : '')
-			return `index:${schemaName || this.$route?.name || 'list'}`
-		},
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
@@ -1160,6 +998,7 @@ export default {
 			if (this.isSelfFetchMode) return this.list.schema.value
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
+
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
@@ -1181,6 +1020,7 @@ export default {
 					: c
 			))
 		},
+
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
@@ -1197,48 +1037,30 @@ export default {
 
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
-			const builtIn = []
-			if (this.showViewAction) {
-				builtIn.push({
-					label: 'View',
-					icon: this.schemaIconComponent,
-					handler: (row) => {
-						this.onView(row)
-					},
-				})
-			}
-			if (this.showEditAction) {
-				builtIn.push({
-					label: 'Edit',
-					icon: Pencil,
-					handler: (row) => {
+			return buildDefaultActions({
+				flags: {
+					view: this.showViewAction,
+					edit: this.showEditAction,
+					copy: this.showCopyAction,
+					del: this.showDeleteAction,
+				},
+				viewIcon: this.schemaIconComponent,
+				handlers: {
+					onView: (row) => this.onView(row),
+					onEdit: (row) => {
 						this.editItem = row
 						this.showFormDialogVisible = true
 					},
-				})
-			}
-			if (this.showCopyAction) {
-				builtIn.push({
-					label: 'Copy',
-					icon: ContentCopy,
-					handler: (row) => {
+					onCopy: (row) => {
 						this.actionTargetItem = row
 						this.showSingleCopyDialog = true
 					},
-				})
-			}
-			if (this.showDeleteAction) {
-				builtIn.push({
-					label: 'Delete',
-					icon: TrashCanOutline,
-					destructive: true,
-					handler: (row) => {
+					onDelete: (row) => {
 						this.actionTargetItem = row
 						this.showSingleDeleteDialog = true
 					},
-				})
-			}
-			return builtIn
+				},
+			})
 		},
 
 		/**
@@ -1266,86 +1088,16 @@ export default {
 		 * runtime path) pass through untouched.
 		 */
 		mergedActions() {
-			const dispatched = this.actions.map((action) => {
-				if (typeof action.handler === 'function') {
-					// Back-compat: programmatic function handler — keep as-is.
-					return action
-				}
-				if (typeof action.handler !== 'string' || action.handler.length === 0) {
-					// No handler → emit-only path (existing default).
-					return action
-				}
-				const isNone = action.handler === 'none'
-				const resolved = this.resolveHandler(action)
-				if (resolved) {
-					// `none` returns a sentinel no-op handler AND must
-					// suppress the `@action` emit; flag it so onRowAction
-					// can drop the bubbled event.
-					return isNone
-						? { ...action, handler: resolved, _dispatchSuppress: true }
-						: { ...action, handler: resolved }
-				}
-				// Either reserved keyword "emit" / unknown name / non-function
-				// registry entry → page emits @action only; no handler call.
-				const { handler, ...rest } = action
-				return rest
-			})
-			return [...dispatched, ...this.defaultActions]
+			const ctx = {
+				router: this.$router,
+				rowKey: this.rowKey,
+				customComponents: this.effectiveCustomComponents,
+			}
+			return [...this.actions.map((a) => dispatchAction(a, ctx)), ...this.defaultActions]
 		},
 
 		hasRowActions() {
 			return this.$scopedSlots['row-actions'] || this.mergedActions.length > 0
-		},
-
-		/**
-		 * Merged page-level header actions: drops entries whose `id`
-		 * collides with a built-in (Refresh / Import / Export / Copy /
-		 * Delete), pre-resolves string `handler` keywords to function
-		 * handlers via `resolveHeaderHandler`, and preserves function
-		 * handlers untouched (programmatic path).
-		 *
-		 * Mirrors `mergedActions` for the row-level path; the difference
-		 * is that header handlers receive `{}` (no row context) and the
-		 * suppression sentinel maps to `@header-action` rather than
-		 * `@action`.
-		 *
-		 * @return {Array<object>} Header actions, with handlers resolved.
-		 */
-		mergedHeaderActions() {
-			return this.headerActions
-				.filter((action) => {
-					if (!action || typeof action !== 'object') return false
-					if (RESERVED_HEADER_ACTION_IDS.includes(action.id)) {
-						// eslint-disable-next-line no-console
-						console.warn(
-							`[CnIndexPage] headerActions[].id "${action.id}" collides with a built-in `
-							+ 'overflow item (Refresh / Import / Export / Copy / Delete); the manifest entry was dropped.',
-						)
-						return false
-					}
-					return true
-				})
-				.map((action) => {
-					if (typeof action.handler === 'function') {
-						// Programmatic function handler — keep as-is.
-						return action
-					}
-					if (typeof action.handler !== 'string' || action.handler.length === 0) {
-						// No handler → emit-only path.
-						return action
-					}
-					const isNone = action.handler === 'none'
-					const resolved = this.resolveHeaderHandler(action)
-					if (resolved) {
-						return isNone
-							? { ...action, handler: resolved, _dispatchSuppress: true }
-							: { ...action, handler: resolved }
-					}
-					// 'emit' / unknown registry name / non-function registry entry →
-					// strip handler so the click path emits `@header-action` only.
-					const { handler, ...rest } = action
-					return rest
-				})
 		},
 
 		/** Whether all visible items are selected */
@@ -1442,10 +1194,7 @@ export default {
 			}
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`,
-				)
+				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
 				return null
 			}
 			return resolved
@@ -1456,9 +1205,11 @@ export default {
 		viewMode(val) {
 			this.currentViewMode = val
 		},
+
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
 		},
+
 		/**
 		 * Keep the hoisted sidebar in sync with reactive props.
 		 * The watcher fires whenever any of the props snapshot
@@ -1470,13 +1221,16 @@ export default {
 			handler() {
 				this.publishHoistedSidebar()
 			},
+
 			deep: false,
 		},
+
 		shouldRenderInlineSidebar() {
 			// When the gate flips (e.g. sidebar.show toggled), keep
 			// the hoist in sync.
 			this.publishHoistedSidebar()
 		},
+
 		// Re-push AI context when relevant props change
 		register() { this.pushAiContext() },
 		schema() { this.pushAiContext() },
@@ -1499,6 +1253,28 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		this.selfActions = createSelfModeActions({
+			isSelfFetchMode: () => this.isSelfFetchMode,
+			selfObjectStore: () => this.selfObjectStore,
+			selfObjectType: () => this.selfObjectType,
+			list: () => this.list,
+			register: () => this.register,
+			schema: () => this.schema,
+			effectiveObjects: () => this.effectiveObjects,
+			effectiveSchema: () => this.effectiveSchema,
+			massActionNameField: () => this.massActionNameField,
+			editItem: () => this.editItem,
+			emit: (event, payload) => this.$emit(event, payload),
+			setResults: {
+				singleDelete: (r) => this.setSingleDeleteResult(r),
+				massDelete: (r) => this.setMassDeleteResult(r),
+				singleCopy: (r) => this.setSingleCopyResult(r),
+				massCopy: (r) => this.setMassCopyResult(r),
+				massImport: (r) => this.setImportResult(r),
+				massExport: (r) => this.setExportResult(r),
+				form: (r) => this.setFormResult(r),
+			},
+		})
 	},
 
 	beforeDestroy() {
@@ -1507,30 +1283,16 @@ export default {
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
 			this.cnIndexSidebarConfig.value = null
 		}
-		// Reset AI context so the companion doesn't see stale index context
-		// when the user navigates to a custom page.
-		if (this.cnAiContext) {
-			this.cnAiContext.pageKind = 'custom'
-			this.cnAiContext.registerSlug = undefined
-			this.cnAiContext.schemaSlug = undefined
-			this.cnAiContext.objectUuid = undefined
-		}
+		applyAiContext(this.cnAiContext, 'custom')
 	},
 
 	methods: {
-		/**
-		 * Push pageKind + register/schema context into the reactive cnAiContext
-		 * holder so the AI Chat Companion knows what the user is looking at.
-		 * Called from created(), mounted(), and via watchers when props change.
-		 */
 		pushAiContext() {
-			if (!this.cnAiContext) return
-			this.cnAiContext.pageKind = 'index'
-			this.cnAiContext.registerSlug = this.register || undefined
-			this.cnAiContext.schemaSlug = (typeof this.schema === 'string' && this.schema)
-				|| this.effectiveSchema?.id || this.effectiveSchema?.slug
-				|| (this.schema && (this.schema.id || this.schema.slug)) || undefined
-			this.cnAiContext.objectUuid = undefined
+			applyAiContext(this.cnAiContext, 'index', {
+				register: this.register,
+				schema: this.schema,
+				effectiveSchema: this.effectiveSchema,
+			})
 		},
 
 		// ── List-event handlers ──────────────────────────────────────────────
@@ -1545,6 +1307,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSearch === 'function') this.list.onSearch(value)
 			this.$emit('search', value)
 		},
+
 		/**
 		 * Quick-filter tab change. Updates the active index — the `setup()`
 		 * watcher then triggers `list.refresh(1)` so the new tab's filter
@@ -1559,6 +1322,7 @@ export default {
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
 		},
+
 		/**
 		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
 		 * @return {void}
@@ -1567,6 +1331,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onSort === 'function') this.list.onSort(payload)
 			this.$emit('sort', payload)
 		},
+
 		/**
 		 * @param {number} page Requested page from CnPagination.
 		 * @return {void}
@@ -1575,6 +1340,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onPageChange === 'function') this.list.onPageChange(page)
 			this.$emit('page-changed', page)
 		},
+
 		/**
 		 * @param {{key: string, values: Array}} payload Facet-filter change from the sidebar.
 		 * @return {void}
@@ -1583,6 +1349,7 @@ export default {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
 			this.$emit('filter-change', payload)
 		},
+
 		/**
 		 * @param {Array} columns Visible-column change from the sidebar.
 		 * @return {void}
@@ -1591,29 +1358,11 @@ export default {
 			if (this.isSelfFetchMode && this.list.visibleColumns) this.list.visibleColumns.value = columns
 			this.$emit('columns-change', columns)
 		},
+
 		/** @return {void} */
 		onRefreshEvent() {
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
 			this.$emit('refresh')
-		},
-
-		/**
-		 * Open the built-in Request-a-feature modal from the CnActionsBar
-		 * overflow (#7). Requires the `cnFeatureRequestRepo` inject (from
-		 * CnAppRoot); warns and no-ops when absent so standalone mounts
-		 * don't open a broken deep-link.
-		 *
-		 * @return {void}
-		 */
-		onRequestFeatureClick() {
-			if (!this.cnFeatureRequestRepo) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					'[CnIndexPage] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot).',
-				)
-				return
-			}
-			this.featureRequestModalOpen = true
 		},
 
 		/**
@@ -1641,81 +1390,10 @@ export default {
 		},
 
 		/**
-		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
-		 * (manifest-actions-dispatch) — Resolve a manifest-declared
-		 * action's `handler` string into a `(row) => void` invocation
-		 * function. Returns null when the action should fall back to
-		 * the page's `@action`-event-only path.
+		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
+		 * actions are dropped before re-emit.
 		 *
-		 *   - Reserved keyword `"navigate"` → push the configured route
-		 *     with `params: { id: row[rowKey] }`.
-		 *   - Reserved keyword `"emit"` → null (page still bubbles
-		 *     `@action`; explicit no-op).
-		 *   - Reserved keyword `"none"` → returns a no-op function that
-		 *     suppresses both the handler and the `@action` emit. The
-		 *     suppression happens via the special `_dispatchSuppress`
-		 *     flag on the cloned action; see mergedActions for the
-		 *     detail.
-		 *   - Registry name → look up in `effectiveCustomComponents`;
-		 *     when it's a function, wrap as
-		 *     `(row) => fn({ actionId: action.id, item: row })`. When
-		 *     it's a non-function, console.warn and return null.
-		 *   - Unknown registry name → silent fall-through (null).
-		 *
-		 * @param {object} action The manifest-shaped action object.
-		 * @return {Function|null}
-		 */
-		resolveHandler(action) {
-			const name = action.handler
-			if (typeof name !== 'string' || name.length === 0) return null
-			if (name === 'navigate') {
-				const route = action.route
-				if (typeof route !== 'string' || route.length === 0) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
-						+ 'but route is missing; falling back to @action-only.',
-					)
-					return null
-				}
-				return (row) => {
-					this.$router.push({
-						name: route,
-						params: { id: row[this.rowKey] },
-					})
-				}
-			}
-			if (name === 'emit') return null
-			if (name === 'none') {
-				// Returns a sentinel that CnRowActions will treat as a
-				// no-op; we additionally short-circuit @action emit in
-				// `onRowAction` via the action's id.
-				return () => {}
-			}
-			const fn = this.effectiveCustomComponents[name]
-			if (typeof fn === 'function') {
-				return (row) => fn({ actionId: action.id, item: row })
-			}
-			if (fn !== undefined) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
-					+ 'customComponents — components belong to slot overrides; falling '
-					+ 'back to @action-only.',
-				)
-			}
-			return null
-		},
-
-		/**
-		 * REQ-MAD-6 (manifest-actions-dispatch) — `handler: "none"`
-		 * blocks the `@action` emit entirely. CnRowActions emits
-		 * `@action` with `{ action: action.label, row }` and the page
-		 * forwards via `@action="$emit('action', $event)"`. This handler
-		 * intercepts so the `none`-flagged action is dropped before
-		 * re-emit.
-		 *
-		 * @param {{action: string, row: object}} payload The CnRowActions emit.
+		 * @param {{action: string, row: object}} payload
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1724,83 +1402,8 @@ export default {
 		},
 
 		/**
-		 * Page-level analogue of `resolveHandler` for `headerActions[]`.
-		 * Resolves a string `handler` into a `() => void` function with
-		 * NO row context (header actions are page-level). Returns null
-		 * when the action should fall back to the page's `@header-action`
-		 * emit-only path.
-		 *
-		 * Keywords mirror the row-level dispatcher:
-		 * - `navigate` → `$router.push({ name: action.route })` (no `params.id`)
-		 * - `emit` → null (page still bubbles `@header-action`)
-		 * - `none` → no-op + sentinel for emit suppression
-		 * - registry name → `() => fn({ actionId: action.id })`
-		 * - unknown / non-function → null
-		 *
-		 * @param {object} action The header action object.
-		 * @return {Function|null}
-		 */
-		resolveHeaderHandler(action) {
-			const name = action.handler
-			if (typeof name !== 'string' || name.length === 0) return null
-			if (name === 'navigate') {
-				const route = action.route
-				if (typeof route !== 'string' || route.length === 0) {
-					// eslint-disable-next-line no-console
-					console.warn(
-						`[CnIndexPage] headerActions[].id "${action.id}" declares handler:"navigate" `
-						+ 'but route is missing; falling back to @header-action-only.',
-					)
-					return null
-				}
-				return () => {
-					this.$router.push({ name: route })
-				}
-			}
-			if (name === 'emit') return null
-			if (name === 'none') {
-				return () => {}
-			}
-			const fn = this.effectiveCustomComponents[name]
-			if (typeof fn === 'function') {
-				return () => fn({ actionId: action.id })
-			}
-			if (fn !== undefined) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					`[CnIndexPage] headerActions[].handler "${name}" resolved to a non-function in `
-					+ 'customComponents — components belong to slot overrides; falling back to '
-					+ '@header-action-only.',
-				)
-			}
-			return null
-		},
-
-		/**
-		 * Click handler for CnActionsBar `@header-action` events. Looks
-		 * up the matching `mergedHeaderActions` entry, invokes its
-		 * resolved function handler when present, then re-emits
-		 * `@header-action` to the parent (unless the entry is flagged
-		 * `_dispatchSuppress` via `handler: "none"`).
-		 *
-		 * Matches the row-level pattern (`onRowAction` /
-		 * `CnRowActions.handleAction`): handler runs AND `@header-action`
-		 * emits — consumers can wire either. `handler: "none"` is the
-		 * explicit emit-suppression escape hatch.
-		 *
-		 * @param {{action: string, id: string}} payload The CnActionsBar emit.
-		 */
-		onHeaderAction(payload) {
-			const matched = this.mergedHeaderActions.find((a) => a.id === payload.id)
-			if (matched && typeof matched.handler === 'function') {
-				matched.handler()
-			}
-			if (matched && matched._dispatchSuppress) return
-			this.$emit('header-action', payload)
-		},
-
-		/**
 		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
@@ -1812,6 +1415,7 @@ export default {
 		 * Kept distinct from `row-click` because the two are conceptually
 		 * different: a row click might mean select/expand/drilldown, while
 		 * View always means "open the detail view of this row".
+		 *
 		 * @param {object} row The row whose View action was triggered
 		 */
 		onView(row) {
@@ -1833,6 +1437,7 @@ export default {
 
 		/**
 		 * Handle view mode toggle.
+		 *
 		 * @param {string} mode 'table' or 'cards'
 		 */
 		onViewModeChange(mode) {
@@ -1843,6 +1448,7 @@ export default {
 		/**
 		 * Handle selection changes from CnDataTable/CnCardGrid.
 		 * Updates internal state and re-emits for parent.
+		 *
 		 * @param {Array} ids Array of selected row IDs
 		 */
 		onSelect(ids) {
@@ -1853,123 +1459,73 @@ export default {
 		// --- Mass action handlers ---
 
 		async onMassDeleteConfirm(ids) {
-			// Self-fetch (manifest-v2) parallel of onFormConfirm — own
-			// the bulk-delete via the internal store so the dialog
-			// closes and the list refreshes without an upstream
-			// `@mass-delete` listener.
-			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
-				const ok = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
-				if (ok) {
-					this.setMassDeleteResult({ success: true })
-					this.$emit('mass-delete', ids)
-					if (this.list && typeof this.list.refresh === 'function') {
-						this.list.refresh()
-					}
-				} else {
-					const err = this.selfObjectStore.getError?.(this.selfObjectType)
-					this.setMassDeleteResult({ error: (err && err.message) || 'Mass delete failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleMassDelete(ids)) return
 			this.$emit('mass-delete', ids)
 		},
 
-		onMassCopyConfirm(payload) {
+		async onMassCopyConfirm(payload) {
+			if (await this.selfActions.handleMassCopy(payload)) return
 			this.$emit('mass-copy', payload)
 		},
 
-		onMassExportConfirm(payload) {
+		async onMassExportConfirm(payload) {
+			if (await this.selfActions.handleMassExport(payload)) return
 			this.$emit('mass-export', payload)
 		},
 
-		onMassImportConfirm(payload) {
+		async onMassImportConfirm(payload) {
+			if (await this.selfActions.handleMassImport(payload)) return
 			this.$emit('mass-import', payload)
 		},
 
-		/**
-		 * @param {*} resultData Result data to pass to the dialog
-		 * @public
-		 */
-		setMassDeleteResult(resultData) {
-			if (this.$refs.massDeleteDialog) {
-				this.$refs.massDeleteDialog.setResult(resultData)
-			}
+		_setResult(refName, resultData) {
+			this.$refs[refName]?.setResult(resultData)
 		},
 
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassCopyResult(resultData) {
-			if (this.$refs.massCopyDialog) {
-				this.$refs.massCopyDialog.setResult(resultData)
-			}
-		},
-
+		setMassDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setExportResult(resultData) {
-			if (this.$refs.exportDialog) {
-				this.$refs.exportDialog.setResult(resultData)
-			}
-		},
-
+		setMassCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setImportResult(resultData) {
-			if (this.$refs.importDialog) {
-				this.$refs.importDialog.setResult(resultData)
-			}
-		},
-
-		// --- Backward-compatible aliases ---
+		setExportResult(resultData) { this._setResult('exportDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setDeleteResult(resultData) {
-			this.setMassDeleteResult(resultData)
-		},
+		setImportResult(resultData) { this._setResult('importDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setCopyResult(resultData) {
-			this.setMassCopyResult(resultData)
-		},
+		setDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
+		/**
+		 * @param {*} resultData Result data to pass to the dialog
+		 * @public
+		 */
+		setCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
 
 		// --- Single-object dialog handlers ---
 
 		async onSingleDeleteConfirm(id) {
-			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
-				const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
-				if (ok) {
-					this.setSingleDeleteResult({ success: true })
-					this.$emit('delete', id)
-					if (this.list && typeof this.list.refresh === 'function') {
-						this.list.refresh()
-					}
-				} else {
-					const err = this.selfObjectStore.getError?.(this.selfObjectType)
-					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleSingleDelete(id)) return
 			this.$emit('delete', id)
 		},
 
-		onSingleCopyConfirm(payload) {
+		async onSingleCopyConfirm(payload) {
+			if (await this.selfActions.handleSingleCopy(payload)) return
 			this.$emit('copy', payload)
 		},
 
 		async onFormConfirm(formData) {
-			// Explicit store prop wins — host passed in a custom store
-			// + objectType, e.g. when the manifest binding is overridden
-			// or the consumer is in classic Options-API mode.
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
@@ -1979,41 +1535,14 @@ export default {
 				if (saved) {
 					this.setFormResult({ success: true })
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
-					if (this.list && typeof this.list.refresh === 'function') {
-						this.list.refresh()
-					}
 				} else {
 					const err = this.store.getError?.(this.objectType)
 					this.setFormResult({ error: (err && err.message) || 'Save failed' })
 				}
 				return
 			}
-			// Self-fetch (manifest-v2) mode: CnPageRenderer mounts us with
-			// `register` + `schema` from `config` but no `store`/`objectType`
-			// prop. The internal store registered in setup() owns the save
-			// path so the dialog actually POSTs to OR. Without this branch
-			// the click below falls into the `@create` emit which has no
-			// listener through CnPageRenderer (props-only forwarding) and
-			// the dialog is a silent no-op.
-			if (this.isSelfFetch && this.selfObjectStore && this.selfObjectType) {
-				const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
-				if (saved) {
-					this.setFormResult({ success: true })
-					this.$emit(this.editItem ? 'edit' : 'create', saved)
-					if (this.list && typeof this.list.refresh === 'function') {
-						this.list.refresh()
-					}
-				} else {
-					const err = this.selfObjectStore.getError?.(this.selfObjectType)
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
-				}
-				return
-			}
-			if (this.editItem) {
-				this.$emit('edit', formData)
-			} else {
-				this.$emit('create', formData)
-			}
+			if (await this.selfActions.handleFormSave(formData)) return
+			this.$emit(this.editItem ? 'edit' : 'create', formData)
 		},
 
 		closeSingleDelete() {
@@ -2035,31 +1564,17 @@ export default {
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleDeleteResult(resultData) {
-			if (this.$refs.singleDeleteDialog) {
-				this.$refs.singleDeleteDialog.setResult(resultData)
-			}
-		},
-
+		setSingleDeleteResult(resultData) { this._setResult('singleDeleteDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleCopyResult(resultData) {
-			if (this.$refs.singleCopyDialog) {
-				this.$refs.singleCopyDialog.setResult(resultData)
-			}
-		},
-
+		setSingleCopyResult(resultData) { this._setResult('singleCopyDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setFormResult(resultData) {
-			if (this.$refs.formDialog) {
-				this.$refs.formDialog.setResult(resultData)
-			}
-		},
+		setFormResult(resultData) { this._setResult('formDialog', resultData) },
 
 		// --- Context menu handlers ---
 
@@ -2069,6 +1584,7 @@ export default {
 
 		/**
 		 * Programmatically open the form dialog.
+		 *
 		 * @param {object|null} item Pass null for create mode, or an object for edit mode
 		 * @public
 		 */
@@ -2079,6 +1595,7 @@ export default {
 
 		/**
 		 * Programmatically open the single-item delete dialog.
+		 *
 		 * @param {object} item The item to delete
 		 * @public
 		 */

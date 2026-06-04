@@ -115,6 +115,26 @@ describe('SAFE_MARKDOWN_DOMPURIFY_CONFIG', () => {
 		})
 	})
 
+	describe('protocol-relative URL stripping (C1 regression)', () => {
+		it('strips protocol-relative URL from anchor href', () => {
+			// `//attacker.com/...` resolves to http(s)://attacker.com/... in a
+			// browser — must NOT pass through even though it starts with `/`.
+			const output = sanitize('<a href="//attacker.com/steal">link</a>')
+			expect(output).not.toContain('//attacker.com')
+		})
+
+		it('strips protocol-relative URL from image src', () => {
+			const output = sanitize('<img src="//attacker.com/pixel.png" alt="x">')
+			expect(output).not.toContain('//attacker.com')
+		})
+
+		it('preserves a normal root-relative path in anchor href', () => {
+			// A single leading slash is same-origin — must be preserved.
+			const output = sanitize('<a href="/apps/files">Files</a>')
+			expect(output).toContain('href="/apps/files"')
+		})
+	})
+
 	describe('<iframe> stripping', () => {
 		it('removes <iframe> entirely', () => {
 			const output = sanitize('<iframe src="https://evil.example.com"></iframe>')

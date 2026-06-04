@@ -433,6 +433,21 @@ describe('createCrudStore', () => {
 			expect(store.loading).toBe(false)
 			expect(store.error).toBeTruthy()
 		})
+
+		it('encodes path-traversal ID payloads in the URL (C3)', async () => {
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: '../other' }),
+			})
+
+			await store.getOne('../other-schema/uuid')
+
+			const calledUrl = global.fetch.mock.calls[0][0]
+			// The raw path segment must NOT appear in the URL
+			expect(calledUrl).not.toContain('../other-schema/uuid')
+			// The encoded form must appear
+			expect(calledUrl).toContain(encodeURIComponent('../other-schema/uuid'))
+		})
 	})
 
 	describe('save', () => {
