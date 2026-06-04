@@ -24,7 +24,7 @@
 	<NcDialog
 		:name="title"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-picker"
 		@closing="onClose">
@@ -95,7 +95,7 @@
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!selected || loading"
 				@click="confirm">
 				<template #icon>

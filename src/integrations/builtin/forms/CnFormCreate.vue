@@ -22,7 +22,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!submitting"
+		:no-close="submitting"
 		data-testid="cn-modal"
 		data-testid-modal="cn-form-create"
 		@closing="$emit('close')">
@@ -61,7 +61,7 @@
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit || submitting"
 				@click="submit">
 				<template v-if="submitting" #icon>

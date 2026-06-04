@@ -35,7 +35,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-time-tracker-picker"
 		@closing="onClose">
 		<div class="cn-time-tracker-picker">
@@ -81,7 +80,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selected === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link entry') }}

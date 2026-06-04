@@ -36,7 +36,7 @@
 		<!-- Header actions: link existing / create new -->
 		<div class="cn-contacts-tab__header">
 			<NcButton
-				type="secondary"
+				variant="secondary"
 				:aria-label="addNewLabel"
 				@click="showCreateDialog = true">
 				<template #icon>
@@ -45,7 +45,7 @@
 				{{ addNewLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:aria-label="linkExistingLabel"
 				@click="showLinkDialog = true">
 				<template #icon>

@@ -34,7 +34,7 @@
 	<div class="cn-sidebar-tab cn-forms-tab">
 		<div class="cn-forms-tab__header">
 			<NcButton
-				type="primary"
+				variant="primary"
 				:aria-label="linkExistingLabel"
 				@click="showPicker = true">
 				<template #icon>
@@ -64,7 +64,7 @@
 		<div v-else-if="forms.length === 0" class="cn-sidebar-tab__empty cn-forms-tab__empty">
 			<ClipboardText :size="32" class="cn-forms-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openFormsApp">
+			<NcButton variant="primary" @click="openFormsApp">
 				<template #icon>
 					<ClipboardText :size="20" />
 				</template>

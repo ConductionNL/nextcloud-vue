@@ -42,7 +42,7 @@
 				</template>
 				{{ t('nextcloud-vue', 'Link existing room') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -57,7 +57,7 @@
 		<div v-else-if="rooms.length === 0" class="cn-sidebar-tab__empty cn-talk-tab__empty">
 			<ChatOutline :size="32" class="cn-talk-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openTalkApp">
+			<NcButton variant="primary" @click="openTalkApp">
 				<template #icon>
 					<ChatOutline :size="20" />
 				</template>

@@ -31,7 +31,6 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		:class="['cn-page-renderer', { 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
-
 		<!-- V2 render path: slot dispatcher via CnWidgetGrid.
 		     Body falls back to the typed-primitive dispatch when no
 		     widgets[] entries target the `body` slot — apps that just
@@ -48,8 +47,8 @@
 				:widgets="widgetsBySlot.get('body')"
 				slot-name="body" />
 			<component
-				v-else-if="resolvedComponent"
 				:is="resolvedComponent"
+				v-else-if="resolvedComponent"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners">
 				<template
@@ -91,8 +90,8 @@
 		</template>
 
 		<component
-			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
+			v-else-if="resolvedComponent"
 			:key="currentPage.id"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners">
@@ -153,22 +152,6 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 export default {
 	name: 'CnPageRenderer',
 
-	/**
-	 * Forward listeners + attrs to the dispatched page component (B1).
-	 *
-	 * `inheritAttrs: false` opts the wrapping `.cn-page-renderer` <div>
-	 * out of Vue's default non-prop-attribute fallthrough, so attributes
-	 * the host passed to CnPageRenderer land on the dispatched page via
-	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
-	 * does the same for events. Without this, built-in page components
-	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
-	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
-	 *
-	 * Resolved props win over `$attrs` on key collisions because the
-	 * spread order is `{ ...$attrs, ...resolvedProps }`.
-	 */
-	inheritAttrs: false,
-
 	components: {
 		CnWidgetGrid,
 	},
@@ -228,6 +211,22 @@ export default {
 			},
 		}
 	},
+
+	/**
+	 * Forward listeners + attrs to the dispatched page component (B1).
+	 *
+	 * `inheritAttrs: false` opts the wrapping `.cn-page-renderer` <div>
+	 * out of Vue's default non-prop-attribute fallthrough, so attributes
+	 * the host passed to CnPageRenderer land on the dispatched page via
+	 * `v-bind="{ ...$attrs, ...resolvedProps }"` instead. `v-on="$listeners"`
+	 * does the same for events. Without this, built-in page components
+	 * that emit (CnDashboardPage @widget-refresh / @widget-request-feature,
+	 * CnIndexPage @create / @edit / @delete) cannot reach the host App.
+	 *
+	 * Resolved props win over `$attrs` on key collisions because the
+	 * spread order is `{ ...$attrs, ...resolvedProps }`.
+	 */
+	inheritAttrs: false,
 
 	props: {
 		/**

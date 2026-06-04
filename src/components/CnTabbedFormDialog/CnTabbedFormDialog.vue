@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase (standard mode, not create-another) -->
 		<div v-if="result !== null && !createAnother"
@@ -107,7 +107,7 @@
 			<NcButton
 				v-if="createAnother || result === null"
 				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
-				type="primary"
+				variant="primary"
 				:disabled="loading || disableSave"
 				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				@click="executeConfirm">

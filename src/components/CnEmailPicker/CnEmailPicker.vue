@@ -29,7 +29,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-email-picker"
 		@closing="onClose">
 		<div class="cn-email-picker">
@@ -127,7 +126,7 @@
 
 				<NcButton
 					v-if="nextCursor !== null"
-					type="tertiary"
+					variant="tertiary"
 					:disabled="loadingMore"
 					class="cn-email-picker__load-more"
 					@click="loadMoreMessages">
@@ -148,7 +147,7 @@
 			</NcButton>
 			<NcButton
 				v-if="step === 3"
-				type="primary"
+				variant="primary"
 				:disabled="!selectedMessageId"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link message') }}

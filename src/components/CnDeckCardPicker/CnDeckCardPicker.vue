@@ -34,7 +34,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-deck-card-picker"
 		@closing="onClose">
 		<div class="cn-deck-card-picker">
@@ -127,7 +126,7 @@
 			</NcButton>
 			<NcButton
 				v-if="step === 3"
-				type="primary"
+				variant="primary"
 				:disabled="!selectedCardId"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link card') }}

@@ -2,18 +2,24 @@
 	<div class="cn-structured-doc-review" data-testid="cn-structured-doc-review">
 		<header class="cn-structured-doc-review__header">
 			<div class="cn-structured-doc-review__title-row">
-				<h3 v-if="title" class="cn-structured-doc-review__title">{{ title }}</h3>
+				<h3 v-if="title" class="cn-structured-doc-review__title">
+					{{ title }}
+				</h3>
 				<span class="cn-structured-doc-review__status" :class="statusClass" data-testid="status-pill">
 					<span class="cn-structured-doc-review__status-dot" />
 					{{ statusLabel }}
 				</span>
 			</div>
-			<p v-if="description" class="cn-structured-doc-review__description">{{ description }}</p>
+			<p v-if="description" class="cn-structured-doc-review__description">
+				{{ description }}
+			</p>
 		</header>
 
 		<!-- Validation issues banner. -->
 		<div v-if="issues.length > 0" class="cn-structured-doc-review__issues" data-testid="issues">
-			<h4 class="cn-structured-doc-review__issues-title">{{ issuesTitle }}</h4>
+			<h4 class="cn-structured-doc-review__issues-title">
+				{{ issuesTitle }}
+			</h4>
 			<ul>
 				<li v-for="(issue, idx) in issues"
 					:key="idx"

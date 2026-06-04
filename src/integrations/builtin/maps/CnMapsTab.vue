@@ -58,13 +58,13 @@
 		</div>
 
 		<div class="cn-maps-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing location') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -83,7 +83,7 @@
 			class="cn-sidebar-tab__empty cn-maps-tab__empty">
 			<MapMarker :size="32" class="cn-maps-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openMapsApp">
+			<NcButton variant="primary" @click="openMapsApp">
 				<template #icon>
 					<MapMarker :size="20" />
 				</template>

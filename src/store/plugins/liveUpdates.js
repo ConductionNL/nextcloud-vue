@@ -48,13 +48,14 @@
  * store.unsubscribe(handle)
  */
 
+import { buildCollectionKey, buildObjectKey } from '../liveUpdates/eventKeys.js'
 import { getLiveUpdates } from '../liveUpdates/transport.js'
-import { buildObjectKey, buildCollectionKey } from '../liveUpdates/eventKeys.js'
 
 // tryOnScopeDispose is from @vueuse/core — available as peerDependency
 let _tryOnScopeDispose = null
 try {
 	// Dynamic import guard: avoid hard failure if @vueuse/core is absent
+	// eslint-disable-next-line no-undef
 	const vueuse = require('@vueuse/core')
 	_tryOnScopeDispose = vueuse.tryOnScopeDispose
 } catch {
@@ -62,14 +63,43 @@ try {
 }
 
 /**
+ * Recursively produce a deterministic JSON string with object keys sorted at
+ * every nesting level. This is necessary because `JSON.stringify(v, replacer)`
+ * only applies the replacer-as-allowlist to the **top-level** keys; nested
+ * objects still serialize in insertion order and collapse to `{}` when the
+ * replacer array omits them entirely.
+ *
+ * @param {*} v Any JSON-serialisable value
+ * @return {string}
+ */
+function stableStringify(v) {
+	if (v && typeof v === 'object' && !Array.isArray(v)) {
+		return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}'
+	}
+	return JSON.stringify(v)
+}
+
+/**
  * Compute a stable cache key for dedup of fetchCollection calls.
+ *
+ * Keys are built with recursively sorted JSON so that two semantically-identical
+ * parameter objects with different key-insertion order produce the same
+ * cache key and are correctly deduplicated. Without sorting,
+ * `{ type: 'case', register: '1' }` and `{ register: '1', type: 'case' }`
+ * would yield different strings and trigger duplicate live-update
+ * subscriptions (#466).
+ *
+ * `stableStringify` is used instead of the `JSON.stringify(v, replacer)` array
+ * form because the replacer-as-allowlist only applies at the top level —
+ * nested objects pass through unsorted and collapse to `{}` when their keys
+ * are not in the array.
  *
  * @param {string} type Object type slug
  * @param {object} params Query params
  * @return {string}
  */
 function collectionDedupKey(type, params) {
-	return `${type}:${JSON.stringify(params)}`
+	return `${type}:${stableStringify(params)}`
 }
 
 /**
@@ -159,8 +189,13 @@ export function liveUpdatesPlugin(opts = {}) {
 				if (!this.__liveStatusObserverRegistered) {
 					this.__liveStatusObserverRegistered = true
 					liveUpdates.onStatusChange((newStatus) => {
-						this.liveStatus = { ...this.liveStatus, valueOf: undefined, toString: undefined }
-						// Vue 2 spread pattern for primitive reactive update
+						// Direct assignment — `liveStatus` is a Pinia reactive
+						// state property whose setter is installed by Vue.set()
+						// at store init, so the assignment triggers reactivity.
+						// The prior spread `{ ...this.liveStatus, valueOf: ... }`
+						// was dead code: spreading a primitive string yields a
+						// char-index map ({0:'o', 1:'f', ...}) which was
+						// immediately overwritten anyway (#465).
 						this.liveStatus = newStatus
 					})
 				}
@@ -200,7 +235,7 @@ export function liveUpdatesPlugin(opts = {}) {
 								[type]: { ...config, registerSlug, schemaSlug },
 							}
 						} catch (err) {
-							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`)
+							throw new Error(`liveUpdatesPlugin: cannot subscribe to "${type}" collection — ${err.message}`, { cause: err })
 						}
 					}
 

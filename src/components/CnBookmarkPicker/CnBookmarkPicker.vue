@@ -33,7 +33,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-bookmark-picker"
 		@closing="onClose">
 		<div class="cn-bookmark-picker">
@@ -94,7 +93,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!selectedBookmarkId"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link bookmark') }}

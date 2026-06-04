@@ -9,7 +9,7 @@
 					@keyup.enter="editingTaskId ? saveEdit() : addTask()" />
 				<NcButton
 					v-if="editingTaskId"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="cancelLabel"
 					@click="cancelEdit">
 					<template #icon>
@@ -17,7 +17,7 @@
 					</template>
 				</NcButton>
 				<NcButton
-					type="primary"
+					variant="primary"
 					:aria-label="editingTaskId ? saveLabel : addTaskPlaceholder"
 					:disabled="!newTaskSummary.trim() || saving"
 					@click="editingTaskId ? saveEdit() : addTask()">
@@ -113,7 +113,7 @@
 		</div>
 		<NcButton
 			v-if="tasks.length < total"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"
@@ -159,19 +159,33 @@ export default {
 	},
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task...') },
+		/** Placeholder text for the task input */
+		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task…') },
+		/** Label for the task deadline field */
 		deadlineLabel: { type: String, default: () => t('nextcloud-vue', 'Deadline') },
+		/** Label for the task assignee field */
 		assigneeLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
+		/** Label for the complete task action */
 		completeLabel: { type: String, default: () => t('nextcloud-vue', 'Complete') },
+		/** Label for the edit action */
 		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Text shown when no tasks are linked */
 		noTasksLabel: { type: String, default: () => t('nextcloud-vue', 'No linked tasks') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/** Label for the status filter control */
 		statusFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Status') },
+		/** Label for the assignee filter control */
 		assigneeFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
 	},
 

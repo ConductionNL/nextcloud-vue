@@ -26,7 +26,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-talk-room-picker"
 		@closing="onClose">
 		<div class="cn-talk-room-picker">
@@ -75,7 +74,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!selectedToken"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link room') }}

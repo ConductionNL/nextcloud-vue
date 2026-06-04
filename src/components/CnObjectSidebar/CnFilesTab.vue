@@ -70,7 +70,7 @@
 		</div>
 		<NcButton
 			v-if="files.length < total"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"
@@ -98,40 +98,24 @@ export default {
 	components: { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Text shown inside the file drop zone */
 		dropZoneLabel: { type: String, default: () => t('nextcloud-vue', 'Drop files here or click to browse') },
+		/** Text shown when no files are attached */
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
+		/** Label for the open/view file action */
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
-		/**
-		 * Show the "Automatically publish" share toggle above the dropzone.
-		 * Set to false to hide the toggle entirely (forced `share=false` on upload).
-		 * @type {boolean}
-		 */
-		showShareToggle: { type: Boolean, default: true },
-		/**
-		 * Initial value for the share toggle. `null` (the default) means the
-		 * component looks up the active schema's `configuration.defaultAutoShare`
-		 * via the OpenRegister schema API and seeds from there (falling back to
-		 * false). A non-null Boolean wins over the schema lookup — let the
-		 * consumer override the schema default when needed.
-		 *
-		 * `type` is intentionally omitted so Vue 2 accepts `null` without
-		 * emitting a prop-type-check warning when a consumer passes
-		 * `:default-share="null"` explicitly. The validator below enforces
-		 * the actual contract.
-		 * @type {boolean|null}
-		 */
-		defaultShare: {
-			default: null,
-			validator: v => v === null || typeof v === 'boolean',
-		},
-		/** Label rendered next to the share toggle. */
-		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Automatically publish') },
 	},
 
 	data() {

@@ -54,11 +54,11 @@
 				</div>
 
 				<div class="cn-calendar-event-create__actions">
-					<NcButton type="tertiary" @click="onClose">
+					<NcButton variant="tertiary" @click="onClose">
 						{{ cancelLabel }}
 					</NcButton>
 					<NcButton
-						type="primary"
+						variant="primary"
 						native-type="submit"
 						:disabled="!canSubmit || saving">
 						<template v-if="saving" #icon>

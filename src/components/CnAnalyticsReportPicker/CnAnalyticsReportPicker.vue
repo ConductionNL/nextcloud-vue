@@ -30,7 +30,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-analytics-report-picker"
 		@closing="onClose">
 		<div class="cn-analytics-report-picker">
@@ -79,7 +78,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedReportId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link report') }}

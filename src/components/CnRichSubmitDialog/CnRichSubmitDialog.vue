@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-rich-submit-dialog"
 		@closing="onClose">
@@ -40,7 +40,7 @@
 						:class="{ 'cn-rich-submit__reason-option--active': formData.reason === r.value }">
 						<input
 							:value="r.value"
-							:checked="formData.reason === r.value"
+							:model-value="formData.reason === r.value"
 							type="radio"
 							:name="radioGroupName"
 							@change="formData.reason = r.value">
@@ -92,7 +92,7 @@
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading || !isValid"
 				@click="onConfirm">
 				<template #icon>

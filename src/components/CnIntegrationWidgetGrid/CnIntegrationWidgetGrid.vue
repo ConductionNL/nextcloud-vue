@@ -62,14 +62,6 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard']
 export default {
 	name: 'CnIntegrationWidgetGrid',
 
-	setup() {
-		const { integrations, resolveWidget } = useIntegrationRegistry()
-		return {
-			registryIntegrations: integrations,
-			resolveWidget,
-		}
-	},
-
 	props: {
 		/**
 		 * Dashboard surface to render. Must be one of:
@@ -105,6 +97,14 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No integrations available yet.'),
 		},
+	},
+
+	setup() {
+		const { integrations, resolveWidget } = useIntegrationRegistry()
+		return {
+			registryIntegrations: integrations,
+			resolveWidget,
+		}
 	},
 
 	computed: {

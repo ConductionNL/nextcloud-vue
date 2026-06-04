@@ -446,28 +446,6 @@ export default {
 		cnAiContext: { default: null },
 	},
 
-	setup() {
-		// Wire the pluggable integration registry so widgets of type
-		// `integration` resolve their component reactively. No-op cost
-		// when no integration widgets are configured.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
-
-		// Provide a reactive date-range ref to every descendant widget,
-		// ALWAYS — even when the feature is off. Descendants can then
-		// `inject('cnDashboardDateRange', ref(null))` without a fallback
-		// dance, and the value stays `null` (= no range) until the user
-		// picks one. CnChartWidget reads this via inject() to drive its
-		// bucket-shorthand variables.
-		const dashboardDateRange = ref(null)
-		provide('cnDashboardDateRange', dashboardDateRange)
-
-		return {
-			registryIntegrations,
-			resolveRegistryWidget: resolveWidget,
-			dashboardDateRange,
-		}
-	},
-
 	props: {
 		/** Page title */
 		title: {
@@ -717,6 +695,28 @@ export default {
 	},
 
 	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'refresh', 'request-feature'],
+
+	setup() {
+		// Wire the pluggable integration registry so widgets of type
+		// `integration` resolve their component reactively. No-op cost
+		// when no integration widgets are configured.
+		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
+
+		// Provide a reactive date-range ref to every descendant widget,
+		// ALWAYS — even when the feature is off. Descendants can then
+		// `inject('cnDashboardDateRange', ref(null))` without a fallback
+		// dance, and the value stays `null` (= no range) until the user
+		// picks one. CnChartWidget reads this via inject() to drive its
+		// bucket-shorthand variables.
+		const dashboardDateRange = ref(null)
+		provide('cnDashboardDateRange', dashboardDateRange)
+
+		return {
+			registryIntegrations,
+			resolveRegistryWidget: resolveWidget,
+			dashboardDateRange,
+		}
+	},
 
 	data() {
 		return {

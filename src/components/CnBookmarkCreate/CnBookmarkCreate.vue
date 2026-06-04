@@ -24,7 +24,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-bookmark-create"
 		@closing="onClose">
 		<form class="cn-bookmark-create" @submit.prevent="submit">
@@ -64,7 +63,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create bookmark') }}

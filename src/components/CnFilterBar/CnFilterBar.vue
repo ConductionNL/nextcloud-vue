@@ -45,8 +45,8 @@
 				<NcCheckboxRadioSwitch
 					v-else-if="filter.type === 'checkbox'"
 					:key="filter.key"
-					:checked="!!filter.value"
-					@update:checked="onFilterChange(filter.key, $event)">
+					:model-value="!!filter.value"
+					@update:model-value="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 			</template>

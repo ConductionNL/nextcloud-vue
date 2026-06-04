@@ -28,14 +28,13 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-xwiki-page-create"
 		@closing="onClose">
 		<div v-if="unavailable" class="cn-xwiki-page-create__unconfigured" role="alert">
 			<AlertCircleOutline :size="32" class="cn-xwiki-page-create__unconfigured-icon" />
 			<strong>{{ t('nextcloud-vue', 'XWiki connection not configured') }}</strong>
 			<p>{{ t('nextcloud-vue', 'Add an XWiki source in OpenConnector before creating pages.') }}</p>
-			<NcButton type="primary" @click="openOpenConnector">
+			<NcButton variant="primary" @click="openOpenConnector">
 				{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 			</NcButton>
 		</div>
@@ -65,7 +64,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!unavailable"
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create page') }}

@@ -60,13 +60,13 @@
 		     state below carries the Configure CTA instead) and while an
 		     auth banner is showing. -->
 		<div v-if="!unconfigured && !authBanner" class="cn-openproject-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link work package') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -82,7 +82,7 @@
 			class="cn-sidebar-tab__empty cn-openproject-tab__empty">
 			<Briefcase :size="32" class="cn-openproject-tab__empty-icon" />
 			<p>{{ unconfiguredLabel }}</p>
-			<NcButton type="primary" @click="openOpenconnectorAdmin">
+			<NcButton variant="primary" @click="openOpenconnectorAdmin">
 				<template #icon>
 					<CogOutline :size="20" />
 				</template>
@@ -97,7 +97,7 @@
 		<div v-else-if="workPackages.length === 0" class="cn-sidebar-tab__empty cn-openproject-tab__empty">
 			<Briefcase :size="32" class="cn-openproject-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="secondary" @click="openOpenprojectApp">
+			<NcButton variant="secondary" @click="openOpenprojectApp">
 				<template #icon>
 					<OpenInNew :size="20" />
 				</template>

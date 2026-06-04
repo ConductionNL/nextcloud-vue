@@ -21,7 +21,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-talk-room-create"
 		@closing="onClose">
 		<form class="cn-talk-room-create" @submit.prevent="submit">
@@ -55,7 +54,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create room') }}

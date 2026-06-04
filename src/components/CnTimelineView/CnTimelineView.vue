@@ -3,8 +3,12 @@
 		<header v-if="title || description || $slots.header" class="cn-timeline-view__header">
 			<!-- @slot header Replaces the default title + description block in the timeline header. -->
 			<slot name="header">
-				<h3 v-if="title" class="cn-timeline-view__title">{{ title }}</h3>
-				<p v-if="description" class="cn-timeline-view__description">{{ description }}</p>
+				<h3 v-if="title" class="cn-timeline-view__title">
+					{{ title }}
+				</h3>
+				<p v-if="description" class="cn-timeline-view__description">
+					{{ description }}
+				</p>
 			</slot>
 		</header>
 

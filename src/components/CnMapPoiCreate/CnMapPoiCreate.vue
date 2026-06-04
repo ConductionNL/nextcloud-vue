@@ -31,7 +31,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-map-poi-create"
 		@closing="onClose">
 		<form class="cn-map-poi-create" @submit.prevent="submit">
@@ -78,7 +77,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create location') }}

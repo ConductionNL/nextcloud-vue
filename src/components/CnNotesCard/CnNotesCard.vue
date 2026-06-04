@@ -18,7 +18,7 @@
 					@keydown.enter.ctrl.prevent="submitNote"
 					@keydown.enter.meta.prevent="submitNote" />
 				<NcButton
-					type="primary"
+					variant="primary"
 					:disabled="!newNoteText.trim() || noteSaving"
 					@click="submitNote">
 					<template #icon>

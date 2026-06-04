@@ -72,7 +72,6 @@
 
 <script>
 import { formatValue } from '../../utils/schema.js'
-import { safeHref } from '../../utils/safeHref.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 

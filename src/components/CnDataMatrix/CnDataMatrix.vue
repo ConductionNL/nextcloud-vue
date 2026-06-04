@@ -1,22 +1,30 @@
 <template>
 	<div class="cn-data-matrix" data-testid="cn-data-matrix">
 		<header v-if="title || description" class="cn-data-matrix__header">
-			<h3 v-if="title" class="cn-data-matrix__title">{{ title }}</h3>
-			<p v-if="description" class="cn-data-matrix__description">{{ description }}</p>
+			<h3 v-if="title" class="cn-data-matrix__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-data-matrix__description">
+				{{ description }}
+			</p>
 		</header>
 
 		<div class="cn-data-matrix__scroller">
 			<table class="cn-data-matrix__table">
 				<thead>
 					<tr>
-						<th v-if="rowHeader" class="cn-data-matrix__row-header-corner">{{ rowHeader }}</th>
+						<th v-if="rowHeader" class="cn-data-matrix__row-header-corner">
+							{{ rowHeader }}
+						</th>
 						<th v-for="col in columns"
 							:key="col.key"
 							class="cn-data-matrix__col-header"
 							:style="col.width ? { width: col.width } : null">
 							{{ col.label || col.key }}
 						</th>
-						<th v-if="showRowTotals" class="cn-data-matrix__total-header">{{ rowTotalsLabel }}</th>
+						<th v-if="showRowTotals" class="cn-data-matrix__total-header">
+							{{ rowTotalsLabel }}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -52,7 +60,9 @@
 						</td>
 					</tr>
 					<tr v-if="showColumnTotals" class="cn-data-matrix__totals-row">
-						<th v-if="rowHeader" class="cn-data-matrix__totals-label">{{ columnTotalsLabel }}</th>
+						<th v-if="rowHeader" class="cn-data-matrix__totals-label">
+							{{ columnTotalsLabel }}
+						</th>
 						<td v-for="col in columns"
 							:key="col.key"
 							class="cn-data-matrix__total-cell">
@@ -66,7 +76,9 @@
 			</table>
 		</div>
 
-		<p v-if="rows.length === 0" class="cn-data-matrix__empty">{{ emptyLabel }}</p>
+		<p v-if="rows.length === 0" class="cn-data-matrix__empty">
+			{{ emptyLabel }}
+		</p>
 	</div>
 </template>
 

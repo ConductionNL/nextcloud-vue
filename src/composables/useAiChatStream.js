@@ -162,7 +162,11 @@ export function useAiChatStream(contextInstance) {
 		}
 	}
 
-	/** Handle an error event or transport failure. */
+	/**
+	 * Handle an error event or transport failure.
+	 * @param code
+	 * @param message
+	 */
 	function fail(code, message) {
 		state.isStreaming = false
 		state.currentText = ''

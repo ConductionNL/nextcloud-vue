@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -137,7 +137,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="executeConfirm">
 				<template #icon>
@@ -197,22 +197,39 @@ export default {
 	},
 
 	props: {
+		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
+		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
+		/** Schema property used as the item name in the title */
 		nameField: { type: String, default: 'title' },
+		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
+		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: '' },
+		/** Field keys to hide from the form */
 		excludeFields: { type: Array, default: () => [] },
+		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
+		/** Per-field schema overrides keyed by field name */
 		fieldOverrides: { type: Object, default: () => ({}) },
+		/** Whether to render the Properties tab */
 		showPropertiesTable: { type: Boolean, default: true },
+		/** Whether to render the Data (JSON) tab */
 		showJsonTab: { type: Boolean, default: true },
+		/** Whether to render the Metadata tab (auto-detected when null) */
 		showMetadataTab: { type: Boolean, default: null },
+		/** JSON Schema types allowed for inline editing */
 		editablePropertyTypes: { type: Array, default: null },
+		/** How to display validation results: "indicator" or "none" */
 		validationDisplay: { type: String, default: 'indicator', validator: (v) => ['indicator', 'none'].includes(v) },
+		/** Enable dark mode for the JSON editor */
 		jsonEditorDark: { type: Boolean, default: false },
 	},
 

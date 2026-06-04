@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-export-wizard"
 		@closing="onClose">
@@ -105,7 +105,7 @@
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading"
 				@click="onConfirm">
 				<template #icon>

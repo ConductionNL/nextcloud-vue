@@ -278,37 +278,6 @@ export default {
 		cnCustomComponents: { default: () => ({}) },
 	},
 
-	setup(props) {
-		const exposed = {}
-		// Integration registry: on by default via the `useRegistry`
-		// prop (ADR-019). We always wire the composable up so consumers
-		// can toggle `useRegistry` reactively without a remount.
-		const { integrations: registryIntegrations, resolveWidget, resolveTab } = useIntegrationRegistry()
-		exposed.registryIntegrations = registryIntegrations
-		exposed.resolveRegistryWidget = resolveWidget
-		// `resolveTab` is local-first (LIB_INTEGRATION_COMPONENTS) so the
-		// dispatched sidebar tab component is bound to this rendering
-		// bundle's Vue — sidesteps the dual-runtime ADR-019 trap that
-		// surfaced as `useNcFormBox(...)` undefined on cross-bundle
-		// registrations. See openregister#1958.
-		exposed.resolveRegistryTabComponent = resolveTab
-
-		// Auto-subscribe to live updates for the active object. No-op
-		// when `objectStore` is null (no Pinia active) or when the
-		// consumer disabled it via `subscribe: false`. The
-		// composable's reactive `id` argument keeps the subscription
-		// in sync as the user navigates between sidebar objects.
-		if (props.objectStore && props.subscribe) {
-			useObjectSubscription(
-				props.objectStore,
-				() => props.objectType,
-				() => props.objectId,
-				{ enabled: () => Boolean(props.objectType && props.objectId) },
-			)
-		}
-		return exposed
-	},
-
 	props: {
 		/** The entity type (e.g., "pipelinq_lead", "procest_case") */
 		objectType: {
@@ -388,7 +357,7 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** @deprecated Use subtitle instead */
+		/** @deprecated Use `subtitle` instead. Alias kept for backwards compatibility. */
 		subtitleProp: {
 			type: String,
 			default: '',
@@ -423,10 +392,15 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
+		/** Label for the Files tab */
 		filesLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
+		/** Label for the Notes tab */
 		notesLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
+		/** Label for the Tags tab */
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
+		/** Label for the Tasks tab */
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		/** Label for the Audit Trail tab */
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 
 		/**
@@ -470,6 +444,37 @@ export default {
 	},
 
 	emits: ['update:open'],
+
+	setup(props) {
+		const exposed = {}
+		// Integration registry: on by default via the `useRegistry`
+		// prop (ADR-019). We always wire the composable up so consumers
+		// can toggle `useRegistry` reactively without a remount.
+		const { integrations: registryIntegrations, resolveWidget, resolveTab } = useIntegrationRegistry()
+		exposed.registryIntegrations = registryIntegrations
+		exposed.resolveRegistryWidget = resolveWidget
+		// `resolveTab` is local-first (LIB_INTEGRATION_COMPONENTS) so the
+		// dispatched sidebar tab component is bound to this rendering
+		// bundle's Vue — sidesteps the dual-runtime ADR-019 trap that
+		// surfaced as `useNcFormBox(...)` undefined on cross-bundle
+		// registrations. See openregister#1958.
+		exposed.resolveRegistryTabComponent = resolveTab
+
+		// Auto-subscribe to live updates for the active object. No-op
+		// when `objectStore` is null (no Pinia active) or when the
+		// consumer disabled it via `subscribe: false`. The
+		// composable's reactive `id` argument keeps the subscription
+		// in sync as the user navigates between sidebar objects.
+		if (props.objectStore && props.subscribe) {
+			useObjectSubscription(
+				props.objectStore,
+				() => props.objectType,
+				() => props.objectId,
+				{ enabled: () => Boolean(props.objectType && props.objectId) },
+			)
+		}
+		return exposed
+	},
 
 	data() {
 		return {

@@ -71,10 +71,6 @@ export default {
 		},
 	},
 
-	methods: {
-		safeHref,
-	},
-
 	computed: {
 		sortedFeatures() {
 			const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
@@ -89,6 +85,10 @@ export default {
 		docsLinkLabel() {
 			return t('nextcloud-vue', 'Read more')
 		},
+	},
+
+	methods: {
+		safeHref,
 	},
 }
 </script>

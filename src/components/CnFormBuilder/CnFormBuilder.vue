@@ -1,14 +1,20 @@
 <template>
 	<div class="cn-form-builder" data-testid="cn-form-builder">
 		<header v-if="title || description" class="cn-form-builder__header">
-			<h3 v-if="title" class="cn-form-builder__title">{{ title }}</h3>
-			<p v-if="description" class="cn-form-builder__description">{{ description }}</p>
+			<h3 v-if="title" class="cn-form-builder__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-form-builder__description">
+				{{ description }}
+			</p>
 		</header>
 
 		<div class="cn-form-builder__body">
 			<!-- Field-type palette. Click to append. -->
 			<aside class="cn-form-builder__palette" data-testid="cn-form-builder-palette">
-				<h4 class="cn-form-builder__palette-title">{{ paletteTitle }}</h4>
+				<h4 class="cn-form-builder__palette-title">
+					{{ paletteTitle }}
+				</h4>
 				<ul class="cn-form-builder__palette-list">
 					<li v-for="t in availableTypes"
 						:key="t.type"
@@ -23,7 +29,9 @@
 
 			<!-- Field list — selectable rows. -->
 			<section class="cn-form-builder__fields" data-testid="cn-form-builder-fields">
-				<h4 class="cn-form-builder__fields-title">{{ fieldsTitle }}</h4>
+				<h4 class="cn-form-builder__fields-title">
+					{{ fieldsTitle }}
+				</h4>
 				<p v-if="model.length === 0" class="cn-form-builder__empty">
 					{{ emptyLabel }}
 				</p>
@@ -42,16 +50,22 @@
 								class="cn-form-builder__action"
 								:disabled="idx === 0"
 								:title="moveUpLabel"
-								@click="moveField(idx, -1)">↑</button>
+								@click="moveField(idx, -1)">
+								↑
+							</button>
 							<button type="button"
 								class="cn-form-builder__action"
 								:disabled="idx === model.length - 1"
 								:title="moveDownLabel"
-								@click="moveField(idx, 1)">↓</button>
+								@click="moveField(idx, 1)">
+								↓
+							</button>
 							<button type="button"
 								class="cn-form-builder__action cn-form-builder__action--delete"
 								:title="deleteLabel"
-								@click="removeField(idx)">×</button>
+								@click="removeField(idx)">
+								×
+							</button>
 						</div>
 					</li>
 				</ol>
@@ -59,7 +73,9 @@
 
 			<!-- Per-field config panel. -->
 			<section class="cn-form-builder__editor" data-testid="cn-form-builder-editor">
-				<h4 class="cn-form-builder__editor-title">{{ editorTitle }}</h4>
+				<h4 class="cn-form-builder__editor-title">
+					{{ editorTitle }}
+				</h4>
 				<p v-if="selectedField === null" class="cn-form-builder__empty">
 					{{ noSelectionLabel }}
 				</p>
@@ -93,7 +109,7 @@
 					</label>
 					<label class="cn-form-builder__editor-row cn-form-builder__editor-row--inline">
 						<input type="checkbox"
-							:checked="!!selectedField.required"
+							:model-value="!!selectedField.required"
 							@change="updateSelected('required', $event.target.checked)">
 						<span>{{ requiredLabel }}</span>
 					</label>

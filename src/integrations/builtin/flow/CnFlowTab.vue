@@ -40,7 +40,7 @@
 		</div>
 
 		<div v-if="isAdmin && !loading && !error" class="cn-flow-tab__actions">
-			<NcButton type="secondary" data-testid="cn-flow-tab-link" @click="openPicker">
+			<NcButton variant="secondary" data-testid="cn-flow-tab-link" @click="openPicker">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -55,7 +55,7 @@
 		<div v-else-if="operations.length === 0" class="cn-sidebar-tab__empty cn-flow-tab__empty">
 			<SitemapOutline :size="32" class="cn-flow-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openFlowSettings">
+			<NcButton variant="primary" @click="openFlowSettings">
 				<template #icon>
 					<SitemapOutline :size="20" />
 				</template>

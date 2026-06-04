@@ -17,44 +17,44 @@
 		<NcActionSeparator />
 		<NcActionCaption :name="t('nextcloud-vue', 'General')" />
 		<NcActionCheckbox
-			:checked="isPropertyRequired(schema, propertyKey)"
-			@update:checked="updatePropertyRequired(propertyKey, $event)">
+			:model-value="isPropertyRequired(schema, propertyKey)"
+			@update:model-value="updatePropertyRequired(propertyKey, $event)">
 			{{ t('nextcloud-vue', 'Required') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.immutable || false"
-			@update:checked="updatePropertySetting(propertyKey, 'immutable', $event)">
+			:model-value="property.immutable || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'immutable', $event)">
 			{{ t('nextcloud-vue', 'Immutable') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.deprecated || false"
-			@update:checked="updatePropertySetting(propertyKey, 'deprecated', $event)">
+			:model-value="property.deprecated || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'deprecated', $event)">
 			{{ t('nextcloud-vue', 'Deprecated') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.visible !== false"
-			@update:checked="updatePropertySetting(propertyKey, 'visible', $event)">
+			:model-value="property.visible !== false"
+			@update:model-value="updatePropertySetting(propertyKey, 'visible', $event)">
 			{{ t('nextcloud-vue', 'Visible to end users') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.hideOnCollection || false"
-			@update:checked="updatePropertySetting(propertyKey, 'hideOnCollection', $event)">
+			:model-value="property.hideOnCollection || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'hideOnCollection', $event)">
 			{{ t('nextcloud-vue', 'Hide in collection view') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="property.hideOnForm || false"
-			@update:checked="updatePropertySetting(propertyKey, 'hideOnForm', $event)">
+			:model-value="property.hideOnForm || false"
+			@update:model-value="updatePropertySetting(propertyKey, 'hideOnForm', $event)">
 			{{ t('nextcloud-vue', 'Hide in form view') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
-			:checked="isFacetableEnabled(property)"
-			@update:checked="toggleFacetable(propertyKey, $event)">
+			:model-value="isFacetableEnabled(property)"
+			@update:model-value="toggleFacetable(propertyKey, $event)">
 			{{ t('nextcloud-vue', 'Facetable') }}
 		</NcActionCheckbox>
 		<NcActionCheckbox
 			v-if="isFacetableEnabled(property)"
-			:checked="getFacetConfig(property).aggregated !== false"
-			@update:checked="updateFacetConfigField(propertyKey, property, 'aggregated', $event)">
+			:model-value="getFacetConfig(property).aggregated !== false"
+			@update:model-value="updateFacetConfigField(propertyKey, property, 'aggregated', $event)">
 			{{ t('nextcloud-vue', 'Aggregated across schemas') }}
 		</NcActionCheckbox>
 		<NcActionInput
@@ -147,8 +147,8 @@
 		</template>
 		<template v-else-if="property.type === 'boolean'">
 			<NcActionCheckbox
-				:checked="property.default === true"
-				@update:checked="updatePropertySetting(propertyKey, 'default', $event)">
+				:model-value="property.default === true"
+				@update:model-value="updatePropertySetting(propertyKey, 'default', $event)">
 				{{ t('nextcloud-vue', 'Default value') }}
 			</NcActionCheckbox>
 		</template>
@@ -169,8 +169,8 @@
 		<!-- Default Behavior Toggle -->
 		<template v-if="property.default !== undefined && property.default !== null && property.default !== ''">
 			<NcActionCheckbox
-				:checked="property.defaultBehavior === 'falsy'"
-				@update:checked="updatePropertySetting(propertyKey, 'defaultBehavior', $event ? 'falsy' : 'false')">
+				:model-value="property.defaultBehavior === 'falsy'"
+				@update:model-value="updatePropertySetting(propertyKey, 'defaultBehavior', $event ? 'falsy' : 'false')">
 				{{ t('nextcloud-vue', 'Apply default for empty values') }}
 			</NcActionCheckbox>
 			<NcActionCaption
@@ -222,13 +222,13 @@
 				:label="t('nextcloud-vue', 'Multiple of')"
 				@update:value="updatePropertySetting(propertyKey, 'multipleOf', Number($event))" />
 			<NcActionCheckbox
-				:checked="property.exclusiveMin || false"
-				@update:checked="updatePropertySetting(propertyKey, 'exclusiveMin', $event)">
+				:model-value="property.exclusiveMin || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'exclusiveMin', $event)">
 				{{ t('nextcloud-vue', 'Exclusive minimum') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.exclusiveMax || false"
-				@update:checked="updatePropertySetting(propertyKey, 'exclusiveMax', $event)">
+				:model-value="property.exclusiveMax || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'exclusiveMax', $event)">
 				{{ t('nextcloud-vue', 'Exclusive maximum') }}
 			</NcActionCheckbox>
 		</template>
@@ -297,18 +297,18 @@
 					placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
 					@update:value="updateArrayItemQueryParams(propertyKey, $event)" />
 				<NcActionCheckbox
-					:checked="property.items.writeBack || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'writeBack', $event)">
+					:model-value="property.items.writeBack || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'writeBack', $event)">
 					{{ t('nextcloud-vue', 'Write back') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="property.items.removeAfterWriteBack || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'removeAfterWriteBack', $event)">
+					:model-value="property.items.removeAfterWriteBack || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'removeAfterWriteBack', $event)">
 					{{ t('nextcloud-vue', 'Remove after write back') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="property.items.cascadeDelete || false"
-					@update:checked="updateArrayItemObjectConfigurationSetting(propertyKey, 'cascadeDelete', $event)">
+					:model-value="property.items.cascadeDelete || false"
+					@update:model-value="updateArrayItemObjectConfigurationSetting(propertyKey, 'cascadeDelete', $event)">
 					{{ t('nextcloud-vue', 'Cascade delete') }}
 				</NcActionCheckbox>
 			</template>
@@ -357,18 +357,18 @@
 				placeholder="e.g. gemmaType=referentiecomponent&_extend=aanbevolenStandaarden"
 				@update:value="updateObjectQueryParams(propertyKey, $event)" />
 			<NcActionCheckbox
-				:checked="property.writeBack || false"
-				@update:checked="updatePropertySetting(propertyKey, 'writeBack', $event)">
+				:model-value="property.writeBack || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'writeBack', $event)">
 				{{ t('nextcloud-vue', 'Write back') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.removeAfterWriteBack || false"
-				@update:checked="updatePropertySetting(propertyKey, 'removeAfterWriteBack', $event)">
+				:model-value="property.removeAfterWriteBack || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'removeAfterWriteBack', $event)">
 				{{ t('nextcloud-vue', 'Remove after write back') }}
 			</NcActionCheckbox>
 			<NcActionCheckbox
-				:checked="property.cascadeDelete || false"
-				@update:checked="updatePropertySetting(propertyKey, 'cascadeDelete', $event)">
+				:model-value="property.cascadeDelete || false"
+				@update:model-value="updatePropertySetting(propertyKey, 'cascadeDelete', $event)">
 				{{ t('nextcloud-vue', 'Cascade delete') }}
 			</NcActionCheckbox>
 		</template>
@@ -378,8 +378,8 @@
 			<NcActionSeparator />
 			<NcActionCaption :name="t('nextcloud-vue', 'File configuration')" />
 			<NcActionCheckbox
-				:checked="getFilePropertySetting(propertyKey, 'autoPublish')"
-				@update:checked="updateFilePropertySetting(propertyKey, 'autoPublish', $event)">
+				:model-value="getFilePropertySetting(propertyKey, 'autoPublish')"
+				@update:model-value="updateFilePropertySetting(propertyKey, 'autoPublish', $event)">
 				{{ t('nextcloud-vue', 'Auto-publish files') }}
 			</NcActionCheckbox>
 			<NcActionCaption
@@ -419,8 +419,8 @@
 		<NcActionSeparator />
 		<NcActionCaption :name="t('nextcloud-vue', 'Table')" />
 		<NcActionCheckbox
-			:checked="getPropertyTableSetting(propertyKey, 'default')"
-			@update:checked="updatePropertyTableSetting(propertyKey, 'default', $event)">
+			:model-value="getPropertyTableSetting(propertyKey, 'default')"
+			@update:model-value="updatePropertyTableSetting(propertyKey, 'default', $event)">
 			{{ t('nextcloud-vue', 'Default') }}
 		</NcActionCheckbox>
 
@@ -467,23 +467,23 @@
 			<template v-if="propertyNewPermissionGroup">
 				<NcActionCaption :name="t('nextcloud-vue', 'Select permissions:')" />
 				<NcActionCheckbox
-					:checked="propertyNewPermissionCreate"
-					@update:checked="propertyNewPermissionCreate = $event">
+					:model-value="propertyNewPermissionCreate"
+					@update:model-value="propertyNewPermissionCreate = $event">
 					{{ t('nextcloud-vue', 'Create (C)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionRead"
-					@update:checked="propertyNewPermissionRead = $event">
+					:model-value="propertyNewPermissionRead"
+					@update:model-value="propertyNewPermissionRead = $event">
 					{{ t('nextcloud-vue', 'Read (R)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionUpdate"
-					@update:checked="propertyNewPermissionUpdate = $event">
+					:model-value="propertyNewPermissionUpdate"
+					@update:model-value="propertyNewPermissionUpdate = $event">
 					{{ t('nextcloud-vue', 'Update (U)') }}
 				</NcActionCheckbox>
 				<NcActionCheckbox
-					:checked="propertyNewPermissionDelete"
-					@update:checked="propertyNewPermissionDelete = $event">
+					:model-value="propertyNewPermissionDelete"
+					@update:model-value="propertyNewPermissionDelete = $event">
 					{{ t('nextcloud-vue', 'Delete (D)') }}
 				</NcActionCheckbox>
 

@@ -24,7 +24,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-time-tracker-create"
 		@closing="onClose">
 		<form class="cn-time-tracker-create" @submit.prevent="submit">
@@ -44,7 +43,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create client') }}

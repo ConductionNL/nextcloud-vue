@@ -20,7 +20,7 @@
 /**
  * Strict DOMPurify configuration for sanitizing user-generated markdown HTML.
  *
- * @type {Readonly<Object>}
+ * @type {Readonly<object>}
  */
 export const SAFE_MARKDOWN_DOMPURIFY_CONFIG = Object.freeze({
 	ALLOWED_TAGS: [

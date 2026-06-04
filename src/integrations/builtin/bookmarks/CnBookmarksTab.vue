@@ -33,13 +33,13 @@
 		</div>
 
 		<div class="cn-bookmarks-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing bookmark') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -54,7 +54,7 @@
 		<div v-else-if="bookmarks.length === 0" class="cn-sidebar-tab__empty cn-bookmarks-tab__empty">
 			<Bookmark :size="32" class="cn-bookmarks-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openBookmarksApp">
+			<NcButton variant="primary" @click="openBookmarksApp">
 				<template #icon>
 					<Bookmark :size="20" />
 				</template>

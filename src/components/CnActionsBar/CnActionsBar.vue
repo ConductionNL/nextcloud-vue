@@ -15,7 +15,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'cards')">
+					@update:model-value="$emit('view-mode-change', 'cards')">
 					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
@@ -25,7 +25,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'table')">
+					@update:model-value="$emit('view-mode-change', 'table')">
 					{{ t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>

@@ -43,13 +43,13 @@
 		</div>
 
 		<div class="cn-photos-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing album') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -69,7 +69,7 @@
 		<div v-else-if="albums.length === 0" class="cn-sidebar-tab__empty cn-photos-tab__empty">
 			<ImageIcon :size="32" class="cn-photos-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openPhotosApp">
+			<NcButton variant="primary" @click="openPhotosApp">
 				<template #icon>
 					<ImageIcon :size="20" />
 				</template>

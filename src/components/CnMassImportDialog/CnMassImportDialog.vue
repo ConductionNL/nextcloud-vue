@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Success/error messages -->
 		<NcNoteCard v-if="result && result.success && !hasErrors" type="success">
@@ -135,9 +135,9 @@
 				<NcCheckboxRadioSwitch
 					v-for="opt in options"
 					:key="opt.key"
-					:checked="optionValues[opt.key]"
+					:model-value="optionValues[opt.key]"
 					type="switch"
-					@update:checked="setOption(opt.key, $event)">
+					@update:model-value="setOption(opt.key, $event)">
 					{{ opt.label }}
 					<template v-if="opt.description" #helper>
 						{{ opt.description }}
@@ -157,7 +157,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!result"
-				type="primary"
+				variant="primary"
 				:disabled="loading || !selectedFile || !canSubmit"
 				@click="executeImport">
 				<template #icon>

@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:can-close="!loading"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-wizard-dialog"
 		@closing="onClose">
@@ -88,7 +88,7 @@
 					@click="back">
 					{{ backLabel }}
 				</NcButton>
-				<NcButton type="primary"
+				<NcButton variant="primary"
 					:disabled="loading"
 					@click="isLast ? submit() : next()">
 					<template #icon>

@@ -135,6 +135,12 @@ export default {
 		},
 	},
 
+	data() {
+		// We mutate tool entries to track expanded state.
+		// Keep a local copy to avoid mutating prop.
+		return {}
+	},
+
 	computed: {
 		/**
 		 * Show the thinking placeholder only when we are actively waiting
@@ -147,12 +153,6 @@ export default {
 		isThinking() {
 			return this.isStreaming && (!this.currentText || this.currentText.length === 0)
 		},
-	},
-
-	data() {
-		// We mutate tool entries to track expanded state.
-		// Keep a local copy to avoid mutating prop.
-		return {}
 	},
 
 	methods: {

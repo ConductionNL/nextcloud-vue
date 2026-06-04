@@ -33,7 +33,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-collective-page-picker"
 		@closing="onClose">
 		<div class="cn-collective-page-picker">
@@ -90,7 +89,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedPageId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link page') }}

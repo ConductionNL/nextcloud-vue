@@ -16,7 +16,7 @@
 				width="24"
 				height="24"
 				referrerpolicy="no-referrer"
-				class="cn-roadmap-item__avatar" />
+				class="cn-roadmap-item__avatar">
 			<div class="cn-roadmap-item__meta">
 				<a
 					:href="safeHref(item.html_url)"
@@ -77,7 +77,6 @@
 import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
 
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
-import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
 import { safeHref } from '../../utils/safeHref.js'
 
@@ -92,7 +91,7 @@ export default {
 		 * Shape: {number, title, body, html_url, user.{login, avatar_url},
 		 *        reactions.{total_count, +1}, created_at, updated_at,
 		 *        labels[].{name, color}}.
-		 * @type {Object}
+		 * @type {object}
 		 */
 		item: {
 			type: Object,
@@ -114,7 +113,7 @@ export default {
 		visibleLabels() {
 			const labels = Array.isArray(this.item.labels) ? this.item.labels : []
 			return labels.filter(
-				(label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name))
+				(label) => label && typeof label.name === 'string' && !ROADMAP_LABEL_BLOCKLIST.some((re) => re.test(label.name)),
 			)
 		},
 

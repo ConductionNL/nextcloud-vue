@@ -22,9 +22,9 @@ import { validateManifest } from '../utils/validateManifest.js'
  * Load a v2 manifest at runtime, replacing `stubManifest` entirely on success.
  *
  * @param {string} appId Nextcloud app ID. Used to build `GET /apps/{appId}/api/manifest`.
- * @param {object|null} [stubManifest=null] Fallback manifest used on 404/error/validation failure.
+ * @param {object|null} [stubManifest] Fallback manifest used on 404/error/validation failure.
  *   When omitted, `manifest.value` stays `null` on failure.
- * @param {object} [options={}] Optional configuration.
+ * @param {object} [options] Optional configuration.
  * @param {Function} [options.fetcher] Override the fetch function. Must return a promise
  *   resolving to `{ status: number, data: object }`. Defaults to `axios.get`.
  * @return {{ manifest: import('vue').Ref, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null> }}

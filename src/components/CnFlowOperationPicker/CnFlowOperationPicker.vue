@@ -30,7 +30,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-flow-operation-picker"
 		@closing="onClose">
 		<div class="cn-flow-operation-picker">
@@ -40,7 +39,7 @@
 
 			<NcNoteCard
 				v-if="adminOnly"
-				type="warning"
+				variant="warning"
 				class="cn-flow-operation-picker__admin-only">
 				{{ adminOnlyMessage }}
 				<a :href="flowSettingsUrl"
@@ -65,7 +64,7 @@
 				:name="t('nextcloud-vue', 'No automations available')"
 				:description="t('nextcloud-vue', 'Create an automation in NC Workflow settings first.')">
 				<template #action>
-					<NcButton type="primary" @click="openFlowSettings">
+					<NcButton variant="primary" @click="openFlowSettings">
 						{{ t('nextcloud-vue', 'Open Workflow settings') }}
 					</NcButton>
 				</template>
@@ -98,7 +97,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!adminOnly"
-				type="primary"
+				variant="primary"
 				:disabled="!selectedOperationId"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link automation') }}

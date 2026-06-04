@@ -211,31 +211,33 @@
 							:model-value="!!formData[field.key]"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:checked="value => updateField(field.key, value)">
+							@update:model-value="value => updateField(field.key, value)">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
-						<!-- Date -->
-						<NcTextField
-							v-else-if="field.widget === 'date'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] || ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							type="date"
-							:disabled="field.readOnly"
-							@update:value="value => updateField(field.key, value)" />
-
-						<!-- Datetime -->
-						<NcTextField
-							v-else-if="field.widget === 'datetime'"
-							:label="field.label + (field.required ? ' *' : '')"
-							:model-value="formData[field.key] || ''"
-							:helper-text="errors[field.key] || field.description"
-							:error="!!errors[field.key]"
-							type="datetime-local"
-							:disabled="field.readOnly"
-							@update:value="value => updateField(field.key, value)" />
+						<!-- Date / Datetime (NcTextField's type validator rejects
+						     'date'/'datetime-local', so use NcDateTimePickerNative) -->
+						<div
+							v-else-if="field.widget === 'date' || field.widget === 'datetime'"
+							class="cn-form-dialog__select-wrapper">
+							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ field.required ? ' *' : '' }}
+							</label>
+							<NcDateTimePickerNative
+								:id="'cn-form-' + field.key"
+								:type="field.widget === 'datetime' ? 'datetime-local' : 'date'"
+								:label="field.label"
+								:hide-label="true"
+								:model-value="dateValueFor(field)"
+								:disabled="field.readOnly"
+								@update:model-value="date => onDateFieldInput(field, date)" />
+							<span
+								v-if="errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
+							</span>
+						</div>
 
 						<!-- JSON (type: 'object'|'array'|... with widget: 'json'): parses on input, stores parsed value in formData -->
 						<div v-else-if="field.widget === 'json'" class="cn-form-dialog__json-wrapper">
@@ -313,7 +315,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
@@ -422,6 +424,7 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcSelect,
+		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
 		Plus,
@@ -730,6 +733,50 @@ export default {
 				this.$delete(this.jsonErrors, field.key)
 			} catch (e) {
 				this.$set(this.jsonErrors, field.key, t('nextcloud-vue', 'Invalid JSON: {msg}', { msg: e.message }))
+			}
+		},
+
+		/**
+		 * Parse a date/datetime field's stored string into a Date for
+		 * NcDateTimePickerNative (which operates in local time). Returns
+		 * null for empty/unparseable values.
+		 *
+		 * @param {object} field The field definition
+		 * @return {Date|null}
+		 */
+		dateValueFor(field) {
+			const raw = this.formData[field.key]
+			if (!raw) return null
+			const parts = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/)
+			if (parts) {
+				return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]), Number(parts[4] || 0), Number(parts[5] || 0))
+			}
+			const fallback = new Date(raw)
+			return isNaN(fallback.getTime()) ? null : fallback
+		},
+
+		/**
+		 * Convert the Date emitted by NcDateTimePickerNative back to the
+		 * stored string format: 'YYYY-MM-DD' for date, 'YYYY-MM-DDTHH:mm'
+		 * for datetime. Stores null when cleared.
+		 *
+		 * @param {object} field The field definition
+		 * @param {Date|null} date The chosen date
+		 */
+		onDateFieldInput(field, date) {
+			if (!(date instanceof Date) || isNaN(date.getTime())) {
+				this.updateField(field.key, null)
+				return
+			}
+			const yyyy = String(date.getFullYear()).padStart(4, '0')
+			const MM = String(date.getMonth() + 1).padStart(2, '0')
+			const dd = String(date.getDate()).padStart(2, '0')
+			if (field.widget === 'datetime') {
+				const hh = String(date.getHours()).padStart(2, '0')
+				const mm = String(date.getMinutes()).padStart(2, '0')
+				this.updateField(field.key, `${yyyy}-${MM}-${dd}T${hh}:${mm}`)
+			} else {
+				this.updateField(field.key, `${yyyy}-${MM}-${dd}`)
 			}
 		},
 

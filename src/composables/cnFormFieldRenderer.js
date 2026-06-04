@@ -105,6 +105,11 @@ function resolveEnumOptions(field) {
  * Resolve render bindings for a single form field.
  *
  * @param {object} args See module docblock.
+ * @param args.field
+ * @param args.value
+ * @param args.onInput
+ * @param args.t
+ * @param args.componentMap
  * @return {{ tag: object|string, props: object, listeners: object, kind: string }}
  */
 export function cnRenderFormField({ field, value, onInput, t, componentMap } = {}) {

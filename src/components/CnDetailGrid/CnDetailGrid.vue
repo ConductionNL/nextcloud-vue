@@ -96,18 +96,6 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 export default {
 	name: 'CnDetailGrid',
 
-	setup() {
-		// Pluggable integration registry — used to render items that
-		// declare `referenceType: '<integration-id>'` (AD-18) via the
-		// integration's single-entity widget. Cheap when no such
-		// items exist.
-		const { resolveWidget, getById } = useIntegrationRegistry()
-		return {
-			resolveRegistryWidget: resolveWidget,
-			getRegistryIntegration: getById,
-		}
-	},
-
 	props: {
 		/**
 		 * Array of detail items to render.
@@ -181,6 +169,18 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No details available'),
 		},
+	},
+
+	setup() {
+		// Pluggable integration registry — used to render items that
+		// declare `referenceType: '<integration-id>'` (AD-18) via the
+		// integration's single-entity widget. Cheap when no such
+		// items exist.
+		const { resolveWidget, getById } = useIntegrationRegistry()
+		return {
+			resolveRegistryWidget: resolveWidget,
+			getRegistryIntegration: getById,
+		}
 	},
 
 	computed: {

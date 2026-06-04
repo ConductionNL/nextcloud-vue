@@ -1,8 +1,12 @@
 <template>
 	<div class="cn-relationship-graph" data-testid="cn-relationship-graph">
 		<header v-if="title || description" class="cn-relationship-graph__header">
-			<h3 v-if="title" class="cn-relationship-graph__title">{{ title }}</h3>
-			<p v-if="description" class="cn-relationship-graph__description">{{ description }}</p>
+			<h3 v-if="title" class="cn-relationship-graph__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-relationship-graph__description">
+				{{ description }}
+			</p>
 		</header>
 
 		<svg :viewBox="`0 0 ${size} ${size}`"

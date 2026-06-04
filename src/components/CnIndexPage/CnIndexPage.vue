@@ -1287,6 +1287,11 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Push pageKind + register/schema context into the reactive cnAiContext
+		 * holder so the AI Chat Companion knows what the user is looking at.
+		 * Called from created(), mounted(), and via watchers when props change.
+		 */
 		pushAiContext() {
 			applyAiContext(this.cnAiContext, 'index', {
 				register: this.register,

@@ -23,7 +23,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-poll-create"
 		@closing="onClose">
 		<form class="cn-poll-create" @submit.prevent="submit">
@@ -64,7 +63,7 @@
 			<div class="cn-poll-create__options">
 				<div class="cn-poll-create__options-header">
 					<span class="cn-poll-create__options-label">{{ t('nextcloud-vue', 'Options') }}</span>
-					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Add option')" @click="addOption">
+					<NcButton variant="tertiary" :aria-label="t('nextcloud-vue', 'Add option')" @click="addOption">
 						<template #icon>
 							<Plus :size="18" />
 						</template>
@@ -109,7 +108,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create poll') }}

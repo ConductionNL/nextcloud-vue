@@ -27,7 +27,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!submitting"
+		:no-close="submitting"
 		data-testid="cn-modal"
 		data-testid-modal="cn-form-picker"
 		@closing="$emit('close')">
@@ -96,14 +96,14 @@
 					<input
 						type="radio"
 						:value="false"
-						:checked="linkSpecificSubmission === false"
+						:model-value="linkSpecificSubmission === false"
 						@change="linkSpecificSubmission = false"> {{ linkFormModeLabel }}
 				</label>
 				<label class="cn-form-picker__mode-row">
 					<input
 						type="radio"
 						:value="true"
-						:checked="linkSpecificSubmission === true"
+						:model-value="linkSpecificSubmission === true"
 						:disabled="submissionsAvailable === 0"
 						@change="linkSpecificSubmission = true">
 					{{ linkSubmissionModeLabel }}
@@ -119,7 +119,7 @@
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="emitLink">
 				{{ linkLabel }}

@@ -45,7 +45,9 @@
 						<div class="cn-email-card__row-body">
 							<span class="cn-email-card__sender">{{ row.sender }}</span>
 						</div>
-						<div v-if="row.snippet" class="cn-email-card__snippet">{{ row.snippet }}</div>
+						<div v-if="row.snippet" class="cn-email-card__snippet">
+							{{ row.snippet }}
+						</div>
 					</div>
 				</button>
 			</li>
