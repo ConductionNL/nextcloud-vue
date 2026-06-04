@@ -35,9 +35,7 @@ export default {
 	name: 'CnMetadataTab',
 
 	props: {
-		/** The object instance being created or edited */
 		item: { type: Object, default: null },
-		/** Current form data object */
 		formData: { type: Object, default: () => ({}) },
 		/**
 		 * Additional `[label, value]` rows appended to (or, when `replaceRows` is true,

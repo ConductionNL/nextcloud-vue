@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		size="large"
-		:no-close="loading"
+		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -137,7 +137,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				variant="primary"
+				type="primary"
 				:disabled="loading"
 				@click="executeConfirm">
 				<template #icon>
@@ -155,20 +155,17 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcButton,
 	NcDialog,
-	NcLoadingIcon,
+	NcButton,
 	NcNoteCard,
+	NcLoadingIcon,
 } from '@nextcloud/vue'
-import { BTab, BTabs } from 'bootstrap-vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import { fieldsFromSchema } from '../../utils/schema.js'
 import CnPropertiesTab from './CnPropertiesTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
-import CnMetadataTab from './CnMetadataTab.vue'
-import CnPropertiesTab from './CnPropertiesTab.vue'
-import { fieldsFromSchema } from '../../utils/schema.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
 const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
@@ -200,39 +197,22 @@ export default {
 	},
 
 	props: {
-		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
-		/** The object instance being created or edited */
 		item: { type: Object, default: null },
-		/** Dialog title; falls back to schema.title when empty */
 		dialogTitle: { type: String, default: '' },
-		/** Schema property used as the item name in the title */
 		nameField: { type: String, default: 'title' },
-		/** Message shown after a successful operation */
 		successText: { type: String, default: '' },
-		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
-		/** Label for the confirm / primary action button */
 		confirmLabel: { type: String, default: '' },
-		/** Field keys to hide from the form */
 		excludeFields: { type: Array, default: () => [] },
-		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
-		/** Per-field schema overrides keyed by field name */
 		fieldOverrides: { type: Object, default: () => ({}) },
-		/** Whether to render the Properties tab */
 		showPropertiesTable: { type: Boolean, default: true },
-		/** Whether to render the Data (JSON) tab */
 		showJsonTab: { type: Boolean, default: true },
-		/** Whether to render the Metadata tab (auto-detected when null) */
 		showMetadataTab: { type: Boolean, default: null },
-		/** JSON Schema types allowed for inline editing */
 		editablePropertyTypes: { type: Array, default: null },
-		/** How to display validation results: "indicator" or "none" */
 		validationDisplay: { type: String, default: 'indicator', validator: (v) => ['indicator', 'none'].includes(v) },
-		/** Enable dark mode for the JSON editor */
 		jsonEditorDark: { type: Boolean, default: false },
 	},
 
@@ -354,27 +334,16 @@ export default {
 			const missing = []
 			for (const [key, prop] of Object.entries(schemaProps)) {
 				if (!filterKey(key)) continue
-				if (!Object.hasOwn(obj, key)) {
+				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
 					let def
 					switch (prop.type) {
-						case 'string':
-							def = prop.const ?? ''
-							break
-						case 'number':
-						case 'integer':
-							def = 0
-							break
-						case 'boolean':
-							def = false
-							break
-						case 'array':
-							def = []
-							break
-						case 'object':
-							def = {}
-							break
-						default:
-							def = ''
+					case 'string': def = prop.const ?? ''; break
+					case 'number':
+					case 'integer': def = 0; break
+					case 'boolean': def = false; break
+					case 'array': def = []; break
+					case 'object': def = {}; break
+					default: def = ''
 					}
 					missing.push([key, def])
 				}
@@ -408,7 +377,6 @@ export default {
 				this.initFormData(newItem)
 			},
 		},
-
 		hasSchemaProperties: {
 			immediate: true,
 			handler(hasProps) {
@@ -419,20 +387,17 @@ export default {
 				}
 			},
 		},
-
 		jsonData(newVal) {
 			if (!this.isInternalUpdate && this.isValidJson(newVal)) {
 				this.updateFormFromJson()
 			}
 		},
-
 		formData: {
 			handler() {
 				if (!this.isInternalUpdate) {
 					this.updateJsonFromForm()
 				}
 			},
-
 			deep: true,
 		},
 	},
@@ -492,7 +457,6 @@ export default {
 
 		/**
 		 * Proxy for slot consumers: exposes isPropertyEditable from the tab sub-component.
-		 *
 		 * @param {string} key - Property key
 		 * @param {*} value - Current property value
 		 */
@@ -504,7 +468,6 @@ export default {
 
 		/**
 		 * Proxy for slot consumers.
-		 *
 		 * @param {string} key - Property key
 		 */
 		getPropertyDisplayName(key) {
@@ -515,7 +478,6 @@ export default {
 
 		/**
 		 * Proxy for slot consumers.
-		 *
 		 * @param {string} key - Property key
 		 * @param {*} value - Current property value
 		 */
@@ -533,9 +495,7 @@ export default {
 			} catch {
 				// Keep previous formData
 			} finally {
-				this.$nextTick(() => {
-					this.isInternalUpdate = false
-				})
+				this.$nextTick(() => { this.isInternalUpdate = false })
 			}
 		},
 
@@ -547,9 +507,7 @@ export default {
 			} catch {
 				// Ignore
 			} finally {
-				this.$nextTick(() => {
-					this.isInternalUpdate = false
-				})
+				this.$nextTick(() => { this.isInternalUpdate = false })
 			}
 		},
 
@@ -576,9 +534,7 @@ export default {
 					if (!this.isInternalUpdate) {
 						this.isInternalUpdate = true
 						this.formData = parsed
-						this.$nextTick(() => {
-							this.isInternalUpdate = false
-						})
+						this.$nextTick(() => { this.isInternalUpdate = false })
 					}
 				}
 			} catch {
@@ -590,9 +546,7 @@ export default {
 			if (!this.isInternalUpdate) {
 				this.isInternalUpdate = true
 				this.formData = parsed
-				this.$nextTick(() => {
-					this.isInternalUpdate = false
-				})
+				this.$nextTick(() => { this.isInternalUpdate = false })
 			}
 		},
 
@@ -600,7 +554,7 @@ export default {
 			const newErrors = {}
 			for (const field of this.resolvedFields) {
 				const value = this.formData[field.key]
-				if (field.required && (value === null || value === undefined || value === '')) {
+				if (field.required && (value == null || value === '')) {
 					newErrors[field.key] = `${field.label} is required.`
 				}
 			}

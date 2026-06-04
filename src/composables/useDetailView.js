@@ -1,4 +1,4 @@
-import { computed, isRef, onMounted, ref, watch } from 'vue'
+import { ref, computed, isRef, watch, onMounted } from 'vue'
 import { useObjectStore } from '../store/index.js'
 
 /**

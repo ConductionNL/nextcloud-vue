@@ -12,7 +12,7 @@
 				@row-click="onRowClick">
 				<template #actions-header>
 					<NcButton
-						variant="primary"
+						type="primary"
 						:disabled="loading"
 						@click="$emit('add-property')">
 						<template #icon>
@@ -30,7 +30,7 @@
 							:title="t('nextcloud-vue', 'Property has been modified. Changes will only take effect after the schema is saved.')" />
 						<NcTextField
 							ref="propertyNameInput"
-							:model-value="row._key"
+							:value="row._key"
 							:label="t('nextcloud-vue', '(technical) Property name')"
 							@update:value="onPropertyKeyUpdate(row._key, $event)"
 							@click.stop />
@@ -111,13 +111,14 @@
 <!-- eslint-disable jsdoc/valid-types -->
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
-import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
-import LockOutline from 'vue-material-design-icons/LockOutline.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import CnSchemaPropertyActions from './CnSchemaPropertyActions.vue'
+import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnNoteCard } from '../CnNoteCard/index.js'
+import CnSchemaPropertyActions from './CnSchemaPropertyActions.vue'
+
+import Plus from 'vue-material-design-icons/Plus.vue'
+import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
+import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 
 /**
  * CnSchemaPropertiesTab — Properties table tab for CnSchemaFormDialog.
@@ -144,7 +145,6 @@ export default {
 		AlertOutline,
 		LockOutline,
 	},
-
 	props: {
 		/** The full schema item (needs .properties, .required) */
 		schemaItem: { type: Object, required: true },
@@ -173,7 +173,6 @@ export default {
 		/** Properties inherited from parent schemas (allOf) — shown as locked/read-only rows */
 		inheritedProperties: { type: Object, default: () => ({}) },
 	},
-
 	data() {
 		return {
 			propertyStableIds: {},
@@ -185,13 +184,11 @@ export default {
 			],
 		}
 	},
-
 	computed: {
 		/** Local alias to avoid vue/no-mutating-props on template bindings */
 		schema() {
 			return this.schemaItem
 		},
-
 		sortedProperties() {
 			const properties = this.schema.properties || {}
 			return Object.entries(properties)
@@ -208,7 +205,6 @@ export default {
 					return createdA.localeCompare(createdB)
 				})
 		},
-
 		propertyRows() {
 			const ownProperties = this.schema.properties || {}
 			const inheritedRows = Object.entries(this.inheritedProperties || {})
@@ -230,7 +226,6 @@ export default {
 			return [...inheritedRows, ...ownRows]
 		},
 	},
-
 	watch: {
 		selectedProperty(newKey) {
 			if (newKey !== null) {
@@ -257,7 +252,6 @@ export default {
 			}
 		},
 	},
-
 	methods: {
 		t,
 		getStablePropertyId(propertyName) {
@@ -284,7 +278,7 @@ export default {
 			const table = this.schema.properties[key]?.table
 			if (!table) return false
 			const defaults = { default: false }
-			return !Object.keys(table).every((setting) => table[setting] === defaults[setting])
+			return !Object.keys(table).every(setting => table[setting] === defaults[setting])
 		},
 
 		getRowClass(row) {

@@ -93,7 +93,6 @@
 		<component
 			v-else-if="resolvedComponent"
 			:is="resolvedComponent"
-			:key="currentPage.id"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners">
 			<template
@@ -109,8 +108,6 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent } from '@nextcloud/vue'
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
@@ -243,7 +240,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Custom-component registry. Keys are the names referenced by
 		 * `page.component` (for `type: "custom"` pages). When omitted,
@@ -255,7 +251,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Translate function. When omitted, falls back to the injected
 		 * `cnTranslate`. Currently not used directly by the renderer
@@ -269,7 +264,6 @@ export default {
 			type: Function,
 			default: null,
 		},
-
 		/**
 		 * Page-type registry. Map of `pages[].type` value → Vue
 		 * component to mount. Consumers extend the library defaults by
@@ -284,57 +278,6 @@ export default {
 		 */
 		pageTypes: {
 			type: Object,
-			default: null,
-		},
-
-		/**
-		 * List of permission strings the current user holds.
-		 *
-		 * When provided, CnPageRenderer checks the active page's
-		 * `permission` field against this list before mounting the page
-		 * component. If the user lacks the required permission a 403
-		 * `NcEmptyContent` is rendered instead — defence-in-depth
-		 * complementing CnAppNav's menu filter.
-		 *
-		 * **Important:** This is a client-side presentation guard only.
-		 * Backend endpoints MUST enforce authorization independently.
-		 * Do not rely on this guard as the sole ACL check.
-		 *
-		 * When omitted (default `undefined`) or passed as an empty array,
-		 * the check is bypassed and all pages are accessible — existing
-		 * apps that do not pass this prop are unaffected.
-		 *
-		 * @type {Array<string>|undefined}
-		 */
-		permissions: {
-			type: Array,
-			default: undefined,
-		},
-
-		/**
-		 * Custom heading for the 403 permission-denied screen.
-		 *
-		 * When omitted the library-default `t('nextcloud-vue', 'Access denied')`
-		 * is used. Override to provide a localised string from the host app
-		 * or to adjust the wording for a specific page context.
-		 *
-		 * @type {string|null}
-		 */
-		permissionDeniedTitle: {
-			type: String,
-			default: null,
-		},
-
-		/**
-		 * Custom description for the 403 permission-denied screen.
-		 *
-		 * When omitted the library-default `t('nextcloud-vue', 'You do not have
-		 * permission to view this page.')` is used.
-		 *
-		 * @type {string|null}
-		 */
-		permissionDeniedDescription: {
-			type: String,
 			default: null,
 		},
 	},
@@ -371,31 +314,6 @@ export default {
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
 		},
-
-		/**
-		 * True when the active page declares a `permission` AND the
-		 * `permissions` prop is provided AND the user's permission list
-		 * does not include the required permission.
-		 *
-		 * Short-circuits to `false` (allow) when:
-		 *   - The page has no `permission` field (most pages).
-		 *   - `permissions` prop is `undefined` (caller opted out of
-		 *     the guard — backwards-compatible default).
-		 *   - `permissions` is an empty array (same: no restriction).
-		 *
-		 * @return {boolean}
-		 */
-		isPermissionDenied() {
-			const page = this.currentPage
-			if (!page || !page.permission) {
-				return false
-			}
-			if (!this.permissions || this.permissions.length === 0) {
-				return false
-			}
-			return !this.permissions.includes(page.permission)
-		},
-
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
@@ -468,7 +386,6 @@ export default {
 		effectiveCustomComponents() {
 			return this.customComponents ?? this.cnCustomComponents ?? {}
 		},
-
 		/**
 		 * Effective v2 component registry. Provided by CnAppRoot via the
 		 * `registry` prop (kind-tagged entries: `widget`, `modal`, `page`,
@@ -489,7 +406,6 @@ export default {
 		effectivePageTypes() {
 			return this.pageTypes ?? this.cnPageTypes ?? defaultPageTypes
 		},
-
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
 			const manifest = this.effectiveManifest
@@ -502,7 +418,6 @@ export default {
 			}
 			return manifest.pages.find((page) => page.id === routeName) ?? null
 		},
-
 		/**
 		 * Component to render for the current page. Looked up in
 		 * `effectivePageTypes` for built-in / library / consumer-extended
@@ -523,19 +438,24 @@ export default {
 				const name = page.component
 				const resolved = this.resolveCustomComponent(name, 'page')
 				if (!resolved) {
-					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`,
+					)
 					return null
 				}
 				return resolved
 			}
 			const component = this.effectivePageTypes[page.type]
 			if (!component) {
-				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`,
+				)
 				return null
 			}
 			return component
 		},
-
 		/**
 		 * Props forwarded to the dispatched page component. Merges:
 		 *
@@ -659,7 +579,6 @@ export default {
 			}
 			return { register, schema, objectId, slug: `${register}-${schema}` }
 		},
-
 		/**
 		 * Combined slot-override map for the dispatched page component.
 		 * Sources:
@@ -685,7 +604,6 @@ export default {
 			}
 			return entries
 		},
-
 		/**
 		 * Per-page sidebar visibility flag derived from the page
 		 * entry's top-level `sidebar.show` field (sibling of `config`).
@@ -700,36 +618,6 @@ export default {
 			}
 			return page.sidebar.show !== false
 		},
-
-		/**
-		 * Per-page sidebar component derived from the page entry's
-		 * top-level `sidebarComponent` field (sibling of `config`).
-		 * The string is resolved against the effective
-		 * `customComponents` registry — same registry as
-		 * `headerComponent`, `actionsComponent`, `cardComponent`, and
-		 * `slots.*`. Returns `null` when the field is unset, the
-		 * registry name is missing, or resolution fails (a
-		 * `console.warn` is logged in the missing-name case so
-		 * manifest authors notice misconfiguration). Watched below to
-		 * push the value into the reactive `pageSidebarComponent`
-		 * holder shared via provide/inject with `CnAppRoot`.
-		 *
-		 * @return {object|null} The resolved Vue component, or null.
-		 */
-		currentPageSidebarComponent() {
-			const page = this.currentPage
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
-				return null
-			}
-			const name = page.sidebarComponent
-			const resolved = this.effectiveCustomComponents[name]
-			if (!resolved) {
-				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in customComponents registry.`)
-				return null
-			}
-			return resolved
-		},
-
 		/**
 		 * Per-page sidebar component derived from the page entry's
 		 * top-level `sidebarComponent` field (sibling of `config`).
@@ -769,7 +657,6 @@ export default {
 		headerOverride() {
 			return this.resolvedSlotEntries.find((e) => e.name === 'header')?.component ?? null
 		},
-
 		/**
 		 * @deprecated See `headerOverride`.
 		 */
@@ -867,8 +754,10 @@ export default {
 			this.$options.name = `CnPageRenderer:${this.currentPage.id}`
 		} else if (this.$route) {
 			// Router is present but no page matches — warn so developers notice misconfigured routes.
-
-			console.warn(`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`)
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[CnPageRenderer] No page found for $route.name = "${this.$route.name}". The renderer will mount nothing.`,
+			)
 		}
 	},
 
@@ -1130,7 +1019,10 @@ export default {
 		resolveRegistryName(registryName, slotName) {
 			const resolved = this.resolveCustomComponent(registryName)
 			if (!resolved) {
-				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`,
+				)
 				return null
 			}
 			return resolved

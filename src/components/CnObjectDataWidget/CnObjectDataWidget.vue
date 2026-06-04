@@ -13,7 +13,7 @@
 		<template #actions>
 			<NcButton
 				v-if="isDirty"
-				variant="primary"
+				type="primary"
 				:disabled="saving"
 				@click="save">
 				<template #icon>
@@ -69,7 +69,7 @@
 						<NcTextField
 							v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 							ref="activeEditor"
-							:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
 							:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 							:placeholder="field.description"
 							@update:value="val => updateField(field.key, val)"
@@ -80,7 +80,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'number'"
 							ref="activeEditor"
-							:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
 							type="number"
 							:placeholder="field.description"
 							@update:value="val => updateField(field.key, val !== '' ? Number(val) : null)"
@@ -103,7 +103,7 @@
 							v-else-if="field.widget === 'select'"
 							ref="activeEditor"
 							:options="getSelectOptions(field)"
-							:model-value="getSelectedOption(field)"
+							:value="getSelectedOption(field)"
 							:clearable="!field.required"
 							@input="onSelectChange(field, $event)"
 							@close="commitEdit" />
@@ -113,7 +113,7 @@
 							v-else-if="field.widget === 'multiselect'"
 							ref="activeEditor"
 							:options="getMultiselectOptions(field)"
-							:model-value="getSelectedMultiselectOptions(field)"
+							:value="getSelectedMultiselectOptions(field)"
 							:multiple="true"
 							:clearable="true"
 							@input="onMultiselectChange(field, $event)" />
@@ -122,7 +122,7 @@
 						<NcSelect
 							v-else-if="field.widget === 'tags'"
 							ref="activeEditor"
-							:model-value="editData[field.key] || []"
+							:value="editData[field.key] || []"
 							:multiple="true"
 							:taggable="true"
 							:clearable="true"
@@ -131,7 +131,7 @@
 						<!-- Checkbox / Switch -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'checkbox'"
-							:model-value="!!editData[field.key]"
+							:checked="!!editData[field.key]"
 							type="switch"
 							@update:checked="val => { updateField(field.key, val); commitEdit() }">
 							{{ editData[field.key] ? 'Yes' : 'No' }}
@@ -141,7 +141,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'date'"
 							ref="activeEditor"
-							:model-value="editData[field.key] || ''"
+							:value="editData[field.key] || ''"
 							type="date"
 							@update:value="val => updateField(field.key, val)"
 							@keydown.native.enter="commitEdit"
@@ -151,7 +151,7 @@
 						<NcTextField
 							v-else-if="field.widget === 'datetime'"
 							ref="activeEditor"
-							:model-value="editData[field.key] || ''"
+							:value="editData[field.key] || ''"
 							type="datetime-local"
 							@update:value="val => updateField(field.key, val)"
 							@keydown.native.enter="commitEdit"
@@ -161,7 +161,7 @@
 						<NcTextField
 							v-else
 							ref="activeEditor"
-							:model-value="editData[field.key] != null ? String(editData[field.key]) : ''"
+							:value="editData[field.key] != null ? String(editData[field.key]) : ''"
 							:placeholder="field.description"
 							@update:value="val => updateField(field.key, val)"
 							@keydown.native.enter="commitEdit"
@@ -172,12 +172,12 @@
 					<div
 						v-if="field.widget !== 'checkbox'"
 						class="cn-object-data-widget__editor-actions">
-						<NcButton variant="tertiary-no-background" @click="commitEdit">
+						<NcButton type="tertiary-no-background" @click="commitEdit">
 							<template #icon>
 								<Check :size="20" />
 							</template>
 						</NcButton>
-						<NcButton variant="tertiary-no-background" @click="cancelEdit">
+						<NcButton type="tertiary-no-background" @click="cancelEdit">
 							<template #icon>
 								<Close :size="20" />
 							</template>
@@ -220,11 +220,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
-import Check from 'vue-material-design-icons/Check.vue'
-import Close from 'vue-material-design-icons/Close.vue'
+import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { CnDetailCard } from '../CnDetailCard/index.js'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
 import { useObjectStore } from '../../store/index.js'
 
@@ -281,13 +282,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Data'),
 		},
-
 		/** Optional MDI icon component for the header */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
-
 		/**
 		 * The JSON Schema describing the object's properties.
 		 * Must have a `properties` field.
@@ -296,7 +295,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/**
 		 * The object data to display and edit.
 		 * Keys should match the schema property keys.
@@ -305,7 +303,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/**
 		 * The registered object type slug in the objectStore.
 		 * Required for saving via objectStore.saveObject().
@@ -314,7 +311,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Optional objectStore instance. When provided, used directly for saving.
 		 * When not provided, falls back to auto-detecting the store via Pinia.
@@ -323,7 +319,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Per-property configuration overrides.
 		 * Keys are property names, values are override objects.
@@ -336,14 +331,12 @@ export default {
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
 		 * - `widget` (string) — Override the widget type for editing
-		 *
 		 * @type {object}
 		 */
 		overrides: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Number of grid columns.
 		 */
@@ -351,7 +344,6 @@ export default {
 			type: Number,
 			default: 3,
 		},
-
 		/**
 		 * Whether editing is enabled globally.
 		 * When false, no fields are editable regardless of per-field settings.
@@ -360,39 +352,32 @@ export default {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Properties to exclude from display.
-		 *
 		 * @type {string[]}
 		 */
 		exclude: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Properties to include (whitelist mode). If provided, only these are shown.
-		 *
 		 * @type {string[]}
 		 */
 		include: {
 			type: Array,
 			default: () => null,
 		},
-
 		/** Label for the save button */
 		saveLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save'),
 		},
-
 		/** Label for the discard button */
 		discardLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Discard'),
 		},
-
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
@@ -452,7 +437,7 @@ export default {
 			})
 
 			// Attach grid span info from overrides
-			const result = fields.map((field) => ({
+			const result = fields.map(field => ({
 				...field,
 				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
 				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
@@ -522,7 +507,6 @@ export default {
 	methods: {
 		/**
 		 * Check if a field is editable.
-		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		isEditable(field) {
@@ -538,7 +522,6 @@ export default {
 
 		/**
 		 * Check if a field's current value is empty.
-		 *
 		 * @param {string} key - Field key to check
 		 */
 		isValueEmpty(key) {
@@ -550,7 +533,6 @@ export default {
 
 		/**
 		 * Start inline editing for a field.
-		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
 		 */
 		startEdit(field) {
@@ -578,7 +560,6 @@ export default {
 
 		/**
 		 * Update the working edit value for a field.
-		 *
 		 * @param {string} key - Field key to update
 		 * @param {*} value - New value for the field
 		 */
@@ -666,7 +647,6 @@ export default {
 		/**
 		 * Get the objectStore instance.
 		 * Uses the `store` prop if provided, otherwise tries Pinia auto-detection.
-		 *
 		 * @return {object|null}
 		 */
 		_getObjectStore() {
@@ -688,7 +668,6 @@ export default {
 
 		/**
 		 * Compute CSS grid placement for a field cell.
-		 *
 		 * @param {object} field - The field configuration object.
 		 */
 		cellStyle(field) {
@@ -707,7 +686,6 @@ export default {
 		/**
 		 * Normalize an option to { id, label } format.
 		 * Accepts plain strings or objects with id/label properties.
-		 *
 		 * @param {string|object} val - Raw option value to normalize.
 		 */
 		_normalizeOption(val) {
@@ -719,7 +697,7 @@ export default {
 
 		getSelectOptions(field) {
 			if (field.enum) {
-				return field.enum.map((val) => this._normalizeOption(val))
+				return field.enum.map(val => this._normalizeOption(val))
 			}
 			return []
 		},
@@ -729,7 +707,7 @@ export default {
 			if (val === null || val === undefined) return null
 			// Find matching option from enum for proper label display
 			const options = this.getSelectOptions(field)
-			return options.find((opt) => opt.id === val) || { id: val, label: String(val) }
+			return options.find(opt => opt.id === val) || { id: val, label: String(val) }
 		},
 
 		onSelectChange(field, option) {
@@ -739,11 +717,11 @@ export default {
 		getMultiselectOptions(field) {
 			// Check override enum first, then schema items.enum
 			if (field.enum) {
-				return field.enum.map((val) => this._normalizeOption(val))
+				return field.enum.map(val => this._normalizeOption(val))
 			}
 			const itemsEnum = field.items && field.items.enum
 			if (itemsEnum) {
-				return itemsEnum.map((val) => this._normalizeOption(val))
+				return itemsEnum.map(val => this._normalizeOption(val))
 			}
 			return []
 		},
@@ -753,12 +731,12 @@ export default {
 			if (!Array.isArray(val)) return []
 			// Map selected IDs to option objects with labels
 			const options = this.getMultiselectOptions(field)
-			return val.map((v) => options.find((opt) => opt.id === v) || { id: v, label: String(v) })
+			return val.map(v => options.find(opt => opt.id === v) || { id: v, label: String(v) })
 		},
 
 		onMultiselectChange(field, selected) {
 			const values = Array.isArray(selected)
-				? selected.map((opt) => opt.id || opt)
+				? selected.map(opt => opt.id || opt)
 				: []
 			this.updateField(field.key, values)
 		},

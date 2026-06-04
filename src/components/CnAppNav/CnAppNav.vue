@@ -197,7 +197,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Translate function. Falls back to injected `cnTranslate`,
 		 * which itself defaults to an identity function.
@@ -208,7 +207,6 @@ export default {
 			type: Function,
 			default: null,
 		},
-
 		/**
 		 * List of permission strings the current user holds. Items
 		 * declaring a `permission` only render when their permission
@@ -227,11 +225,9 @@ export default {
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
 		},
-
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
 		},
-
 		/**
 		 * Manifest-declared primary action (`nav.primaryAction`) rendered
 		 * as an NcAppNavigationNew button above the main list. Null when
@@ -263,12 +259,10 @@ export default {
 					return a.order - b.order
 				})
 		},
-
 		/** Items that render in the top list (default placement). */
 		mainItems() {
 			return this.visibleItems.filter((item) => (item.section ?? 'main') === 'main')
 		},
-
 		/**
 		 * Items pinned to the bottom of the navigation (section:
 		 * "footer") — rendered as flat NcAppNavigationItems above the
@@ -417,16 +411,13 @@ export default {
 				(c) => this.passesPermission(c) && this.passesVisibleIf(c),
 			)
 		},
-
 		resolveLabel(item) {
 			return this.effectiveTranslate(item.label)
 		},
-
 		isActive(item) {
 			if (item.href || !item.route) return false
 			return this.$route?.name === item.route
 		},
-
 		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
@@ -441,7 +432,6 @@ export default {
 			const pages = this.effectiveManifest?.pages ?? []
 			return pages.find((p) => p.id === item.route) ?? null
 		},
-
 		/**
 		 * Pass-through for `NcAppNavigationItem`'s router-link `exact`.
 		 * Root paths (`/`) match every nested route by default, which
@@ -455,7 +445,6 @@ export default {
 			const page = this.pageForItem(item)
 			return page?.route === '/'
 		},
-
 		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. Action
 		 * items (`action: "user-settings"`) and external (`href`)
@@ -472,7 +461,6 @@ export default {
 			if (item.href) return null
 			return item.route ? { name: item.route } : null
 		},
-
 		/**
 		 * Click handler. Dispatch order: action keyword → external href
 		 * → route. For `action: "user-settings"` invokes the injected

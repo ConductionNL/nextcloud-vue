@@ -1,7 +1,6 @@
+import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { ref } from 'vue'
-import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 import { validateManifest } from '../utils/validateManifest.js'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 
@@ -204,7 +203,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 			const result = validateManifest(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors
-
+				// eslint-disable-next-line no-console
 				console.warn(
 					'[useAppManifest] Backend manifest failed schema validation; falling back to bundled manifest.',
 					result.errors,

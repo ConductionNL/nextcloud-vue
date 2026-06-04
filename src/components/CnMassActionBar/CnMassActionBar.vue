@@ -54,12 +54,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions } from '@nextcloud/vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import Export from 'vue-material-design-icons/Export.vue'
-import Import from 'vue-material-design-icons/Import.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import { NcActions, NcActionButton } from '@nextcloud/vue'
 import TuneVariant from 'vue-material-design-icons/TuneVariant.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import Import from 'vue-material-design-icons/Import.vue'
+import Export from 'vue-material-design-icons/Export.vue'
 
 /**
  * CnMassActionBar — Mass action dropdown button for selected items.
@@ -96,37 +96,31 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Number of selected items */
 		count: {
 			type: Number,
 			default: 0,
 		},
-
 		/** Whether to show the built-in Import action */
 		showImport: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in Export action */
 		showExport: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in Copy action */
 		showCopy: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in Delete action */
 		showDelete: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Label template for the menu button. Use {count} for the count. */
 		menuLabelTemplate: {
 			type: String,

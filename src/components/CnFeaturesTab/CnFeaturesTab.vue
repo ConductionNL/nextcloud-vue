@@ -20,7 +20,7 @@
 				</p>
 				<a
 					v-if="feature.docsUrl"
-					:href="safeHref(feature.docsUrl)"
+					:href="feature.docsUrl"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="cn-features-tab__link">
@@ -51,7 +51,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnFeaturesTab',
@@ -69,10 +68,6 @@ export default {
 			required: true,
 			default: () => [],
 		},
-	},
-
-	methods: {
-		safeHref,
 	},
 
 	computed: {

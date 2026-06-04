@@ -37,7 +37,7 @@
 						:user="userId"
 						:display-name="displayName"
 						:size="36"
-						hide-status />
+						:show-user-status="false" />
 					<div class="cn-user-action-menu__user-info">
 						<span class="cn-user-action-menu__display-name">{{ displayName }}</span>
 						<span v-if="userEmail" class="cn-user-action-menu__email">{{ userEmail }}</span>
@@ -99,11 +99,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcAvatar, NcPopover } from '@nextcloud/vue'
-import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
+import { NcPopover, NcActionButton, NcAvatar } from '@nextcloud/vue'
+
+import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
-import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
+import CalendarOutline from 'vue-material-design-icons/CalendarOutline.vue'
+
 import { buildHeaders } from '../../utils/index.js'
 
 // Module-level capabilities cache (shared across all instances, fetched once per session)
@@ -142,13 +144,11 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/** The user's display name */
 		displayName: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Unknown'),
 		},
-
 		/** Whether the menu is interactive (false for current user or system accounts) */
 		interactive: {
 			type: Boolean,
@@ -223,6 +223,7 @@ export default {
 
 			// Try @nextcloud/capabilities first (synchronous, from initial state)
 			try {
+				// eslint-disable-next-line n/no-missing-import
 				const { getCapabilities } = await import('@nextcloud/capabilities')
 				const caps = getCapabilities()
 				if (caps) {
@@ -365,6 +366,7 @@ export default {
 
 		showActionError(message) {
 			try {
+				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})

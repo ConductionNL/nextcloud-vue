@@ -1,6 +1,6 @@
-import { reactive, ref } from 'vue'
-import { networkError, parseResponseError } from '../utils/errors.js'
+import { ref, reactive } from 'vue'
 import { buildHeaders, buildQueryString } from '../utils/headers.js'
+import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
  * Standalone composable for fetching sub-resources outside the Pinia store.
@@ -63,7 +63,7 @@ export function useSubResource(store, endpoint, options = {}) {
 		if (!config) {
 			throw new Error(`Object type "${type}" is not registered in the store.`)
 		}
-		return `${store._options.baseUrl}/${encodeURIComponent(config.register)}/${encodeURIComponent(config.schema)}/${encodeURIComponent(objectId)}/${encodeURIComponent(endpoint)}`
+		return `${store._options.baseUrl}/${config.register}/${config.schema}/${objectId}/${endpoint}`
 	}
 
 	/**

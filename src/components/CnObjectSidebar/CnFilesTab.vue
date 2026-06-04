@@ -5,6 +5,17 @@
 			{{ uploadError }}
 		</div>
 
+		<!-- Share toggle — seeds from schema config (defaultAutoShare) or
+		     from the `defaultShare` prop. Hidden via `showShareToggle=false`. -->
+		<NcCheckboxRadioSwitch
+			v-if="showShareToggle"
+			class="cn-sidebar-tab__share"
+			:checked.sync="share"
+			:disabled="loading"
+			type="switch">
+			{{ shareLabel }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- File drop zone -->
 		<div
 			class="cn-sidebar-tab__dropzone"
@@ -59,7 +70,7 @@
 		</div>
 		<NcButton
 			v-if="files.length < total"
-			variant="tertiary"
+			type="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"
@@ -74,38 +85,53 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
+import { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnFilesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
+	components: { NcButton, NcCheckboxRadioSwitch, NcListItem, NcActionButton, NcLoadingIcon, Upload, FileOutline, OpenInNew, Delete },
 
 	props: {
-		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
-		/** OpenRegister register slug */
 		register: { type: String, default: '' },
-		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
-		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		/** Text shown inside the file drop zone */
 		dropZoneLabel: { type: String, default: () => t('nextcloud-vue', 'Drop files here or click to browse') },
-		/** Text shown when no files are attached */
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
-		/** Label for the open/view file action */
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
-		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Show the "Automatically publish" share toggle above the dropzone.
+		 * Set to false to hide the toggle entirely (forced `share=false` on upload).
+		 * @type {boolean}
+		 */
+		showShareToggle: { type: Boolean, default: true },
+		/**
+		 * Initial value for the share toggle. `null` (the default) means the
+		 * component looks up the active schema's `configuration.defaultAutoShare`
+		 * via the OpenRegister schema API and seeds from there (falling back to
+		 * false). A non-null Boolean wins over the schema lookup — let the
+		 * consumer override the schema default when needed.
+		 *
+		 * `type` is intentionally omitted so Vue 2 accepts `null` without
+		 * emitting a prop-type-check warning when a consumer passes
+		 * `:default-share="null"` explicitly. The validator below enforces
+		 * the actual contract.
+		 * @type {boolean|null}
+		 */
+		defaultShare: {
+			default: null,
+			validator: v => v === null || typeof v === 'boolean',
+		},
+		/** Label rendered next to the share toggle. */
+		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Automatically publish') },
 	},
 
 	data() {
@@ -118,28 +144,32 @@ export default {
 			page: 1,
 			total: 0,
 			limit: 20,
+			share: false,
 		}
 	},
 
 	watch: {
+		// Match every other CnObjectSidebar tab — a single immediate
+		// `objectId` watcher drives all initial loads. Folding the
+		// share-toggle seed in here avoids two concurrent GETs of
+		// `schemas/{schema}` on mount (one per immediate watcher).
 		objectId: {
 			immediate: true,
-			handler(id) { if (id) this.fetchFiles() },
+			handler(id) {
+				if (id) this.fetchFiles()
+				this.applyShareDefault()
+			},
 		},
 	},
 
 	methods: {
 		async fetchFiles(append = false) {
 			if (!this.register || !this.schema) return
-			if (append) {
-				this.loadingMore = true
-			} else {
-				this.loading = true
-			}
+			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/files?${params}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files?${params}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -159,6 +189,38 @@ export default {
 		loadMore() {
 			this.page++
 			this.fetchFiles(true)
+		},
+
+		/**
+		 * Seed the `share` toggle. The `defaultShare` prop wins when set
+		 * (non-null); otherwise we look up the active schema's
+		 * `configuration.defaultAutoShare` from OpenRegister and use that.
+		 * Network failure or missing key → keep the safe default (false) so
+		 * a hiccup never silently flips uploads to "share".
+		 * @return {Promise<void>}
+		 */
+		async applyShareDefault() {
+			if (this.defaultShare !== null && this.defaultShare !== undefined) {
+				this.share = !!this.defaultShare
+				return
+			}
+			this.share = false
+			if (!this.schema) return
+			try {
+				const response = await fetch(
+					`${this.apiBase}/schemas/${this.schema}`,
+					{ headers: buildHeaders() },
+				)
+				if (!response.ok) return
+				const data = await response.json().catch(() => null)
+				if (data?.configuration?.defaultAutoShare === true) {
+					this.share = true
+				}
+			} catch (err) {
+				// Non-fatal — keep the safe default, but surface the
+				// failure so a missing toggle default isn't silent.
+				console.error('CnFilesTab: Failed to fetch schema default for share toggle', err)
+			}
 		},
 
 		triggerFileInput() {
@@ -188,11 +250,16 @@ export default {
 			for (const file of fileList) {
 				formData.append('files[]', file)
 			}
+			// Only forward the share flag when the toggle is actually visible.
+			// Hiding the toggle (showShareToggle=false) means "don't auto-publish".
+			if (this.showShareToggle) {
+				formData.append('share', String(this.share))
+			}
 
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/filesMultipart`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/filesMultipart`,
 					{
 						method: 'POST',
 						headers: { requesttoken: OC?.requestToken || '', 'OCS-APIREQUEST': 'true' },
@@ -215,15 +282,7 @@ export default {
 
 		openFile(file) {
 			if (file.accessUrl) {
-				// Security: accessUrl originates from the OR files API and may be
-				// attacker-controlled. Validate the scheme via safeHref before
-				// opening — this blocks javascript: / data: payloads. Add
-				// noopener,noreferrer to prevent the opened tab from accessing
-				// window.opener and to strip the Referer header.
-				const safe = safeHref(file.accessUrl)
-				if (safe !== '#') {
-					window.open(safe, '_blank', 'noopener,noreferrer')
-				}
+				window.open(file.accessUrl, '_blank')
 			} else if (file.id) {
 				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
 				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
@@ -235,10 +294,10 @@ export default {
 			if (!this.register || !this.schema) return
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/files/${encodeURIComponent(file.id)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/files/${file.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.files = this.files.filter((f) => f.id !== file.id)
+				this.files = this.files.filter(f => f.id !== file.id)
 			} catch (err) {
 				console.error('CnFilesTab: Failed to delete file', err)
 			}
@@ -290,6 +349,8 @@ export default {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
 }
+
+.cn-sidebar-tab__share { margin-bottom: 12px; }
 
 .cn-sidebar-tab__dropzone-icon { color: var(--color-text-maxcontrast); }
 .cn-sidebar-tab__dropzone--active .cn-sidebar-tab__dropzone-icon,

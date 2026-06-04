@@ -1,6 +1,6 @@
-import { networkError, parseResponseError } from '../../utils/errors.js'
-import { buildHeaders } from '../../utils/headers.js'
 import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
+import { buildHeaders } from '../../utils/headers.js'
+import { parseResponseError, networkError } from '../../utils/errors.js'
 
 /**
  * Files plugin for the object store.
@@ -154,7 +154,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}/publish`
+					const url = this._buildUrl(type, objectId) + `/files/${fileId}/publish`
 
 					const response = await fetch(url, {
 						method: 'POST',
@@ -189,7 +189,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}/depublish`
+					const url = this._buildUrl(type, objectId) + `/files/${fileId}/depublish`
 
 					const response = await fetch(url, {
 						method: 'POST',
@@ -224,7 +224,7 @@ export function filesPlugin(options = {}) {
 				this.filesError = null
 
 				try {
-					const url = this._buildUrl(type, objectId) + `/files/${encodeURIComponent(fileId)}`
+					const url = this._buildUrl(type, objectId) + `/files/${fileId}`
 
 					const response = await fetch(url, {
 						method: 'DELETE',

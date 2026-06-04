@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -33,7 +33,7 @@
 				<NcSelect
 					input-id="cn-mass-export-format"
 					:options="formatOptions"
-					:model-value="selectedFormat"
+					:value="selectedFormat"
 					:clearable="false"
 					@input="selectedFormat = $event" />
 			</div>
@@ -45,7 +45,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				variant="primary"
+				type="primary"
 				:disabled="loading"
 				@click="executeExport">
 				<template #icon>
@@ -60,7 +60,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
 
 /**
@@ -116,13 +116,11 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Export objects'),
 		},
-
 		/** Description text shown above the format selector */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Available export formats */
 		formats: {
 			type: Array,
@@ -131,13 +129,11 @@ export default {
 				{ id: 'csv', label: 'CSV (.csv)' },
 			],
 		},
-
 		/** Default selected format ID */
 		defaultFormat: {
 			type: String,
 			default: 'excel',
 		},
-
 		/** Success message */
 		successText: {
 			type: String,
@@ -177,7 +173,6 @@ export default {
 
 		/**
 		 * Set the result of the export operation.
-		 *
 		 * @param {{ success?: boolean, error?: string }} resultData - Result data to pass to the dialog
 		 * @public
 		 */

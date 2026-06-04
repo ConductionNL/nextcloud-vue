@@ -13,7 +13,7 @@
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
 						<NcCheckboxRadioSwitch
-							:model-value="allSelected"
+							:checked="allSelected"
 							:indeterminate="someSelected && !allSelected"
 							@update:checked="toggleSelectAll" />
 					</th>
@@ -70,7 +70,7 @@
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
-							:model-value="isSelected(row)"
+							:checked="isSelected(row)"
 							@update:checked="toggleSelect(row)" />
 					</td>
 
@@ -100,10 +100,7 @@
 					</td>
 
 					<!-- Row actions -->
-					<td v-if="$scopedSlots['row-actions']"
-						class="cn-table-col--actions"
-						:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
-						@click.stop>
+					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
 						<slot name="row-actions" :row="row" />
 					</td>
 				</tr>
@@ -113,14 +110,12 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
-import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -186,7 +181,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Schema object with `properties` field (schema-driven mode).
 		 * When provided, columns are auto-generated from schema properties.
@@ -195,96 +189,81 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/** Per-column overrides when using schema mode: { key: { width, label, sortable, ... } } */
 		columnOverrides: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/** Column keys to exclude when using schema mode */
 		excludeColumns: {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Column keys to include when using schema mode (whitelist) */
 		includeColumns: {
 			type: Array,
 			default: null,
 		},
-
 		/** Row data array. Each row should have a unique identifier (see rowKey). */
 		rows: {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Whether data is loading (shows loading spinner) */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Current sort column key */
 		sortKey: {
 			type: String,
 			default: null,
 		},
-
 		/** Current sort order: 'asc', 'desc', or null (no sort) */
 		sortOrder: {
 			type: String,
 			default: 'asc',
 			validator: (v) => v === null || ['asc', 'desc'].includes(v),
 		},
-
 		/** Whether rows can be selected with checkboxes */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Array of currently selected row IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Property name used as unique row identifier */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
-
 		/** Text shown when there are no rows */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No items found'),
 		},
-
 		/** Function returning CSS class(es) for a row: (row) => string|object */
 		rowClass: {
 			type: Function,
 			default: null,
 		},
-
 		/** Function returning CSS class(es) for a data cell: (row, col) => string|object */
 		cellClass: {
 			type: Function,
 			default: null,
 		},
-
 		/** Whether to constrain table height and make it scrollable */
 		scrollable: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Text shown while loading */
 		loadingText: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading…'),
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
 	},
 
@@ -309,13 +288,6 @@ export default {
 		/**
 		 * Effective columns: schema-generated or manually provided.
 		 * Schema columns take precedence when schema is provided and no manual columns given.
-		 *
-		 * Manually-provided columns may be either full `{ key, label, … }`
-		 * objects or bare string keys (the manifest shorthand, e.g.
-		 * `columns: ['name', 'type']`). String entries are normalised to
-		 * column objects — enriched from the schema when one is available
-		 * (preserving the given order) — so the table never renders a column
-		 * without a `key`.
 		 */
 		effectiveColumns() {
 			const cols = (this.schema && this.columns.length === 0)
@@ -325,17 +297,7 @@ export default {
 					overrides: this.columnOverrides,
 				})
 				: this.columns
-			if (!(cols || []).some((c) => typeof c === 'string')) {
-				return cols || []
-			}
-			const schemaCols = this.schema
-				? columnsFromSchema(this.schema, { overrides: this.columnOverrides })
-				: []
-			const byKey = new Map(schemaCols.map((c) => [c.key, c]))
-			return (cols || []).map((c) => {
-				if (typeof c !== 'string') return c
-				return byKey.get(c) || { key: c, label: c, sortable: true }
-			})
+			return (cols || []).map((c) => (typeof c === 'string' ? { key: c, label: c } : c))
 		},
 
 		totalColumns() {
@@ -372,13 +334,17 @@ export default {
 	methods: {
 		/**
 		 * Get a cell value from a row using dot-notation key.
-		 *
 		 * @param {object} row The row data
 		 * @param {string} key The column key (supports dot notation: 'address.city')
 		 * @return {*} The cell value
 		 */
 		getCellValue(row, key) {
-			if (typeof key !== 'string') {
+			// Guard against columns reaching cellValue without a `.key`
+			// (e.g. action / checkbox / row-selector columns, or a
+			// malformed column definition). Without this guard,
+			// `key.includes('.')` throws TypeError and breaks every
+			// row render in the table.
+			if (key === undefined || key === null) {
 				return undefined
 			}
 			if (key.includes('.')) {
@@ -498,7 +464,6 @@ export default {
 
 		/**
 		 * Handle sort column click.
-		 *
 		 * @param {string} key Column key
 		 */
 		onSort(key) {

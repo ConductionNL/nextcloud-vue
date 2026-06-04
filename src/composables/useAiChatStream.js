@@ -243,11 +243,6 @@ export function useAiChatStream(contextInstance) {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					// NC's CSRF middleware requires the requesttoken header.
-					// X-Requested-With is sent additionally to suppress the
-					// login redirect on AJAX calls, but it does NOT substitute
-					// for requesttoken — removing requesttoken causes a 412.
-					requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 					'X-Requested-With': 'XMLHttpRequest',
 					// Nextcloud's CSRF middleware accepts either the
 					// requesttoken header or X-Requested-With. We send

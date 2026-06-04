@@ -282,29 +282,6 @@ function isSentinel(value) {
 }
 
 /**
- * Pattern matching the `manifest-resolve-sentinel` capability's
- * sentinel — `@resolve:<key>` where `<key>` is lowercase alphanumeric
- * with `_` / `-` separators. The full string IS the sentinel; partial
- * substitution like `prefix-@resolve:foo` is NOT supported and is left
- * as a plain string for downstream renderers.
- *
- * Build-time validation accepts this pattern as a valid `string` for
- * any `string`-typed field UNDER `pages[].config`, regardless of any
- * narrower per-field constraint. Other paths reject it explicitly.
- */
-const SENTINEL_PATTERN = /^@resolve:[a-z][a-z0-9_-]*$/
-
-/**
- * Test whether a string is a manifest `@resolve:` sentinel.
- *
- * @param {*} value Candidate value.
- * @return {boolean} True when the value is a fully-matched sentinel.
- */
-function isSentinel(value) {
-	return typeof value === 'string' && SENTINEL_PATTERN.test(value)
-}
-
-/**
  * Validate a manifest object against the manifest JSON Schema.
  *
  * Hand-rolled minimal validator covering the rules required by
@@ -559,7 +536,7 @@ function validateTypeConfig(page, index, errors) {
 	const pathSlash = `/pages/${index}/config`
 
 	switch (page.type) {
-		case 'index': {
+	case 'index': {
 		// `manifest-config-refs` REQ-MCR — surface column / action shape
 		// errors with sharp messages so consumers can locate the offending
 		// field. Both arrays are OPTIONAL; only validated when present.
@@ -593,17 +570,11 @@ function validateTypeConfig(page, index, errors) {
 		if (!hasRegisterSchema && !hasSource) {
 			errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
 		}
-		case 'logs': {
-			const hasRegisterSchema = cfg && typeof cfg.register === 'string' && typeof cfg.schema === 'string'
-			const hasSource = cfg && typeof cfg.source === 'string'
-			if (!hasRegisterSchema && !hasSource) {
-				errors.push(`${pathSlash}: ${pathBracket}: must declare register+schema or source`)
-			}
-			// Same column shorthand support as index.
-			validateColumnsArray(cfg, pathSlash, pathBracket, errors)
-			break
-		}
-		case 'dashboard': {
+		// Same column shorthand support as index.
+		validateColumnsArray(cfg, pathSlash, pathBracket, errors)
+		break
+	}
+	case 'dashboard': {
 		// `manifest-config-refs` REQ-MCR — surface widgetDef / layoutItem
 		// shape errors. Both arrays are OPTIONAL; only validated when
 		// present.
@@ -704,13 +675,11 @@ function validateTypeConfig(page, index, errors) {
 		if (!hasConversationSource && !hasPostUrl) {
 			errors.push(`${pathSlash}: ${pathBracket}: must declare conversationSource or postUrl`)
 		}
-		case 'chat': {
-			const hasConversationSource = cfg && typeof cfg.conversationSource === 'string'
-			const hasPostUrl = cfg && typeof cfg.postUrl === 'string'
-			if (!hasConversationSource && !hasPostUrl) {
-				errors.push(`${pathSlash}: ${pathBracket}: must declare conversationSource or postUrl`)
-			}
-			break
+		break
+	}
+	case 'files': {
+		if (!cfg || typeof cfg.folder !== 'string' || cfg.folder.length === 0) {
+			errors.push(`${pathSlash}/folder: ${pathBracket}.folder: required`)
 		}
 		break
 	}
@@ -801,7 +770,7 @@ function validateTypeConfig(page, index, errors) {
 		// No per-type rules for index/detail/dashboard/custom or
 		// consumer-defined types; their `config` shape is enforced
 		// by the target component at runtime (or by a future spec).
-			break
+		break
 	}
 }
 
@@ -1533,10 +1502,11 @@ function validateContentArray(cfg, pathSlash, pathBracket, errors) {
  * `boolean | number | string | enum | password | json` — matches the
  * `formField` $def.
  *
- * @param {any} fields The candidate fields value
+ * @param {*} fields The candidate fields value
  * @param {string} fieldsPath JSON-pointer-style path prefix for errors
  * @param {string[]} errors Accumulator
  */
+const FORM_FIELD_TYPES = ['boolean', 'number', 'string', 'enum', 'password', 'json']
 function validateFieldsArray(fields, fieldsPath, errors) {
 	if (!Array.isArray(fields)) return
 	fields.forEach((field, fIndex) => {

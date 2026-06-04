@@ -41,9 +41,9 @@
 			:post-url="postUrl"
 			:schema="schema">
 			<iframe
-				v-if="safeSrc"
+				v-if="conversationSource"
 				class="cn-chat-page__iframe"
-				:src="safeSrc"
+				:src="conversationSource"
 				:title="title"
 				allow="microphone; camera; display-capture"
 				:sandbox="sandbox" />
@@ -64,7 +64,6 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import MessageOutline from 'vue-material-design-icons/MessageOutline.vue'
-import { safeHref } from '../../utils/safeHref.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
 /**
@@ -74,11 +73,6 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
  * `conversationSource` (typically an NC Talk embeddable URL). The
  * `<iframe>` runs sandboxed by default; consumers can opt-in to
  * additional permissions via the `sandbox` prop.
- *
- * The `conversationSource` prop is validated by `safeHref` before the
- * iframe is rendered — `javascript:`, `data:`, `vbscript:`, and
- * protocol-relative (`//`) URLs are rejected, suppressing the iframe.
- * The sanitised URL is exposed as the `safeSrc` computed property.
  *
  * The `#conversation` slot fully replaces the iframe — this is the
  * extension point for v2 (native thread renderer) and for consumer
@@ -117,43 +111,30 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Conversation'),
 		},
-
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Whether to render the inline page header. */
 		showTitle: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
-
 		/**
-		 * URL of the embedded conversation (NC Talk iframe URL by default).
-		 * Validated by `safeHref` — `javascript:`, `data:`, `vbscript:`, and
-		 * protocol-relative (`//`) URLs are blocked; the iframe will not render
-		 * when an unsafe value is passed. Required for v1 unless the consumer
-		 * supplies a `#conversation` slot.
+		 * URL of the embedded conversation (NC Talk iframe URL by
+		 * default). Required for v1 unless the consumer supplies a
+		 * `#conversation` slot.
 		 */
 		conversationSource: {
 			type: String,
 			default: '',
-			validator(value) {
-				if (!value) return true
-				// Block dangerous schemes before Vue even renders.
-				// safeHref returns '#' for javascript:/data:/vbscript:// etc.
-				return safeHref(value) !== '#'
-			},
 		},
-
 		/**
 		 * Custom thread-API endpoint. Used by consumers building their
 		 * own chat UI via the `#conversation` slot. The value is passed
@@ -163,7 +144,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * OpenRegister schema slug for an OR-backed conversation.
 		 * Reserved for v2 native thread rendering.
@@ -172,7 +152,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * `sandbox` attribute on the iframe. Defaults to a minimal
 		 * permissive set: scripts + same-origin (so NC Talk can call
@@ -183,26 +162,10 @@ export default {
 			type: String,
 			default: 'allow-scripts allow-same-origin allow-forms allow-popups',
 		},
-
 		/** Empty-state text shown when no conversation source is set. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No conversation selected'),
-		},
-	},
-
-	computed: {
-		/**
-		 * Sanitised `conversationSource` safe for use in an iframe `:src`.
-		 * Returns the validated URL, or `null` when the input is empty or
-		 * contains a dangerous scheme (suppresses the iframe render).
-		 *
-		 * @return {string|null}
-		 */
-		safeSrc() {
-			if (!this.conversationSource) return null
-			const validated = safeHref(this.conversationSource)
-			return validated === '#' ? null : validated
 		},
 	},
 }

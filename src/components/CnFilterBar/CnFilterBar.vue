@@ -3,7 +3,7 @@
 		<!-- Search input -->
 		<div class="cn-filter-bar__search" data-testid="cn-filter-bar-search">
 			<NcTextField
-				:model-value="searchValue"
+				:value="searchValue"
 				:placeholder="searchPlaceholder"
 				:label="searchPlaceholder"
 				trailing-button-icon="close"
@@ -24,7 +24,7 @@
 					v-if="filter.type === 'select'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:model-value="filter.value"
+					:value="filter.value"
 					:options="filter.options || []"
 					:placeholder="filter.label"
 					:input-label="filter.label"
@@ -36,7 +36,7 @@
 					v-else-if="filter.type === 'text'"
 					:key="filter.key"
 					class="cn-filter-bar__filter"
-					:model-value="filter.value || ''"
+					:value="filter.value || ''"
 					:placeholder="filter.label"
 					:label="filter.label"
 					@update:value="onFilterChange(filter.key, $event)" />
@@ -45,7 +45,7 @@
 				<NcCheckboxRadioSwitch
 					v-else-if="filter.type === 'checkbox'"
 					:key="filter.key"
-					:model-value="!!filter.value"
+					:checked="!!filter.value"
 					@update:checked="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
@@ -64,7 +64,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcTextField, NcSelect, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 
 /**
@@ -102,32 +102,27 @@ export default {
 		/**
 		 * Filter definitions. Each item has `key`, `label`, `type` ('select'|'text'|'checkbox'),
 		 * optional `options` (for select), and optional `value`.
-		 *
 		 * @type {Array<{key: string, label: string, type: 'select'|'text'|'checkbox', options: Array, value: any}>}
 		 */
 		filters: {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Current search text */
 		searchValue: {
 			type: String,
 			default: '',
 		},
-
 		/** Search input placeholder text */
 		searchPlaceholder: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Search…'),
+			default: () => t('nextcloud-vue', 'Search...'),
 		},
-
 		/** Whether to show the "Clear all" button */
 		showClearAll: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Clear all button label */
 		clearAllLabel: {
 			type: String,
@@ -145,7 +140,6 @@ export default {
 	methods: {
 		/**
 		 * Emit filter change event.
-		 *
 		 * @param {string} key Filter key
 		 * @param {*} value New filter value
 		 */

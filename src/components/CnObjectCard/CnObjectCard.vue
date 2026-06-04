@@ -6,7 +6,7 @@
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:model-value="selected"
+				:checked="selected"
 				@update:checked="$emit('select', object)" />
 		</div>
 
@@ -16,7 +16,7 @@
 			<div class="cn-object-card__header">
 				<img
 					v-if="imageUrl"
-					:src="safeImageSrc(imageUrl)"
+					:src="imageUrl"
 					:alt="title"
 					class="cn-object-card__image">
 
@@ -61,11 +61,8 @@
 
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { safeImageSrc } from '../../utils/safeHref.js'
-import { formatValue } from '../../utils/schema.js'
-import { safeImageSrc } from '../../utils/safeHref.js'
-import { formatValue } from '../../utils/schema.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { formatValue } from '../../utils/schema.js'
 
 /**
  * CnObjectCard — Schema-configuration-driven card for object display.
@@ -95,25 +92,21 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/** Schema definition with properties and configuration */
 		schema: {
 			type: Object,
 			required: true,
 		},
-
 		/** Whether this card is selected */
 		selected: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Whether to show selection checkbox */
 		selectable: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Maximum number of metadata fields to show */
 		maxMetadata: {
 			type: Number,
@@ -197,7 +190,6 @@ export default {
 
 	methods: {
 		formatValue,
-		safeImageSrc,
 	},
 }
 </script>

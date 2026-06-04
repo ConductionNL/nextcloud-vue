@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="resolvedTitle"
 		:size="size"
-		:no-close="loading"
+		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase (standard mode, not create-another) -->
 		<div v-if="result !== null && !createAnother"
@@ -77,9 +77,9 @@
 			<!-- Create another checkbox (only in create mode) -->
 			<NcCheckboxRadioSwitch
 				v-if="showCreateAnother && isCreateMode"
-				v-model="createAnother"
 				class="cn-tabbed-form-dialog__create-another"
-				:disabled="loading">
+				:disabled="loading"
+				:checked.sync="createAnother">
 				{{ createAnotherLabel }}
 			</NcCheckboxRadioSwitch>
 
@@ -107,7 +107,7 @@
 			<NcButton
 				v-if="createAnother || result === null"
 				v-tooltip="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
-				variant="primary"
+				type="primary"
 				:disabled="loading || disableSave"
 				:aria-label="disableSave && disableSaveTooltip ? disableSaveTooltip : undefined"
 				@click="executeConfirm">
@@ -127,10 +127,10 @@
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
-	NcCheckboxRadioSwitch,
 	NcDialog,
 	NcLoadingIcon,
 	NcNoteCard,
+	NcCheckboxRadioSwitch,
 } from '@nextcloud/vue'
 
 import Cancel from 'vue-material-design-icons/Cancel.vue'
@@ -149,21 +149,18 @@ export default {
 		ContentSaveOutline,
 		Plus,
 	},
-
 	props: {
 		/**
 		 * Array of tab definitions. Each tab must have at least an `id` and `title`.
 		 * The optional `icon` field should be a Vue component reference (e.g. an imported MDI icon).
 		 * The optional `disabled` field prevents tab selection.
-		 *
 		 * @type {Array<{ id: string, title: string, icon: object, disabled: boolean }>}
 		 */
 		tabs: {
 			type: Array,
 			required: true,
-			validator: (tabs) => tabs.length > 0 && tabs.every((t) => t.id && t.title),
+			validator: (tabs) => tabs.length > 0 && tabs.every(t => t.id && t.title),
 		},
-
 		/**
 		 * Existing item for edit mode. Pass null or undefined for plain create
 		 * mode. A non-null object without an `id` is also treated as create mode
@@ -175,7 +172,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Custom dialog title. When provided, overrides the auto-generated
 		 * "Create {entityName}" / "Edit {entityName}" title.
@@ -186,7 +182,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Entity name used in auto-generated titles and success messages.
 		 * For example, "Organisation" produces "Create Organisation" and
@@ -198,7 +193,6 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item'),
 		},
-
 		/**
 		 * NcDialog size. One of 'small', 'normal', 'large', 'full'.
 		 *
@@ -208,7 +202,6 @@ export default {
 			type: String,
 			default: 'large',
 		},
-
 		/**
 		 * Whether to show the "Create Another" checkbox in create mode.
 		 * When checked and a save succeeds, the form stays open and a reset
@@ -220,7 +213,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Whether the primary save/create button is disabled.
 		 * The parent controls validation externally.
@@ -231,7 +223,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Tooltip shown on the save button when it is disabled.
 		 * Also used as aria-label so screen readers can explain the blocked state (WCAG 2.1 AA).
@@ -242,7 +233,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Custom success message shown in the result NcNoteCard.
 		 * Defaults to "{entityName} saved successfully".
@@ -253,7 +243,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Cancel button label.
 		 *
@@ -263,7 +252,6 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Cancel'),
 		},
-
 		/**
 		 * Close button label shown in the result phase.
 		 *
@@ -273,7 +261,6 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Close'),
 		},
-
 		/**
 		 * Primary confirm button label. Defaults to "Create" in create mode
 		 * or "Save" in edit mode.
@@ -284,7 +271,6 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Label for the "Create Another" checkbox.
 		 *
@@ -295,7 +281,6 @@ export default {
 			default: () => t('nextcloud-vue', 'Create another'),
 		},
 	},
-
 	data() {
 		return {
 			/** @type {number} Current active tab index */
@@ -307,7 +292,6 @@ export default {
 			/**
 			 * Result of the last operation.
 			 * null = form phase, { success: true } = success, { error: 'msg' } = error
-			 *
 			 * @type {{ success: boolean, error: string }|null}
 			 */
 			result: null,
@@ -317,7 +301,6 @@ export default {
 			successClearTimeout: null,
 		}
 	},
-
 	computed: {
 		/**
 		 * Whether the dialog is in create mode (no existing persisted item).
@@ -331,7 +314,6 @@ export default {
 		isCreateMode() {
 			return !this.item || !this.item.id
 		},
-
 		/**
 		 * Resolved dialog title. Uses dialogTitle prop if provided,
 		 * otherwise auto-generates from entityName and mode.
@@ -346,7 +328,6 @@ export default {
 				? t('nextcloud-vue', 'Create {title}', { title: this.entityName })
 				: t('nextcloud-vue', 'Edit {title}', { title: this.entityName })
 		},
-
 		/**
 		 * Resolved success text for NcNoteCard.
 		 *
@@ -358,7 +339,6 @@ export default {
 			}
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.entityName })
 		},
-
 		/**
 		 * Resolved primary button label.
 		 *
@@ -371,12 +351,10 @@ export default {
 			return this.isCreateMode ? t('nextcloud-vue', 'Create') : t('nextcloud-vue', 'Save')
 		},
 	},
-
 	beforeDestroy() {
 		clearTimeout(this.closeTimeout)
 		clearTimeout(this.successClearTimeout)
 	},
-
 	methods: {
 		/**
 		 * Switch to a tab by index, mirroring the BTabs `v-model` + `@input`

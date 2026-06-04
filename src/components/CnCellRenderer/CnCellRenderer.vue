@@ -71,19 +71,9 @@
 </template>
 
 <script>
-import CheckBold from 'vue-material-design-icons/CheckBold.vue'
-import { safeHref } from '../../utils/safeHref.js'
-import { formatValue } from '../../utils/schema.js'
-import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-
-/**
- * Module-level set of column keys already warned about for a
- * `widget:"link"` declaration with no resolvable target — guarantees
- * one warning per (page, column-key) rather than per row × render.
- */
-const WARNED_LINK_KEYS = new Set()
+import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 
 /**
  * Module-level set of column keys already warned about for a
@@ -131,10 +121,9 @@ export default {
 	props: {
 		/** The raw cell value */
 		value: {
-			type: [Boolean, String, Number, Array, Object],
+			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
-
 		/** Schema property definition: { type, format, enum, items, title } */
 		property: {
 			type: Object,
@@ -255,9 +244,7 @@ export default {
 		 * Resolved external href for the built-in `widget:"link"` when
 		 * `widgetProps.href` is set. `{key}` placeholders in the href
 		 * are substituted from the row (`"/x/{id}"` + `row.id === "42"`
-		 * → `"/x/42"`). The final computed value is validated with
-		 * `safeHref` so row-injected values cannot introduce unsafe
-		 * schemes. Returns null when `href` isn't set.
+		 * → `"/x/42"`). Returns null when `href` isn't set.
 		 *
 		 * @return {string|null}
 		 */

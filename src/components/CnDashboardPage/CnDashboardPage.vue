@@ -28,7 +28,7 @@
 				<slot name="actions" />
 				<NcButton
 					v-if="allowEdit"
-					:variant="isEditing ? 'primary' : 'secondary'"
+					:type="isEditing ? 'primary' : 'secondary'"
 					@click="toggleEdit">
 					<template #icon>
 						<Pencil v-if="!isEditing" :size="20" />
@@ -309,9 +309,9 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
-import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
@@ -474,13 +474,11 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Widget definitions array. Each widget defines metadata for rendering.
 		 *
@@ -496,14 +494,12 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Layout array defining widget positions in the grid.
 		 *
 		 * Each item: `{ id: 'unique-id', widgetId: 'my-widget', gridX: 0, gridY: 0, gridWidth: 4, gridHeight: 3 }`
 		 *
 		 * Additional properties (showTitle, styleConfig, tile config) are passed through.
-		 *
 		 * @type {Array<{ id: string|number, widgetId: string, gridX: number, gridY: number, gridWidth: number, gridHeight: number, showTitle: boolean, styleConfig: object }>}
 		 */
 		layout: {
@@ -536,49 +532,41 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Whether to show the edit toggle button */
 		allowEdit: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Number of grid columns */
 		columns: {
 			type: Number,
 			default: 12,
 		},
-
 		/** Grid cell height in pixels */
 		cellHeight: {
 			type: Number,
 			default: 80,
 		},
-
 		/** Grid margin in pixels */
 		gridMargin: {
 			type: Number,
 			default: 12,
 		},
-
 		/** Label for the edit button */
 		editLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Edit'),
 		},
-
 		/** Label for the done button (when editing) */
 		doneLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Done'),
 		},
-
 		/** Label for the empty state */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No widgets configured'),
 		},
-
 		/** Label for unavailable widgets */
 		unavailableLabel: {
 			type: String,
@@ -729,17 +717,6 @@ export default {
 	},
 
 	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'refresh', 'request-feature'],
-
-	setup() {
-		// Wire the pluggable integration registry so widgets of type
-		// `integration` resolve their component reactively. No-op cost
-		// when no integration widgets are configured.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
-		return {
-			registryIntegrations,
-			resolveRegistryWidget: resolveWidget,
-		}
-	},
 
 	data() {
 		return {

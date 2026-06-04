@@ -9,7 +9,7 @@
 				v-if="resolvedWidget === 'boolean'"
 				class="cn-advanced-form-dialog__boolean-input-row">
 				<NcCheckboxRadioSwitch
-					:model-value="!!value"
+					:checked="!!value"
 					type="switch"
 					class="cn-advanced-form-dialog__boolean-input-row__input"
 					@update:checked="emit($event)">
@@ -31,22 +31,21 @@
 					@input="onChromeColorInput" />
 				<NcTextField
 					ref="inputRef"
-					:model-value="colorTextValue"
+					:value="colorTextValue"
 					:placeholder="colorPlaceholder"
 					@update:value="onColorTextInput($event)" />
 			</div>
 			<NcDateTimePicker
 				v-else-if="resolvedWidget === 'datetime'"
-				:model-value="datetimeValue"
+				:value="datetimeValue"
 				:type="datetimePickerType"
-				:format="datetimeFormat"
 				:placeholder="displayName"
 				:input-label="displayName"
 				@input="emitDatetime($event)" />
 			<NcTextArea
 				v-else-if="resolvedWidget === 'textarea'"
 				ref="inputRef"
-				:model-value="stringValue"
+				:value="stringValue"
 				:placeholder="displayName"
 				:rows="textareaRows"
 				:maxlength="maxLengthAttr"
@@ -54,12 +53,12 @@
 				@update:value="emit($event)" />
 			<NcSelect
 				v-else-if="resolvedWidget === 'select'"
-				:model-value="effectiveSelectValue"
+				:value="effectiveSelectValue"
 				:options="effectiveSelectOptions"
 				:multiple="effectiveSelectMultiple"
 				:taggable="effectiveSelectTaggable"
 				:push-tags="effectiveSelectTaggable"
-				:keep-open="effectiveSelectMultiple"
+				:close-on-select="!effectiveSelectMultiple"
 				:input-label="displayName"
 				:placeholder="displayName"
 				@input="emitSelect($event)" />
@@ -82,7 +81,7 @@
 						@click.stop="openObjectArrayItem(idx)">
 						<span class="cn-advanced-form-dialog__object-array-chip-label">{{ objectArrayItemLabel(item, idx) }}</span>
 						<NcButton
-							variant="tertiary-no-background"
+							type="tertiary-no-background"
 							:aria-label="t('nextcloud-vue', 'Remove item')"
 							:title="t('nextcloud-vue', 'Remove item')"
 							class="cn-advanced-form-dialog__object-array-chip-remove"
@@ -94,7 +93,7 @@
 					</button>
 				</div>
 				<NcButton
-					variant="secondary"
+					type="secondary"
 					class="cn-advanced-form-dialog__object-array-add"
 					@click.stop="openObjectArrayItem(null)">
 					<template #icon>
@@ -114,7 +113,7 @@
 			<NcTextField
 				v-else
 				ref="inputRef"
-				:model-value="stringValue"
+				:value="stringValue"
 				:type="inputType"
 				:placeholder="displayName"
 				:min="minimum"
@@ -171,36 +170,29 @@
 </template>
 
 <script>
-import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
+import { translate as t } from '@nextcloud/l10n'
 import {
-	NcButton,
-	NcCheckboxRadioSwitch,
-	NcDateTimePicker,
-	NcSelect,
-	NcTextArea,
 	NcTextField,
+	NcTextArea,
+	NcCheckboxRadioSwitch,
+	NcSelect,
+	NcButton,
+	NcDateTimePicker,
 	Tooltip,
 } from '@nextcloud/vue'
-import Close from 'vue-material-design-icons/Close.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
-import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { formatValue, validateValue } from '../../utils/schema.js'
+import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const SUPPORTED_WIDGETS = ['text', 'number', 'boolean', 'datetime', 'textarea', 'array', 'select', 'object', 'objectArray', 'color']
 
 /** String formats that map to HTML5 `<input type="url">`. */
 const URL_FORMATS = new Set([
-	'url',
-	'uri',
-	'uri-reference',
-	'iri',
-	'iri-reference',
-	'uri-template',
-	'accessUrl',
-	'shareUrl',
-	'downloadUrl',
+	'url', 'uri', 'uri-reference', 'iri', 'iri-reference', 'uri-template',
+	'accessUrl', 'shareUrl', 'downloadUrl',
 ])
 
 /** All color-related string formats — rendered with the `color` widget (swatch + text input). */
@@ -252,9 +244,9 @@ export default {
 		/** Full JSON schema object */
 		schema: { type: Object, default: null },
 		/** Resolved current value (formData[key] ?? objectValue) */
-		value: { type: [Boolean, String, Number, Object, Array], default: null },
+		value: { type: [String, Number, Boolean, Object, Array], default: null },
 		/** Whether this property is editable at all */
-		isEditable: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: defaults to editable; flipping would silently disable existing consumers
+		isEditable: { type: Boolean, default: true },
 		/** Whether this row is currently selected for editing */
 		isEditing: { type: Boolean, default: false },
 		/** Display name for the property (used in labels/placeholders) */
@@ -272,11 +264,10 @@ export default {
 			default: null,
 			validator: (v) => v === null || SUPPORTED_WIDGETS.includes(v),
 		},
-
 		/** Options for the `select` widget. Each option may be a string, or `{ id, label }`. */
 		selectOptions: { type: Array, default: null },
 		/** Whether the `select` widget allows multiple values. */
-		selectMultiple: { type: Boolean, default: true }, // eslint-disable-line vue/no-boolean-default -- public API: matches schema-array default; flipping would break consumers relying on multi-select
+		selectMultiple: { type: Boolean, default: true },
 		/** Number of rows for the `textarea` widget. */
 		textareaRows: { type: Number, default: 4 },
 		/** CSS height for the `object` widget's CodeMirror editor. */
@@ -310,7 +301,6 @@ export default {
 		 * Resolved widget after applying explicit override + schema auto-detection.
 		 * Arrays and string-with-enum become a `select` widget; the array/enum
 		 * shape is inferred from the schema by the `effectiveSelect*` computeds.
-		 *
 		 * @return {string} one of SUPPORTED_WIDGETS
 		 */
 		resolvedWidget() {
@@ -359,13 +349,13 @@ export default {
 		colorPlaceholder() {
 			const fmt = this.schemaProp?.format
 			switch (fmt) {
-				case 'color-hex': return '#rrggbb'
-				case 'color-hex-alpha': return '#rrggbbaa'
-				case 'color-rgb': return 'rgb(0, 0, 0)'
-				case 'color-rgba': return 'rgba(0, 0, 0, 1)'
-				case 'color-hsl': return 'hsl(0, 0%, 0%)'
-				case 'color-hsla': return 'hsla(0, 0%, 0%, 1)'
-				default: return this.displayName || '#rrggbb'
+			case 'color-hex': return '#rrggbb'
+			case 'color-hex-alpha': return '#rrggbbaa'
+			case 'color-rgb': return 'rgb(0, 0, 0)'
+			case 'color-rgba': return 'rgba(0, 0, 0, 1)'
+			case 'color-hsl': return 'hsl(0, 0%, 0%)'
+			case 'color-hsla': return 'hsla(0, 0%, 0%, 1)'
+			default: return this.displayName || '#rrggbb'
 			}
 		},
 
@@ -482,11 +472,7 @@ export default {
 			const ex = this.schemaProp?.example
 			if (ex === undefined || ex === null || ex === '') return ''
 			if (typeof ex === 'object') {
-				try {
-					return JSON.stringify(ex)
-				} catch {
-					return ''
-				}
+				try { return JSON.stringify(ex) } catch { return '' }
 			}
 			return String(ex)
 		},
@@ -541,7 +527,7 @@ export default {
 				if (!Array.isArray(v)) return []
 				return v.map(lookup)
 			}
-			if (v === null || v === undefined || v === '') return null
+			if (v == null || v === '') return null
 			return lookup(v)
 		},
 
@@ -576,24 +562,19 @@ export default {
 			// Date-only strings (YYYY-MM-DD) are parsed as UTC midnight by the spec,
 			// which shifts to the previous day in positive-UTC-offset timezones when
 			// fed to a picker that renders in local time. Parse them as local midnight.
-			let d
 			if (this.schemaProp?.format === 'date'
 				&& typeof v === 'string'
 				&& /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				d = new Date(year, month - 1, day)
-			} else {
-				d = new Date(v)
+				return new Date(year, month - 1, day)
 			}
-			if (Number.isNaN(d.getTime())) return null
-			// 1970-01-01 is treated as "no value" — see isValidDate for rationale.
-			if (this.isEpochDate(d)) return null
-			return d
+			const d = new Date(v)
+			return Number.isNaN(d.getTime()) ? null : d
 		},
 
 		stringValue() {
 			const v = this.value
-			if (v === null || v === undefined) return ''
+			if (v == null) return ''
 			if (typeof v === 'string') return v
 			if (typeof v === 'object') return JSON.stringify(v)
 			return String(v)
@@ -601,7 +582,7 @@ export default {
 
 		objectJsonString() {
 			const v = this.value
-			if (v === null || v === undefined) return ''
+			if (v == null) return ''
 			if (typeof v === 'string') return v
 			try {
 				return JSON.stringify(v, null, 2)
@@ -631,35 +612,15 @@ export default {
 			if (!v) return ''
 			const fmt = this.schemaProp?.format
 			// Same local-midnight parse as datetimeValue to avoid UTC-shift in display.
-			let d
 			if (fmt === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
 				const [year, month, day] = v.split('-').map(Number)
-				d = new Date(year, month - 1, day)
-			} else if (fmt === 'time' && typeof v === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(v)) {
-				const [h, m, s] = v.split(':').map(Number)
-				d = new Date()
-				d.setHours(h, m, s || 0, 0)
-			} else {
-				d = new Date(v)
+				return new Date(year, month - 1, day).toLocaleDateString()
 			}
+			const d = new Date(v)
 			if (Number.isNaN(d.getTime())) return String(v)
-			return this.formatDateForLocale(d, fmt)
-		},
-
-		/**
-		 * Stringify function for NcDateTimePicker's `format` prop so the input
-		 * field renders dates in the user's Nextcloud language instead of the
-		 * picker's default `YYYY-MM-DD` token format. Without this, the displayed
-		 * value in the cell (locale-aware) and the picker input (ISO) disagree.
-		 *
-		 * @return {(date: Date) => string}
-		 */
-		datetimeFormat() {
-			const fmt = this.schemaProp?.format
-			return (date) => {
-				if (!date || Number.isNaN(date.getTime?.())) return ''
-				return this.formatDateForLocale(date, fmt)
-			}
+			if (fmt === 'date') return d.toLocaleDateString()
+			if (fmt === 'time') return d.toLocaleTimeString()
+			return d.toLocaleString()
 		},
 	},
 
@@ -694,19 +655,19 @@ export default {
 			let converted = newVal
 			if (prop) {
 				switch (prop.type) {
-					case 'number':
-						converted = newVal === '' ? null : parseFloat(newVal)
-						if (Number.isNaN(converted)) converted = null
-						break
-					case 'integer':
-						converted = newVal === '' ? null : parseInt(newVal, 10)
-						if (Number.isNaN(converted)) converted = null
-						break
-					case 'boolean':
-						converted = Boolean(newVal)
-						break
-					default:
-						converted = newVal
+				case 'number':
+					converted = newVal === '' ? null : parseFloat(newVal)
+					if (Number.isNaN(converted)) converted = null
+					break
+				case 'integer':
+					converted = newVal === '' ? null : parseInt(newVal, 10)
+					if (Number.isNaN(converted)) converted = null
+					break
+				case 'boolean':
+					converted = Boolean(newVal)
+					break
+				default:
+					converted = newVal
 				}
 			}
 			this.$emit('update:value', converted)
@@ -715,7 +676,6 @@ export default {
 		/**
 		 * Emit a `Date` from NcDateTimePicker as the schema-appropriate string:
 		 * `date` → `YYYY-MM-DD`, `time` → `HH:MM:SS`, `date-time` → ISO 8601.
-		 *
 		 * @param {Date|null} date - Date emitted by the picker.
 		 */
 		emitDatetime(date) {
@@ -774,7 +734,7 @@ export default {
 				this.$emit('update:value', coerced)
 				return
 			}
-			this.$emit('update:value', selected === null || selected === undefined ? null : toId(selected))
+			this.$emit('update:value', selected == null ? null : toId(selected))
 		},
 
 		/**
@@ -782,10 +742,9 @@ export default {
 		 * taggable NcSelect) into the array's declared `items.type`. Returns
 		 * `undefined` for entries that can't be coerced so the caller can drop
 		 * them from the array.
-		 *
-		 * @param {string|number|boolean|null|undefined} v - The raw value.
+		 * @param {*} v - The raw value.
 		 * @param {string} [itemType] - Schema `items.type` (string, number, integer, boolean).
-		 * @return {string|number|boolean|null|undefined}
+		 * @return {*}
 		 */
 		coerceItem(v, itemType) {
 			if (v === null || v === undefined) return v
@@ -818,7 +777,6 @@ export default {
 		/**
 		 * Open the sub-dialog to add a new object item or edit an existing
 		 * one. `idx === null` means add.
-		 *
 		 * @param {number|null} idx - Index of the item to edit, or `null`.
 		 */
 		openObjectArrayItem(idx) {
@@ -838,7 +796,6 @@ export default {
 		/**
 		 * Confirmed object from the sub-dialog. Replace the existing item or
 		 * append a new one, then emit the updated array.
-		 *
 		 * @param {object} formData - Form data emitted by CnAdvancedFormDialog.
 		 */
 		onObjectArrayConfirm(formData) {
@@ -854,7 +811,6 @@ export default {
 
 		/**
 		 * Remove an item from the object array.
-		 *
 		 * @param {number} idx - Index of the item to remove.
 		 */
 		removeObjectArrayItem(idx) {
@@ -867,7 +823,6 @@ export default {
 		 * Pick a human-readable label for an item chip. Tries the schema-
 		 * declared name field first, then the first non-empty primitive
 		 * property, then falls back to "Item N".
-		 *
 		 * @param {object} item - The array item.
 		 * @param {number} idx - Index of the item (used for fallback label).
 		 * @return {string}
@@ -876,12 +831,12 @@ export default {
 			const items = this.schemaProp?.items
 			const nameField = items?.objectConfiguration?.objectNameField
 				|| items?.configuration?.objectNameField
-			if (nameField && item && item[nameField] !== null && item[nameField] !== undefined && item[nameField] !== '') {
+			if (nameField && item && item[nameField] != null && item[nameField] !== '') {
 				return String(item[nameField])
 			}
 			if (item && typeof item === 'object') {
 				for (const v of Object.values(item)) {
-					if (v === null || v === undefined || v === '') continue
+					if (v == null || v === '') continue
 					if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
 						return String(v)
 					}
@@ -893,49 +848,13 @@ export default {
 		isValidDate(v) {
 			if (!v) return false
 			const d = new Date(v)
-			if (!(d instanceof Date) || Number.isNaN(d.getTime())) return false
-			// Treat any 1970-01-01 calendar date as "no value set". Frontend
-			// defaults for unset date fields often resolve to it
-			// (`new Date(0)`, `new Date(null)`, the string "1970-01-01"
-			// rendered in either UTC or local time), and showing
-			// "01-01-1970" for a never-set field is confusing — the user
-			// expects "—" until they pick a real date. We compare against
-			// both local and UTC components so any timezone offset still hits.
-			if (this.isEpochDate(d)) return false
-			return true
-		},
-
-		isEpochDate(d) {
-			const isLocalEpoch = d.getFullYear() === 1970 && d.getMonth() === 0 && d.getDate() === 1
-			const isUtcEpoch = d.getUTCFullYear() === 1970 && d.getUTCMonth() === 0 && d.getUTCDate() === 1
-			return isLocalEpoch || isUtcEpoch
-		},
-
-		/**
-		 * Format a Date using the user's Nextcloud language (via
-		 * `getCanonicalLocale`) rather than the browser/OS locale. Keeps the
-		 * cell's read-mode display and the picker's input field in agreement.
-		 *
-		 * @param {Date} d - The date to format.
-		 * @param {string} [fmt] - Schema format hint: `date`, `time`, or `date-time`.
-		 * @return {string}
-		 */
-		formatDateForLocale(d, fmt) {
-			const locale = getCanonicalLocale()
-			if (fmt === 'date') {
-				return new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(d)
-			}
-			if (fmt === 'time') {
-				return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(d)
-			}
-			return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(d)
+			return d instanceof Date && !Number.isNaN(d.getTime())
 		},
 
 		/**
 		 * Convert any CSS-recognized color string to a 6-digit hex string by
 		 * round-tripping through a detached DOM node. Returns null when the
 		 * browser cannot parse the input.
-		 *
 		 * @param {string} cssValue - The CSS color value to convert.
 		 * @return {string|null}
 		 */
@@ -962,7 +881,6 @@ export default {
 		 * swatch + text input synchronously via `pendingColor`, but debounces
 		 * the upstream `update:value` emit so validation and parent re-renders
 		 * don't fire on every drag tick.
-		 *
 		 * @param {object} color - vue-color emitted color object.
 		 * @param {string} color.hex - `#rrggbb`.
 		 * @param {string} [color.hex8] - `#rrggbbaa`, when alpha is enabled.
@@ -979,7 +897,6 @@ export default {
 		/**
 		 * Translate vue-color's emitted color object into the schema-declared
 		 * color format string.
-		 *
 		 * @param {object} color - vue-color color object.
 		 * @return {string}
 		 */
@@ -1023,7 +940,6 @@ export default {
 		/**
 		 * Manual text-field edit for a color value. Cancels any in-flight
 		 * picker debounce so the typed value isn't immediately overwritten.
-		 *
 		 * @param {string} v - The new text value.
 		 */
 		onColorTextInput(v) {
@@ -1037,7 +953,6 @@ export default {
 
 		/**
 		 * Format an alpha 0–1 for CSS output (max 2 decimals, drops trailing zeros).
-		 *
 		 * @param {number} a - Alpha in 0–1 range.
 		 * @return {string}
 		 */
@@ -1058,15 +973,9 @@ export default {
 				const d = max - min
 				s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
 				switch (max) {
-					case rN:
-						h = (gN - bN) / d + (gN < bN ? 6 : 0)
-						break
-					case gN:
-						h = (bN - rN) / d + 2
-						break
-					case bN:
-						h = (rN - gN) / d + 4
-						break
+				case rN: h = (gN - bN) / d + (gN < bN ? 6 : 0); break
+				case gN: h = (bN - rN) / d + 2; break
+				case bN: h = (rN - gN) / d + 4; break
 				}
 				h /= 6
 			}

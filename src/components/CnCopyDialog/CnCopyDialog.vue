@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -29,7 +29,7 @@
 				<NcSelect
 					input-id="cn-copy-pattern"
 					:options="patternOptions"
-					:model-value="selectedPattern"
+					:value="selectedPattern"
 					:clearable="false"
 					@input="selectedPattern = $event" />
 			</div>
@@ -49,7 +49,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				variant="primary"
+				type="primary"
 				:disabled="loading"
 				@click="executeCopy">
 				<template #icon>
@@ -64,7 +64,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 
 /**
@@ -115,31 +115,26 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
-
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
-
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Copy item'),
 		},
-
 		/** Label for the naming pattern selector */
 		patternLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Naming pattern'),
 		},
-
 		/** Success message */
 		successText: {
 			type: String,
@@ -180,7 +175,6 @@ export default {
 			get() {
 				return this.patternOptions.find((p) => p.id === this.selectedPatternId) || this.patternOptions[0]
 			},
-
 			set(pattern) {
 				this.selectedPatternId = pattern ? pattern.id : 'copy-of'
 			},
@@ -198,14 +192,14 @@ export default {
 	methods: {
 		applyPattern(name, patternId) {
 			switch (patternId) {
-				case 'copy-of':
-					return t('nextcloud-vue', 'Copy of {name}', { name })
-				case 'name-copy':
-					return t('nextcloud-vue', '{name} - Copy', { name })
-				case 'name-parens':
-					return t('nextcloud-vue', '{name} (Copy)', { name })
-				default:
-					return t('nextcloud-vue', 'Copy of {name}', { name })
+			case 'copy-of':
+				return t('nextcloud-vue', 'Copy of {name}', { name })
+			case 'name-copy':
+				return t('nextcloud-vue', '{name} - Copy', { name })
+			case 'name-parens':
+				return t('nextcloud-vue', '{name} (Copy)', { name })
+			default:
+				return t('nextcloud-vue', 'Copy of {name}', { name })
 			}
 		},
 

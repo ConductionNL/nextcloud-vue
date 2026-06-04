@@ -6,7 +6,7 @@
 -->
 <template>
 	<div class="cn-json-viewer">
-		<div class="cn-json-viewer__codemirror" :class="[isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
+		<div :class="['cn-json-viewer__codemirror', isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
 			<CodeMirror
 				v-model="localValue"
 				:basic="true"
@@ -21,7 +21,7 @@
 			<NcButton
 				v-if="!readOnly && resolvedLanguage === 'json'"
 				class="cn-json-viewer__format-btn"
-				variant="secondary"
+				type="secondary"
 				size="small"
 				@click="formatJson">
 				Format JSON
@@ -34,12 +34,12 @@
 </template>
 
 <script>
-import { html as htmlLang } from '@codemirror/lang-html'
+import { NcButton } from '@nextcloud/vue'
+import CodeMirror from 'vue-codemirror6'
+import { githubLight, githubDark } from '@uiw/codemirror-theme-github'
 import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { xml as xmlLang } from '@codemirror/lang-xml'
-import { NcButton } from '@nextcloud/vue'
-import { githubDark, githubLight } from '@uiw/codemirror-theme-github'
-import CodeMirror from 'vue-codemirror6'
+import { html as htmlLang } from '@codemirror/lang-html'
 import { getTheme } from '../../utils/getTheme.js'
 
 /**
@@ -97,7 +97,6 @@ export default {
 			default: 'auto',
 			validator: (v) => ['json', 'xml', 'html', 'text', 'auto'].includes(v),
 		},
-
 		/**
 		 * Custom text for the error banner rendered below the editor.
 		 * - `null` (default): the built-in "Invalid JSON format" banner renders
@@ -127,18 +126,14 @@ export default {
 				this.$emit('update:value', v)
 			},
 		},
-
 		isDark: {
 			get() { return getTheme() === 'dark' },
 		},
-
 		theme: {
 			get() { return this.isDark ? githubDark : githubLight },
 		},
-
 		/**
 		 * Resolve 'auto' language to a concrete language based on content.
-		 *
 		 * @return {string} Resolved language: 'json', 'xml', or 'text'
 		 */
 		resolvedLanguage() {
@@ -162,29 +157,25 @@ export default {
 			}
 			return 'text'
 		},
-
 		/**
 		 * CodeMirror language extension based on resolved language.
-		 *
 		 * @return {object|null} Language extension or null for plain text
 		 */
 		langExtension() {
 			switch (this.resolvedLanguage) {
-				case 'json':
-					return jsonLang()
-				case 'html':
-					return htmlLang()
-				case 'xml':
-					return xmlLang()
-				case 'text':
-				default:
-					return null
+			case 'json':
+				return jsonLang()
+			case 'html':
+				return htmlLang()
+			case 'xml':
+				return xmlLang()
+			case 'text':
+			default:
+				return null
 			}
 		},
-
 		/**
 		 * CodeMirror linter extension (only active for JSON in edit mode).
-		 *
 		 * @return {object|null} Linter extension or null
 		 */
 		linterExtension() {
@@ -192,10 +183,8 @@ export default {
 			if (this.resolvedLanguage === 'json') return jsonLinter()
 			return null
 		},
-
 		/**
 		 * Combined CodeMirror extensions array.
-		 *
 		 * @return {Array} Extensions including theme and optional language
 		 */
 		editorExtensions() {
@@ -203,24 +192,20 @@ export default {
 			if (this.langExtension) exts.push(this.langExtension)
 			return exts
 		},
-
 		/**
 		 * Error text displayed in the banner. Caller-provided `errorText` wins;
 		 * otherwise falls back to the built-in "Invalid JSON format" message.
-		 *
 		 * @return {string} Message to show.
 		 */
 		resolvedErrorText() {
 			if (this.errorText !== null) return this.errorText
 			return 'Invalid JSON format'
 		},
-
 		/**
 		 * Whether to show the error banner.
 		 * - If `errorText` is supplied, the caller controls visibility via its
 		 *   emptiness.
 		 * - Otherwise, show iff the content is editable JSON and fails to parse.
-		 *
 		 * @return {boolean} Visibility flag.
 		 */
 		shouldShowError() {
@@ -266,7 +251,6 @@ export default {
 
 		/**
 		 * Check if a string is valid JSON.
-		 *
 		 * @param {string} str - String to validate
 		 * @return {boolean} True if valid JSON
 		 */

@@ -108,7 +108,7 @@
 							:on-input="(v) => updateField(field.key, v)">
 							<NcCheckboxRadioSwitch
 								v-if="field.type === 'boolean'"
-								:model-value="!!formData[field.key]"
+								:checked="!!formData[field.key]"
 								@update:checked="updateField(field.key, $event)">
 								{{ resolveLabel(field.label) }}
 							</NcCheckboxRadioSwitch>
@@ -116,24 +116,24 @@
 								v-else-if="field.type === 'number'"
 								:label="resolveLabel(field.label)"
 								type="number"
-								:model-value="String(fieldValue(field.key, ''))"
+								:value="String(fieldValue(field.key, ''))"
 								@update:value="updateField(field.key, $event === '' ? null : Number($event))" />
 							<NcTextField
 								v-else-if="field.type === 'password'"
 								:label="resolveLabel(field.label)"
 								type="password"
-								:model-value="fieldValue(field.key, '')"
+								:value="fieldValue(field.key, '')"
 								@update:value="updateField(field.key, $event)" />
 							<NcSelect
 								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:model-value="selectedOption(field)"
+								:value="selectedOption(field)"
 								:options="field.options"
 								:input-label="resolveLabel(field.label)"
 								@input="updateField(field.key, optionValue($event))" />
 							<NcTextField
 								v-else
 								:label="resolveLabel(field.label)"
-								:model-value="fieldValue(field.key, '')"
+								:value="fieldValue(field.key, '')"
 								@update:value="updateField(field.key, $event)" />
 						</slot>
 						<small
@@ -186,7 +186,7 @@
 		<!-- Save bar -->
 		<div v-if="showSaveBar" class="cn-settings-page__save-bar">
 			<NcButton
-				variant="primary"
+				type="primary"
 				:disabled="saving || !dirty"
 				@click="save">
 				<template #icon>
@@ -197,7 +197,7 @@
 			</NcButton>
 			<NcButton
 				v-if="dirty"
-				variant="tertiary"
+				type="tertiary"
 				:disabled="saving"
 				@click="reset">
 				{{ resetLabel }}
@@ -212,8 +212,8 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import axios from '@nextcloud/axios'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -222,11 +222,11 @@ import {
 	NcTextField,
 } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
-import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
-import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
+import { CnPageHeader } from '../CnPageHeader/index.js'
+import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
 import CnSettingsWidgetMount from './CnSettingsWidgetMount.js'
 
 /**
@@ -350,25 +350,21 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Settings'),
 		},
-
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Whether to render the inline page header. */
 		showTitle: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Section definitions (flat shape — back-compat). Each section
 		 * MUST declare EXACTLY ONE of:
@@ -387,36 +383,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
-		/**
-		 * Tab definitions (orchestration shape — manifest-settings-
-		 * orchestration REQ-MSO-2). When set, CnSettingsPage renders
-		 * a tab strip above the section area; the active tab's
-		 * `sections[]` flow into the same renderer used by the flat
-		 * shape. Mutually exclusive with `sections[]`.
-		 *
-		 * Each tab MUST be `{ id: string, label: string,
-		 * icon?: string, sections: array<Section> }`.
-		 *
-		 * @type {Array<object>}
-		 */
-		tabs: {
-			type: Array,
-			default: () => [],
-		},
-
-		/**
-		 * Optional ID of the tab to activate on mount. When empty AND
-		 * `tabs[]` is non-empty, the first tab is active by default.
-		 * Unknown IDs fall back to the first tab.
-		 *
-		 * @type {string}
-		 */
-		initialTab: {
-			type: String,
-			default: '',
-		},
-
 		/**
 		 * Tab definitions (orchestration shape — manifest-settings-
 		 * orchestration REQ-MSO-2). When set, CnSettingsPage renders
@@ -455,7 +421,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Endpoint that receives the PUT on save. Pass a fully-qualified
 		 * URL — the library has no knowledge of the consumer's app id.
@@ -466,25 +431,21 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/** Whether to render the built-in save/reset bar. */
 		showSaveBar: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Label for the save button. */
 		saveLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Save'),
 		},
-
 		/** Label for the reset (discard) button. */
 		resetLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Discard changes'),
 		},
-
 		/**
 		 * Optional translation function. When provided, applied to
 		 * section titles, field labels, and other i18n-key strings
@@ -496,7 +457,6 @@ export default {
 			type: Function,
 			default: null,
 		},
-
 		/**
 		 * Optional explicit custom-component registry. When set, takes
 		 * precedence over the injected `cnCustomComponents`. Use this
@@ -543,7 +503,6 @@ export default {
 		dirty() {
 			return JSON.stringify(this.formData) !== JSON.stringify(this.originalData)
 		},
-
 		/**
 		 * Effective custom-component registry. Explicit prop wins over
 		 * the injected value (mirrors CnPageRenderer's resolution
@@ -620,7 +579,6 @@ export default {
 			const v = this.formData[key]
 			return (v === null || v === undefined) ? fallback : v
 		},
-
 		// Resolve the currently-selected option for an enum field.
 		// `field.options` may be an array of strings/numbers OR an array
 		// of `{ label, value }`-shaped objects. NcSelect needs the actual
@@ -642,7 +600,6 @@ export default {
 			}
 			return v
 		},
-
 		// Inverse of `selectedOption` — extract the storable value from
 		// whatever NcSelect emits. NcSelect emits the full option entry
 		// when options are objects, the primitive when options are
@@ -654,7 +611,6 @@ export default {
 			}
 			return emitted
 		},
-
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
 			// Collect every section across both modes (flat
@@ -726,7 +682,10 @@ export default {
 			if (!name) return null
 			const resolved = this.effectiveCustomComponents[name]
 			if (!resolved) {
-				console.warn(`[CnSettingsPage] Section component "${name}" not found in customComponents registry. Section body will be empty.`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnSettingsPage] Section component "${name}" not found in customComponents registry. Section body will be empty.`,
+				)
 				return null
 			}
 			return resolved
@@ -784,7 +743,10 @@ export default {
 			// existing consumers continue working unchanged.
 			const resolved = this.effectiveCustomComponents[type]
 			if (!resolved) {
-				console.warn(`[CnSettingsPage] Widget type "${type}" not found in built-in widgets or customComponents registry. Widget will be skipped.`)
+				// eslint-disable-next-line no-console
+				console.warn(
+					`[CnSettingsPage] Widget type "${type}" not found in built-in widgets or customComponents registry. Widget will be skipped.`,
+				)
 				return null
 			}
 			return resolved

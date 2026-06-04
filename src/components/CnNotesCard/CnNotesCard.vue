@@ -18,7 +18,7 @@
 					@keydown.enter.ctrl.prevent="submitNote"
 					@keydown.enter.meta.prevent="submitNote" />
 				<NcButton
-					variant="primary"
+					type="primary"
 					:disabled="!newNoteText.trim() || noteSaving"
 					@click="submitNote">
 					<template #icon>
@@ -59,7 +59,7 @@
 					</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
-						variant="tertiary-no-background"
+						type="tertiary-no-background"
 						class="cn-notes-card__delete-btn"
 						:aria-label="deleteLabel"
 						@click="confirmDelete(note)">
@@ -86,8 +86,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -139,31 +140,26 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
 			required: true,
 		},
-
 		/** Object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
-
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
-
 		/** Maximum number of notes to display */
 		maxDisplay: {
 			type: Number,
 			default: 5,
 		},
-
 		/** Whether the card is collapsible */
 		collapsible: {
 			type: Boolean,
@@ -291,7 +287,7 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
-					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
+					this.allNotes = this.allNotes.filter(n => n.id !== note.id)
 					this.$emit('note-deleted')
 				}
 			} catch (err) {
@@ -316,6 +312,7 @@ export default {
 
 		showError(message) {
 			try {
+				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})

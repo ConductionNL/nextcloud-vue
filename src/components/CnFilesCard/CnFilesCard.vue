@@ -25,8 +25,8 @@
 				class="cn-files-card__row">
 				<FileOutline :size="18" class="cn-files-card__icon" />
 				<a
-					v-if="file.url && safeHref(file.url) !== '#'"
-					:href="safeHref(file.url)"
+					v-if="file.url"
+					:href="file.url"
 					target="_blank"
 					rel="noopener"
 					class="cn-files-card__name">
@@ -55,7 +55,6 @@ import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { buildHeaders } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnFilesCard — compact files widget rendered by the integration
@@ -129,30 +128,6 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * Validate a file URL before binding to :href.
-		 * Delegates to the shared safeHref utility.
-		 *
-		 * @param {string} url
-		 * @return {string}
-		 */
-		safeHref,
-
-		/**
-		 * Bubble the footer button's click up so parents can open the
-		 * host app's full files view.
-		 */
-		emitShowAll() {
-			/**
-			 * User clicked the "show all" footer button — emitted with
-			 * no payload. Parents typically open the host app's full
-			 * files view in response.
-			 *
-			 * @event show-all
-			 */
-			this.$emit('show-all')
-		},
-
 		async fetchFiles() {
 			if (!this.register || !this.schema || !this.objectId) {
 				return

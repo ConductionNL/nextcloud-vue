@@ -94,7 +94,6 @@ export default {
 	props: {
 		/**
 		 * Chart type: area, line, bar, pie, donut, radialBar
-		 *
 		 * @type {string}
 		 */
 		type: {
@@ -102,102 +101,82 @@ export default {
 			default: 'area',
 			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar'].includes(v),
 		},
-
 		/**
 		 * Chart data series. Format depends on chart type.
 		 * For line/area/bar: [{ name: string, data: number[] }]
 		 * For pie/donut: number[]
-		 *
 		 * @type {Array}
 		 */
 		series: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * X-axis categories (for line, area, bar charts)
-		 *
 		 * @type {Array<string>}
 		 */
 		categories: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Labels (for pie, donut charts)
-		 *
 		 * @type {Array<string>}
 		 */
 		labels: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Chart height in pixels. Use 'auto' for container-based sizing.
-		 *
 		 * @type {number|string}
 		 */
 		height: {
 			type: [Number, String],
 			default: 250,
 		},
-
 		/**
 		 * Chart width. Defaults to '100%' (fills container).
-		 *
 		 * @type {number|string}
 		 */
 		width: {
 			type: [Number, String],
 			default: '100%',
 		},
-
 		/**
 		 * Custom ApexCharts options (deep-merged with defaults).
-		 *
 		 * @type {object}
 		 */
 		options: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Chart color palette. Defaults to Nextcloud theme colors.
-		 *
 		 * @type {Array<string>}
 		 */
 		colors: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Show or hide the toolbar (zoom, download, etc.)
-		 *
 		 * @type {boolean}
 		 */
 		toolbar: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Show or hide the legend
-		 *
 		 * @type {boolean}
 		 */
 		legend: {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Label shown when ApexCharts is not available
-		 *
 		 * @type {string}
 		 */
 		unavailableLabel: {
@@ -283,7 +262,6 @@ export default {
 		computedHeight() {
 			return this.height
 		},
-
 		computedWidth() {
 			return this.width
 		},
@@ -318,7 +296,6 @@ export default {
 				'var(--color-text-maxcontrast, #767676)',
 			]
 		},
-
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -331,30 +308,26 @@ export default {
 					foreColor: 'var(--color-main-text, #222)',
 					background: 'transparent',
 				},
-
 				colors: this.defaultColors,
 				stroke: {
 					curve: 'smooth',
 					width: this.type === 'area' ? 2 : (this.type === 'bar' ? 0 : 2),
 				},
-
 				fill: this.type === 'area'
 					? {
-							type: 'gradient',
-							gradient: {
-								shade: 'light',
-								type: 'vertical',
-								opacityFrom: 0.5,
-								opacityTo: 0.1,
-							},
-						}
+						type: 'gradient',
+						gradient: {
+							shade: 'light',
+							type: 'vertical',
+							opacityFrom: 0.5,
+							opacityTo: 0.1,
+						},
+					}
 					: { opacity: 1 },
-
 				grid: {
 					borderColor: 'var(--color-border, #ededed)',
 					strokeDashArray: 4,
 				},
-
 				legend: {
 					show: this.legend,
 					position: isPieType ? 'bottom' : 'top',
@@ -362,11 +335,9 @@ export default {
 						colors: 'var(--color-main-text, #222)',
 					},
 				},
-
 				dataLabels: {
 					enabled: isPieType,
 				},
-
 				tooltip: {
 					theme: 'light',
 				},
@@ -471,7 +442,6 @@ export default {
 		},
 		/**
 		 * Deep merge two objects (target wins on conflict)
-		 *
 		 * @param {object} base Base object
 		 * @param {object} override Override object
 		 * @return {object} Merged result

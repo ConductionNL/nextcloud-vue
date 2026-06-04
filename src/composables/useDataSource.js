@@ -155,53 +155,16 @@ function resolveSelectors(dataSource) {
 }
 
 /**
- * GraphQL Name production — matches identifiers valid as unquoted field
- * names and argument names in a GraphQL document.
- *
- * Callers that build GraphQL literals with inline keys MUST validate
- * every key through this regex before interpolation, otherwise an
- * attacker-controlled key can break out of the filter literal and inject
- * arbitrary query text against the OR GraphQL endpoint.
- *
- * @see https://spec.graphql.org/October2021/#sec-Names
- */
-const GRAPHQL_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
-
-/**
- * Assert that `name` is a valid GraphQL identifier. Throws a TypeError
- * if `name` contains characters outside the GraphQL Name production so
- * that injection payloads fail loudly rather than silently breaking the
- * query structure.
- *
- * @param {string} name  The identifier to validate.
- * @param {string} label Human-readable label for the error message.
- * @throws {TypeError} When `name` is not a valid GraphQL identifier.
- */
-function assertGraphQLName(name, label) {
-	if (typeof name !== 'string' || !GRAPHQL_NAME_RE.test(name)) {
-		const msg = `[useDataSource] ${label} must be a valid GraphQL identifier (letters, digits, underscores; must not start with a digit). Got: ${JSON.stringify(name)}`
-		throw new TypeError(msg)
-	}
-}
-
-/**
  * Build a `{ <schemaSlug>(filter: {...}) { totalCount } }` query.
  * Inlines the filter as a literal because the OR GraphQL filter
  * input type is per-schema (FooFilterInput) — passing as a variable
  * would require knowing the type name client-side, which we don't.
  *
- * ⚠ Security: `schemaSlug` and every filter-object key are validated
- * against the GraphQL Name production (`/^[A-Za-z_][A-Za-z0-9_]*$/`)
- * before interpolation. NEVER call this function with user-controlled
- * values — always use manifest-authored, statically-known field names.
- *
  * @param {string}      schemaSlug GraphQL field name (typically the schema's slug).
  * @param {object|null} filter     Filter map; `null` / empty omits the arg.
  * @return {string} The GraphQL document.
- * @throws {TypeError} When `schemaSlug` or any filter key is not a valid GraphQL identifier.
  */
 export function buildCountQuery(schemaSlug, filter) {
-	assertGraphQLName(schemaSlug, 'schemaSlug')
 	const filterArg = filter && Object.keys(filter).length > 0
 		? `(filter: ${stringifyFilter(filter)})`
 		: ''
@@ -322,13 +285,8 @@ function normaliseMetric(metric) {
  * Stringify a filter object as a GraphQL literal — keys unquoted,
  * values JSON-encoded. Recurses into nested objects.
  *
- * ⚠ Security: every object key is validated against the GraphQL Name
- * production before interpolation. NEVER pass user-controlled keys —
- * always use manifest-authored, statically-known field names.
- *
  * @param {*} value The filter value or sub-tree.
  * @return {string} The GraphQL literal representation.
- * @throws {TypeError} When any object key is not a valid GraphQL identifier.
  */
 function stringifyFilter(value) {
 	if (value === null || value === undefined) return 'null'
@@ -338,7 +296,6 @@ function stringifyFilter(value) {
 	if (typeof value === 'object') {
 		const parts = []
 		for (const [k, v] of Object.entries(value)) {
-			assertGraphQLName(k, `filter key "${k}"`)
 			parts.push(`${k}: ${stringifyFilter(v)}`)
 		}
 		return '{' + parts.join(', ') + '}'

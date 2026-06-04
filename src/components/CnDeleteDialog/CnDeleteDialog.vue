@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:no-close="loading"
+		:can-close="!loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -35,7 +35,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				variant="error"
+				type="error"
 				:disabled="loading"
 				@click="executeDelete">
 				<template #icon>
@@ -50,7 +50,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 /**
@@ -99,31 +99,26 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
-
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
-
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Delete item'),
 		},
-
 		/** Warning text. Use `{name}` as placeholder for the item name. */
 		warningText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.'),
 		},
-
 		/** Success message */
 		successText: {
 			type: String,
@@ -150,7 +145,6 @@ export default {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
 			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
-
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
 		},

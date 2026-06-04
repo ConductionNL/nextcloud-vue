@@ -72,7 +72,7 @@
 </template>
 
 <script>
-import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { NcActions, NcActionButton } from '@nextcloud/vue'
 
 /**
  * CnContextMenu — Right-click context menu wrapper around NcActions, with an
@@ -152,7 +152,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Action definitions rendered as NcActionButton items in the default
 		 * panel.
@@ -162,14 +161,12 @@ export default {
 		 * a native tooltip — useful for explaining why an entry is disabled.
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
-		 *
 		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * The right-clicked item (row, folder, etc.). Passed to action `handler`
 		 * and `disabled` callbacks, included in the `action` event payload, and
@@ -204,7 +201,6 @@ export default {
 		/**
 		 * Filter actions by their `visible` predicate. Entries without
 		 * `visible` are always shown (backwards compatible).
-		 *
 		 * @return {Array} Visible actions for the current targetItem.
 		 */
 		visibleActions() {
@@ -222,7 +218,6 @@ export default {
 		open(val) {
 			this.internalOpen = val
 		},
-
 		internalOpen(val) {
 			this.$emit('update:open', val)
 		},

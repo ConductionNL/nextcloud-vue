@@ -123,19 +123,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
-		/**
-		 * Object context forwarded to integration single-entity
-		 * widgets rendered for items that declare a `referenceType`:
-		 * `{ register, schema, objectId }`. Optional.
-		 *
-		 * @type {object|null}
-		 */
-		referenceContext: {
-			type: Object,
-			default: null,
-		},
-
 		/**
 		 * Object context forwarded to integration single-entity
 		 * widgets rendered for items that declare a `referenceType`:
@@ -157,7 +144,6 @@ export default {
 			default: 'grid',
 			validator: (v) => ['grid', 'horizontal'].includes(v),
 		},
-
 		/**
 		 * Number of fixed grid columns. Set to 0 (default) for responsive auto-fit.
 		 * Only applies to layout="grid".
@@ -166,7 +152,6 @@ export default {
 			type: Number,
 			default: 0,
 		},
-
 		/**
 		 * Minimum width (px) for auto-fit grid items.
 		 * Only applies when columns is 0 and layout is 'grid'.
@@ -175,7 +160,6 @@ export default {
 			type: Number,
 			default: 250,
 		},
-
 		/**
 		 * Minimum width (px) for labels in horizontal mode.
 		 */
@@ -183,7 +167,6 @@ export default {
 			type: Number,
 			default: 150,
 		},
-
 		/**
 		 * Whether to show the left accent border on items.
 		 */
@@ -191,7 +174,6 @@ export default {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Text shown when the items array is empty.
 		 */
@@ -199,18 +181,6 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No details available'),
 		},
-	},
-
-	setup() {
-		// Pluggable integration registry — used to render items that
-		// declare `referenceType: '<integration-id>'` (AD-18) via the
-		// integration's single-entity widget. Cheap when no such
-		// items exist.
-		const { resolveWidget, getById } = useIntegrationRegistry()
-		return {
-			resolveRegistryWidget: resolveWidget,
-			getRegistryIntegration: getById,
-		}
 	},
 
 	computed: {
@@ -221,7 +191,6 @@ export default {
 				'cn-detail-grid--accent': this.accent,
 			}
 		},
-
 		rootStyles() {
 			if (this.layout === 'grid') {
 				if (this.columns > 0) {
@@ -234,7 +203,6 @@ export default {
 			}
 			return {}
 		},
-
 		itemClasses() {
 			return {
 				'cn-detail-grid__item--horizontal': this.layout === 'horizontal',

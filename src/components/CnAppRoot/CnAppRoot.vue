@@ -254,7 +254,6 @@ import { getCapabilities } from '@nextcloud/capabilities'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
-import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
@@ -432,7 +431,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
@@ -443,7 +441,6 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/**
 		 * First-open support note (`CnSupportDialog`). `true` (default)
 		 * auto-mounts it, deriving the app name and the App-Store /
@@ -472,7 +469,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Custom-component registry consumed by CnPageRenderer for
 		 * `type: "custom"` pages and slot overrides. Empty by default.
@@ -483,42 +479,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
-		/**
-		 * Cell-formatter registry. Map of formatter-id →
-		 * `(value, row, property) => string|number`. Resolves the
-		 * `pages[].config.columns[].formatter` ids that index/logs pages
-		 * declare, so per-column value formatting (status-label maps,
-		 * "days in step", currency, …) lives in small pure data functions
-		 * instead of bespoke `type:"custom"` table views. Provided to
-		 * descendant CnDataTable / CnCellRenderer via inject (`cnFormatters`).
-		 * Empty by default — a column with no `formatter`, or an app that
-		 * passes no `formatters`, renders exactly as before.
-		 *
-		 * @type {object}
-		 */
-		formatters: {
-			type: Object,
-			default: () => ({}),
-		},
-
-		/**
-		 * Cell-widget registry. Map of widget-id → Vue component, rendered
-		 * for a column that declares `pages[].config.columns[].widget`. The
-		 * component receives `{ value, row, property, formatted, ...widgetProps }`.
-		 * The library ships one built-in id, `"badge"` (renders `CnStatusBadge`);
-		 * consumer entries cover everything else (status pills with custom
-		 * colour maps, inline toggles, link cells, …). Provided to descendant
-		 * `CnDataTable` / `CnCellRenderer` via inject (`cnCellWidgets`). Empty
-		 * by default — a column with no `widget` renders as before.
-		 *
-		 * @type {object}
-		 */
-		cellWidgets: {
-			type: Object,
-			default: () => ({}),
-		},
-
 		/**
 		 * Cell-formatter registry. Map of formatter-id →
 		 * `(value, row, property) => string|number`. Resolves the
@@ -573,7 +533,6 @@ export default {
 			type: Function,
 			default: (key) => key,
 		},
-
 		/**
 		 * List of permission strings the current user holds. Forwarded
 		 * to CnAppNav's permission filter.
@@ -584,7 +543,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Page-type registry. Map of `pages[].type` → Vue component.
 		 * Provided to descendant CnPageRenderer instances via inject.
@@ -857,13 +815,11 @@ export default {
 				: []
 			return deps.map((id) => ({ id, status: useAppStatus(id) }))
 		},
-
 		unresolvedDependencies() {
 			return this.dependencyStatuses
 				.filter(({ status }) => !status.installed.value || !status.enabled.value)
 				.map(({ id }) => ({ id, name: id, enabled: false }))
 		},
-
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'

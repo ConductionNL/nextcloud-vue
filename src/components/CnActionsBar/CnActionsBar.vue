@@ -9,7 +9,7 @@
 			<!-- View mode toggle (Cards / Table) -->
 			<div v-if="showViewToggle" class="cn-actions-bar__view-toggle">
 				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
+					:checked="viewMode"
 					:button-variant="true"
 					value="cards"
 					name="cn_view_mode"
@@ -19,7 +19,7 @@
 					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
+					:checked="viewMode"
 					:button-variant="true"
 					value="table"
 					name="cn_view_mode"
@@ -32,7 +32,7 @@
 
 			<!-- Add button (primary) -->
 			<NcButton v-if="showAdd"
-				variant="primary"
+				type="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
 				@click="emitAdd">
@@ -57,7 +57,7 @@
 						<NcLoadingIcon v-if="refreshing" :size="20" />
 						<Refresh v-else :size="20" />
 					</template>
-					{{ refreshing ? t('nextcloud-vue', 'Refreshing…') : t('nextcloud-vue', 'Refresh') }}
+					{{ refreshing ? t('nextcloud-vue', 'Refreshing...') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
 				<!-- Manifest-declared page-level header actions (overflow).
@@ -167,7 +167,8 @@ import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import { CnIcon } from '../CnIcon/index.js'
+import Import from 'vue-material-design-icons/Import.vue'
+import Export from 'vue-material-design-icons/Export.vue'
 
 /**
  * CnActionsBar — Reusable actions toolbar with count, mass actions, and primary actions.
@@ -224,86 +225,72 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/** Number of currently visible objects (for "Showing X of Y") */
 		objectCount: {
 			type: Number,
 			default: 0,
 		},
-
 		/** Whether rows/cards can be selected */
 		selectable: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Currently selected IDs */
 		selectedIds: {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Label for the Add button */
 		addLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Add'),
 		},
-
 		/** MDI icon name for the Add button (e.g. 'AccountGroup'). Falls back to Plus icon. */
 		addIcon: {
 			type: String,
 			default: '',
 		},
-
 		/** How many action buttons to show inline (rest go in overflow dropdown) */
 		inlineActionCount: {
 			type: Number,
 			default: 0,
 		},
-
 		/** Whether to show the built-in mass Import action */
 		showMassImport: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in mass Export action */
 		showMassExport: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in mass Copy action */
 		showMassCopy: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether to show the built-in mass Delete action */
 		showMassDelete: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Current view mode: 'table' or 'cards' */
 		viewMode: {
 			type: String,
 			default: 'table',
 			validator: (v) => ['table', 'cards'].includes(v),
 		},
-
 		/** Whether to show the Cards/Table view toggle */
 		showViewToggle: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Whether the refresh action is currently in progress */
 		refreshing: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Whether the refresh action is disabled (e.g. when required selections are missing) */
 		refreshDisabled: {
 			type: Boolean,
@@ -346,7 +333,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Whether to show the Add button */
 		showAdd: {
 			type: Boolean,
@@ -385,7 +371,6 @@ export default {
 			if (!this.pagination) return ''
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
-
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},

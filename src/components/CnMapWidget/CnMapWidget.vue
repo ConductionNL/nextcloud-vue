@@ -66,7 +66,6 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import DOMPurify from 'dompurify'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -461,29 +460,7 @@ export default {
 				onEachFeature: (feature, lyr) => {
 					const popupField = this.markers && this.markers.popupField
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
-					if (popupHtml) {
-						// Security: marker data may come from an external URL
-						// (markers.dataSource.url) — sanitize before passing to
-						// Leaflet's bindPopup, which renders its string argument as
-						// HTML (innerHTML). Without this, attacker-controlled marker
-						// properties execute script in the Nextcloud origin.
-						const safePopup = DOMPurify.sanitize(String(popupHtml), {
-							ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'span', 'a', 'br', 'p'],
-							ALLOWED_ATTR: ['href', 'target', 'rel', 'title'],
-							FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-							FORBID_ATTR: [
-								'onerror',
-								'onload',
-								'onclick',
-								'onmouseover',
-								'onfocus',
-								'onblur',
-								'onchange',
-								'onsubmit',
-							],
-						})
-						lyr.bindPopup(safePopup)
-					}
+					if (popupHtml) lyr.bindPopup(String(popupHtml))
 					lyr.on('click', (e) => {
 						/**
 						 * Marker click event. Fired when a marker is clicked.

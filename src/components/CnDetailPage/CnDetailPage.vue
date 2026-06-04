@@ -108,7 +108,7 @@
 						<AlertCircleOutline :size="48" />
 					</template>
 					<template #action>
-						<NcButton v-if="onRetry" variant="primary" @click="onRetry">
+						<NcButton v-if="onRetry" type="primary" @click="onRetry">
 							<template #icon>
 								<Refresh :size="20" />
 							</template>
@@ -195,25 +195,8 @@
 
 			<!-- Default vertical stacking mode -->
 			<div v-else class="cn-detail-page__content">
-				<!-- Schema-driven auto-body: fires when the manifest passed
-				     register+schema+objectId, the object resolved, and no
-				     consumer-supplied slot content is present. Renders the
-				     data + metadata widgets stacked so a `type: "detail"`
-				     manifest page is meaningful without per-app code. The
-				     consumer's slot below short-circuits the auto-body
-				     when present. -->
-				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
-					<CnObjectDataWidget
-						v-if="currentSchema"
-						:schema="currentSchema"
-						:object-data="currentObject"
-						:object-type="resolvedObjectType"
-						:store="effectiveObjectStore" />
-					<CnObjectMetadataWidget :object-data="currentObject" />
-				</div>
-
 				<!-- Default content -->
-				<div v-else class="cn-detail-page__content">
+				<div class="cn-detail-page__content">
 					<slot />
 				</div>
 
@@ -234,8 +217,10 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import { gridLayout } from '../../mixins/gridLayout.js'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
@@ -388,37 +373,31 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Optional MDI icon name (rendered via CnIcon) */
 		icon: {
 			type: String,
 			default: '',
 		},
-
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,
 			default: 28,
 		},
-
 		/** Whether the page is in a loading state */
 		loading: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Message shown during loading */
 		loadingLabel: {
 			type: String,
-			default: () => t('nextcloud-vue', 'Loading…'),
+			default: () => t('nextcloud-vue', 'Loading...'),
 		},
-
 		/**
 		 * Sidebar configuration. Accepts EITHER form:
 		 *
@@ -447,31 +426,27 @@ export default {
 		 *     `console.warn` lists the conflicting fields once per
 		 *     component instance.
 		 *
-		 * @type {boolean | object}
+		 * @type {Boolean|Object}
 		 */
 		sidebar: {
 			type: [Boolean, Object],
 			default: false,
 		},
-
 		/** Whether the sidebar is open (expanded) */
 		sidebarOpen: {
 			type: Boolean,
 			default: true,
 		},
-
 		/** The registered object type slug for the sidebar */
 		objectType: {
 			type: String,
 			default: '',
 		},
-
 		/** The object ID to display in the sidebar */
 		objectId: {
 			type: [String, Number],
 			default: '',
 		},
-
 		/** Subtitle shown in the sidebar header */
 		subtitle: {
 			type: String,
@@ -513,54 +488,45 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Error message shown in error state */
 		errorMessage: {
 			type: String,
 			default: () => t('nextcloud-vue', 'An error occurred'),
 		},
-
 		/** Callback for retry button in error state. If null, no retry button is shown. */
 		onRetry: {
 			type: Function,
 			default: null,
 		},
-
 		/** Label for the retry button */
 		retryLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Retry'),
 		},
-
 		/** Whether the page has no data to show */
 		empty: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** Message shown when page is empty */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
 		},
-
 		/** Title shown above the statistics table */
 		statsTitle: {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Column definitions for the statistics table.
 		 * Each column: `{ key: string, label: string, align?: 'left'|'center'|'right' }`
-		 *
 		 * @type {Array<{ key: string, label: string, align: string }>}
 		 */
 		statsColumns: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Row data for the statistics table. Each row is an object keyed by
 		 * column keys. Set `indent: true` on a row for sub-row styling.
@@ -571,7 +537,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Maximum width of the page content */
 		maxWidth: {
 			type: String,
@@ -687,125 +652,6 @@ export default {
 
 	computed: {
 		/**
-		 * Effective object-type slug, used for subscription, lock, store
-		 * registration, fetch, and sidebar state. Explicit `objectType`
-		 * prop wins (existing direct-mount call sites stay untouched);
-		 * otherwise `${register}-${schema}` fuses the schema-driven props
-		 * the manifest renderer passes. Returns `''` when neither path
-		 * yields a slug — the schema-driven gates downstream key off that.
-		 */
-		resolvedObjectType() {
-			if (this.objectType) {
-				return this.objectType
-			}
-			if (this.register && this.schema) {
-				return `${this.register}-${this.schema}`
-			}
-			return ''
-		},
-
-		/**
-		 * True when this mount is wired for the manifest's schema-driven
-		 * contract: `register`, `schema`, and `objectId` are all set, so
-		 * the page should fetch the object + schema, register the type
-		 * on the store, and render the auto-body widgets when no slot
-		 * content is supplied. Legacy direct mounts (which pass an
-		 * explicit `objectType` instead) return `false` here and skip
-		 * the fetch path entirely.
-		 */
-		hasSchemaDrivenFetch() {
-			return Boolean(this.register && this.schema && this.objectId)
-		},
-
-		/**
-		 * Pinia store instance used for the schema-driven fetch.
-		 * Mirrors `CnLogsPage.objectStore`: explicit `objectStore` prop
-		 * wins; otherwise falls back to the library's default
-		 * `useObjectStore()`. The composable is invoked lazily inside a
-		 * computed so test mounts that never activate Pinia don't crash.
-		 *
-		 * @return {object|null} The resolved store, or null when the page
-		 *   is not in schema-driven mode (no need to touch Pinia at all).
-		 */
-		effectiveObjectStore() {
-			if (this.objectStore) {
-				return this.objectStore
-			}
-			if (!this.hasSchemaDrivenFetch) {
-				return null
-			}
-			try {
-				return useObjectStore()
-			} catch (err) {
-				// Pinia not active in this consumer — fall back to no-op
-				// and let the page render as if no store-driven content
-				// were available. Real consumers (CnAppRoot-hosted apps)
-				// always have Pinia active, so this branch only protects
-				// stand-alone test mounts.
-
-				console.warn('[CnDetailPage] useObjectStore() unavailable; schema-driven mode disabled.', err)
-				return null
-			}
-		},
-
-		/**
-		 * The fetched OR object for the schema-driven mode. Read straight
-		 * from the store's normalised `objects[type][id]` cache so any
-		 * other component fetching the same object (sidebar widgets,
-		 * locked-banner) shares state with no second request.
-		 *
-		 * @return {object|null}
-		 */
-		currentObject() {
-			const store = this.effectiveObjectStore
-			if (!store) return null
-			const type = this.resolvedObjectType
-			if (!type || !this.objectId) return null
-			return store.objects?.[type]?.[this.objectId] ?? null
-		},
-
-		/**
-		 * The fetched JSON Schema for the schema-driven mode. Read from
-		 * the store's `schemas[type]` cache populated by `fetchSchema`.
-		 * Required to render `CnObjectDataWidget` (which takes a schema
-		 * Object, not a slug).
-		 *
-		 * @return {object|null}
-		 */
-		currentSchema() {
-			const store = this.effectiveObjectStore
-			if (!store) return null
-			const type = this.resolvedObjectType
-			if (!type) return null
-			return store.schemas?.[type] ?? null
-		},
-
-		/**
-		 * True when no consumer-supplied default slot content is
-		 * present. Treats whitespace-only / empty vnodes as no content
-		 * so a stray newline in the template doesn't accidentally
-		 * suppress the auto-body.
-		 */
-		hasDefaultSlotContent() {
-			const nodes = this.$slots.default
-			if (!nodes || !nodes.length) return false
-			return nodes.some((vnode) => !(vnode.text !== undefined && vnode.text.trim() === ''))
-		},
-
-		/**
-		 * True when the auto-body (CnObjectDataWidget + CnObjectMetadataWidget)
-		 * should render. Conditions: schema-driven mount, the object has
-		 * loaded, no consumer slot wins, and the grid-layout mode is not
-		 * active (grid mode owns the body when present).
-		 */
-		shouldRenderAutoBody() {
-			return this.hasSchemaDrivenFetch
-				&& this.currentObject
-				&& !this.hasDefaultSlotContent
-				&& !this.hasGridLayout
-		},
-
-		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
 		 * the parent App renders the actual NcAppSidebar.
@@ -813,7 +659,6 @@ export default {
 		hasExternalSidebar() {
 			return !!this.objectSidebarState
 		},
-
 		/**
 		 * Normalised sidebar config object regardless of input shape.
 		 *
@@ -839,7 +684,6 @@ export default {
 			}
 			return { show: false, enabled: false }
 		},
-
 		/**
 		 * True when the sidebar should be wired into the external
 		 * `objectSidebarState` channel. Both `show` and `enabled`
@@ -850,7 +694,6 @@ export default {
 			const r = this.resolvedSidebar
 			return r.show !== false && r.enabled !== false
 		},
-
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
@@ -883,7 +726,6 @@ export default {
 			immediate: true,
 			handler() { this.syncSidebarState() },
 		},
-
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
@@ -904,16 +746,6 @@ export default {
 	beforeDestroy() {
 		if (this.hasExternalSidebar) {
 			this.objectSidebarState.active = false
-			// Clear manifest-driven tabs so the next mount starts fresh
-			// rather than inheriting the previous page's tab strip.
-			this.objectSidebarState.tabs = undefined
-		}
-		// Reset AI context fields so stale detail context doesn't leak
-		if (this.cnAiContext) {
-			this.cnAiContext.pageKind = 'custom'
-			this.cnAiContext.objectUuid = undefined
-			this.cnAiContext.registerSlug = undefined
-			this.cnAiContext.schemaSlug = undefined
 		}
 		// Reset AI context fields so stale detail context doesn't leak
 		if (this.cnAiContext) {
@@ -1050,16 +882,16 @@ export default {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
 			const r = this.resolvedSidebar
-			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
+			if (this.sidebarActive && this.objectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				this.objectSidebarState.active = true
 				this.objectSidebarState.open = this.sidebarOpen
-				this.objectSidebarState.objectType = this.resolvedObjectType
+				this.objectSidebarState.objectType = this.objectType
 				this.objectSidebarState.objectId = this.objectId
 				this.objectSidebarState.title = merged.title || this.title || ''
 				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || this.register || ''
-				this.objectSidebarState.schema = merged.schema || this.schema || ''
+				this.objectSidebarState.register = merged.register || ''
+				this.objectSidebarState.schema = merged.schema || ''
 				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). Undefined when
@@ -1079,7 +911,6 @@ export default {
 				this.objectSidebarState.excludeIntegrations = []
 			}
 		},
-
 		/**
 		 * Merge the Object-form `sidebar` fields with the legacy
 		 * `sidebarProps` fields. Object form wins on conflict; first
@@ -1113,7 +944,10 @@ export default {
 				const overlap = ['title', 'subtitle', 'register', 'schema', 'hiddenTabs', 'tabs', 'useRegistry', 'excludeIntegrations']
 					.filter((field) => objectForm[field] !== undefined && props[field] !== undefined)
 				if (overlap.length > 0) {
-					console.warn(`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`)
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnDetailPage] :sidebar (Object) and :sidebarProps both set ${overlap.join(', ')}; the :sidebar values win. Move all fields to :sidebar to silence this warning.`,
+					)
 					this.__sidebarConflictWarned = true
 				}
 			}
@@ -1121,7 +955,6 @@ export default {
 			// the returned object to reflect the normalised shape.
 			return { ...resolved, ...merged }
 		},
-
 		/**
 		 * Log a one-shot deprecation warning when the legacy Boolean
 		 * form of the `sidebar` prop is observed. Tracked via a
@@ -1132,8 +965,10 @@ export default {
 			if (typeof this.sidebar !== 'boolean') return
 			if (this.__sidebarBooleanWarned) return
 			this.__sidebarBooleanWarned = true
-
-			console.warn('[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.')
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[CnDetailPage] :sidebar=Boolean is deprecated; pass an Object — see docs/components/cn-detail-page.md for the new shape.',
+			)
 		},
 	},
 }

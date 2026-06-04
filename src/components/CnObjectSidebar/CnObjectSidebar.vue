@@ -190,8 +190,11 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+
+import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
+import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import History from 'vue-material-design-icons/History.vue'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -200,8 +203,8 @@ import CnFilesTab from './CnFilesTab.vue'
 import CnNotesTab from './CnNotesTab.vue'
 import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
-import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
-import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import CnAuditTrailTab from './CnAuditTrailTab.vue'
+
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
@@ -312,25 +315,21 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/** The object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
-
 		/** OpenRegister register ID */
 		register: {
 			type: String,
 			default: '',
 		},
-
 		/** OpenRegister schema ID */
 		schema: {
 			type: String,
 			default: '',
 		},
-
 		/** Array of tab IDs to hide: 'files', 'notes', 'tags', 'tasks', 'auditTrail' */
 		hiddenTabs: {
 			type: Array,
@@ -379,25 +378,21 @@ export default {
 			type: Boolean,
 			default: true,
 		},
-
 		/** Sidebar title (defaults to objectType) */
 		title: {
 			type: String,
 			default: '',
 		},
-
 		/** Sidebar subtitle */
 		subtitle: {
 			type: String,
 			default: '',
 		},
-
 		/** @deprecated Use subtitle instead */
 		subtitleProp: {
 			type: String,
 			default: '',
 		},
-
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
@@ -427,41 +422,11 @@ export default {
 			default: null,
 		},
 
-		/**
-		 * Whether to auto-subscribe to live updates for the
-		 * current object. Defaults to true. The sidebar calls
-		 * `objectStore.subscribe(objectType, objectId)` on mount and
-		 * unsubscribes on unmount via `tryOnScopeDispose`.
-		 *
-		 * @type {boolean}
-		 */
-		subscribe: {
-			type: Boolean,
-			default: true,
-		},
-
-		/**
-		 * Optional explicit Pinia store instance. When omitted,
-		 * the sidebar skips auto-subscribe (Pinia not yet active
-		 * in the consumer context).
-		 *
-		 * @type {object|null}
-		 */
-		objectStore: {
-			type: Object,
-			default: null,
-		},
-
 		// --- Pre-translated labels ---
-		/** Label for the Files tab */
 		filesLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
-		/** Label for the Notes tab */
 		notesLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
-		/** Label for the Tags tab */
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
-		/** Label for the Tasks tab */
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
-		/** Label for the Audit Trail tab */
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 
 		/**
@@ -506,31 +471,6 @@ export default {
 
 	emits: ['update:open'],
 
-	setup(props) {
-		const exposed = {}
-		// Integration registry: opt-in via `useRegistry` prop. We
-		// always wire the composable up so consumers can toggle
-		// `useRegistry` reactively without a remount.
-		const { integrations: registryIntegrations, resolveWidget } = useIntegrationRegistry()
-		exposed.registryIntegrations = registryIntegrations
-		exposed.resolveRegistryWidget = resolveWidget
-
-		// Auto-subscribe to live updates for the active object. No-op
-		// when `objectStore` is null (no Pinia active) or when the
-		// consumer disabled it via `subscribe: false`. The
-		// composable's reactive `id` argument keeps the subscription
-		// in sync as the user navigates between sidebar objects.
-		if (props.objectStore && props.subscribe) {
-			useObjectSubscription(
-				props.objectStore,
-				() => props.objectType,
-				() => props.objectId,
-				{ enabled: () => Boolean(props.objectType && props.objectId) },
-			)
-		}
-		return exposed
-	},
-
 	data() {
 		return {
 			activeTab: this.computeInitialActiveTab(),
@@ -541,11 +481,9 @@ export default {
 		sidebarTitle() {
 			return this.title || this.objectType || 'Details'
 		},
-
 		sidebarSubtitle() {
 			return this.subtitle || this.subtitleProp || ''
 		},
-
 		/** Whether the consumer has supplied a custom `tabs` array. */
 		hasCustomTabs() {
 			return Array.isArray(this.tabs) && this.tabs.length > 0
@@ -575,7 +513,6 @@ export default {
 		effectiveCustomComponents() {
 			return this.customComponents || this.cnCustomComponents || {}
 		},
-
 		/**
 		 * Shared object context forwarded to every widget / component
 		 * mounted inside a custom tab — same context the built-in tabs
@@ -665,7 +602,7 @@ export default {
 			if (BUILTIN_WIDGETS[type]) return BUILTIN_WIDGETS[type]
 			const reg = this.effectiveCustomComponents
 			if (reg && reg[type]) return reg[type]
-
+			// eslint-disable-next-line no-console
 			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata) and not in customComponents registry.`)
 			return null
 		},
@@ -680,11 +617,13 @@ export default {
 		 */
 		resolveTabComponent(tab) {
 			if (tab.widgets && tab.widgets.length > 0) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnObjectSidebar] Tab "${tab.id}" declares both widgets[] and component — component wins, widgets are ignored.`)
 			}
 			const reg = this.effectiveCustomComponents
 			const resolved = reg && reg[tab.component]
 			if (!resolved) {
+				// eslint-disable-next-line no-console
 				console.warn(`[CnObjectSidebar] Tab "${tab.id}" component "${tab.component}" not found in customComponents registry.`)
 				return null
 			}
