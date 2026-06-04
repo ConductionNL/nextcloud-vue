@@ -1,11 +1,17 @@
 <template>
 	<div class="cn-tree-view" data-testid="cn-tree-view">
 		<header v-if="title || description" class="cn-tree-view__header">
-			<h3 v-if="title" class="cn-tree-view__title">{{ title }}</h3>
-			<p v-if="description" class="cn-tree-view__description">{{ description }}</p>
+			<h3 v-if="title" class="cn-tree-view__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-tree-view__description">
+				{{ description }}
+			</p>
 		</header>
 
-		<p v-if="nodes.length === 0" class="cn-tree-view__empty">{{ emptyLabel }}</p>
+		<p v-if="nodes.length === 0" class="cn-tree-view__empty">
+			{{ emptyLabel }}
+		</p>
 
 		<ul v-else class="cn-tree-view__root" role="tree">
 			<CnTreeNode v-for="node in nodes"

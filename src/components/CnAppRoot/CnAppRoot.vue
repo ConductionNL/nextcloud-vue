@@ -182,8 +182,8 @@
 			  sidebars (CnObjectSidebar) keep owning the slot.
 			-->
 			<component
-				v-if="cnIndexSidebarConfig.value"
 				:is="cnIndexSidebarConfig.value.component"
+				v-if="cnIndexSidebarConfig.value"
 				v-bind="cnIndexSidebarConfig.value.props"
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
@@ -651,21 +651,21 @@ export default {
 	},
 
 	/**
-	* Component-instance state for the capabilities guard.
-	*
-	* - `capabilitiesLoading`: `true` only when the prop says we need
-	*   to check (i.e. `requiresApps.length > 0`). Apps that opt out
-	*   via `:requires-apps="[]"` see this initialise to `false`, so
-	*   no spinner flashes and the renderer mounts on the first
-	*   render. Apps that need the guard see `true` initially; the
-	*   `mounted()` hook runs the check and flips to `false`.
-	* - `missingApps`: the list of `requiresApps` entries NOT
-	*   present in the capabilities payload. When empty, the
-	*   renderer mounts; when non-empty, the empty-state renders.
-	* - `guardError`: stores the caught error so consumers
-	*   inspecting the component instance can introspect failures.
-	*   The error path falls through to the renderer regardless.
-	*/
+	 * Component-instance state for the capabilities guard.
+	 *
+	 * - `capabilitiesLoading`: `true` only when the prop says we need
+	 *   to check (i.e. `requiresApps.length > 0`). Apps that opt out
+	 *   via `:requires-apps="[]"` see this initialise to `false`, so
+	 *   no spinner flashes and the renderer mounts on the first
+	 *   render. Apps that need the guard see `true` initially; the
+	 *   `mounted()` hook runs the check and flips to `false`.
+	 * - `missingApps`: the list of `requiresApps` entries NOT
+	 *   present in the capabilities payload. When empty, the
+	 *   renderer mounts; when non-empty, the empty-state renders.
+	 * - `guardError`: stores the caught error so consumers
+	 *   inspecting the component instance can introspect failures.
+	 *   The error path falls through to the renderer regardless.
+	 */
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
@@ -717,40 +717,6 @@ export default {
 			 */
 			activeModalProps: {},
 		}
-	},
-
-	mounted() {
-		// Opt-out fast-path: empty `requiresApps` already initialised
-		// `capabilitiesLoading` to `false` in data(); skip the check.
-		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
-			this._validateRegistry()
-			this._warnCustomComponentsDeprecation()
-			return
-		}
-
-		try {
-			const capabilities = getCapabilities()
-			const keys = (capabilities && typeof capabilities === 'object')
-				? Object.keys(capabilities)
-				: []
-			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
-		} catch (err) {
-			// Capabilities API failure — log and fall through to the
-			// renderer. The data layer will surface the actual problem
-			// if OR is genuinely missing.
-			// eslint-disable-next-line no-console
-			console.warn(
-				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
-				err,
-			)
-			this.guardError = err
-			this.missingApps = []
-		} finally {
-			this.capabilitiesLoading = false
-		}
-
-		this._validateRegistry()
-		this._warnCustomComponentsDeprecation()
 	},
 
 	computed: {
@@ -881,6 +847,40 @@ export default {
 			const entry = (this.registry || {})[this.activeModalKey]
 			return (entry && entry.component) ? entry.component : null
 		},
+	},
+
+	mounted() {
+		// Opt-out fast-path: empty `requiresApps` already initialised
+		// `capabilitiesLoading` to `false` in data(); skip the check.
+		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			this._validateRegistry()
+			this._warnCustomComponentsDeprecation()
+			return
+		}
+
+		try {
+			const capabilities = getCapabilities()
+			const keys = (capabilities && typeof capabilities === 'object')
+				? Object.keys(capabilities)
+				: []
+			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
+		} catch (err) {
+			// Capabilities API failure — log and fall through to the
+			// renderer. The data layer will surface the actual problem
+			// if OR is genuinely missing.
+			// eslint-disable-next-line no-console
+			console.warn(
+				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
+				err,
+			)
+			this.guardError = err
+			this.missingApps = []
+		} finally {
+			this.capabilitiesLoading = false
+		}
+
+		this._validateRegistry()
+		this._warnCustomComponentsDeprecation()
 	},
 
 	methods: {

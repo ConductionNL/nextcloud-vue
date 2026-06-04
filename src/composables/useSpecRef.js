@@ -28,7 +28,7 @@
  * Designed for the Options API: pass the current component instance (`this`)
  * as the `vm` argument. Composition API consumers can pass `getCurrentInstance().proxy`.
  *
- * @param {Object} vm The Vue component instance (typically `this`).
+ * @param {object} vm The Vue component instance (typically `this`).
  * @return {string|null} The resolved kebab-case slug, or `null`.
  *
  * @example

@@ -165,14 +165,14 @@ export default {
 		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
 		/**
-		* Whether the property's value is fixed by the schema (`const`) and
-		* should be hide-able via the show/hide toggle. Note: `immutable` /
-		* `readOnly` are NOT considered constant — they're set on creation
-		* and locked afterward, but should remain visible in the form.
-		*
-		* @param {string} key - Property key.
-		* @return {boolean}
-		*/
+		 * Whether the property's value is fixed by the schema (`const`) and
+		 * should be hide-able via the show/hide toggle. Note: `immutable` /
+		 * `readOnly` are NOT considered constant — they're set on creation
+		 * and locked afterward, but should remain visible in the form.
+		 *
+		 * @param {string} key - Property key.
+		 * @return {boolean}
+		 */
 		/**
 		 * When false (default), properties whose schema entry has `const`
 		 * set are filtered out of the list — the user can't change them so

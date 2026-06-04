@@ -23,7 +23,7 @@ import { tryOnScopeDispose } from '@vueuse/core'
  * @param {string|import('vue').Ref<string>}      type    Object type slug (e.g. `'meeting'`).
  * @param {string|import('vue').Ref<string>|null} [id]    Object UUID for per-object subscription, or `null` for collection.
  * @param {object}      [options]              Optional config.
- * @param {boolean|import('vue').Ref<boolean>} [options.enabled=true]  Reactive gate; subscribe only when true.
+ * @param {boolean|import('vue').Ref<boolean>} [options.enabled]  Reactive gate; subscribe only when true.
  * @return {{ status: import('vue').Ref<'connecting'|'open'|'closed'>, lastEventAt: import('vue').Ref<Date|null> }}
  *   Reactive subscription diagnostics.
  */

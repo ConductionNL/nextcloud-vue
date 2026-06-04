@@ -75,7 +75,6 @@
 
 <script>
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
-import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnCard — Generic prop-driven card component.

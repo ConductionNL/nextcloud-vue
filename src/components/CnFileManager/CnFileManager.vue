@@ -3,8 +3,12 @@
 		<header v-if="title || description || $slots.header" class="cn-file-manager__header">
 			<!-- @slot header Overrides the default title/description header. Defaults to `<h3>{{ title }}</h3>` + `<p>{{ description }}</p>`. -->
 			<slot name="header">
-				<h3 v-if="title" class="cn-file-manager__title">{{ title }}</h3>
-				<p v-if="description" class="cn-file-manager__description">{{ description }}</p>
+				<h3 v-if="title" class="cn-file-manager__title">
+					{{ title }}
+				</h3>
+				<p v-if="description" class="cn-file-manager__description">
+					{{ description }}
+				</p>
 			</slot>
 		</header>
 
@@ -28,7 +32,9 @@
 		</div>
 
 		<!-- Empty state. -->
-		<p v-if="files.length === 0" class="cn-file-manager__empty">{{ emptyLabel }}</p>
+		<p v-if="files.length === 0" class="cn-file-manager__empty">
+			{{ emptyLabel }}
+		</p>
 
 		<!-- File list. -->
 		<ul v-else class="cn-file-manager__list">
@@ -55,13 +61,17 @@
 							type="button"
 							class="cn-file-manager__action"
 							:title="downloadLabel"
-							@click.stop="onDownload(file)">{{ downloadLabel }}</button>
+							@click.stop="onDownload(file)">
+							{{ downloadLabel }}
+						</button>
 						<button v-if="!readOnly"
 							type="button"
 							class="cn-file-manager__action cn-file-manager__action--delete"
 							:title="deleteLabel"
 							:disabled="deletingIds[file.id || file.name]"
-							@click.stop="onDelete(file)">{{ deleteLabel }}</button>
+							@click.stop="onDelete(file)">
+							{{ deleteLabel }}
+						</button>
 					</slot>
 				</div>
 			</li>

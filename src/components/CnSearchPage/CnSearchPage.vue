@@ -1,7 +1,9 @@
 <template>
 	<div class="cn-search-page" data-testid="cn-search-page">
 		<header class="cn-search-page__header">
-			<h2 v-if="title" class="cn-search-page__title">{{ title }}</h2>
+			<h2 v-if="title" class="cn-search-page__title">
+				{{ title }}
+			</h2>
 			<form class="cn-search-page__query" @submit.prevent="onQuerySubmit">
 				<input
 					v-model="localQuery"
@@ -11,16 +13,22 @@
 					class="cn-search-page__input"
 					data-testid="cn-search-page-input"
 					@input="onQueryInput">
-				<button type="submit" class="cn-search-page__submit">{{ searchLabel }}</button>
+				<button type="submit" class="cn-search-page__submit">
+					{{ searchLabel }}
+				</button>
 			</form>
 		</header>
 
 		<div class="cn-search-page__body">
 			<!-- Facet sidebar. -->
 			<aside v-if="facets.length > 0" class="cn-search-page__facets" data-testid="cn-search-page-facets">
-				<h3 class="cn-search-page__facets-title">{{ facetsTitle }}</h3>
+				<h3 class="cn-search-page__facets-title">
+					{{ facetsTitle }}
+				</h3>
 				<div v-for="facet in facets" :key="facet.key" class="cn-search-page__facet">
-					<h4 class="cn-search-page__facet-title">{{ facet.label || facet.key }}</h4>
+					<h4 class="cn-search-page__facet-title">
+						{{ facet.label || facet.key }}
+					</h4>
 					<ul class="cn-search-page__facet-options">
 						<li v-for="opt in facet.options"
 							:key="opt.value"
@@ -47,7 +55,9 @@
 
 			<!-- Results pane. -->
 			<section class="cn-search-page__results" data-testid="cn-search-page-results">
-				<div v-if="loading" class="cn-search-page__loading">{{ loadingLabel }}</div>
+				<div v-if="loading" class="cn-search-page__loading">
+					{{ loadingLabel }}
+				</div>
 				<ol v-else-if="results.length > 0" class="cn-search-page__list">
 					<li v-for="result in results"
 						:key="result.id || (result.schema + ':' + (result.title || ''))"
@@ -62,7 +72,9 @@
 								<span class="cn-search-page__result-title">{{ result.title || result.id }}</span>
 								<span v-if="result.schema" class="cn-search-page__result-badge">{{ result.schema }}</span>
 							</div>
-							<p v-if="result.snippet" class="cn-search-page__result-snippet">{{ result.snippet }}</p>
+							<p v-if="result.snippet" class="cn-search-page__result-snippet">
+								{{ result.snippet }}
+							</p>
 							<small v-if="result.subtitle" class="cn-search-page__result-subtitle">{{ result.subtitle }}</small>
 						</slot>
 					</li>

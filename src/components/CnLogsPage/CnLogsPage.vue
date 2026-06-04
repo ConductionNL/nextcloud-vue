@@ -217,6 +217,8 @@ export default {
 		},
 	},
 
+	emits: ['action'],
+
 	data() {
 		return {
 			localRows: [],
@@ -278,18 +280,21 @@ export default {
 		},
 	},
 
-	mounted() {
-		this.fetch()
-	},
-
 	watch: {
 		register() { this.fetch() },
 		schema() { this.fetch() },
 		source() { this.fetch() },
 	},
 
+	mounted() {
+		this.fetch()
+	},
+
 	methods: {
-		/** Capitalise + space a snake_case / camelCase key for a default column label. */
+		/**
+		 * Capitalise + space a snake_case / camelCase key for a default column label.
+		 * @param key
+		 */
 		humanise(key) {
 			const spaced = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase()
 			return spaced.charAt(0).toUpperCase() + spaced.slice(1)
@@ -358,8 +363,6 @@ export default {
 			this.fetch()
 		},
 	},
-
-	emits: ['action'],
 }
 </script>
 

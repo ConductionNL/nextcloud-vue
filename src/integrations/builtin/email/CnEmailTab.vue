@@ -66,7 +66,9 @@
 							<template v-else>{{ row.dateRaw }}</template>
 						</span>
 					</div>
-					<div class="cn-email-tab__sender" :title="row.sender">{{ row.sender }}</div>
+					<div class="cn-email-tab__sender" :title="row.sender">
+						{{ row.sender }}
+					</div>
 					<div v-if="row.snippet" class="cn-email-tab__snippet" :title="row.snippet">
 						{{ row.snippet }}
 					</div>

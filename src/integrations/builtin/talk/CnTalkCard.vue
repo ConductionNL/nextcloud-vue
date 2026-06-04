@@ -88,7 +88,9 @@
 							v-if="hasUnread(room)"
 							class="cn-talk-card__badge"
 							type="highlighted"
-							:aria-label="unreadAriaLabel(room)">{{ formatUnread(room) }}</NcCounterBubble>
+							:aria-label="unreadAriaLabel(room)">
+							{{ formatUnread(room) }}
+						</NcCounterBubble>
 					</div>
 					<div class="cn-talk-card__row-main">
 						<a

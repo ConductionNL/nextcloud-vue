@@ -1,8 +1,12 @@
 <template>
 	<div class="cn-federation-status" data-testid="cn-federation-status">
 		<header v-if="title || description" class="cn-federation-status__header">
-			<h3 v-if="title" class="cn-federation-status__title">{{ title }}</h3>
-			<p v-if="description" class="cn-federation-status__description">{{ description }}</p>
+			<h3 v-if="title" class="cn-federation-status__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-federation-status__description">
+				{{ description }}
+			</p>
 		</header>
 
 		<!-- Aggregate counts. -->

@@ -33,13 +33,17 @@
 				<div class="cn-theme-preview__sample">
 					<div class="cn-theme-preview__sample-header">
 						<span class="cn-theme-preview__sample-title">{{ sampleTitle }}</span>
-						<button type="button" class="cn-theme-preview__sample-button">{{ sampleButtonLabel }}</button>
+						<button type="button" class="cn-theme-preview__sample-button">
+							{{ sampleButtonLabel }}
+						</button>
 					</div>
 					<div class="cn-theme-preview__sample-body">
 						<p>{{ sampleBodyText }}</p>
 						<ul class="cn-theme-preview__sample-list">
 							<li>{{ sampleItem1 }}</li>
-							<li class="cn-theme-preview__sample-list-active">{{ sampleItem2 }}</li>
+							<li class="cn-theme-preview__sample-list-active">
+								{{ sampleItem2 }}
+							</li>
 							<li>{{ sampleItem3 }}</li>
 						</ul>
 						<a href="#" class="cn-theme-preview__sample-link" @click.prevent>{{ sampleLink }}</a>
