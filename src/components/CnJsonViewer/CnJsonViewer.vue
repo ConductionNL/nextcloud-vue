@@ -21,7 +21,7 @@
 			<NcButton
 				v-if="!readOnly && resolvedLanguage === 'json'"
 				class="cn-json-viewer__format-btn"
-				type="secondary"
+				variant="secondary"
 				size="small"
 				@click="formatJson">
 				Format JSON

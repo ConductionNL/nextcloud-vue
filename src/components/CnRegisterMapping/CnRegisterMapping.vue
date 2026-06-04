@@ -138,7 +138,7 @@
 				<!-- No schemas available -->
 				<NcNoteCard
 					v-if="selectedRegister(groupIdx) && schemaSelectOptions(groupIdx).length === 0 && !registersLoading"
-					type="warning">
+					variant="warning">
 					{{ labels.noSchemas }}
 				</NcNoteCard>
 			</div>

@@ -169,7 +169,7 @@
 					v-if="showDelete"
 					v-tooltip="objectCount > 0 ? cannotDeleteTooltip : ''"
 					:disabled="dialogLoading || objectCount > 0"
-					type="error"
+					variant="error"
 					@click="$emit('delete-schema')">
 					<template #icon>
 						<TrashCanOutline :size="20" />

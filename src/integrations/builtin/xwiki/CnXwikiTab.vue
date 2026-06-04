@@ -60,7 +60,7 @@
 			</div>
 			<NcButton
 				v-if="banner.ctaLabel"
-				type="primary"
+				variant="primary"
 				class="cn-xwiki-tab__banner-cta"
 				@click="banner.ctaHandler">
 				{{ banner.ctaLabel }}
@@ -70,13 +70,13 @@
 		<!-- Link / Create actions. Disabled when the source is unconfigured;
 		     the banner above already carries the Configure CTA. -->
 		<div v-if="banner.kind === 'none' || banner.kind === 'unconfigured'" class="cn-xwiki-tab__actions">
-			<NcButton type="secondary" :disabled="banner.kind === 'unconfigured'" @click="openPicker">
+			<NcButton variant="secondary" :disabled="banner.kind === 'unconfigured'" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing page') }}
 			</NcButton>
-			<NcButton type="primary" :disabled="banner.kind === 'unconfigured'" @click="openCreate">
+			<NcButton variant="primary" :disabled="banner.kind === 'unconfigured'" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>

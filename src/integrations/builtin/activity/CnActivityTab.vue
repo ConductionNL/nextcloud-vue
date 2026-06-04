@@ -134,7 +134,7 @@
 			</section>
 			<div v-if="hasMore" class="cn-activity-tab__footer">
 				<NcButton
-					type="tertiary"
+					variant="tertiary"
 					:wide="true"
 					:disabled="loadingMore"
 					@click="loadMore">

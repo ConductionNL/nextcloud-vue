@@ -23,7 +23,7 @@
 		</template>
 		<template #action>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:href="docsUrl"
 				target="_blank"
 				rel="noopener">

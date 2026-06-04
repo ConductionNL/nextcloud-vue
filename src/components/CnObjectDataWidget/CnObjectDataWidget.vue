@@ -13,7 +13,7 @@
 		<template #actions>
 			<NcButton
 				v-if="isDirty"
-				type="primary"
+				variant="primary"
 				:disabled="saving"
 				@click="save">
 				<template #icon>
@@ -131,9 +131,9 @@
 						<!-- Checkbox / Switch -->
 						<NcCheckboxRadioSwitch
 							v-else-if="field.widget === 'checkbox'"
-							:checked="!!editData[field.key]"
+							:model-value="!!editData[field.key]"
 							type="switch"
-							@update:checked="val => { updateField(field.key, val); commitEdit() }">
+							@update:model-value="val => { updateField(field.key, val); commitEdit() }">
 							{{ editData[field.key] ? 'Yes' : 'No' }}
 						</NcCheckboxRadioSwitch>
 

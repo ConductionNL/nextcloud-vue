@@ -33,7 +33,7 @@
 		<!-- Actions slot -->
 		<div v-if="$slots.actions || $scopedSlots.actions" class="cn-files-page__actions">
 			<slot name="actions">
-				<NcButton type="secondary" @click="openInFiles">
+				<NcButton variant="secondary" @click="openInFiles">
 					<template #icon>
 						<OpenInNew :size="20" />
 					</template>

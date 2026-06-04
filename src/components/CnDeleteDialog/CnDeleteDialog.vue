@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="small"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -35,7 +35,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="error"
+				variant="error"
 				:disabled="loading"
 				@click="executeDelete">
 				<template #icon>

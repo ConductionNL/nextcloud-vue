@@ -13,9 +13,9 @@
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
 						<NcCheckboxRadioSwitch
-							:checked="allSelected"
+							:model-value="allSelected"
 							:indeterminate="someSelected && !allSelected"
-							@update:checked="toggleSelectAll" />
+							@update:model-value="toggleSelectAll" />
 					</th>
 
 					<!-- Data columns -->
@@ -70,8 +70,8 @@
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
-							:checked="isSelected(row)"
-							@update:checked="toggleSelect(row)" />
+							:model-value="isSelected(row)"
+							@update:model-value="toggleSelect(row)" />
 					</td>
 
 					<!-- Data cells -->

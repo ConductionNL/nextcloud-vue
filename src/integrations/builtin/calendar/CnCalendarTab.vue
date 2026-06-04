@@ -31,13 +31,13 @@
 	<div class="cn-sidebar-tab cn-calendar-tab">
 		<!-- Action bar (replaces the inline create form) -->
 		<div class="cn-calendar-tab__action-row">
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ addEventLabel }}
 			</NcButton>
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="20" />
 				</template>

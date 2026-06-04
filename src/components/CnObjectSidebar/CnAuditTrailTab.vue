@@ -96,7 +96,7 @@
 				<!-- Load more -->
 				<NcButton
 					v-if="hasMore"
-					type="tertiary"
+					variant="tertiary"
 					:wide="true"
 					:disabled="loadingMore"
 					class="cn-sidebar-tab__load-more"

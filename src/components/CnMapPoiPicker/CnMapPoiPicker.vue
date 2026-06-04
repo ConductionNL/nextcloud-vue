@@ -29,7 +29,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-map-poi-picker"
 		@closing="onClose">
 		<div class="cn-map-poi-picker">
@@ -76,7 +75,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedFavoriteId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link location') }}

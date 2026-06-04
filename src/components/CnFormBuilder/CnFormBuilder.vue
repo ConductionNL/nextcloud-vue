@@ -93,7 +93,7 @@
 					</label>
 					<label class="cn-form-builder__editor-row cn-form-builder__editor-row--inline">
 						<input type="checkbox"
-							:checked="!!selectedField.required"
+							:model-value="!!selectedField.required"
 							@change="updateSelected('required', $event.target.checked)">
 						<span>{{ requiredLabel }}</span>
 					</label>

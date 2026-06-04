@@ -32,7 +32,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-share-create"
 		@closing="onClose">
 		<form class="cn-share-create" @submit.prevent="submit">
@@ -97,8 +96,8 @@
 					:key="perm.value"
 					class="cn-share-create__perm-option">
 					<NcCheckboxRadioSwitch
-						:checked="hasPermission(perm.value)"
-						@update:checked="togglePermission(perm.value, $event)">
+						:model-value="hasPermission(perm.value)"
+						@update:model-value="togglePermission(perm.value, $event)">
 						{{ perm.label }}
 					</NcCheckboxRadioSwitch>
 				</label>
@@ -127,7 +126,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				data-testid="cn-share-create-submit"
 				@click="submit">

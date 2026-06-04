@@ -10,12 +10,12 @@
 			<div class="cn-sidebar-tab__action--row">
 				<NcButton
 					v-if="editingNoteId"
-					type="tertiary"
+					variant="tertiary"
 					@click="cancelEdit">
 					{{ cancelLabel }}
 				</NcButton>
 				<NcButton
-					type="primary"
+					variant="primary"
 					:disabled="!newNoteText.trim() || saving"
 					@click="editingNoteId ? saveEdit() : addNote()">
 					<template #icon>

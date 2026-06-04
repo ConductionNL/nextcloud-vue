@@ -30,7 +30,7 @@
 					<AlertCircleOutline :size="48" />
 				</template>
 				<template #action>
-					<NcButton type="primary" @click="fetchItems">
+					<NcButton variant="primary" @click="fetchItems">
 						{{ retryLabel }}
 					</NcButton>
 				</template>

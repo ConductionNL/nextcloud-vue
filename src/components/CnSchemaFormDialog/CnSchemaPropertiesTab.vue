@@ -12,7 +12,7 @@
 				@row-click="onRowClick">
 				<template #actions-header>
 					<NcButton
-						type="primary"
+						variant="primary"
 						:disabled="loading"
 						@click="$emit('add-property')">
 						<template #icon>
@@ -102,7 +102,7 @@
 				</template>
 			</CnDataTable>
 		</div>
-		<CnNoteCard v-if="propertiesModified && !loading" type="warning" class="cn-schema-form__properties-warning">
+		<CnNoteCard v-if="propertiesModified && !loading" variant="warning" class="cn-schema-form__properties-warning">
 			<p>{{ t('nextcloud-vue', 'Properties have been modified. Changes will only take effect after the schema is saved.') }}</p>
 		</CnNoteCard>
 	</Fragment>

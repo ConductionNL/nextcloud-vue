@@ -2,7 +2,7 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		@closing="$emit('close')">
 		<!-- Review phase -->
 		<div v-if="result === null"
@@ -31,7 +31,7 @@
 						<span class="cn-mass-copy__item-new">{{ getNewName(item) }}</span>
 					</div>
 					<NcButton
-						type="tertiary"
+						variant="tertiary"
 						:aria-label="removeLabel"
 						@click="removeItem(item.id)">
 						<template #icon>
@@ -66,7 +66,7 @@
 			</NcButton>
 			<NcButton
 				v-if="result === null"
-				type="primary"
+				variant="primary"
 				:disabled="loading || localItems.length === 0"
 				@click="executeCopy">
 				<template #icon>

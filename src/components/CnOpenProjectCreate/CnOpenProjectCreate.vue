@@ -30,7 +30,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-openproject-create"
 		@closing="onClose">
 		<div v-if="unconfigured" class="cn-openproject-create">
@@ -41,7 +40,7 @@
 					<Briefcase :size="32" />
 				</template>
 				<template #action>
-					<NcButton type="primary" @click="openOpenconnectorAdmin">
+					<NcButton variant="primary" @click="openOpenconnectorAdmin">
 						<template #icon>
 							<CogOutline :size="20" />
 						</template>
@@ -90,7 +89,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!unconfigured"
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create work package') }}

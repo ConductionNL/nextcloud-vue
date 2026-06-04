@@ -115,7 +115,7 @@
 					:dirty="dirty"
 					:submit="submit">
 					<NcButton
-						type="primary"
+						variant="primary"
 						native-type="submit"
 						:disabled="submitting">
 						<template #icon>

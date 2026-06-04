@@ -32,7 +32,7 @@
 		</div>
 
 		<div class="cn-shares-tab__toolbar">
-			<NcButton type="primary" data-testid="cn-shares-tab-share-file" @click="openCreateDialog">
+			<NcButton variant="primary" data-testid="cn-shares-tab-share-file" @click="openCreateDialog">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -47,7 +47,7 @@
 		<div v-else-if="shares.length === 0" class="cn-sidebar-tab__empty cn-shares-tab__empty">
 			<Share :size="32" class="cn-shares-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openFilesApp">
+			<NcButton variant="primary" @click="openFilesApp">
 				<template #icon>
 					<FolderOutline :size="20" />
 				</template>
@@ -129,7 +129,7 @@
 				</ul>
 			</section>
 			<div class="cn-shares-tab__footer">
-				<NcButton type="tertiary" @click="openFilesApp">
+				<NcButton variant="tertiary" @click="openFilesApp">
 					<template #icon>
 						<FolderOutline :size="18" />
 					</template>

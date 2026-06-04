@@ -13,7 +13,7 @@
 				style="height: 400px" />
 			<NcButton
 				class="cn-advanced-form-dialog__format-btn"
-				type="secondary"
+				variant="secondary"
 				size="small"
 				@click="formatJson">
 				{{ t('nextcloud-vue', 'Format JSON') }}

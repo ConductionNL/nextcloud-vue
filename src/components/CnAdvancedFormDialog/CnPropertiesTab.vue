@@ -2,7 +2,7 @@
 	<div>
 		<NcNoteCard
 			v-if="hasUnsavedChanges"
-			type="warning"
+			variant="warning"
 			class="cn-advanced-form-dialog__unsaved-note">
 			{{ t('nextcloud-vue', 'You have unsaved changes. Save to apply them.') }}
 		</NcNoteCard>

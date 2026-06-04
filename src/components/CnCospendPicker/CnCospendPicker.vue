@@ -35,7 +35,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-cospend-picker"
 		@closing="onClose">
 		<div class="cn-cospend-picker">
@@ -81,7 +80,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedProjectId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link project') }}

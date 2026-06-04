@@ -20,7 +20,7 @@
 						</template>
 						{{ toggleLabel }}
 					</NcButton>
-					<NcButton type="primary" @click="openSuggestModal">
+					<NcButton variant="primary" @click="openSuggestModal">
 						<template #icon>
 							<Plus :size="20" />
 						</template>

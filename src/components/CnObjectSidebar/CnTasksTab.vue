@@ -9,7 +9,7 @@
 					@keyup.enter="editingTaskId ? saveEdit() : addTask()" />
 				<NcButton
 					v-if="editingTaskId"
-					type="tertiary"
+					variant="tertiary"
 					:aria-label="cancelLabel"
 					@click="cancelEdit">
 					<template #icon>
@@ -17,7 +17,7 @@
 					</template>
 				</NcButton>
 				<NcButton
-					type="primary"
+					variant="primary"
 					:aria-label="editingTaskId ? saveLabel : addTaskPlaceholder"
 					:disabled="!newTaskSummary.trim() || saving"
 					@click="editingTaskId ? saveEdit() : addTask()">
@@ -113,7 +113,7 @@
 		</div>
 		<NcButton
 			v-if="tasks.length < total"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"

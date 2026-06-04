@@ -51,13 +51,13 @@
 		</div>
 
 		<div v-if="!degraded" class="cn-cospend-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing project') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -72,7 +72,7 @@
 		<div v-else-if="rows.length === 0" class="cn-sidebar-tab__empty cn-cospend-tab__empty">
 			<CurrencyEur :size="32" class="cn-cospend-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openCospendApp">
+			<NcButton variant="primary" @click="openCospendApp">
 				<template #icon>
 					<CurrencyEur :size="20" />
 				</template>

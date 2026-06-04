@@ -32,7 +32,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-xwiki-page-picker"
 		@closing="onClose">
 		<div class="cn-xwiki-page-picker">
@@ -44,7 +43,7 @@
 				<AlertCircleOutline :size="32" class="cn-xwiki-page-picker__unconfigured-icon" />
 				<strong>{{ unconfiguredTitle }}</strong>
 				<p>{{ unconfiguredMessage }}</p>
-				<NcButton type="primary" @click="openOpenConnector">
+				<NcButton variant="primary" @click="openOpenConnector">
 					{{ t('nextcloud-vue', 'Configure XWiki connection') }}
 				</NcButton>
 			</div>
@@ -93,7 +92,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedReference === null || unconfigured"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link page') }}

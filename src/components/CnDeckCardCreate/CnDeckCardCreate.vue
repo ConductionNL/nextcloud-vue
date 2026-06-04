@@ -24,7 +24,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-deck-card-create"
 		@closing="onClose">
 		<form class="cn-deck-card-create" @submit.prevent="submit">
@@ -79,7 +78,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create card') }}

@@ -100,10 +100,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ resolvedPropertiesLabel }}</h4>
 								<NcCheckboxRadioSwitch
-									:checked="isGroupAllVisible(allColumns)"
+									:model-value="isGroupAllVisible(allColumns)"
 									class="cn-sidebar-columns__select-all"
 									@click.native.stop
-									@update:checked="toggleGroupAll(allColumns)">
+									@update:model-value="toggleGroupAll(allColumns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -111,8 +111,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in allColumns"
 									:key="col.key"
-									:checked="isColumnVisible(col.key)"
-									@update:checked="toggleColumn(col.key)">
+									:model-value="isColumnVisible(col.key)"
+									@update:model-value="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -128,10 +128,10 @@
 								<ChevronRight v-else :size="20" />
 								<h4>{{ group.label }}</h4>
 								<NcCheckboxRadioSwitch
-									:checked="isGroupAllVisible(group.columns)"
+									:model-value="isGroupAllVisible(group.columns)"
 									class="cn-sidebar-columns__select-all"
 									@click.native.stop
-									@update:checked="toggleGroupAll(group.columns)">
+									@update:model-value="toggleGroupAll(group.columns)">
 									All
 								</NcCheckboxRadioSwitch>
 							</div>
@@ -139,8 +139,8 @@
 								<NcCheckboxRadioSwitch
 									v-for="col in group.columns"
 									:key="col.key"
-									:checked="isColumnVisible(col.key)"
-									@update:checked="toggleColumn(col.key)">
+									:model-value="isColumnVisible(col.key)"
+									@update:model-value="toggleColumn(col.key)">
 									{{ col.label }}
 								</NcCheckboxRadioSwitch>
 							</div>

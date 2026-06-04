@@ -27,7 +27,7 @@
 							class="cn-search-page__facet-option">
 							<label>
 								<input
-									:checked="isFacetActive(facet.key, opt.value)"
+									:model-value="isFacetActive(facet.key, opt.value)"
 									:type="facet.multiple ? 'checkbox' : 'radio'"
 									:name="'facet-' + facet.key"
 									@change="toggleFacet(facet.key, opt.value, $event.target.checked, facet.multiple)">

@@ -44,13 +44,13 @@
 		</div>
 
 		<div v-if="!degraded" class="cn-collectives-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing page') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -69,7 +69,7 @@
 			class="cn-sidebar-tab__empty cn-collectives-tab__empty">
 			<BookOpenPageVariant :size="32" class="cn-collectives-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openCollectivesApp">
+			<NcButton variant="primary" @click="openCollectivesApp">
 				<template #icon>
 					<BookOpenPageVariant :size="20" />
 				</template>

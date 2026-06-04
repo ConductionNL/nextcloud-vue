@@ -36,7 +36,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-openproject-picker"
 		@closing="onClose">
 		<div class="cn-openproject-picker">
@@ -53,7 +52,7 @@
 					<Briefcase :size="32" />
 				</template>
 				<template #action>
-					<NcButton type="primary" @click="openOpenconnectorAdmin">
+					<NcButton variant="primary" @click="openOpenconnectorAdmin">
 						<template #icon>
 							<CogOutline :size="20" />
 						</template>
@@ -114,7 +113,7 @@
 			</NcButton>
 			<NcButton
 				v-if="!unconfigured"
-				type="primary"
+				variant="primary"
 				:disabled="selectedId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link work package') }}

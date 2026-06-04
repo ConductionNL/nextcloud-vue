@@ -34,13 +34,13 @@
 		</div>
 
 		<div class="cn-deck-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing card') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -55,7 +55,7 @@
 		<div v-else-if="cards.length === 0" class="cn-sidebar-tab__empty cn-deck-tab__empty">
 			<ViewColumnOutline :size="32" class="cn-deck-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openDeckApp">
+			<NcButton variant="primary" @click="openDeckApp">
 				<template #icon>
 					<ViewColumnOutline :size="20" />
 				</template>

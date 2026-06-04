@@ -57,13 +57,13 @@
 		</div>
 
 		<div v-if="!degraded" class="cn-time-tracker-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing entry') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -78,7 +78,7 @@
 		<div v-else-if="rows.length === 0" class="cn-sidebar-tab__empty cn-time-tracker-tab__empty">
 			<Clock :size="32" class="cn-time-tracker-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openTimeTrackerApp">
+			<NcButton variant="primary" @click="openTimeTrackerApp">
 				<template #icon>
 					<Clock :size="20" />
 				</template>

@@ -39,13 +39,13 @@
 		</div>
 
 		<div class="cn-polls-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing poll') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -60,7 +60,7 @@
 		<div v-else-if="polls.length === 0" class="cn-sidebar-tab__empty cn-polls-tab__empty">
 			<Poll :size="32" class="cn-polls-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openPollsApp">
+			<NcButton variant="primary" @click="openPollsApp">
 				<template #icon>
 					<Poll :size="20" />
 				</template>

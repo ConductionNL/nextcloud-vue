@@ -29,7 +29,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-poll-picker"
 		@closing="onClose">
 		<div class="cn-poll-picker">
@@ -71,7 +70,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!selectedPollId"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link poll') }}

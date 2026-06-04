@@ -6,8 +6,8 @@
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
-				:checked="selected"
-				@update:checked="$emit('select', object)" />
+				:model-value="selected"
+				@update:model-value="$emit('select', object)" />
 		</div>
 
 		<!-- Card content -->

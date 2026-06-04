@@ -10,7 +10,7 @@
 					@keyup.enter="addTag"
 					@focus="showSuggestions = true" />
 				<NcButton
-					type="primary"
+					variant="primary"
 					:aria-label="addTagPlaceholder"
 					:disabled="!newTagName.trim() || saving"
 					@click="addTag">

@@ -20,7 +20,7 @@
 	<NcDialog
 		:name="title"
 		size="normal"
-		:can-close="!loading"
+		:no-close="loading"
 		data-testid="cn-modal"
 		data-testid-modal="cn-contact-create"
 		@closing="onClose">
@@ -73,7 +73,7 @@
 				{{ cancelLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit || loading"
 				@click="submit">
 				<template #icon>

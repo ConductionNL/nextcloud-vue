@@ -9,10 +9,10 @@
 				v-if="resolvedWidget === 'boolean'"
 				class="cn-advanced-form-dialog__boolean-input-row">
 				<NcCheckboxRadioSwitch
-					:checked="!!value"
+					:model-value="!!value"
 					type="switch"
 					class="cn-advanced-form-dialog__boolean-input-row__input"
-					@update:checked="emit($event)">
+					@update:model-value="emit($event)">
 					{{ displayName }}
 				</NcCheckboxRadioSwitch>
 				<InformationOutline
@@ -93,7 +93,7 @@
 					</button>
 				</div>
 				<NcButton
-					type="secondary"
+					variant="secondary"
 					class="cn-advanced-form-dialog__object-array-add"
 					@click.stop="openObjectArrayItem(null)">
 					<template #icon>

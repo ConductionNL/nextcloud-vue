@@ -74,7 +74,7 @@
 
 			<div class="cn-support-dialog__actions">
 				<NcButton
-					type="tertiary"
+					variant="tertiary"
 					wide
 					data-testid="cn-support-dialog-donate"
 					@click="openAction('donate', donateUrl)">
@@ -85,7 +85,7 @@
 				</NcButton>
 
 				<NcButton
-					type="tertiary"
+					variant="tertiary"
 					wide
 					data-testid="cn-support-dialog-support"
 					@click="openAction('support', supportUrl)">
@@ -96,7 +96,7 @@
 				</NcButton>
 
 				<NcButton
-					type="primary"
+					variant="primary"
 					wide
 					data-testid="cn-support-dialog-feature-request"
 					@click="openAction('feature-request', featureRequestUrl)">
@@ -107,7 +107,7 @@
 				</NcButton>
 
 				<NcButton
-					type="secondary"
+					variant="secondary"
 					wide
 					data-testid="cn-support-dialog-app-store"
 					@click="openAction('app-store', appStoreUrl)">

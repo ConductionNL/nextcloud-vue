@@ -21,7 +21,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-analytics-report-create"
 		@closing="onClose">
 		<form class="cn-analytics-report-create" @submit.prevent="submit">
@@ -54,7 +53,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submit">
 				{{ t('nextcloud-vue', 'Create report') }}

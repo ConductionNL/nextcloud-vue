@@ -53,13 +53,13 @@
 		</div>
 
 		<div class="cn-analytics-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ t('nextcloud-vue', 'Link existing report') }}
 			</NcButton>
-			<NcButton type="primary" @click="openCreate">
+			<NcButton variant="primary" @click="openCreate">
 				<template #icon>
 					<Plus :size="18" />
 				</template>
@@ -79,7 +79,7 @@
 		<div v-else-if="reports.length === 0" class="cn-sidebar-tab__empty cn-analytics-tab__empty">
 			<ChartBar :size="32" class="cn-analytics-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton type="primary" @click="openAnalyticsApp">
+			<NcButton variant="primary" @click="openAnalyticsApp">
 				<template #icon>
 					<ChartBar :size="20" />
 				</template>

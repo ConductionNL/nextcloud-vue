@@ -56,7 +56,7 @@
 			<!-- Step 2: events on the chosen calendar -->
 			<div v-else-if="step === 'events'" class="cn-calendar-event-picker__step">
 				<div class="cn-calendar-event-picker__breadcrumb">
-					<NcButton type="tertiary" @click="backToCalendars">
+					<NcButton variant="tertiary" @click="backToCalendars">
 						<template #icon>
 							<ChevronLeft :size="20" />
 						</template>
@@ -100,11 +100,11 @@
 				</div>
 
 				<div class="cn-calendar-event-picker__actions">
-					<NcButton type="tertiary" @click="onClose">
+					<NcButton variant="tertiary" @click="onClose">
 						{{ cancelLabel }}
 					</NcButton>
 					<NcButton
-						type="primary"
+						variant="primary"
 						:disabled="!selectedEventUid"
 						@click="confirmSelection">
 						{{ confirmLabel }}

@@ -29,7 +29,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="normal"
-		:can-close="true"
 		data-testid="cn-photo-album-picker"
 		@closing="onClose">
 		<div class="cn-photo-album-picker">
@@ -78,7 +77,7 @@
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="selectedAlbumId === null"
 				@click="confirm">
 				{{ t('nextcloud-vue', 'Link album') }}

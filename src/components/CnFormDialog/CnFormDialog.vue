@@ -211,7 +211,7 @@
 							:model-value="!!formData[field.key]"
 							:disabled="field.readOnly"
 							type="switch"
-							@update:checked="value => updateField(field.key, value)">
+							@update:model-value="value => updateField(field.key, value)">
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 

@@ -18,13 +18,13 @@
 <template>
 	<div class="cn-sidebar-tab cn-email-tab">
 		<div class="cn-email-tab__actions">
-			<NcButton type="secondary" @click="openPicker">
+			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
 				</template>
 				{{ linkExistingLabel }}
 			</NcButton>
-			<NcButton type="primary" @click="openComposeInMail">
+			<NcButton variant="primary" @click="openComposeInMail">
 				<template #icon>
 					<EmailEditOutline :size="18" />
 				</template>
@@ -75,7 +75,7 @@
 		</ul>
 		<NcButton
 			v-if="hasMore === true"
-			type="tertiary"
+			variant="tertiary"
 			:wide="true"
 			:disabled="loadingMore"
 			class="cn-sidebar-tab__load-more"

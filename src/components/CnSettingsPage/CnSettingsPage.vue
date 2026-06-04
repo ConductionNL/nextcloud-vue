@@ -108,8 +108,8 @@
 							:on-input="(v) => updateField(field.key, v)">
 							<NcCheckboxRadioSwitch
 								v-if="field.type === 'boolean'"
-								:checked="!!formData[field.key]"
-								@update:checked="updateField(field.key, $event)">
+								:model-value="!!formData[field.key]"
+								@update:model-value="updateField(field.key, $event)">
 								{{ resolveLabel(field.label) }}
 							</NcCheckboxRadioSwitch>
 							<NcTextField
@@ -186,7 +186,7 @@
 		<!-- Save bar -->
 		<div v-if="showSaveBar" class="cn-settings-page__save-bar">
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="saving || !dirty"
 				@click="save">
 				<template #icon>
@@ -197,7 +197,7 @@
 			</NcButton>
 			<NcButton
 				v-if="dirty"
-				type="tertiary"
+				variant="tertiary"
 				:disabled="saving"
 				@click="reset">
 				{{ resetLabel }}

@@ -28,13 +28,13 @@
 				</h4>
 				<div v-for="entry in group.items" :key="entry.key" class="cn-notif-prefs__row">
 					<NcCheckboxRadioSwitch type="switch"
-						:checked="entry.enabled"
+						:model-value="entry.enabled"
 						:disabled="entry.saving"
-						@update:checked="onToggle(entry, $event)">
+						@update:model-value="onToggle(entry, $event)">
 						{{ notificationLabel(entry.notification) }}
 					</NcCheckboxRadioSwitch>
 					<NcButton v-if="entry.source === 'user-override'"
-						type="tertiary"
+						variant="tertiary"
 						:disabled="entry.saving"
 						@click="onReset(entry)">
 						{{ t('nextcloud-vue', 'Reset to default') }}

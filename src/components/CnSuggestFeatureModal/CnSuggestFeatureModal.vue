@@ -2,7 +2,6 @@
 	<NcDialog
 		:name="dialogTitle"
 		size="large"
-		:can-close="true"
 		@closing="$emit('close')">
 		<div class="cn-suggest-feature-modal" data-testid="cn-modal" data-testid-modal="cn-suggest-feature-modal">
 			<NcNoteCard type="info" class="cn-suggest-feature-modal__intro">
@@ -81,7 +80,7 @@
 				{{ conductionSubmitLabel }}
 			</NcButton>
 			<NcButton
-				type="primary"
+				variant="primary"
 				:disabled="!canSubmit"
 				@click="submitToGithub">
 				<template #icon>

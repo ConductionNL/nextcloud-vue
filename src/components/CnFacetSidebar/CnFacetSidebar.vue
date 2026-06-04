@@ -6,7 +6,7 @@
 			</h3>
 			<NcButton
 				v-if="hasActiveFilters"
-				type="tertiary"
+				variant="tertiary"
 				class="cn-facet-sidebar__clear"
 				@click="$emit('clear-all')">
 				{{ clearLabel }}
@@ -29,8 +29,8 @@
 				<!-- Checkbox filter (boolean) -->
 				<NcCheckboxRadioSwitch
 					v-if="filter.type === 'checkbox'"
-					:checked="getFilterValue(filter.key) === true"
-					@update:checked="onFilterChange(filter.key, $event)">
+					:model-value="getFilterValue(filter.key) === true"
+					@update:model-value="onFilterChange(filter.key, $event)">
 					{{ filter.label }}
 				</NcCheckboxRadioSwitch>
 
