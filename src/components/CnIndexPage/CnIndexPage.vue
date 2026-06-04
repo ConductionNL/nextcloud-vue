@@ -1684,8 +1684,75 @@ export default {
 			this.$emit('mass-delete', ids)
 		},
 
-		onMassCopyConfirm(payload) {
+		async onMassCopyConfirm(payload) {
+			// Self-fetch (manifest-driven) mode: no `@mass-copy` listener can
+			// be wired because CnPageRenderer forwards props, not events. Run
+			// the copies ourselves — read each source from the current rows,
+			// clone, rewrite the name field via the payload's getName(), and
+			// save as a new object via the same store used for self-fetching.
+			// Mirrors onMassDeleteConfirm / onMassImportConfirm. Without this
+			// the dialog spins forever waiting for a setMassCopyResult() that
+			// never comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				const ids = (payload && payload.ids) || []
+				const getName = (payload && payload.getName) || ((item) => item[this.massActionNameField])
+				const successfulIds = []
+				const failedIds = []
+				for (const id of ids) {
+					const source = this.effectiveObjects.find((o) => o.id === id || o['@self']?.id === id)
+					if (!source) {
+						failedIds.push(id)
+						continue
+					}
+					const newName = getName(source)
+					const clone = this.cloneObjectForCopy(source, newName)
+					try {
+						const saved = await this.selfObjectStore.saveObject(this.selfObjectType, clone)
+						if (saved) successfulIds.push(id)
+						else failedIds.push(id)
+					} catch (_e) {
+						failedIds.push(id)
+					}
+				}
+				if (failedIds.length === 0) {
+					this.setMassCopyResult({ success: true, successfulIds })
+				} else {
+					const err = this.selfObjectStore.getError?.(this.selfObjectType)
+					this.setMassCopyResult({
+						error: (err && err.message) || `Failed to copy ${failedIds.length} item(s)`,
+						successfulIds,
+						failedIds,
+					})
+				}
+				if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
+				return
+			}
 			this.$emit('mass-copy', payload)
+		},
+
+		/**
+		 * Build a copy-ready payload from a source object:
+		 * - strip identity (`id`, `uuid`) and `@self` metadata so the store
+		 *   treats the save as a create, not an update;
+		 * - write `newName` into the schema's configured name field
+		 *   (`schema.configuration.objectNameField`), falling back to
+		 *   `massActionNameField` only when the schema has none. Without
+		 *   this the copy always writes to `title`, even on schemas whose
+		 *   actual name property is `name` (or anything else).
+		 *
+		 * @param {object} source The source object from the current list rows.
+		 * @param {string} newName The new name produced by the copy dialog.
+		 * @return {object} A clone safe to POST as a new object.
+		 */
+		cloneObjectForCopy(source, newName) {
+			const { id, uuid, '@self': _self, ...rest } = source
+			const clone = JSON.parse(JSON.stringify(rest))
+			const nameField = this.effectiveSchema?.configuration?.objectNameField
+				|| this.massActionNameField
+			if (nameField) {
+				clone[nameField] = newName
+			}
+			return clone
 		},
 
 		async onMassExportConfirm(payload) {
@@ -1890,7 +1957,38 @@ export default {
 			this.$emit('delete', id)
 		},
 
-		onSingleCopyConfirm(payload) {
+		async onSingleCopyConfirm(payload) {
+			// Self-fetch (manifest-driven) mode: no `@copy` listener can be
+			// wired because CnPageRenderer forwards props, not events. Run
+			// the copy ourselves — clone the source row (stripped of id/uuid/
+			// @self), rewrite the name field with the dialog's `newName`, and
+			// save as a new object via the same store used for self-fetching.
+			// Mirrors onSingleDeleteConfirm / onFormConfirm. Without this the
+			// dialog spins forever waiting for a setSingleCopyResult() that
+			// never comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				const { id, newName } = payload || {}
+				const source = this.effectiveObjects.find((o) => o.id === id || o['@self']?.id === id)
+				if (!source) {
+					this.setSingleCopyResult({ error: 'Source object not found in current view' })
+					return
+				}
+				try {
+					const clone = this.cloneObjectForCopy(source, newName)
+					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, clone)
+					if (saved) {
+						this.setSingleCopyResult({ success: true })
+						this.$emit('copy', payload)
+						if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
+					} else {
+						const err = this.selfObjectStore.getError?.(this.selfObjectType)
+						this.setSingleCopyResult({ error: (err && err.message) || 'Copy failed' })
+					}
+				} catch (err) {
+					this.setSingleCopyResult({ error: (err && err.message) || 'Copy failed' })
+				}
+				return
+			}
 			this.$emit('copy', payload)
 		},
 
