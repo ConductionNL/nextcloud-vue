@@ -153,18 +153,35 @@ export default {
 	},
 
 	mounted() {
-		// NcActions renders its own NcButton as the popover trigger; we open
-		// this menu exclusively via right-click, so the button must be
-		// invisible AND non-interactive. We can't use `display: none` because
-		// NcPopover's a11y check (`tabbable(triggerContainer)[0]`) then finds
-		// no tabbable element and warns "It looks like you are using a custom
-		// button as a <NcPopover> trigger...". So we keep the button in the
-		// tabbable tree via off-screen positioning (CSS below) and strip its
-		// tabindex here so it never appears in the keyboard tab order.
+		// NcActions renders its own NcButton as the popover trigger; the menu
+		// opens only via right-click, so the button is offscreen-positioned
+		// (see the `.cn-context-menu` rule below). aria-hidden hides it from
+		// screen readers.
 		const trigger = this.$el?.querySelector('.action-item__menutoggle')
 		if (trigger) {
-			trigger.setAttribute('tabindex', '-1')
 			trigger.setAttribute('aria-hidden', 'true')
+		}
+
+		// Silence NcPopover's dev-mode a11y warning for this specific instance.
+		//
+		// NcPopover (when `window.OC?.debug` is on) calls
+		// `tabbable(triggerContainer)[0]` on every open and warns
+		// "It looks like you are using a custom button as a <NcPopover>
+		// trigger…" if nothing tabbable is found. We *are* using NcButton —
+		// the warning's escape hatch — but the button is offscreen-positioned
+		// and tabbable's visibility checks won't reliably find it across
+		// browsers (Chromium's `Element.checkVisibility()` excludes some
+		// offscreen / clipped elements). The advice in the warning ("bind
+		// #trigger slot attrs") doesn't apply: NcActions controls its own
+		// trigger and doesn't expose a `#trigger` slot to override.
+		//
+		// Neutralising the check on our own NcPopover instance (one level
+		// down inside NcActions) leaves every other popover untouched and
+		// keeps the check live for real custom triggers elsewhere.
+		const ncActions = this.$children?.[0]
+		const ncPopover = ncActions?.$refs?.popover
+		if (ncPopover) {
+			ncPopover.checkTriggerA11y = () => {}
 		}
 	},
 
@@ -237,14 +254,17 @@ export default {
 <style scoped>
 .cn-context-menu {
 	/* Hide the NcActions trigger button — menu opens only via right-click.
-	   Off-screen rather than display:none so NcPopover's a11y check still
-	   finds the (now invisible) NcButton via tabbable() and skips its
-	   "custom button as a <NcPopover> trigger" warning. */
+	   Off-screen rather than display:none / visibility:hidden so NcPopover's
+	   a11y check (`tabbable(triggerContainer)[0]`) still finds the NcButton
+	   and the "custom button as a <NcPopover> trigger" warning stays quiet.
+	   Avoid `clip` / `clip-path` here — modern browsers' `Element.checkVisibility()`,
+	   which tabbable calls into, treats those as invisible. Pure offscreen
+	   positioning leaves the element fully "visible" to layout while being
+	   off the user's screen. */
 	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
+	top: -9999px;
+	left: -9999px;
+	opacity: 0;
 	pointer-events: none;
 }
 </style>
