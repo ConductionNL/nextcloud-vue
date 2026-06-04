@@ -40,11 +40,17 @@ function escapeMdxBraces(text) {
     if (c === '`') {
       inCode = !inCode
       out += c
+    } else if (c === '$' && text[i + 1] === '{') {
+      // Escape ${...} template literal expressions everywhere — MDX executes
+      // them as JavaScript during SSG even inside backtick code spans.
+      out += '\\$'
     } else if (!inCode && (c === '{' || c === '}')) {
       out += '\\' + c
-    } else if (!inCode && c === '<') {
+    } else if (c === '<') {
+      // Escape < everywhere — Docusaurus MDX parses JSX tags even inside
+      // backtick code spans in table cells, so we must escape unconditionally.
       out += '&lt;'
-    } else if (!inCode && c === '>') {
+    } else if (c === '>') {
       out += '&gt;'
     } else {
       out += c
@@ -141,7 +147,7 @@ function splitMashedEventName(rawName) {
 function renderProps(props) {
   const rows = props.map(p => {
     const name = `\`${p.name}\``
-    const type = p.type ? `\`${p.type.name}\`` : '—'
+    const type = p.type ? `\`${String(p.type.name).replace(/\|/g, '&#124;')}\`` : '—'
     const required = p.required ? '✓' : ''
     const defaultValue = p.defaultValue ? `\`${cell(p.defaultValue.value)}\`` : '—'
     const desc = cell(p.description)

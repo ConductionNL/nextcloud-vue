@@ -15,6 +15,7 @@
 | `update:open` | —       |             |
 | `action`      | —       |             |
 | `close`       | —       |             |
+| `closed`      | —       |             |
 
 ### Slots
 

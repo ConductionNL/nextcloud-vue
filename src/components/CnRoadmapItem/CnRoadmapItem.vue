@@ -79,6 +79,7 @@ import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnRoadmapItem',

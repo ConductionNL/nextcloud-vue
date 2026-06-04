@@ -1,5 +1,4 @@
 import Playground from '@site/src/components/Playground'
-import GeneratedRef from './_generated/CnEmailCard.md'
 
 # CnEmailCard
 
@@ -48,6 +47,3 @@ Clicking a row opens the message in the NC Mail app in a new tab. The card itsel
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL for the OR registry endpoint. |
 
-## Reference
-
-<GeneratedRef />
