@@ -325,15 +325,10 @@
 
 <script>
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { getCurrentInstance, inject, ref, watch } from 'vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import { useContextMenu, useListView } from '../../composables/index.js'
-import { useObjectStore } from '../../store/index.js'
-import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
+import { useContextMenu } from '../../composables/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -352,6 +347,11 @@ import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+import { applyAiContext } from './aiContext.js'
+import { buildDefaultActions } from './defaultActions.js'
+import { dispatchAction } from './manifestActionDispatch.js'
+import { createSelfModeActions } from './selfModeActions.js'
+import { useSelfFetchList } from './useSelfFetchList.js'
 
 /**
  * CnIndexPage — Top-level schema-driven index page component.
@@ -536,17 +536,16 @@ export default {
 			default: null,
 		},
 
+		/* eslint-disable vue/no-unused-properties -- used in useSelfFetchList */
 		/**
-		 * Base filter for the self-fetch path (manifest `pages[].config.filter`).
-		 * A map whose string values of the form `"@route.<name>"` or `":<name>"`
-		 * are interpolated from `$route.params`; everything else is a literal.
-		 * Applied as a FIXED filter — always wins over the user's facet filters.
-		 * No effect in consumer-managed mode (the consumer owns the fetch).
+		 * Base filter for the self-fetch path. String values of the form
+		 * `"@route.<name>"` / `":<name>"` are interpolated from `$route.params`.
 		 */
 		filter: {
 			type: Object,
 			default: null,
 		},
+		/* eslint-enable vue/no-unused-properties */
 
 		/**
 		 * Self-fetch mode only — an array of clickable filter tabs rendered as
@@ -942,114 +941,13 @@ export default {
 			close: closeContextMenu,
 		} = useContextMenu()
 
-		// ── Self-fetch mode ──────────────────────────────────────────────────
-		// A manifest `type:"index"` page reaches CnIndexPage with `register` and
-		// `schema` from `config` but NEVER an `objects` prop (CnPageRenderer
-		// spreads `config`, not runtime data). So when `register` + `schema` are
-		// set AND the caller did not pass `objects`, we self-fetch: drive the
-		// list via `useListView('${register}-${schema}', …)` (which itself
-		// registers the object type, fetches the collection with
-		// _search/_order/_page/_limit/activeFilters, loads the schema, wires the
-		// sidebar and returns the search/sort/page/filter handlers). When
-		// `objects` IS passed (every existing consumer), nothing changes — the
-		// props win, no store is touched, the @events bubble as before.
-		const instance = getCurrentInstance()
-		const objectsProvided = !!(
-			instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
-			&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
-		)
-		const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
-
-		// ── Quick-filter tabs (REQ-MIPFU-1) ─────────────────────────────────
-		// `props.quickFilters` declares clickable tabs above the table; the
-		// active tab's `filter` is merged into the useListView fetch (after
-		// `props.filter` so the tab wins). Initial active index: first entry
-		// with `default:true`, else 0 if non-empty, else null.
-		const quickInit = (() => {
-			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-			if (!tabs || tabs.length === 0) return null
-			const di = tabs.findIndex((t) => t && t.default === true)
-			return di >= 0 ? di : 0
-		})()
-		const activeQuickFilterIndex = ref(quickInit)
-
-		/**
-		 * Resolve a single filter map's values: `@route.<name>` / `:<name>`
-		 * pull from `$route.params`; literals pass through. Returns `{}` for
-		 * a non-object input (so callers can safely spread the result).
-		 *
-		 * @param {object|null|undefined} filterMap
-		 * @param {object} params Current `$route.params`.
-		 * @return {object}
-		 */
-		function resolveFilterMap(filterMap, params) {
-			if (!filterMap || typeof filterMap !== 'object') return {}
-			const out = {}
-			for (const [k, v] of Object.entries(filterMap)) {
-				if (typeof v === 'string' && v.startsWith('@route.')) out[k] = params[v.slice('@route.'.length)]
-				else if (typeof v === 'string' && v.startsWith(':')) out[k] = params[v.slice(1)]
-				else out[k] = v
-			}
-			return out
-		}
-
-		let list = null
-		let selfObjectStore = null
-		let selfObjectType = ''
-		if (isSelfFetch) {
-			const objectType = `${props.register}-${props.schema}`
-			const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
-			const objectStore = useObjectStore()
-			selfObjectStore = objectStore
-			selfObjectType = objectType
-			// Register the `${register}-${schema}` type so the store has a slot
-			// for it before `useListView` issues the first fetch. The store's
-			// signature is `(slug, schemaId, registerId, slugs)` and it builds
-			// the fetch URL as `${baseUrl}/${registerId}/${schemaId}` —
-			// OpenRegister's REST accepts either numeric ids or kebab slugs in
-			// those segments, so the manifest's slug strings go into the
-			// positional id slots AND into the 4th-arg slug hints used by the
-			// live-updates transport. Previously we passed `{register, schema}`
-			// as the second arg, which the store stored under `config.schema`
-			// (an object) with `config.register` undefined — fetch URLs went to
-			// `/api/objects/undefined/[object Object]` and 404'd.
-			if (typeof objectStore.registerObjectType === 'function') {
-				objectStore.registerObjectType(
-					objectType,
-					props.schema,
-					props.register,
-					{ registerSlug: props.register, schemaSlug: props.schema },
-				)
-			}
-			list = useListView(objectType, {
-				objectStore,
-				sidebarState,
-				defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
-				defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
-				// Re-read on every fetch so route-param changes (`/forms/:id/...`)
-				// AND quick-filter switches both flow into the next fetch. CnIndexPage
-				// also watches $route.params → list.refresh() (see watch:); changing
-				// `activeQuickFilterIndex` triggers a refresh below.
-				fixedFilters: () => {
-					const route = instance && instance.proxy && instance.proxy.$route
-					const params = (route && route.params) || {}
-					const base = resolveFilterMap(props.filter, params)
-					// Active quick-filter tab spread LAST so it overrides a
-					// colliding `props.filter` entry (intentional — the tab is
-					// the user's intent).
-					const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-					const activeIdx = activeQuickFilterIndex.value
-					const tabFilter = (tabs && activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
-					return { ...base, ...resolveFilterMap(tabFilter, params) }
-				},
-			})
-
-			// Refresh when the user switches tabs. Reset to page 1 so the
-			// new filter starts from the top of its result set.
-			watch(activeQuickFilterIndex, () => {
-				if (list && typeof list.refresh === 'function') list.refresh(1)
-			})
-		}
+		const {
+			isSelfFetch,
+			list,
+			selfObjectStore,
+			selfObjectType,
+			activeQuickFilterIndex,
+		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
 			contextMenuOpen,
@@ -1139,48 +1037,30 @@ export default {
 
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
-			const builtIn = []
-			if (this.showViewAction) {
-				builtIn.push({
-					label: 'View',
-					icon: this.schemaIconComponent,
-					handler: (row) => {
-						this.onView(row)
-					},
-				})
-			}
-			if (this.showEditAction) {
-				builtIn.push({
-					label: 'Edit',
-					icon: Pencil,
-					handler: (row) => {
+			return buildDefaultActions({
+				flags: {
+					view: this.showViewAction,
+					edit: this.showEditAction,
+					copy: this.showCopyAction,
+					del: this.showDeleteAction,
+				},
+				viewIcon: this.schemaIconComponent,
+				handlers: {
+					onView: (row) => this.onView(row),
+					onEdit: (row) => {
 						this.editItem = row
 						this.showFormDialogVisible = true
 					},
-				})
-			}
-			if (this.showCopyAction) {
-				builtIn.push({
-					label: 'Copy',
-					icon: ContentCopy,
-					handler: (row) => {
+					onCopy: (row) => {
 						this.actionTargetItem = row
 						this.showSingleCopyDialog = true
 					},
-				})
-			}
-			if (this.showDeleteAction) {
-				builtIn.push({
-					label: 'Delete',
-					icon: TrashCanOutline,
-					destructive: true,
-					handler: (row) => {
+					onDelete: (row) => {
 						this.actionTargetItem = row
 						this.showSingleDeleteDialog = true
 					},
-				})
-			}
-			return builtIn
+				},
+			})
 		},
 
 		/**
@@ -1208,31 +1088,12 @@ export default {
 		 * runtime path) pass through untouched.
 		 */
 		mergedActions() {
-			const dispatched = this.actions.map((action) => {
-				if (typeof action.handler === 'function') {
-					// Back-compat: programmatic function handler — keep as-is.
-					return action
-				}
-				if (typeof action.handler !== 'string' || action.handler.length === 0) {
-					// No handler → emit-only path (existing default).
-					return action
-				}
-				const isNone = action.handler === 'none'
-				const resolved = this.resolveHandler(action)
-				if (resolved) {
-					// `none` returns a sentinel no-op handler AND must
-					// suppress the `@action` emit; flag it so onRowAction
-					// can drop the bubbled event.
-					return isNone
-						? { ...action, handler: resolved, _dispatchSuppress: true }
-						: { ...action, handler: resolved }
-				}
-				// Either reserved keyword "emit" / unknown name / non-function
-				// registry entry → page emits @action only; no handler call.
-				const { handler, ...rest } = action
-				return rest
-			})
-			return [...dispatched, ...this.defaultActions]
+			const ctx = {
+				router: this.$router,
+				rowKey: this.rowKey,
+				customComponents: this.effectiveCustomComponents,
+			}
+			return [...this.actions.map((a) => dispatchAction(a, ctx)), ...this.defaultActions]
 		},
 
 		hasRowActions() {
@@ -1392,6 +1253,28 @@ export default {
 
 	created() {
 		this.pushAiContext()
+		this.selfActions = createSelfModeActions({
+			isSelfFetchMode: () => this.isSelfFetchMode,
+			selfObjectStore: () => this.selfObjectStore,
+			selfObjectType: () => this.selfObjectType,
+			list: () => this.list,
+			register: () => this.register,
+			schema: () => this.schema,
+			effectiveObjects: () => this.effectiveObjects,
+			effectiveSchema: () => this.effectiveSchema,
+			massActionNameField: () => this.massActionNameField,
+			editItem: () => this.editItem,
+			emit: (event, payload) => this.$emit(event, payload),
+			setResults: {
+				singleDelete: (r) => this.setSingleDeleteResult(r),
+				massDelete: (r) => this.setMassDeleteResult(r),
+				singleCopy: (r) => this.setSingleCopyResult(r),
+				massCopy: (r) => this.setMassCopyResult(r),
+				massImport: (r) => this.setImportResult(r),
+				massExport: (r) => this.setExportResult(r),
+				form: (r) => this.setFormResult(r),
+			},
+		})
 	},
 
 	beforeDestroy() {
@@ -1400,30 +1283,16 @@ export default {
 		if (this.cnHostsIndexSidebar && this.cnIndexSidebarConfig) {
 			this.cnIndexSidebarConfig.value = null
 		}
-		// Reset AI context so the companion doesn't see stale index context
-		// when the user navigates to a custom page.
-		if (this.cnAiContext) {
-			this.cnAiContext.pageKind = 'custom'
-			this.cnAiContext.registerSlug = undefined
-			this.cnAiContext.schemaSlug = undefined
-			this.cnAiContext.objectUuid = undefined
-		}
+		applyAiContext(this.cnAiContext, 'custom')
 	},
 
 	methods: {
-		/**
-		 * Push pageKind + register/schema context into the reactive cnAiContext
-		 * holder so the AI Chat Companion knows what the user is looking at.
-		 * Called from created(), mounted(), and via watchers when props change.
-		 */
 		pushAiContext() {
-			if (!this.cnAiContext) return
-			this.cnAiContext.pageKind = 'index'
-			this.cnAiContext.registerSlug = this.register || undefined
-			this.cnAiContext.schemaSlug = (typeof this.schema === 'string' && this.schema)
-				|| this.effectiveSchema?.id || this.effectiveSchema?.slug
-				|| (this.schema && (this.schema.id || this.schema.slug)) || undefined
-			this.cnAiContext.objectUuid = undefined
+			applyAiContext(this.cnAiContext, 'index', {
+				register: this.register,
+				schema: this.schema,
+				effectiveSchema: this.effectiveSchema,
+			})
 		},
 
 		// ── List-event handlers ──────────────────────────────────────────────
@@ -1521,75 +1390,10 @@ export default {
 		},
 
 		/**
-		 * REQ-MAD-3 / REQ-MAD-4 / REQ-MAD-5 / REQ-MAD-6 / REQ-MAD-7
-		 * (manifest-actions-dispatch) — Resolve a manifest-declared
-		 * action's `handler` string into a `(row) => void` invocation
-		 * function. Returns null when the action should fall back to
-		 * the page's `@action`-event-only path.
+		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
+		 * actions are dropped before re-emit.
 		 *
-		 *   - Reserved keyword `"navigate"` → push the configured route
-		 *     with `params: { id: row[rowKey] }`.
-		 *   - Reserved keyword `"emit"` → null (page still bubbles
-		 *     `@action`; explicit no-op).
-		 *   - Reserved keyword `"none"` → returns a no-op function that
-		 *     suppresses both the handler and the `@action` emit. The
-		 *     suppression happens via the special `_dispatchSuppress`
-		 *     flag on the cloned action; see mergedActions for the
-		 *     detail.
-		 *   - Registry name → look up in `effectiveCustomComponents`;
-		 *     when it's a function, wrap as
-		 *     `(row) => fn({ actionId: action.id, item: row })`. When
-		 *     it's a non-function, console.warn and return null.
-		 *   - Unknown registry name → silent fall-through (null).
-		 *
-		 * @param {object} action The manifest-shaped action object.
-		 * @return {Function|null}
-		 */
-		resolveHandler(action) {
-			const name = action.handler
-			if (typeof name !== 'string' || name.length === 0) return null
-			if (name === 'navigate') {
-				const route = action.route
-				if (typeof route !== 'string' || route.length === 0) {
-					console.warn(`[CnIndexPage] action "${action.id}" declares handler:"navigate" `
-						+ 'but route is missing; falling back to @action-only.')
-					return null
-				}
-				return (row) => {
-					this.$router.push({
-						name: route,
-						params: { id: row[this.rowKey] },
-					})
-				}
-			}
-			if (name === 'emit') return null
-			if (name === 'none') {
-				// Returns a sentinel that CnRowActions will treat as a
-				// no-op; we additionally short-circuit @action emit in
-				// `onRowAction` via the action's id.
-				return () => {}
-			}
-			const fn = this.effectiveCustomComponents[name]
-			if (typeof fn === 'function') {
-				return (row) => fn({ actionId: action.id, item: row })
-			}
-			if (fn !== undefined) {
-				console.warn(`[CnIndexPage] action.handler "${name}" resolved to a non-function in `
-					+ 'customComponents — components belong to slot overrides; falling '
-					+ 'back to @action-only.')
-			}
-			return null
-		},
-
-		/**
-		 * REQ-MAD-6 (manifest-actions-dispatch) — `handler: "none"`
-		 * blocks the `@action` emit entirely. CnRowActions emits
-		 * `@action` with `{ action: action.label, row }` and the page
-		 * forwards via `@action="$emit('action', $event)"`. This handler
-		 * intercepts so the `none`-flagged action is dropped before
-		 * re-emit.
-		 *
-		 * @param {{action: string, row: object}} payload The CnRowActions emit.
+		 * @param {{action: string, row: object}} payload
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1655,340 +1459,69 @@ export default {
 		// --- Mass action handlers ---
 
 		async onMassDeleteConfirm(ids) {
-			// Self-fetch (manifest-driven) mode: no `@mass-delete` listener can
-			// be wired because CnPageRenderer forwards props, not events. Run
-			// the deletion ourselves via the same object store used for
-			// self-fetching, then refresh the list and resolve the dialog —
-			// mirroring onMassImportConfirm / onFormConfirm. Without this the
-			// dialog spins forever waiting for a setMassDeleteResult() that
-			// never comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				try {
-					const { successfulIds, failedIds } = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
-					if (failedIds.length === 0) {
-						this.setMassDeleteResult({ success: true, successfulIds })
-					} else {
-						const err = this.selfObjectStore.getError?.(this.selfObjectType)
-						this.setMassDeleteResult({
-							error: (err && err.message) || `Failed to delete ${failedIds.length} item(s)`,
-							successfulIds,
-							failedIds,
-						})
-					}
-					if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
-				} catch (err) {
-					this.setMassDeleteResult({ error: (err && err.message) || 'Delete failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleMassDelete(ids)) return
 			this.$emit('mass-delete', ids)
 		},
 
 		async onMassCopyConfirm(payload) {
-			// Self-fetch (manifest-driven) mode: no `@mass-copy` listener can
-			// be wired because CnPageRenderer forwards props, not events. Run
-			// the copies ourselves — read each source from the current rows,
-			// clone, rewrite the name field via the payload's getName(), and
-			// save as a new object via the same store used for self-fetching.
-			// Mirrors onMassDeleteConfirm / onMassImportConfirm. Without this
-			// the dialog spins forever waiting for a setMassCopyResult() that
-			// never comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				const ids = (payload && payload.ids) || []
-				const getName = (payload && payload.getName) || ((item) => item[this.massActionNameField])
-				const successfulIds = []
-				const failedIds = []
-				for (const id of ids) {
-					const source = this.effectiveObjects.find((o) => o.id === id || o['@self']?.id === id)
-					if (!source) {
-						failedIds.push(id)
-						continue
-					}
-					const newName = getName(source)
-					const clone = this.cloneObjectForCopy(source, newName)
-					try {
-						const saved = await this.selfObjectStore.saveObject(this.selfObjectType, clone)
-						if (saved) successfulIds.push(id)
-						else failedIds.push(id)
-					} catch (_e) {
-						failedIds.push(id)
-					}
-				}
-				if (failedIds.length === 0) {
-					this.setMassCopyResult({ success: true, successfulIds })
-				} else {
-					const err = this.selfObjectStore.getError?.(this.selfObjectType)
-					this.setMassCopyResult({
-						error: (err && err.message) || `Failed to copy ${failedIds.length} item(s)`,
-						successfulIds,
-						failedIds,
-					})
-				}
-				if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
-				return
-			}
+			if (await this.selfActions.handleMassCopy(payload)) return
 			this.$emit('mass-copy', payload)
 		},
 
-		/**
-		 * Build a copy-ready payload from a source object:
-		 * - strip identity (`id`, `uuid`) and `@self` metadata so the store
-		 *   treats the save as a create, not an update;
-		 * - write `newName` into the schema's configured name field
-		 *   (`schema.configuration.objectNameField`), falling back to
-		 *   `massActionNameField` only when the schema has none. Without
-		 *   this the copy always writes to `title`, even on schemas whose
-		 *   actual name property is `name` (or anything else).
-		 *
-		 * @param {object} source The source object from the current list rows.
-		 * @param {string} newName The new name produced by the copy dialog.
-		 * @return {object} A clone safe to POST as a new object.
-		 */
-		cloneObjectForCopy(source, newName) {
-			const { id, uuid, '@self': _self, ...rest } = source
-			const clone = JSON.parse(JSON.stringify(rest))
-			const nameField = this.effectiveSchema?.configuration?.objectNameField
-				|| this.massActionNameField
-			if (nameField) {
-				clone[nameField] = newName
-			}
-			return clone
-		},
-
 		async onMassExportConfirm(payload) {
-			// Self-fetch (manifest-driven) mode: no `@mass-export` listener can
-			// be wired because CnPageRenderer forwards props, not events. Perform
-			// the export against OpenRegister's objects export endpoint and trigger
-			// the download here, then resolve the dialog — mirroring onFormConfirm's
-			// self-save path. Without this the dialog spins forever waiting for a
-			// setExportResult() that never comes. All other modes keep emitting
-			// `mass-export` for the parent to handle (backward compatible).
-			if (this.isSelfFetchMode && this.register && this.schema) {
-				try {
-					await this.runSelfExport(payload && payload.format)
-					this.setExportResult({ success: true })
-				} catch (err) {
-					this.setExportResult({ error: (err && err.message) || 'Export failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleMassExport(payload)) return
 			this.$emit('mass-export', payload)
 		},
 
-		/**
-		 * Self-fetch-mode export: download the current register/schema's objects
-		 * in the chosen format from OpenRegister's objects export endpoint
-		 * (`/api/objects/{register}/{schema}/export?type=`) and save the returned
-		 * file. Uses the same base URL + headers as the object store's fetches.
-		 * Only used when no `@mass-export` listener can be wired (manifest pages).
-		 *
-		 * @param {string} format The export format id from the dialog (e.g. 'excel', 'csv').
-		 * @return {Promise<void>}
-		 */
-		async runSelfExport(format) {
-			const base = `/apps/openregister/api/objects/${this.register}/${this.schema}/export`
-			const url = prefixUrl(base) + buildQueryString({ type: format })
-			const response = await fetch(url, { method: 'GET', headers: buildHeaders() })
-			if (!response.ok) {
-				throw new Error(`Export failed (${response.status})`)
-			}
-			const blob = await response.blob()
-			const disposition = response.headers.get('content-disposition') || ''
-			const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
-			const ext = format === 'excel' ? 'xlsx' : (format || 'csv')
-			const filename = match ? decodeURIComponent(match[1]) : `${this.register}_${this.schema}.${ext}`
-			this.triggerBlobDownload(blob, filename)
-		},
-
-		/**
-		 * Save a Blob to disk via a temporary object-URL anchor.
-		 *
-		 * @param {Blob} blob The file contents.
-		 * @param {string} filename Suggested download filename.
-		 */
-		triggerBlobDownload(blob, filename) {
-			const blobUrl = window.URL.createObjectURL(blob)
-			const a = document.createElement('a')
-			a.href = blobUrl
-			a.download = filename
-			document.body.appendChild(a)
-			a.click()
-			document.body.removeChild(a)
-			window.URL.revokeObjectURL(blobUrl)
-		},
-
 		async onMassImportConfirm(payload) {
-			// Self-fetch (manifest-driven) mode: no `@mass-import` listener can be
-			// wired, so upload the file to OpenRegister's register import endpoint
-			// here, refresh the list, and resolve the dialog — mirroring the export
-			// self-handling. Other modes keep emitting for the parent to handle.
-			if (this.isSelfFetchMode && this.register) {
-				try {
-					await this.runSelfImport(payload && payload.file)
-					this.setImportResult({ success: true })
-					if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
-				} catch (err) {
-					this.setImportResult({ error: (err && err.message) || 'Import failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleMassImport(payload)) return
 			this.$emit('mass-import', payload)
 		},
 
-		/**
-		 * Self-fetch-mode import: upload `file` to OpenRegister's register import
-		 * endpoint (`POST /api/registers/{register}/import`; object-level import is
-		 * disabled server-side). For CSV files the schema slug is passed so the
-		 * backend knows which schema the rows belong to (JSON/Excel carry their own
-		 * schema info). Uses `buildHeaders(null)` — CSRF token + OCS header but NO
-		 * Content-Type, so the browser sets the multipart boundary itself.
-		 *
-		 * @param {File} file The file selected in the import dialog.
-		 * @return {Promise<void>}
-		 */
-		async runSelfImport(file) {
-			if (!file) {
-				throw new Error('No file selected')
-			}
-			const ext = (file.name.split('.').pop() || '').toLowerCase()
-			const isCsv = ext === 'csv' && !!this.schema
-			let path = `/apps/openregister/api/registers/${this.register}/import`
-			if (isCsv) {
-				path += buildQueryString({ schema: this.schema })
-			}
-			const formData = new FormData()
-			formData.append('file', file)
-			if (isCsv) {
-				formData.append('schema', this.schema)
-			}
-			const response = await fetch(prefixUrl(path), {
-				method: 'POST',
-				headers: buildHeaders(null),
-				body: formData,
-			})
-			if (!response.ok) {
-				throw new Error(`Import failed (${response.status})`)
-			}
+		_setResult(refName, resultData) {
+			this.$refs[refName]?.setResult(resultData)
 		},
 
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassDeleteResult(resultData) {
-			if (this.$refs.massDeleteDialog) {
-				this.$refs.massDeleteDialog.setResult(resultData)
-			}
-		},
-
+		setMassDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setMassCopyResult(resultData) {
-			if (this.$refs.massCopyDialog) {
-				this.$refs.massCopyDialog.setResult(resultData)
-			}
-		},
-
+		setMassCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setExportResult(resultData) {
-			if (this.$refs.exportDialog) {
-				this.$refs.exportDialog.setResult(resultData)
-			}
-		},
-
+		setExportResult(resultData) { this._setResult('exportDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setImportResult(resultData) {
-			if (this.$refs.importDialog) {
-				this.$refs.importDialog.setResult(resultData)
-			}
-		},
-
-		// --- Backward-compatible aliases ---
+		setImportResult(resultData) { this._setResult('importDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setDeleteResult(resultData) {
-			this.setMassDeleteResult(resultData)
-		},
-
+		setDeleteResult(resultData) { this._setResult('massDeleteDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setCopyResult(resultData) {
-			this.setMassCopyResult(resultData)
-		},
+		setCopyResult(resultData) { this._setResult('massCopyDialog', resultData) },
 
 		// --- Single-object dialog handlers ---
 
 		async onSingleDeleteConfirm(id) {
-			// Self-fetch (manifest-driven) mode: no `@delete` listener can be
-			// wired because CnPageRenderer forwards props, not events. Run the
-			// deletion ourselves via the same object store used for
-			// self-fetching, then refresh the list and resolve the dialog —
-			// mirroring onMassDeleteConfirm / onFormConfirm. Without this the
-			// dialog spins forever waiting for a setSingleDeleteResult() that
-			// never comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				try {
-					const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
-					if (ok) {
-						this.setSingleDeleteResult({ success: true })
-						this.$emit('delete', id)
-						if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
-					} else {
-						const err = this.selfObjectStore.getError?.(this.selfObjectType)
-						this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
-					}
-				} catch (err) {
-					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleSingleDelete(id)) return
 			this.$emit('delete', id)
 		},
 
 		async onSingleCopyConfirm(payload) {
-			// Self-fetch (manifest-driven) mode: no `@copy` listener can be
-			// wired because CnPageRenderer forwards props, not events. Run
-			// the copy ourselves — clone the source row (stripped of id/uuid/
-			// @self), rewrite the name field with the dialog's `newName`, and
-			// save as a new object via the same store used for self-fetching.
-			// Mirrors onSingleDeleteConfirm / onFormConfirm. Without this the
-			// dialog spins forever waiting for a setSingleCopyResult() that
-			// never comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				const { id, newName } = payload || {}
-				const source = this.effectiveObjects.find((o) => o.id === id || o['@self']?.id === id)
-				if (!source) {
-					this.setSingleCopyResult({ error: 'Source object not found in current view' })
-					return
-				}
-				try {
-					const clone = this.cloneObjectForCopy(source, newName)
-					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, clone)
-					if (saved) {
-						this.setSingleCopyResult({ success: true })
-						this.$emit('copy', payload)
-						if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
-					} else {
-						const err = this.selfObjectStore.getError?.(this.selfObjectType)
-						this.setSingleCopyResult({ error: (err && err.message) || 'Copy failed' })
-					}
-				} catch (err) {
-					this.setSingleCopyResult({ error: (err && err.message) || 'Copy failed' })
-				}
-				return
-			}
+			if (await this.selfActions.handleSingleCopy(payload)) return
 			this.$emit('copy', payload)
 		},
 
@@ -2008,32 +1541,8 @@ export default {
 				}
 				return
 			}
-			// Self-fetch mode (manifest-driven page): no `store`/`@create`
-			// listener is wired, so self-save via the same object store and
-			// type used for self-fetching, then resolve the dialog. Without
-			// this the dialog waits forever for a setFormResult() that never
-			// comes.
-			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
-				try {
-					const saved = await this.selfObjectStore.saveObject(this.selfObjectType, formData)
-					if (saved) {
-						this.setFormResult({ success: true })
-						this.$emit(this.editItem ? 'edit' : 'create', saved)
-						if (typeof this.list.refresh === 'function') this.list.refresh()
-					} else {
-						const err = this.selfObjectStore.getError?.(this.selfObjectType)
-						this.setFormResult({ error: (err && err.message) || 'Save failed' })
-					}
-				} catch (err) {
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
-				}
-				return
-			}
-			if (this.editItem) {
-				this.$emit('edit', formData)
-			} else {
-				this.$emit('create', formData)
-			}
+			if (await this.selfActions.handleFormSave(formData)) return
+			this.$emit(this.editItem ? 'edit' : 'create', formData)
 		},
 
 		closeSingleDelete() {
@@ -2055,31 +1564,17 @@ export default {
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleDeleteResult(resultData) {
-			if (this.$refs.singleDeleteDialog) {
-				this.$refs.singleDeleteDialog.setResult(resultData)
-			}
-		},
-
+		setSingleDeleteResult(resultData) { this._setResult('singleDeleteDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setSingleCopyResult(resultData) {
-			if (this.$refs.singleCopyDialog) {
-				this.$refs.singleCopyDialog.setResult(resultData)
-			}
-		},
-
+		setSingleCopyResult(resultData) { this._setResult('singleCopyDialog', resultData) },
 		/**
 		 * @param {*} resultData Result data to pass to the dialog
 		 * @public
 		 */
-		setFormResult(resultData) {
-			if (this.$refs.formDialog) {
-				this.$refs.formDialog.setResult(resultData)
-			}
-		},
+		setFormResult(resultData) { this._setResult('formDialog', resultData) },
 
 		// --- Context menu handlers ---
 
