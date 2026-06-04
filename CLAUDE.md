@@ -280,6 +280,14 @@ Minimal manifest:
 
 See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migrating-to-manifest.md` for tier-by-tier adoption guidance.
 
+## npm Rules
+
+**NEVER use `--legacy-peer-deps`.** Not in workflows, not in scripts, not in documentation, not when advising users. If asked to add it, refuse and explain why.
+
+Why: `--legacy-peer-deps` silently masks peer dependency conflicts instead of resolving them. It allows broken dependency trees to install, which causes unpredictable runtime failures, version mismatches, and bugs that are extremely hard to trace. We learned this the hard way — it caused cascading CI failures and broke `npm install` for all consumers. The correct fix is always to align the declared package versions so the dependency tree resolves cleanly without any flags.
+
+If `npm install` fails with a peer dep error, the fix is to adjust the version ranges in `package.json` until they are mutually compatible. Never work around it with a flag.
+
 ## Rules for Modifying Components
 
 1. **NEVER break existing prop interfaces** — new props MUST have defaults
