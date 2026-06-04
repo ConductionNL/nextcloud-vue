@@ -1654,7 +1654,33 @@ export default {
 
 		// --- Mass action handlers ---
 
-		onMassDeleteConfirm(ids) {
+		async onMassDeleteConfirm(ids) {
+			// Self-fetch (manifest-driven) mode: no `@mass-delete` listener can
+			// be wired because CnPageRenderer forwards props, not events. Run
+			// the deletion ourselves via the same object store used for
+			// self-fetching, then refresh the list and resolve the dialog —
+			// mirroring onMassImportConfirm / onFormConfirm. Without this the
+			// dialog spins forever waiting for a setMassDeleteResult() that
+			// never comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				try {
+					const { successfulIds, failedIds } = await this.selfObjectStore.deleteObjects(this.selfObjectType, ids)
+					if (failedIds.length === 0) {
+						this.setMassDeleteResult({ success: true, successfulIds })
+					} else {
+						const err = this.selfObjectStore.getError?.(this.selfObjectType)
+						this.setMassDeleteResult({
+							error: (err && err.message) || `Failed to delete ${failedIds.length} item(s)`,
+							successfulIds,
+							failedIds,
+						})
+					}
+					if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
+				} catch (err) {
+					this.setMassDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			this.$emit('mass-delete', ids)
 		},
 
@@ -1837,7 +1863,30 @@ export default {
 
 		// --- Single-object dialog handlers ---
 
-		onSingleDeleteConfirm(id) {
+		async onSingleDeleteConfirm(id) {
+			// Self-fetch (manifest-driven) mode: no `@delete` listener can be
+			// wired because CnPageRenderer forwards props, not events. Run the
+			// deletion ourselves via the same object store used for
+			// self-fetching, then refresh the list and resolve the dialog —
+			// mirroring onMassDeleteConfirm / onFormConfirm. Without this the
+			// dialog spins forever waiting for a setSingleDeleteResult() that
+			// never comes.
+			if (this.isSelfFetchMode && this.selfObjectStore && this.selfObjectType) {
+				try {
+					const ok = await this.selfObjectStore.deleteObject(this.selfObjectType, id)
+					if (ok) {
+						this.setSingleDeleteResult({ success: true })
+						this.$emit('delete', id)
+						if (this.list && typeof this.list.refresh === 'function') this.list.refresh()
+					} else {
+						const err = this.selfObjectStore.getError?.(this.selfObjectType)
+						this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+					}
+				} catch (err) {
+					this.setSingleDeleteResult({ error: (err && err.message) || 'Delete failed' })
+				}
+				return
+			}
 			this.$emit('delete', id)
 		},
 
