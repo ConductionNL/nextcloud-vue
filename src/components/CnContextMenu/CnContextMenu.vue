@@ -6,7 +6,8 @@
 		class="cn-context-menu"
 		container="body"
 		data-testid="cn-context-menu"
-		@close="onClose">
+		@close="onClose"
+		@closed="onClosed">
 		<!-- Dynamic actions from array prop -->
 		<NcActionButton
 			v-for="action in visibleActions"
@@ -31,6 +32,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { clearContextMenuPositionDom } from '../../composables/useContextMenu.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -150,6 +152,22 @@ export default {
 		},
 	},
 
+	mounted() {
+		// NcActions renders its own NcButton as the popover trigger; we open
+		// this menu exclusively via right-click, so the button must be
+		// invisible AND non-interactive. We can't use `display: none` because
+		// NcPopover's a11y check (`tabbable(triggerContainer)[0]`) then finds
+		// no tabbable element and warns "It looks like you are using a custom
+		// button as a <NcPopover> trigger...". So we keep the button in the
+		// tabbable tree via off-screen positioning (CSS below) and strip its
+		// tabindex here so it never appears in the keyboard tab order.
+		const trigger = this.$el?.querySelector('.action-item__menutoggle')
+		if (trigger) {
+			trigger.setAttribute('tabindex', '-1')
+			trigger.setAttribute('aria-hidden', 'true')
+		}
+	},
+
 	methods: {
 		resolveDisabled(action) {
 			if (typeof action.disabled === 'function') {
@@ -200,13 +218,33 @@ export default {
 			this.internalOpen = false
 			this.$emit('close')
 		},
+
+		/**
+		 * Fired by NcActions after the popper's hide animation completes
+		 * (`@closed` → NcPopover's `after-hide`). We clear the cursor-position
+		 * CSS vars + data attribute here so the transform stays applied for the
+		 * full duration of the animation — clearing it earlier would snap the
+		 * popper to ≈ 0,0 for one frame before unmount.
+		 */
+		onClosed() {
+			clearContextMenuPositionDom()
+			this.$emit('closed')
+		},
 	},
 }
 </script>
 
 <style scoped>
 .cn-context-menu {
-	/* Hide the NcActions trigger button — menu opens only via right-click */
-	display: none;
+	/* Hide the NcActions trigger button — menu opens only via right-click.
+	   Off-screen rather than display:none so NcPopover's a11y check still
+	   finds the (now invisible) NcButton via tabbable() and skips its
+	   "custom button as a <NcPopover> trigger" warning. */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	pointer-events: none;
 }
 </style>
