@@ -12,8 +12,13 @@
 
 ### Events
 
-| Name                | Payload | Description |
-| ------------------- | ------- | ----------- |
-| `update:value`      | —       |             |
-| `format`            | —       |             |
-| `detected-language` | —       |             |
+| Name                | Payload | Description                                                                                                                                                                                                                                                                                                                         |
+| ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update:value`      | —       |                                                                                                                                                                                                                                                                                                                                     |
+| `format`            | —       | Fired after a successful manual reformat (`formatJson()`) — payload is the parsed object, useful for parents that want to pick up the structured value alongside the formatted string.                                                                                                                                              |
+| `detected-language` | —       | Fired when the resolved language for syntax highlighting changes — either because the `language` prop was set explicitly OR because the auto-detector flipped between 'json' / 'xml' / 'html' / 'text' as the content changed. Lets parent components surface a language indicator without re-implementing the detection heuristic. |
+
+| `update:value Fired whenever the editor's text
+  content changes — drives v-model usage. Payload is
+  the new raw string (not parsed); use the `format`
+  event for the parsed object.` | — | |

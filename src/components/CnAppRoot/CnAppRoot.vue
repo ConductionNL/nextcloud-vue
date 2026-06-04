@@ -650,6 +650,22 @@ export default {
 		return { cnSupportVisible: visible, cnSupportHide: hide }
 	},
 
+	/**
+	* Component-instance state for the capabilities guard.
+	*
+	* - `capabilitiesLoading`: `true` only when the prop says we need
+	*   to check (i.e. `requiresApps.length > 0`). Apps that opt out
+	*   via `:requires-apps="[]"` see this initialise to `false`, so
+	*   no spinner flashes and the renderer mounts on the first
+	*   render. Apps that need the guard see `true` initially; the
+	*   `mounted()` hook runs the check and flips to `false`.
+	* - `missingApps`: the list of `requiresApps` entries NOT
+	*   present in the capabilities payload. When empty, the
+	*   renderer mounts; when non-empty, the empty-state renders.
+	* - `guardError`: stores the caught error so consumers
+	*   inspecting the component instance can introspect failures.
+	*   The error path falls through to the renderer regardless.
+	*/
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {

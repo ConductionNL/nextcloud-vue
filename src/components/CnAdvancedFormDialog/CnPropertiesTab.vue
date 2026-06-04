@@ -148,14 +148,31 @@ export default {
 	},
 
 	props: {
+		/** JSON Schema definition for the object */
 		schema: { type: Object, default: null },
+		/** The object instance being created or edited */
 		item: { type: Object, default: null },
+		/** Current form data object */
 		formData: { type: Object, default: () => ({}) },
+		/** Key of the currently selected property */
 		selectedProperty: { type: String, default: null },
+		/** JSON Schema types that can be edited inline */
 		editableTypes: { type: Array, default: () => ['string', 'number', 'integer', 'boolean', 'array', 'object'] },
+		/** How to display validation results: "indicator" or "none" */
 		validationDisplay: { type: String, default: 'indicator' },
+		/** Field keys to hide from the form */
 		excludeFields: { type: Array, default: () => [] },
+		/** When set, only these field keys are shown */
 		includeFields: { type: Array, default: null },
+		/**
+		* Whether the property's value is fixed by the schema (`const`) and
+		* should be hide-able via the show/hide toggle. Note: `immutable` /
+		* `readOnly` are NOT considered constant — they're set on creation
+		* and locked afterward, but should remain visible in the form.
+		*
+		* @param {string} key - Property key.
+		* @return {boolean}
+		*/
 		/**
 		 * When false (default), properties whose schema entry has `const`
 		 * set are filtered out of the list — the user can't change them so
@@ -178,6 +195,7 @@ export default {
 		 * Any other CSS color string is applied directly.
 		 */
 		propCellColor: { type: String, default: null },
+		/** Whether this is a new item (create mode) */
 		isNew: { type: Boolean, default: false },
 	},
 

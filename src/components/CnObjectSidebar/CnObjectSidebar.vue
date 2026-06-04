@@ -423,10 +423,15 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
+		/** Label for the Files tab */
 		filesLabel: { type: String, default: () => t('nextcloud-vue', 'Files') },
+		/** Label for the Notes tab */
 		notesLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
+		/** Label for the Tags tab */
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
+		/** Label for the Tasks tab */
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		/** Label for the Audit Trail tab */
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 
 		/**
