@@ -43,6 +43,26 @@
 			<span :title="rawTitle">{{ formattedValue }}</span>
 		</template>
 
+		<!-- Date / date-time: dynamic NcDateTime (relative time, absolute on hover) -->
+		<template v-else-if="isDate">
+			<NcDateTime v-if="dateTimestamp" :timestamp="dateTimestamp" />
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
+		<!-- URI / URL: external link -->
+		<template v-else-if="isUri">
+			<a
+				v-if="uriHref"
+				:href="uriHref"
+				target="_blank"
+				rel="noopener"
+				class="cn-cell-renderer__link">
+				{{ formattedValue }}
+			</a>
+			<span v-else-if="hasValue" :title="rawTitle">{{ formattedValue }}</span>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Boolean: icon -->
 		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
@@ -71,6 +91,7 @@
 </template>
 
 <script>
+import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
@@ -100,6 +121,7 @@ export default {
 	components: {
 		CnStatusBadge,
 		CheckBold,
+		NcDateTime,
 	},
 
 	inject: {
@@ -198,6 +220,39 @@ export default {
 
 		isEnum() {
 			return !!(this.property?.enum && this.property.enum.length > 0)
+		},
+
+		/** True when the property is a date / date-time (rendered via NcDateTime). */
+		isDate() {
+			return this.property?.format === 'date-time' || this.property?.format === 'date'
+		},
+
+		/**
+		 * The cell value as a Date for NcDateTime, or `null` when absent or
+		 * unparseable (the cell then falls back to a dash / plain text).
+		 *
+		 * @return {Date|null}
+		 */
+		dateTimestamp() {
+			if (!this.hasValue) return null
+			const date = new Date(this.value)
+			return Number.isNaN(date.getTime()) ? null : date
+		},
+
+		/** True when the property is a URI / URL (rendered as an external link). */
+		isUri() {
+			return this.property?.format === 'uri' || this.property?.format === 'url'
+		},
+
+		/**
+		 * Safe external href for a URI/URL cell, or `null` when the value is
+		 * absent or fails `safeHref` validation (e.g. an unsafe scheme).
+		 *
+		 * @return {string|null}
+		 */
+		uriHref() {
+			if (!this.hasValue) return null
+			return safeHref(String(this.value))
 		},
 
 		/** True when the cell has a renderable value (not null/undefined/empty string). */

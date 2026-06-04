@@ -1009,32 +1009,43 @@ export default {
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
 		/**
-		 * Keys the sidebar's Columns tab governs: schema-derived columns, the
-		 * built-in Metadata group (when shown), and any external columnGroups.
-		 * Mirrors CnIndexSidebar's `allColumnKeys`, so tableColumns only hides
-		 * columns the user can actually toggle back on — custom columns outside
-		 * this set are never silently dropped.
+		 * Ordered column definitions the sidebar's Columns tab governs:
+		 * schema-derived columns, the built-in Metadata group (when shown),
+		 * and any external columnGroups. Mirrors CnIndexSidebar's column
+		 * universe, and doubles as the source of definitions for columns the
+		 * user enables that aren't in the configured `columns` list (metadata
+		 * fields, schema properties beyond the default set).
 		 */
-		sidebarGovernedColumnKeys() {
-			const keys = new Set()
+		governedColumns() {
+			const defs = []
 			if (this.effectiveSchema) {
-				columnsFromSchema(this.effectiveSchema, {}).forEach((c) => keys.add(c.key))
+				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
 				if (this.resolvedSidebar.showMetadata !== false) {
-					METADATA_COLUMNS.forEach((c) => keys.add(c.key))
+					defs.push(...METADATA_COLUMNS)
 				}
 			}
 			const groups = this.resolvedSidebar.columnGroups || []
-			groups.forEach((g) => (g.columns || []).forEach((c) => keys.add(c.key)))
-			return keys
+			groups.forEach((g) => defs.push(...(g.columns || [])))
+			return defs
+		},
+
+		/**
+		 * Set of keys the sidebar governs (see `governedColumns`). Used so
+		 * tableColumns only hides columns the user can actually toggle back
+		 * on — custom columns outside this set are never silently dropped.
+		 */
+		sidebarGovernedColumnKeys() {
+			return new Set(this.governedColumns.map((c) => c.key))
 		},
 
 		/**
 		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
 		 * `aggregate` block lacking a `register` defaulted to this page's `register`
-		 * slug, so manifests can omit `aggregate.register`), then hides the columns
-		 * the user toggled off in the sidebar's Columns tab. Only sidebar-governed
-		 * keys are filtered (see `sidebarGovernedColumnKeys`), so custom non-schema
-		 * columns always remain visible.
+		 * slug, so manifests can omit `aggregate.register`). When a visible-column
+		 * set exists, governed columns the user toggled off are hidden, and governed
+		 * columns the user toggled on that aren't already in the list (metadata
+		 * fields, extra schema properties) are appended using their sidebar
+		 * definitions. Custom columns outside the sidebar's universe are untouched.
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
@@ -1047,13 +1058,24 @@ export default {
 				))
 			}
 			const visible = this.effectiveVisibleColumns
-			if (Array.isArray(visible)) {
-				const governed = this.sidebarGovernedColumnKeys
-				cols = cols.filter((c) => {
-					const key = typeof c === 'string' ? c : c.key
-					return !governed.has(key) || visible.includes(key)
-				})
-			}
+			if (!Array.isArray(visible)) return cols
+
+			const governed = this.sidebarGovernedColumnKeys
+			cols = cols.filter((c) => {
+				const key = typeof c === 'string' ? c : c.key
+				return !governed.has(key) || visible.includes(key)
+			})
+
+			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
+			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			visible.forEach((key) => {
+				if (present.has(key)) return
+				const def = byKey.get(key)
+				if (def) {
+					cols.push({ ...def })
+					present.add(key)
+				}
+			})
 			return cols
 		},
 

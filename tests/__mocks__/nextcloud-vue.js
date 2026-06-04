@@ -39,6 +39,17 @@ export const NcPopover = createStub('NcPopover')
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
 
+// Renders the timestamp as an ISO string inside a <time> so tests can assert
+// the value the cell handed it (real component shows relative/locale text).
+export const NcDateTime = {
+	name: 'NcDateTime',
+	props: ['timestamp', 'format', 'relativeTime', 'ignoreSeconds'],
+	render(h) {
+		const ts = this.timestamp instanceof Date ? this.timestamp.toISOString() : String(this.timestamp)
+		return h('time', { class: 'nc-date-time' }, ts)
+	},
+}
+
 export default {
 	NcDialog,
 	NcButton,
@@ -59,4 +70,5 @@ export default {
 	NcPopover,
 	NcRichText,
 	NcAppContent,
+	NcDateTime,
 }
