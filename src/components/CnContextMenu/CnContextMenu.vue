@@ -18,7 +18,8 @@
 			close-after-click
 			@click="onAction(action)">
 			<template v-if="action.icon" #icon>
-				<component :is="action.icon" :size="20" />
+				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+				<component :is="action.icon" v-else :size="20" />
 			</template>
 			{{ action.label }}
 		</NcActionButton>
@@ -30,6 +31,7 @@
 
 <script>
 import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * CnContextMenu — Right-click context menu wrapper around NcActions.
@@ -71,6 +73,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		CnIcon,
 	},
 
 	props: {
@@ -86,13 +89,16 @@ export default {
 		/**
 		 * Action definitions rendered as NcActionButton items.
 		 * Same format as CnRowActions: `{ label, icon?, handler?, disabled?, visible?, title?, destructive? }`.
+		 * `icon` accepts either a component (rendered directly) or a string —
+		 * a string is treated as an MDI name and rendered via `CnIcon` (e.g.
+		 * `"Eye"`), which lets manifest (JSON) actions declare icons by name.
 		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
 		 * (default: shown). `title` (string | (targetItem) => string) renders as
 		 * a native tooltip — useful for explaining why an entry is disabled.
 		 * When the entire array is empty (or all entries are filtered out), only
 		 * the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
+		 * @type {Array<{label: string, icon: object | string, handler: Function, disabled: boolean | Function, visible: boolean | Function, title: string | Function, destructive: boolean}>}
 		 */
 		actions: {
 			type: Array,
