@@ -1346,7 +1346,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
 		},
 
