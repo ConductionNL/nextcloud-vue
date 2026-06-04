@@ -329,6 +329,8 @@ import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -1007,18 +1009,52 @@ export default {
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
 		/**
-		 * Columns handed to CnDataTable — same as the `columns` prop, except any
-		 * `aggregate` block lacking a `register` is defaulted to this page's
-		 * `register` slug (so manifests can omit `aggregate.register`).
+		 * Keys the sidebar's Columns tab governs: schema-derived columns, the
+		 * built-in Metadata group (when shown), and any external columnGroups.
+		 * Mirrors CnIndexSidebar's `allColumnKeys`, so tableColumns only hides
+		 * columns the user can actually toggle back on — custom columns outside
+		 * this set are never silently dropped.
+		 */
+		sidebarGovernedColumnKeys() {
+			const keys = new Set()
+			if (this.effectiveSchema) {
+				columnsFromSchema(this.effectiveSchema, {}).forEach((c) => keys.add(c.key))
+				if (this.resolvedSidebar.showMetadata !== false) {
+					METADATA_COLUMNS.forEach((c) => keys.add(c.key))
+				}
+			}
+			const groups = this.resolvedSidebar.columnGroups || []
+			groups.forEach((g) => (g.columns || []).forEach((c) => keys.add(c.key)))
+			return keys
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's `register`
+		 * slug, so manifests can omit `aggregate.register`), then hides the columns
+		 * the user toggled off in the sidebar's Columns tab. Only sidebar-governed
+		 * keys are filtered (see `sidebarGovernedColumnKeys`), so custom non-schema
+		 * columns always remain visible.
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
-			if (!reg) return this.columns || []
-			return (this.columns || []).map((c) => (
-				c && c.aggregate && !c.aggregate.register
-					? { ...c, aggregate: { ...c.aggregate, register: reg } }
-					: c
-			))
+			let cols = this.columns || []
+			if (reg) {
+				cols = cols.map((c) => (
+					c && c.aggregate && !c.aggregate.register
+						? { ...c, aggregate: { ...c.aggregate, register: reg } }
+						: c
+				))
+			}
+			const visible = this.effectiveVisibleColumns
+			if (Array.isArray(visible)) {
+				const governed = this.sidebarGovernedColumnKeys
+				cols = cols.filter((c) => {
+					const key = typeof c === 'string' ? c : c.key
+					return !governed.has(key) || visible.includes(key)
+				})
+			}
+			return cols
 		},
 
 		/** Resolved icon — explicit prop overrides schema.icon */

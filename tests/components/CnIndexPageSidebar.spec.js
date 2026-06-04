@@ -160,4 +160,43 @@ describe('CnIndexPage — sidebar prop', () => {
 			expect(wrapper.findComponent(CnIndexSidebar).exists()).toBe(true)
 		})
 	})
+
+	// The Columns tab toggles column visibility by emitting the new visible
+	// key set. CnDataTable ignores include/exclude-columns when an explicit
+	// `columns` list is given, so CnIndexPage must filter `tableColumns`
+	// itself — otherwise the table never reflects the toggle.
+	describe('column visibility (Columns tab)', () => {
+		const schema = {
+			title: 'Client',
+			properties: {
+				name: { type: 'string' },
+				type: { type: 'string' },
+				industry: { type: 'string' },
+			},
+		}
+		const colKeys = (cols) => cols.map((c) => (typeof c === 'string' ? c : c.key))
+
+		it('shows all configured columns when no visible set is given', () => {
+			const wrapper = mountIndexPage({ schema, columns: ['name', 'type', 'industry'], visibleColumns: null })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'type', 'industry'])
+		})
+
+		it('hides a schema column the user toggled off', () => {
+			const wrapper = mountIndexPage({ schema, columns: ['name', 'type', 'industry'], visibleColumns: ['name', 'type'] })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'type'])
+		})
+
+		it('keeps custom non-schema columns the sidebar does not govern', () => {
+			// `custom` has no checkbox in the sidebar, so it must survive even
+			// though it is absent from the visible set.
+			const wrapper = mountIndexPage({ schema, columns: ['name', 'custom'], visibleColumns: ['name'] })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'custom'])
+		})
+
+		it('reacts when the visible set changes', async () => {
+			const wrapper = mountIndexPage({ schema, columns: ['name', 'type', 'industry'], visibleColumns: null })
+			await wrapper.setProps({ visibleColumns: ['name', 'industry'] })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'industry'])
+		})
+	})
 })
