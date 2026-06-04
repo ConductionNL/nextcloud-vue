@@ -140,26 +140,31 @@ export default {
 			type: String,
 			required: true,
 		},
+
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
 			required: true,
 		},
+
 		/** Object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
+
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
+
 		/** Maximum number of tasks to display */
 		maxDisplay: {
 			type: Number,
 			default: 5,
 		},
+
 		/** Whether the card is collapsible */
 		collapsible: {
 			type: Boolean,
@@ -167,9 +172,13 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
+		/** Label / heading for the card title */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		/** Text shown when no tasks are linked */
 		noTasksLabel: { type: String, default: () => t('nextcloud-vue', 'No tasks') },
+		/** Label for the show-all link */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/** Label shown when no assignee is set */
 		unassignedLabel: { type: String, default: () => t('nextcloud-vue', 'Unassigned') },
 	},
 

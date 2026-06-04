@@ -202,7 +202,7 @@ function renderSlots(slots) {
   // "'column-' + col.key") as the slot name. Wrap in code; consumers can
   // override with hand-written narrative if a friendlier label is needed.
   const rows = slots.map(s => {
-    const name = `\`${s.name}\``
+    const name = `\`${String(s.name).replace(/\|/g, '&#124;')}\``
     const desc = cell(s.description)
     const bindings = s.bindings && s.bindings.length
       ? s.bindings.map(b => `\`${b.name}\``).join(', ')

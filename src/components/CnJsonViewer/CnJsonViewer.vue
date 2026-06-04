@@ -124,10 +124,7 @@ export default {
 			set(v) {
 				this.internalValue = v
 				/**
-				 * @event update:value Fired whenever the editor's text
-				 *   content changes — drives v-model usage. Payload is
-				 *   the new raw string (not parsed); use the `format`
-				 *   event for the parsed object.
+				 * @event update:value Fired whenever the editor text changes. Payload is the new raw string (not parsed); use the `format` event for the parsed object.
 				 * @type {string}
 				 */
 				this.$emit('update:value', v)

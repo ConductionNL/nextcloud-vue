@@ -357,7 +357,7 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** @deprecated Use subtitle instead */
+		/** @deprecated Use `subtitle` instead. Alias kept for backwards compatibility. */
 		subtitleProp: {
 			type: String,
 			default: '',

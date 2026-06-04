@@ -81,16 +81,27 @@ export default {
 	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CommentTextOutline, Send, Pencil, Delete },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Label for the add note button */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
-		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		/** Placeholder text for the note input field */
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note…') },
+		/** Label for the edit action */
 		editLabel: { type: String, default: () => t('nextcloud-vue', 'Edit') },
+		/** Label for the save action */
 		saveLabel: { type: String, default: () => t('nextcloud-vue', 'Save') },
+		/** Label for the cancel button */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
+		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+		/** Text shown when there are no notes */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
 	},
 

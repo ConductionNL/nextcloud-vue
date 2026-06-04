@@ -12,7 +12,7 @@
 
 ### Slots
 
-| Name                  | Bindings | Description |
-| --------------------- | -------- | ----------- | ---------------------------- | --- |
-| `'label-' + (item.key |          | index)`     | `name`, `item`               |     |
-| `'value-' + (item.key |          | index)`     | `name`, `item`, `percentage` |     |
+| Name                                       | Bindings                     | Description |
+| ------------------------------------------ | ---------------------------- | ----------- |
+| `'label-' + (item.key &#124;&#124; index)` | `name`, `item`               |             |
+| `'value-' + (item.key &#124;&#124; index)` | `name`, `item`, `percentage` |             |

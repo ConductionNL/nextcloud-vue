@@ -2,16 +2,16 @@
 
 ### Props
 
-| Name                | Type     | Required | Default                                                 | Description |
-| ------------------- | -------- | -------- | ------------------------------------------------------- | ----------- |
-| `objectId`          | `string` | ✓        | —                                                       |             |
-| `register`          | `string` |          | `''`                                                    |             |
-| `schema`            | `string` |          | `''`                                                    |             |
-| `apiBase`           | `string` |          | `'/apps/openregister/api'`                              |             |
-| `noAuditTrailLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'No audit trail entries')` |             |
-| `noMatchLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'No matching entries')`    |             |
-| `actionFilterLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Action')`                 |             |
-| `userFilterLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'User')`                   |             |
-| `fromLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'From')`                   |             |
-| `toLabel`           | `string` |          | `() =&gt; t('nextcloud-vue', 'To')`                     |             |
-| `loadMoreLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`              |             |
+| Name                | Type     | Required | Default                                                 | Description                                         |
+| ------------------- | -------- | -------- | ------------------------------------------------------- | --------------------------------------------------- |
+| `objectId`          | `string` | ✓        | —                                                       | ID of the object this tab belongs to                |
+| `register`          | `string` |          | `''`                                                    | OpenRegister register slug                          |
+| `schema`            | `string` |          | `''`                                                    | JSON Schema definition for the object               |
+| `apiBase`           | `string` |          | `'/apps/openregister/api'`                              | Base URL for the OpenRegister API                   |
+| `noAuditTrailLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'No audit trail entries')` | Text shown when there are no audit trail entries    |
+| `noMatchLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'No matching entries')`    | Text shown when no entries match the current filter |
+| `actionFilterLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Action')`                 | Label for the action filter control                 |
+| `userFilterLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'User')`                   | Label for the user filter control                   |
+| `fromLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'From')`                   | Label for the date-from filter                      |
+| `toLabel`           | `string` |          | `() =&gt; t('nextcloud-vue', 'To')`                     | Label for the date-to filter                        |
+| `loadMoreLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`              | Label for the load-more button                      |

@@ -126,16 +126,27 @@ export default {
 	components: { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/** Text shown when there are no audit trail entries */
 		noAuditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'No audit trail entries') },
+		/** Text shown when no entries match the current filter */
 		noMatchLabel: { type: String, default: () => t('nextcloud-vue', 'No matching entries') },
+		/** Label for the action filter control */
 		actionFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Action') },
+		/** Label for the user filter control */
 		userFilterLabel: { type: String, default: () => t('nextcloud-vue', 'User') },
+		/** Label for the date-from filter */
 		fromLabel: { type: String, default: () => t('nextcloud-vue', 'From') },
+		/** Label for the date-to filter */
 		toLabel: { type: String, default: () => t('nextcloud-vue', 'To') },
+		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
 	},
 

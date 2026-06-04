@@ -70,11 +70,17 @@ export default {
 	components: { NcButton, NcTextField, NcLoadingIcon, TagOutline, Plus, Close },
 
 	props: {
+		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
+		/** OpenRegister register slug */
 		register: { type: String, default: '' },
+		/** JSON Schema definition for the object */
 		schema: { type: String, default: '' },
+		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
-		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag...') },
+		/** Placeholder text for the tag input */
+		addTagPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add tag…') },
+		/** Text shown when no tags are present */
 		noTagsLabel: { type: String, default: () => t('nextcloud-vue', 'No tags') },
 	},
 
