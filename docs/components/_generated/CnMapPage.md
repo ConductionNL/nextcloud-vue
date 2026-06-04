@@ -2,19 +2,19 @@
 
 ### Props
 
-| Name               | Type      | Required | Default                                                    | Description                                                               |
-| ------------------ | --------- | -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------- |
-| `title`            | `string`  |          | `''`                                                       | Page title. Forwarded to `CnPageHeader`. @type \{string\}                 |
-| `description`      | `string`  |          | `''`                                                       | Page description. Forwarded to `CnPageHeader`. @type \{string\}           |
-| `center`           | `array`   | ✓        | —                                                          | Initial map center as `[latitude, longitude]`. @type \{[number, number]\} |
-| `zoom`             | `number`  |          | `7`                                                        | Initial zoom level. @type \{number\}                                      |
-| `layers`           | `array`   |          | `[]`                                                       | Layer definitions. See CnMapWidget docs. @type \{Array&lt;object&gt;\}    |
-| `markers`          | `object`  |          | `null`                                                     | Marker config. See CnMapWidget docs. @type \{object\|null\}               |
-| `clustering`       | `boolean` |          | `false`                                                    | Enable marker clustering. @type \{boolean\}                               |
-| `height`           | `string   | number`  |                                                            | `'calc(100vh - 200px)'`                                                   | Map container height. @type \{string\|number\} |
-| `autoFit`          | `boolean` |          | `true`                                                     | Auto-fit bounds to loaded features. @type \{boolean\}                     |
-| `ariaLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Map')`                       | Aria-label for the map application region. @type \{string\}               |
-| `unavailableLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Map library not available')` | Label shown when Leaflet is unavailable. @type \{string\}                 |
+| Name               | Type                 | Required | Default                                                    | Description                                                               |
+| ------------------ | -------------------- | -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `title`            | `string`             |          | `''`                                                       | Page title. Forwarded to `CnPageHeader`. @type \{string\}                 |
+| `description`      | `string`             |          | `''`                                                       | Page description. Forwarded to `CnPageHeader`. @type \{string\}           |
+| `center`           | `array`              | ✓        | —                                                          | Initial map center as `[latitude, longitude]`. @type \{[number, number]\} |
+| `zoom`             | `number`             |          | `7`                                                        | Initial zoom level. @type \{number\}                                      |
+| `layers`           | `array`              |          | `[]`                                                       | Layer definitions. See CnMapWidget docs. @type \{Array&lt;object&gt;\}    |
+| `markers`          | `object`             |          | `null`                                                     | Marker config. See CnMapWidget docs. @type \{object\|null\}               |
+| `clustering`       | `boolean`            |          | `false`                                                    | Enable marker clustering. @type \{boolean\}                               |
+| `height`           | `string&#124;number` |          | `'calc(100vh - 200px)'`                                    | Map container height. @type \{string\|number\}                            |
+| `autoFit`          | `boolean`            |          | `true`                                                     | Auto-fit bounds to loaded features. @type \{boolean\}                     |
+| `ariaLabel`        | `string`             |          | `() =&gt; t('nextcloud-vue', 'Map')`                       | Aria-label for the map application region. @type \{string\}               |
+| `unavailableLabel` | `string`             |          | `() =&gt; t('nextcloud-vue', 'Map library not available')` | Label shown when Leaflet is unavailable. @type \{string\}                 |
 
 ### Events
 
