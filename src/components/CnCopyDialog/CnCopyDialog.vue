@@ -28,6 +28,7 @@
 				<label for="cn-copy-pattern">{{ patternLabel }}</label>
 				<NcSelect
 					input-id="cn-copy-pattern"
+					:label-outside="true"
 					:options="patternOptions"
 					:value="selectedPattern"
 					:clearable="false"
