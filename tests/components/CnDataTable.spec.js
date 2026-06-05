@@ -180,3 +180,27 @@ describe('CnDataTable — row click selection', () => {
 		expect(wrapper.emitted('select')).toBeFalsy()
 	})
 })
+
+// OpenRegister system/metadata fields live under the object's `@self` block.
+// Sidebar-enabled metadata columns (uri, size, owner, ...) use bare keys, so
+// the table must fall back to @self for them — without it they render blank.
+describe('CnDataTable — @self metadata fallback', () => {
+	const row = { id: 'top-id', name: 'Acme', '@self': { id: 'self-id', uri: 'https://x/y', size: 1024, owner: 'admin' } }
+
+	it('resolves bare metadata keys from the @self block', () => {
+		const wrapper = mountTable({ rows: [row], columns: [{ key: 'name', label: 'Name' }] })
+		expect(wrapper.vm.getCellValue(row, 'uri')).toBe('https://x/y')
+		expect(wrapper.vm.getCellValue(row, 'size')).toBe(1024)
+		expect(wrapper.vm.getCellValue(row, 'owner')).toBe('admin')
+	})
+
+	it('prefers a top-level value over @self for a shared key', () => {
+		const wrapper = mountTable({ rows: [row], columns: [{ key: 'name', label: 'Name' }] })
+		expect(wrapper.vm.getCellValue(row, 'id')).toBe('top-id')
+	})
+
+	it('renders an enabled metadata column from @self', () => {
+		const wrapper = mountTable({ rows: [row], columns: [{ key: 'name', label: 'Name' }, { key: 'uri', label: 'URI' }] })
+		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(expect.arrayContaining(['Acme', 'https://x/y']))
+	})
+})

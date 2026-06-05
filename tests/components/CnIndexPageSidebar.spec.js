@@ -198,5 +198,25 @@ describe('CnIndexPage — sidebar prop', () => {
 			await wrapper.setProps({ visibleColumns: ['name', 'industry'] })
 			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'industry'])
 		})
+
+		it('appends a metadata column the user enabled (not in the configured list)', () => {
+			// `created` is a built-in Metadata-group column, absent from `columns`.
+			// Enabling it must synthesise a definition and append it to the table.
+			const wrapper = mountIndexPage({ schema, columns: ['name', 'type'], visibleColumns: ['name', 'type', 'created'] })
+			const cols = wrapper.vm.tableColumns
+			expect(colKeys(cols)).toEqual(['name', 'type', 'created'])
+			// Synthesised def carries the metadata label.
+			expect(cols.find((c) => c.key === 'created')).toMatchObject({ key: 'created', label: 'Created' })
+		})
+
+		it('appends a schema column beyond the configured default set', () => {
+			const wrapper = mountIndexPage({ schema, columns: ['name'], visibleColumns: ['name', 'industry'] })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name', 'industry'])
+		})
+
+		it('does not append unknown keys the sidebar does not govern', () => {
+			const wrapper = mountIndexPage({ schema, columns: ['name'], visibleColumns: ['name', 'bogus'] })
+			expect(colKeys(wrapper.vm.tableColumns)).toEqual(['name'])
+		})
 	})
 })
