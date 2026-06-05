@@ -16,7 +16,7 @@ name: Publish to npm
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main, beta, fix/release-forgejo-npm-token]
   workflow_dispatch:
     inputs:
       dry_run:
