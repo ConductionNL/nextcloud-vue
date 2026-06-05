@@ -33,7 +33,7 @@
 
 .cn-status-badge--success {
 	background-color: var(--color-success-light, rgba(70, 186, 97, 0.15));
-	color: var(--color-success);
+	color: var(--color-success-text, var(--color-success));
 }
 
 .cn-status-badge--warning {
@@ -43,12 +43,12 @@
 
 .cn-status-badge--error {
 	background-color: var(--color-error-light, rgba(224, 68, 68, 0.15));
-	color: var(--color-error);
+	color: var(--color-error-text, var(--color-error));
 }
 
 .cn-status-badge--info {
 	background-color: var(--color-info-light, rgba(0, 130, 201, 0.15));
-	color: var(--color-info, #0082c9);
+	color: var(--color-info-text, var(--color-info, #0082c9));
 }
 
 /* Solid variants — solid background with white text for use on colored backgrounds */

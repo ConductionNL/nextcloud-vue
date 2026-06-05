@@ -59,7 +59,7 @@
 					</p>
 					<NcButton
 						v-if="canDeleteNote(note)"
-						variant="tertiary-no-background"
+						type="tertiary-no-background"
 						class="cn-notes-card__delete-btn"
 						:aria-label="deleteLabel"
 						@click="confirmDelete(note)">
@@ -86,8 +86,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders } from '../../utils/index.js'
@@ -116,6 +117,10 @@ import { buildHeaders } from '../../utils/index.js'
  *   @note-deleted="refreshNotes"
  *   @show-all="openSidebarNotesTab" />
  * ```
+ *
+ * @event note-added Emitted after a new note is successfully persisted. Payload: the created note object.
+ * @event note-deleted Emitted after a note is successfully deleted. Payload: the deleted note ID.
+ * @event show-all Emitted when the user clicks the "Show all" button — parents typically open a full notes sidebar tab.
  */
 export default {
 	name: 'CnNotesCard',
@@ -135,31 +140,26 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/** OpenRegister schema ID */
 		schemaId: {
 			type: String,
 			required: true,
 		},
-
 		/** Object UUID */
 		objectId: {
 			type: String,
 			required: true,
 		},
-
 		/** Base API URL for OpenRegister */
 		apiBase: {
 			type: String,
 			default: '/apps/openregister/api',
 		},
-
 		/** Maximum number of notes to display */
 		maxDisplay: {
 			type: Number,
 			default: 5,
 		},
-
 		/** Whether the card is collapsible */
 		collapsible: {
 			type: Boolean,
@@ -167,17 +167,17 @@ export default {
 		},
 
 		// --- Pre-translated labels ---
-		/** Label / heading for the card title */
+		/** Card header title. */
 		titleLabel: { type: String, default: () => t('nextcloud-vue', 'Notes') },
-		/** Label for the add note button */
+		/** Label for the submit button that creates a new note. */
 		addNoteLabel: { type: String, default: () => t('nextcloud-vue', 'Add note') },
-		/** Placeholder text for the note input field */
-		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note…') },
-		/** Text shown when there are no notes */
+		/** Placeholder shown inside the new-note textarea before any input. */
+		addNotePlaceholder: { type: String, default: () => t('nextcloud-vue', 'Write a note...') },
+		/** Empty-state text shown when the object has zero notes. */
 		noNotesLabel: { type: String, default: () => t('nextcloud-vue', 'No notes yet') },
-		/** Label for the show-all link */
+		/** Label for the "Show all" button rendered when the note list is truncated. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
-		/** Label for the delete action */
+		/** Aria label for the per-note delete icon button. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete note') },
 	},
 
@@ -287,7 +287,7 @@ export default {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
-					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
+					this.allNotes = this.allNotes.filter(n => n.id !== note.id)
 					this.$emit('note-deleted')
 				}
 			} catch (err) {
@@ -312,6 +312,7 @@ export default {
 
 		showError(message) {
 			try {
+				// eslint-disable-next-line n/no-missing-import
 				import('@nextcloud/dialogs').then(({ showError }) => {
 					showError(message)
 				})

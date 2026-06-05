@@ -251,16 +251,16 @@ export function liveUpdatesPlugin(opts = {}) {
 
 				const callback = isObject
 					? () => {
-							store.liveLastEventAt = new Date()
-							// Dispatch fetchObject with dedup
-							store.fetchObject(type, id)
-						}
+						store.liveLastEventAt = new Date()
+						// Dispatch fetchObject with dedup
+						store.fetchObject(type, id)
+					}
 					: () => {
-							store.liveLastEventAt = new Date()
-							// Dispatch fetchCollection with last stashed params + dedup
-							const lastParams = store.__lastCollectionParams?.get(type) || {}
-							store.fetchCollection(type, lastParams)
-						}
+						store.liveLastEventAt = new Date()
+						// Dispatch fetchCollection with last stashed params + dedup
+						const lastParams = store.__lastCollectionParams?.get(type) || {}
+						store.fetchCollection(type, lastParams)
+					}
 
 				const transportOpts = {
 					isObject,

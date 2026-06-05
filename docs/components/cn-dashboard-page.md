@@ -120,6 +120,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `doneLabel` | String | `'Done'` | Label for the done button |
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
+| `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
 
 #### Widget definition
 
@@ -156,6 +157,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 |-------|---------|-------------|
 | `layout-change` | `layout[]` | Emitted when the user drags or resizes a widget; payload is the full updated layout array |
 | `edit-toggle` | `boolean` | Emitted when the Edit/Done button is clicked; payload is the new editing state |
+| `date-range-change` | `{ from, to, preset }` | Emitted on every range change AND on mount when the date-range feature is enabled. Tracks the picker's current value. |
 
 ### Slots
 
@@ -166,6 +168,67 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `widget-{widgetId}-actions` | `{ item, widget }` | Header action buttons for a specific widget |
 | `widget-{widgetId}-title-icon` | `{ item, widget }` | Extra icon in the widget header; position and color controlled by `titleIconPosition` / `titleIconColor` on the widget definition |
 | `empty` | — | Custom empty state when no layout items exist |
+
+## Date-range header
+
+When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [`CnDateRangePicker`](./cn-date-range-picker.md) between the page header and the widget grid. The selected range is:
+
+- emitted on every change via `@date-range-change`,
+- optionally persisted to `localStorage` (when `persistKey` is set),
+- provided to every descendant widget through the `cnDashboardDateRange` injection key as a reactive Vue ref.
+
+```vue
+<CnDashboardPage
+  title="Dashboard"
+  :widgets="WIDGETS"
+  :layout="layout"
+  :date-range="{
+    enabled: true,
+    persistKey: 'myapp.dashboard.range',
+    default: { preset: 'last-7' },
+  }"
+  @date-range-change="onRangeChange" />
+```
+
+### `dateRange` shape
+
+| Field        | Type           | Description                                                                |
+| ------------ | -------------- | -------------------------------------------------------------------------- |
+| `enabled`    | Boolean        | When `true`, renders the picker row. When `false` / omitted, no row appears. |
+| `default`    | Object (opt.)  | Initial `{ from, to, preset? }` when no persisted state is found.          |
+| `persistKey` | String (opt.)  | When set, the chosen range is persisted to `localStorage[persistKey]`.     |
+| `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). |
+
+The resolution order is: explicit `default` → rehydrated `localStorage` (when `persistKey` set) → `last-7` preset (`now − 7d → now`).
+
+### `cnDashboardDateRange` provide / inject
+
+`CnDashboardPage` always provides `cnDashboardDateRange` — even when the feature is off — so descendants can inject without a fallback dance:
+
+```js
+import { inject, ref } from 'vue'
+
+export default {
+  setup() {
+    const range = inject('cnDashboardDateRange', ref(null))
+    // range.value is `{ from, to, preset }` when the feature is on,
+    // and `null` when it's off.
+    return { range }
+  },
+}
+```
+
+`CnChartWidget` consumes this injection automatically — see its [bucket data-source documentation](./cn-chart-widget.md#bucket-shorthand-time-series).
+
+## Built-in page-level Actions menu
+
+The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — next to the edit toggle. This is the **page-level** menu, distinct from each widget's own menu (the per-widget ones emit `@widget-refresh` / `@widget-request-feature`).
+
+- **Refresh** emits `@refresh` and, unless suppressed via `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
+- **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
+- **Request a feature** opens `CnSuggestFeatureModal` with `surface: "dashboard:<id>"` when mounted under `CnAppRoot`.
+
+Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
 
 ## Reference (auto-generated)
 

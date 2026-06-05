@@ -127,7 +127,6 @@ export default {
 	computed: {
 		/**
 		 * Total count across all items (for percentage calculation).
-		 *
 		 * @return {number}
 		 */
 		totalCount() {
@@ -139,13 +138,11 @@ export default {
 		/**
 		 * Get the percentage for an item.
 		 * Uses item.percentage if provided, otherwise calculates from count/total.
-		 *
 		 * @param {object} item - The progress bar item
 		 * @return {number} Percentage (0-100)
 		 */
 		/**
 		 * Resolve the variant for an item. Supports string or function.
-		 *
 		 * @param {object} item - The progress bar item
 		 * @return {string} Resolved variant name
 		 */
@@ -173,7 +170,6 @@ export default {
 
 		/**
 		 * Format the display value for an item.
-		 *
 		 * @param {object} item - The progress bar item
 		 * @return {string} Formatted value
 		 */

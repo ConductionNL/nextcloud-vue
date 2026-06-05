@@ -3,7 +3,6 @@ import { generateOcsUrl } from '@nextcloud/router'
 
 /**
  * Cached user groups — fetched once per session and reused.
- *
  * @type {{ userId: string|null, groups: string[]|null, promise: Promise|null }}
  */
 const _cache = {
@@ -117,7 +116,7 @@ export function isWidgetVisible(widget, userId, userGroups) {
 
 	// Check group match
 	if (allowedGroups.length > 0 && userGroups.length > 0) {
-		const hasGroupMatch = allowedGroups.some((group) => userGroups.includes(group))
+		const hasGroupMatch = allowedGroups.some(group => userGroups.includes(group))
 		if (hasGroupMatch) {
 			return true
 		}
@@ -141,7 +140,7 @@ export async function filterWidgetsByVisibility(widgets) {
 	}
 
 	// Quick path: if no widgets have visibility config, return all
-	const hasVisibilityConfig = widgets.some((w) => w.visibility)
+	const hasVisibilityConfig = widgets.some(w => w.visibility)
 	if (!hasVisibilityConfig) {
 		return widgets
 	}
@@ -149,7 +148,7 @@ export async function filterWidgetsByVisibility(widgets) {
 	const userId = getCurrentUserId()
 	const userGroups = await getCurrentUserGroups()
 
-	return widgets.filter((widget) => isWidgetVisible(widget, userId, userGroups))
+	return widgets.filter(widget => isWidgetVisible(widget, userId, userGroups))
 }
 
 /**

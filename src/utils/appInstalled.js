@@ -45,7 +45,7 @@ export function isAppInstalled(appId) {
 	try {
 		// Primary check: OC.appswebroots (most reliable — set per-user).
 		const ocAppsWebRoots = (typeof OC !== 'undefined' && OC && OC.appswebroots) || null
-		if (ocAppsWebRoots && Object.hasOwn(ocAppsWebRoots, appId)) {
+		if (ocAppsWebRoots && Object.prototype.hasOwnProperty.call(ocAppsWebRoots, appId)) {
 			result = true
 		} else {
 			// Secondary check: capabilities bootstrap.
@@ -53,12 +53,13 @@ export function isAppInstalled(appId) {
 			if (
 				capabilities
 				&& typeof capabilities === 'object'
-				&& Object.hasOwn(capabilities, appId)
+				&& Object.prototype.hasOwnProperty.call(capabilities, appId)
 			) {
 				result = true
 			}
 		}
 	} catch (err) {
+		// eslint-disable-next-line no-console
 		console.warn(`[appInstalled] Failed to determine status for "${appId}":`, err)
 		result = false
 	}

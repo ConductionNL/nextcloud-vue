@@ -17,8 +17,7 @@
 		<div
 			v-for="(message, index) in messages"
 			:key="index"
-			class="cn-ai-message-list__item"
-			:class="[`cn-ai-message-list__item--${message.role}`]">
+			:class="['cn-ai-message-list__item', `cn-ai-message-list__item--${message.role}`]">
 			<!-- System message -->
 			<div v-if="message.role === 'system'" class="cn-ai-message-list__system-text">
 				{{ message.content }}
@@ -44,8 +43,7 @@
 				<div
 					v-for="(tool, tIdx) in (message.toolCalls || [])"
 					:key="tIdx"
-					class="cn-ai-message-list__tool"
-					:class="[{ 'cn-ai-message-list__tool--error': tool.isError }]">
+					:class="['cn-ai-message-list__tool', { 'cn-ai-message-list__tool--error': tool.isError }]">
 					<button
 						type="button"
 						class="cn-ai-message-list__tool-summary"
@@ -53,8 +51,7 @@
 						@click="toggleTool(index, tIdx)">
 						<ChevronDown
 							:size="16"
-							class="cn-ai-message-list__tool-chevron"
-							:class="[{ 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
+							:class="['cn-ai-message-list__tool-chevron', { 'cn-ai-message-list__tool-chevron--open': tool._expanded }]" />
 						{{ cnTranslate('Tool: {toolId}').replace('{toolId}', tool.toolId) }}
 					</button>
 					<div v-if="tool._expanded" class="cn-ai-message-list__tool-detail">
@@ -64,10 +61,29 @@
 			</div>
 		</div>
 
-		<!-- Streaming in-progress indicator -->
+		<!-- Streaming in-progress indicator (partial tokens) -->
 		<div v-if="currentText" class="cn-ai-message-list__item cn-ai-message-list__item--assistant">
 			<div class="cn-ai-message-list__bubble cn-ai-message-list__bubble--assistant" aria-live="polite">
 				<NcRichText :text="currentText" :use-markdown="true" />
+			</div>
+		</div>
+
+		<!--
+		  Thinking placeholder bubble — shown while the request is in flight
+		  but no streamed token has arrived yet. Local LLMs (Ollama et al.)
+		  can take 10–30s before the first response so we need a visible
+		  signal that something is happening; otherwise users assume the
+		  chat is broken.
+		-->
+		<div
+			v-if="isThinking"
+			class="cn-ai-message-list__item cn-ai-message-list__item--assistant"
+			data-testid="cn-ai-thinking">
+			<div class="cn-ai-message-list__bubble cn-ai-message-list__bubble--assistant cn-ai-message-list__bubble--thinking"
+				:aria-label="cnTranslate('AI is thinking')"
+				role="status"
+				aria-live="polite">
+				<span class="cn-ai-message-list__thinking-text">{{ cnTranslate('Thinking') }}</span><span class="cn-ai-message-list__thinking-dots" aria-hidden="true"><span class="cn-ai-message-list__thinking-dot" /><span class="cn-ai-message-list__thinking-dot" /><span class="cn-ai-message-list__thinking-dot" /></span>
 			</div>
 		</div>
 	</div>
@@ -97,7 +113,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Partial streaming text from the current token stream.
 		 */
@@ -105,12 +120,39 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Streaming/request-in-flight flag. When true AND `currentText` is
+		 * empty, the component renders a "Thinking..." placeholder bubble
+		 * with animated dots so users get a visible signal that a slow
+		 * local LLM is still working. Computed property `isThinking` below
+		 * combines the two conditions.
+		 *
+		 * @type {boolean}
+		 */
+		isStreaming: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
 		// We mutate tool entries to track expanded state.
 		// Keep a local copy to avoid mutating prop.
 		return {}
+	},
+
+	computed: {
+		/**
+		 * Show the thinking placeholder only when we are actively waiting
+		 * AND no token has arrived yet. Once the first token streams in,
+		 * `currentText` carries the partial response and the placeholder
+		 * is hidden so we don't double up.
+		 *
+		 * @returns {boolean}
+		 */
+		isThinking() {
+			return this.isStreaming && (!this.currentText || this.currentText.length === 0)
+		},
 	},
 
 	methods: {
@@ -257,5 +299,64 @@ export default {
 	font-size: 0.8em;
 	white-space: pre-wrap;
 	word-break: break-all;
+}
+
+/* Thinking placeholder — animated dots */
+.cn-ai-message-list__bubble--thinking {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
+}
+
+.cn-ai-message-list__thinking-text {
+	user-select: none;
+}
+
+.cn-ai-message-list__thinking-dots {
+	display: inline-flex;
+	gap: 2px;
+	margin-left: 2px;
+}
+
+.cn-ai-message-list__thinking-dot {
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.3;
+	animation: cn-ai-thinking-bounce 1.2s ease-in-out infinite;
+}
+
+.cn-ai-message-list__thinking-dot:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.cn-ai-message-list__thinking-dot:nth-child(3) {
+	animation-delay: 0.30s;
+}
+
+@keyframes cn-ai-thinking-bounce {
+	0%, 80%, 100% {
+		opacity: 0.3;
+		transform: translateY(0);
+	}
+	40% {
+		opacity: 1;
+		transform: translateY(-3px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-ai-message-list__thinking-dot {
+		animation: cn-ai-thinking-fade 1.4s ease-in-out infinite;
+		transform: none;
+	}
+	@keyframes cn-ai-thinking-fade {
+		0%, 100% { opacity: 0.3; }
+		50%      { opacity: 1; }
+	}
 }
 </style>

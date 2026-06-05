@@ -14,19 +14,18 @@
 			class="cn-tile-widget__link"
 			:target="tile.linkType === 'url' ? '_blank' : '_self'"
 			rel="noopener noreferrer">
-			<!-- SVG icon: path `d` is validated to the SVG path character set -->
+			<!-- SVG icon -->
 			<svg
 				v-if="tile.iconType === 'svg'"
 				class="cn-tile-widget__icon cn-tile-widget__icon--svg"
 				:style="{ fill: tile.textColor || '#ffffff' }"
 				viewBox="0 0 24 24">
-				<path :d="safeTileIconPath" />
+				<path :d="tile.icon" />
 			</svg>
 			<!-- Other icon types -->
 			<div v-else class="cn-tile-widget__icon">
-				<span v-if="tile.iconType === 'class'" class="icon" :class="[tile.icon]" />
-				<!-- img src validated to https/http/relative — rejects cross-origin tracking URLs -->
-				<img v-else-if="tile.iconType === 'url'" :src="safeTileIconSrc" alt="">
+				<span v-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
+				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="">
 				<span v-else-if="tile.iconType === 'emoji'" class="cn-tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
 			<div class="cn-tile-widget__title" :style="{ color: tile.textColor || '#ffffff' }">
@@ -38,7 +37,6 @@
 
 <script>
 import { generateUrl } from '@nextcloud/router'
-import { safeHref, safeSvgPath } from '../../utils/safeHref.js'
 
 /**
  * CnTileWidget — Quick-access tile with icon and link.
@@ -61,7 +59,6 @@ export default {
 	props: {
 		/**
 		 * Tile configuration object.
-		 *
 		 * @type {{ title: string, icon: string, iconType: 'svg'|'class'|'url'|'emoji', backgroundColor: string, textColor: string, linkType: 'app'|'url', linkValue: string }}
 		 */
 		tile: {
@@ -73,32 +70,9 @@ export default {
 	computed: {
 		tileUrl() {
 			if (this.tile.linkType === 'app') {
-				// generateUrl always returns a safe relative /apps/... path
 				return generateUrl('/apps/' + this.tile.linkValue)
 			}
-			// Validate external URLs — reject javascript:, data:, etc.
-			return safeHref(this.tile.linkValue)
-		},
-
-		/**
-		 * Safe SVG path `d` attribute value. Restricted to the SVG path
-		 * command character set; returns `''` for any non-conforming input
-		 * to prevent binding attacker-controlled strings to the DOM.
-		 *
-		 * @return {string}
-		 */
-		safeTileIconPath() {
-			return safeSvgPath(this.tile.icon)
-		},
-
-		/**
-		 * Safe image source URL for icon type 'url'. Only same-origin and
-		 * http(s) URLs are allowed; returns `''` for unsafe schemes.
-		 *
-		 * @return {string}
-		 */
-		safeTileIconSrc() {
-			return safeHref(this.tile.icon)
+			return this.tile.linkValue || '#'
 		},
 
 		tileStyles() {

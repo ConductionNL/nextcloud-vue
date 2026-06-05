@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
+import { ref, watch, isRef, unref, onMounted, onBeforeUnmount } from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
-import { isRef, onBeforeUnmount, onMounted, ref, unref, watch } from 'vue'
 
 /**
  * useObjectSubscription — auto-managed live-update subscription.
@@ -55,7 +55,7 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 			// without escalating to a render error — most consumers shouldn't
 			// crash the page over a subscription failure.
 			status.value = 'closed'
-
+			// eslint-disable-next-line no-console
 			console.warn('[useObjectSubscription] subscribe failed:', e?.message ?? e)
 		}
 	}
@@ -68,6 +68,7 @@ export function useObjectSubscription(objectStore, type, id, options = {}) {
 		try {
 			await objectStore.unsubscribe(h)
 		} catch (e) {
+			// eslint-disable-next-line no-console
 			console.warn('[useObjectSubscription] unsubscribe failed:', e?.message ?? e)
 		}
 	}

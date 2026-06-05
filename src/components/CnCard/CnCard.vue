@@ -55,7 +55,7 @@
 				<a
 					v-for="(link, i) in footerLinks"
 					:key="'link-' + i"
-					:href="safeHref(link.url)"
+					:href="link.url"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="cn-card__footer-link">
@@ -74,7 +74,6 @@
 </template>
 
 <script>
-import { safeHref } from '../../utils/safeHref.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -128,31 +127,26 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/** Description text, displayed with line-clamp truncation */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Tooltip text for the title. If not set, falls back to description */
 		titleTooltip: {
 			type: String,
 			default: '',
 		},
-
 		/** Icon component (e.g., imported MDI icon). Rendered via <component :is> */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
-
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,
 			default: 20,
 		},
-
 		/**
 		 * Array of badge/label objects displayed inline with the title.
 		 * Each entry: { text: string, variant?: string }
@@ -164,7 +158,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Array of stat rows displayed as label:value pairs.
 		 * Each entry: { label: string, value: string|number }
@@ -173,19 +166,16 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Maximum lines for description truncation (CSS line-clamp) */
 		descriptionLines: {
 			type: Number,
 			default: 3,
 		},
-
 		/** Whether the card is in an active/highlighted state */
 		active: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Color variant for the active state border and background.
 		 * Maps to Nextcloud CSS variables.
@@ -195,13 +185,11 @@ export default {
 			default: 'success',
 			validator: (v) => ['success', 'primary', 'warning', 'error', 'info'].includes(v),
 		},
-
 		/** Whether the card is clickable (adds hover effect and cursor pointer) */
 		clickable: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Array of footer link objects. Each entry: { url: string, label?: string }
 		 * Links are rendered as clickable anchors. Use the #footer-link-icon-{index} slot
@@ -211,7 +199,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Array of tag items for the footer. Accepts either strings or objects.
 		 * String entries are converted to { text: string, variant: 'default' }.
@@ -250,7 +237,9 @@ export default {
 		},
 
 		normalizedTags() {
-			return this.tags.map((tag) => typeof tag === 'string' ? { text: tag, variant: 'default' } : tag)
+			return this.tags.map(tag =>
+				typeof tag === 'string' ? { text: tag, variant: 'default' } : tag,
+			)
 		},
 
 		hasFooterContent() {
@@ -285,8 +274,6 @@ export default {
 	},
 
 	methods: {
-		safeHref,
-
 		onClick(event) {
 			if (this.clickable) {
 				this.$emit('click', event)

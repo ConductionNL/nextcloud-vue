@@ -2,10 +2,42 @@
 
 Manifest-driven app navigation. Renders the manifest's `menu[]` array as `NcAppNavigation` + `NcAppNavigationItem`. Sorts by `order`; filters by `permission`; supports one level of nested `children[]`.
 
-Items split into two groups by `section`:
+Items split into three groups by `section`:
 
 - `section: "main"` (default) — top of the navigation, scrollable.
-- `section: "settings"` — pinned to the bottom inside `NcAppNavigation`'s `#footer` slot, separated from the main list by a thin border. Use for documentation links, settings entries, or anything that should anchor below the scroll area.
+- `section: "footer"` — pinned-bottom **regular** entries rendered flat above the settings foldout. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
+- `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout mounts whenever there are `settings` items **or** personal settings is enabled — so every app shows a Settings gear with at least Personal settings; it's only fully suppressed when there are no `settings` items **and** `nav.includePersonalSettings: false`.
+
+### Primary action
+
+An optional primary action renders above the main list as an `NcAppNavigationNew` button — for a "new" button or an active-context switcher (e.g. OpenRegister's active-organisation button). Two ways to provide it:
+
+- **`#primary-action` slot** — full control over dynamic content and click handling. Use this when the button reflects live state (a store-driven label) or needs custom navigation. The slot **wins** when both are present.
+- **`nav.primaryAction` manifest field** — declarative fallback (`{ label, icon?, route?, href? }`). On click it emits `primary-action-click`, then navigates: `href` opens in a new tab, `route` pushes the named vue-router route.
+
+Nothing renders when neither is provided (backwards compatible).
+
+### `nav` block
+
+Top-level manifest config for the navigation:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
+| `nav.settingsLabel` | String | `'Settings'` | Override the foldout gear-button label. |
+| `nav.primaryAction` | Object | — | Optional primary-action button above the main list: `{ label, icon?, route?, href? }`. Overridden by the `#primary-action` slot. |
+
+### Slots
+
+| Slot | Description |
+|------|-------------|
+| `primary-action` | Replaces the manifest-driven primary-action button. Render an `NcAppNavigationNew` (or anything) with your own dynamic label and click handler. |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `primary-action-click` | `nav.primaryAction` object | Emitted when the manifest-declared primary-action button is clicked (before default navigation). Not emitted when the `#primary-action` slot is overridden. |
 
 `manifest`, `translate`, and `permissions` are read from injected values (provided by [`CnAppRoot`](./cn-app-root.md)) but can also be passed as props for standalone use. **Props always win over inject.**
 
@@ -52,7 +84,7 @@ Items split into two groups by `section`:
 | `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
-| `section` | `'main' \| 'settings'` | Default `'main'`. `'settings'` items render in the bottom footer list |
+| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = pinned-bottom flat entry; `'settings'` = inside the gear-icon foldout |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
 | `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently |
 | `visibleIf` | `object` | Optional display condition block — see [visibleIf conditions](#visibleif-conditions) |

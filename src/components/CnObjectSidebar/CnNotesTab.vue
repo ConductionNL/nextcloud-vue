@@ -68,11 +68,11 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcListItem, NcActionButton, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -128,7 +128,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -147,7 +147,7 @@ export default {
 			this.saving = true
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -178,7 +178,7 @@ export default {
 			this.saving = true
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes/${encodeURIComponent(this.editingNoteId)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${this.editingNoteId}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -202,10 +202,10 @@ export default {
 		async deleteNote(note) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/notes/${encodeURIComponent(note.id)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/notes/${note.id}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.notes = this.notes.filter((n) => n.id !== note.id)
+				this.notes = this.notes.filter(n => n.id !== note.id)
 			} catch (err) {
 				console.error('CnNotesTab: Failed to delete note', err)
 			}

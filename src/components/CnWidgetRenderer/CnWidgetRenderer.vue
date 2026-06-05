@@ -43,10 +43,10 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
-import { generateOcsUrl } from '@nextcloud/router'
 import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import axios from '@nextcloud/axios'
+import { generateOcsUrl } from '@nextcloud/router'
 
 /**
  * CnWidgetRenderer — Renders Nextcloud Dashboard API widgets.
@@ -71,14 +71,12 @@ export default {
 	props: {
 		/**
 		 * Nextcloud widget object from the Dashboard API.
-		 *
 		 * @type {{ id: string, title: string, iconClass: string, iconUrl: string, widgetUrl: string, itemIconsRound: boolean, itemApiVersions: number[], reloadInterval: number, buttons: Array }}
 		 */
 		widget: {
 			type: Object,
 			required: true,
 		},
-
 		/** Text shown when widget is not available */
 		unavailableText: {
 			type: String,
@@ -109,7 +107,7 @@ export default {
 		},
 
 		widgetItems() {
-			return this.items.map((item) => ({
+			return this.items.map(item => ({
 				id: item.sinceId || item.id || String(Math.random()),
 				targetUrl: item.link || item.targetUrl || '',
 				avatarUrl: item.iconUrl || item.avatarUrl || '',
@@ -145,7 +143,9 @@ export default {
 			this.loading = true
 			try {
 				const version = this.isApiWidgetV2 ? 2 : 1
-				const url = generateOcsUrl(`/apps/dashboard/api/v${version}/widget-items`)
+				const url = generateOcsUrl(
+					`/apps/dashboard/api/v${version}/widget-items`,
+				)
 				const response = await axios.get(url, {
 					params: { widgets: [this.widget.id] },
 				})

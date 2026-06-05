@@ -188,33 +188,6 @@
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
 			<!--
-			  Hoisted detail-page object sidebar. Symmetric with the
-			  index-sidebar block above, but the channel is the
-			  injected `objectSidebarState` holder that `CnDetailPage`
-			  publishes into via `syncSidebarState()`. Renders only
-			  when (a) the consumer didn't fill `#sidebar` themselves
-			  AND (b) no ancestor already owns the holder (decidesk's
-			  / procest's pattern — those keep their own
-			  `<CnObjectSidebar>` mount). Manifest-only apps
-			  (openbuilt, mydash) get the sidebar for free; ADR-017
-			  compliant because the component mounts here at
-			  `NcContent` level, not inside `NcAppContent`.
-			-->
-			<CnObjectSidebar
-				v-if="shouldAutoMountObjectSidebar"
-				:title="resolvedObjectSidebarState.title"
-				:subtitle="resolvedObjectSidebarState.subtitle"
-				:object-type="resolvedObjectSidebarState.objectType"
-				:object-id="resolvedObjectSidebarState.objectId"
-				:register="resolvedObjectSidebarState.register"
-				:schema="resolvedObjectSidebarState.schema"
-				:hidden-tabs="resolvedObjectSidebarState.hiddenTabs"
-				:tabs="resolvedObjectSidebarState.tabs"
-				:custom-components="customComponents"
-				:open="resolvedObjectSidebarState.open"
-				@update:open="resolvedObjectSidebarState.open = $event" />
-
-			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
 			  children so its embedded NcAppSidebar slides in from the right
 			  edge (positioning relies on being the last NcContent sibling,
@@ -223,6 +196,23 @@
 			  component. No per-app wiring required.
 			-->
 			<CnAiCompanion />
+
+			<!--
+			  Support note — auto-mounted on first open per the fleet
+			  support-dialog rollout. Deriving slug/name/URLs from `appId`
+			  by convention means apps gain it on a lib bump with no
+			  per-app wiring; pass `:support-dialog="false"` to opt out or
+			  an object to override copy/URLs. Persistence is per-user
+			  (server preferences endpoint) with a localStorage fallback.
+			-->
+			<CnSupportDialog
+				v-if="cnSupportVisible"
+				:app-name="cnSupportAppName"
+				:app-slug="appId"
+				:app-store-url="cnSupportAppStoreUrl"
+				:feature-request-url="cnSupportFeatureRequestUrl"
+				v-bind="cnSupportOverrides"
+				@close="cnSupportHide" />
 			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
@@ -236,31 +226,57 @@
 				:show-navigation="true"
 				:name="resolvedUserSettingsTitle"
 				@update:open="userSettingsOpen = $event">
-				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to a single placeholder section when omitted. -->
+				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
 				<slot name="user-settings">
-					<NcAppSettingsSection
-						id="general"
-						:name="translate('User preferences')">
-						<p>{{ translate('User preferences will appear here.') }}</p>
-					</NcAppSettingsSection>
+					<CnNotificationPreferences v-if="userSettingsOpen" />
 				</slot>
 			</NcAppSettingsDialog>
+
+			<!--
+			  V2 registry modal — mounted when cnOpenModal(key, props) is
+			  called by the actions dispatcher. The resolved component is
+			  whatever was registered under that key in the `registry` prop.
+			  Closes by setting activeModalKey to null.
+			-->
+			<component
+				:is="activeModalComponent"
+				v-if="activeModalComponent"
+				v-bind="activeModalProps"
+				@close="activeModalKey = null"
+				@update:open="activeModalKey = null" />
 		</template>
 	</NcContent>
 </template>
 
 <script>
-import { getCapabilities } from '@nextcloud/capabilities'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import Vue from 'vue'
+import { getCapabilities } from '@nextcloud/capabilities'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
-import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
-import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
+import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
+import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { RegistryKindError } from '../../errors/RegistryKindError.js'
+import Vue from 'vue'
+
+/**
+ * Recognised registry kinds and their required metadata fields.
+ * An empty array means no additional fields are required beyond `component`.
+ */
+const REGISTRY_KIND_REQUIRED_FIELDS = {
+	widget: ['defaultSize', 'minSize', 'maxSize', 'allowedSlots', 'propsSchema'],
+	modal: ['propsSchema'],
+	page: [],
+	'form-field': ['appliesTo'],
+	'cell-renderer': ['appliesTo'],
+}
+
+const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
 
 /**
  * Default URL for the OpenRegister integration page. The empty-state
@@ -285,7 +301,8 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnAiCompanion,
-		CnObjectSidebar,
+		CnSupportDialog,
+		CnNotificationPreferences,
 	},
 
 	provide() {
@@ -297,6 +314,35 @@ export default {
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
 			/**
+			 * V2 component registry. Provided to all descendants so
+			 * CnWidgetGrid and CnPageRenderer can resolve widget keys.
+			 * The registry prop is passed by reference — mutations
+			 * after mount are NOT tracked; consumers should mount with
+			 * the complete registry.
+			 */
+			cnRegistry: this.registry,
+			/**
+			 * Open a modal registered in the v2 registry. Used by
+			 * the actions dispatcher to open modals declared in the
+			 * manifest's `actions[]` array. Validates `kind === "modal"`
+			 * before delegating to the `cnModalKey` reactive holder.
+			 *
+			 * @param {string} key The registry key of the modal to open.
+			 * @param {object} props Props forwarded to the modal component.
+			 */
+			cnOpenModal: (key, props = {}) => {
+				const entry = this.registry[key]
+				if (!entry || entry.kind !== 'modal') {
+					// eslint-disable-next-line no-console
+					console.warn(
+						`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`,
+					)
+					return
+				}
+				this.activeModalKey = key
+				this.activeModalProps = props
+			},
+			/**
 			 * Open the host app's NcAppSettingsDialog. Bound to
 			 * `this` so descendants don't have to. Used by CnAppNav
 			 * to dispatch `action: "user-settings"` clicks; consumer
@@ -306,7 +352,6 @@ export default {
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
 			},
-
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
 			 * CnDetailPage, CnDashboardPage) overwrite fields on this object
@@ -333,43 +378,20 @@ export default {
 			 */
 			cnHostsIndexSidebar: true,
 			/**
-			 * `objectSidebarState` reactive holder. Resolution order:
-			 *
-			 *   1. **Ancestor-provided** — when an outer wrapper
-			 *      (decidesk's / procest's `App.vue` pattern) already
-			 *      exposes one via its own `provide()`, we hand that
-			 *      holder back down so CnDetailPage descendants under
-			 *      this CnAppRoot subtree write to the same object the
-			 *      consumer's `#sidebar` slot reads from. Preserves the
-			 *      pre-change behaviour for those apps with zero change.
-			 *   2. **Local fallback** — manifest-only apps (openbuilt,
-			 *      mydash) hit this branch; CnAppRoot's own observable
-			 *      holder backs the auto-mounted `<CnObjectSidebar>`
-			 *      below and the CnDetailPage publish path. ADR-017
-			 *      compliant — sidebar mounts at NcContent level.
-			 *
-			 * Resolved once at provide-time so the same reference flows
-			 * to every descendant inject for the lifetime of this
-			 * CnAppRoot instance.
+			 * Consuming app's slug (e.g. "pipelinq"). Mirrors the `appId`
+			 * prop. Auto-filled by `CnWidgetWrapper`'s built-in
+			 * Request-a-feature default as the `app` prop on
+			 * `CnSuggestFeatureModal` so no per-widget wiring is needed.
 			 */
-			objectSidebarState: this.ancestorObjectSidebarState || this.localObjectSidebarState,
+			cnAppId: this.appId,
 			/**
-			 * Dedicated `sidebarState` holder for CnIndexPage's
-			 * `inject('sidebarState', null) ?? inject('objectSidebarState', null)`.
-			 * Provided so the preferred inject resolves to a holder
-			 * with the right shape (CnIndexPage writes
-			 * `searchValue`/`activeFilters`/`facetData`/`schema`-as-JSON-
-			 * schema), and the fallback to `objectSidebarState` (which
-			 * carries CnDetailPage's per-object publish) never fires.
-			 *
-			 * Before this fix the fallback resolved to
-			 * `localObjectSidebarState` and CnIndexPage's writes were
-			 * setting `active: true` on it — so the auto-mounted
-			 * `<CnObjectSidebar>` rendered alongside `<CnIndexSidebar>`
-			 * on index pages. See the openbuilt index-page double-
-			 * sidebar regression that surfaced after PR #227.
+			 * Target repo slug for the in-product feature-request deep
+			 * link (e.g. `ConductionNL/pipelinq`). Read from the
+			 * manifest's `nav.featureRequestRepo` when set; falls back
+			 * to `ConductionNL/<appId>` which is the convention for
+			 * every Conduction app.
 			 */
-			sidebarState: this.localIndexPageSidebarState,
+			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
 		}
 	},
 
@@ -395,21 +417,6 @@ export default {
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
-		/**
-		 * Optional ancestor-provided `objectSidebarState` holder. When an
-		 * outer wrapper already exposes one (decidesk's / procest's
-		 * `App.vue` patterns), CnAppRoot reuses that holder so the
-		 * outer-rendered `<CnObjectSidebar>` stays in lock-step with
-		 * CnDetailPage writes. When no ancestor provides it, the local
-		 * fallback in `data().objectSidebarState` kicks in (see the
-		 * resolution in `provide()` and `resolvedObjectSidebarState`)
-		 * so the manifest-only consumer pattern works without any
-		 * per-app boilerplate.
-		 *
-		 * Aliased to `ancestorObjectSidebarState` so the local data
-		 * property can keep the shorter name without colliding.
-		 */
-		ancestorObjectSidebarState: { from: 'objectSidebarState', default: null },
 	},
 
 	props: {
@@ -424,7 +431,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
@@ -435,7 +441,22 @@ export default {
 			type: String,
 			required: true,
 		},
-
+		/**
+		 * First-open support note (`CnSupportDialog`). `true` (default)
+		 * auto-mounts it, deriving the app name and the App-Store /
+		 * feature-request URLs from `appId` by convention. Pass `false`
+		 * to opt out, or an object to override any `CnSupportDialog`
+		 * prop (e.g. `{ appName, appStoreUrl, featureRequestUrl,
+		 * donateUrl, founderName, … }`). Dismissal persists per-user via
+		 * the app's `/api/preferences/support-dialog-seen` endpoint, with
+		 * a localStorage fallback.
+		 *
+		 * @type {boolean|object}
+		 */
+		supportDialog: {
+			type: [Boolean, Object],
+			default: true,
+		},
 		/**
 		 * Whether the manifest is still loading from the backend.
 		 * Typically wired to `useAppManifest().isLoading`. Defaults to
@@ -448,7 +469,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Custom-component registry consumed by CnPageRenderer for
 		 * `type: "custom"` pages and slot overrides. Empty by default.
@@ -459,7 +479,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Cell-formatter registry. Map of formatter-id →
 		 * `(value, row, property) => string|number`. Resolves the
@@ -477,7 +496,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Cell-widget registry. Map of widget-id → Vue component, rendered
 		 * for a column that declares `pages[].config.columns[].widget`. The
@@ -494,7 +512,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Translate function provided by the consuming app. The library
 		 * never imports `t()` from a specific app, so the consumer
@@ -516,7 +533,6 @@ export default {
 			type: Function,
 			default: (key) => key,
 		},
-
 		/**
 		 * List of permission strings the current user holds. Forwarded
 		 * to CnAppNav's permission filter.
@@ -527,7 +543,6 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Page-type registry. Map of `pages[].type` → Vue component.
 		 * Provided to descendant CnPageRenderer instances via inject.
@@ -541,7 +556,22 @@ export default {
 			type: Object,
 			default: null,
 		},
-
+		/**
+		 * Component registry for v2 manifests. Map of registry key →
+		 * `{ kind, component, ...kindMetadata }`. Provided to descendants
+		 * via Vue provide under key `cnRegistry`. Validated at `mounted()`
+		 * time — unknown `kind` throws `RegistryKindError`; missing required
+		 * kind-metadata emits `console.warn`.
+		 *
+		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
+		 * `cell-renderer`. See spec REQ-MVR-002.
+		 *
+		 * @type {object}
+		 */
+		registry: {
+			type: Object,
+			default: () => ({}),
+		},
 		/**
 		 * Required Nextcloud apps for this Conduction app to function.
 		 * Default `['openregister']` — every fleet app stores its data
@@ -572,7 +602,6 @@ export default {
 			type: Array,
 			default: () => ['openregister'],
 		},
-
 		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
@@ -585,6 +614,40 @@ export default {
 			type: String,
 			default: '',
 		},
+	},
+
+	/**
+	 * Component-instance state for the capabilities guard.
+	 *
+	 * - `capabilitiesLoading`: `true` only when the prop says we need
+	 *   to check (i.e. `requiresApps.length > 0`). Apps that opt out
+	 *   via `:requires-apps="[]"` see this initialise to `false`, so
+	 *   no spinner flashes and the renderer mounts on the first
+	 *   render. Apps that need the guard see `true` initially; the
+	 *   `mounted()` hook runs the check and flips to `false`.
+	 * - `missingApps`: the list of `requiresApps` entries NOT
+	 *   present in the capabilities payload. When empty, the
+	 *   renderer mounts; when non-empty, the empty-state renders.
+	 * - `guardError`: stores the caught error so consumers
+	 *   inspecting the component instance can introspect failures.
+	 *   The error path falls through to the renderer regardless.
+	 */
+	/**
+	 * Auto-mount the first-open support note unless the host opted out
+	 * with `:support-dialog="false"`. Per-user persistence via the app's
+	 * preferences endpoint (localStorage fallback inside the composable).
+	 * Returns no refs when disabled, so the `v-if="cnSupportVisible"` in
+	 * the template stays false.
+	 *
+	 * @param {object} props Component props (reads `appId`, `supportDialog`).
+	 * @return {object} `{ cnSupportVisible, cnSupportHide }` or `{}` when disabled.
+	 */
+	setup(props) {
+		if (props.supportDialog === false) {
+			return {}
+		}
+		const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
+		return { cnSupportVisible: visible, cnSupportHide: hide }
 	},
 
 	/**
@@ -617,56 +680,6 @@ export default {
 			 */
 			cnIndexSidebarConfig: { value: null },
 			/**
-			 * Local fallback `objectSidebarState` — used only when no
-			 * ancestor provides one (i.e. manifest-only apps that
-			 * haven't hand-rolled a holder in their `App.vue`). Vue 2
-			 * needs `Vue.observable()` to make plain-object property
-			 * writes from `CnDetailPage.syncSidebarState()` reactive.
-			 * The shape mirrors what `CnDetailPage` writes into
-			 * (`active`, `open`, `objectType`, `objectId`, `title`,
-			 * `subtitle`, `register`, `schema`, `hiddenTabs`, `tabs`)
-			 * so the consumer's `<CnObjectSidebar>` — whether
-			 * auto-mounted by CnAppRoot or rendered from a custom
-			 * `#sidebar` slot — sees the full set of fields it
-			 * expects on mount.
-			 */
-			localObjectSidebarState: Vue.observable({
-				active: false,
-				open: true,
-				objectType: '',
-				objectId: '',
-				title: '',
-				subtitle: '',
-				register: '',
-				schema: '',
-				hiddenTabs: [],
-				tabs: undefined,
-			}),
-
-			/**
-			 * Local `sidebarState` holder for `CnIndexPage`. Distinct from
-			 * `localObjectSidebarState` above because CnIndexPage writes
-			 * search / filter / column / schema-metadata state into it,
-			 * which has a different shape from CnDetailPage's object-
-			 * sidebar publish. CnIndexPage's `inject('sidebarState') ??
-			 * inject('objectSidebarState')` would have fallen through to
-			 * the object holder once CnAppRoot started providing one —
-			 * that conflated the two channels and made `CnObjectSidebar`
-			 * render with `active: true` on index pages alongside
-			 * `CnIndexSidebar`. Providing this dedicated holder makes the
-			 * preferred inject resolve, so the fallback never fires.
-			 */
-			localIndexPageSidebarState: Vue.observable({
-				active: false,
-				open: true,
-				schema: null,
-				hiddenTabs: [],
-				searchValue: '',
-				activeFilters: {},
-				facetData: {},
-			}),
-
-			/**
 			 * Reactive AI context. Provided to all descendants via
 			 * provide('cnAiContext'). Page components overwrite fields
 			 * in their created() + watch() to give the companion
@@ -682,7 +695,6 @@ export default {
 				pageKind: 'custom',
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
-
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -691,46 +703,88 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
+			/**
+			 * Key of the currently active modal (opened via cnOpenModal).
+			 * null when no modal is open.
+			 *
+			 * @type {string|null}
+			 */
+			activeModalKey: null,
+			/**
+			 * Props forwarded to the active modal component.
+			 *
+			 * @type {object}
+			 */
+			activeModalProps: {},
 		}
 	},
 
 	computed: {
 		/**
-		 * Resolved `objectSidebarState` for template + descendant use.
-		 * Returns the ancestor-provided holder when present, else the
-		 * local observable fallback. Reading it in the template lets
-		 * the auto-mount block stay declarative.
-		 */
-		resolvedObjectSidebarState() {
-			return this.ancestorObjectSidebarState || this.localObjectSidebarState
-		},
-
-		/**
-		 * True when CnAppRoot should render its own
-		 * `<CnObjectSidebar>` auto-mount. Suppressed when:
+		 * Resolved support-dialog config object — `{}` when `supportDialog`
+		 * is `true`/`false`, or the host-supplied override object.
 		 *
-		 *   - the consumer fills the `#sidebar` slot — slot content
-		 *     always wins;
-		 *   - an ancestor already provides the holder (decidesk's /
-		 *     procest's `App.vue` pattern) — the ancestor renders its
-		 *     own sidebar, so CnAppRoot stays out of the way;
-		 *   - the holder hasn't published a real per-object context
-		 *     (`objectType` AND `objectId` both non-empty). Defense in
-		 *     depth: if some other code path (e.g. CnIndexPage falling
-		 *     through to objectSidebarState as a legacy inject) flips
-		 *     `active: true` without populating those fields, we still
-		 *     refuse to render an empty object sidebar.
+		 * @return {object}
 		 */
-		shouldAutoMountObjectSidebar() {
-			if (this.$slots.sidebar) return false
-			if (this.ancestorObjectSidebarState) return false
-			const s = this.resolvedObjectSidebarState
-			if (s.active !== true) return false
-			if (typeof s.objectType !== 'string' || s.objectType === '') return false
-			if (s.objectId === null || s.objectId === undefined || String(s.objectId) === '') return false
-			return true
+		cnSupportConfig() {
+			return (this.supportDialog && typeof this.supportDialog === 'object')
+				? this.supportDialog
+				: {}
 		},
-
+		/**
+		 * App display name for the support note — host override, else the
+		 * capitalised `appId` (e.g. `pipelinq` → `Pipelinq`).
+		 *
+		 * @return {string}
+		 */
+		cnSupportAppName() {
+			if (this.cnSupportConfig.appName) {
+				return this.cnSupportConfig.appName
+			}
+			return this.appId
+				? this.appId.charAt(0).toUpperCase() + this.appId.slice(1)
+				: ''
+		},
+		/**
+		 * App Store listing URL — host override, else the conventional
+		 * `apps.nextcloud.com/apps/{appId}`.
+		 *
+		 * @return {string}
+		 */
+		cnSupportAppStoreUrl() {
+			return this.cnSupportConfig.appStoreUrl
+				|| ('https://apps.nextcloud.com/apps/' + this.appId)
+		},
+		/**
+		 * Feature-request URL — host override, else the conventional
+		 * `github.com/ConductionNL/{appId}/issues/new` (GitHub redirects
+		 * resolve repo-name casing).
+		 *
+		 * @return {string}
+		 */
+		cnSupportFeatureRequestUrl() {
+			return this.cnSupportConfig.featureRequestUrl
+				|| ('https://github.com/ConductionNL/' + this.appId + '/issues/new')
+		},
+		/**
+		 * Pass-through of any other `CnSupportDialog` props supplied in
+		 * the `supportDialog` override object (donateUrl, supportUrl,
+		 * conductionUrl, appsUrl, founderName/title/avatar/profile,
+		 * bodyParagraphs). Lets a host re-sign the note without forking.
+		 *
+		 * @return {object}
+		 */
+		cnSupportOverrides() {
+			const cfg = this.cnSupportConfig
+			const passthrough = ['donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs']
+			const out = {}
+			for (const key of passthrough) {
+				if (cfg[key] !== undefined) {
+					out[key] = cfg[key]
+				}
+			}
+			return out
+		},
 		/**
 		 * Per-dependency status, computed once per `appId` declared in
 		 * `manifest.dependencies`. Reading the value here triggers the
@@ -743,19 +797,16 @@ export default {
 				: []
 			return deps.map((id) => ({ id, status: useAppStatus(id) }))
 		},
-
 		unresolvedDependencies() {
 			return this.dependencyStatuses
 				.filter(({ status }) => !status.installed.value || !status.enabled.value)
 				.map(({ id }) => ({ id, name: id, enabled: false }))
 		},
-
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
 			return 'shell'
 		},
-
 		/**
 		 * Default link surfaced by the missing-app empty-state action.
 		 * Points at the OpenRegister integration page in the Nextcloud
@@ -765,9 +816,36 @@ export default {
 		orStoreLink() {
 			return OR_STORE_LINK
 		},
-
+		/**
+		 * Repo target for the built-in feature-request deep link.
+		 * Provided to descendants under the `cnFeatureRequestRepo`
+		 * inject key. Reads `manifest.nav.featureRequestRepo` when set;
+		 * falls back to `ConductionNL/<appId>` which is the convention
+		 * for every Conduction app. Returns empty string when no
+		 * `appId` is available (defensive — should never happen since
+		 * `appId` is a required prop).
+		 *
+		 * @return {string}
+		 */
+		resolvedFeatureRequestRepo() {
+			const explicit = this.manifest?.nav?.featureRequestRepo
+			if (typeof explicit === 'string' && explicit.length > 0) return explicit
+			if (!this.appId) return ''
+			return `ConductionNL/${this.appId}`
+		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
+		},
+		/**
+		 * Resolve the active modal's Vue component from the registry.
+		 * Returns null when no modal is open or the key no longer resolves.
+		 *
+		 * @return {object|null}
+		 */
+		activeModalComponent() {
+			if (!this.activeModalKey) return null
+			const entry = (this.registry || {})[this.activeModalKey]
+			return (entry && entry.component) ? entry.component : null
 		},
 	},
 
@@ -775,6 +853,8 @@ export default {
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
+			this._validateRegistry()
+			this._warnCustomComponentsDeprecation()
 			return
 		}
 
@@ -788,7 +868,7 @@ export default {
 			// Capabilities API failure — log and fall through to the
 			// renderer. The data layer will surface the actual problem
 			// if OR is genuinely missing.
-
+			// eslint-disable-next-line no-console
 			console.warn(
 				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
 				err,
@@ -798,6 +878,70 @@ export default {
 		} finally {
 			this.capabilitiesLoading = false
 		}
+
+		this._validateRegistry()
+		this._warnCustomComponentsDeprecation()
+	},
+
+	methods: {
+		/**
+		 * Validate every entry in the `registry` prop at mount time.
+		 *
+		 * - Unknown `kind` throws `RegistryKindError` (hard error; developer
+		 *   must fix the registration).
+		 * - Known `kind` with missing required metadata emits `console.warn`
+		 *   (soft error; the widget still renders with defaults).
+		 */
+		_validateRegistry() {
+			const registry = this.registry || {}
+			for (const [key, entry] of Object.entries(registry)) {
+				if (!entry || typeof entry !== 'object') continue
+
+				const kind = entry.kind
+
+				if (!KNOWN_REGISTRY_KINDS.includes(kind)) {
+					throw new RegistryKindError(key, kind)
+				}
+
+				const requiredFields = REGISTRY_KIND_REQUIRED_FIELDS[kind]
+				for (const field of requiredFields) {
+					if (!Object.prototype.hasOwnProperty.call(entry, field)) {
+						// eslint-disable-next-line no-console
+						console.warn(
+							`[CnAppRoot] Registry entry "${key}" (kind: "${kind}") is missing required metadata field "${field}".`,
+						)
+					}
+				}
+			}
+		},
+
+		/**
+		 * Emit a single console.warn per mount when both a non-empty
+		 * customComponents prop AND a v2 manifest are present.
+		 *
+		 * Uses an instance flag `_customComponentsWarnedOnce` to prevent
+		 * repeat warnings on re-render.
+		 */
+		_warnCustomComponentsDeprecation() {
+			if (this._customComponentsWarnedOnce) return
+
+			const hasCustomComponents = this.customComponents
+				&& typeof this.customComponents === 'object'
+				&& Object.keys(this.customComponents).length > 0
+
+			const isV2Manifest = this.manifest
+				&& typeof this.manifest.$schema === 'string'
+				&& this.manifest.$schema.includes('app-manifest-v2')
+
+			if (hasCustomComponents && isV2Manifest) {
+				// eslint-disable-next-line no-console
+				console.warn(
+					'CnAppRoot: `customComponents` prop is deprecated when using v2 manifests. '
+					+ 'Use the `registry` prop instead (see ADR-036).',
+				)
+				this._customComponentsWarnedOnce = true
+			}
+		},
 	},
 }
 </script>

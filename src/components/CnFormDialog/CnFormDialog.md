@@ -124,6 +124,51 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
 
+## Conditional field visibility (`condition` / `visibleWhen`)
+
+A field can declare a `condition` (alias `visibleWhen`) descriptor that hides
+the field until another field in the same form holds a matching value. The
+condition is evaluated on every render against the current `formData`; when a
+field transitions visible → hidden, its form-data value is cleared so stale
+values are never submitted.
+
+Supported predicates:
+
+| Predicate | Shape | Passes when |
+|---|---|---|
+| `equals` | `{ field, equals: <scalar> }` | `formData[field] === equals` |
+| `notEquals` | `{ field, notEquals: <scalar> }` | `formData[field] !== notEquals` |
+| `in` | `{ field, in: [<scalar>, …] }` | `in` array contains `formData[field]` |
+| `notIn` | `{ field, notIn: [<scalar>, …] }` | `notIn` array does NOT contain `formData[field]` |
+| `truthy` | `{ field, truthy: true }` | `Boolean(formData[field]) === true` |
+| `falsy` | `{ field, falsy: true }` | `Boolean(formData[field]) === false` |
+
+Example — show an `arguments` JSON editor only when `jobClass` is a synchronisation action:
+
+```js
+[
+  {
+    key: 'jobClass',
+    widget: 'select',
+    label: 'Job class',
+    enum: ['OCA\\OpenConnector\\Action\\SynchronizationAction', 'OCA\\OpenConnector\\Action\\PingAction'],
+  },
+  {
+    key: 'arguments',
+    widget: 'json',
+    label: 'Arguments',
+    condition: { field: 'jobClass', equals: 'OCA\\OpenConnector\\Action\\SynchronizationAction' },
+  },
+]
+```
+
+Hidden fields are also skipped by the built-in required-fields check and by
+`validate()`, so a required-but-hidden field never blocks the confirm button.
+
+Unknown predicates (none of `equals` / `notEquals` / `in` / `notIn` / `truthy` /
+`falsy` present) log a warning and keep the field visible — a safer default than
+silently hiding a user-facing input.
+
 ## Integration single-entity widgets (AD-18)
 
 | Prop | Default | Description |

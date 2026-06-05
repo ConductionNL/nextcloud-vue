@@ -39,3 +39,12 @@ pipeline as `CnRoadmapItem`, with the exported `SAFE_MARKDOWN_DOMPURIFY_CONFIG`.
 - Spec: `openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md`
   → Requirement "CnSuggestFeatureModal"
 - Implementation: [src/components/CnSuggestFeatureModal/CnSuggestFeatureModal.vue](../../src/components/CnSuggestFeatureModal/CnSuggestFeatureModal.vue)
+
+## Context props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `page` | String | `''` | Auto-captured page id / route the request was raised from. |
+| `surface` | String | `''` | Auto-captured surface (e.g. `widget:<id>`, `index:<schema>`). |
+| `object` | String | `''` | Auto-captured OpenRegister object reference (register · schema · uuid). |
+| `conductionSubmitEnabled` | Boolean | `false` | Enable the "Send to Conduction" (Path B) submit option in addition to the GitHub deep-link. |

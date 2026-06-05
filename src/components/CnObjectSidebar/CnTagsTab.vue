@@ -58,10 +58,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import { NcButton, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -114,7 +114,7 @@ export default {
 			this.loading = true
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -142,10 +142,12 @@ export default {
 		filterSuggestions() {
 			const query = this.newTagName.trim().toLowerCase()
 			if (!query) {
-				this.filtered = this.availableTags.filter((t) => !this.tags.includes(t))
+				this.filtered = this.availableTags.filter(t => !this.tags.includes(t))
 				return
 			}
-			this.filtered = this.availableTags.filter((t) => t.toLowerCase().includes(query) && !this.tags.includes(t))
+			this.filtered = this.availableTags.filter(
+				t => t.toLowerCase().includes(query) && !this.tags.includes(t),
+			)
 		},
 
 		selectSuggestion(tagName) {
@@ -160,7 +162,7 @@ export default {
 			this.showSuggestions = false
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -183,7 +185,7 @@ export default {
 			if (!this.register || !this.schema) return
 			try {
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tags/${encodeURIComponent(tagName)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tags/${encodeURIComponent(tagName)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
 				if (response.ok) {

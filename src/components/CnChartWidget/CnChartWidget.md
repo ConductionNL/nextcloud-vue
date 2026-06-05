@@ -110,3 +110,9 @@ Fallback slot — shown when ApexCharts is not available:
 | Slot | Description |
 |------|-------------|
 | `fallback` | Rendered when the ApexCharts component is not available |
+
+## Refresh wiring
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events; on a matching id the chart re-queries its `dataSource`. Also exposes a ref-callable `refresh()`. |

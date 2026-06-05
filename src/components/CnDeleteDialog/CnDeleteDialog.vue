@@ -50,7 +50,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcNoteCard, NcLoadingIcon } from '@nextcloud/vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 /**
@@ -78,6 +78,9 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  *     this.$refs.deleteDialog.setResult({ error: e.message })
  *   }
  * }
+ *
+ * @event confirm Emitted when the user confirms deletion. Payload: the item ID.
+ * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
 export default {
 	name: 'CnDeleteDialog',
@@ -96,42 +99,36 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/** Property name used for display (e.g., 'title', 'name') */
 		nameField: {
 			type: String,
 			default: 'title',
 		},
-
 		/** Optional function to format the item name. Receives the item, returns a string. Overrides nameField when provided. */
 		nameFormatter: {
 			type: Function,
 			default: null,
 		},
-
 		/** Dialog title */
 		dialogTitle: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Delete item'),
 		},
-
 		/** Warning text. Use `{name}` as placeholder for the item name. */
 		warningText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.'),
 		},
-
 		/** Success message */
 		successText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Item successfully deleted.'),
 		},
-
-		/** Label for the cancel button */
+		/** Label for the cancel button (visible before the delete runs). */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button */
+		/** Label for the close button (visible after delete completes). */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
-		/** Label for the confirm / primary action button */
+		/** Label for the primary confirm button that triggers the delete. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 	},
 
@@ -148,7 +145,6 @@ export default {
 			if (this.nameFormatter) return this.nameFormatter(this.item)
 			return this.item[this.nameField] || this.item.name || this.item.naam || this.item.title || this.item.id
 		},
-
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
 		},
@@ -157,11 +153,6 @@ export default {
 	beforeDestroy() {
 		if (this.closeTimeout) clearTimeout(this.closeTimeout)
 	},
-
-	/**
-	 * @event confirm Emitted when the user confirms deletion. Payload: the item ID.
-	 * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
-	 */
 
 	methods: {
 		executeDelete() {

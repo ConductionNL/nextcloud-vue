@@ -10,9 +10,9 @@
 | `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete item')`                                                                           | Dialog title                                                                                                       |
 | `warningText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Are you sure you want to permanently delete "\{name\}"? This action cannot be undone.')` | Warning text. Use `{name}` as placeholder for the item name.                                                       |
 | `successText`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Item successfully deleted.')`                                                            | Success message                                                                                                    |
-| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                                                | Label for the cancel button                                                                                        |
-| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                                                 | Label for the close button                                                                                         |
-| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`                                                                                | Label for the confirm / primary action button                                                                      |
+| `cancelLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                                                | Label for the cancel button (visible before the delete runs).                                                      |
+| `closeLabel`    | `string` |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                                                 | Label for the close button (visible after delete completes).                                                       |
+| `confirmLabel`  | `string` |          | `() =&gt; t('nextcloud-vue', 'Delete')`                                                                                | Label for the primary confirm button that triggers the delete.                                                     |
 
 ### Events
 

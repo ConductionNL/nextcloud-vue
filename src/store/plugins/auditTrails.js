@@ -1,6 +1,6 @@
-import { genericError, networkError, parseResponseError } from '../../utils/errors.js'
-import { buildHeaders, buildQueryString } from '../../utils/headers.js'
 import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
+import { buildHeaders, buildQueryString } from '../../utils/headers.js'
+import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
 
 /**
  * Audit trails plugin for the object store.
@@ -199,7 +199,7 @@ export function auditTrailsPlugin(options = {}) {
 				this.globalAuditTrailsError = null
 
 				try {
-					const url = buildGlobalUrl(this._options.baseUrl) + `/${encodeURIComponent(id)}`
+					const url = buildGlobalUrl(this._options.baseUrl) + `/${id}`
 
 					const response = await fetch(url, {
 						method: 'DELETE',

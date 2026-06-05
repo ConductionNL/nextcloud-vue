@@ -87,14 +87,14 @@
 </template>
 
 <script>
-import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import axios from '@nextcloud/axios'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
-import { useObjectStore } from '../../store/index.js'
+import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
+import { useObjectStore } from '../../store/index.js'
 
 /**
  * CnLogsPage — Read-only audit-trail / activity-log page.
@@ -146,43 +146,36 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Activity log'),
 		},
-
 		/** Description shown under the title when `showTitle` is set. */
 		description: {
 			type: String,
 			default: '',
 		},
-
 		/** Whether to render the inline page header. Default false to mirror CnIndexPage. */
 		showTitle: {
 			type: Boolean,
 			default: false,
 		},
-
 		/** MDI icon name for the header. */
 		icon: {
 			type: String,
 			default: '',
 		},
-
 		/** OpenRegister register slug. Required (with `schema`) for store-backed mode. */
 		register: {
 			type: String,
 			default: '',
 		},
-
 		/** OpenRegister schema slug. Required (with `register`) for store-backed mode. */
 		schema: {
 			type: String,
 			default: '',
 		},
-
 		/** Custom log source URL — used when `register`+`schema` is not set. */
 		source: {
 			type: String,
 			default: '',
 		},
-
 		/**
 		 * Column definitions for the table. When omitted, the component
 		 * uses a sensible default of `[timestamp, actor, action, target, details]`.
@@ -195,25 +188,21 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-
 		/** Row identifier property. Defaults to `id` (matches OR + most custom log shapes). */
 		rowKey: {
 			type: String,
 			default: 'id',
 		},
-
 		/** Text shown when there are no log entries. */
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No log entries to show'),
 		},
-
 		/** Text shown when the fetch fails. */
 		errorText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Could not load log entries'),
 		},
-
 		/**
 		 * Override the object store. Useful when the consuming app calls
 		 * `createObjectStore` with a custom ID. When null, the default
@@ -246,23 +235,19 @@ export default {
 			}
 			return ''
 		},
-
 		/** Whether the component should fetch via the object store. */
 		usesStore() {
 			return !!this.objectType
 		},
-
 		/** Whether the component should fetch via axios. */
 		usesSource() {
 			return !this.usesStore && !!this.source
 		},
-
 		/** Effective object store instance. */
 		objectStore() {
 			if (!this.usesStore) return null
 			return this.store || useObjectStore()
 		},
-
 		/** Rows to render: store-backed collection or local rows from axios. */
 		rows() {
 			if (this.usesStore && this.objectStore) {
@@ -270,7 +255,6 @@ export default {
 			}
 			return this.localRows
 		},
-
 		/**
 		 * Resolved columns. A consumer-provided list wins; otherwise we
 		 * use the conventional log columns. String entries are expanded
@@ -280,15 +264,14 @@ export default {
 			const cols = this.columns.length > 0
 				? this.columns
 				: [
-						{ key: 'timestamp', label: t('nextcloud-vue', 'Timestamp'), sortable: true },
-						{ key: 'actor', label: t('nextcloud-vue', 'Actor'), sortable: true },
-						{ key: 'action', label: t('nextcloud-vue', 'Action'), sortable: true },
-						{ key: 'target', label: t('nextcloud-vue', 'Target') },
-						{ key: 'details', label: t('nextcloud-vue', 'Details') },
-					]
+					{ key: 'timestamp', label: t('nextcloud-vue', 'Timestamp'), sortable: true },
+					{ key: 'actor', label: t('nextcloud-vue', 'Actor'), sortable: true },
+					{ key: 'action', label: t('nextcloud-vue', 'Action'), sortable: true },
+					{ key: 'target', label: t('nextcloud-vue', 'Target') },
+					{ key: 'details', label: t('nextcloud-vue', 'Details') },
+				]
 			return cols.map((c) => (typeof c === 'string' ? { key: c, label: this.humanise(c) } : c))
 		},
-
 		/** Column slot names that the parent has provided (for pass-through). */
 		slotColumns() {
 			return Object.keys(this.$scopedSlots || {})
@@ -310,8 +293,7 @@ export default {
 	methods: {
 		/**
 		 * Capitalise + space a snake_case / camelCase key for a default column label.
-		 *
-		 * @param {string} key
+		 * @param key
 		 */
 		humanise(key) {
 			const spaced = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toLowerCase()
@@ -330,16 +312,8 @@ export default {
 				this.error = null
 				try {
 					if (typeof this.objectStore.registerObjectType === 'function') {
-						// (slug, schemaId, registerId, slugs) — slugs go into the id
-						// slots because OR's REST accepts kebab slugs there, and into
-						// the 4th-arg slug hints for live-updates. Passing
-						// `{register, schema}` as the second arg breaks fetch URLs.
-						this.objectStore.registerObjectType(
-							this.objectType,
-							this.schema,
-							this.register,
-							{ registerSlug: this.register, schemaSlug: this.schema },
-						)
+						// Positional signature: (slug, schemaId, registerId, slugs?).
+						this.objectStore.registerObjectType(this.objectType, this.schema, this.register)
 					}
 					if (typeof this.objectStore.fetchCollection === 'function') {
 						await this.objectStore.fetchCollection(this.objectType)
@@ -375,7 +349,7 @@ export default {
 				return
 			}
 			// Misconfigured — surface a console warning so a developer notices.
-
+			// eslint-disable-next-line no-console
 			console.warn('[CnLogsPage] Neither register+schema nor source configured; rendering empty state.')
 		},
 

@@ -232,9 +232,17 @@ function checkJsAccuracy(exportName, srcPath, docPath) {
 function extractSfcProps(sfcPath) {
 	if (!fs.existsSync(sfcPath)) return []
 	const source = fs.readFileSync(sfcPath, 'utf8')
-	const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/m)
-	if (!scriptMatch) return []
-	const script = scriptMatch[1]
+	// Locate the SFC <script> block by hand instead of a single regex so
+	// CodeQL (js/bad-tag-filter) can't construct adversarial close-tag
+	// variants like `</script\t bar>`. The open tag still uses a tight
+	// regex (no `[^>]` ambiguity beyond the `>` itself); the close tag is
+	// found by case-insensitive string search after the opener.
+	const openMatch = source.match(/<script\b[^>]*>/i)
+	if (!openMatch) return []
+	const openEnd = openMatch.index + openMatch[0].length
+	const closeIdx = source.toLowerCase().indexOf('</script', openEnd)
+	if (closeIdx === -1) return []
+	const script = source.slice(openEnd, closeIdx)
 
 	const propsIdx = script.search(/\bprops\s*:/)
 	if (propsIdx === -1) return []

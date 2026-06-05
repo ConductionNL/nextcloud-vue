@@ -2,28 +2,34 @@
 
 ### Props
 
-| Name                    | Type      | Required | Default                                                                                                                                                                                                                                            | Description                                                             |
-| ----------------------- | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `dialogTitle`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import data')`                                                                                                                                                                                                       | Dialog title                                                            |
-| `acceptedTypes`         | `string`  |          | `'.json,.xlsx,.xls,.csv'`                                                                                                                                                                                                                          | Accepted file types (input accept attribute)                            |
-| `options`               | `array`   |          | `[]`                                                                                                                                                                                                                                               | Import option definitions                                               |
-| `fileTypeHelp`          | `array`   |          | `[     \{ label: 'JSON', description: 'Configuration and objects.' \},     \{ label: 'Excel (.xlsx, .xls)', description: 'Tabular objects data with multiple sheets.' \},     \{ label: 'CSV', description: 'Single table of objects data.' \}, ]` | File type help entries                                                  |
-| `canSubmit`             | `boolean` |          | `true`                                                                                                                                                                                                                                             | Whether the form is ready to submit (parent can control via slot logic) |
-| `successText`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import completed successfully!')`                                                                                                                                                                                    | Success text when all rows imported without errors                      |
-| `partialSuccessText`    | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import completed with errors. Check the details below.')`                                                                                                                                                            | Text when import partially succeeded                                    |
-| `loadingText`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Importing data — this may take a moment for large files…')`                                                                                                                                                          | Text shown while importing                                              |
-| `summaryTitle`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import summary')`                                                                                                                                                                                                    | Title for the import summary section                                    |
-| `supportedFormatsLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Supported file types:')`                                                                                                                                                                                             | Label listing supported file formats                                    |
-| `selectFileLabel`       | `string`  |          | `() =&gt; t('nextcloud-vue', 'Select file')`                                                                                                                                                                                                       | Label for the file selection control                                    |
-| `cancelLabel`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Cancel')`                                                                                                                                                                                                            | Label for the cancel button                                             |
-| `closeLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Close')`                                                                                                                                                                                                             | Label for the close button                                              |
-| `confirmLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Import')`                                                                                                                                                                                                            | Label for the confirm / primary action button                           |
-| `sheetLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Sheet')`                                                                                                                                                                                                             | Label for the spreadsheet sheet selector                                |
-| `foundLabel`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Found')`                                                                                                                                                                                                             | Label for the "found" count in import results                           |
-| `createdLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Created')`                                                                                                                                                                                                           | Label for the "created" count in import results                         |
-| `updatedLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Updated')`                                                                                                                                                                                                           | Label for the "updated" count in import results                         |
-| `unchangedLabel`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Unchanged')`                                                                                                                                                                                                         | Label for the "unchanged" count in import results                       |
-| `errorsLabel`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'Errors')`                                                                                                                                                                                                            | Label for the "errors" count in import results                          |
+| Name            | Type     | Required | Default                                      | Description                                  |
+| --------------- | -------- | -------- | -------------------------------------------- | -------------------------------------------- |
+| `dialogTitle`   | `string` |          | `() =&gt; t('nextcloud-vue', 'Import data')` | Dialog title                                 |
+| `acceptedTypes` | `string` |          | `'.json,.xlsx,.xls,.csv'`                    | Accepted file types (input accept attribute) |
+| `options`       | `array`  |          | `[]`                                         | Import option definitions                    |
+| `fileTypeHelp`  | `array`  |          | `[                                           |
+
+     \{ label: 'JSON', description: 'Configuration and objects.' \},
+     \{ label: 'Excel (.xlsx, .xls)', description: 'Tabular objects data with multiple sheets.' \},
+     \{ label: 'CSV', description: 'Single table of objects data.' \},
+
+]`| File type help entries |
+|`canSubmit`|`boolean`|  |`true`| Whether the form is ready to submit (parent can control via slot logic) |
+|`successText`|`string`|  |`() =&gt; t('nextcloud-vue', 'Import completed successfully!')`| Success text when all rows imported without errors |
+|`partialSuccessText`|`string`|  |`() =&gt; t('nextcloud-vue', 'Import completed with errors. Check the details below.')`| Text when import partially succeeded |
+|`loadingText`|`string`|  |`() =&gt; t('nextcloud-vue', 'Importing data — this may take a moment for large files...')`| Text shown while importing |
+|`summaryTitle`|`string`|  |`() =&gt; t('nextcloud-vue', 'Import summary')`| Heading rendered above the per-sheet results table. |
+|`supportedFormatsLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Supported file types:')`| Label for the "Supported file types" intro line. |
+|`selectFileLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Select file')`| Label for the file-picker trigger button. |
+|`cancelLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Cancel')`| Label for the cancel button (visible before the import runs). |
+|`closeLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Close')`| Label for the close button (visible after import completes). |
+|`confirmLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Import')`| Label for the primary confirm button that triggers the import. |
+|`sheetLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Sheet')`| Column header for the per-sheet results row label. |
+|`foundLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Found')`| Column header for the "rows found" summary count. |
+|`createdLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Created')`| Column header for the "rows created" summary count. |
+|`updatedLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Updated')`| Column header for the "rows updated" summary count. |
+|`unchangedLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Unchanged')`| Column header for the "rows unchanged" summary count. |
+|`errorsLabel`|`string`|  |`() =&gt; t('nextcloud-vue', 'Errors')` | Column header / collapsible toggle for the per-sheet errors list. |
 
 ### Events
 

@@ -52,6 +52,29 @@ beforeEach(() => {
 	axios.get.mockReset()
 })
 
+describe('CnDataTable — string columns normalisation', () => {
+	it('renders correct cell values when columns is a string array', async () => {
+		const wrapper = mountTable({
+			rows: [{ name: 'foo', type: 'bar' }],
+			columns: ['name', 'type'],
+		})
+		await wrapper.vm.$nextTick()
+		const cells = wrapper.findAll('.cell').wrappers.map((w) => w.text())
+		expect(cells).toEqual(expect.arrayContaining(['foo', 'bar']))
+		expect(cells).not.toContain('—')
+	})
+
+	it('mixes string and object column definitions without error', async () => {
+		const wrapper = mountTable({
+			rows: [{ name: 'hello', status: 'active' }],
+			columns: ['name', { key: 'status', label: 'Status' }],
+		})
+		await wrapper.vm.$nextTick()
+		const cells = wrapper.findAll('.cell').wrappers.map((w) => w.text())
+		expect(cells).toEqual(expect.arrayContaining(['hello', 'active']))
+	})
+})
+
 describe('CnDataTable — columns[].aggregate', () => {
 	it('shows "…" while pending, then the per-row total', async () => {
 		let resolveA

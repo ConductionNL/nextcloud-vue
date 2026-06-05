@@ -15,7 +15,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'cards')">
+					@update:model-value="$emit('view-mode-change', 'cards')">
 					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
@@ -25,7 +25,7 @@
 					name="cn_view_mode"
 					type="radio"
 					button-variant-grouped="horizontal"
-					@update:checked="$emit('view-mode-change', 'table')">
+					@update:model-value="$emit('view-mode-change', 'table')">
 					{{ t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -62,8 +62,10 @@
 				<!-- Custom primary action items (overflow) -->
 				<slot name="action-items" />
 
-				<!-- Separator between primary and mass actions -->
-				<NcActionSeparator v-if="hasMassActions" />
+				<!-- Separator between primary and mass actions. Hidden when the
+				     inline-action-count hoists every pre-separator item out of the
+				     overflow, which would otherwise leave the separator orphaned. -->
+				<NcActionSeparator v-if="showActionsSeparator" />
 
 				<!-- Mass actions (overflow) -->
 				<NcActionButton
@@ -266,6 +268,31 @@ export default {
 
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
+		},
+
+		/**
+		 * Count meaningful VNodes in the `#action-items` slot (excludes whitespace
+		 * text nodes and comments). Used to decide whether the mass-actions
+		 * separator would be orphaned by `inlineActionCount`.
+		 */
+		actionItemsCount() {
+			const slot = this.$scopedSlots['action-items']
+			if (!slot) return 0
+			const vnodes = slot() || []
+			return vnodes.filter(n => n && (n.tag !== undefined || n.componentOptions !== undefined)).length
+		},
+
+		/**
+		 * The separator is meaningful only when at least one pre-separator action
+		 * button (Refresh + #action-items) still ends up inside the overflow
+		 * dropdown after NcActions hoists the first `inlineActionCount` buttons
+		 * inline. Pre-separator items: 1 (Refresh) + actionItemsCount.
+		 */
+		showActionsSeparator() {
+			if (!this.hasMassActions) return false
+			if (!this.$scopedSlots['action-items']) return false
+			const preSeparatorOverflow = 1 + this.actionItemsCount - this.inlineActionCount
+			return preSeparatorOverflow > 0
 		},
 	},
 

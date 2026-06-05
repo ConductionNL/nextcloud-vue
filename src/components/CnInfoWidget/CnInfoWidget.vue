@@ -56,7 +56,6 @@ export default {
 			type: Array,
 			default: null,
 		},
-
 		/**
 		 * Object data for auto-generation mode. Properties are extracted
 		 * based on the schema definition.
@@ -67,7 +66,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * JSON Schema for auto-generation mode. Each schema property
 		 * generates a label:value pair using the property title as label.
@@ -78,7 +76,6 @@ export default {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Number of columns for the grid layout.
 		 *
@@ -88,7 +85,6 @@ export default {
 			type: Number,
 			default: 2,
 		},
-
 		/**
 		 * Fields to include (by key). If provided, only these fields are shown.
 		 * Only applies in auto-generation mode.
@@ -99,7 +95,6 @@ export default {
 			type: Array,
 			default: null,
 		},
-
 		/**
 		 * Fields to exclude (by key). Only applies in auto-generation mode.
 		 *
@@ -153,9 +148,9 @@ export default {
 			const keys = this.includeFields || Object.keys(properties)
 
 			return keys
-				.filter((key) => !this.excludeFields.includes(key))
-				.filter((key) => properties[key])
-				.map((key) => ({
+				.filter(key => !this.excludeFields.includes(key))
+				.filter(key => properties[key])
+				.map(key => ({
 					label: properties[key].title || key,
 					value: this.formatFieldValue(this.object[key], properties[key]),
 				}))

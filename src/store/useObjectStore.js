@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { genericError, networkError, parseResponseError } from '../utils/errors.js'
-import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
+import { buildHeaders, buildQueryString, prefixUrl, capitalize } from '../utils/headers.js'
+import { parseResponseError, networkError, genericError } from '../utils/errors.js'
 import { extractId } from '../utils/id.js'
-import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
+import { mergePluginState, mergePluginGetters, mergePluginActions } from './pluginMerge.js'
 
 /**
  * Generic Pinia store for OpenRegister object CRUD operations.
@@ -51,7 +51,6 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		registers: {},
 		/**
 		 * Facet data per type for CnIndexSidebar: { fieldName: { values: [{value, count}] } }
-		 *
 		 * @type {{string: object}}
 		 */
 		facets: {},
@@ -67,7 +66,6 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 const baseGetters = {
 	/**
 	 * Get all registered object type slugs.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {string[]}
 	 */
@@ -75,7 +73,6 @@ const baseGetters = {
 
 	/**
 	 * Get the collection array for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => Array
 	 */
@@ -83,7 +80,6 @@ const baseGetters = {
 
 	/**
 	 * Get a single cached object by type and ID.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
@@ -91,7 +87,6 @@ const baseGetters = {
 
 	/**
 	 * Alias for getObject — check cache without fetching.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string, id: string) => object|null
 	 */
@@ -99,7 +94,6 @@ const baseGetters = {
 
 	/**
 	 * Check if a type is currently loading.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => boolean
 	 */
@@ -107,7 +101,6 @@ const baseGetters = {
 
 	/**
 	 * Get the current error for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => ApiError|null
 	 */
@@ -115,15 +108,14 @@ const baseGetters = {
 
 	/**
 	 * Get pagination state for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => {total, page, pages, limit}
 	 */
-	getPagination: (state) => (type) => state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
+	getPagination: (state) => (type) =>
+		state.pagination[type] || { total: 0, page: 1, pages: 1, limit: 20 },
 
 	/**
 	 * Get the current search term for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => string
 	 */
@@ -131,7 +123,6 @@ const baseGetters = {
 
 	/**
 	 * Get a cached schema for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
@@ -139,7 +130,6 @@ const baseGetters = {
 
 	/**
 	 * Get a cached register for a type.
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object|null
 	 */
@@ -147,7 +137,6 @@ const baseGetters = {
 
 	/**
 	 * Get facet data for a type (CnIndexSidebar-compatible format).
-	 *
 	 * @param {object} state Pinia state
 	 * @return {Function} (type: string) => object
 	 */
@@ -162,19 +151,10 @@ const baseActions = {
 	 * Call once before using the store if you need a custom base URL.
 	 *
 	 * @param {object} options Configuration options
-	 * @param {string} [options.baseUrl] Custom base URL for API calls.
-	 *   The URL is normalized through `prefixUrl()` so it works correctly
-	 *   on both pretty-URL and `/index.php`-routed Nextcloud instances.
-	 *   (Without normalization, a runtime `configure({ baseUrl })` call
-	 *   silently breaks on instances where the admin has disabled
-	 *   htaccess URL rewriting.)
+	 * @param {string} [options.baseUrl] Custom base URL for API calls
 	 */
 	configure(options) {
-		const normalized = { ...options }
-		if (normalized.baseUrl) {
-			normalized.baseUrl = prefixUrl(normalized.baseUrl)
-		}
-		Object.assign(this._options, normalized)
+		Object.assign(this._options, options)
 	},
 
 	/**
@@ -182,7 +162,6 @@ const baseActions = {
 	 *
 	 * takes a unspecified number of props and joins them from first to left with a `-`.
 	 * However it is recommended to give it 1 register and 1 schema in that order.
-	 *
 	 * @param {*} params - unspecified number of props
 	 * @return {string}
 	 */
@@ -277,9 +256,9 @@ const baseActions = {
 	 */
 	_buildUrl(type, id = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${encodeURIComponent(config.register)}/${encodeURIComponent(config.schema)}`
+		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
 		if (id) {
-			url += `/${encodeURIComponent(id)}`
+			url += `/${id}`
 		}
 		return url
 	},
@@ -538,35 +517,6 @@ const baseActions = {
 			this.objects = {
 				...this.objects,
 				[type]: { ...(this.objects[type] || {}), [savedId]: data },
-			}
-
-			// Keep collections in sync so list-view components that bind
-			// getCollection() reflect the change without a full re-fetch.
-			// Mirrors the deleteObject pattern (lines below) but in reverse:
-			//   - update: replace the existing entry in-place by id.
-			//   - create: append to the end of the array.
-			if (this.collections[type]) {
-				const existing = this.collections[type]
-				const idx = existing.findIndex((obj) => obj.id === savedId)
-				if (idx !== -1) {
-					// In-place update — replace the stale entry
-					const updated = [...existing]
-					updated[idx] = data
-					this.collections = { ...this.collections, [type]: updated }
-				} else {
-					// New object — append to the collection
-					this.collections = {
-						...this.collections,
-						[type]: [...existing, data],
-					}
-				}
-			}
-
-			// Invalidate cached facets for this type — the saved object may
-			// have changed enum/facetable field values, so the cached facet
-			// counts are stale. The next fetchCollection will recompute them.
-			if (this.facets[type]) {
-				this.facets = { ...this.facets, [type]: {} }
 			}
 
 			return data

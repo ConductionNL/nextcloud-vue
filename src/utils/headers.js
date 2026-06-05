@@ -27,11 +27,6 @@ export function prefixUrl(path) {
  */
 export function buildHeaders(contentType = 'application/json') {
 	const headers = {
-		// OC.requestToken is read per-call rather than once at module load.
-		// Nextcloud rotates the CSRF token on page load; reading it lazily
-		// ensures each request carries the current token even in long-lived
-		// SPA sessions where the module may have been imported before the
-		// first page render completed. L3: intentional — no change needed.
 		requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 		'OCS-APIREQUEST': 'true',
 	}
