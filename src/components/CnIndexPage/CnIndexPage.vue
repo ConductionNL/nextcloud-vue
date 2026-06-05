@@ -1309,6 +1309,7 @@ export default {
 				massImport: (r) => this.setImportResult(r),
 				massExport: (r) => this.setExportResult(r),
 				form: (r) => this.setFormResult(r),
+				formValidation: (fieldErrors, message) => this.setFormValidationErrors(fieldErrors, message),
 			},
 		})
 	},
@@ -1582,7 +1583,12 @@ export default {
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
 				} else {
 					const err = this.store.getError?.(this.objectType)
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					if (err && err.isValidation) {
+						// Keep the form visible so the user can fix the invalid data.
+						this.setFormValidationErrors(err.fields, err.message || 'Validation failed')
+					} else {
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					}
 				}
 				return
 			}
@@ -1620,6 +1626,17 @@ export default {
 		 * @public
 		 */
 		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		/**
+		 * Show a validation error in the form dialog while keeping the form
+		 * visible (so the user can fix the data), instead of replacing it with
+		 * a result note. Use this for 400/422 responses; use setFormResult for
+		 * terminal success/failure.
+		 *
+		 * @param {object} [fieldErrors] Per-field error messages keyed by field key
+		 * @param {string} [message] Form-level message shown above the fields
+		 * @public
+		 */
+		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
 
 		// --- Context menu handlers ---
 

@@ -24,6 +24,11 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-form-dialog"
 			data-testid-phase="form">
+			<!-- Form-level error (e.g. server validation) — keeps the form visible so the user can fix the data -->
+			<NcNoteCard v-if="formError" type="error" data-testid="cn-form-dialog-error">
+				{{ formError }}
+			</NcNoteCard>
+
 			<!-- Full form override slot -->
 			<slot
 				v-if="$scopedSlots.form"
@@ -533,6 +538,8 @@ export default {
 			errors: {},
 			loading: false,
 			result: null,
+			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
+			formError: null,
 			closeTimeout: null,
 			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
 			asyncState: {},
@@ -676,6 +683,7 @@ export default {
 				this.formData = data
 			}
 			this.errors = {}
+			this.formError = null
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.initAsyncFields()
@@ -683,10 +691,11 @@ export default {
 
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
-			// Clear error when field is edited
+			// Clear errors when a field is edited
 			if (this.errors[key]) {
 				this.$delete(this.errors, key)
 			}
+			this.formError = null
 		},
 
 		/**
@@ -1082,6 +1091,7 @@ export default {
 			if (!this.validate()) return
 			if (!this.jsonFieldsValid) return
 
+			this.formError = null
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user confirms the form.
@@ -1108,15 +1118,19 @@ export default {
 		},
 
 		/**
-		 * Set per-field validation errors from the server. Call this from
-		 * the parent when the API returns validation errors.
+		 * Set validation errors from the server WITHOUT leaving the form phase,
+		 * so the user can correct the data. Call this from the parent (instead
+		 * of `setResult`) when the API returns a validation error.
 		 *
-		 * @param {object} fieldErrors Object keyed by field key with error messages
+		 * @param {object} [fieldErrors] Object keyed by field key with per-field error messages
+		 * @param {string} [message] Form-level message shown in an error note above the fields
 		 * @public
 		 */
-		setValidationErrors(fieldErrors) {
+		setValidationErrors(fieldErrors = {}, message = null) {
 			this.loading = false
+			this.result = null
 			this.errors = { ...this.errors, ...fieldErrors }
+			this.formError = message
 		},
 	},
 }

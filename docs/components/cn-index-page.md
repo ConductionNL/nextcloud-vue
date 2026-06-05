@@ -131,7 +131,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 
 | Method | Description |
 |--------|-------------|
-| `setFormResult(result)` | Set form dialog result (`\{ success?, error? \}`) |
+| `setFormResult(result)` | Set the terminal form dialog result (`\{ success?, error? \}`) — switches to the result phase, replacing the form |
+| `setFormValidationErrors(fieldErrors, message?)` | Show a validation error while keeping the form visible (so the user can fix the data). Use for 400/422; store integration calls this automatically for `isValidation` errors |
 | `setSingleDeleteResult(result)` | Set delete dialog result |
 | `setSingleCopyResult(result)` | Set copy dialog result |
 | `setMassDeleteResult(result)` | Set mass delete result |
@@ -185,7 +186,7 @@ Set `use-advanced-form-dialog` to use [CnAdvancedFormDialog](./cn-advanced-form-
 
 ### Store integration
 
-Set `store` and `objectType` to have the form dialog save directly to the store. The object type must be registered in the store (via `registerObjectType()`) before passing the store here. On save, `store.saveObject(objectType, formData)` is called; the result phase is shown automatically and `@create` / `@edit` are still emitted with the saved object on success.
+Set `store` and `objectType` to have the form dialog save directly to the store. The object type must be registered in the store (via `registerObjectType()`) before passing the store here. On save, `store.saveObject(objectType, formData)` is called; on success the result phase is shown and `@create` / `@edit` are emitted with the saved object. On a **validation error** (`isValidation`, i.e. 400/422) the form stays open with the server message shown above the fields so the user can correct the data; other failures show a terminal error result.
 
 ```vue
 <CnIndexPage

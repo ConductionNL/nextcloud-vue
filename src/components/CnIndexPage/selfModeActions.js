@@ -173,7 +173,13 @@ export function createSelfModeActions(ctx) {
 				ctx.emit(ctx.editItem() ? 'edit' : 'create', saved)
 				refreshList(ctx)
 			} else {
-				ctx.setResults.form({ error: storeErrorMessage(ctx, 'Save failed') })
+				const err = ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+				if (err && err.isValidation) {
+					// Keep the form visible so the user can fix the invalid data.
+					ctx.setResults.formValidation(err.fields, err.message || 'Validation failed')
+				} else {
+					ctx.setResults.form({ error: (err && err.message) || 'Save failed' })
+				}
 			}
 		} catch (err) {
 			ctx.setResults.form({ error: (err && err.message) || 'Save failed' })
