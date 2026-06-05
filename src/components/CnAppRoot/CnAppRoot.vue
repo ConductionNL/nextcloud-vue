@@ -859,18 +859,19 @@ export default {
 		}
 
 		try {
-			const capabilities = getCapabilities()
-			const keys = (capabilities && typeof capabilities === 'object')
-				? Object.keys(capabilities)
-				: []
-			this.missingApps = this.requiresApps.filter((id) => !keys.includes(id))
+			// Use useAppStatus which checks OC.appswebroots first — Nextcloud
+			// populates that map for every enabled app regardless of which
+			// folder it lives in (apps/, custom-apps/, custom_apps/). Falling
+			// back to getCapabilities() alone misses apps that do not register
+			// an ICapability (OpenRegister being the primary example).
+			this.missingApps = this.requiresApps.filter((id) => {
+				const { installed } = useAppStatus(id)
+				return !installed.value
+			})
 		} catch (err) {
-			// Capabilities API failure — log and fall through to the
-			// renderer. The data layer will surface the actual problem
-			// if OR is genuinely missing.
 			// eslint-disable-next-line no-console
 			console.warn(
-				'[CnAppRoot] Failed to read Nextcloud capabilities for the app-availability guard:',
+				'[CnAppRoot] Failed to check app availability for the app-availability guard:',
 				err,
 			)
 			this.guardError = err
