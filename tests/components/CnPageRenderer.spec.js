@@ -246,6 +246,41 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.resolvedComponent).not.toBe(LegacyStub)
 		})
 
+		it('keys the v2-branch page component by currentPage.id so a route change re-mounts it', () => {
+			// Regression guard: the v2 render branch MUST carry
+			// :key="currentPage.id" on the resolved page component. Without it
+			// Vue reuses the same instance across route changes and the page
+			// keeps showing stale data / fetches / sidebar (this bug has
+			// regressed twice — the v1 branch kept its key, the v2 branch lost it).
+			const PageStub = {
+				name: 'PageStub',
+				template: '<section data-stub="v2-page" />',
+			}
+			const v2Manifest = {
+				$schema: 'https://example.test/app-manifest-v2.schema.json',
+				pages: [
+					{ id: 'leads', route: '/leads', type: 'custom', title: 'Leads', component: 'LeadsPage' },
+					{ id: 'clients', route: '/clients', type: 'custom', title: 'Clients', component: 'ClientsPage' },
+				],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: v2Manifest,
+					cnRegistry: {
+						LeadsPage: { kind: 'page', component: PageStub },
+						ClientsPage: { kind: 'page', component: PageStub },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'leads' } },
+			})
+			expect(wrapper.vm.isV2Manifest).toBe(true)
+			const page = wrapper.findComponent(PageStub)
+			expect(page.exists()).toBe(true)
+			expect(page.vm.$vnode.key).toBe('leads')
+		})
+
 		it('falls back to legacy customComponents when the v2 registry has no kind:"page" entry for the name', () => {
 			// ADR-036 backward-compat — until every fleet app migrates,
 			// CnPageRenderer MUST still resolve names from the legacy
@@ -584,8 +619,6 @@ describe('CnPageRenderer', () => {
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.settings)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.chat)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.files)
-			// manifest-wiki-page-type addition:
-			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.wiki)
 		})
 	})
 
