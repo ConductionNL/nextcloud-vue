@@ -65,17 +65,16 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # @semantic-release/git pushes the chore(release) bump back to beta/main
+      contents: write       # semantic-release pushes the release tag back to beta/main
       issues: write
       pull-requests: write
-      id-token: write       # npm Trusted Publisher (OIDC) + provenance attestation
-    env:
-      NPM_CONFIG_PROVENANCE: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
+          # Keep the Forgejo-provided credentials so semantic-release can push
+          # the release tag back to Codeberg over the origin remote.
+          persist-credentials: true
 
       - uses: actions/setup-node@v4
         with:
@@ -87,7 +86,13 @@ jobs:
 
       - name: Release
         env:
+          # Forgejo-provided token: lets semantic-release push the release tag.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Token-based npm publish. Codeberg Forgejo Actions is not a trusted
+          # npm OIDC issuer, so Trusted-Publisher/provenance can't be used here;
+          # publish with an automation token from the org-wide NPM_TOKEN secret.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             npx semantic-release --dry-run
