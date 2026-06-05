@@ -1,0 +1,33 @@
+# npm publish on Codeberg Forgejo Actions.
+#
+# Thin wrapper around the org-wide reusable workflow
+# `Conduction/.github/.forgejo/workflows/release-npm.yml`, which runs
+# semantic-release with NPM_TOKEN-based auth (Codeberg is not an accepted
+# npm OIDC issuer, so the old GitHub-Actions release.yml — OIDC + provenance
+# + @semantic-release/github — could never publish from here).
+#
+# Required org/repo secrets (inherited): NPM_TOKEN, CODEBERG_TOKEN.
+#
+# install-flags is overridden to "" — this library forbids
+# `--legacy-peer-deps` (see CLAUDE.md → "npm Rules"); deps must resolve
+# cleanly without it.
+
+name: Publish to npm
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run semantic-release --dry-run only (no publish, no tag, no commit)"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    uses: https://codeberg.org/Conduction/.github/.forgejo/workflows/release-npm.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+      install-flags: ""
+    secrets: inherit
