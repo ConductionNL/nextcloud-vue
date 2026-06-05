@@ -27,6 +27,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnDetailPage` — Generic detail/overview page with stats table and flexible content slots. Overridable via `#header` and `#actions` slots.
 - `CnPageHeader` — Page header with icon, title, description
 - `CnActionsBar` — Action bar with add button, mass actions, view toggle, search
+- `CnActionsMenu` — Shared `…` overflow Actions menu (Refresh / Documentation / Request a feature) + auto-mounted CnSuggestFeatureModal. Used by `CnWidgetWrapper` and the page-level headers of `CnDetailPage` / `CnDashboardPage`; configure via `documentation-url` (opens a docs link in a new tab), `show-refresh`, `show-request-feature`.
 
 **Manifest Renderer (JSON-driven app shell)**
 - `CnAppRoot` — Top-level app wrapper. Orchestrates loading → dependency-check → shell phases. Provides `cnManifest`, `cnCustomComponents`, `cnTranslate` to descendants. Slots: `#loading`, `#dependency-missing`, `#menu`, `#header-actions`, `#sidebar`, `#footer` — each independently overridable. Use this when adopting the full manifest pattern; lower tiers (just `useAppManifest`, or `+ CnPageRenderer`, or `+ CnAppNav`) are also supported.
@@ -176,7 +177,7 @@ The `integrations` ref is sorted and reactive. Use `resolveWidget(id, surface)` 
 
 **Surface components consume the registry (all opt-in, backwards-compatible):**
 
-- **`CnObjectSidebar`** — `useRegistry` (Boolean, default `false`): replace the hardcoded built-in tabs with one tab per registered provider. `excludeIntegrations` (`string[]`) and `hiddenTabs` filter the set. Mutually exclusive with the open-enum `tabs` prop (`tabs` wins, with a console.warn). Per-integration slot overrides aren't supported in registry mode — override a built-in by registering your own provider with the same id (collision policy: first wins).
+- **`CnObjectSidebar`** — `useRegistry` (Boolean, default `true`): registry-driven tabs are the default surface — one tab per registered provider. The canonical five built-ins ship as providers in `builtinIntegrations` (registered by OpenRegister's bootstrap), so the default surface is unchanged. Set `useRegistry="false"` to opt back into the legacy hardcoded-tabs path (for consumers that don't call `registerBuiltinIntegrations()`). `excludeIntegrations` (`string[]`) and `hiddenTabs` filter the set. Mutually exclusive with the open-enum `tabs` prop (`tabs` wins, with a console.warn). Per-integration slot overrides aren't supported in registry mode — override a built-in by registering your own provider with the same id (collision policy: first wins).
 - **`CnDashboardPage`** / **`CnDetailPage`** — add an `integration` widget type to the layout: `{ id, title, type: 'integration', integrationId, props? }`. The component is resolved from the registry via `resolveWidget(integrationId, surface)`. `surface` prop defaults to `'app-dashboard'` (dashboard) / `'detail-page'` (detail). `integrationContext` prop (`{ register, schema, objectId }`) is forwarded to the widget — `CnDetailPage` derives it from `sidebarProps` + `objectId` when not given.
 - **`CnFormDialog`** / **`CnDetailGrid`** — a schema property (or detail item) carrying `referenceType: '<integration-id>'` (AD-18) renders that integration's single-entity widget (AD-19 fallback to its main `widget`) instead of a plain input/value. `referenceContext` prop (`{ register, schema, objectId }`) is forwarded. A consumer `#field-<key>` / `#item-<index>` slot still overrides it.
 
@@ -278,6 +279,14 @@ Minimal manifest:
 `page.id` is also the vue-router route name; CnPageRenderer matches by `$route.name === page.id`. The `type` enum is closed (`index | detail | dashboard | custom`) — bespoke pages use `type: "custom"` with a registry component.
 
 See `examples/manifest-demo/manifest.json` for a fuller reference and `docs/migrating-to-manifest.md` for tier-by-tier adoption guidance.
+
+## npm Rules
+
+**NEVER use `--legacy-peer-deps`.** Not in workflows, not in scripts, not in documentation, not when advising users. If asked to add it, refuse and explain why.
+
+Why: `--legacy-peer-deps` silently masks peer dependency conflicts instead of resolving them. It allows broken dependency trees to install, which causes unpredictable runtime failures, version mismatches, and bugs that are extremely hard to trace. We learned this the hard way — it caused cascading CI failures and broke `npm install` for all consumers. The correct fix is always to align the declared package versions so the dependency tree resolves cleanly without any flags.
+
+If `npm install` fails with a peer dep error, the fix is to adjust the version ranges in `package.json` until they are mutually compatible. Never work around it with a flag.
 
 ## Rules for Modifying Components
 

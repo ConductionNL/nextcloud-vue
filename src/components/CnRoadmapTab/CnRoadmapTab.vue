@@ -43,11 +43,13 @@
 				</template>
 			</NcEmptyContent>
 		</div>
-		<ul v-else class="cn-roadmap-tab__list">
-			<li v-for="item in sortedItems" :key="item.number">
-				<CnRoadmapItem :item="item" />
-			</li>
-		</ul>
+		<div v-else class="cn-roadmap-tab__grid">
+			<CnRoadmapItem
+				v-for="item in sortedItems"
+				:key="item.number"
+				:item="item"
+				class="cn-roadmap-tab__card" />
+		</div>
 	</div>
 </template>
 
@@ -68,14 +70,15 @@
  * Spec: features-roadmap-component — Requirement "RoadmapTab".
  */
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcEmptyContent, NcLoadingIcon, NcButton } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
+
 import CnRoadmapItem from '../CnRoadmapItem/CnRoadmapItem.vue'
 
 export default {
@@ -102,7 +105,6 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/**
 		 * Admin opt-out flag — when true the tab renders the disabled empty state.
 		 */
@@ -122,9 +124,10 @@ export default {
 
 	computed: {
 		sortedItems() {
-			return [...this.items].sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0))
+			return [...this.items].sort(
+				(a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0),
+			)
 		},
-
 		disabledLabel() { return t('nextcloud-vue', 'Roadmap is disabled by your administrator') },
 		patNotConfiguredTitle() { return t('nextcloud-vue', 'Roadmap not yet configured') },
 		patNotConfiguredDescription() { return t('nextcloud-vue', 'Ask your administrator to add a GitHub Personal Access Token in the OpenRegister settings to enable the roadmap.') },
@@ -178,10 +181,22 @@ export default {
 </script>
 
 <style scoped>
-.cn-roadmap-tab__list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
+.cn-roadmap-tab__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 16px;
+}
+
+.cn-roadmap-tab__card {
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.cn-roadmap-tab__card:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow, rgba(0, 0, 0, 0.08));
 }
 
 .cn-roadmap-tab__loading {

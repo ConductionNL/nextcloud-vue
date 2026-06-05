@@ -61,19 +61,16 @@ export default {
 			type: String,
 			default: '',
 		},
-
 		/** Optional subtitle below the title */
 		subtitle: {
 			type: String,
 			default: '',
 		},
-
 		/** Icon component (e.g., imported MDI icon) */
 		icon: {
 			type: [Object, Function],
 			default: null,
 		},
-
 		/** Icon size in pixels */
 		iconSize: {
 			type: Number,

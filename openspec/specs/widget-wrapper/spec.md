@@ -1,8 +1,10 @@
 ---
-status: reviewed
+status: in-progress
 ---
 
 # CnWidgetWrapper Specification
+
+**OpenSpec changes**: cn-app-nav-shell-refactor (in-progress — built-in default handlers for Refresh + Request a feature, refresh opt-in contract documented)
 
 ## Purpose
 

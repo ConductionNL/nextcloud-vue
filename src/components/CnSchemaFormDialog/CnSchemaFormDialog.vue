@@ -35,9 +35,9 @@
 						class="cn-schema-form__detail-value cn-schema-form__uuid-value">{{ schemaItem.uuid }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item cn-schema-form__title-with-badge">
-					<NcTextField v-model="schemaItem.title"
-						:disabled="dialogLoading"
-						:label="t('nextcloud-vue', 'Title *')" />
+					<NcTextField :disabled="dialogLoading"
+						:label="t('nextcloud-vue', 'Title *')"
+						:value.sync="schemaItem.title" />
 					<span v-if="schemaItem.allOf && schemaItem.allOf.length > 0"
 						class="cn-schema-form__statusPill cn-schema-form__statusPill--success">
 						allOf
@@ -187,18 +187,20 @@ import {
 	NcButton,
 	NcTextField,
 } from '@nextcloud/vue'
-import CallSplit from 'vue-material-design-icons/CallSplit.vue'
-import Check from 'vue-material-design-icons/Check.vue'
-import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
-import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
-import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
-import DeleteSweep from 'vue-material-design-icons/DeleteSweep.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import Upload from 'vue-material-design-icons/Upload.vue'
+
 import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
-import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
+import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
+
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CallSplit from 'vue-material-design-icons/CallSplit.vue'
+import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import DeleteSweep from 'vue-material-design-icons/DeleteSweep.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
@@ -237,7 +239,6 @@ export default {
 		DeleteSweep,
 		Upload,
 	},
-
 	props: {
 		/** Existing schema item for edit mode. Pass null for create mode. */
 		item: { type: Object, default: null },
@@ -273,38 +274,37 @@ export default {
 		/** Show "Delete" button */
 		showDelete: { type: Boolean, default: false },
 		// Labels (pre-translated strings with English defaults)
-		/** Label for the cancel button */
+		/** Label for the cancel button shown while editing. */
 		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
-		/** Label for the close button */
+		/** Label for the close button shown after a save or error. */
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Confirm button label. Defaults to "Create" or "Save". */
 		confirmLabel: { type: String, default: '' },
 		/** Success message. Defaults to "Schema saved successfully." */
 		successText: { type: String, default: '' },
-		/** Label for the Extend Schema action button */
+		/** Label for the Extend Schema action button. */
 		extendSchemaLabel: { type: String, default: () => t('nextcloud-vue', 'Extend schema') },
-		/** Label for the Analyze Properties action button */
+		/** Label for the Analyze Properties action button. */
 		analyzePropertiesLabel: { type: String, default: () => t('nextcloud-vue', 'Analyze properties') },
-		/** Label for the Validate Objects action button */
+		/** Label for the Validate Objects action button. */
 		validateObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Validate objects') },
-		/** Label for the Delete Objects action button */
+		/** Label for the Delete Objects action button. */
 		deleteObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Delete objects') },
-		/** Label for the Publish Objects action button */
+		/** Label for the Publish Objects action button. */
 		publishObjectsLabel: { type: String, default: () => t('nextcloud-vue', 'Publish objects') },
-		/** Label for the delete action */
+		/** Label for the Delete schema button shown in edit mode. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** Tooltip shown on the Delete Objects button */
+		/** Tooltip for the Delete Objects button when objects exist. */
 		deleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Delete all objects in this schema') },
-		/** Tooltip shown on the Publish Objects button */
+		/** Tooltip for the Publish Objects button when objects exist. */
 		publishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'Publish all objects in this schema') },
 		/** Tooltip for the Delete Objects button when no objects exist */
 		noDeleteObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to delete') },
 		/** Tooltip for the Publish Objects button when no objects exist */
 		noPublishObjectsTooltip: { type: String, default: () => t('nextcloud-vue', 'No objects to publish') },
-		/** Tooltip shown when deletion is not allowed */
+		/** Tooltip for the Delete schema button while objects are still attached. */
 		cannotDeleteTooltip: { type: String, default: () => t('nextcloud-vue', 'Cannot delete: objects are still attached') },
 	},
-
 	data() {
 		return {
 			isCopied: false,
@@ -326,8 +326,8 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
+					defaultAutoShare: false,
 				},
-
 				authorization: {},
 				hardValidation: false,
 				immutable: false,
@@ -336,7 +336,6 @@ export default {
 			},
 		}
 	},
-
 	computed: {
 		/**
 		 * Tab definitions for CnTabbedFormDialog.
@@ -350,29 +349,29 @@ export default {
 				{ id: 'security', title: t('nextcloud-vue', 'Security') },
 			]
 		},
-
 		sortedUserGroups() {
 			return this.userGroups
-				.filter((group) => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
+				.filter(group => group.id !== 'admin' && group.id !== 'public' && group.id !== 'authenticated')
 				.sort((a, b) => {
 					const nameA = a.displayname || a.id
 					const nameB = b.displayname || b.id
 					return nameA.localeCompare(nameB)
 				})
 		},
-
 		hasAnyPermissions() {
 			const auth = this.schemaItem.authorization || {}
-			return Object.keys(auth).some((action) => Array.isArray(auth[action]) && auth[action].length > 0)
+			return Object.keys(auth).some(action =>
+				Array.isArray(auth[action]) && auth[action].length > 0,
+			)
 		},
-
 		isRestrictiveSchema() {
 			const auth = this.schemaItem.authorization || {}
 			const actions = ['create', 'read', 'update', 'delete']
-			return actions.some((action) => Array.isArray(auth[action]) && auth[action].length > 0
-				&& !auth[action].includes('public'))
+			return actions.some(action =>
+				Array.isArray(auth[action]) && auth[action].length > 0
+					&& !auth[action].includes('public'),
+			)
 		},
-
 		typeOptionsForSelect() {
 			return [
 				{ id: 'string', label: t('nextcloud-vue', 'String') },
@@ -386,20 +385,17 @@ export default {
 				{ id: 'oneOf', label: t('nextcloud-vue', 'One of') },
 			]
 		},
-
 		propertyOptions() {
-			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter((k) => k !== '')
-			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter((k) => k !== '')
+			const ownKeys = Object.keys(this.schemaItem.properties || {}).filter(k => k !== '')
+			const inheritedKeys = Object.keys(this.inheritedProperties || {}).filter(k => k !== '')
 			return [...new Set([...inheritedKeys, ...ownKeys])]
 		},
-
 		availableTagsOptions() {
-			return this.availableTags.map((tag) => ({
+			return this.availableTags.map(tag => ({
 				id: tag,
 				label: tag,
 			}))
 		},
-
 		/**
 		 * Resolved success text for backwards compatibility (includes trailing period).
 		 *
@@ -409,7 +405,6 @@ export default {
 			if (this.successText) return this.successText
 			return t('nextcloud-vue', '{title} saved successfully.', { title: t('nextcloud-vue', 'Schema') })
 		},
-
 		/**
 		 * Returns a human-readable reason the save button is disabled, or '' when saving is allowed.
 		 * Used for both :disable-save and the WCAG tooltip/aria-label on the button.
@@ -420,7 +415,7 @@ export default {
 			if (!this.schemaItem.title) {
 				return t('nextcloud-vue', 'A schema title is required before saving')
 			}
-			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some((key) => key === '')
+			const hasUnnamedProperty = Object.keys(this.schemaItem.properties || {}).some(key => key === '')
 			if (hasUnnamedProperty) {
 				return t('nextcloud-vue', 'All properties must have a name before saving')
 			}
@@ -433,15 +428,14 @@ export default {
 			}
 
 			return this.schemaItem.allOf
-				.map((ref) => {
+				.map(ref => {
 					const schemaId = typeof ref === 'object' ? ref.id : ref
-					const schema = this.availableSchemas.find((s) => s.id === schemaId)
+					const schema = this.availableSchemas.find(s => s.id === schemaId)
 					return schema ? (schema.title || `Schema ${schema.id}`) : schemaId
 				})
-				.filter((name) => name)
+				.filter(name => name)
 		},
 	},
-
 	watch: {
 		item: {
 			immediate: true,
@@ -449,11 +443,10 @@ export default {
 				this.initializeSchemaItem()
 			},
 		},
-
 		'schemaItem.properties': {
 			handler(newProperties) {
 				if (newProperties) {
-					Object.keys(newProperties).forEach((key) => {
+					Object.keys(newProperties).forEach(key => {
 						const property = newProperties[key]
 						if (property) {
 							// Initialize nested objects if they don't exist
@@ -523,18 +516,18 @@ export default {
 				}
 				this.checkPropertiesModified()
 			},
-
 			deep: true,
 		},
 	},
-
 	methods: {
 		t,
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) return undefined
-			return this.availableSchemas.find((schema) => (schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
+			return this.availableSchemas.find(schema =>
+				(schema.slug && schema.slug.toLowerCase() === schemaSlug.toLowerCase())
 				|| schema.id === schemaSlug
-				|| schema.title === schemaSlug)
+				|| schema.title === schemaSlug,
+			)
 		},
 
 		ensureRefIsString(obj, key) {
@@ -581,8 +574,8 @@ export default {
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
+					defaultAutoShare: false,
 				},
-
 				authorization: {},
 				hardValidation: false,
 				immutable: false,
@@ -619,6 +612,9 @@ export default {
 				if (this.schemaItem.configuration.autoPublish === undefined) {
 					this.schemaItem.configuration.autoPublish = false
 				}
+				if (this.schemaItem.configuration.defaultAutoShare === undefined) {
+					this.schemaItem.configuration.defaultAutoShare = false
+				}
 			}
 
 			// Ensure authorization object exists
@@ -627,7 +623,7 @@ export default {
 			}
 
 			// Ensure existing properties have facetable set to false by default
-			Object.keys(this.schemaItem.properties || {}).forEach((key) => {
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
 				if (this.schemaItem.properties[key].facetable === undefined) {
 					this.$set(this.schemaItem.properties[key], 'facetable', false)
 				}
@@ -643,7 +639,7 @@ export default {
 			})
 
 			// Ensure all $ref values are strings and migrate old structure
-			Object.keys(this.schemaItem.properties || {}).forEach((key) => {
+			Object.keys(this.schemaItem.properties || {}).forEach(key => {
 				this.ensureRefIsString(this.schemaItem.properties, key)
 				this.migratePropertyToNewStructure(key)
 			})
@@ -671,9 +667,7 @@ export default {
 			try {
 				await navigator.clipboard.writeText(text)
 				this.isCopied = true
-				setTimeout(() => {
-					this.isCopied = false
-				}, 2000)
+				setTimeout(() => { this.isCopied = false }, 2000)
 			} catch (err) {
 				console.error('Failed to copy text:', err)
 			}
@@ -744,7 +738,7 @@ export default {
 		 */
 		handleConfirm() {
 			const cleanedSchemaItem = JSON.parse(JSON.stringify(this.schemaItem))
-			Object.keys(cleanedSchemaItem.properties || {}).forEach((key) => {
+			Object.keys(cleanedSchemaItem.properties || {}).forEach(key => {
 				this.ensureRefIsString(cleanedSchemaItem.properties, key)
 
 				if (cleanedSchemaItem.properties[key].register
@@ -766,8 +760,8 @@ export default {
 			for (const field of ['allOf', 'oneOf', 'anyOf']) {
 				if (Array.isArray(cleanedSchemaItem[field])) {
 					cleanedSchemaItem[field] = cleanedSchemaItem[field]
-						.map((ref) => (typeof ref === 'object' && ref !== null ? ref.id : ref))
-						.filter((id) => id !== null && id !== undefined && id !== '')
+						.map(ref => (typeof ref === 'object' && ref !== null ? ref.id : ref))
+						.filter(id => id != null && id !== '')
 					if (cleanedSchemaItem[field].length === 0) {
 						delete cleanedSchemaItem[field]
 					}

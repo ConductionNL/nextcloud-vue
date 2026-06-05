@@ -24,6 +24,7 @@ export const NcButton = createStub('NcButton')
 export const NcNoteCard = createStub('NcNoteCard')
 export const NcLoadingIcon = createStub('NcLoadingIcon')
 export const NcTextField = createStub('NcTextField')
+export const NcTextArea = createStub('NcTextArea')
 export const NcCheckboxRadioSwitch = createStub('NcCheckboxRadioSwitch')
 export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
@@ -38,15 +39,20 @@ export const NcAppSidebarTab = createStub('NcAppSidebarTab')
 export const NcPopover = createStub('NcPopover')
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
+export const NcListItem = createStub('NcListItem')
+export const NcAvatar = createStub('NcAvatar')
+export const NcCounterBubble = createStub('NcCounterBubble')
 
-// Renders the timestamp as an ISO string inside a <time> so tests can assert
-// the value the cell handed it (real component shows relative/locale text).
+/**
+ * NcDateTime stub — renders its `timestamp` prop as text so tab/card
+ * relative-time rows have observable content in jsdom.
+ */
 export const NcDateTime = {
 	name: 'NcDateTime',
-	props: ['timestamp', 'format', 'relativeTime', 'ignoreSeconds'],
-	render(h) {
-		const ts = this.timestamp instanceof Date ? this.timestamp.toISOString() : String(this.timestamp)
-		return h('time', { class: 'nc-date-time' }, ts)
+	functional: true,
+	render(h, { props, data }) {
+		const ts = props && props.timestamp
+		return h('time', { class: ['stub', 'NcDateTime'], ...data }, ts === undefined || ts === null ? '' : String(ts))
 	},
 }
 
@@ -56,6 +62,7 @@ export default {
 	NcNoteCard,
 	NcLoadingIcon,
 	NcTextField,
+	NcTextArea,
 	NcCheckboxRadioSwitch,
 	NcAppNavigation,
 	NcAppNavigationItem,
@@ -70,5 +77,8 @@ export default {
 	NcPopover,
 	NcRichText,
 	NcAppContent,
+	NcListItem,
+	NcAvatar,
+	NcCounterBubble,
 	NcDateTime,
 }

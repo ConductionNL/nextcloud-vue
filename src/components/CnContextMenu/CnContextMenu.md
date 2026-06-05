@@ -1,5 +1,7 @@
 CnContextMenu is designed for right-click context menus paired with the `useContextMenu` composable. The menu trigger is hidden by default — it opens programmatically via the `open` prop.
 
+For arbitrary content (grids, inputs, custom components) that doesn't fit the NcActions child-allowlist, use the **panels API**: set `activePanel` (with `.sync`) and provide a `#panel:<name>` slot. See the full reference doc for examples.
+
 Simulated open state — use `:open.sync` binding in practice:
 
 ```vue

@@ -58,6 +58,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `exportFormats` | Array | `[]` | Available export formats |
 | `importOptions` | Array | `[]` | Import dialog options |
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
+| `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens the CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject) to open — warns + no-ops otherwise |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
@@ -71,7 +72,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
-| `objectType` | String | `''` | Object type slug for store integration (e.g. `${registerId}-${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
+| `objectType` | String | `''` | Object type slug for store integration (e.g. `\${registerId}-\${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
 | `sidebar` | Object | `null` | Manifest-driven sidebar configuration. When set with `enabled: true`, CnIndexPage auto-mounts an embedded `CnIndexSidebar` and forwards its props. Shape: `\{ enabled, show?, columnGroups?, facets?, showMetadata?, search? \}`. `show` (default `true`) is the visibility gate — set `false` to hide the configured sidebar without removing config. When unset (the default), the legacy slot-based pattern is preserved — consumers wire their own `CnIndexSidebar` at the App.vue level. See [Manifest-driven sidebar](#manifest-driven-sidebar) below. |
 | `searchValue` | String | `''` | Current search term forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
@@ -243,6 +244,43 @@ Set `:show-add="false"` to hide the Add button. Combine with disabled row action
   @refresh="onRefresh"
   @page-changed="onPageChanged" />
 ```
+
+### Hiding built-in actions from a manifest
+
+Manifest `type:'index'` pages can hide individual built-in actions without writing a wrapper component. The renderer (`CnPageRenderer.resolvedProps`) flattens `config.actionToggles.*` into the matching `show*` / `selectable` props before mounting `CnIndexPage`. Explicit `config.<key>` wins over `config.actionToggles.<key>` (precedence mirrors the existing `config.readOnly` shortcut).
+
+```json
+{
+  "id": "Catalogs",
+  "route": "/catalogi",
+  "type": "index",
+  "title": "Catalogs",
+  "config": {
+    "register": "opencatalogi",
+    "schema": "catalog",
+    "actionToggles": {
+      "showEditAction": false,
+      "showCopyAction": false,
+      "showDeleteAction": false,
+      "showMassImport": false,
+      "showMassExport": false,
+      "showMassCopy": false,
+      "showMassDelete": false
+    }
+  }
+}
+```
+
+Known keys (each maps to the matching `CnIndexPage` prop):
+`showAdd`, `showFormDialog`, `showEditAction`, `showCopyAction`, `showDeleteAction`, `showMassImport`, `showMassExport`, `showMassCopy`, `showMassDelete`, `showViewToggle`, `selectable`. Unknown keys pass validation (forward-compat).
+
+For a fully read-only page, prefer the all-or-nothing shortcut:
+
+```json
+"config": { "register": "...", "schema": "...", "readOnly": true }
+```
+
+This expands to nine `show*: false` defaults; explicit `config.showAdd: true` still re-enables a specific button.
 
 ## Self-fetch mode
 
@@ -500,6 +538,10 @@ export default {
 }
 </script>
 ```
+
+## Documentation link
+
+Set `documentationUrl` (and optionally `documentationLabel`) to surface a **Documentation** entry in the [`CnActionsBar`](./cn-actions-bar) overflow menu, alongside the built-in Request-a-feature item. It opens the link in a new tab. Empty (the default) hides it.
 
 ## Reference (auto-generated)
 

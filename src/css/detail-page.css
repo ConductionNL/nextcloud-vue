@@ -16,6 +16,10 @@
 	margin-bottom: calc(4 * var(--default-grid-baseline));
 	flex-wrap: wrap;
 	gap: calc(4 * var(--default-grid-baseline));
+	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+	   positioned at the left edge of .app-content) plus 12px breathing
+	   room. Only the HEADER shifts right — body content keeps full width. */
+	padding-inline-start: 56px;
 }
 
 .cn-detail-page__header-left {
@@ -159,16 +163,6 @@
 .cn-detail-page__content {
 	flex: 1;
 	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: calc(4 * var(--default-grid-baseline));
-}
-
-/* Schema-driven auto-body — fires when the manifest passes
-   register+schema+objectId and no consumer slot content is supplied.
-   Mirrors the default-content flex column so the data + metadata
-   widgets stack with the same gap rhythm. */
-.cn-detail-page__auto-body {
 	display: flex;
 	flex-direction: column;
 	gap: calc(4 * var(--default-grid-baseline));

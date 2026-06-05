@@ -435,15 +435,8 @@ export function filtersFromSchema(schema) {
  * URL-like string formats — values must parse as a `URL` to be considered valid.
  */
 const URL_FORMATS = new Set([
-	'url',
-	'uri',
-	'uri-reference',
-	'iri',
-	'iri-reference',
-	'uri-template',
-	'accessUrl',
-	'shareUrl',
-	'downloadUrl',
+	'url', 'uri', 'uri-reference', 'iri', 'iri-reference', 'uri-template',
+	'accessUrl', 'shareUrl', 'downloadUrl',
 ])
 
 /**
@@ -548,7 +541,6 @@ export function validateValue(value, property = {}, options = {}) {
 
 /**
  * Validate a string value against a JSON-Schema `format`.
- *
  * @param {string} format Schema format identifier.
  * @param {string} value String value to validate.
  * @return {string|null} Error message or null when valid.
@@ -571,6 +563,7 @@ function validateStringFormat(format, value) {
 		// Reject obviously non-URL inputs (whitespace, missing dots / authority).
 		if (/\s/.test(value)) return 'Value must be a valid URL.'
 		try {
+			/* eslint-disable-next-line no-new */
 			new URL(value)
 			return null
 		} catch {

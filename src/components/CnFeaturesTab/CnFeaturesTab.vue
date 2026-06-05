@@ -7,11 +7,11 @@
 				</template>
 			</NcEmptyContent>
 		</div>
-		<ul v-else class="cn-features-tab__list">
-			<li
+		<div v-else class="cn-features-tab__grid">
+			<article
 				v-for="feature in sortedFeatures"
 				:key="feature.slug"
-				class="cn-features-tab__item">
+				class="cn-features-tab__card">
 				<h3 class="cn-features-tab__title">
 					{{ feature.title }}
 				</h3>
@@ -27,8 +27,8 @@
 					{{ docsLinkLabel }}
 					<OpenInNew :size="16" />
 				</a>
-			</li>
-		</ul>
+			</article>
+		</div>
 	</div>
 </template>
 
@@ -37,10 +37,13 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * FeaturesTab — alphabetically-sorted list of shipped capabilities for the
- * Features & Roadmap surface. Feature data is supplied as a prop by the host
- * app (the `@conduction/openspec-manifest` build CLI emits the bundled JSON
- * that powers this; see section 3 of the openregister-side openspec change).
+ * CnFeaturesTab — card-grid of shipped capabilities for the Features &
+ * Roadmap surface. Feature data is supplied as a prop by the host app
+ * (the org-wide Features Extract workflow stage emits docs/features.json
+ * from openspec/specs/; see ADR-033).
+ *
+ * Cards are sorted alphabetically by title (locale-aware, case-insensitive)
+ * inside the component. The grid auto-fits responsive columns.
  *
  * Spec: features-roadmap-component — Requirement "FeaturesTab".
  */
@@ -59,17 +62,13 @@ export default {
 		/**
 		 * Array of feature objects to render. Sorted alphabetically by title
 		 * (locale-aware, case-insensitive) inside the component.
-		 *
 		 * @type {Array<{slug: string, title: string, summary: string, docsUrl: string}>}
 		 */
 		features: {
 			type: Array,
+			required: true,
 			default: () => [],
 		},
-	},
-
-	methods: {
-		safeHref,
 	},
 
 	computed: {
@@ -77,47 +76,58 @@ export default {
 			const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
 			return [...this.features].sort((a, b) => collator.compare(a.title || '', b.title || ''))
 		},
-
 		emptyTitle() {
 			return t('nextcloud-vue', 'No features documented yet')
 		},
-
 		emptyDescription() {
 			return t('nextcloud-vue', 'Capabilities listed here are auto-generated from the openspec/specs/ directory once a status is set to "implemented" or "reviewed".')
 		},
-
 		docsLinkLabel() {
 			return t('nextcloud-vue', 'Read more')
 		},
+	},
+
+	methods: {
+		safeHref,
 	},
 }
 </script>
 
 <style scoped>
-.cn-features-tab__list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
+.cn-features-tab__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 16px;
 }
 
-.cn-features-tab__item {
+.cn-features-tab__card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.cn-features-tab__item:last-child {
-	border-bottom: 0;
+.cn-features-tab__card:hover {
+	border-color: var(--color-primary-element);
+	box-shadow: 0 2px 8px var(--color-box-shadow, rgba(0, 0, 0, 0.08));
 }
 
 .cn-features-tab__title {
-	margin: 0 0 8px 0;
-	font-size: 1.1em;
+	margin: 0;
+	font-size: 1.05em;
 	color: var(--color-main-text);
 }
 
 .cn-features-tab__summary {
-	margin: 0 0 8px 0;
+	margin: 0;
 	color: var(--color-text-light);
+	font-size: 0.95em;
+	line-height: 1.4;
+	flex: 1;
 }
 
 .cn-features-tab__link {
@@ -126,6 +136,8 @@ export default {
 	gap: 4px;
 	color: var(--color-primary-element);
 	text-decoration: none;
+	font-size: 0.9em;
+	margin-top: auto;
 }
 
 .cn-features-tab__link:hover {

@@ -53,7 +53,14 @@ describe('CnRoadmapItem', () => {
 	it('renders the submitter login + avatar', () => {
 		const wrapper = mount(CnRoadmapItem, { ...mountOpts, propsData: { item: baseItem } })
 		expect(wrapper.text()).toContain('octocat')
-		expect(wrapper.findComponent({ name: 'NcAvatar' }).props('user')).toBe('octocat')
+		// Avatar is a plain <img> (not NcAvatar) so the GitHub-hosted image
+		// loads directly instead of NC's avatar API returning a 404 for the
+		// non-Nextcloud user.
+		const avatar = wrapper.find('img.cn-roadmap-item__avatar')
+		expect(avatar.exists()).toBe(true)
+		expect(avatar.attributes('src')).toBe('https://avatars.githubusercontent.com/u/1')
+		expect(avatar.attributes('alt')).toBe('octocat')
+		expect(avatar.attributes('referrerpolicy')).toBe('no-referrer')
 	})
 
 	it('strips <script> from the markdown body — no raw script element rendered', () => {

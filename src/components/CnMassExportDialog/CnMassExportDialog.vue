@@ -32,7 +32,7 @@
 				<label for="cn-mass-export-format">{{ formatLabel }}</label>
 				<NcSelect
 					input-id="cn-mass-export-format"
-					:labelOutside="true"
+					:label-outside="true"
 					:options="formats"
 					:model-value="selectedFormat"
 					:clearable="false"

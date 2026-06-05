@@ -2,7 +2,19 @@
 
 JSON-driven page dispatcher. Mounted inside `<router-view>`, CnPageRenderer reads the manifest, finds the page definition whose `id` matches the current route name (`$route.name === page.id`), and renders the appropriate component by dispatching on `page.type`.
 
-Page types are resolved via the `pageTypes` registry. The library ships a built-in registry ([`defaultPageTypes`](../utilities/default-page-types.md) — `index`, `detail`, `dashboard`) and consumers extend it by passing a merged map. The `custom` type is special: it resolves `page.component` against the `customComponents` registry rather than `pageTypes`.
+Page types are resolved via the `pageTypes` registry. The library ships a built-in registry ([`defaultPageTypes`](../utilities/default-page-types.md) — `index`, `detail`, `dashboard`) and consumers extend it by passing a merged map. The `custom` type is special: it resolves `page.component` (and `page.sidebarComponent` / slot-override names) against a custom-component registry rather than `pageTypes`.
+
+The renderer resolves custom-component names in this order (ADR-036):
+
+1. **`registry` prop** / `cnRegistry` inject — the v2 kind-tagged registry. An entry matching the name wins.
+2. **`customComponents` prop** / `cnCustomComponents` inject — the legacy flat `{ name: Component }` map.
+
+Both can co-exist while consumers migrate; pass either. The legacy map is the deprecated source per ADR-036, kept as a backward-compat fallback.
+
+The discriminator on registry lookups depends on the resolution site:
+
+- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map.
+- **Slot overrides** (`page.slots[*]`, `page.headerComponent`, `page.actionsComponent`, `page.config.sections[*].component`) are kind-agnostic — any registry entry with a `component` field resolves, so consumers can fully migrate off `customComponents` by parking dashboard widgets / settings sections / action menus in `registry.js` with semantic kinds (`widget` / `section` / `actions`).
 
 Each entry in `pageTypes` is wrapped in `defineAsyncComponent`, so apps using only a subset pay no bundle cost for the others (notably the GridStack-backed `dashboard`).
 
@@ -205,6 +217,36 @@ For per-tab content on the built-in `CnObjectSidebar` (Files / Notes / Tags / Ta
 ```
 
 The renderer mounts the resolved registry components inside the dispatched page component's scoped slots — so the page component receives them under its standard `#header` / `#footer` names with whatever scope it provides.
+
+## Detail-page object loading
+
+For a `type:"detail"` page, the renderer **loads the object** the page is
+about and publishes it to descendant widgets — so the body/sidebar
+widgets (`data`, `metadata`, `file-manager`, …) render the object with
+no per-widget `props`.
+
+It resolves `{ register, schema, objectId }` from the page `config`
+(`register`, `schema`, and `idParam` — typically a `@route.*` sentinel
+like `"@route.id"`, falling back to the `:objectId` / `:id` route param),
+registers the `${register}-${schema}` object type, fetches the object +
+schema via `useObjectStore`, and exposes them on the `cnDetailObjectContext`
+inject (a reactive `{ value }` holder). [CnWidgetGrid](./cn-widget-grid.md)
+merges that context under each widget's props. The load is defensive (a
+Pinia-less harness or a failed fetch leaves the context null and the page
+still mounts) and re-runs when the register/schema/objectId triple changes.
+
+```json
+{
+  "id": "PublicationDetail",
+  "route": "/publications/:catalogSlug/:id",
+  "type": "detail",
+  "config": { "register": "publication", "schema": "publication", "idParam": "@route.id" },
+  "widgets": [
+    { "widgetKey": "data", "slot": "body", "gridWidth": 8, "gridHeight": 4 },
+    { "widgetKey": "metadata", "slot": "sidebar", "gridWidth": 1, "gridHeight": 2 }
+  ]
+}
+```
 
 ## Related
 

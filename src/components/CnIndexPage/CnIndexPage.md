@@ -484,3 +484,65 @@ No new props are required on `CnIndexPage`.
 | `card` | `{ object, selected }` | Custom card template for card view |
 | `row-actions` | `{ row }` | Custom row actions |
 | `column-{key}` | `{ row, value }` | Custom cell renderer for a specific column |
+
+## Page-level header actions (manifest)
+
+`CnIndexPage` accepts a `headerActions` prop (mirrored by the
+`pages[].config.headerActions[]` manifest key) so manifest authors can
+declare custom items inside `CnActionsBar`'s overflow dropdown without
+dropping to a JSX wrapper. The shape mirrors the row-level `actions[]`,
+but handlers receive **no row context** — the action is page-level.
+
+```vue
+<CnIndexPage
+  :register="register"
+  :schema="schema"
+  :header-actions="[
+    { id: 'view-logs', label: 'View logs', icon: 'icon-history', handler: 'navigate', route: 'SourceLogs' },
+  ]"
+  @header-action="onHeaderAction" />
+```
+
+Manifest equivalent:
+
+```json
+{
+  "id": "sources",
+  "type": "index",
+  "config": {
+    "register": "oc",
+    "schema": "sources",
+    "headerActions": [
+      { "id": "view-logs", "label": "View logs", "icon": "icon-history", "handler": "navigate", "route": "SourceLogs" }
+    ]
+  }
+}
+```
+
+Handler dispatch keywords (same as row-level `actions[].handler`):
+
+| Keyword | Behaviour |
+| --- | --- |
+| `navigate` | `$router.push({ name: action.route })` (no `params.id`) AND `@header-action` emits |
+| `emit` | Only `@header-action({ action: id, id })` emits (no handler call) |
+| `none` | No-op + suppresses the `@header-action` emit |
+| Registry name | `customComponents[name]({ actionId: id })` is called AND `@header-action` emits |
+| Unknown registry name | Silent fall-through to emit-only |
+
+Reserved built-in ids (`refresh`, `import`, `export`, `copy`, `delete`)
+are dropped from the rendered list with a `console.warn` so manifest
+authors cannot accidentally shadow CnActionsBar's built-in overflow
+items.
+
+## Request-a-feature
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject). |
+
+## Documentation link
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the CnActionsBar overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `''` | Optional override for the Documentation entry label; empty falls back to CnActionsBar's translated "Documentation". |

@@ -60,7 +60,8 @@
 				<div class="cn-ai-chat-tab__messages">
 					<CnAiMessageList
 						:messages="streamState.messages"
-						:current-text="streamState.currentText">
+						:current-text="streamState.currentText"
+						:is-streaming="streamState.isStreaming">
 						<template #empty>
 							<NcEmptyContent :name="cnTranslate('AI assistant')">
 								<template #icon>
@@ -92,13 +93,13 @@
 </template>
 
 <script>
-import { NcActionButton, NcAppSidebar, NcAppSidebarTab, NcEmptyContent } from '@nextcloud/vue'
-import Creation from 'vue-material-design-icons/Creation.vue'
-import History from 'vue-material-design-icons/History.vue'
+import { NcAppSidebar, NcAppSidebarTab, NcActionButton, NcEmptyContent } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import CnAiHistoryDialog from '../../dialogs/CnAiHistoryDialog.vue'
-import CnAiInput from './CnAiInput.vue'
+import History from 'vue-material-design-icons/History.vue'
+import Creation from 'vue-material-design-icons/Creation.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
+import CnAiInput from './CnAiInput.vue'
+import CnAiHistoryDialog from '../../dialogs/CnAiHistoryDialog.vue'
 
 export default {
 	name: 'CnAiChatPanel',
@@ -126,7 +127,6 @@ export default {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Stream state object from useAiChatStream().state.
 		 * Contains: isStreaming, currentText, toolCalls, error, messages.
@@ -135,7 +135,6 @@ export default {
 			type: Object,
 			required: true,
 		},
-
 		/** Ref to the FAB element — kept for API back-compat, focus return is handled by NcAppSidebar. */
 		fabRef: {
 			type: Object,

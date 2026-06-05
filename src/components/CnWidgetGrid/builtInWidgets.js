@@ -1,0 +1,54 @@
+/**
+ * SPDX-FileCopyrightText: 2024 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * builtInWidgets — internal registry of the library's built-in v2 widget components.
+ *
+ * Keys are the `widgetKey` values used in v2 manifests.
+ * Values are the Vue component definitions.
+ *
+ * CnWidgetGrid resolves widget keys first against this registry, then against
+ * the consumer-supplied `cnRegistry` inject. A consumer can override a built-in
+ * by registering a custom component with the same key in `cnRegistry`.
+ *
+ * Spec: REQ-MVR-005 (manifest-v2-renderer) — widget key resolution
+ */
+
+import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
+import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
+import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
+import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
+
+/**
+ * Built-in widget registry.
+ *
+ * The `data` and `metadata` keys are the canonical object-detail widgets:
+ * a manifest `type:"detail"` page that places `widgetKey:"data"` /
+ * `widgetKey:"metadata"` gets the object's editable property grid /
+ * read-only `@self` metadata respectively. Both need the loaded object —
+ * `CnPageRenderer` loads it for the detail page and `CnWidgetGrid` merges
+ * `{ objectData, schema, objectType, objectId, register, store }` into each
+ * widget's props (see CnWidgetGrid.resolvedWidgets), so the manifest entry
+ * needs no per-widget `props`.
+ *
+ * The `integration` key places an OpenRegister integration leaf
+ * (`CnIntegrationWidget`) on the page — e.g. OpenConnector's `sync-contract`
+ * ("Synced from"). Pick the leaf with `props.only: "<integrationId>"`; the
+ * object's `register` / `objectId` arrive via the detail-context merge, and
+ * the manifest should set `props.schema` to the schema slug (the merged
+ * context `schema` is the schema *object*, so an explicit slug prop wins).
+ *
+ * @type {Record<string, import('vue').Component>}
+ */
+export const BUILT_IN_WIDGETS = {
+	'object-table': CnWidgetObjectTable,
+	'form-renderer': CnWidgetFormRenderer,
+	'map-viewer': CnWidgetMapViewer,
+	'card-grid': CnWidgetCardGrid,
+	data: CnObjectDataWidget,
+	metadata: CnObjectMetadataWidget,
+	integration: CnIntegrationWidget,
+}

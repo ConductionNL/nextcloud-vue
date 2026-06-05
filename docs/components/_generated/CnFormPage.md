@@ -27,9 +27,9 @@
 
 ### Slots
 
-| Name                 | Bindings                             | Description          |
-| -------------------- | ------------------------------------ | -------------------- |
-| `header`             | `title`, `description`               | header               |
-| `actions`            | —                                    |                      |
-| `field-${field.key}` | `name`, `field`, `value`, `on-input` | field-$\{field.key\} |
-| `submit`             | `submitting`, `dirty`, `submit`      |                      |
+| Name                 | Bindings                             | Description           |
+| -------------------- | ------------------------------------ | --------------------- |
+| `header`             | `title`, `description`               | header                |
+| `actions`            | —                                    |                       |
+| `field-${field.key}` | `name`, `field`, `value`, `on-input` | field-\$\{field.key\} |
+| `submit`             | `submitting`, `dirty`, `submit`      |                       |

@@ -104,17 +104,21 @@ const defaultRegistry = () => ({
 	FormFields: FormFieldsStub,
 })
 
-function mountRenderer(routeName, { useProps = false, customComponents = defaultRegistry() } = {}) {
+function mountRenderer(routeName, {
+	useProps = false,
+	customComponents = defaultRegistry(),
+	manifest = sampleManifest,
+} = {}) {
 	const provide = useProps
 		? {}
 		: {
-				cnManifest: sampleManifest,
+				cnManifest: manifest,
 				cnCustomComponents: customComponents,
 				cnTranslate: (k) => k,
 			}
 	const propsData = useProps
 		? {
-				manifest: sampleManifest,
+				manifest,
 				customComponents,
 				translate: (k) => k,
 			}
@@ -213,68 +217,261 @@ describe('CnPageRenderer', () => {
 			// Wrapper still renders (page exists), but no inner content.
 			expect(wrapper.attributes('data-page-id')).toBe('broken')
 		})
+
+		it('resolves type=custom pages from the v2 cnRegistry (kind:"page") with precedence over legacy customComponents', () => {
+			// ADR-036 — the v2 `registry` prop ({ key: { kind, component }})
+			// MUST be honoured by CnPageRenderer for kind:"page" entries so
+			// fleet apps can migrate off the deprecated `customComponents`
+			// prop without losing page-dispatch.
+			const RegistryStub = {
+				name: 'RegistryStub',
+				template: '<section data-stub="registry-page" />',
+			}
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					// Legacy map has the same name — registry MUST win.
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					cnRegistry: { SettingsPage: { kind: 'page', component: RegistryStub } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(RegistryStub)
+			expect(wrapper.vm.resolvedComponent).not.toBe(LegacyStub)
+		})
+
+		it('falls back to legacy customComponents when the v2 registry has no kind:"page" entry for the name', () => {
+			// ADR-036 backward-compat — until every fleet app migrates,
+			// CnPageRenderer MUST still resolve names from the legacy
+			// `customComponents` prop / inject when the v2 registry is
+			// silent on that name.
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					// Registry has an unrelated widget entry; no page kind for SettingsPage.
+					cnRegistry: { SomeWidget: { kind: 'widget', component: {} } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(LegacyStub)
+		})
+
+		it('ignores v2 registry entries whose kind is not "page" when resolving a page component', () => {
+			// Only kind:"page" entries should be a source of truth for
+			// CnPageRenderer's page dispatch — a kind:"widget" entry must
+			// NOT shadow the legacy customComponents map.
+			const LegacyStub = {
+				name: 'LegacyStub',
+				template: '<section data-stub="legacy" />',
+			}
+			const WidgetEntry = {
+				name: 'WidgetEntry',
+				template: '<section data-stub="widget" />',
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: sampleManifest,
+					cnCustomComponents: { SettingsPage: LegacyStub },
+					cnRegistry: {
+						SettingsPage: { kind: 'widget', component: WidgetEntry, defaultSize: { w: 2, h: 2 } },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'settings' } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(LegacyStub)
+			expect(wrapper.vm.resolvedComponent).not.toBe(WidgetEntry)
+		})
+
+		it('resolves non-page registry kinds (widget/section/actions) for slot-override names', () => {
+			// Slot overrides (page.slots, page.actionsComponent,
+			// page.config.sections[].component) are kind-agnostic — any
+			// registry entry with a `component` field wins. This lets
+			// consumers fully migrate off customComponents by parking
+			// dashboard widgets / settings sections / action menus in
+			// `registry.js` with semantic kinds (widget/section/actions).
+			const WidgetStub = { name: 'WidgetStub', template: '<div data-stub="widget" />' }
+			const ActionsStub = { name: 'ActionsStub', template: '<div data-stub="actions" />' }
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [
+					{
+						id: 'dash',
+						route: '/dash',
+						type: 'custom',
+						title: 'Dashboard',
+						component: 'DashboardPage',
+						actionsComponent: 'DashboardActions',
+					},
+				],
+			}
+			const DashboardPage = { name: 'DashboardPage', template: '<div data-stub="page" />' }
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: manifest,
+					cnRegistry: {
+						DashboardPage: { kind: 'page', component: DashboardPage },
+						DashboardActions: { kind: 'actions', component: ActionsStub },
+						SomeWidget: { kind: 'widget', component: WidgetStub },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'dash' } },
+			})
+			// page dispatch still uses kind:"page" (DashboardPage).
+			expect(wrapper.vm.resolvedComponent).toBe(DashboardPage)
+			// actionsComponent slot resolves kind:"actions" — kind-agnostic.
+			expect(wrapper.vm.actionsOverride).toBe(ActionsStub)
+		})
 	})
 
 	describe('config forwarding', () => {
-		it('forwards page.config + page-level title/description/icon as resolvedProps', () => {
+		it('forwards page.config + top-level page.title as resolvedProps', () => {
 			const wrapper = mountRenderer('home')
-			// Top-level title is forwarded too — the schema-driven detail
-			// surface relies on this; existing config fields keep flowing
-			// through identically.
-			expect(wrapper.vm.resolvedProps).toMatchObject(sampleManifest.pages[0].config)
-			expect(wrapper.vm.resolvedProps.title).toBe('app.home')
+			// schema v2: page.title is lifted to top-level (sibling of
+			// config) so every page type can declare it without
+			// per-type schema branches. The renderer forwards top-level
+			// page fields alongside config.
+			expect(wrapper.vm.resolvedProps).toEqual({
+				...sampleManifest.pages[0].config,
+				title: 'app.home',
+			})
 		})
 
-		it('returns title-only when page has no config', () => {
+		it('still forwards the top-level title when a page has no config', () => {
 			const wrapper = mountRenderer('home-detail')
-			// `home-detail` has a top-level title but no config — the
-			// renderer surfaces the title as a default so manifest-only
-			// detail pages render their header without duplicating into
-			// config.
-			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'app.detail' })
+			expect(wrapper.vm.resolvedProps).toEqual({ title: 'app.detail' })
 		})
 
-		it('config.title overrides page-level title on collision', () => {
-			// Simulate a manifest entry that legacy-shadows title via config.
+		it('forwards page.widgets (top-level uniform widget placement array)', () => {
+			const widgets = [
+				{ widgetKey: 'data', slot: 'sidebar', tabGroup: 'overview', gridX: 0, gridY: 0, gridWidth: 1, gridHeight: 1 },
+			]
+			const sidebarTabs = [{ id: 'overview', label: 'Overview' }]
 			const manifest = {
 				version: '1.0.0',
 				menu: [],
-				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+				pages: [{
+					id: 'detail-with-widgets',
+					route: '/x/:id',
+					type: 'detail',
+					title: 'app.x',
+					config: { register: 'r', schema: 's', sidebarTabs },
+					widgets,
+				}],
 			}
-			const $route = { name: 'shadow', params: {} }
-			const wrapper = shallowMount(CnPageRenderer, {
-				mocks: { $route },
-				provide: { cnManifest: manifest, cnCustomComponents: {} },
+			const wrapper = mountRenderer('detail-with-widgets', { manifest })
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				title: 'app.x',
+				register: 'r',
+				schema: 's',
+				sidebarTabs,
+				widgets,
 			})
-			expect(wrapper.vm.resolvedProps.title).toBe('Config-level')
 		})
 
-		it('$route.params override both config and page-level fields', () => {
+		it('type=detail maps config.schema → objectType and params.id → objectId for sidebar gating', () => {
+			// CnDetailPage.syncSidebarState gates the external
+			// CnObjectSidebar on `objectType` + `objectId` props.
+			// The manifest declares `config.schema` and `:id` route
+			// param. The renderer bridges the names so the host's
+			// CnObjectSidebar can mount without consumer-side aliasing.
 			const manifest = {
 				version: '1.0.0',
 				menu: [],
-				pages: [{ id: 'shadow', route: '/shadow', type: 'index', title: 'Top-level', config: { title: 'Config-level' } }],
+				pages: [{
+					id: 'client-detail',
+					route: '/clients/:id',
+					type: 'detail',
+					title: 'app.client',
+					config: { register: 'r', schema: 'client' },
+				}],
 			}
-			const $route = { name: 'shadow', params: { title: 'Route-level' } }
 			const wrapper = shallowMount(CnPageRenderer, {
-				mocks: { $route },
-				provide: { cnManifest: manifest, cnCustomComponents: {} },
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'client-detail', params: { id: 'abc-123' } } },
 			})
-			expect(wrapper.vm.resolvedProps.title).toBe('Route-level')
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				schema: 'client',
+				objectType: 'client',
+				id: 'abc-123',
+				objectId: 'abc-123',
+			})
 		})
 
-		it('forwards description and icon from page top-level', () => {
+		it('type=detail does not overwrite explicit objectType or objectId', () => {
 			const manifest = {
 				version: '1.0.0',
 				menu: [],
-				pages: [{ id: 'iconed', route: '/iconed', type: 'index', title: 'T', description: 'D', icon: 'IconName' }],
+				pages: [{
+					id: 'explicit-detail',
+					route: '/things/:id',
+					type: 'detail',
+					title: 'app.t',
+					config: { register: 'r', schema: 'thingSlug', objectType: 'thingExplicit' },
+				}],
 			}
-			const $route = { name: 'iconed', params: {} }
 			const wrapper = shallowMount(CnPageRenderer, {
-				mocks: { $route },
-				provide: { cnManifest: manifest, cnCustomComponents: {} },
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'explicit-detail', params: { id: 'abc', objectId: 'xyz' } } },
 			})
-			expect(wrapper.vm.resolvedProps).toMatchObject({ title: 'T', description: 'D', icon: 'IconName' })
+			expect(wrapper.vm.resolvedProps.objectType).toBe('thingExplicit')
+			expect(wrapper.vm.resolvedProps.objectId).toBe('xyz')
+		})
+
+		it('type=detail does not mutate the live $route.params object', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'mut-detail',
+					route: '/x/:id',
+					type: 'detail',
+					title: 'app.x',
+					config: { schema: 's' },
+				}],
+			}
+			const liveParams = { id: 'abc' }
+			const wrapper = shallowMount(CnPageRenderer, {
+				provide: { cnManifest: manifest, cnCustomComponents: {}, cnTranslate: (k) => k },
+				mocks: { $route: { name: 'mut-detail', params: liveParams } },
+			})
+			// Touch resolvedProps to trigger the mapping.
+			expect(wrapper.vm.resolvedProps.objectId).toBe('abc')
+			// $route.params must NOT now carry the synthesised alias.
+			expect(liveParams).not.toHaveProperty('objectId')
+		})
+
+		it('config keys override top-level page keys when both are set (per-route override beats default)', () => {
+			const manifest = {
+				version: '1.0.0',
+				menu: [],
+				pages: [{
+					id: 'title-override',
+					route: '/o',
+					type: 'index',
+					title: 'page.default',
+					config: { title: 'page.override', schema: { name: 's' }, columns: [] },
+				}],
+			}
+			const wrapper = mountRenderer('title-override', { manifest })
+			expect(wrapper.vm.resolvedProps.title).toBe('page.override')
 		})
 	})
 
@@ -517,6 +714,72 @@ describe('CnPageRenderer', () => {
 				mocks: { $route: {} },
 			})
 			expect(wrapper.vm.currentPage).toBeNull()
+		})
+	})
+
+	describe('listener + attribute forwarding (B1)', () => {
+		// Drive emits / inspect props via findComponent + vm rather than
+		// rendered DOM. shallowMount stubs the dispatched component's
+		// template, but the component instance + its $emit / $attrs /
+		// resolved props are still observable through the wrapper.
+		const EmittingPage = {
+			name: 'EmittingPage',
+			inheritAttrs: false,
+			props: ['title'],
+			template: '<div class="emitting-stub" />',
+		}
+		const emittingManifest = {
+			version: '1.0.0',
+			menu: [],
+			pages: [
+				{
+					id: 'emitter',
+					route: '/emitter',
+					type: 'custom',
+					title: 'Decisions',
+					component: 'EmittingPage',
+					config: { title: 'Decisions' },
+				},
+			],
+		}
+
+		const mountEmitter = (extra = {}) => shallowMount(CnPageRenderer, {
+			provide: {
+				cnManifest: emittingManifest,
+				cnCustomComponents: { EmittingPage },
+				cnTranslate: (k) => k,
+			},
+			mocks: { $route: { name: 'emitter', params: {} } },
+			...extra,
+		})
+
+		it('forwards listeners so dispatched-page emits reach the host', () => {
+			const onWidgetAction = jest.fn()
+			const wrapper = mountEmitter({ listeners: { 'widget-action': onWidgetAction } })
+			const page = wrapper.findComponent(EmittingPage)
+			expect(page.exists()).toBe(true)
+			page.vm.$emit('widget-action', { widgetId: 'foo' })
+			expect(onWidgetAction).toHaveBeenCalledWith({ widgetId: 'foo' })
+		})
+
+		it('forwards $attrs to the dispatched page component', () => {
+			const wrapper = mountEmitter({ attrs: { 'host-context': 'meeting-room' } })
+			const page = wrapper.findComponent(EmittingPage)
+			expect(page.vm.$attrs['host-context']).toBe('meeting-room')
+		})
+
+		it('does NOT leak forwarded $attrs onto the wrapping cn-page-renderer div (inheritAttrs: false)', () => {
+			const wrapper = mountEmitter({ attrs: { 'host-context': 'meeting-room' } })
+			expect(wrapper.find('.cn-page-renderer').attributes('host-context')).toBeUndefined()
+		})
+
+		it('resolvedProps still wins over $attrs on key collisions', () => {
+			const wrapper = mountEmitter({ attrs: { title: 'Overridden' } })
+			const page = wrapper.findComponent(EmittingPage)
+			// manifest config.title = "Decisions"; $attrs.title would be
+			// "Overridden". Object spread `{ ...$attrs, ...resolvedProps }`
+			// makes resolvedProps win — the page receives "Decisions".
+			expect(page.props('title')).toBe('Decisions')
 		})
 	})
 })

@@ -131,3 +131,37 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `refreshDisabled` | `Boolean` | `false` | Disable the Refresh action (e.g. while a required selection is missing) |
 | `addDisabled` | `Boolean` | `false` | Disable the Add button (e.g. while a required selection is missing) |
 | `showAdd` | `Boolean` | `true` | Whether to render the Add button at all |
+| `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. |
+
+## Manifest header actions example
+
+```vue
+<CnActionsBar
+  :pagination="{ total: 42 }"
+  :object-count="20"
+  add-label="Add"
+  :header-actions="[
+    { id: 'view-logs', label: 'View logs', icon: 'icon-history' },
+    { id: 'open-api', label: 'Open API', icon: 'Api' },
+  ]"
+  @header-action="onHeaderAction" />
+```
+
+## Events
+
+| Event | Payload | Description |
+|---|---|---|
+| `header-action` | `{ action: <id>, id: <id> }` | Fired when a `headerActions[]` entry is clicked. The `action` field aliases `id` for forward-compat with the row-level `@action` event. |
+
+## Request-a-feature
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRequestFeature` | Boolean | `false` | Show a built-in "Request a feature" entry in the overflow (after Refresh + headerActions). Emits `@request-feature`. |
+
+## Documentation link
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation entry label. |

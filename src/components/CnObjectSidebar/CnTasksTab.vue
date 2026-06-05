@@ -128,14 +128,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
-import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
-import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
-import Close from 'vue-material-design-icons/Close.vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import { NcButton, NcTextField, NcListItem, NcActionButton, NcLoadingIcon, NcDateTimePickerNative, NcSelect } from '@nextcloud/vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
+import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
 import { buildHeaders } from '../../utils/index.js'
 
 export default {
@@ -210,20 +210,18 @@ export default {
 
 	computed: {
 		statusOptions() {
-			return [...new Set(this.tasks.map((t) => t.status).filter(Boolean))]
+			return [...new Set(this.tasks.map(t => t.status).filter(Boolean))]
 		},
-
 		assigneeOptions() {
-			return [...new Set(this.tasks.map((t) => this.extractAssignee(t)).filter(Boolean))]
+			return [...new Set(this.tasks.map(t => this.extractAssignee(t)).filter(Boolean))]
 		},
-
 		filteredTasks() {
 			let result = this.tasks
 			if (this.filterStatus) {
-				result = result.filter((t) => t.status === this.filterStatus)
+				result = result.filter(t => t.status === this.filterStatus)
 			}
 			if (this.filterAssignee) {
-				result = result.filter((t) => this.extractAssignee(t) === this.filterAssignee)
+				result = result.filter(t => this.extractAssignee(t) === this.filterAssignee)
 			}
 			return result
 		},
@@ -244,15 +242,11 @@ export default {
 	methods: {
 		async fetchTasks(append = false) {
 			if (!this.register || !this.schema) return
-			if (append) {
-				this.loadingMore = true
-			} else {
-				this.loading = true
-			}
+			if (append) { this.loadingMore = true } else { this.loading = true }
 			try {
 				const params = new URLSearchParams({ limit: this.limit, _page: this.page })
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks?${params}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks?${params}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -310,7 +304,7 @@ export default {
 					taskData.description = 'Assigned to: ' + this.newTaskAssignee.displayName
 				}
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks`,
 					{
 						method: 'POST',
 						headers: buildHeaders(),
@@ -331,7 +325,7 @@ export default {
 			this.newTaskSummary = task.summary || task.title || task.name || ''
 			this.newTaskDue = task.due ? new Date(task.due).toISOString().split('T')[0] : null
 			const assigneeName = this.extractAssignee(task)
-			this.newTaskAssignee = this.userList.find((u) => u.displayName === assigneeName) || null
+			this.newTaskAssignee = this.userList.find(u => u.displayName === assigneeName) || null
 		},
 
 		cancelEdit() {
@@ -355,7 +349,7 @@ export default {
 					taskData.description = ''
 				}
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks/${encodeURIComponent(this.editingTaskId)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(this.editingTaskId)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -382,7 +376,7 @@ export default {
 			const newStatus = task.status === 'completed' ? 'NEEDS-ACTION' : 'COMPLETED'
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks/${encodeURIComponent(task.id)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -398,7 +392,7 @@ export default {
 		async completeTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks/${encodeURIComponent(task.id)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{
 						method: 'PUT',
 						headers: buildHeaders(),
@@ -414,10 +408,10 @@ export default {
 		async deleteTask(task) {
 			try {
 				await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/tasks/${encodeURIComponent(task.id)}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/tasks/${encodeURIComponent(task.id)}`,
 					{ method: 'DELETE', headers: buildHeaders() },
 				)
-				this.tasks = this.tasks.filter((t) => t.id !== task.id)
+				this.tasks = this.tasks.filter(t => t.id !== task.id)
 			} catch (err) {
 				console.error('CnTasksTab: Failed to delete task', err)
 			}
@@ -434,8 +428,7 @@ export default {
 			if (!dateStr) return ''
 			try {
 				return new Date(dateStr).toLocaleDateString(undefined, {
-					day: 'numeric',
-					month: 'short',
+					day: 'numeric', month: 'short',
 				})
 			} catch { return dateStr }
 		},

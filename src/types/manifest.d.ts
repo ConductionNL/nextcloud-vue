@@ -23,7 +23,7 @@
 export type TPageType = 'index' | 'detail' | 'dashboard' | 'custom' | (string & {})
 
 /** Where a menu entry renders inside CnAppNav. */
-export type TManifestMenuSection = 'main' | 'settings'
+export type TManifestMenuSection = 'main' | 'footer' | 'settings'
 
 /** A nested menu entry. Cannot have further children. */
 export interface TManifestMenuItemLeaf {
@@ -35,8 +35,9 @@ export interface TManifestMenuItemLeaf {
 	permission?: string
 	/**
 	 * Placement within CnAppNav. `"main"` (default) renders in the top
-	 * list; `"settings"` renders inside the NcAppNavigationSettings
-	 * footer group.
+	 * scrollable list; `"footer"` renders as a flat pinned-bottom entry
+	 * above the settings foldout; `"settings"` renders inside the
+	 * NcAppNavigationSettings gear-icon foldout.
 	 */
 	section?: TManifestMenuSection
 	/**
@@ -79,10 +80,23 @@ export interface TManifestPage {
  * content (distinct from the schema's own version). `dependencies`
  * lists Nextcloud app IDs that must be installed and enabled.
  */
+/** Navigation-level configuration consumed by CnAppNav. */
+export interface TManifestNav {
+	/**
+	 * Auto-prepend a "Personal settings" entry at the top of the settings
+	 * foldout (opens the host's NcAppSettingsDialog via cnOpenUserSettings).
+	 * Defaults to `true`; set `false` for apps with no per-user settings.
+	 */
+	includePersonalSettings?: boolean
+	/** Override label for the settings foldout's gear button (default "Settings"). */
+	settingsLabel?: string
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
 	dependencies?: string[]
+	nav?: TManifestNav
 	menu: TManifestMenuItem[]
 	pages: TManifestPage[]
 }

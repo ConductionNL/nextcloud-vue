@@ -14,7 +14,7 @@
 			<slot name="logo">
 				<img
 					v-if="logoUrl"
-					:src="safeImageSrc(logoUrl)"
+					:src="logoUrl"
 					alt=""
 					class="cn-app-loading__logo">
 			</slot>
@@ -28,7 +28,6 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { safeImageSrc } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnAppLoading',
@@ -49,7 +48,6 @@ export default {
 			type: String,
 			default: 'Loading...',
 		},
-
 		/**
 		 * Optional logo image URL displayed above the spinner. Apps
 		 * with custom branding can also override the `#logo` slot.
@@ -60,10 +58,6 @@ export default {
 			type: String,
 			default: '',
 		},
-	},
-
-	methods: {
-		safeImageSrc,
 	},
 }
 </script>

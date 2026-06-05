@@ -89,14 +89,12 @@ export function searchPlugin() {
 			 * Query parameters for the active search.
 			 * Must include `register` and `schema` for `refetchSearchCollection` to work.
 			 * All other keys are forwarded as query-string parameters (e.g. `_search`, `_page`).
-			 *
 			 * @type {object}
 			 */
 			searchParams: {},
 
 			/**
 			 * Column keys that are visible in the search results table.
-			 *
 			 * @type {string[]}
 			 */
 			searchVisibleColumns: [],
@@ -126,7 +124,6 @@ export function searchPlugin() {
 		getters: {
 			/**
 			 * The current search result objects.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {Array}
 			 */
@@ -134,7 +131,6 @@ export function searchPlugin() {
 
 			/**
 			 * Pagination state for the last search fetch.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {{ total: number, page: number, pages: number, limit: number }}
 			 */
@@ -142,7 +138,6 @@ export function searchPlugin() {
 
 			/**
 			 * True while a search fetch is in progress.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {boolean}
 			 */
@@ -151,7 +146,6 @@ export function searchPlugin() {
 			/**
 			 * The schema object for the current search register/schema pair.
 			 * Populated automatically by `refetchSearchCollection`.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {object|null}
 			 */
@@ -160,7 +154,6 @@ export function searchPlugin() {
 			/**
 			 * The register object for the current search register/schema pair.
 			 * Populated automatically by `refetchSearchCollection`.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {object|null}
 			 */
@@ -169,7 +162,6 @@ export function searchPlugin() {
 			/**
 			 * Facet data from the last search fetch, in CnIndexSidebar-compatible format:
 			 * `{ fieldName: { values: [{ value, count }] } }`.
-			 *
 			 * @param {object} state Pinia state
 			 * @return {object}
 			 */

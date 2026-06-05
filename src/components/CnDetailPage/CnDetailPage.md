@@ -183,13 +183,10 @@ export default {
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
 | `sidebarOpen` | Boolean | `true` | Whether the sidebar starts expanded |
-| `objectType` | String | `''` | Registered object type slug for the sidebar. Legacy direct-mount path; manifest-driven pages prefer the `register` + `schema` pair below. |
-| `objectId` | String\|Number | `''` | Object ID to display in the sidebar (and to fetch in schema-driven mode). |
+| `objectType` | String | `''` | Registered object type slug for the sidebar |
+| `objectId` | String\|Number | `''` | Object ID to display in the sidebar |
 | `subtitle` | String | `''` | Subtitle shown in the sidebar header |
-| `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. Paired with `schema` + `objectId` makes the page fetch the object via `useObjectStore` and auto-render `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. |
-| `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. Fused with `register` into the canonical `${register}-${schema}` object-type slug. |
-| `sidebarTabs` | Array | `[]` | Tab definitions forwarded to the host App's `CnObjectSidebar` via the injected `objectSidebarState`. Manifest pattern: declare on `pages[].config.sidebarTabs`. Empty array → consumer's `CnObjectSidebar` falls back to its default tab set. |
-| `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) — legacy companion to the top-level `register` / `schema` / `sidebarTabs` props above. |
+| `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
@@ -224,3 +221,25 @@ export default {
 |---|---|---|
 | `surface` | `'detail-page'` | Rendering surface forwarded to integration widgets (`type === 'integration'`) in the grid layout. Drives the AD-19 surface fallback. |
 | `integrationContext` (`integration-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to integration widgets. Derived from `sidebarProps` + `objectId` when omitted. |
+
+## Built-in Actions menu
+
+The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Refresh / Documentation / Request a feature) after any `#actions` slot content. Refresh and Request-a-feature are on by default.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRefresh` | Boolean | `true` | Show the Refresh item. Emits `@refresh`; default fires the `cn:page:refresh` event-bus channel. |
+| `showRequestFeature` | Boolean | `true` | Show the Request-a-feature item. Opens CnSuggestFeatureModal with `surface: "detail:<id>"`. |
+| `documentationUrl` | String | `''` | When set, adds a **Documentation** entry opening the link in a new tab. Empty hides it. |
+| `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |
+| `pageId` | String | `''` | Stable id for the menu surface + `@refresh`/`@request-feature` payloads; falls back to a slugified `title`. |
+| `specRef` | String | `''` | Forwarded to the feature-request modal so the issue links to the spec capability. |
+| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins while true. |
+| `optimisticSpinMs` | Number | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
+| `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
+| `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |
+
+| Slot | Description |
+|------|-------------|
+| `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in trio. |

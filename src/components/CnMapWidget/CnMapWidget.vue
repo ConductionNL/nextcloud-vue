@@ -66,7 +66,6 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import DOMPurify from 'dompurify'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -118,7 +117,6 @@ export default {
 	props: {
 		/**
 		 * Initial map center as `[latitude, longitude]`.
-		 *
 		 * @type {[number, number]}
 		 */
 		center: {
@@ -126,86 +124,70 @@ export default {
 			required: true,
 			validator: (v) => Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n)),
 		},
-
 		/**
 		 * Initial zoom level.
-		 *
 		 * @type {number}
 		 */
 		zoom: {
 			type: Number,
 			default: 7,
 		},
-
 		/**
 		 * Layer definitions. Each entry: `{ type: 'tile'|'wms'|'wfs'|'geojson', url, options }`.
 		 * `geojson` MAY supply inline `data` (FeatureCollection) instead of `url`.
 		 * Unknown types log a console.warn and are skipped.
-		 *
 		 * @type {Array<object>}
 		 */
 		layers: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Marker config. `{ features?, dataSource?, latField?, lngField?, popupField?,
 		 * clustering?, iconColor?, iconUrl? }`. `features[]` is inline; `dataSource.url`
 		 * is HTTP-fetched on mount; `dataSource.{register, schema}` is reserved
 		 * (resolver deferred).
-		 *
 		 * @type {object|null}
 		 */
 		markers: {
 			type: Object,
 			default: null,
 		},
-
 		/**
 		 * Enable marker clustering. When true, lazy-loads `leaflet.markercluster`
 		 * on first mount. `markers.clustering` overrides this prop when set.
-		 *
 		 * @type {boolean}
 		 */
 		clustering: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Container height. Forwarded to the wrapper div's `style.height`.
-		 *
 		 * @type {string|number}
 		 */
 		height: {
 			type: [String, Number],
 			default: '500px',
 		},
-
 		/**
 		 * Auto-fit map bounds to all loaded features after first load.
-		 *
 		 * @type {boolean}
 		 */
 		autoFit: {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Aria-label for the map application region.
-		 *
 		 * @type {string}
 		 */
 		ariaLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Map'),
 		},
-
 		/**
 		 * Label shown when Leaflet is not available.
-		 *
 		 * @type {string}
 		 */
 		unavailableLabel: {
@@ -216,7 +198,6 @@ export default {
 
 	/**
 	 * Events:
-	 *
 	 * @event map-ready
 	 * @description Fired once after Leaflet has loaded and the map is mounted. Payload: `{ map }` — the underlying Leaflet `L.Map` instance. Consumers MAY use the instance to register custom controls or layers beyond the manifest shape.
 	 *
@@ -248,7 +229,6 @@ export default {
 			if (typeof this.height === 'number') return `${this.height}px`
 			return this.height
 		},
-
 		clusteringEnabled() {
 			if (this.markers && typeof this.markers.clustering === 'boolean') {
 				return this.markers.clustering
@@ -262,15 +242,12 @@ export default {
 			handler() {
 				if (this.map) this.renderLayers()
 			},
-
 			deep: true,
 		},
-
 		markers: {
 			handler() {
 				if (this.map) this.renderMarkers()
 			},
-
 			deep: true,
 		},
 	},
@@ -283,7 +260,7 @@ export default {
 		} catch (err) {
 			// Fallback when Leaflet can't load (test envs, CSP-blocked CDNs).
 			// Surface the fallback slot rather than blanking the page.
-
+			// eslint-disable-next-line no-console
 			console.warn('[CnMapWidget] Leaflet unavailable', err)
 			this.leafletAvailable = false
 			return
@@ -380,6 +357,7 @@ export default {
 			for (const def of this.layers) {
 				if (!def || typeof def !== 'object') continue
 				if (!ALLOWED_LAYER_TYPES.includes(def.type)) {
+					// eslint-disable-next-line no-console
 					console.warn(`[CnMapWidget] Unknown layer type "${def.type}", skipping.`)
 					continue
 				}
@@ -432,6 +410,7 @@ export default {
 					this.layerInstances.push(layer)
 				})
 				.catch((err) => {
+					// eslint-disable-next-line no-console
 					console.warn('[CnMapWidget] Failed to load layer', url, err)
 				})
 		},
@@ -481,29 +460,7 @@ export default {
 				onEachFeature: (feature, lyr) => {
 					const popupField = this.markers && this.markers.popupField
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
-					if (popupHtml) {
-						// Security: marker data may come from an external URL
-						// (markers.dataSource.url) — sanitize before passing to
-						// Leaflet's bindPopup, which renders its string argument as
-						// HTML (innerHTML). Without this, attacker-controlled marker
-						// properties execute script in the Nextcloud origin.
-						const safePopup = DOMPurify.sanitize(String(popupHtml), {
-							ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'span', 'a', 'br', 'p'],
-							ALLOWED_ATTR: ['href', 'target', 'rel', 'title'],
-							FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-							FORBID_ATTR: [
-								'onerror',
-								'onload',
-								'onclick',
-								'onmouseover',
-								'onfocus',
-								'onblur',
-								'onchange',
-								'onsubmit',
-							],
-						})
-						lyr.bindPopup(safePopup)
-					}
+					if (popupHtml) lyr.bindPopup(String(popupHtml))
 					lyr.on('click', (e) => {
 						/**
 						 * Marker click event. Fired when a marker is clicked.
@@ -518,7 +475,15 @@ export default {
 
 			if (this.clusteringEnabled) {
 				try {
-					await import('leaflet.markercluster')
+					// `leaflet.markercluster` is a soft optional dep — declared in our
+					// `dependencies` so npm installs it for direct consumers, but the
+					// `webpackIgnore: true` magic comment stops the bundler from trying
+					// to resolve the literal string against `node_modules/@conduction/
+					// nextcloud-vue/dist/` in downstream apps (which would fail with
+					// "Module not found"). The runtime catch handles the case where the
+					// dep genuinely isn't installed.
+					// eslint-disable-next-line import/no-unresolved
+					await import(/* webpackIgnore: true */ 'leaflet.markercluster')
 					if (typeof L.markerClusterGroup === 'function') {
 						this.clusterGroup = L.markerClusterGroup()
 						this.clusterGroup.addLayer(layer)
@@ -528,6 +493,7 @@ export default {
 						this.markerLayer = layer
 					}
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnMapWidget] Cluster plugin unavailable', err)
 					layer.addTo(this.map)
 					this.markerLayer = layer
@@ -575,6 +541,7 @@ export default {
 					const json = await response.json()
 					return this.normaliseFeatures(json)
 				} catch (err) {
+					// eslint-disable-next-line no-console
 					console.warn('[CnMapWidget] Failed to fetch markers', ds.url, err)
 					return []
 				}
@@ -599,7 +566,7 @@ export default {
 				const latField = (this.markers && this.markers.latField) || 'lat'
 				const lngField = (this.markers && this.markers.lngField) || 'lng'
 				return json
-					.filter((row) => row !== null && row !== undefined && Number.isFinite(row[latField]) && Number.isFinite(row[lngField]))
+					.filter((row) => row != null && Number.isFinite(row[latField]) && Number.isFinite(row[lngField]))
 					.map((row) => ({
 						type: 'Feature',
 						geometry: { type: 'Point', coordinates: [row[lngField], row[latField]] },

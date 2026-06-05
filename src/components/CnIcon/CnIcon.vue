@@ -67,13 +67,11 @@ export default {
 			type: String,
 			required: true,
 		},
-
 		/** Icon pixel size */
 		size: {
 			type: Number,
 			default: 20,
 		},
-
 		/** Fallback icon name if `name` is not found in the registry */
 		fallback: {
 			type: String,

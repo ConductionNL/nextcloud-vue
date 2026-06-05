@@ -1,51 +1,77 @@
 export { CnDataTable } from './CnDataTable/index.js'
+export { CnDataMatrix } from './CnDataMatrix/index.js'
 export { CnFilterBar } from './CnFilterBar/index.js'
 export { CnStatusBadge } from './CnStatusBadge/index.js'
 export { CnPagination } from './CnPagination/index.js'
 export { CnSettingsCard } from './CnSettingsCard/index.js'
 export { CnSettingsSection } from './CnSettingsSection/index.js'
 export { CnStatsBlock } from './CnStatsBlock/index.js'
+export { CnStructuredDocReview } from './CnStructuredDocReview/index.js'
 export { CnConfigurationCard } from './CnConfigurationCard/index.js'
 export { CnVersionInfoCard } from './CnVersionInfoCard/index.js'
 export { CnCellRenderer } from './CnCellRenderer/index.js'
 export { CnObjectCard } from './CnObjectCard/index.js'
 export { CnCardGrid } from './CnCardGrid/index.js'
 export { CnFacetSidebar } from './CnFacetSidebar/index.js'
+export { CnFederationStatus } from './CnFederationStatus/index.js'
 export { CnRowActions } from './CnRowActions/index.js'
 export { CnContextMenu } from './CnContextMenu/index.js'
 export { CnIndexPage } from './CnIndexPage/index.js'
 export { CnQuickFilterBar } from './CnQuickFilterBar/index.js'
+export { CnMarkdownEditor } from './CnMarkdownEditor/index.js'
 export { CnMassActionBar } from './CnMassActionBar/index.js'
 export { CnDeleteDialog } from './CnDeleteDialog/index.js'
 export { CnCopyDialog } from './CnCopyDialog/index.js'
 export { CnFormDialog } from './CnFormDialog/index.js'
-export { CnAdvancedFormDialog, CnMetadataTab, CnPropertiesTab, CnPropertyValueCell } from './CnAdvancedFormDialog/index.js'
+export { CnFormBuilder } from './CnFormBuilder/index.js'
+export { CnAdvancedFormDialog, CnPropertiesTab, CnMetadataTab, CnPropertyValueCell } from './CnAdvancedFormDialog/index.js'
 export { CnMassDeleteDialog } from './CnMassDeleteDialog/index.js'
 export { CnMassCopyDialog } from './CnMassCopyDialog/index.js'
 export { CnKpiGrid } from './CnKpiGrid/index.js'
 export { CnMassExportDialog } from './CnMassExportDialog/index.js'
 export { CnMassImportDialog } from './CnMassImportDialog/index.js'
+export { CnExportWizard } from './CnExportWizard/index.js'
+export { CnWizardDialog } from './CnWizardDialog/index.js'
+export { CnRichSubmitDialog } from './CnRichSubmitDialog/index.js'
+export { CnSignatureCapture } from './CnSignatureCapture/index.js'
 export { CnIndexSidebar } from './CnIndexSidebar/index.js'
 export { CnRegisterMapping } from './CnRegisterMapping/index.js'
+export { CnThemePreview } from './CnThemePreview/index.js'
+export { CnRelationshipGraph } from './CnRelationshipGraph/index.js'
 export { CnIcon, ICON_MAP, registerIcons } from './CnIcon/index.js'
 export { CnPageHeader } from './CnPageHeader/index.js'
 export { CnActionsBar } from './CnActionsBar/index.js'
+export { CnActionsMenu } from './CnActionsMenu/index.js'
 export { CnDetailPage } from './CnDetailPage/index.js'
 export { CnDashboardPage } from './CnDashboardPage/index.js'
 export { CnDashboardGrid } from './CnDashboardGrid/index.js'
 export { CnWidgetWrapper } from './CnWidgetWrapper/index.js'
 export { CnWidgetRenderer } from './CnWidgetRenderer/index.js'
 export { CnTileWidget } from './CnTileWidget/index.js'
+export { CnTimelineView } from './CnTimelineView/index.js'
 export { CnItemCard } from './CnItemCard/index.js'
 export { CnSchemaFormDialog } from './CnSchemaFormDialog/index.js'
+export { CnSearchPage } from './CnSearchPage/index.js'
 export { CnTabbedFormDialog } from './CnTabbedFormDialog/index.js'
 export { CnTimelineStages } from './CnTimelineStages/index.js'
+export { CnTreeView } from './CnTreeView/index.js'
 export { CnUserActionMenu } from './CnUserActionMenu/index.js'
 export { CnNotesCard } from './CnNotesCard/index.js'
 export { CnTasksCard } from './CnTasksCard/index.js'
 export { CnFilesCard } from './CnFilesCard/index.js'
+export { CnFileManager } from './CnFileManager/index.js'
 export { CnTagsCard } from './CnTagsCard/index.js'
 export { CnAuditTrailCard } from './CnAuditTrailCard/index.js'
+export { default as CnEmailCard } from '../integrations/builtin/email/CnEmailCard.vue'
+export { default as CnEmailTab } from '../integrations/builtin/email/CnEmailTab.vue'
+export { default as CnContactsCard } from '../integrations/builtin/contacts/CnContactsCard.vue'
+export { default as CnContactsTab } from '../integrations/builtin/contacts/CnContactsTab.vue'
+export { CnContactPicker } from './CnContactPicker/index.js'
+export { CnContactCreate } from './CnContactCreate/index.js'
+export { CnIntegrationTab } from './CnIntegrationTab/index.js'
+export { CnIntegrationCard } from './CnIntegrationCard/index.js'
+export { CnIntegrationWidgetGrid } from './CnIntegrationWidgetGrid/index.js'
+export { CnIntegrationWidget } from './CnIntegrationWidget/index.js'
 export { CnDetailCard } from './CnDetailCard/index.js'
 export { CnCard } from './CnCard/index.js'
 export { CnStatsPanel } from './CnStatsPanel/index.js'
@@ -54,6 +80,7 @@ export { CnColorPicker } from './CnColorPicker/index.js'
 export { CnDetailGrid } from './CnDetailGrid/index.js'
 export { CnProgressBar } from './CnProgressBar/index.js'
 export { CnChartWidget } from './CnChartWidget/index.js'
+export { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from './CnDateRangePicker/index.js'
 export { CnStatsBlockWidget } from './CnStatsBlockWidget/index.js'
 export { CnLockedBanner } from './CnLockedBanner/index.js'
 export { CnObjectSidebar } from './CnObjectSidebar/index.js'
@@ -67,7 +94,6 @@ export { CnSettingsPage } from './CnSettingsPage/index.js'
 export { CnChatPage } from './CnChatPage/index.js'
 export { CnFilesPage } from './CnFilesPage/index.js'
 export { CnFormPage } from './CnFormPage/index.js'
-export { CnWikiPage } from './CnWikiPage/index.js'
 export { CnMapWidget } from './CnMapWidget/index.js'
 export { CnMapPage } from './CnMapPage/index.js'
 export { default as CnWidgetRefItem } from './CnWidgetRefItem/index.js'
@@ -77,10 +103,81 @@ export { CnAppLoading } from './CnAppLoading/index.js'
 export { CnDependencyMissing } from './CnDependencyMissing/index.js'
 export { CnAppRoot } from './CnAppRoot/index.js'
 
+// V2 widget components (manifest-v2-renderer)
+export { default as CnWidgetGrid } from './CnWidgetGrid/CnWidgetGrid.vue'
+export { default as CnWidgetObjectTable } from './CnWidgetObjectTable/CnWidgetObjectTable.vue'
+export { default as CnWidgetFormRenderer } from './CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
+export { default as CnWidgetMapViewer } from './CnWidgetMapViewer/CnWidgetMapViewer.vue'
+export { default as CnWidgetCardGrid } from './CnWidgetCardGrid/CnWidgetCardGrid.vue'
+
 // Features & roadmap menu (add-features-roadmap-menu)
 export { CnFeaturesAndRoadmapLink } from './CnFeaturesAndRoadmapLink/index.js'
+export { CnFeaturesAndRoadmapPage } from './CnFeaturesAndRoadmapPage/index.js'
+export { CnFeaturesAndRoadmapSidebar } from './CnFeaturesAndRoadmapSidebar/index.js'
 export { CnFeaturesAndRoadmapView } from './CnFeaturesAndRoadmapView/index.js'
+export { CnSupportDialog } from './CnSupportDialog/index.js'
+export { CnNotificationPreferences } from './CnNotificationPreferences/index.js'
 export { CnFeaturesTab } from './CnFeaturesTab/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'
 export { CnRoadmapItem } from './CnRoadmapItem/index.js'
 export { CnSuggestFeatureModal } from './CnSuggestFeatureModal/index.js'
+// Deck integration leaf (Tier-2)
+export { CnDeckCardPicker } from './CnDeckCardPicker/index.js'
+export { CnDeckCardCreate } from './CnDeckCardCreate/index.js'
+
+// Calendar integration leaf (Tier-2)
+export { CnCalendarEventPicker } from './CnCalendarEventPicker/index.js'
+export { CnCalendarEventCreate } from './CnCalendarEventCreate/index.js'
+
+// Email integration leaf (Tier-2)
+export { CnEmailPicker } from './CnEmailPicker/index.js'
+
+// Polls integration leaf (Tier-2)
+export { CnPollPicker } from './CnPollPicker/index.js'
+export { CnPollCreate } from './CnPollCreate/index.js'
+
+// Talk integration leaf (Tier-2)
+export { CnTalkRoomPicker } from './CnTalkRoomPicker/index.js'
+export { CnTalkRoomCreate } from './CnTalkRoomCreate/index.js'
+
+// Shares integration leaf (Tier-2) — create-only (no picker)
+export { CnShareCreate } from './CnShareCreate/index.js'
+
+// Flow integration leaf (Tier-2)
+export { CnFlowOperationPicker } from './CnFlowOperationPicker/index.js'
+
+// Photos integration leaf (Tier-2)
+export { CnPhotoAlbumPicker } from './CnPhotoAlbumPicker/index.js'
+export { CnPhotoAlbumCreate } from './CnPhotoAlbumCreate/index.js'
+
+// Bookmarks integration leaf (Tier-2)
+export { CnBookmarkPicker } from './CnBookmarkPicker/index.js'
+export { CnBookmarkCreate } from './CnBookmarkCreate/index.js'
+
+// Collectives integration leaf (Tier-2)
+export { CnCollectivePagePicker } from './CnCollectivePagePicker/index.js'
+export { CnCollectivePageCreate } from './CnCollectivePageCreate/index.js'
+
+// XWiki integration leaf (Tier-2)
+export { CnXwikiPagePicker } from './CnXwikiPagePicker/index.js'
+export { CnXwikiPageCreate } from './CnXwikiPageCreate/index.js'
+
+// Maps integration leaf (Tier-2)
+export { CnMapPoiPicker } from './CnMapPoiPicker/index.js'
+export { CnMapPoiCreate } from './CnMapPoiCreate/index.js'
+
+// OpenProject integration leaf (Tier-2)
+export { CnOpenProjectPicker } from './CnOpenProjectPicker/index.js'
+export { CnOpenProjectCreate } from './CnOpenProjectCreate/index.js'
+
+// Analytics integration leaf (Tier-2)
+export { CnAnalyticsReportPicker } from './CnAnalyticsReportPicker/index.js'
+export { CnAnalyticsReportCreate } from './CnAnalyticsReportCreate/index.js'
+
+// Cospend integration leaf (Tier-2)
+export { CnCospendPicker } from './CnCospendPicker/index.js'
+export { CnCospendCreate } from './CnCospendCreate/index.js'
+
+// Time-tracker integration leaf (Tier-2)
+export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
+export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'

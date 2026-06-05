@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # CnContextMenu
 
-Right-click context menu component that wraps NcActions with cursor positioning. Pair with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable for state management.
+Right-click context menu component that wraps NcActions with cursor positioning. Supports an optional **panels API** for arbitrary custom content (grids, inputs, custom components) beyond the NcActions action-list allowlist. Pair with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable for state management.
 
 **Wraps**: NcActions, NcActionButton (from @nextcloud/vue)
 
@@ -14,21 +14,24 @@ Right-click context menu component that wraps NcActions with cursor positioning.
 |------|------|---------|-------------|
 | `open` | Boolean | `false` | Whether the menu is open. Use with `.sync` modifier, bound to `useContextMenu().isOpen`. |
 | `actions` | Array | `[]` | Action definitions: `[{ label, icon?, handler?, disabled?, visible?, title?, destructive? }]`. Same format as CnRowActions. `visible` (boolean or `(targetItem) => boolean`) hides the entry when falsy; omitted means always shown. `title` (string or `(targetItem) => string`) renders as a native tooltip — useful for explaining why a `disabled` entry is disabled. |
-| `targetItem` | Object/String/Number | `null` | The right-clicked item. Passed to action `handler` and `disabled` callbacks. Bind to `useContextMenu().targetItem`. |
+| `targetItem` | Object/String/Number | `null` | The right-clicked item. Passed to action `handler` and `disabled` callbacks, and forwarded to custom panel slots as the `targetItem` scope binding. Bind to `useContextMenu().targetItem`. |
+| `activePanel` | String | `null` | Name of the currently active custom panel, or `null` for the default action list. When set, the matching `#panel:<name>` slot is rendered in place of NcActions. Use with `.sync` so panel slots can call `back()` to clear it. Resets to `null` on close. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `update:open` | `boolean` | Emitted when open state changes (for `.sync` binding) |
+| `update:activePanel` | `string \| null` | Emitted when the active panel changes (for `.sync` binding). Fired with `null` when a panel slot calls `back()` or when the menu closes. |
 | `action` | `{ action, row }` | Emitted when an action is clicked. `action` is the label string, `row` is the `targetItem`. |
-| `close` | — | Emitted when the menu closes (click outside, action click, or Escape) |
+| `close` | — | Emitted when the menu closes (click outside, action click, panel backdrop click, or Escape) |
 
 ## Slots
 
 | Slot | Scope | Description |
 |------|-------|-------------|
-| default | — | Custom NcActionButton content. Rendered after any `actions` array items. Use this for hardcoded buttons that don't fit the actions array pattern. |
+| default | — | Custom NcActionButton content for the default panel. Rendered inside `NcActions` after any `actions` array items. Subject to NcActions' child filter — only `NcActionButton`, `NcActionButtonGroup`, `NcActionInput`, `NcActionLink`, `NcActionRouter`, `NcActionCheckbox`, `NcActionRadio`, `NcActionTextEditable` are rendered. Use a custom panel for anything else. |
+| `panel:<name>` | `{ back, close, targetItem }` | Free-form panel content shown when `activePanel === '<name>'`. Bypasses the NcActions child filter — put any markup here (grids, inputs, custom components). `back()` returns to the default action list. `close()` closes the entire menu. `targetItem` is the right-clicked item. |
 
 ## Usage
 
@@ -115,6 +118,64 @@ export default {
   </NcActionButton>
 </CnContextMenu>
 ```
+
+### Custom panels (free-form content)
+
+For submenu-style flows that don't fit the action-list shape — colour pickers,
+icon grids, mini-forms — use a custom panel. The default panel acts as a menu
+of entry points; each entry sets `activePanel` to swap the menu's content with
+the matching slot, which renders without the NcActions child filter.
+
+```vue {static}
+<CnContextMenu
+  :open.sync="open"
+  :active-panel.sync="panel"
+  @close="onClose">
+  <!-- Default panel: entry points -->
+  <NcActionButton @click="panel = 'colour'">
+    <template #icon><PaletteIcon :size="20" /></template>
+    Change colour
+  </NcActionButton>
+  <NcActionButton @click="panel = 'icon'">
+    <template #icon><PaletteSwatchIcon :size="20" /></template>
+    Change icon
+  </NcActionButton>
+
+  <!-- Custom 'colour' panel: anything goes here -->
+  <template #panel:colour="{ back, close }">
+    <button class="back-btn" @click="back">← Back</button>
+    <div class="colour-grid">
+      <button
+        v-for="c in colours"
+        :key="c"
+        :style="{ background: c }"
+        @click="applyColour(c); close()" />
+    </div>
+  </template>
+
+  <!-- Custom 'icon' panel: search field + grid -->
+  <template #panel:icon="{ back, close, targetItem }">
+    <button @click="back">← Back</button>
+    <input v-model="iconSearch" placeholder="Search icons" />
+    <div class="icon-grid">
+      <button
+        v-for="icon in filteredIcons"
+        :key="icon.key"
+        @click="applyIcon(targetItem, icon.key); close()">
+        <component :is="icon.component" />
+      </button>
+    </div>
+  </template>
+</CnContextMenu>
+```
+
+**Scope bindings** for `#panel:<name>`:
+- `back()` — clear `activePanel`, returning to the default action list (same menu, no reposition).
+- `close()` — close the entire menu, equivalent to clicking outside.
+- `targetItem` — forwarded from the `targetItem` prop, identical to what action handlers receive.
+
+Custom panels handle their own close-on-Escape and close-on-click-outside —
+clicking the transparent backdrop behind the panel closes the menu.
 
 ## How It Works
 

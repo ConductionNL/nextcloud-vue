@@ -9,14 +9,14 @@
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
 					:multiple="true"
-					keep-open
+					:close-on-select="false"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
 					:multiple="true"
-					keep-open
+					:close-on-select="false"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"
@@ -116,7 +116,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative } from '@nextcloud/vue'
 import History from 'vue-material-design-icons/History.vue'
 import { buildHeaders } from '../../utils/index.js'
 
@@ -179,7 +179,6 @@ export default {
 			immediate: true,
 			handler(id) { if (id) this.fetchAuditTrails() },
 		},
-
 		filterAction() { this.resetAndFetch() },
 		filterUser() { this.resetAndFetch() },
 		filterDateFrom() { this.resetAndFetch() },
@@ -216,7 +215,7 @@ export default {
 			try {
 				const query = this.buildQueryParams()
 				const response = await fetch(
-					`${this.apiBase}/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}/${encodeURIComponent(this.objectId)}/audit-trails?${query}`,
+					`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/audit-trails?${query}`,
 					{ headers: buildHeaders() },
 				)
 				if (response.ok) {
@@ -229,7 +228,7 @@ export default {
 					}
 					this.total = data.total || this.entries.length
 					// Build user options from all seen entries
-					const users = new Set(this.entries.map((e) => e.userName || e.user).filter(Boolean))
+					const users = new Set(this.entries.map(e => e.userName || e.user).filter(Boolean))
 					this.userOptions = [...users].sort()
 				}
 			} catch (err) {

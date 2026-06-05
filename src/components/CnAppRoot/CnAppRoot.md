@@ -113,7 +113,12 @@ Descendant page components (`CnIndexPage`, `CnDetailPage`, `CnDashboardPage`) ov
 
 ### Static manifest with backend override (default)
 
-```js {static}
+<!-- Fenced as `javascript` (not in styleguide customLangs) so the
+     example renders as syntax-highlighted code without webpack
+     trying to compile the import of `../manifest.json` (which lives
+     in the consuming app, not this library). -->
+
+```javascript
 import { CnAppRoot, useAppManifest } from '@conduction/nextcloud-vue'
 import bundledManifest from '../manifest.json'
 
@@ -159,7 +164,7 @@ export default {
 
 Add `validate: true` for synchronous schema validation — failures populate `validationErrors` and emit a `console.warn` prefixed `[useAppManifest]` but never replace the manifest (informational policy, mirroring the legacy branch):
 
-```js
+```javascript
 const { manifest, isLoading, validationErrors } = useAppManifest({
   manifest: builderManifest,
   validate: true,
@@ -172,3 +177,9 @@ See [`useAppManifest` — Mounting an in-memory manifest](../../../docs/utilitie
 ## Mounting an in-memory manifest
 
 Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetches `/index.php/apps/myapp/api/manifest` and deep-merges any backend override. Virtual-app hosts (e.g. the OpenBuilt app builder) use the in-memory overload `useAppManifest({ manifest })` — see the [In-memory manifest example](#in-memory-manifest-virtual-app-hosts-eg-openbuilt) above.
+
+## Support dialog
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |

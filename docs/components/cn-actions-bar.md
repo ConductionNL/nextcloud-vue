@@ -63,6 +63,7 @@ Custom action items can be injected into the overflow menu:
 | `showMassCopy` | Boolean | `true` | Whether to show the Copy selected action |
 | `showMassDelete` | Boolean | `true` | Whether to show the Delete selected action |
 | `inlineActionCount` | Number | `2` | How many actions to show inline (rest go in overflow) |
+| `showRequestFeature` | Boolean | `false` | Show a built-in "Request a feature" entry in the overflow (after Refresh + headerActions). Emits `@request-feature`; the host opens the CnSuggestFeatureModal |
 
 ### Events
 
@@ -70,6 +71,7 @@ Custom action items can be injected into the overflow menu:
 |-------|---------|-------------|
 | `add` | — | Add button clicked |
 | `refresh` | — | Refresh action triggered |
+| `request-feature` | — | Built-in "Request a feature" overflow item clicked (only when `showRequestFeature`) |
 | `view-mode-change` | `'table'` \| `'cards'` | View toggle changed |
 | `show-import` | — | Import action triggered |
 | `show-export` | — | Export action triggered |
@@ -83,6 +85,10 @@ Custom action items can be injected into the overflow menu:
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |
+
+## Documentation link
+
+Set `documentationUrl` to add a **Documentation** entry to the overflow menu (just before Request a feature). It renders as a link that opens the URL in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); customise the wording with `documentationLabel`. Empty (the default) hides it. This mirrors the widget Actions menu's Documentation entry. [`CnIndexPage`](./cn-index-page) forwards its own `documentationUrl` / `documentationLabel` props here.
 
 ## Reference (auto-generated)
 

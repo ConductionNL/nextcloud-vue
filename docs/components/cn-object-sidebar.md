@@ -157,7 +157,7 @@ The locked-banner UX lives on [`CnDetailPage`](./cn-detail-page.md) for v1 — s
 
 | Prop | Type | Default | Notes |
 |---|---|---|---|
-| `useRegistry` (`use-registry`) | Boolean | `false` | Opt into the pluggable integration registry. When `true`, the hard-coded built-in tabs are replaced by one tab per registered provider. `#tab-<id>` slot overrides and `hiddenTabs` / `excludeIntegrations` still apply. Mutually exclusive with the open-enum `tabs` prop — `tabs` wins when both are set. |
+| `useRegistry` (`use-registry`) | Boolean | `true` | Use the pluggable integration registry (ADR-019) to drive the tabs — one tab per provider registered on `window.OCA.OpenRegister.integrations`. The canonical five built-ins (files / notes / tags / tasks / audit-trail) ship as providers in `builtinIntegrations` and are registered by OpenRegister's bootstrap, so the default surface is unchanged for apps that register them. Set `false` to opt back into the legacy hardcoded-tabs path (renders the five built-in tabs directly and supports `#tab-<id>` slot overrides) — for consumers that don't call `registerBuiltinIntegrations()`. `hiddenTabs` / `excludeIntegrations` apply in both modes. Mutually exclusive with the open-enum `tabs` prop — `tabs` wins when both are set. |
 | `excludeIntegrations` (`exclude-integrations`) | String[] | `[]` | Integration ids to exclude when rendering registry-driven tabs. Mirrors `hiddenTabs` for the legacy mode. |
 
 ## Reference (auto-generated)

@@ -27,7 +27,7 @@
 					<NcButton
 						v-else
 						:key="page"
-						:variant="page === currentPage ? 'primary' : 'secondary'"
+						:type="page === currentPage ? 'primary' : 'secondary'"
 						:disabled="page === currentPage"
 						@click="changePage(page)">
 						{{ page }}
@@ -54,7 +54,7 @@
 			<NcSelect
 				:input-id="pageSizeId"
 				class="cn-pagination__page-size-select"
-				:model-value="currentPageSizeOption"
+				:value="currentPageSizeOption"
 				:options="pageSizeOptions"
 				:clearable="false"
 				:input-label="itemsPerPageLabel"
@@ -101,25 +101,21 @@ export default {
 			type: Number,
 			default: 1,
 		},
-
 		/** Total number of pages */
 		totalPages: {
 			type: Number,
 			default: 1,
 		},
-
 		/** Total number of items across all pages */
 		totalItems: {
 			type: Number,
 			default: 0,
 		},
-
 		/** Current items per page */
 		currentPageSize: {
 			type: Number,
 			default: 20,
 		},
-
 		/** Available page size options */
 		pageSizeOptions: {
 			type: Array,
@@ -133,43 +129,36 @@ export default {
 				{ value: 1000, label: '1000' },
 			],
 		},
-
 		/** Minimum items before pagination is shown */
 		minItemsToShow: {
 			type: Number,
 			default: 10,
 		},
-
 		/** Label for "First" button */
 		firstLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'First'),
 		},
-
 		/** Label for "Previous" button */
 		previousLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Previous'),
 		},
-
 		/** Label for "Next" button */
 		nextLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Next'),
 		},
-
 		/** Label for "Last" button */
 		lastLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Last'),
 		},
-
 		/** Label for "Items per page:" */
 		itemsPerPageLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Items per page:'),
 		},
-
 		/**
 		 * Page info format string. Use {current} and {total} as placeholders.
 		 * "Page {current} of {total}"
@@ -186,7 +175,9 @@ export default {
 		},
 
 		currentPageSizeOption() {
-			return this.pageSizeOptions.find((option) => option.value === this.currentPageSize) || this.pageSizeOptions[1]
+			return this.pageSizeOptions.find(
+				(option) => option.value === this.currentPageSize,
+			) || this.pageSizeOptions[1]
 		},
 
 		pageInfoText() {
@@ -239,7 +230,6 @@ export default {
 	methods: {
 		/**
 		 * Navigate to a specific page.
-		 *
 		 * @param {number} page Target page number
 		 */
 		changePage(page) {
@@ -251,7 +241,6 @@ export default {
 
 		/**
 		 * Change the page size.
-		 *
 		 * @param {object} option Selected page size option { value, label }
 		 */
 		changePageSize(option) {

@@ -30,9 +30,14 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
+
+/** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
+const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -70,10 +75,25 @@ import { useDataSource } from '../../composables/useDataSource.js'
 export default {
 	name: 'CnChartWidget',
 
+	inject: {
+		/**
+		 * Reactive date-range provided by an ancestor `CnDashboardPage`.
+		 * When the dashboard's `dateRange.enabled` is `true`, the ref's
+		 * value is `{ from, to, preset }`; otherwise it stays `null`.
+		 * The widget passes this through to `useDataSource` so the
+		 * bucket shorthand's `fromVar` / `toVar` GraphQL variables
+		 * track the dashboard's range automatically.
+		 *
+		 * Default factory: `() => ref(null)`. This keeps isolated
+		 * mounts (Storybook, jest with `shallowMount`) safe — there's
+		 * always a ref to inject, even outside a dashboard.
+		 */
+		cnDashboardDateRange: { default: () => ref(null) },
+	},
+
 	props: {
 		/**
 		 * Chart type: area, line, bar, pie, donut, radialBar
-		 *
 		 * @type {string}
 		 */
 		type: {
@@ -81,109 +101,88 @@ export default {
 			default: 'area',
 			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar'].includes(v),
 		},
-
 		/**
 		 * Chart data series. Format depends on chart type.
 		 * For line/area/bar: [{ name: string, data: number[] }]
 		 * For pie/donut: number[]
-		 *
 		 * @type {Array}
 		 */
 		series: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * X-axis categories (for line, area, bar charts)
-		 *
 		 * @type {Array<string>}
 		 */
 		categories: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Labels (for pie, donut charts)
-		 *
 		 * @type {Array<string>}
 		 */
 		labels: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Chart height in pixels. Use 'auto' for container-based sizing.
-		 *
 		 * @type {number|string}
 		 */
 		height: {
 			type: [Number, String],
 			default: 250,
 		},
-
 		/**
 		 * Chart width. Defaults to '100%' (fills container).
-		 *
 		 * @type {number|string}
 		 */
 		width: {
 			type: [Number, String],
 			default: '100%',
 		},
-
 		/**
 		 * Custom ApexCharts options (deep-merged with defaults).
-		 *
 		 * @type {object}
 		 */
 		options: {
 			type: Object,
 			default: () => ({}),
 		},
-
 		/**
 		 * Chart color palette. Defaults to Nextcloud theme colors.
-		 *
 		 * @type {Array<string>}
 		 */
 		colors: {
 			type: Array,
 			default: () => [],
 		},
-
 		/**
 		 * Show or hide the toolbar (zoom, download, etc.)
-		 *
 		 * @type {boolean}
 		 */
 		toolbar: {
 			type: Boolean,
 			default: false,
 		},
-
 		/**
 		 * Show or hide the legend
-		 *
 		 * @type {boolean}
 		 */
 		legend: {
 			type: Boolean,
 			default: true,
 		},
-
 		/**
 		 * Label shown when ApexCharts is not available
-		 *
 		 * @type {string}
 		 */
 		unavailableLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
-
 		/**
 		 * Manifest dataSource block. When set, `series` /
 		 * `categories` / `labels` are resolved from the GraphQL
@@ -192,17 +191,44 @@ export default {
 		 * fallback while the query is loading or when no
 		 * dataSource is configured.
 		 *
+		 * Supported shapes (one of):
+		 * - Count shorthand: `{ register?, schema, filter?, aggregate: 'count' }`
+		 * - Bucket shorthand: `{ register?, schema, filter?,
+		 *     bucket: { field, interval, metric?, metricField?,
+		 *               fromVar?, toVar?, staticRange? } }` — emits OR's
+		 *     `groupBy` argument. When mounted under a CnDashboardPage
+		 *     with `dateRange.enabled`, `from` / `to` come from the
+		 *     injected `cnDashboardDateRange` ref; otherwise they come
+		 *     from `bucket.staticRange`. If neither is available no
+		 *     query is fired and the chart shows its fallback.
+		 * - Raw GraphQL: `{ graphql: { query, variables?, selectors } }`.
+		 *
 		 * @type {{
 		 *   register?: string,
 		 *   schema?: string,
 		 *   filter?: object,
 		 *   aggregate?: 'count',
+		 *   bucket?: { field: string, interval: string, metric?: string, metricField?: string, fromVar?: string, toVar?: string, staticRange?: { from: string, to: string } },
 		 *   graphql?: { query: string, variables?: object, selectors: object }
 		 * }|null}
 		 */
 		dataSource: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Widget id used to match `cn:widget:refresh` event-bus events
+		 * (broadcast by CnWidgetWrapper's Refresh action). When the bus
+		 * fires with a matching `widgetId`, the chart re-queries its
+		 * `dataSource`. Passed by CnDashboardPage from the layout item.
+		 * Empty disables bus-driven refresh (the chart still refetches
+		 * reactively when its dataSource / range changes).
+		 *
+		 * @type {string}
+		 */
+		widgetId: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -211,8 +237,19 @@ export default {
 		// — it never fires a request and always resolves `data.value`
 		// to null, so the static `series`/`categories`/`labels` props
 		// remain the source of truth in that case.
-		const { data } = useDataSource(() => props.dataSource)
-		return { dsData: data }
+		//
+		// We pipe the injected `cnDashboardDateRange` ref through as
+		// the `range` source; useDataSource only reads it for the
+		// bucket shorthand, so the other shorthand forms are
+		// unaffected.
+		//
+		// Inject is also exposed via Options API (above), but reading
+		// it again here in setup ensures we hand the SAME ref to
+		// useDataSource — Vue treats inject() within setup and the
+		// Options `inject:` declaration as the same resolution.
+		const range = inject('cnDashboardDateRange', null) || ref(null)
+		const { data, refetch } = useDataSource(() => props.dataSource, { range })
+		return { dsData: data, dsRefetch: refetch }
 	},
 
 	data() {
@@ -225,11 +262,9 @@ export default {
 		computedHeight() {
 			return this.height
 		},
-
 		computedWidth() {
 			return this.width
 		},
-
 		/**
 		 * Series shown to ApexCharts. Pulls from `dsData.series`
 		 * when a `dataSource` is configured AND has resolved a
@@ -241,17 +276,14 @@ export default {
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
-
 		resolvedCategories() {
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
-
 		resolvedLabels() {
 			const fromDs = this.dsData?.labels
 			return fromDs !== undefined ? fromDs : this.labels
 		},
-
 		defaultColors() {
 			if (this.colors.length > 0) return this.colors
 			// Nextcloud-themed color palette
@@ -264,7 +296,6 @@ export default {
 				'var(--color-text-maxcontrast, #767676)',
 			]
 		},
-
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -277,30 +308,26 @@ export default {
 					foreColor: 'var(--color-main-text, #222)',
 					background: 'transparent',
 				},
-
 				colors: this.defaultColors,
 				stroke: {
 					curve: 'smooth',
 					width: this.type === 'area' ? 2 : (this.type === 'bar' ? 0 : 2),
 				},
-
 				fill: this.type === 'area'
 					? {
-							type: 'gradient',
-							gradient: {
-								shade: 'light',
-								type: 'vertical',
-								opacityFrom: 0.5,
-								opacityTo: 0.1,
-							},
-						}
+						type: 'gradient',
+						gradient: {
+							shade: 'light',
+							type: 'vertical',
+							opacityFrom: 0.5,
+							opacityTo: 0.1,
+						},
+					}
 					: { opacity: 1 },
-
 				grid: {
 					borderColor: 'var(--color-border, #ededed)',
 					strokeDashArray: 4,
 				},
-
 				legend: {
 					show: this.legend,
 					position: isPieType ? 'bottom' : 'top',
@@ -308,11 +335,9 @@ export default {
 						colors: 'var(--color-main-text, #222)',
 					},
 				},
-
 				dataLabels: {
 					enabled: isPieType,
 				},
-
 				tooltip: {
 					theme: 'light',
 				},
@@ -362,6 +387,16 @@ export default {
 	},
 
 	mounted() {
+		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
+		// FIRST, before the ResizeObserver early-return — environments
+		// without ResizeObserver (jsdom) must still get the subscription.
+		this._onWidgetRefresh = (payload) => {
+			if (!this.widgetId) return
+			if (payload?.widgetId !== this.widgetId) return
+			this.refresh()
+		}
+		subscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
+
 		if (typeof ResizeObserver === 'undefined') return
 		this._lastWidth = this.$el.offsetWidth
 		this._resizeTimer = null
@@ -385,12 +420,28 @@ export default {
 			this._resizeObserver.disconnect()
 			this._resizeObserver = null
 		}
+		if (this._onWidgetRefresh) {
+			unsubscribe(REFRESH_BUS_CHANNEL, this._onWidgetRefresh)
+			this._onWidgetRefresh = null
+		}
 	},
 
 	methods: {
 		/**
-		 * Deep merge two objects (target wins on conflict)
+		 * Re-query the chart's dataSource. Exposed as a ref-callable
+		 * method (B3 canonical refresh mode) AND invoked by the
+		 * `cn:widget:refresh` bus subscription. No-op when the chart has
+		 * no dataSource (static series/labels mode).
 		 *
+		 * @return {void}
+		 */
+		refresh() {
+			if (typeof this.dsRefetch === 'function') {
+				this.dsRefetch()
+			}
+		},
+		/**
+		 * Deep merge two objects (target wins on conflict)
 		 * @param {object} base Base object
 		 * @param {object} override Override object
 		 * @return {object} Merged result
