@@ -339,7 +339,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
@@ -1063,14 +1063,6 @@ export default {
 			return this.effectiveSchema?.icon || ''
 		},
 
-		/** Resolved schema icon component for View action */
-		schemaIconComponent() {
-			if (this.resolvedIcon && ICON_MAP[this.resolvedIcon]) {
-				return ICON_MAP[this.resolvedIcon]
-			}
-			return Eye
-		},
-
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
 			return buildDefaultActions({
@@ -1080,7 +1072,9 @@ export default {
 					copy: this.showCopyAction,
 					del: this.showDeleteAction,
 				},
-				viewIcon: this.schemaIconComponent,
+				// The View action is always an eye — a universal "view" affordance,
+				// independent of the object's schema icon (which is the header icon).
+				viewIcon: Eye,
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
