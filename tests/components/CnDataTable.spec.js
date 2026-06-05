@@ -32,7 +32,11 @@ function mountTable(propsData) {
 	})
 }
 
-/** Resolve all pending microtasks + one macrotask + a Vue render tick. */
+/**
+ * Resolve all pending microtasks + one macrotask + a Vue render tick.
+ *
+ * @param {object} wrapper The Vue Test Utils wrapper to flush.
+ */
 async function flush(wrapper) {
 	await new Promise((resolve) => setTimeout(resolve))
 	await wrapper.vm.$nextTick()
@@ -127,5 +131,52 @@ describe('CnDataTable — columns[].aggregate', () => {
 		expect(axios.get.mock.calls.length).toBe(firstCalls + 1)
 		expect(axios.get.mock.calls[firstCalls][1]).toEqual({ params: { automation: 'c', _limit: 0 } })
 		expect(wrapper.findAll('.cell').wrappers.map((w) => w.text())).toEqual(['1'])
+	})
+})
+
+describe('CnDataTable — row click selection', () => {
+	const cols = [{ key: 'name', label: 'Name' }]
+
+	it('toggles selection on row-body click when selectable (no row-click)', async () => {
+		const wrapper = mountTable({ rows, columns: cols, selectable: true, selectedIds: [] })
+		await wrapper.vm.$nextTick()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click')
+		expect(wrapper.emitted('select')).toBeTruthy()
+		expect(wrapper.emitted('select')[0][0]).toEqual(['a'])
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+	})
+
+	it('deselects an already-selected row on click', async () => {
+		const wrapper = mountTable({ rows, columns: cols, selectable: true, selectedIds: ['a'] })
+		await wrapper.vm.$nextTick()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click')
+		expect(wrapper.emitted('select')[0][0]).toEqual([])
+	})
+
+	it('does NOT toggle selection when the click ends a text-selection drag', async () => {
+		const wrapper = mountTable({ rows, columns: cols, selectable: true, selectedIds: [] })
+		await wrapper.vm.$nextTick()
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.trigger('mousedown', { clientX: 10, clientY: 10 })
+		await row.trigger('click', { clientX: 120, clientY: 40 })
+		expect(wrapper.emitted('select')).toBeFalsy()
+	})
+
+	it('toggles selection when the pointer barely moves (deliberate click)', async () => {
+		const wrapper = mountTable({ rows, columns: cols, selectable: true, selectedIds: [] })
+		await wrapper.vm.$nextTick()
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.trigger('mousedown', { clientX: 10, clientY: 10 })
+		await row.trigger('click', { clientX: 12, clientY: 11 })
+		expect(wrapper.emitted('select')[0][0]).toEqual(['a'])
+	})
+
+	it('emits row-click (not select) when not selectable', async () => {
+		const wrapper = mountTable({ rows, columns: cols, selectable: false })
+		await wrapper.vm.$nextTick()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click')
+		expect(wrapper.emitted('row-click')).toBeTruthy()
+		expect(wrapper.emitted('row-click')[0][0]).toEqual(rows[0])
+		expect(wrapper.emitted('select')).toBeFalsy()
 	})
 })

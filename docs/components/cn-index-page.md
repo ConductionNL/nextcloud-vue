@@ -95,8 +95,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked. Conceptually distinct from `view` — handle row interaction here (selection, expand, drilldown). |
-| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row"; bind alongside `row-click` (with the same handler) when click-to-view is desired. |
+| `row-click` | `row` | Row or card clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
+| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row". For a non-selectable list bind alongside `row-click` (same handler) for click-to-view; for a **selectable** list, plain clicks toggle selection, so use `@view` (the eye action) as the open-detail affordance. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
@@ -497,9 +497,11 @@ export const customComponents = \{ OrganisatieCard \}
 ```
 
 The resolved card component receives `\{ item, object, schema, register, selected \}`
-props and emits `click` (forwarded as `row-click` on the page) and
-`select` (forwarded as `select` on the page). `item` and `object` are
-aliases of each other; pick whichever feels natural.
+props and emits `click` and `select`. When the page is **not** selectable a
+`click` is forwarded as `row-click`; when it **is** selectable a `click` toggles
+the item's selection instead (matching the default card/row behaviour). `select`
+is always forwarded as `select` on the page. `item` and `object` are aliases of
+each other; pick whichever feels natural.
 
 Resolution priority (highest first):
 

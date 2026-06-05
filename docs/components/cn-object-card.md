@@ -42,8 +42,8 @@ The schema's `configuration` object controls card layout:
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `click` | `object` | Card clicked |
-| `select` | `object` | Selection checkbox toggled |
+| `click` | `object` | Card clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on the card emits `select` instead (a text-selection drag is not treated as a click). |
+| `select` | `object` | Selection toggled — emitted by the checkbox, and (when `selectable`) by a deliberate click anywhere on the card body. |
 
 ## Slots
 

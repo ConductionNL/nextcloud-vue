@@ -1429,7 +1429,7 @@ export default {
 		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
 		 * actions are dropped before re-emit.
 		 *
-		 * @param {{action: string, row: object}} payload
+		 * @param {{action: string, row: object}} payload The bubbled action payload.
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1438,11 +1438,20 @@ export default {
 		},
 
 		/**
-		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * Row/card click: toggles selection when `selectable` (covers the custom
+		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
+			if (this.selectable) {
+				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				return
+			}
+			/**
+			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @type {object} The clicked row object.
+			 */
 			this.$emit('row-click', row)
 		},
 
