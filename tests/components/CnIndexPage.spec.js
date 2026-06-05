@@ -155,6 +155,77 @@ describe('save → collection refresh', () => {
 	})
 })
 
+// ── Validation error keeps the form open ───────────────────────────────
+
+describe('form validation errors', () => {
+	it('keeps the form visible on a validation error instead of replacing it with a result note', async () => {
+		const validationError = {
+			status: 400,
+			message: "Property 'client' should match format 'uuid'.",
+			isValidation: true,
+			fields: null,
+		}
+		mockStore.saveObject.mockResolvedValueOnce(null)
+		mockStore.getError.mockReturnValueOnce(validationError)
+
+		const wrapper = mountPage({ store: mockStore, objectType: 'pipelinq-contact' })
+		await wrapper.vm.$nextTick()
+
+		const keepForm = jest.spyOn(wrapper.vm, 'setFormValidationErrors').mockImplementation(() => {})
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ client: 'alice' })
+
+		// Validation error → keep the form, surface the real message; do NOT
+		// switch to the result phase (which would hide the form).
+		expect(keepForm).toHaveBeenCalledWith(null, "Property 'client' should match format 'uuid'.")
+		expect(showResult).not.toHaveBeenCalled()
+		wrapper.destroy()
+	})
+
+	it('keeps the form open on a validation error in self-fetch mode (register/schema)', async () => {
+		// pipelinq's manifest pages use self-fetch mode (register/schema), not
+		// the explicit `store` prop — this path goes through selfModeActions.
+		mockStore.saveObject.mockResolvedValueOnce(null)
+		mockStore.getError.mockReturnValue({
+			status: 400,
+			message: "Property 'client' should match format 'uuid'.",
+			isValidation: true,
+			fields: null,
+		})
+
+		const wrapper = mountPage({ register: 'r1', schema: 's1' })
+		await wrapper.vm.$nextTick()
+
+		const keepForm = jest.spyOn(wrapper.vm, 'setFormValidationErrors').mockImplementation(() => {})
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ client: 'alice' })
+
+		expect(keepForm).toHaveBeenCalledWith(null, "Property 'client' should match format 'uuid'.")
+		expect(showResult).not.toHaveBeenCalled()
+		mockStore.getError.mockReturnValue(null)
+		wrapper.destroy()
+	})
+
+	it('shows a terminal result for non-validation save failures', async () => {
+		mockStore.saveObject.mockResolvedValueOnce(null)
+		mockStore.getError.mockReturnValueOnce({ status: 500, message: 'Server error', isValidation: false, fields: null })
+
+		const wrapper = mountPage({ store: mockStore, objectType: 'pipelinq-contact' })
+		await wrapper.vm.$nextTick()
+
+		const keepForm = jest.spyOn(wrapper.vm, 'setFormValidationErrors').mockImplementation(() => {})
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ client: 'alice' })
+
+		expect(showResult).toHaveBeenCalledWith({ error: 'Server error' })
+		expect(keepForm).not.toHaveBeenCalled()
+		wrapper.destroy()
+	})
+})
+
 // ── Delete confirmation ────────────────────────────────────────────────
 
 describe('delete confirmation flow', () => {

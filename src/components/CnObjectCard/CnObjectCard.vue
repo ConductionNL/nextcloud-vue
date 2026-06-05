@@ -2,7 +2,8 @@
 	<div
 		class="cn-object-card"
 		:class="{ 'cn-object-card--selected': selected }"
-		@click="$emit('click', object)">
+		@mousedown="onCardPointerDown"
+		@click="onCardClick($event)">
 		<!-- Selection checkbox -->
 		<div v-if="selectable" class="cn-object-card__checkbox" @click.stop>
 			<NcCheckboxRadioSwitch
@@ -65,6 +66,13 @@ import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { formatValue } from '../../utils/schema.js'
 
 /**
+ * Maximum pointer travel (in px, between mousedown and click) still treated as
+ * a deliberate click. Beyond this the gesture is a text-selection drag and the
+ * card's select-on-click is suppressed.
+ */
+const CLICK_DRAG_THRESHOLD = 6
+
+/**
  * CnObjectCard — Schema-configuration-driven card for object display.
  *
  * Uses `schema.configuration` to determine which fields map to the card title,
@@ -112,6 +120,17 @@ export default {
 			type: Number,
 			default: 4,
 		},
+	},
+
+	data() {
+		return {
+			/**
+			 * Pointer position captured on `mousedown`, used to tell a deliberate
+			 * card click apart from a text-selection drag (which also fires `click`).
+			 * @type {{x: number, y: number}|null}
+			 */
+			cardPointerDown: null,
+		}
 	},
 
 	computed: {
@@ -190,6 +209,52 @@ export default {
 
 	methods: {
 		formatValue,
+
+		/**
+		 * Remember where a press started, to tell a click from a drag.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onCardPointerDown(event) {
+			this.cardPointerDown = { x: event.clientX, y: event.clientY }
+		},
+
+		/**
+		 * True when the pointer moved past the threshold since mousedown (a
+		 * text-selection drag, not a click). Consumes the stored start position.
+		 *
+		 * @param {MouseEvent} [event] The click event.
+		 * @return {boolean} Whether the gesture was a drag.
+		 */
+		wasDrag(event) {
+			const start = this.cardPointerDown
+			this.cardPointerDown = null
+			if (!start || !event) return false
+			return Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_DRAG_THRESHOLD
+		},
+
+		/**
+		 * Card-body click: emits `select` when `selectable` (ignoring drags),
+		 * otherwise emits `click` for navigation.
+		 *
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onCardClick(event) {
+			if (this.selectable) {
+				if (this.wasDrag(event)) return
+				/**
+				 * @event select Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).
+				 * @type {object} The card's object.
+				 */
+				this.$emit('select', this.object)
+				return
+			}
+			/**
+			 * @event click Emitted when a non-selectable card is clicked. Only fires when `selectable` is false; selectable cards emit `select` instead.
+			 * @type {object} The card's object.
+			 */
+			this.$emit('click', this.object)
+		},
 	},
 }
 </script>

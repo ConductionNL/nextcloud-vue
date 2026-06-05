@@ -339,7 +339,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
@@ -1085,14 +1085,6 @@ export default {
 			return this.effectiveSchema?.icon || ''
 		},
 
-		/** Resolved schema icon component for View action */
-		schemaIconComponent() {
-			if (this.resolvedIcon && ICON_MAP[this.resolvedIcon]) {
-				return ICON_MAP[this.resolvedIcon]
-			}
-			return Eye
-		},
-
 		/** Built-in row actions based on show*Action props */
 		defaultActions() {
 			return buildDefaultActions({
@@ -1102,7 +1094,9 @@ export default {
 					copy: this.showCopyAction,
 					del: this.showDeleteAction,
 				},
-				viewIcon: this.schemaIconComponent,
+				// The View action is always an eye — a universal "view" affordance,
+				// independent of the object's schema icon (which is the header icon).
+				viewIcon: Eye,
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
@@ -1331,6 +1325,7 @@ export default {
 				massImport: (r) => this.setImportResult(r),
 				massExport: (r) => this.setExportResult(r),
 				form: (r) => this.setFormResult(r),
+				formValidation: (fieldErrors, message) => this.setFormValidationErrors(fieldErrors, message),
 			},
 		})
 	},
@@ -1451,7 +1446,7 @@ export default {
 		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
 		 * actions are dropped before re-emit.
 		 *
-		 * @param {{action: string, row: object}} payload
+		 * @param {{action: string, row: object}} payload The bubbled action payload.
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1460,11 +1455,20 @@ export default {
 		},
 
 		/**
-		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * Row/card click: toggles selection when `selectable` (covers the custom
+		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
+			if (this.selectable) {
+				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				return
+			}
+			/**
+			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @type {object} The clicked row object.
+			 */
 			this.$emit('row-click', row)
 		},
 
@@ -1595,7 +1599,12 @@ export default {
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
 				} else {
 					const err = this.store.getError?.(this.objectType)
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					if (err && err.isValidation) {
+						// Keep the form visible so the user can fix the invalid data.
+						this.setFormValidationErrors(err.fields, err.message || 'Validation failed')
+					} else {
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					}
 				}
 				return
 			}
@@ -1633,6 +1642,17 @@ export default {
 		 * @public
 		 */
 		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		/**
+		 * Show a validation error in the form dialog while keeping the form
+		 * visible (so the user can fix the data), instead of replacing it with
+		 * a result note. Use this for 400/422 responses; use setFormResult for
+		 * terminal success/failure.
+		 *
+		 * @param {object} [fieldErrors] Per-field error messages keyed by field key
+		 * @param {string} [message] Form-level message shown above the fields
+		 * @public
+		 */
+		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
 
 		// --- Context menu handlers ---
 
