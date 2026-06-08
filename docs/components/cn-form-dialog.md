@@ -81,8 +81,8 @@ The `#field-{key}-option` and `#field-{key}-selected-option` slots receive all p
 | Method | Description |
 |--------|-------------|
 | `validate()` | Client-side validation (returns boolean) |
-| `setResult(result)` | Set operation result (pass success or error key) |
-| `setValidationErrors(fieldErrors)` | Set server validation errors |
+| `setResult(result)` | Set the terminal operation result (`{ success?, error? }`). Switches to the result phase, replacing the form. |
+| `setValidationErrors(fieldErrors, message?)` | Show server validation errors **without leaving the form phase** so the user can fix the data. `fieldErrors` maps field key → message; the optional `message` is shown as a form-level error note above the fields. Use this for 400/422 responses instead of `setResult({ error })`. |
 
 ## Field Definition
 

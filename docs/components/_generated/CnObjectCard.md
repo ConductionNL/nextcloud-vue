@@ -12,10 +12,10 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `click`  | —       |             |
-| `select` | —       |             |
+| Name     | Payload | Description                                                                                                                                                                                          |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `select` | —       | Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).                                                                                                   |
+| `click`  | —       | Emitted when a non-selectable card is clicked. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`. |
 
 ### Slots
 

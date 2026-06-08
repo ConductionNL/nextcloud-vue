@@ -299,6 +299,15 @@ If `npm install` fails with a peer dep error, the fix is to adjust the version r
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
 8. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
 
+## Code Comments
+
+**Internal comments — methods, computed, data, inline logic.** Keep them short and few: normally **1–2 plain lines** saying *what*, since the *how* is readable in the code. Prefer no comment over an obvious one. Write a **longer** one only when the reason genuinely **can't be derived from the code and matters** — security caveats, deprecations, or workarounds (e.g. *"package A has a bug, so we do Z"*). That's the bar for extra length, not "this looks complex."
+
+**Public API docblocks — surfaced in the styleguide.** The styleguide (`npm run styleguide`) is built from the code: it reads the **primary docblock above `export default {`** and the docblocks above **props, events, and slots** (NOT methods or data). These are read by *users* of the component, not by people reading the source, so they follow different rules:
+
+- **Primary docblock** (above `export default {`) — this is the component's user-facing overview; a **full, rich docblock is expected** (usage, what it's for, an example). The "keep it short" rule does **not** apply here.
+- **Props / events / slots** — **short but complete** descriptions written for a consumer who can't see the code: explain what it's for and any non-obvious behaviour, in one line where possible. Still include the `@param` / `@event` / `@slot` / `@type` tags the docs CI enforces (see *Documenting components*).
+
 ## Adding New Components
 
 1. Create directory: `src/components/CnMyComponent/`

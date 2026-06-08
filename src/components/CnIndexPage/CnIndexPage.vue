@@ -329,6 +329,8 @@ import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -337,7 +339,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
@@ -1007,32 +1009,80 @@ export default {
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
 		/**
-		 * Columns handed to CnDataTable — same as the `columns` prop, except any
-		 * `aggregate` block lacking a `register` is defaulted to this page's
-		 * `register` slug (so manifests can omit `aggregate.register`).
+		 * Ordered column definitions the sidebar's Columns tab governs:
+		 * schema-derived columns, the built-in Metadata group (when shown),
+		 * and any external columnGroups. Mirrors CnIndexSidebar's column
+		 * universe, and doubles as the source of definitions for columns the
+		 * user enables that aren't in the configured `columns` list (metadata
+		 * fields, schema properties beyond the default set).
+		 */
+		governedColumns() {
+			const defs = []
+			if (this.effectiveSchema) {
+				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
+				if (this.resolvedSidebar.showMetadata !== false) {
+					defs.push(...METADATA_COLUMNS)
+				}
+			}
+			const groups = this.resolvedSidebar.columnGroups || []
+			groups.forEach((g) => defs.push(...(g.columns || [])))
+			return defs
+		},
+
+		/**
+		 * Set of keys the sidebar governs (see `governedColumns`). Used so
+		 * tableColumns only hides columns the user can actually toggle back
+		 * on — custom columns outside this set are never silently dropped.
+		 */
+		sidebarGovernedColumnKeys() {
+			return new Set(this.governedColumns.map((c) => c.key))
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's `register`
+		 * slug, so manifests can omit `aggregate.register`). When a visible-column
+		 * set exists, governed columns the user toggled off are hidden, and governed
+		 * columns the user toggled on that aren't already in the list (metadata
+		 * fields, extra schema properties) are appended using their sidebar
+		 * definitions. Custom columns outside the sidebar's universe are untouched.
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
-			if (!reg) return this.columns || []
-			return (this.columns || []).map((c) => (
-				c && c.aggregate && !c.aggregate.register
-					? { ...c, aggregate: { ...c.aggregate, register: reg } }
-					: c
-			))
+			let cols = this.columns || []
+			if (reg) {
+				cols = cols.map((c) => (
+					c && c.aggregate && !c.aggregate.register
+						? { ...c, aggregate: { ...c.aggregate, register: reg } }
+						: c
+				))
+			}
+			const visible = this.effectiveVisibleColumns
+			if (!Array.isArray(visible)) return cols
+
+			const governed = this.sidebarGovernedColumnKeys
+			cols = cols.filter((c) => {
+				const key = typeof c === 'string' ? c : c.key
+				return !governed.has(key) || visible.includes(key)
+			})
+
+			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
+			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			visible.forEach((key) => {
+				if (present.has(key)) return
+				const def = byKey.get(key)
+				if (def) {
+					cols.push({ ...def })
+					present.add(key)
+				}
+			})
+			return cols
 		},
 
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
 			return this.effectiveSchema?.icon || ''
-		},
-
-		/** Resolved schema icon component for View action */
-		schemaIconComponent() {
-			if (this.resolvedIcon && ICON_MAP[this.resolvedIcon]) {
-				return ICON_MAP[this.resolvedIcon]
-			}
-			return Eye
 		},
 
 		/** Built-in row actions based on show*Action props */
@@ -1044,7 +1094,9 @@ export default {
 					copy: this.showCopyAction,
 					del: this.showDeleteAction,
 				},
-				viewIcon: this.schemaIconComponent,
+				// The View action is always an eye — a universal "view" affordance,
+				// independent of the object's schema icon (which is the header icon).
+				viewIcon: Eye,
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
@@ -1273,6 +1325,7 @@ export default {
 				massImport: (r) => this.setImportResult(r),
 				massExport: (r) => this.setExportResult(r),
 				form: (r) => this.setFormResult(r),
+				formValidation: (fieldErrors, message) => this.setFormValidationErrors(fieldErrors, message),
 			},
 		})
 	},
@@ -1287,11 +1340,6 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * Push pageKind + register/schema context into the reactive cnAiContext
-		 * holder so the AI Chat Companion knows what the user is looking at.
-		 * Called from created(), mounted(), and via watchers when props change.
-		 */
 		pushAiContext() {
 			applyAiContext(this.cnAiContext, 'index', {
 				register: this.register,
@@ -1351,7 +1399,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
 		},
 
@@ -1398,7 +1446,7 @@ export default {
 		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
 		 * actions are dropped before re-emit.
 		 *
-		 * @param {{action: string, row: object}} payload
+		 * @param {{action: string, row: object}} payload The bubbled action payload.
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1407,11 +1455,20 @@ export default {
 		},
 
 		/**
-		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * Row/card click: toggles selection when `selectable` (covers the custom
+		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
+			if (this.selectable) {
+				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				return
+			}
+			/**
+			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @type {object} The clicked row object.
+			 */
 			this.$emit('row-click', row)
 		},
 
@@ -1542,7 +1599,12 @@ export default {
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
 				} else {
 					const err = this.store.getError?.(this.objectType)
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					if (err && err.isValidation) {
+						// Keep the form visible so the user can fix the invalid data.
+						this.setFormValidationErrors(err.fields, err.message || 'Validation failed')
+					} else {
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					}
 				}
 				return
 			}
@@ -1580,6 +1642,17 @@ export default {
 		 * @public
 		 */
 		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		/**
+		 * Show a validation error in the form dialog while keeping the form
+		 * visible (so the user can fix the data), instead of replacing it with
+		 * a result note. Use this for 400/422 responses; use setFormResult for
+		 * terminal success/failure.
+		 *
+		 * @param {object} [fieldErrors] Per-field error messages keyed by field key
+		 * @param {string} [message] Form-level message shown above the fields
+		 * @public
+		 */
+		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
 
 		// --- Context menu handlers ---
 

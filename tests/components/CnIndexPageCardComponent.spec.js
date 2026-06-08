@@ -109,16 +109,33 @@ describe('CnIndexPage — cardComponent prop', () => {
 			expect(cards.at(1).props('selected')).toBe(false)
 		})
 
-		it('forwards click event as row-click on the page', async () => {
+		it('forwards click event as row-click when not selectable', async () => {
 			const wrapper = mountIndexPage({
 				cardComponent: 'OrganisatieCard',
 				customComponents: { OrganisatieCard: TestCard },
+				selectable: false,
 			})
 			const card = wrapper.findAllComponents(TestCard).at(0)
 			card.vm.$emit('click', baseProps.objects[0])
 			await wrapper.vm.$nextTick()
 			expect(wrapper.emitted('row-click')).toBeTruthy()
 			expect(wrapper.emitted('row-click')[0]).toEqual([baseProps.objects[0]])
+			expect(wrapper.emitted('select')).toBeFalsy()
+		})
+
+		it('toggles selection (not row-click) on click when selectable', async () => {
+			const wrapper = mountIndexPage({
+				cardComponent: 'OrganisatieCard',
+				customComponents: { OrganisatieCard: TestCard },
+				selectable: true,
+				selectedIds: [],
+			})
+			const card = wrapper.findAllComponents(TestCard).at(0)
+			card.vm.$emit('click', baseProps.objects[0])
+			await wrapper.vm.$nextTick()
+			expect(wrapper.emitted('row-click')).toBeFalsy()
+			expect(wrapper.emitted('select')).toBeTruthy()
+			expect(wrapper.emitted('select')[0][0]).toEqual(['org-1'])
 		})
 
 		it('forwards select event as select on the page', async () => {

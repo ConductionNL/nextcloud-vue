@@ -49,6 +49,7 @@
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
+				:key="currentPage.id"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners">
 				<template
@@ -120,7 +121,7 @@ const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'mod
 /**
  * Test whether a slot name is a recognised v2 slot pattern.
  *
- * @param {string} slotName
+ * @param {string} slotName The slot name to test (e.g. `body`, `tab:overview`).
  * @return {boolean}
  */
 function isKnownSlot(slotName) {
