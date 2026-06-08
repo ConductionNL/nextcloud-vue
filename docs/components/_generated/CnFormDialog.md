@@ -39,8 +39,8 @@
 
 ### Methods
 
-| Name                  | Description                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `validate`            | Run client-side validation on all form fields. Checks required, minLength, maxLength, pattern, minimum, maximum.   |
-| `setResult`           | Set the result of the save operation. Call this from the parent after the API call completes.                      |
-| `setValidationErrors` | Set per-field validation errors from the server. Call this from the parent when the API returns validation errors. |
+| Name                  | Description                                                                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `validate`            | Run client-side validation on all form fields. Checks required, minLength, maxLength, pattern, minimum, maximum.                                                                                    |
+| `setResult`           | Set the result of the save operation. Call this from the parent after the API call completes.                                                                                                       |
+| `setValidationErrors` | Set validation errors from the server WITHOUT leaving the form phase, so the user can correct the data. Call this from the parent (instead of `setResult`) when the API returns a validation error. |

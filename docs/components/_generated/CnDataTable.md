@@ -24,13 +24,13 @@
 
 ### Events
 
-| Name               | Payload | Description                                                         |
-| ------------------ | ------- | ------------------------------------------------------------------- |
-| `row-click`        | —       |                                                                     |
-| `row-context-menu` | —       |                                                                     |
-| `sort`             | —       | Emitted when a sortable column header is clicked.                   |
-| `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs. |
-| `select-all`       | —       | Emitted when select-all checkbox is toggled.                        |
+| Name               | Payload | Description                                                                                                                    |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `row-context-menu` | —       |                                                                                                                                |
+| `row-click`        | —       | Emitted when a non-selectable row is clicked. Only fires when `selectable` is false; selectable rows toggle selection instead. |
+| `sort`             | —       | Emitted when a sortable column header is clicked.                                                                              |
+| `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs.                                                            |
+| `select-all`       | —       | Emitted when select-all checkbox is toggled.                                                                                   |
 
 ### Slots
 

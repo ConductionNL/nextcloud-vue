@@ -12,10 +12,10 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `click`  | —       |             |
-| `select` | —       |             |
+| Name     | Payload | Description                                                                                                                   |
+| -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `select` | —       | Emitted when the card toggles selection (clicking the body of a selectable card, or its checkbox).                            |
+| `click`  | —       | Emitted when a non-selectable card is clicked. Only fires when `selectable` is false; selectable cards emit `select` instead. |
 
 ### Slots
 
