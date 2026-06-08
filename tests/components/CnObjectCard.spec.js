@@ -24,6 +24,27 @@ describe('CnObjectCard — body click', () => {
 		expect(wrapper.emitted('click')).toBeFalsy()
 	})
 
+	it('also emits click (deprecated) when selectable and a click listener is attached', async () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const wrapper = shallowMount(CnObjectCard, {
+			propsData: { object, schema, selectable: true },
+			listeners: { click: () => {} },
+		})
+		await wrapper.find('.cn-object-card').trigger('click')
+		expect(wrapper.emitted('select')).toBeTruthy()
+		expect(wrapper.emitted('click')).toBeTruthy()
+		expect(wrapper.emitted('click')[0]).toEqual([object])
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
+	it('does NOT emit click when selectable and no click listener is attached', async () => {
+		const wrapper = mountCard({ selectable: true })
+		await wrapper.find('.cn-object-card').trigger('click')
+		expect(wrapper.emitted('select')).toBeTruthy()
+		expect(wrapper.emitted('click')).toBeFalsy()
+	})
+
 	it('does NOT emit select when the click ends a text-selection drag', async () => {
 		const wrapper = mountCard({ selectable: true })
 		const card = wrapper.find('.cn-object-card')

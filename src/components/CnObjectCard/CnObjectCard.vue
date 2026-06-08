@@ -247,10 +247,16 @@ export default {
 				 * @type {object} The card's object.
 				 */
 				this.$emit('select', this.object)
+				// Deprecation: selectable cards used to emit `click`. Keep emitting it
+				// for listeners that still rely on it, but warn them to migrate to `select`.
+				if (this.$listeners.click) {
+					console.warn('[CnObjectCard] @click on selectable cards is deprecated; use @select instead.')
+					this.$emit('click', this.object)
+				}
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable card is clicked. Only fires when `selectable` is false; selectable cards emit `select` instead.
+			 * @event click Emitted when a non-selectable card is clicked. Selectable cards emit `select`; they also emit `click` (deprecated) when a `click` listener is present, so migrate selectable consumers to `@select`.
 			 * @type {object} The card's object.
 			 */
 			this.$emit('click', this.object)
