@@ -65,7 +65,7 @@
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@mousedown="onRowPointerDown"
+					@mousedown="onPointerDown"
 					@click="onRowClick(row, $event)"
 					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
 					<!-- Checkbox -->
@@ -117,13 +117,7 @@ import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
-
-/**
- * Maximum pointer travel (in px, between mousedown and click) still treated as
- * a deliberate click. Beyond this the gesture is a text-selection drag and the
- * row's select-on-click is suppressed.
- */
-const CLICK_DRAG_THRESHOLD = 6
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -275,6 +269,11 @@ export default {
 		},
 	},
 
+	setup() {
+		// Tell a deliberate row click apart from a text-selection drag.
+		return useClickDragGuard()
+	},
+
 	data() {
 		return {
 			/**
@@ -289,12 +288,6 @@ export default {
 			aggregateLoading: false,
 			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
 			aggregateRequestId: 0,
-			/**
-			 * Pointer position captured on `mousedown`, used to tell a deliberate
-			 * row click apart from a text-selection drag (which also fires `click`).
-			 * @type {{x: number, y: number}|null}
-			 */
-			rowPointerDown: null,
 		}
 	},
 
@@ -512,29 +505,6 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
-		},
-
-		/**
-		 * Remember where a press started, to tell a click from a drag.
-		 *
-		 * @param {MouseEvent} event The mousedown event.
-		 */
-		onRowPointerDown(event) {
-			this.rowPointerDown = { x: event.clientX, y: event.clientY }
-		},
-
-		/**
-		 * True when the pointer moved past the threshold since mousedown (a
-		 * text-selection drag, not a click). Consumes the stored start position.
-		 *
-		 * @param {MouseEvent} [event] The click event.
-		 * @return {boolean} Whether the gesture was a drag.
-		 */
-		wasDrag(event) {
-			const start = this.rowPointerDown
-			this.rowPointerDown = null
-			if (!start || !event) return false
-			return Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_DRAG_THRESHOLD
 		},
 
 		/**
