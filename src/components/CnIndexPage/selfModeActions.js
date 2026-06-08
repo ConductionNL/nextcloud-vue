@@ -24,8 +24,12 @@ function refreshList(ctx) {
 	}
 }
 
+function storeError(ctx) {
+	return ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+}
+
 function storeErrorMessage(ctx, fallback) {
-	const err = ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+	const err = storeError(ctx)
 	return (err && err.message) || fallback
 }
 
@@ -173,7 +177,7 @@ export function createSelfModeActions(ctx) {
 				ctx.emit(ctx.editItem() ? 'edit' : 'create', saved)
 				refreshList(ctx)
 			} else {
-				const err = ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+				const err = storeError(ctx)
 				if (err && err.isValidation) {
 					// Keep the form visible so the user can fix the invalid data.
 					ctx.setResults.formValidation(err.fields, err.message || 'Validation failed')
