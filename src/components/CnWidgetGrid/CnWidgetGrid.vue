@@ -191,12 +191,24 @@ export default {
 					gridWidth = columns
 				}
 
+				// Forward the widget's top-level `dataSource` (v2 unified
+				// widget shape — sibling of `props`/`slot`/`gridX`) as a
+				// `dataSource` prop so data-bound widgets (CnStatsBlockWidget,
+				// CnChartWidget, …) receive it without the manifest having to
+				// nest it inside `props`. A `props.dataSource` (the app-side
+				// workaround) still wins on collision, because per-widget
+				// `props` are spread LAST.
+				const dataSourceProp = (widget.dataSource !== undefined && widget.dataSource !== null)
+					? { dataSource: widget.dataSource }
+					: {}
+
 				result.push({
 					widgetKey: key,
 					component,
-					// Detail-page object context first, the manifest's
-					// per-widget `props` last so explicit props always win.
-					props: { ...this.detailContextProps, ...(widget.props ?? {}) },
+					// Detail-page object context first, then the top-level
+					// `dataSource`, then the manifest's per-widget `props`
+					// last so explicit props always win.
+					props: { ...this.detailContextProps, ...dataSourceProp, ...(widget.props ?? {}) },
 					gridX: typeof widget.gridX === 'number' ? widget.gridX : 0,
 					gridY: typeof widget.gridY === 'number' ? widget.gridY : 0,
 					gridWidth,

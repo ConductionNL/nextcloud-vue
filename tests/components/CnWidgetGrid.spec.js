@@ -106,6 +106,33 @@ describe('CnWidgetGrid — custom registry override', () => {
 	})
 })
 
+describe('CnWidgetGrid — dataSource forwarding', () => {
+	it('forwards the widget top-level dataSource as a dataSource prop', () => {
+		const ds = { register: 'reg', schema: 'thing', aggregate: 'count' }
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1, dataSource: ds },
+		])
+		expect(wrapper.vm.resolvedWidgets[0].props.dataSource).toEqual(ds)
+	})
+
+	it('keeps nested props.dataSource working (back-compat) and lets it win on collision', () => {
+		const top = { register: 'top', schema: 'thing', aggregate: 'count' }
+		const nested = { register: 'nested', schema: 'thing', aggregate: 'count' }
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1, dataSource: top, props: { dataSource: nested } },
+		])
+		// props.dataSource (app-side workaround) is spread last → wins.
+		expect(wrapper.vm.resolvedWidgets[0].props.dataSource).toEqual(nested)
+	})
+
+	it('omits dataSource prop entirely when the widget has none', () => {
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
+		])
+		expect('dataSource' in wrapper.vm.resolvedWidgets[0].props).toBe(false)
+	})
+})
+
 describe('CnWidgetGrid — gridCellStyle', () => {
 	it('generates correct CSS grid placement', () => {
 		const wrapper = mount('body', [])

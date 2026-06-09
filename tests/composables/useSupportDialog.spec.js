@@ -118,5 +118,45 @@ describe('useSupportDialog', () => {
 			await flush()
 			expect(visible.value).toBe(true)
 		})
+
+		it('stays HIDDEN when the endpoint returns SPA HTML (200 but not a JSON object)', async () => {
+			// Most apps do not serve /api/preferences/{key}; Nextcloud
+			// returns the app index HTML with a 200 status. That is NOT a
+			// real "not seen" signal — the note must stay hidden so its
+			// modal mask never traps clicks across the app (the fleet bug).
+			const http = {
+				get: jest.fn().mockResolvedValue({ data: '<!DOCTYPE html><html><body>app</body></html>' }),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const { visible } = useSupportDialog('srv-spa-html', { persistence: 'server', storage: makeStorage(), http })
+			await flush()
+			expect(visible.value).toBe(false)
+			expect(http.put).not.toHaveBeenCalled()
+		})
+
+		it('records "seen" the moment it shows, so a re-run never re-opens (no click-trap on navigation)', async () => {
+			const http = {
+				get: jest.fn().mockResolvedValue({ data: { value: null } }),
+				put: jest.fn().mockResolvedValue({}),
+			}
+			const storage = makeStorage()
+			const { visible } = useSupportDialog('srv-persist-on-show', { persistence: 'server', storage, http })
+			await flush()
+			expect(visible.value).toBe(true)
+			// Persisted immediately on show (local flag + server PUT).
+			expect(storage.getItem('cn-support-dialog-shown:srv-persist-on-show')).toBe('1')
+			expect(http.put).toHaveBeenCalledWith(
+				expect.stringContaining('/apps/srv-persist-on-show/api/preferences/support-dialog-seen'),
+				{ value: '1' },
+			)
+		})
+	})
+
+	it('local mode records "seen" on first synchronous show (at-most-once)', () => {
+		const storage = makeStorage()
+		const first = useSupportDialog('local-once', { storage })
+		expect(first.visible.value).toBe(true)
+		// Flag persisted immediately, even without an explicit hide().
+		expect(storage.getItem('cn-support-dialog-shown:local-once')).toBe('1')
 	})
 })
