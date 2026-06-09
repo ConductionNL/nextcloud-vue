@@ -44,9 +44,10 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
 
 ## Slots
 
-| Slot | Description |
-|------|-------------|
-| `#icon` | Custom icon content |
+| Slot | Bindings | Description |
+|------|----------|-------------|
+| `#icon` | — | Custom icon content |
+| `#value` | `count` (number), `formatted` (string) | Override the prominently-displayed value with a pre-formatted string (currency, percent, a `—` placeholder, …). `count` stays the raw number — this is presentation only. Defaults to the localized count. When provided, the value area always renders (even at count 0). |
 
 ## Usage
 
@@ -60,6 +61,20 @@ Statistics display card with icon, count, and optional breakdown. Used inside Cn
   :icon="AccountGroupOutline"
   :clickable="true"
   @click="navigateToContacts" />
+```
+
+### Formatted value via the `#value` slot
+
+Keep `count` numeric and format the displayed value in the slot (currency, percent, a `—` placeholder):
+
+```vue
+<CnStatsBlock title="Total Pipeline Value" :count="totalValue" count-label="open opportunities">
+  <template #value>{{ formatCurrency(totalValue) }}</template>
+</CnStatsBlock>
+
+<CnStatsBlock title="Win Rate" :count="winRate ?? 0" count-label="closed deals">
+  <template #value>{{ winRate === null ? '—' : Math.round(winRate * 100) + '%' }}</template>
+</CnStatsBlock>
 ```
 
 ## Reference (auto-generated)
