@@ -127,6 +127,32 @@ The hoist is automatic — apps using `CnAppRoot` get correct positioning the mo
 
 Apps mounting `CnIndexPage` standalone (without `CnAppRoot`) keep the legacy inline rendering — the `cnHostsIndexSidebar` sentinel defaults to `false` in that case, so `CnIndexPage` renders the sidebar in-tree as before.
 
+## Hoisted object sidebar (detail pages)
+
+`CnAppRoot` also provides an `objectSidebarState` holder that
+[`CnDetailPage`](./cn-detail-page.md) writes into via
+`syncSidebarState()` — `{ active, objectType, objectId, register,
+schema, title, subtitle, tabs, hiddenTabs, ... }`. When a detail page
+is active and provides an `objectType` + `objectId`, CnAppRoot
+auto-mounts `CnObjectSidebar` at NcContent level with those props.
+ADR-017 again: NcAppSidebar must be a direct child of NcContent to
+position correctly.
+
+The auto-mount defers when:
+
+- the consumer supplies a `#sidebar` slot (their slot keeps owning
+  the rail);
+- an ancestor already provides `objectSidebarState` (the ancestor
+  renders its own sidebar — e.g. decidesk's host wrapper); or
+- `objectType` + `objectId` are empty (defense-in-depth against
+  CnIndexPage's `inject('sidebarState') ?? inject('objectSidebarState')`
+  fallback writing `active: true` into the wrong channel).
+
+CnAppRoot also exposes a dedicated `sidebarState` holder for the
+index-sidebar channel. The two reactive holders are distinct
+references so index-page writes never leak into the object-sidebar
+auto-mount (the openbuilt double-sidebar regression).
+
 ## Mounting virtual apps with an in-memory manifest
 
 Most CnAppRoot consumers ship a static `manifest.json` and let `useAppManifest('myapp', bundled)` fetch the optional `/index.php/apps/myapp/api/manifest` override. Some consumers — notably the OpenBuilt app builder — render **virtual apps** whose manifest is constructed in memory at runtime, with no static file and no backend route.
