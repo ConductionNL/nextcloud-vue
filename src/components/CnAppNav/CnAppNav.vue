@@ -48,10 +48,13 @@
 -->
 <template>
 	<NcAppNavigation data-testid="cn-nav">
-		<!-- @slot search Forwarded into NcAppNavigation's #search slot.
-		     Hosts mount NcAppNavigationSearch here. When unset, no search
-		     input renders. -->
 		<template v-if="$slots.search || $scopedSlots.search" #search>
+			<!--
+				@slot search
+				@description Forwarded into NcAppNavigation's #search slot.
+				Hosts mount NcAppNavigationSearch here. When unset, no search
+				input renders inside the navigation.
+			-->
 			<slot name="search" />
 		</template>
 		<!-- @slot primary-action Optional primary action rendered above the
@@ -100,6 +103,14 @@
 							:active="isActive(item)" />
 					</template>
 					<template v-if="hasItemActionsSlot(item)" #actions>
+						<!--
+							@slot `item-${item.id}-actions`
+							@description Per-item scoped slot whose content lands inside
+							the NcAppNavigationItem's #actions slot for the menu entry
+							with that id. Use it for inline NcActions menus (e.g. an
+							item-level "Pin" button). Scope receives the menu item.
+							@binding {object} item The menu item descriptor.
+						-->
 						<slot :name="`item-${item.id}-actions`" :item="item" />
 					</template>
 					<NcAppNavigationItem

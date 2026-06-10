@@ -118,3 +118,9 @@ export default {
 | `emptyLabel` | `String` | `'No items found'` | Text shown when count is 0, not loading, and `showZeroCount` is `false` |
 | `iconSize` | `Number` | `24` | Icon size in pixels passed to the icon component |
 | `route` | `Object` | `null` | Vue Router location object (`{ name, query }` / `{ path }`). When set, the card renders as a `<router-link>` and clickable styles are implied |
+
+## Slots
+
+| Slot | Scope | Description |
+|------|-------|-------------|
+| `value` | `{ count, formatted }` | Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` is the raw number; `formatted` is the localized count. Defaults to `{{ formatted }}`. |

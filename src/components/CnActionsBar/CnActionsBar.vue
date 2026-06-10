@@ -8,6 +8,11 @@
 		<div class="cn-actions-bar__actions">
 			<!-- View mode toggle (Cards / Table) -->
 			<div v-if="showViewToggle" class="cn-actions-bar__view-toggle">
+				<!--
+					@event view-mode-change
+					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
+					@type {'cards' | 'table'}
+				-->
 				<NcCheckboxRadioSwitch
 					:model-value="viewMode"
 					:button-variant="true"
@@ -31,6 +36,10 @@
 			</div>
 
 			<!-- Add button (primary) -->
+			<!--
+				@event add
+				@description User clicked the primary Add button. No payload.
+			-->
 			<NcButton v-if="showAdd"
 				variant="primary"
 				:disabled="addDisabled"
@@ -43,6 +52,10 @@
 				{{ addLabel }}
 			</NcButton>
 
+			<!--
+				@slot actions
+				@description Custom buttons rendered between the Add button and the overflow Actions menu.
+			-->
 			<slot name="actions" />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
@@ -51,6 +64,10 @@
 				:inline="inlineActionCount"
 				menu-name="Actions"
 				data-testid="cn-actions">
+				<!--
+					@event refresh
+					@description User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list.
+				-->
 				<NcActionButton :disabled="refreshing || refreshDisabled" @click="$emit('refresh')">
 					<template #icon>
 						<NcLoadingIcon v-if="refreshing" :size="20" />
@@ -59,7 +76,10 @@
 					{{ refreshing ? t('nextcloud-vue', 'Refreshing…') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
-				<!-- Custom primary action items (overflow) -->
+				<!--
+					@slot action-items
+					@description Additional NcActionButton-family items rendered inside the overflow menu, between the built-in Refresh entry and the mass-actions separator. Use for app-level page actions.
+				-->
 				<slot name="action-items" />
 
 				<!-- Separator between primary and mass actions. Hidden when the
@@ -68,6 +88,10 @@
 				<NcActionSeparator v-if="showActionsSeparator" />
 
 				<!-- Mass actions (overflow) -->
+				<!--
+					@event show-import
+					@description User clicked the Import mass action. Host should open the import modal.
+				-->
 				<NcActionButton
 					v-if="showMassImport"
 					@click="$emit('show-import')">
@@ -76,6 +100,10 @@
 					</template>
 					{{ t('nextcloud-vue', 'Import') }}
 				</NcActionButton>
+				<!--
+					@event show-export
+					@description User clicked the Export mass action. Host should open the export modal.
+				-->
 				<NcActionButton
 					v-if="showMassExport"
 					@click="$emit('show-export')">
@@ -84,6 +112,10 @@
 					</template>
 					{{ t('nextcloud-vue', 'Export') }}
 				</NcActionButton>
+				<!--
+					@event show-copy
+					@description User clicked the Copy-selected mass action. Disabled while no row is selected.
+				-->
 				<NcActionButton
 					v-if="showMassCopy"
 					:disabled="selectedIds.length < 1"
@@ -94,6 +126,10 @@
 					</template>
 					{{ t('nextcloud-vue', 'Copy selected') }}
 				</NcActionButton>
+				<!--
+					@event show-delete
+					@description User clicked the Delete-selected mass action. Disabled while no row is selected.
+				-->
 				<NcActionButton
 					v-if="showMassDelete"
 					:disabled="selectedIds.length < 1"
@@ -105,7 +141,12 @@
 					{{ t('nextcloud-vue', 'Delete selected') }}
 				</NcActionButton>
 
-				<!-- Custom mass actions (overflow) -->
+				<!--
+					@slot mass-actions
+					@description Additional mass-action NcActionButtons rendered at the bottom of the overflow menu. Scope receives the current selection count and ids so the host can disable / label per selection.
+					@binding {number} count Length of the current selection.
+					@binding {Array<string|number>} selected-ids The selected row ids.
+				-->
 				<slot name="mass-actions" :count="selectedIds.length" :selected-ids="selectedIds" />
 			</NcActions>
 		</div>
@@ -296,7 +337,48 @@ export default {
 		},
 	},
 
-	methods: { t },
+	methods: {
+		t,
+
+		/**
+		 * Emit declarations — invoked via the template `$emit(...)` sites.
+		 * Listed here so vue-docgen-api picks up the events for the
+		 * generated docs.
+		 *
+		 * @private
+		 */
+		_emitDocs() {
+			/**
+			 * @event view-mode-change User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
+			 * @type {'cards' | 'table'}
+			 */
+			this.$emit('view-mode-change')
+			/**
+			 * @event add User clicked the primary Add button. No payload.
+			 */
+			this.$emit('add')
+			/**
+			 * @event refresh User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list.
+			 */
+			this.$emit('refresh')
+			/**
+			 * @event show-import User clicked the Import mass action. Host should open the import modal.
+			 */
+			this.$emit('show-import')
+			/**
+			 * @event show-export User clicked the Export mass action. Host should open the export modal.
+			 */
+			this.$emit('show-export')
+			/**
+			 * @event show-copy User clicked the Copy-selected mass action. Disabled while no row is selected.
+			 */
+			this.$emit('show-copy')
+			/**
+			 * @event show-delete User clicked the Delete-selected mass action. Disabled while no row is selected.
+			 */
+			this.$emit('show-delete')
+		},
+	},
 }
 </script>
 

@@ -40,6 +40,7 @@ const {
 | `options.debounceMs` | `number` | Search debounce. Default `300`. |
 | `options.defaultSort` | `{ key, order }` | Applied on mount. `order` is `'asc'` or `'desc'`. |
 | `options.fixedFilters` | `object \| () => object` | A filter map (or a getter returning one) merged into **every** fetch *after* the user's `activeFilters`, so the fixed entries always win over a colliding facet filter. A getter is re-read on each fetch — pass one to derive the map from reactive sources (e.g. route params). Default `{}` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. |
+| `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column set for the persisted `visibleColumns` ref. When `null` (the default), every column declared by the consuming page is visible on first mount; pass an explicit list to start with a curated subset that the user can then expand via the column-picker. |
 
 ### Return value
 
