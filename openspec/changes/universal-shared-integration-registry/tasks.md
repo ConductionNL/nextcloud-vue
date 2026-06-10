@@ -12,9 +12,19 @@
       sharedRegistryIfInstalled, stub-queue drain, foreign-registry
       convergence. Existing registry + composable suites stay green (32
       passing).
-- [ ] Docs: register-integration.md + a short note on the shared-registry
-      model + how OpenRegister bootstraps it globally.
-- [ ] `npm run check:docs` + build green.
+- [x] Docs: register-integration.md + a short note on the shared-registry
+      model + how OpenRegister bootstraps it globally. Covered by
+      `docs/utilities/register-integration.md` (the "Load-order
+      behaviour" section explains the OpenRegister-installed singleton
+      vs. the stub-queue path and links the three companion pages:
+      `docs/utilities/install-integration-registry.md`,
+      `docs/utilities/get-shared-registry.md`, and
+      `docs/utilities/shared-registry-if-installed.md`).
+- [x] `npm run check:docs` + build green. Verified on
+      `feature/nv-finishers/small-batch`: `check:docs` reports
+      213/213 exports documented + 126/126 component docs accurate;
+      `npm run build` writes `dist/nextcloud-vue.esm.js` +
+      `dist/nextcloud-vue.cjs.js` (only pre-existing externals warnings).
 
 ## Verification
 
