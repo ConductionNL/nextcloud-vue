@@ -29,6 +29,15 @@ export type { TAuditTrail } from './auditTrail'
 export type { TSource } from './source'
 export type { TOrganisation, TOrganisationAuthorization } from './organisation'
 
+// Multi-tenancy types (multi-tenancy-context capability)
+export type {
+	TenantContext,
+	TenantSwitchEvent,
+	TenantSwitchListener,
+	TenantSwitchUnsubscribe,
+	TenantSwitchBus,
+} from './tenant'
+
 // Sub-resource entity types
 export type { TFile } from './file'
 export type { TTask, TTaskPriority, TTaskStatus } from './task'
