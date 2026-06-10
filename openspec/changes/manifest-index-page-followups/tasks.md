@@ -51,4 +51,4 @@
 
 ## 10. Wrap-up
 - [x] 10.1 Update this tasks.md (this commit).
-- [ ] 10.2 PR → `beta`; admin-merge.
+- [~] 10.2 PR → `beta`; admin-merge. — deferred to downstream cycle / fleet-wide adoption (handoff)
