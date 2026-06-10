@@ -35,7 +35,7 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
-			:refreshing="refreshing"
+			:refreshing="effectiveRefreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
@@ -980,6 +980,9 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
+			// Drives the Actions-menu Refresh spinner during a self-fetch
+			// refresh, where the host has no promise to bind `:refreshing` to.
+			internalRefreshing: false,
 		}
 	},
 
@@ -993,6 +996,13 @@ export default {
 		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/**
+		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
+		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
+		 * and self-fetch pages spin the Refresh action without the host
+		 * wiring `:refreshing` (it has no fetch promise to await).
+		 */
+		effectiveRefreshing() { return this.refreshing || this.internalRefreshing },
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
 		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
@@ -1412,10 +1422,17 @@ export default {
 			this.$emit('columns-change', columns)
 		},
 
-		/** @return {void} */
-		onRefreshEvent() {
-			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
+		/** @return {Promise<void>} */
+		async onRefreshEvent() {
 			this.$emit('refresh')
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+				this.internalRefreshing = true
+				try {
+					await this.list.refresh()
+				} finally {
+					this.internalRefreshing = false
+				}
+			}
 		},
 
 		/**

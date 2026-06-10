@@ -98,4 +98,27 @@ describe('CnIndexPage — self-fetch mode', () => {
 		expect(mockStore.registerObjectType).not.toHaveBeenCalled()
 		expect(mockStore.fetchCollection).not.toHaveBeenCalled()
 	})
+
+	it('Refresh action drives the spinner (effectiveRefreshing) while the self-fetch refetch is in flight', async () => {
+		// fetchCollection resolves only when we call `release()`, so we can
+		// assert the spinner is on mid-flight and off once it settles.
+		let release
+		mockStore.fetchCollection.mockImplementationOnce(() => new Promise((resolve) => { release = resolve }))
+		const wrapper = mountPage({ title: 'Decisions', register: 'decidesk', schema: 'decision' })
+		await new Promise((resolve) => setTimeout(resolve))
+
+		expect(wrapper.vm.effectiveRefreshing).toBe(false)
+		const pending = wrapper.vm.onRefreshEvent()
+		expect(wrapper.vm.effectiveRefreshing).toBe(true)
+
+		release([])
+		await pending
+		expect(wrapper.vm.effectiveRefreshing).toBe(false)
+	})
+
+	it('consumer-managed mode: effectiveRefreshing mirrors the `refreshing` prop', async () => {
+		const wrapper = mountPage({ title: 'Decisions', register: 'decidesk', schema: 'decision', objects: [], refreshing: true })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(wrapper.vm.effectiveRefreshing).toBe(true)
+	})
 })
