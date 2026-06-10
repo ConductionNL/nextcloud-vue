@@ -4,11 +4,14 @@ Right-edge sidebar mounted by `CnAppRoot` at NcContent level when
 `CnFeaturesAndRoadmapView` publishes its hoisted-sidebar config (same
 `cnIndexSidebarConfig` mechanism `CnIndexPage` uses for `CnIndexSidebar`).
 
-The sidebar contains three pitch sections — **Suggest**, **OpenBuilt**,
-**LLM** — each with a short body and a CTA. The Suggest CTA emits a
-`@suggest` event; the parent view binds that to its `openSuggestModal`
-method so a single `CnSuggestFeatureModal` serves the header CTA + the
-sidebar text-CTA.
+The sidebar contains four pitch sections — **Suggest**, **OpenBuilt**,
+**LLM**, **Support** — each with a short body and a CTA. The Suggest CTA
+emits a `@suggest` event; the parent view binds that to its
+`openSuggestModal` method so a single `CnSuggestFeatureModal` serves the
+header CTA + the sidebar text-CTA. The fourth "Support this project"
+container emits `@support`; the parent view mounts
+[`CnSupportDialog`](./cn-support-dialog.md) in response so users who
+dismissed the first-open note can re-open it from the roadmap page.
 
 ## Props
 
@@ -22,6 +25,7 @@ sidebar text-CTA.
 | Event | Payload | Notes |
 |---|---|---|
 | `suggest` | none | Emitted when the user clicks the Suggest CTA inside the sidebar. Parent should open the `CnSuggestFeatureModal`. |
+| `support` | none | Emitted when the user clicks the "Show support note" CTA in the fourth (Support) container. Parent should mount [`CnSupportDialog`](./cn-support-dialog.md); `CnFeaturesAndRoadmapView` wires this automatically. |
 
 ## Mounted via the hoisted-sidebar pattern
 
