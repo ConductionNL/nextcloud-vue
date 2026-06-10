@@ -10,12 +10,15 @@
 
 ### Events
 
-| Name                   | Payload | Description                                                                                                            |
-| ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `primary-action-click` | —       | Emitted when the manifest-declared primary-action button is clicked. Payload is the resolved nav.primaryAction object. |
+| Name                   | Payload | Description                                                                                                                                                                                                 |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `primary-action`       | —       | Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers. |
+| `primary-action-click` | —       | Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.                                                                                         |
 
 ### Slots
 
-| Name             | Bindings | Description                                               |
-| ---------------- | -------- | --------------------------------------------------------- |
-| `primary-action` | —        | primary-action Optional primary action rendered above the |
+| Name                      | Bindings       | Description                                               |
+| ------------------------- | -------------- | --------------------------------------------------------- |
+| `search`                  | —              | search                                                    |
+| `primary-action`          | —              | primary-action Optional primary action rendered above the |
+| `item-${item.id}-actions` | `name`, `item` | `item-\${item.id}-actions`                                |
