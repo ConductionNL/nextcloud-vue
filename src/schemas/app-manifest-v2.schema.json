@@ -39,28 +39,8 @@
 					"description": "Override label for the settings foldout's gear button. Defaults to 'Settings'."
 				},
 				"primaryAction": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": ["label"],
-					"description": "Optional primary action rendered as an NcAppNavigationNew button above the main menu list (e.g. a 'new' button or an active-context switcher). The CnAppNav #primary-action slot takes precedence over this when provided.",
-					"properties": {
-						"label": {
-							"type": "string",
-							"description": "i18n translation key / text for the button, resolved by the consuming app's translate function."
-						},
-						"icon": {
-							"type": "string",
-							"description": "MDI icon name (e.g. 'Plus') resolved against CnIcon's ICON_MAP."
-						},
-						"route": {
-							"type": "string",
-							"description": "Named vue-router route to navigate to on click."
-						},
-						"href": {
-							"type": "string",
-							"description": "External URL opened in a new tab on click. Takes precedence over route."
-						}
-					}
+					"$ref": "#/$defs/primaryAction",
+					"description": "App-wide default primary action rendered as an NcAppNavigationNew button above the main menu list. A page-scoped pages[].primaryAction for the current route wins over this default."
 				}
 			}
 		},
@@ -88,6 +68,37 @@
 		}
 	},
 	"$defs": {
+		"primaryAction": {
+			"type": "object",
+			"required": ["label"],
+			"additionalProperties": false,
+			"description": "A primary action declared on either a pages[] entry (active-page scoped) or nav.primaryAction (app-wide default). Rendered above the menu list as an NcAppNavigationNew button.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Stable identifier for this action."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key / text for the button."
+				},
+				"icon": {
+					"type": "string",
+					"description": "MDI icon name (e.g. 'Plus'). Defaults to 'Plus' when omitted."
+				},
+				"route": {
+					"type": "string",
+					"description": "Named vue-router route to navigate to on click."
+				},
+				"href": {
+					"type": "string",
+					"description": "External URL opened in a new tab on click."
+				},
+				"payload": {
+					"description": "Free-form payload echoed back to the host inside the @primary-action-click event."
+				}
+			}
+		},
 		"menuItem": {
 			"type": "object",
 			"required": ["id", "label"],
@@ -122,7 +133,30 @@
 					"type": "string",
 					"enum": ["main", "footer", "settings"],
 					"default": "main",
-					"description": "Where the entry renders inside CnAppNav. 'main' (default) places it in the top list. 'settings' places it in the footer group."
+					"description": "Where the entry renders inside CnAppNav. 'main' (default) places it in the top list. 'footer' pins the entry to the bottom as a flat item above the settings foldout. 'settings' places it inside the NcAppNavigationSettings gear-icon foldout."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["item", "caption"],
+					"default": "item",
+					"description": "Render kind. 'item' (default) renders a clickable NcAppNavigationItem. 'caption' renders an NcAppNavigationCaption section divider — only label, id, order, and section are honoured."
+				},
+				"count": {
+					"oneOf": [
+						{ "type": "integer", "minimum": 0 },
+						{ "type": "string", "enum": ["auto"] }
+					],
+					"description": "Counter badge in the entry's #counter slot. Positive integer renders as-is; 'auto' resolves from cnMenuCounts (populated by CnAppRoot from useObjectStore totals) for the entry's resolved index-type page (register + schema)."
+				},
+				"pinned": {
+					"type": "boolean",
+					"default": false,
+					"description": "Forwarded to NcAppNavigationItem's pinned prop. NC bottom-pins pinned items inside the parent list region."
+				},
+				"open": {
+					"type": "boolean",
+					"default": false,
+					"description": "Initial expansion state for a parent entry with children. When true and children[] is non-empty, the parent renders with :open=\"true\" so children are visible on mount."
 				},
 				"href": {
 					"type": "string",
@@ -165,6 +199,18 @@
 					"enum": ["main", "footer", "settings"],
 					"default": "main"
 				},
+				"type": {
+					"type": "string",
+					"enum": ["item", "caption"],
+					"default": "item"
+				},
+				"count": {
+					"oneOf": [
+						{ "type": "integer", "minimum": 0 },
+						{ "type": "string", "enum": ["auto"] }
+					]
+				},
+				"pinned": { "type": "boolean", "default": false },
 				"href": { "type": "string" },
 				"action": {
 					"type": "string",
@@ -456,6 +502,10 @@
 					"type": "object",
 					"description": "Generic slot-override map. Each key is a slot name; each value is a registry component name. Sentinels (@resolve:*) are NOT allowed in values.",
 					"additionalProperties": { "type": "string" }
+				},
+				"primaryAction": {
+					"$ref": "#/$defs/primaryAction",
+					"description": "Active-page-scoped primary action rendered as an NcAppNavigationNew button above the menu list when the current route resolves to this page. Page-scoped declarations win over nav.primaryAction."
 				},
 				"widgets": {
 					"type": "array",

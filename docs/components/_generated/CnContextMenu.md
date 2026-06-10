@@ -10,15 +10,15 @@
 
 ### Events
 
-| Name          | Payload | Description |
-| ------------- | ------- | ----------- |
-| `update:open` | —       |             |
-| `action`      | —       |             |
-| `close`       | —       |             |
-| `closed`      | —       |             |
+| Name                                                                                                                           | Payload | Description                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update:open Fired whenever the menu's internal open state flips. Used by callers that bind `:open.sync` to track visibility.` | —       |                                                                                                                                                                                       |
+| `action`                                                                                                                       | —       | User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice. |
+| `close`                                                                                                                        | —       | Fired when the menu starts closing (before the popper's hide animation). Use `@closed` for the post-animation point.                                                                  |
+| `closed`                                                                                                                       | —       | Fired after the popper's hide animation completes. Use this (rather than `@close`) when the parent needs the menu's DOM to be gone before doing the next thing.                       |
 
 ### Slots
 
 | Name      | Bindings | Description |
 | --------- | -------- | ----------- |
-| `default` | —        |             |
+| `default` | —        | default     |

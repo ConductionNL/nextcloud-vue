@@ -28,6 +28,14 @@
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
 			     actionsComponent can be replaced independently. -->
+			<!--
+				@slot header
+				@description Replace the entire left header block (icon + title + description).
+				@binding {string} title Page title.
+				@binding {string} description Subtitle / description.
+				@binding {string} icon MDI icon name resolved by CnIcon.
+				@binding {number} icon-size Icon size in pixels.
+			-->
 			<slot
 				name="header"
 				:title="title"
@@ -35,6 +43,12 @@
 				:icon="icon"
 				:icon-size="iconSize">
 				<div class="cn-detail-page__header-left">
+					<!--
+						@slot icon
+						@description Replace only the header icon (keeping the lib's title +
+						description rendering). Default content: a `<CnIcon>` resolved from
+						the `icon` prop.
+					-->
 					<slot name="icon">
 						<CnIcon
 							v-if="icon"
@@ -53,6 +67,11 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!--
+					@slot actions
+					@description Right-hand action surface in the page header (typically NcActions
+					or buttons). Renders alongside (not inside) the `header` slot.
+				-->
 				<slot name="actions" />
 			</div>
 		</div>
@@ -73,6 +92,11 @@
 
 		<!-- Error state -->
 		<div v-else-if="error" class="cn-detail-page__error">
+			<!--
+				@slot error
+				@description Replace the default `<NcEmptyContent>` error surface. Default
+				content uses `errorMessage` + an MDI alert icon + an optional retry button.
+			-->
 			<slot name="error">
 				<NcEmptyContent :name="errorMessage">
 					<template #icon>
@@ -85,6 +109,11 @@
 							</template>
 							{{ retryLabel }}
 						</NcButton>
+						<!--
+							@slot error-actions
+							@description Extra buttons rendered inside the default error
+							surface's action area, after the (optional) Retry button.
+						-->
 						<slot name="error-actions" />
 					</template>
 				</NcEmptyContent>
@@ -93,12 +122,21 @@
 
 		<!-- Empty state -->
 		<div v-else-if="empty" class="cn-detail-page__empty">
+			<!--
+				@slot empty
+				@description Replace the default empty-state `<NcEmptyContent>` surface.
+			-->
 			<slot name="empty">
 				<NcEmptyContent :name="emptyLabel">
 					<template #icon>
 						<InformationOutline :size="48" />
 					</template>
 					<template #action>
+						<!--
+							@slot empty-actions
+							@description Buttons rendered inside the default empty-state
+							action area.
+						-->
 						<slot name="empty-actions" />
 					</template>
 				</NcEmptyContent>
@@ -121,6 +159,15 @@
 						class="cn-detail-page__widget-title">
 						{{ findWidget(item).title }}
 					</h3>
+					<!--
+						@slot `widget-${item.widgetId}`
+						@description Per-widget slot whose name is `widget-<widgetId>`. Use
+						it to inject custom widget content into a grid slot. Default
+						fallback for `type: 'integration'` widget defs renders the registry
+						widget; for any other widget type, the slot is empty by default.
+						@binding {object} item Layout item descriptor.
+						@binding {object} widget Resolved widget definition.
+					-->
 					<slot
 						:name="`widget-${item.widgetId}`"
 						:item="item"
@@ -139,6 +186,11 @@
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
+				<!--
+					@slot stats-header
+					@description Replace the heading above the stats table. Default
+					content: an `<h3>` showing `statsTitle`.
+				-->
 				<slot name="stats-header">
 					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
 						{{ statsTitle }}
@@ -153,6 +205,11 @@
 						</tr>
 					</thead>
 					<tbody>
+						<!--
+							@slot stats-rows
+							@description Replace the default rendering of the `statsRows`
+							prop. Use when rows need custom formatting per column.
+						-->
 						<slot name="stats-rows">
 							<tr v-for="(row, index) in statsRows" :key="index" :class="{ 'cn-detail-page__stats-row--sub': row.indent }">
 								<td v-for="col in statsColumns" :key="col.key" :class="[row.indent ? 'cn-detail-page__stats-cell--indented' : '', col.align ? 'cn-detail-page__stats-cell--' + col.align : '']">
@@ -185,17 +242,33 @@
 
 				<!-- Default content -->
 				<div v-else class="cn-detail-page__content">
+					<!--
+						@slot default
+						@description Main body content rendered when no grid layout, no
+						stats table, and no schema-driven auto-body apply. Use it to ship
+						a hand-authored detail page.
+					-->
 					<slot />
 				</div>
 
 				<!-- Sections slot — additional content below stats -->
 				<div v-if="$slots.sections" class="cn-detail-page__sections">
+					<!--
+						@slot sections
+						@description Additional vertically-stacked content rendered below
+						the default body / stats table.
+					-->
 					<slot name="sections" />
 				</div>
 			</div>
 
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
+				<!--
+					@slot footer
+					@description Footer surface rendered below the detail-page body. Use
+					it for save/cancel button rows or status text.
+				-->
 				<slot name="footer" />
 			</div>
 		</div>

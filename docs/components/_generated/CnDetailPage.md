@@ -39,18 +39,18 @@
 
 ### Slots
 
-| Name                      | Bindings                                    | Description |
-| ------------------------- | ------------------------------------------- | ----------- |
-| `header`                  | `title`, `description`, `icon`, `icon-size` |             |
-| `icon`                    | —                                           |             |
-| `actions`                 | —                                           |             |
-| `error`                   | —                                           |             |
-| `error-actions`           | —                                           |             |
-| `empty`                   | —                                           |             |
-| `empty-actions`           | —                                           |             |
-| `widget-${item.widgetId}` | `name`, `item`, `widget`                    |             |
-| `stats-header`            | —                                           |             |
-| `stats-rows`              | —                                           |             |
-| `default`                 | —                                           |             |
-| `sections`                | —                                           |             |
-| `footer`                  | —                                           |             |
+| Name                      | Bindings                                    | Description                |
+| ------------------------- | ------------------------------------------- | -------------------------- |
+| `header`                  | `title`, `description`, `icon`, `icon-size` | header                     |
+| `icon`                    | —                                           | icon                       |
+| `actions`                 | —                                           | actions                    |
+| `error`                   | —                                           | error                      |
+| `error-actions`           | —                                           | error-actions              |
+| `empty`                   | —                                           | empty                      |
+| `empty-actions`           | —                                           | empty-actions              |
+| `widget-${item.widgetId}` | `name`, `item`, `widget`                    | `widget-\${item.widgetId}` |
+| `stats-header`            | —                                           | stats-header               |
+| `stats-rows`              | —                                           | stats-rows                 |
+| `default`                 | —                                           | default                    |
+| `sections`                | —                                           | sections                   |
+| `footer`                  | —                                           | footer                     |

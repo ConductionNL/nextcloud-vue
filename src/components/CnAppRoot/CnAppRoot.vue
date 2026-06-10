@@ -123,6 +123,18 @@
 			<NcAppContent>
 				<router-view />
 				<!--
+				  @slot tenant-badge
+				  @description Top-bar tenant indicator surface
+				  (multi-tenancy-context REQ-MT-4). Default:
+				  <CnTenantBadge /> — auto-hides when the user has 0–1
+				  organisations. Override to suppress entirely
+				  (`<template #tenant-badge></template>`) or to render
+				  a custom multi-tenant switcher.
+				-->
+				<slot name="tenant-badge">
+					<CnTenantBadge />
+				</slot>
+				<!--
 				  @slot header-actions
 				  @description Optional action buttons rendered in the
 				  page header alongside the router-view. Empty by
@@ -186,6 +198,35 @@
 				v-if="cnIndexSidebarConfig.value"
 				v-bind="cnIndexSidebarConfig.value.props"
 				v-on="cnIndexSidebarConfig.value.listeners" />
+
+			<!--
+			  Hoisted object-sidebar. CnDetailPage writes into the
+			  provided `objectSidebarState` holder to publish its
+			  schema-driven sidebar (Files / Notes / Tags / Tasks /
+			  Audit) at NcContent level — same ADR-017 reason as the
+			  hoisted index sidebar above. The auto-mount is suppressed
+			  when:
+			  - the consumer fills the `#sidebar` slot (their sidebar
+			    keeps owning the slot); or
+			  - an ancestor already provides `objectSidebarState` (the
+			    ancestor renders its own sidebar, e.g. decidesk's host
+			    wrapper); or
+			  - `objectType` + `objectId` are empty (defense-in-depth
+			    against CnIndexPage's `inject('sidebarState') ??
+			    inject('objectSidebarState')` fallback leaking an
+			    `active: true` write into this channel — see
+			    CnAppRootObjectSidebar.spec.js).
+			-->
+			<CnObjectSidebar
+				v-if="shouldAutoMountObjectSidebar"
+				:tabs="effectiveObjectSidebarState.tabs"
+				:object-type="effectiveObjectSidebarState.objectType"
+				:object-id="effectiveObjectSidebarState.objectId"
+				:register="effectiveObjectSidebarState.register"
+				:schema="effectiveObjectSidebarState.schema"
+				:title="effectiveObjectSidebarState.title"
+				:subtitle="effectiveObjectSidebarState.subtitle"
+				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs" />
 
 			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
@@ -256,10 +297,14 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
+import { provideTenantContext, TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
+import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import Vue from 'vue'
@@ -301,8 +346,10 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnAiCompanion,
+		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnTenantBadge,
 	},
 
 	provide() {
@@ -392,6 +439,51 @@ export default {
 			 * every Conduction app.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
+			/**
+			 * Object-sidebar channel — reactive holder that
+			 * `CnDetailPage` writes to publish its schema-driven
+			 * sidebar to the NcContent-level auto-mount above.
+			 * Always exposed (even when an ancestor provides its
+			 * own) so descendants under THIS CnAppRoot see a
+			 * consistent inject; the auto-mount itself defers to
+			 * the ancestor via `ancestorObjectSidebarState`.
+			 *
+			 * Shape mirrors what CnDetailPage.syncSidebarState
+			 * writes — `{ active, open, objectType, objectId,
+			 * title, subtitle, register, schema, hiddenTabs, tabs
+			 * }` — plus the always-truthy `_origin` marker so
+			 * tests can tell the two channels apart.
+			 */
+			objectSidebarState: this.localObjectSidebarState,
+			/**
+			 * Index-sidebar channel — CnIndexPage's inject probes
+			 * `sidebarState` FIRST and falls back to
+			 * `objectSidebarState`. Providing a distinct holder
+			 * here keeps the two channels isolated so index-page
+			 * writes never leak into the object-sidebar
+			 * auto-mount (the openbuilt double-sidebar regression).
+			 * Shape covers the CnIndexPage write surface
+			 * (`searchValue`, `activeFilters`, `facetData`, etc.).
+			 */
+			sidebarState: this.localIndexSidebarState,
+			/**
+			 * Reactive `{ [register]: { [schema]: number } }` totals
+			 * populated by `_hydrateMenuCounts()` from `useObjectStore()`
+			 * for every `count: "auto"` menu entry whose resolved page is
+			 * `type: "index"` with `register`/`schema` in its config.
+			 *
+			 * `CnAppNav.resolveCount()` reads from this map to render
+			 * `NcCounterBubble` badges next to menu entries. The hydration
+			 * happens once at mount (one `?_limit=1` fetch per unique
+			 * `(register, schema)` pair); subsequent index-page mounts
+			 * reuse the same store entry so no extra round-trip.
+			 *
+			 * Defaults to an empty object so `resolveCount` returns
+			 * `null` (no badge) until hydration completes — which keeps
+			 * the navigation rendering immediately without waiting for
+			 * the counts.
+			 */
+			cnMenuCounts: this.cnMenuCounts,
 		}
 	},
 
@@ -417,6 +509,15 @@ export default {
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
+		/**
+		 * Ancestor-provided `objectSidebarState` — when set, an
+		 * ancestor (e.g. decidesk's host wrapper, procest's app
+		 * shell) owns the channel and renders its own
+		 * CnObjectSidebar. We defer to it by suppressing our local
+		 * auto-mount. Default `null` so a fresh CnAppRoot always
+		 * uses its own local holder.
+		 */
+		ancestorObjectSidebarState: { from: 'objectSidebarState', default: null },
 	},
 
 	props: {
@@ -614,6 +715,33 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Initial active organisation UUID (multi-tenancy-context). When
+		 * set, the provided `useTenantContext()` mounts with this UUID
+		 * already active so the first render stamps the right
+		 * `X-OpenRegister-Organisation` header and the top-bar
+		 * `CnTenantBadge` shows the right name immediately. Updates via
+		 * `useTenantContext().setActiveTenant()` from any descendant.
+		 *
+		 * @type {string|null}
+		 */
+		initialOrganisationUuid: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Initial active organisation entity (multi-tenancy-context).
+		 * When set, surfaces the resolved name + slug for the badge
+		 * without a second fetch.
+		 *
+		 * @type {object|null}
+		 */
+		initialOrganisation: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	/**
@@ -643,11 +771,28 @@ export default {
 	 * @return {object} `{ cnSupportVisible, cnSupportHide }` or `{}` when disabled.
 	 */
 	setup(props) {
-		if (props.supportDialog === false) {
-			return {}
+		// Mount the multi-tenancy context provider so descendants can
+		// reach the shared `activeOrganisationUuid` / `setActiveTenant`
+		// via `useTenantContext()` (composable) or the
+		// `tenantContextMixin` (Options API). The provider is mounted
+		// even on single-tenant apps so consumers can opt-in later
+		// without restructuring their CnAppRoot wrapper.
+		const tenantContext = provideTenantContext(
+			props.initialOrganisationUuid || null,
+			props.initialOrganisation || null,
+		)
+
+		const supportPair = props.supportDialog === false
+			? {}
+			: (() => {
+				const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
+				return { cnSupportVisible: visible, cnSupportHide: hide }
+			})()
+
+		return {
+			...supportPair,
+			cnTenantContext: tenantContext,
 		}
-		const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
-		return { cnSupportVisible: visible, cnSupportHide: hide }
 	},
 
 	/**
@@ -696,6 +841,20 @@ export default {
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
 			/**
+			 * Reactive `{ [register]: { [schema]: number } }` map of
+			 * object-store totals — one entry per unique
+			 * `(register, schema)` pair declared on a menu item with
+			 * `count: "auto"`. Provided to descendants as
+			 * `cnMenuCounts`; CnAppNav reads from it inside its
+			 * `resolveCount()` to render `NcCounterBubble` badges.
+			 *
+			 * Populated by `_hydrateMenuCounts()` at mount. Wrapped in
+			 * `Vue.observable` so direct property writes
+			 * (`this.cnMenuCounts[register][schema] = total`) are
+			 * picked up by CnAppNav's reactive render.
+			 */
+			cnMenuCounts: Vue.observable({}),
+			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
 			 * method (CnAppNav binds this to manifest entries with
@@ -716,10 +875,86 @@ export default {
 			 * @type {object}
 			 */
 			activeModalProps: {},
+			/**
+			 * Local holder for the object-sidebar channel. Lives on
+			 * this CnAppRoot instance (Vue.observable so descendant
+			 * writes via inject trigger re-renders); the `provide()`
+			 * block exposes it under the `objectSidebarState` key.
+			 *
+			 * CnDetailPage flips `active: true` + fills the object
+			 * coordinates in its `syncSidebarState()`; we render the
+			 * hoisted CnObjectSidebar when both `objectType` and
+			 * `objectId` are non-empty AND the consumer hasn't
+			 * supplied a `#sidebar` slot AND no ancestor already
+			 * owns the channel.
+			 */
+			localObjectSidebarState: Vue.observable({
+				active: false,
+				open: false,
+				objectType: '',
+				objectId: '',
+				title: '',
+				subtitle: '',
+				register: '',
+				schema: '',
+				hiddenTabs: [],
+				tabs: undefined,
+			}),
+			/**
+			 * Local holder for the index-sidebar channel. Distinct
+			 * reference from `localObjectSidebarState` so the
+			 * `sidebarState`-first inject in CnIndexPage never
+			 * leaks an `active: true` write into the object-sidebar
+			 * channel.
+			 */
+			localIndexSidebarState: Vue.observable({
+				active: false,
+				open: false,
+				searchValue: '',
+				activeFilters: {},
+				facetData: null,
+				facetableFields: [],
+				facetableConfig: null,
+			}),
 		}
 	},
 
 	computed: {
+		/**
+		 * Active object-sidebar holder for the auto-mount block.
+		 * Mirrors the local holder; if an ancestor already provides
+		 * `objectSidebarState`, the auto-mount is suppressed by
+		 * `shouldAutoMountObjectSidebar`, so this getter is only
+		 * read when we own the channel.
+		 *
+		 * @return {object}
+		 */
+		effectiveObjectSidebarState() {
+			return this.localObjectSidebarState
+		},
+		/**
+		 * Decide whether THIS CnAppRoot should render the hoisted
+		 * CnObjectSidebar. False when:
+		 * - the consumer fills `#sidebar` (their slot owns the rail);
+		 * - an ancestor already provides `objectSidebarState`
+		 *   (ancestor renders its own sidebar);
+		 * - `localObjectSidebarState.active` is false (default);
+		 * - `objectType` + `objectId` are both empty (defense-in-
+		 *   depth against CnIndexPage's fallback writing `active:
+		 *   true` into the wrong channel — see
+		 *   CnAppRootObjectSidebar.spec.js for the regression).
+		 *
+		 * @return {boolean}
+		 */
+		shouldAutoMountObjectSidebar() {
+			if (this.$slots && this.$slots.sidebar) return false
+			if (this.$scopedSlots && this.$scopedSlots.sidebar) return false
+			if (this.ancestorObjectSidebarState) return false
+			const holder = this.localObjectSidebarState
+			if (!holder || !holder.active) return false
+			const hasObjectCoordinates = !!(holder.objectType && holder.objectId)
+			return hasObjectCoordinates
+		},
 		/**
 		 * Resolved support-dialog config object — `{}` when `supportDialog`
 		 * is `true`/`false`, or the host-supplied override object.
@@ -855,6 +1090,7 @@ export default {
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
 			this._validateRegistry()
 			this._warnCustomComponentsDeprecation()
+			this._hydrateMenuCounts()
 			return
 		}
 
@@ -882,6 +1118,7 @@ export default {
 
 		this._validateRegistry()
 		this._warnCustomComponentsDeprecation()
+		this._hydrateMenuCounts()
 	},
 
 	methods: {
@@ -941,6 +1178,115 @@ export default {
 					+ 'Use the `registry` prop instead (see ADR-036).',
 				)
 				this._customComponentsWarnedOnce = true
+			}
+		},
+
+		/**
+		 * Scan the manifest for `count: "auto"` menu entries (top-level
+		 * AND nested children) and hydrate `this.cnMenuCounts` from
+		 * `useObjectStore().getPagination(slug).total` for each unique
+		 * `(register, schema)` pair whose resolved page is `type: "index"`.
+		 *
+		 * Triggers one `fetchCollection(slug, { _limit: 1 })` per pair so
+		 * the store's pagination cache is warmed. Subsequent CnIndexPage
+		 * mounts reuse the same store entry (no extra round-trip).
+		 *
+		 * Failures are non-fatal — missing Pinia (no `pinia` plugin
+		 * installed on the Vue instance), unregistered type slugs, or
+		 * network errors all degrade gracefully to "no badge".
+		 *
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuCounts() {
+			const menu = this.manifest?.menu ?? []
+			if (!Array.isArray(menu) || menu.length === 0) return
+
+			const pages = this.manifest?.pages ?? []
+			const collectAutoTargets = (items) => {
+				const targets = []
+				for (const item of items ?? []) {
+					if (item?.count === 'auto' && item?.route) {
+						const page = pages.find((p) => p.id === item.route)
+						if (page?.type === 'index' && page?.config?.register && page?.config?.schema) {
+							targets.push({ register: page.config.register, schema: page.config.schema })
+						}
+					}
+					if (Array.isArray(item?.children)) {
+						targets.push(...collectAutoTargets(item.children))
+					}
+				}
+				return targets
+			}
+
+			const pairs = collectAutoTargets(menu)
+			if (pairs.length === 0) return
+
+			// De-duplicate by (register, schema).
+			const seen = new Set()
+			const uniquePairs = []
+			for (const pair of pairs) {
+				const key = `${pair.register}|${pair.schema}`
+				if (seen.has(key)) continue
+				seen.add(key)
+				uniquePairs.push(pair)
+			}
+
+			let store
+			try {
+				store = useObjectStore()
+			} catch (err) {
+				// No Pinia plugin installed (tests, isolated mounts) —
+				// silently skip; CnAppNav renders no badge.
+				return
+			}
+			if (!store) return
+
+			for (const { register, schema } of uniquePairs) {
+				const slug = `${register}-${schema}`
+				this._fetchAndCacheCount(store, slug, register, schema)
+			}
+		},
+
+		/**
+		 * Fire-and-forget count fetch + cache writer. Registers the type
+		 * with the store on demand (so the consuming app doesn't need to
+		 * pre-register every counted slug), issues a `?_limit=1` index
+		 * fetch, and writes the resulting `total` into `cnMenuCounts`.
+		 *
+		 * Errors are swallowed so a single broken endpoint cannot blank
+		 * the entire navigation. The most common failure modes
+		 * (unregistered type, network error, store unavailable) all leave
+		 * the badge unrendered — which is the documented fallback.
+		 *
+		 * @param {object} store  The `useObjectStore()` result.
+		 * @param {string} slug   The store's type slug (`${register}-${schema}`).
+		 * @param {string} register OpenRegister register slug.
+		 * @param {string} schema   OpenRegister schema slug.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _fetchAndCacheCount(store, slug, register, schema) {
+			try {
+				if (typeof store.registerObjectType === 'function'
+					&& (!store.objectTypeRegistry || !store.objectTypeRegistry[slug])) {
+					store.registerObjectType(slug, schema, register)
+				}
+				if (typeof store.fetchCollection === 'function') {
+					await store.fetchCollection(slug, { _limit: 1 })
+				}
+				const pagination = typeof store.getPagination === 'function'
+					? store.getPagination(slug)
+					: null
+				const total = pagination?.total
+				if (typeof total === 'number' && total >= 0) {
+					if (!this.cnMenuCounts[register]) {
+						Vue.set(this.cnMenuCounts, register, {})
+					}
+					Vue.set(this.cnMenuCounts[register], schema, total)
+				}
+			} catch (err) {
+				// Non-fatal — leave the badge unrendered.
 			}
 		},
 	},

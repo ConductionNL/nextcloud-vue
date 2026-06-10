@@ -326,6 +326,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -434,6 +435,13 @@ export default {
 		CnJsonViewer,
 		Plus,
 		ContentSaveOutline,
+	},
+
+	inject: {
+		_cnTenantContext: {
+			from: TENANT_CONTEXT_KEY,
+			default: null,
+		},
 	},
 
 	props: {
@@ -682,11 +690,38 @@ export default {
 				}
 				this.formData = data
 			}
+			// Multi-tenancy auto-fill (multi-tenancy-context REQ-MT-4).
+			// When the schema declares an `organisation` field and the
+			// active form data does NOT already carry a value for it,
+			// stamp the active organisation UUID from the shared
+			// tenant context. Explicit values in `item` win — they are
+			// already in `formData` at this point so the guard below
+			// is correct on both create and edit paths.
+			this._autofillTenant()
 			this.errors = {}
 			this.formError = null
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.initAsyncFields()
+		},
+
+		/**
+		 * Auto-fill the `organisation` field with the active tenant UUID
+		 * when the schema declares such a field and no value is already
+		 * set (explicit `item` data wins).
+		 *
+		 * Spec: multi-tenancy-context REQ-MT-4.
+		 */
+		_autofillTenant() {
+			const ctx = this._cnTenantContext
+			if (!ctx) return
+			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
+			if (!uuid) return
+			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
+			if (!hasOrgField) return
+			const current = this.formData.organisation
+			if (current !== null && current !== undefined && current !== '') return
+			this.$set(this.formData, 'organisation', uuid)
 		},
 
 		updateField(key, value) {

@@ -25,7 +25,12 @@
 			{{ action.label }}
 		</NcActionButton>
 
-		<!-- Custom content slot (for hardcoded buttons) -->
+		<!--
+			@slot default
+			@description Custom NcActionButton-family content rendered inside the
+			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
+			the `actions` prop is empty.
+		-->
 		<slot />
 	</NcActions>
 </template>
@@ -148,6 +153,10 @@ export default {
 		},
 
 		internalOpen(val) {
+			/**
+			 * @event update:open Fired whenever the menu's internal open state flips. Used by callers that bind `:open.sync` to track visibility.
+			 * @type {boolean}
+			 */
 			this.$emit('update:open', val)
 		},
 	},
@@ -228,11 +237,18 @@ export default {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.targetItem)
 			}
+			/**
+			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice.
+			 * @type {{ action: string, row: object|null }}
+			 */
 			this.$emit('action', { action: action.label, row: this.targetItem })
 		},
 
 		onClose() {
 			this.internalOpen = false
+			/**
+			 * @event close Fired when the menu starts closing (before the popper's hide animation). Use `@closed` for the post-animation point.
+			 */
 			this.$emit('close')
 		},
 
@@ -245,6 +261,9 @@ export default {
 		 */
 		onClosed() {
 			clearContextMenuPositionDom()
+			/**
+			 * @event closed Fired after the popper's hide animation completes. Use this (rather than `@close`) when the parent needs the menu's DOM to be gone before doing the next thing.
+			 */
 			this.$emit('closed')
 		},
 	},

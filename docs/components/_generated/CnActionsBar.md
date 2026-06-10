@@ -2,42 +2,44 @@
 
 ### Props
 
-| Name                | Type      | Required | Default                              | Description                                                                        |
-| ------------------- | --------- | -------- | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| `pagination`        | `object`  |          | `null`                               | Pagination state: \{ total, page, pages, limit \}                                  |
-| `objectCount`       | `number`  |          | `0`                                  | Number of currently visible objects (for "Showing X of Y")                         |
-| `selectable`        | `boolean` |          | `true`                               | Whether rows/cards can be selected                                                 |
-| `selectedIds`       | `array`   |          | `[]`                                 | Currently selected IDs                                                             |
-| `addLabel`          | `string`  |          | `() =&gt; t('nextcloud-vue', 'Add')` | Label for the Add button                                                           |
-| `addIcon`           | `string`  |          | `''`                                 | MDI icon name for the Add button (e.g. 'AccountGroup'). Falls back to Plus icon.   |
-| `inlineActionCount` | `number`  |          | `0`                                  | How many action buttons to show inline (rest go in overflow dropdown)              |
-| `showMassImport`    | `boolean` |          | `true`                               | Whether to show the built-in mass Import action                                    |
-| `showMassExport`    | `boolean` |          | `true`                               | Whether to show the built-in mass Export action                                    |
-| `showMassCopy`      | `boolean` |          | `true`                               | Whether to show the built-in mass Copy action                                      |
-| `showMassDelete`    | `boolean` |          | `true`                               | Whether to show the built-in mass Delete action                                    |
-| `viewMode`          | `string`  |          | `'table'`                            | Current view mode: 'table' or 'cards'                                              |
-| `showViewToggle`    | `boolean` |          | `true`                               | Whether to show the Cards/Table view toggle                                        |
-| `refreshing`        | `boolean` |          | `false`                              | Whether the refresh action is currently in progress                                |
-| `refreshDisabled`   | `boolean` |          | `false`                              | Whether the refresh action is disabled (e.g. when required selections are missing) |
-| `addDisabled`       | `boolean` |          | `false`                              | Whether the Add button is disabled (e.g. when required selections are missing)     |
-| `showAdd`           | `boolean` |          | `true`                               | Whether to show the Add button                                                     |
+| Name                | Type                                                                      | Required | Default                              | Description                                                                                                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pagination`        | `object`                                                                  |          | `null`                               | Pagination state: \{ total, page, pages, limit \}                                                                                                                                                                                                                                     |
+| `objectCount`       | `number`                                                                  |          | `0`                                  | Number of currently visible objects (for "Showing X of Y")                                                                                                                                                                                                                            |
+| `selectable`        | `boolean`                                                                 |          | `true`                               | Whether rows/cards can be selected                                                                                                                                                                                                                                                    |
+| `selectedIds`       | `array`                                                                   |          | `[]`                                 | Currently selected IDs                                                                                                                                                                                                                                                                |
+| `addLabel`          | `string`                                                                  |          | `() =&gt; t('nextcloud-vue', 'Add')` | Label for the Add button                                                                                                                                                                                                                                                              |
+| `addIcon`           | `string`                                                                  |          | `''`                                 | MDI icon name for the Add button (e.g. 'AccountGroup'). Falls back to Plus icon.                                                                                                                                                                                                      |
+| `inlineActionCount` | `number`                                                                  |          | `0`                                  | How many action buttons to show inline (rest go in overflow dropdown)                                                                                                                                                                                                                 |
+| `showMassImport`    | `boolean`                                                                 |          | `true`                               | Whether to show the built-in mass Import action                                                                                                                                                                                                                                       |
+| `showMassExport`    | `boolean`                                                                 |          | `true`                               | Whether to show the built-in mass Export action                                                                                                                                                                                                                                       |
+| `showMassCopy`      | `boolean`                                                                 |          | `true`                               | Whether to show the built-in mass Copy action                                                                                                                                                                                                                                         |
+| `showMassDelete`    | `boolean`                                                                 |          | `true`                               | Whether to show the built-in mass Delete action                                                                                                                                                                                                                                       |
+| `viewMode`          | `string`                                                                  |          | `'table'`                            | Current view mode: 'table' or 'cards'                                                                                                                                                                                                                                                 |
+| `showViewToggle`    | `boolean`                                                                 |          | `true`                               | Whether to show the Cards/Table view toggle                                                                                                                                                                                                                                           |
+| `refreshing`        | `boolean`                                                                 |          | `false`                              | Whether the refresh action is currently in progress                                                                                                                                                                                                                                   |
+| `refreshDisabled`   | `boolean`                                                                 |          | `false`                              | Whether the refresh action is disabled (e.g. when required selections are missing)                                                                                                                                                                                                    |
+| `addDisabled`       | `boolean`                                                                 |          | `false`                              | Whether the Add button is disabled (e.g. when required selections are missing)                                                                                                                                                                                                        |
+| `showAdd`           | `boolean`                                                                 |          | `true`                               | Whether to show the Add button                                                                                                                                                                                                                                                        |
+| `headerActions`     | `Array<{ id: string, label: string, icon?: string, disabled?: boolean }>` |          | `[]`                                 | Manifest-declared page-level actions rendered in the overflow dropdown between Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }`. The bar emits `@header-action({ action: id, id })` on click; handler resolution happens upstream (CnIndexPage). |
 
 ### Events
 
-| Name               | Payload | Description |
-| ------------------ | ------- | ----------- |
-| `view-mode-change` | —       |             |
-| `add`              | —       |             |
-| `refresh`          | —       |             |
-| `show-import`      | —       |             |
-| `show-export`      | —       |             |
-| `show-copy`        | —       |             |
-| `show-delete`      | —       |             |
+| Name               | Payload | Description                                                                                                |
+| ------------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `view-mode-change` | —       | User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.     |
+| `add`              | —       | User clicked the primary Add button. No payload.                                                           |
+| `refresh`          | —       | User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list. |
+| `header-action`    | —       | User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.                  |
+| `show-import`      | —       | User clicked the Import mass action. Host should open the import modal.                                    |
+| `show-export`      | —       | User clicked the Export mass action. Host should open the export modal.                                    |
+| `show-copy`        | —       | User clicked the Copy-selected mass action. Disabled while no row is selected.                             |
+| `show-delete`      | —       | User clicked the Delete-selected mass action. Disabled while no row is selected.                           |
 
 ### Slots
 
-| Name           | Bindings                | Description |
-| -------------- | ----------------------- | ----------- |
-| `actions`      | —                       |             |
-| `action-items` | —                       |             |
-| `mass-actions` | `count`, `selected-ids` |             |
+| Name           | Bindings                | Description  |
+| -------------- | ----------------------- | ------------ |
+| `actions`      | —                       | actions      |
+| `action-items` | —                       | action-items |
+| `mass-actions` | `count`, `selected-ids` | mass-actions |

@@ -17,3 +17,9 @@ export { useIntegrationRegistry } from './useIntegrationRegistry.js'
 export { useRuntimeManifest } from './useRuntimeManifest.js'
 export { useSupportDialog } from './useSupportDialog.js'
 export { useClickDragGuard, CLICK_DRAG_THRESHOLD } from './useClickDragGuard.js'
+export {
+	useTenantContext,
+	provideTenantContext,
+	createTenantContext,
+	TENANT_CONTEXT_KEY,
+} from './useTenantContext.js'

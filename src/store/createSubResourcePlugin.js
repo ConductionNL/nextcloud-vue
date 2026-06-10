@@ -1,4 +1,7 @@
-import { buildHeaders, buildQueryString, capitalize } from '../utils/headers.js'
+import { buildQueryString, capitalize } from '../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` (declared on
+// the base object store) so sub-resource fetches inherit the active
+// tenant UUID (multi-tenancy-context).
 import { parseResponseError, networkError } from '../utils/errors.js'
 
 /**
@@ -80,7 +83,7 @@ export function createSubResourcePlugin(name, endpoint, options = {}) {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
