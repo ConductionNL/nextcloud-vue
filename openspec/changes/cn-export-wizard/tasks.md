@@ -37,4 +37,4 @@
 
 ## Phase 5 — Consumer follow-up (out of scope for this PR)
 
-- [ ] Open scholiq PR replacing `AuditPackExportModal` + `RequestExportModal` with `CnExportWizard` instances. Tracked separately once this lands.
+- [~] Open scholiq PR replacing `AuditPackExportModal` + `RequestExportModal` with `CnExportWizard` instances. Tracked separately once this lands. [DEFERRED — consumer-repo migration, explicitly "out of scope for this PR" per Phase 5 heading.]
