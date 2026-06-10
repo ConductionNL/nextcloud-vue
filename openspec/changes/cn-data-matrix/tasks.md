@@ -7,6 +7,6 @@
 
 ## Follow-up
 
-- [~] Cell selection (multi-cell drag) and copy-paste. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Per-cell formatter slot. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Sticky row header for scrolled grids. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Cell selection (multi-cell drag) and copy-paste.
+- [ ] Per-cell formatter slot.
+- [ ] Sticky row header for scrolled grids.

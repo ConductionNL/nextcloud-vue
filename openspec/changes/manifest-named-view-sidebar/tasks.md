@@ -2,40 +2,40 @@
 
 ## Phase 1 — `CnPageRenderer` provide channel
 
-- [~] Add a reactive holder `pageSidebarComponent: { value: null }` — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Add a reactive holder `pageSidebarComponent: { value: null }`
       to `CnPageRenderer.data()` mirroring `pageSidebarVisible`.
-- [~] Add `cnPageSidebarComponent` to the `provide()` return so — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Add `cnPageSidebarComponent` to the `provide()` return so
       descendant injects observe holder mutations.
-- [~] Add a `currentPageSidebarComponent` computed that resolves — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Add a `currentPageSidebarComponent` computed that resolves
       `currentPage.sidebarComponent` (when set) against
       `effectiveCustomComponents`. When the name is unset, return
       `null`. When the name is set but missing from the registry,
       log a `console.warn` (one-line, includes registry name + page
       id) and return `null`.
-- [~] Watch `currentPageSidebarComponent` and push the value into — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Watch `currentPageSidebarComponent` and push the value into
       `pageSidebarComponent.value` on the `immediate: true` flush,
       same shape as the existing visibility watcher.
-- [~] When BOTH `sidebar.show: false` and `sidebarComponent` are — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] When BOTH `sidebar.show: false` and `sidebarComponent` are
       set on the same page, log a `console.warn` once at watcher
       flush time noting the dead config (visibility wins).
 
 ## Phase 2 — `CnAppRoot` slot integration
 
-- [~] Add `cnPageSidebarComponent` to `CnAppRoot.inject` with a — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Add `cnPageSidebarComponent` to `CnAppRoot.inject` with a
       default of `() => ({ value: null })` (so apps without a
       `CnPageRenderer` ancestor pass through unchanged).
-- [~] Update the `#sidebar` slot block to include default content — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update the `#sidebar` slot block to include default content
       rendering `<component :is="cnPageSidebarComponent.value"
       v-if="cnPageSidebarComponent.value" />`. The consumer's
       slot override (when supplied) still wins — Vue's slot
       mechanism handles that automatically.
-- [~] Keep the visibility gate (`v-if="cnPageSidebarVisible.value — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Keep the visibility gate (`v-if="cnPageSidebarVisible.value
       !== false"`) as the outermost gate so visibility wins over
       the resolved component.
 
 ## Phase 3 — Schema + validator
 
-- [~] Update `src/schemas/app-manifest.schema.json`: — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `src/schemas/app-manifest.schema.json`:
   - Add `pages[].sidebarComponent` as `{ "type": "string" }` with
     a description documenting registry resolution and the
     precedence with `sidebar.show`.
@@ -48,7 +48,7 @@
   - No new `$defs`. No top-level version bump (additive field
     only — same convention as `headerComponent`,
     `actionsComponent`, `cardComponent`).
-- [~] Update `src/utils/validateManifest.js` to enforce — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `src/utils/validateManifest.js` to enforce
       `pages[].sidebarComponent` is a non-empty string when
       present. Error path:
       `/pages/${index}/sidebarComponent must be a non-empty string`.
@@ -57,7 +57,7 @@
 
 ## Phase 4 — Tests
 
-- [~] `tests/components/CnPageRendererNamedViewSidebar.spec.js` — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] `tests/components/CnPageRendererNamedViewSidebar.spec.js`
       (new) — covers:
   - Page with `sidebarComponent` resolved → holder.value is the
     resolved component.
@@ -69,7 +69,7 @@
     set → holder.value still resolves but a `console.warn` is
     logged about the dead config.
   - Route changes between pages → holder.value updates.
-- [~] Update `tests/components/CnAppRoot.spec.js` (or add a new — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `tests/components/CnAppRoot.spec.js` (or add a new
       spec file) to cover the slot integration:
   - When `cnPageSidebarComponent.value` is set AND
     `cnPageSidebarVisible.value` is true AND no `#sidebar` slot
@@ -79,7 +79,7 @@
     even if `cnPageSidebarComponent.value` is non-null.
   - When the consumer supplies a `#sidebar` slot override → that
     override wins over the resolved component (slot mechanic).
-- [~] Update `tests/utils/schema.spec.js` (or — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `tests/utils/schema.spec.js` (or
       `validateManifest.spec.js`) — fixtures for valid
       `sidebarComponent` (string), invalid (number), invalid
       (empty string), and a page without `sidebarComponent`
@@ -87,26 +87,26 @@
 
 ## Phase 5 — Documentation
 
-- [~] Update `docs/components/cn-page-renderer.md`: — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `docs/components/cn-page-renderer.md`:
   - Add `page.sidebarComponent` row to the page-fields table.
   - Add a "Per-page sidebar component" section showing the
     registry resolution, the precedence with `sidebar.show`, and
     a JSON example.
-- [~] Update `docs/components/cn-app-root.md`: — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `docs/components/cn-app-root.md`:
   - Note that the `#sidebar` slot's default content is now driven
     by the manifest's `sidebarComponent` field via the
     `cnPageSidebarComponent` inject. Document the slot-override
     precedence (consumer override > resolved component).
-- [~] Update `docs/migrating-to-manifest.md` — add a "Per-route — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Update `docs/migrating-to-manifest.md` — add a "Per-route
       sidebar swap" section showing the named-view → manifest
       `sidebarComponent` migration (using opencatalogi's `Search`
       / `SearchSideBar` as the example).
-- [~] Run `npm run check:docs` and `npm run check:jsdoc`. Both — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Run `npm run check:docs` and `npm run check:jsdoc`. Both
       MUST pass.
 
 ## Phase 6 — Spec capture
 
-- [~] Write `specs/manifest-named-view-sidebar/spec.md` with — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Write `specs/manifest-named-view-sidebar/spec.md` with
       REQ-MNVS-N requirements: schema field existence, registry
       resolution, `cnPageSidebarComponent` provide channel,
       `CnAppRoot` slot integration, precedence with

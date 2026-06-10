@@ -42,5 +42,5 @@
 
 ## Phase 6 — Consumer migrations (out of scope for this PR)
 
-- [~] pipelinq: `ContactmomentForm` / `TaskForm` → `CnWizardDialog` instances (tracked separately). — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] scholiq: `BulkEnrolModal` / `ImportQtiModal` → `CnWizardDialog`; `SubmitWorkModal` / `SubmitExcuseModal` → `CnRichSubmitDialog`. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] pipelinq: `ContactmomentForm` / `TaskForm` → `CnWizardDialog` instances (tracked separately).
+- [ ] scholiq: `BulkEnrolModal` / `ImportQtiModal` → `CnWizardDialog`; `SubmitWorkModal` / `SubmitExcuseModal` → `CnRichSubmitDialog`.

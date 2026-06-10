@@ -7,6 +7,6 @@
 
 ## Follow-up
 
-- [~] Folder navigation. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Inline preview slot. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Chunked / resumable uploads. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Folder navigation.
+- [ ] Inline preview slot.
+- [ ] Chunked / resumable uploads.

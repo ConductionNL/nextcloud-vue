@@ -8,6 +8,6 @@
 
 ## Follow-up
 
-- [~] Drag-drop reorder. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Keyboard navigation. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Lazy load children. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Drag-drop reorder.
+- [ ] Keyboard navigation.
+- [ ] Lazy load children.

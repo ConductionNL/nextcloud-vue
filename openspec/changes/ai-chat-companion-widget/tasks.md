@@ -315,10 +315,10 @@
 - **acceptance_criteria**:
   - With sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) shipped to dev env: FAB renders on a detail page, opens, sends, streams a real OpenAI/Ollama response, tool-call expands, history loads
   - With OR not installed (or orchestrator change not yet shipped): FAB does not render, no console warnings
-- [~] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session.
 
 ## Verification
-- [~] All tasks above checked off — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] `openspec validate ai-chat-companion-widget --strict` passes — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Manual testing against acceptance criteria documented in PR description — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] All tasks above checked off
+- [ ] `openspec validate ai-chat-companion-widget --strict` passes
+- [ ] Manual testing against acceptance criteria documented in PR description
+- [ ] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md)

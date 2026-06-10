@@ -10,4 +10,4 @@
 
 ## Follow-up (consumer)
 
-- [~] scholiq: replace `SignPlanModal` with a `CnWizardDialog` step hosting `CnSignatureCapture`. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] scholiq: replace `SignPlanModal` with a `CnWizardDialog` step hosting `CnSignatureCapture`.

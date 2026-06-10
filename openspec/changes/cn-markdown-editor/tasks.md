@@ -7,5 +7,5 @@
 
 ## Follow-up (separate PR)
 
-- [~] TipTap WYSIWYG mode (`mode: 'wysiwyg'`). — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Image upload via paste / drag-drop. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] TipTap WYSIWYG mode (`mode: 'wysiwyg'`).
+- [ ] Image upload via paste / drag-drop.

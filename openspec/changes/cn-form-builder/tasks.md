@@ -7,7 +7,7 @@
 
 ## Follow-up
 
-- [~] Drag-drop reorder. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Per-field validation rule editor. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Conditional visibility rules. — deferred to downstream cycle / fleet-wide adoption (handoff)
-- [~] Embedded CnFormDialog live preview. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Drag-drop reorder.
+- [ ] Per-field validation rule editor.
+- [ ] Conditional visibility rules.
+- [ ] Embedded CnFormDialog live preview.

@@ -105,7 +105,7 @@
   exports added; existing `useAppManifest` doc page MUST still exist).
   Result: 125/125 exports documented, 73/73 component docs cover props+slots, all accuracy checks pass.
   - files_likely_affected: n/a (verification)
-- [~] 7.4 Run `npm run check:jsdoc` — JSDoc coverage baseline MUST NOT regress. If the — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] 7.4 Run `npm run check:jsdoc` — JSDoc coverage baseline MUST NOT regress. If the
   expanded JSDoc improves coverage, run `npm run jsdoc-baselines:update` and commit the
   baseline bump.
   Status: DEFERRED — script requires `cd docusaurus && npm install --legacy-peer-deps`

@@ -12,12 +12,12 @@
       sharedRegistryIfInstalled, stub-queue drain, foreign-registry
       convergence. Existing registry + composable suites stay green (32
       passing).
-- [~] Docs: register-integration.md + a short note on the shared-registry — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Docs: register-integration.md + a short note on the shared-registry
       model + how OpenRegister bootstraps it globally.
-- [~] `npm run check:docs` + build green. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] `npm run check:docs` + build green.
 
 ## Verification
 
-- [~] Companion OpenRegister PR adds the global bootstrap; then an — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [ ] Companion OpenRegister PR adds the global bootstrap; then an
       OpenCatalogi publication detail page shows the "Synced from" leaf
       (openconnector) with ZERO OpenCatalogi changes.
