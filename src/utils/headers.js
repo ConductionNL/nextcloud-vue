@@ -49,7 +49,10 @@ export function capitalize(str) {
 /**
  * Build a query string from a params object.
  *
- * Handles _order serialization (JSON.stringify for objects) and skips
+ * Array values are serialized with PHP bracket notation (`key[]=a&key[]=b`)
+ * so the Nextcloud/OpenRegister backend parses them as an array — a plain
+ * repeated `key=a&key=b` collapses to the last value in PHP. Also handles
+ * _order serialization (JSON.stringify for objects) and skips
  * null/undefined/empty values.
  *
  * @param {object} params Key-value pairs for query parameters
@@ -63,9 +66,12 @@ export function buildQueryString(params = {}) {
 		if (Array.isArray(value) && value.length === 0) continue
 		if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
 		if (Array.isArray(value)) {
+			// PHP needs `key[]` to receive repeated params as an array;
+			// without the brackets only the last value survives server-side.
+			const arrayKey = key.endsWith('[]') ? key : `${key}[]`
 			for (const item of value) {
 				if (item !== undefined && item !== null && item !== '') {
-					queryParams.append(key, String(item))
+					queryParams.append(arrayKey, String(item))
 				}
 			}
 		} else if (typeof value === 'object') {

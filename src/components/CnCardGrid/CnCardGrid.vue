@@ -32,8 +32,7 @@
 						:schema="schema"
 						:selectable="selectable"
 						:selected="isSelected(object)"
-						@click="$emit('click', object)"
-						@select="toggleSelect(object)">
+						v-on="cardListeners(object)">
 						<template v-if="$scopedSlots['card-actions']" #actions="{ object: obj }">
 							<slot name="card-actions" :object="obj" />
 						</template>
@@ -124,6 +123,24 @@ export default {
 	methods: {
 		isSelected(object) {
 			return this.selectedIds.includes(object[this.rowKey])
+		},
+
+		/**
+		 * Listeners bound on each CnObjectCard. Selectable cards select via
+		 * `@select` only; the `@click` (navigation) listener is bound just for
+		 * non-selectable cards — otherwise CnObjectCard's deprecated
+		 * click-to-select path fires (a body click would both select AND
+		 * navigate, unlike a table row which only selects).
+		 *
+		 * @param {object} object The card's object.
+		 * @return {object} Event listeners for the card.
+		 */
+		cardListeners(object) {
+			const listeners = { select: () => this.toggleSelect(object) }
+			if (!this.selectable) {
+				listeners.click = () => this.$emit('click', object)
+			}
+			return listeners
 		},
 
 		toggleSelect(object) {
