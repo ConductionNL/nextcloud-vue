@@ -120,6 +120,7 @@ export {
 	CnAppLoading,
 	CnDependencyMissing,
 	CnAppRoot,
+	CnTenantBadge,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
 	CnFeaturesAndRoadmapSidebar,

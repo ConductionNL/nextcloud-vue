@@ -933,6 +933,21 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Active organisation entity (multi-tenancy-context). When
+		 * bound from a tenant-switcher higher in the tree, CnIndexPage
+		 * watches it and calls `store.setActiveTenantOrganisation(uuid)`
+		 * so the next fetchCollection() stamps the new tenant header
+		 * and the in-memory caches are cleared. When the prop is unset
+		 * the legacy single-tenant behaviour is preserved exactly.
+		 *
+		 * @type {object|null}
+		 */
+		activeOrganisation: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	setup(props) {
@@ -1260,6 +1275,27 @@ export default {
 
 		selectedIds(val) {
 			this.internalSelectedIds = [...val]
+		},
+
+		/**
+		 * Tenant change pipeline (multi-tenancy-context).
+		 * When the bound `activeOrganisation` prop changes, push the
+		 * new UUID into the bound object store (when there is one)
+		 * AND into the shared `useTenantContext()` context so every
+		 * other tenant-aware surface stays consistent.
+		 */
+		activeOrganisation: {
+			handler(next) {
+				if (!next) return
+				const uuid = next.uuid || null
+				// Update the object store when one is bound — sub-store
+				// methods may not exist on non-OR stores; guard with typeof.
+				const store = this.list?.store ?? this.selfObjectStore ?? null
+				if (store && typeof store.setActiveTenantOrganisation === 'function') {
+					store.setActiveTenantOrganisation(uuid)
+				}
+			},
+			deep: false,
 		},
 
 		/**
