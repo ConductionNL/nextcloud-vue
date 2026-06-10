@@ -33,4 +33,4 @@
 
 (Not in this PR — documented as the unlock case for `opencatalogi#636`.)
 
-- [ ] Open follow-up PR on opencatalogi flipping CatalogiIndexView / OrganizationIndexView / ThemeIndexView / GlossaryIndexView / PageIndexView / MenuIndexView from `type:'custom'` to `type:'index'` + `config.actions`.
+- [~] Open follow-up PR on opencatalogi flipping CatalogiIndexView / OrganizationIndexView / ThemeIndexView / GlossaryIndexView / PageIndexView / MenuIndexView from `type:'custom'` to `type:'index'` + `config.actions`. — deferred to downstream cycle / fleet-wide adoption (handoff)
