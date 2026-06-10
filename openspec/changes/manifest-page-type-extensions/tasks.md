@@ -89,7 +89,7 @@
       the extended enum.
       Done in same hydra branch (commit `5758513`): added migration-order
       asymmetry paragraph + scenario codifying the rule.
-- [ ] Open per-app follow-up issues for migrating existing
+- [~] Open per-app follow-up issues for migrating existing — deferred to downstream cycle / fleet-wide adoption (handoff)
       `type:"custom"` pages to the new built-ins where applicable.
       Initial candidates: openregister-adopt-app-manifest (17 custom
       pages — most can move), decidesk-manifest-v1 (16 custom pages
