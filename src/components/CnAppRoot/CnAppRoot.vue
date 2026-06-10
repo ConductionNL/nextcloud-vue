@@ -123,6 +123,18 @@
 			<NcAppContent>
 				<router-view />
 				<!--
+				  @slot tenant-badge
+				  @description Top-bar tenant indicator surface
+				  (multi-tenancy-context REQ-MT-4). Default:
+				  <CnTenantBadge /> — auto-hides when the user has 0–1
+				  organisations. Override to suppress entirely
+				  (`<template #tenant-badge></template>`) or to render
+				  a custom multi-tenant switcher.
+				-->
+				<slot name="tenant-badge">
+					<CnTenantBadge />
+				</slot>
+				<!--
 				  @slot header-actions
 				  @description Optional action buttons rendered in the
 				  page header alongside the router-view. Empty by
@@ -288,6 +300,8 @@ import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
+import { provideTenantContext, TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -334,6 +348,7 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnTenantBadge,
 	},
 
 	provide() {
@@ -681,6 +696,33 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Initial active organisation UUID (multi-tenancy-context). When
+		 * set, the provided `useTenantContext()` mounts with this UUID
+		 * already active so the first render stamps the right
+		 * `X-OpenRegister-Organisation` header and the top-bar
+		 * `CnTenantBadge` shows the right name immediately. Updates via
+		 * `useTenantContext().setActiveTenant()` from any descendant.
+		 *
+		 * @type {string|null}
+		 */
+		initialOrganisationUuid: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * Initial active organisation entity (multi-tenancy-context).
+		 * When set, surfaces the resolved name + slug for the badge
+		 * without a second fetch.
+		 *
+		 * @type {object|null}
+		 */
+		initialOrganisation: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	/**
@@ -710,11 +752,28 @@ export default {
 	 * @return {object} `{ cnSupportVisible, cnSupportHide }` or `{}` when disabled.
 	 */
 	setup(props) {
-		if (props.supportDialog === false) {
-			return {}
+		// Mount the multi-tenancy context provider so descendants can
+		// reach the shared `activeOrganisationUuid` / `setActiveTenant`
+		// via `useTenantContext()` (composable) or the
+		// `tenantContextMixin` (Options API). The provider is mounted
+		// even on single-tenant apps so consumers can opt-in later
+		// without restructuring their CnAppRoot wrapper.
+		const tenantContext = provideTenantContext(
+			props.initialOrganisationUuid || null,
+			props.initialOrganisation || null,
+		)
+
+		const supportPair = props.supportDialog === false
+			? {}
+			: (() => {
+				const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
+				return { cnSupportVisible: visible, cnSupportHide: hide }
+			})()
+
+		return {
+			...supportPair,
+			cnTenantContext: tenantContext,
 		}
-		const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
-		return { cnSupportVisible: visible, cnSupportHide: hide }
 	},
 
 	/**

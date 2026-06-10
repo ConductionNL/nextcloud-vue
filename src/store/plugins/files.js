@@ -1,5 +1,7 @@
 import { createSubResourcePlugin } from '../createSubResourcePlugin.js'
-import { buildHeaders } from '../../utils/headers.js'
+// `buildHeaders` is no longer imported directly — every fetch goes
+// through `this._buildHeaders()` so the active tenant UUID (when set)
+// is stamped on every outbound request (multi-tenancy-context).
 import { parseResponseError, networkError } from '../../utils/errors.js'
 
 /**
@@ -74,7 +76,7 @@ export function filesPlugin(options = {}) {
 					const url = buildTagsUrl(this._options.baseUrl)
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -115,7 +117,7 @@ export function filesPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'POST',
-						headers: buildHeaders(null),
+						headers: this._buildHeaders(null),
 						body: formData,
 					})
 
@@ -158,7 +160,7 @@ export function filesPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'POST',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -193,7 +195,7 @@ export function filesPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'POST',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -228,7 +230,7 @@ export function filesPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'DELETE',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -272,7 +274,7 @@ export function filesPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'POST',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 						body: JSON.stringify({
 							action,
 							fileIds,

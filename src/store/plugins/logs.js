@@ -1,4 +1,6 @@
-import { buildHeaders, buildQueryString } from '../../utils/headers.js'
+import { buildQueryString } from '../../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` so logs fetches
+// inherit the active tenant UUID (multi-tenancy-context).
 import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
 
 /**
@@ -92,7 +94,7 @@ export function logsPlugin(options = {}) {
 				const url = this._options.baseApiUrl + '/' + path + buildQueryString(params)
 				const response = await fetch(url, {
 					method: 'GET',
-					headers: buildHeaders(),
+					headers: this._buildHeaders(),
 				})
 
 				if (!response.ok) {
