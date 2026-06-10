@@ -546,3 +546,50 @@ items.
 |------|------|---------|-------------|
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the CnActionsBar overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `''` | Optional override for the Documentation entry label; empty falls back to CnActionsBar's translated "Documentation". |
+
+## Action handlers (manifest-actions-dispatch)
+
+Each row-action object in `actions[]` may declare a string `handler`. The value resolves through CnIndexPage's `effectiveCustomComponents` registry (the same one driving `type:'custom'` pages and the `cardComponent` prop). Reserved keywords short-circuit registry lookup:
+
+| `handler` value | Behaviour |
+|-----------------|-----------|
+| `"navigate"` | Calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. `route` is required. |
+| `"emit"` | Skips any registry call; CnIndexPage still bubbles `@action`. |
+| `"none"` | Disables the click entirely. CnIndexPage suppresses both the call AND the `@action` emit. |
+| Registry name (`/^[A-Za-z][A-Za-z0-9_]*$/`) | Looked up in `customComponents`. If a function, invoked as `fn({ actionId, item })` on row click. If a non-function or missing, falls back to `@action`-only with a `console.warn`. |
+| Function (programmatic) | Used as-is. Back-compat for v1 row-action APIs that pass a function directly. |
+| Unset | Default — CnIndexPage emits `@action` with the click payload and the consumer decides. |
+
+### Example: manifest declaring a handler
+
+```json
+{
+	"version": "1.3.0",
+	"pages": [{
+		"id": "queues",
+		"route": "/queues",
+		"type": "index",
+		"title": "Queues",
+		"config": {
+			"register": "pipelinq",
+			"schema": "queue",
+			"actions": [
+				{ "id": "process", "label": "Process queue", "handler": "queueProcessHandler" },
+				{ "id": "open",    "label": "Open detail",   "handler": "navigate", "route": "queues-detail" },
+				{ "id": "audit",   "label": "Audit",         "handler": "emit" },
+				{ "id": "noop",    "label": "Read-only",     "handler": "none" }
+			]
+		}
+	}]
+}
+```
+
+```js
+// src/customComponents.js — passed to CnAppRoot
+export default {
+	queueProcessHandler({ actionId, item }) {
+		// Fires when the row-action button is clicked.
+		console.log('processing queue', item.id, '(from', actionId, ')')
+	},
+}
+```
