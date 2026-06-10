@@ -13,9 +13,10 @@ Items split into three groups by `section`:
 An optional primary action renders above the main list as an `NcAppNavigationNew` button — for a "new" button or an active-context switcher (e.g. OpenRegister's active-organisation button). Two ways to provide it:
 
 - **`#primary-action` slot** — full control over dynamic content and click handling. Use this when the button reflects live state (a store-driven label) or needs custom navigation. The slot **wins** when both are present.
-- **`nav.primaryAction` manifest field** — declarative fallback (`{ label, icon?, route?, href? }`). On click it emits `primary-action-click`, then navigates: `href` opens in a new tab, `route` pushes the named vue-router route.
+- **Page-scoped `pages[].primaryAction`** — declarative, active-page scoped. The same shape as `nav.primaryAction` plus an optional free-form `payload`. Used for the common case where each index page wants its own `+ New X` button. Resolution order: page-scoped wins over `nav.primaryAction` whenever the current route matches a page that declares one.
+- **`nav.primaryAction` manifest field** — declarative app-wide default (`{ id?, label, icon?, route?, href?, payload? }`). On click it emits `primary-action` (and back-compat `primary-action-click`), then navigates: `href` opens in a new tab, `route` pushes the named vue-router route.
 
-Nothing renders when neither is provided (backwards compatible).
+Nothing renders when neither is provided (backwards compatible). The `primaryAction` icon defaults to MDI `Plus` when `icon` is omitted (matches the `NcAppNavigationNew` default).
 
 ### `nav` block
 
@@ -25,19 +26,53 @@ Top-level manifest config for the navigation:
 |-------|------|---------|-------------|
 | `nav.includePersonalSettings` | Boolean | `true` | Auto-prepend the "Personal settings" entry in the foldout. Set `false` for apps with no per-user settings dialog. |
 | `nav.settingsLabel` | String | `'Settings'` | Override the foldout gear-button label. |
-| `nav.primaryAction` | Object | — | Optional primary-action button above the main list: `{ label, icon?, route?, href? }`. Overridden by the `#primary-action` slot. |
+| `nav.primaryAction` | Object | — | App-wide default primary-action button above the main list: `{ id?, label, icon?, route?, href?, payload? }`. Overridden by `pages[].primaryAction` for the active route, and overridden by the `#primary-action` slot. |
+
+### Page-scoped `primaryAction`
+
+Each `pages[]` entry MAY declare its own `primaryAction` block (same shape as `nav.primaryAction`). When the current route matches a page that declares one, the page-scoped block wins over `nav.primaryAction`. This is the common case — an index page wants its own `+ New X` button:
+
+```json
+{
+  "pages": [
+    {
+      "id": "decisions",
+      "route": "/decisions",
+      "type": "index",
+      "title": "Decisions",
+      "primaryAction": {
+        "id": "create-decision",
+        "label": "+ New decision",
+        "icon": "Plus",
+        "payload": { "presetSchema": "decision" }
+      }
+    }
+  ]
+}
+```
+
+The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
+
+```vue
+<CnAppRoot @primary-action="openCreateDialog">
+```
+
+`payload` arrives unchanged so the host dispatcher can branch on it.
 
 ### Slots
 
 | Slot | Description |
 |------|-------------|
 | `primary-action` | Replaces the manifest-driven primary-action button. Render an `NcAppNavigationNew` (or anything) with your own dynamic label and click handler. |
+| `search` | Forwarded into `NcAppNavigation`'s `#search` slot. Mount your `NcAppNavigationSearch` here; when unset no search input renders. |
+| `item-<id>-actions` | Per-item scoped slot whose content lands inside the `NcAppNavigationItem`'s `#actions` slot for the entry with that `id`. Scope: `{ item }`. Use it for inline `NcActions` menus (e.g. an item-level "Pin" button). |
 
 ### Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `primary-action-click` | `nav.primaryAction` object | Emitted when the manifest-declared primary-action button is clicked (before default navigation). Not emitted when the `#primary-action` slot is overridden. |
+| `primary-action` | `{ id?, label, icon?, route?, href?, payload?, page? }` | Emitted when the resolved primary-action button is clicked. `page` is the current `$route.name`; `payload` echoes the manifest's free-form payload field. Hosts dispatch on `id` to wire create flows. |
+| `primary-action-click` | resolved primary-action object | Back-compat alias for `primary-action`. New code should listen on `primary-action`. |
 
 `manifest`, `translate`, and `permissions` are read from injected values (provided by [`CnAppRoot`](./cn-app-root.md)) but can also be passed as props for standalone use. **Props always win over inject.**
 
@@ -84,9 +119,13 @@ Top-level manifest config for the navigation:
 | `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
-| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = pinned-bottom flat entry; `'settings'` = inside the gear-icon foldout |
+| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = pinned-bottom flat entry above the settings foldout; `'settings'` = inside the gear-icon foldout |
+| `type` | `'item' \| 'caption'` | Default `'item'`. `'caption'` renders an `NcAppNavigationCaption` (non-interactive section divider) — `route`, `href`, `action`, `icon`, `count`, `children`, and `pinned` are ignored |
+| `count` | `number \| 'auto'` | Counter badge rendered in the `#counter` slot via `NcCounterBubble`. A positive integer renders as-is; `'auto'` resolves the count reactively from the `cnMenuCounts` inject (populated by [`CnAppRoot`](./cn-app-root.md) from `useObjectStore` totals) for the entry's resolved `type: "index"` page (`{ register, schema }` in its `config`). A resolved `0` / `null` / `undefined` renders no badge |
+| `pinned` | `boolean` | Default `false`. Pass-through to `NcAppNavigationItem`'s `pinned` prop. Note: `section: "footer"` entries are pinned automatically; use this field for the rare case of pinning a `"main"` entry inside the top list |
+| `open` | `boolean` | Default `false`. Initial expansion state for a parent entry with `children[]`. When `true`, the parent renders with `:open="true"` so children are visible on mount; users can still collapse/expand interactively |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
-| `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently |
+| `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently. Parents with visible children get `:allow-collapse="true"` automatically |
 | `visibleIf` | `object` | Optional display condition block — see [visibleIf conditions](#visibleif-conditions) |
 
 ## visibleIf conditions

@@ -1,52 +1,32 @@
 # safeHref
 
-URL scheme validator for `:href` bindings. Returns the input URL when the scheme is safe (`https:`, `http:`, `mailto:`, or a same-origin relative path starting with `/`); otherwise returns `'#'`.
+URL scheme allowlist for `:href` bindings against user-controlled data.
 
-Use this whenever a component renders a data-driven URL into an anchor tag. Without it, a malicious source can ship `javascript:alert(1)` or `data:text/html,...` and execute code on click.
+Components that bind URLs coming from a backend (a register row, a manifest field, anything outside the developer's direct control) need to validate the scheme before rendering. Without it, a malicious value of `javascript:alert(1)` or `data:text/html,<script>...</script>` executes code when the user clicks the link.
 
-## Signature
+`safeHref(url)` returns the URL when its scheme is safe (`https:` / `http:` / `mailto:`) or it is a same-origin root-relative path (`/path/...`). Every other input — including `javascript:`, `data:`, `vbscript:`, protocol-relative `//attacker.com`, malformed URLs, and `null` / `undefined` — collapses to `'#'`.
+
+## Parameters
+
+| Name | Type | Description |
+|------|------|-------------|
+| `url` | `string \| null \| undefined` | The URL to validate. |
+
+## Usage
 
 ```js
 import { safeHref } from '@conduction/nextcloud-vue'
 
-safeHref('https://example.com')        // -> 'https://example.com'
-safeHref('/apps/files')                // -> '/apps/files'
-safeHref('mailto:info@example.com')    // -> 'mailto:info@example.com'
-safeHref('javascript:alert(1)')        // -> '#'
-safeHref('data:text/html,<h1>x</h1>')  // -> '#'
-safeHref('//attacker.com/x')           // -> '#'
-safeHref(null)                         // -> '#'
+safeHref('https://example.com')       // → 'https://example.com'
+safeHref('/apps/files')                // → '/apps/files'
+safeHref('mailto:info@example.com')    // → 'mailto:info@example.com'
+safeHref('javascript:alert(1)')        // → '#'
+safeHref('data:text/html,<h1>x</h1>')  // → '#'
+safeHref('//attacker.com/x')           // → '#'
+safeHref(null)                         // → '#'
 ```
 
-## Parameters
+Companion utilities for image and SVG bindings:
 
-| Arg | Type | Description |
-|-----|------|-------------|
-| `url` | `string \| null \| undefined` | The URL to validate. |
-
-## Returns
-
-The original URL when safe, or the literal `'#'` when not.
-
-## Allowed inputs
-
-- `https://...` and `http://...` absolute URLs
-- `mailto:...` links
-- Same-origin paths starting with a single `/` (rejects `//host/x`, which is protocol-relative)
-
-## Rejected inputs
-
-- `javascript:`, `data:`, `vbscript:`, and every other unrecognised scheme
-- Protocol-relative URLs (`//attacker.com/x`)
-- `null`, `undefined`, and the empty string
-
-## Usage
-
-```html
-<a :href="safeHref(item.url)" target="_blank" rel="noopener">{{ item.label }}</a>
-```
-
-## See also
-
-- [`safeImageSrc`](./safe-image-src.md) — the `<img src>` companion.
-- [`safeSvgPath`](./safe-svg-path.md) — the SVG `d` companion.
+- [`safeImageSrc`](./safe-image-src.md) — `:src` allowlist for `<img>` bindings (HTTPS / HTTP / inline `data:image/*` only).
+- [`safeSvgPath`](./safe-svg-path.md) — `:d` allowlist for `<path>` bindings.

@@ -1,53 +1,24 @@
 # safeSvgPath
 
-Allowlist validator for SVG `<path :d="…">` bindings. Returns the input when it contains only SVG path command characters; otherwise returns the empty string.
+Character allowlist for SVG `<path :d>` bindings.
 
-Use this whenever a component renders a data-driven string into an SVG `d` attribute. The empty fallback yields an inert path rather than an attacker-controlled one.
+Limits the input string to the characters used by SVG path commands: command letters (`M m L l H h V v C c S s Q q T t A a Z z`), digits, decimal points, commas, whitespace, the minus sign for negative coordinates, and `e` / `E` for scientific notation in arc radii. Any other character — including embedded angle brackets, quotes, slashes, or unicode trickery — rejects the entire string to `''` so the `:d` binding receives an inert value.
 
-## Signature
+## Parameters
+
+| Name | Type | Description |
+|------|------|-------------|
+| `pathData` | `string \| null \| undefined` | The SVG path `d` value to validate. |
+
+## Usage
 
 ```js
 import { safeSvgPath } from '@conduction/nextcloud-vue'
 
-safeSvgPath('M12 2 L20 20 Z')   // -> 'M12 2 L20 20 Z'
-safeSvgPath('M0,0<script>')     // -> ''
-safeSvgPath(null)               // -> ''
+safeSvgPath('M12 2 L20 20 Z')   // → 'M12 2 L20 20 Z'
+safeSvgPath('M0,0 -3.5e2,12 Z') // → 'M0,0 -3.5e2,12 Z'
+safeSvgPath('M0,0<script>')     // → ''
+safeSvgPath(null)               // → ''
 ```
 
-## Parameters
-
-| Arg | Type | Description |
-|-----|------|-------------|
-| `pathData` | `string \| null \| undefined` | The SVG path `d` value. |
-
-## Returns
-
-The original string when valid, or the empty string `''` when not.
-
-## Allowed character set
-
-- SVG path command letters: `M m L l H h V v C c S s Q q T t A a Z z`
-- Digits, decimal point (`.`), comma (`,`), whitespace
-- Minus (`-`) for negative coordinates
-- `e` / `E` for scientific notation in arc radii
-
-Any character outside this set fails the validator, including the `<` / `>` brackets that would let an attacker break out of the attribute.
-
-## Rejected inputs
-
-- Strings containing markup-style characters (`<`, `>`, `"`, etc.)
-- Unicode trickery / non-ASCII characters
-- `null`, `undefined`, and the empty string
-
-## Usage
-
-```html
-<svg viewBox="0 0 24 24">
-  <path :d="safeSvgPath(icon.d)" />
-</svg>
-```
-
-## See also
-
-- [`safeHref`](./safe-href.md) — the `:href` companion.
-- [`safeImageSrc`](./safe-image-src.md) — the `<img src>` companion.
+For `<a :href>` use [`safeHref`](./safe-href.md). For `<img :src>` use [`safeImageSrc`](./safe-image-src.md).

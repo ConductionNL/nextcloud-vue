@@ -200,6 +200,7 @@ export default {
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content area |
 | `subscribe` | Boolean | `true` | When `true` and `objectStore` is provided, auto-subscribes to live updates for `objectType` + `objectId` via `useObjectSubscription`, and renders `CnLockedBanner` when a remote pessimistic lock is active. |
 | `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
+| `sidebarTabs` | Array | `[]` | Tab definitions forwarded to the host App's `CnObjectSidebar` via the injected `objectSidebarState`. Each entry follows the `CnObjectSidebar` tab shape (`{ id, label, icon?, widgets?, component?, order? }`). When empty (default), the sidebar falls back to its own default tab set. The actual `<CnObjectSidebar>` is rendered at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar pattern); this page only publishes the tabs. |
 
 ## Slots
 

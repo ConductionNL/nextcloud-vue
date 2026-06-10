@@ -24,20 +24,20 @@
 
 ### Events
 
-| Name               | Payload | Description |
-| ------------------ | ------- | ----------- |
-| `view-mode-change` | —       |             |
-| `add`              | —       |             |
-| `refresh`          | —       |             |
-| `show-import`      | —       |             |
-| `show-export`      | —       |             |
-| `show-copy`        | —       |             |
-| `show-delete`      | —       |             |
+| Name               | Payload | Description                                                                                                |
+| ------------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `view-mode-change` | —       | User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.     |
+| `add`              | —       | User clicked the primary Add button. No payload.                                                           |
+| `refresh`          | —       | User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list. |
+| `show-import`      | —       | User clicked the Import mass action. Host should open the import modal.                                    |
+| `show-export`      | —       | User clicked the Export mass action. Host should open the export modal.                                    |
+| `show-copy`        | —       | User clicked the Copy-selected mass action. Disabled while no row is selected.                             |
+| `show-delete`      | —       | User clicked the Delete-selected mass action. Disabled while no row is selected.                           |
 
 ### Slots
 
-| Name           | Bindings                | Description |
-| -------------- | ----------------------- | ----------- |
-| `actions`      | —                       |             |
-| `action-items` | —                       |             |
-| `mass-actions` | `count`, `selected-ids` |             |
+| Name           | Bindings                | Description  |
+| -------------- | ----------------------- | ------------ |
+| `actions`      | —                       | actions      |
+| `action-items` | —                       | action-items |
+| `mass-actions` | `count`, `selected-ids` | mass-actions |

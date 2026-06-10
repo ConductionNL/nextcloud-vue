@@ -123,4 +123,4 @@ export default {
 
 | Slot | Scope | Description |
 |---|---|---|
-| `value` | `{ count, formatted }` | Overrides the rendered count display. `count` is the raw `count` prop; `formatted` is the locale-formatted string the default slot renders. Useful for currency / unit prefixes (e.g. `€{{ formatted }}`). |
+| `value` | `{ count, formatted }` | Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` is the raw `count` prop; `formatted` is the locale-formatted string the default slot renders. Useful for currency / unit prefixes (e.g. `€{{ formatted }}`). |

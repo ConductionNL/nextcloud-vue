@@ -48,51 +48,93 @@
 -->
 <template>
 	<NcAppNavigation data-testid="cn-nav">
+		<template v-if="$slots.search || $scopedSlots.search" #search>
+			<!--
+				@slot search
+				@description Forwarded into NcAppNavigation's #search slot.
+				Hosts mount NcAppNavigationSearch here. When unset, no search
+				input renders inside the navigation.
+			-->
+			<slot name="search" />
+		</template>
 		<!-- @slot primary-action Optional primary action rendered above the
 		     main list as NcAppNavigation's top region (e.g. an app's "new"
 		     button or an active-context switcher). When provided, it takes
-		     precedence over a manifest-declared nav.primaryAction. Omitted
-		     entirely when neither the slot nor nav.primaryAction is present. -->
+		     precedence over the manifest-declared primaryAction (page-scoped
+		     OR nav root). Omitted entirely when neither the slot nor any
+		     resolvable primaryAction is present. -->
 		<slot name="primary-action">
 			<NcAppNavigationNew
-				v-if="primaryAction"
-				:text="resolveLabel(primaryAction)"
+				v-if="activePrimaryAction"
+				:text="resolveLabel(activePrimaryAction)"
 				data-testid="cn-nav-primary-action"
 				@click="onPrimaryActionClick">
-				<template v-if="mdiIconComponent(primaryAction)" #icon>
-					<component :is="mdiIconComponent(primaryAction)" :size="20" />
+				<template #icon>
+					<component :is="primaryActionIconComponent" :size="20" />
 				</template>
 			</NcAppNavigationNew>
 		</slot>
 		<template #list>
-			<NcAppNavigationItem
-				v-for="item in mainItems"
-				:key="item.id"
-				:name="resolveLabel(item)"
-				:to="itemTo(item)"
-				:exact="isExact(item)"
-				:icon="cssIconClass(item)"
-				:active="isActive(item)"
-				:data-testid="`cn-nav-entry-${item.id}`"
-				@click="onItemClick(item, $event)">
-				<template v-if="mdiIconComponent(item)" #icon>
-					<component :is="mdiIconComponent(item)" :size="20" />
-				</template>
+			<template v-for="item in mainItems">
+				<NcAppNavigationCaption
+					v-if="isCaption(item)"
+					:key="item.id"
+					:name="resolveLabel(item)"
+					:data-testid="`cn-nav-caption-${item.id}`" />
 				<NcAppNavigationItem
-					v-for="child in visibleChildren(item)"
-					:key="child.id"
-					:name="resolveLabel(child)"
-					:to="itemTo(child)"
-					:exact="isExact(child)"
-					:icon="cssIconClass(child)"
-					:active="isActive(child)"
-					:data-testid="`cn-nav-entry-${child.id}`"
-					@click="onItemClick(child, $event)">
-					<template v-if="mdiIconComponent(child)" #icon>
-						<component :is="mdiIconComponent(child)" :size="20" />
+					v-else
+					:key="item.id"
+					:name="resolveLabel(item)"
+					:to="itemTo(item)"
+					:exact="isExact(item)"
+					:icon="cssIconClass(item)"
+					:active="isActive(item)"
+					:pinned="Boolean(item.pinned)"
+					:allow-collapse="visibleChildren(item).length > 0"
+					:open="Boolean(item.open)"
+					:data-testid="`cn-nav-entry-${item.id}`"
+					@click="onItemClick(item, $event)">
+					<template v-if="mdiIconComponent(item)" #icon>
+						<component :is="mdiIconComponent(item)" :size="20" />
 					</template>
+					<template v-if="resolveCount(item)" #counter>
+						<NcCounterBubble
+							:count="resolveCount(item)"
+							:active="isActive(item)" />
+					</template>
+					<template v-if="hasItemActionsSlot(item)" #actions>
+						<!--
+							@slot `item-${item.id}-actions`
+							@description Per-item scoped slot whose content lands inside
+							the NcAppNavigationItem's #actions slot for the menu entry
+							with that id. Use it for inline NcActions menus (e.g. an
+							item-level "Pin" button). Scope receives the menu item.
+							@binding {object} item The menu item descriptor.
+						-->
+						<slot :name="`item-${item.id}-actions`" :item="item" />
+					</template>
+					<NcAppNavigationItem
+						v-for="child in visibleChildren(item)"
+						:key="child.id"
+						:name="resolveLabel(child)"
+						:to="itemTo(child)"
+						:exact="isExact(child)"
+						:icon="cssIconClass(child)"
+						:active="isActive(child)"
+						:pinned="Boolean(child.pinned)"
+						:data-testid="`cn-nav-entry-${child.id}`"
+						@click="onItemClick(child, $event)">
+						<template v-if="mdiIconComponent(child)" #icon>
+							<component :is="mdiIconComponent(child)" :size="20" />
+						</template>
+						<template v-if="resolveCount(child)" #counter>
+							<NcCounterBubble
+								:count="resolveCount(child)"
+								:active="isActive(child)" />
+						</template>
+					</NcAppNavigationItem>
 				</NcAppNavigationItem>
-			</NcAppNavigationItem>
+			</template>
 
 			<!-- Footer-section entries (Documentation, Features & Roadmap,
 				     About) use NcAppNavigationItem's native `pinned` prop. NC
@@ -112,6 +154,11 @@
 				@click="onItemClick(item, $event)">
 				<template v-if="mdiIconComponent(item)" #icon>
 					<component :is="mdiIconComponent(item)" :size="20" />
+				</template>
+				<template v-if="resolveCount(item)" #counter>
+					<NcCounterBubble
+						:count="resolveCount(item)"
+						:active="isActive(item)" />
 				</template>
 			</NcAppNavigationItem>
 		</template>
@@ -147,6 +194,11 @@
 						<template v-if="mdiIconComponent(item)" #icon>
 							<component :is="mdiIconComponent(item)" :size="20" />
 						</template>
+						<template v-if="resolveCount(item)" #counter>
+							<NcCounterBubble
+								:count="resolveCount(item)"
+								:active="isActive(item)" />
+						</template>
 					</NcAppNavigationItem>
 				</ul>
 			</NcAppNavigationSettings>
@@ -155,8 +207,9 @@
 </template>
 
 <script>
-import { NcAppNavigation, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings } from '@nextcloud/vue'
+import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -167,9 +220,11 @@ export default {
 
 	components: {
 		NcAppNavigation,
+		NcAppNavigationCaption,
 		NcAppNavigationItem,
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
+		NcCounterBubble,
 		Cog,
 	},
 
@@ -184,6 +239,17 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — reactive `{ [register]: { [schema]: number } }`
+		 * map populated from `useObjectStore().totals` for every
+		 * `count: "auto"` menu entry whose resolved page is `type: "index"`
+		 * with `register + schema` in its config. Defaults to an empty
+		 * object so `resolveCount` returns `null` (no badge) when CnAppNav
+		 * is mounted outside a CnAppRoot ancestor.
+		 *
+		 * @type {{ [register: string]: { [schema: string]: number } }}
+		 */
+		cnMenuCounts: { default: () => ({}) },
 	},
 
 	props: {
@@ -229,15 +295,44 @@ export default {
 			return this.translate ?? this.cnTranslate
 		},
 		/**
-		 * Manifest-declared primary action (`nav.primaryAction`) rendered
-		 * as an NcAppNavigationNew button above the main list. Null when
-		 * not declared. Ignored when the host supplies the
-		 * `#primary-action` slot (the slot wins).
+		 * Manifest-declared root-level primary action (`nav.primaryAction`)
+		 * — retained for backwards compatibility with code that reads this
+		 * computed. New code SHOULD read `activePrimaryAction` instead,
+		 * which also handles the page-scoped override.
 		 *
-		 * @return {object|null} `{ label, icon?, route?, href? }` or null.
+		 * @return {object|null} `{ label, icon?, route?, href?, id?, payload? }` or null.
 		 */
 		primaryAction() {
 			return this.effectiveManifest?.nav?.primaryAction ?? null
+		},
+		/**
+		 * Resolved primary action for the current route. Resolution order:
+		 *  1. The current route's matching `pages[].primaryAction`
+		 *  2. `manifest.nav.primaryAction` as app-wide default
+		 *  3. `null` — no primary-action button renders
+		 *
+		 * Page-scoped declarations always win over the nav-root default.
+		 *
+		 * @return {object|null}
+		 */
+		activePrimaryAction() {
+			const pages = this.effectiveManifest?.pages ?? []
+			const routeName = this.$route?.name
+			if (routeName) {
+				const page = pages.find((p) => p.id === routeName)
+				if (page && page.primaryAction) return page.primaryAction
+			}
+			return this.effectiveManifest?.nav?.primaryAction ?? null
+		},
+		/**
+		 * MDI icon component for the resolved primary action. Honors the
+		 * action's `icon` field when set; falls back to the canonical
+		 * `Plus` icon to match NC's NcAppNavigationNew default styling.
+		 *
+		 * @return {import('vue').Component}
+		 */
+		primaryActionIconComponent() {
+			return this.mdiIconComponent(this.activePrimaryAction) ?? Plus
 		},
 		/**
 		 * All visible items (filtered by permission and visibleIf conditions,
@@ -419,6 +514,92 @@ export default {
 			return this.$route?.name === item.route
 		},
 		/**
+		 * Whether a menu entry renders as a `NcAppNavigationCaption`
+		 * (`type: "caption"`) rather than a clickable
+		 * `NcAppNavigationItem`. Caption entries ignore `route`, `href`,
+		 * `action`, `icon`, `count`, `children`, and `pinned`.
+		 *
+		 * @param {{ type?: string }} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		isCaption(item) {
+			return item?.type === 'caption'
+		},
+		/**
+		 * Whether the host has registered a scoped slot named
+		 * `item-${id}-actions` for this menu item. Used to gate template
+		 * rendering of the per-item `#actions` slot pass-through so items
+		 * without a matching slot don't render an empty `<template #actions>`.
+		 *
+		 * @param {{ id: string }} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		hasItemActionsSlot(item) {
+			if (!item?.id) return false
+			const name = `item-${item.id}-actions`
+			return Boolean(
+				(this.$slots && this.$slots[name])
+				|| (this.$scopedSlots && this.$scopedSlots[name]),
+			)
+		},
+		/**
+		 * Resolve the count value to render in this entry's
+		 * `NcCounterBubble` (in the `#counter` slot of
+		 * `NcAppNavigationItem`).
+		 *
+		 *  - Literal positive integer in `item.count` → return as-is.
+		 *  - `item.count === "auto"` → look up the entry's resolved page;
+		 *    when that page is `type: "index"` with a `register`/`schema`
+		 *    in its `config`, return
+		 *    `cnMenuCounts[register][schema] ?? null`.
+		 *
+		 * Returns `null` (no badge) when:
+		 *  - `item.count` is unset or falsy
+		 *  - The literal value is `0`
+		 *  - `count === "auto"` but no matching index page resolves
+		 *    (also emits a one-shot `console.warn`)
+		 *  - The store has no entry for the resolved `(register, schema)`
+		 *
+		 * @param {object} item Menu entry descriptor.
+		 * @return {number|null} Count to render, or null for no badge.
+		 */
+		resolveCount(item) {
+			const raw = item?.count
+			if (raw === undefined || raw === null) return null
+			if (typeof raw === 'number') {
+				return raw > 0 ? raw : null
+			}
+			if (raw !== 'auto') return null
+			const page = this.pageForItem(item)
+			const register = page?.config?.register
+			const schema = page?.config?.schema
+			if (page?.type !== 'index' || !register || !schema) {
+				this.warnAutoCountMisconfigured(item)
+				return null
+			}
+			const value = this.cnMenuCounts?.[register]?.[schema]
+			if (typeof value !== 'number' || value <= 0) return null
+			return value
+		},
+		/**
+		 * One-shot `console.warn` per menu-item id for misconfigured
+		 * `count: "auto"` entries (no resolvable index page). Keeps the
+		 * console quiet on re-renders.
+		 *
+		 * @param {{ id: string }} item Menu entry descriptor.
+		 * @return {void}
+		 * @private
+		 */
+		warnAutoCountMisconfigured(item) {
+			if (!this._autoCountWarned) this._autoCountWarned = new Set()
+			if (this._autoCountWarned.has(item.id)) return
+			this._autoCountWarned.add(item.id)
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[CnAppNav] Menu entry "${item.id}" declares count: "auto" but has no resolvable index-type page with register + schema config — no badge will render.`,
+			)
+		},
+		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
 		 * NcAppNavigationItem should match its router-link `exact`.
@@ -500,20 +681,35 @@ export default {
 		},
 		/**
 		 * Click handler for the manifest-declared primary action. Emits
-		 * `primary-action-click` for host-side handling, then performs
-		 * default navigation: external `href` opens in a new tab; a
-		 * `route` pushes the named vue-router route. No-op when neither
-		 * is set. Not invoked when the host overrides the
-		 * `#primary-action` slot (it provides its own handler).
+		 * `@primary-action` AND the back-compat `@primary-action-click`
+		 * event for host-side handling, then performs default navigation:
+		 * external `href` opens in a new tab; a `route` pushes the named
+		 * vue-router route. No-op when neither is set. Not invoked when
+		 * the host overrides the `#primary-action` slot (it provides its
+		 * own handler).
 		 *
 		 * @param {Event} [event] Native click event.
 		 * @return {void}
 		 */
 		onPrimaryActionClick(event) {
-			const action = this.primaryAction
+			const action = this.activePrimaryAction
 			if (!action) return
+			const payload = {
+				id: action.id,
+				label: action.label,
+				icon: action.icon,
+				route: action.route,
+				href: action.href,
+				payload: action.payload,
+				page: this.$route?.name,
+			}
 			/**
-			 * @event primary-action-click Emitted when the manifest-declared primary-action button is clicked. Payload is the resolved nav.primaryAction object.
+			 * @event primary-action Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers.
+			 * @type {{ id?: string, label: string, icon?: string, route?: string, href?: string, payload?: any, page?: string }}
+			 */
+			this.$emit('primary-action', payload)
+			/**
+			 * @event primary-action-click Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.
 			 */
 			this.$emit('primary-action-click', action)
 			if (action.href) {
