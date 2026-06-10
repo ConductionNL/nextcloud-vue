@@ -9,6 +9,6 @@
 
 ## Follow-up
 
-- [ ] URL serialization of `?q=…&facet=…`.
-- [ ] Highlighted query terms in snippets.
-- [ ] Type-ahead suggestions API.
+- [~] URL serialization of `?q=…&facet=…`. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] Highlighted query terms in snippets. — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] Type-ahead suggestions API. — deferred to downstream cycle / fleet-wide adoption (handoff)
