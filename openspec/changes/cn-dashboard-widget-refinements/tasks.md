@@ -74,6 +74,6 @@
 
 ## Follow-up
 
-- [ ] Per-widget custom refresh handlers (currently page-level).
-- [ ] Configurable "Request a feature" target URL via manifest field.
-- [ ] In-chart annotation showing the date range.
+- [~] Per-widget custom refresh handlers (currently page-level). [DEFERRED: tracked as a follow-up since the v1 contract only emits a page-level `widget:refresh` event; per-widget hooks need a new `onRefresh` prop on `CnDashboardWidget`.]
+- [~] Configurable "Request a feature" target URL via manifest field. [DEFERRED: needs a manifest-schema extension (page-level `featureRequestUrl`); deferred to a manifest-schema follow-up so the schema bump is atomic.]
+- [~] In-chart annotation showing the date range. [DEFERRED: requires chart-library annotation API parity (chart.js + apexcharts); deferred to per-chart follow-up changes.]
