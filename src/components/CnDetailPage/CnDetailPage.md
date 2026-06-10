@@ -187,6 +187,7 @@ export default {
 | `objectId` | String\|Number | `''` | Object ID to display in the sidebar |
 | `subtitle` | String | `''` | Subtitle shown in the sidebar header |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
+| `sidebarTabs` (`sidebar-tabs`) | Array | `[]` | Manifest-driven sidebar-tab descriptors published to the host's `objectSidebarState.tabs`. The hoisted `CnObjectSidebar` (mounted at `NcContent` level by `CnAppRoot` per ADR-017) renders them; the page itself only publishes. Each descriptor mirrors a `pages[].sidebar.tabs[]` entry (`{ id, label, component, props?, integrationKey? }`). When empty, the page emits no tabs and the host falls back to its own discovery (integration registry / schema-derived). |
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
