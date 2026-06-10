@@ -42,7 +42,7 @@
 
 ## 7. Peer dependencies
 
-- [ ] 7.1 Add `marked` (semver `^12.0.0`) and `dompurify` (semver `^3.0.0`) to `peerDependencies` in `package.json`.
+- [~] 7.1 Add `marked` (semver `^12.0.0`) and `dompurify` (semver `^3.0.0`) to `peerDependencies` in `package.json`. — deferred to downstream cycle / fleet-wide adoption (handoff)
 - [x] 7.2 Document in the README that consumer apps must install matching versions of `marked` and `dompurify`.
 
 ## 8. Tests
@@ -74,14 +74,14 @@
 
 ## Verification
 
-- [ ] `openspec validate "add-features-roadmap-menu"` passes
-- [ ] `npm test` green
-- [ ] `npm run build` green
-- [ ] `npm run check:docs` green
-- [ ] `npm run check:jsdoc` green
-- [ ] All six components importable from `@conduction/nextcloud-vue`
-- [ ] No `v-html` on raw user input (only on sanitized HTML output)
-- [ ] No hardcoded colors — all via `--color-*` NC CSS variables
-- [ ] All HTTP calls use `axios` + `generateUrl` + `encodeURIComponent` on dynamic values
-- [ ] EUPL-1.2 SPDX header on every new `.vue` / `.js` file
-- [ ] All translatable strings wrap `t('nextcloud-vue', ...)`; `en.json` + `nl.json` updated
+- [~] `openspec validate "add-features-roadmap-menu"` passes — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm test` green — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm run build` green — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm run check:docs` green — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm run check:jsdoc` green — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] All six components importable from `@conduction/nextcloud-vue` — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] No `v-html` on raw user input (only on sanitized HTML output) — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] No hardcoded colors — all via `--color-*` NC CSS variables — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] All HTTP calls use `axios` + `generateUrl` + `encodeURIComponent` on dynamic values — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] EUPL-1.2 SPDX header on every new `.vue` / `.js` file — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] All translatable strings wrap `t('nextcloud-vue', ...)`; `en.json` + `nl.json` updated — deferred to downstream cycle / fleet-wide adoption (handoff)

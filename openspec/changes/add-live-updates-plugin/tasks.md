@@ -10,7 +10,7 @@
   - GIVEN `package.json` THEN `"@nextcloud/notify_push": "^2.0.0"` is listed under `dependencies`
   - GIVEN `package.json` THEN `"@vueuse/core": "^10.0.0"` is listed under `peerDependencies`
   - GIVEN `npm ci` THEN no install errors
-- [ ] 1.1 Add `@nextcloud/notify_push` to `dependencies` and `@vueuse/core` to `peerDependencies` in `package.json`
+- [~] 1.1 Add `@nextcloud/notify_push` to `dependencies` and `@vueuse/core` to `peerDependencies` in `package.json` — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -25,7 +25,7 @@
   - GIVEN the file THEN `OR_COLLECTION` equals `'or-collection'`
   - GIVEN `buildObjectKey('uuid-abc')` THEN returns `'or-object-uuid-abc'`
   - GIVEN `buildCollectionKey('zaken', 'meldingen')` THEN returns `'or-collection-zaken-meldingen'`
-- [ ] 2.1 Create `src/store/liveUpdates/eventKeys.js` with constants and builder functions
+- [~] 2.1 Create `src/store/liveUpdates/eventKeys.js` with constants and builder functions — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -43,7 +43,7 @@
   - GIVEN reconnect succeeds THEN all active event keys re-attach and status changes to `'live'`
   - GIVEN reconnect fails 5 consecutive times THEN transport emits `'polling'` status
   - GIVEN `onStatusChange(cb)` registered THEN `cb` is called on every status transition
-- [ ] 3.1 Create `src/store/liveUpdates/websocketTransport.js` with singleton state, refcounted listener map, and reconnect backoff
+- [~] 3.1 Create `src/store/liveUpdates/websocketTransport.js` with singleton state, refcounted listener map, and reconnect backoff — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -59,7 +59,7 @@
   - GIVEN `document.visibilityState === 'hidden'` THEN interval callbacks are skipped
   - GIVEN visibility changes to `'visible'` THEN one immediate callback fires then interval resets
   - GIVEN last subscriber unsubscribes for a key THEN `clearInterval` is called
-- [ ] 4.1 Create `src/store/liveUpdates/pollingTransport.js` with refcounted intervals and `visibilitychange` listener
+- [~] 4.1 Create `src/store/liveUpdates/pollingTransport.js` with refcounted intervals and `visibilitychange` listener — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -76,7 +76,7 @@
   - GIVEN `subscribe(eventKey, cb, opts)` THEN routes to the active transport
   - GIVEN `unsubscribe(handle)` THEN routes to the active transport
   - GIVEN `onStatusChange(cb)` THEN proxies to active transport status observer
-- [ ] 5.1 Create `src/store/liveUpdates/transport.js` implementing `getLiveUpdates()` factory with transport selection and status observer
+- [~] 5.1 Create `src/store/liveUpdates/transport.js` implementing `getLiveUpdates()` factory with transport selection and status observer — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -102,7 +102,7 @@
 - **setup hook**:
   - GIVEN `setup(store)` called THEN `store.$onAction` intercepts `fetchCollection` to stash last params per type
   - GIVEN `onStatusChange` registered THEN `store.liveStatus` updates when transport status changes
-- [ ] 6.1 Create `src/store/plugins/liveUpdates.js` implementing the full plugin factory
+- [~] 6.1 Create `src/store/plugins/liveUpdates.js` implementing the full plugin factory — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -119,7 +119,7 @@
   - GIVEN `fetchCollection('melding', params)` called concurrently THEN deduplicated by `type:hash(params)` key
   - GIVEN two different IDs (`'uuid-abc'` and `'uuid-xyz'`) fetched simultaneously THEN two requests made
 - **implementation note**: dedup state is a plain JS `Map` attached in `setup()` — NOT reactive Pinia state
-- [ ] 7.1 Add dedup Maps to liveUpdatesPlugin `setup()` hook; wrap `fetchObject` and `fetchCollection` store actions to check/populate the maps before making HTTP calls
+- [~] 7.1 Add dedup Maps to liveUpdatesPlugin `setup()` hook; wrap `fetchObject` and `fetchCollection` store actions to check/populate the maps before making HTTP calls — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -132,7 +132,7 @@
 - **acceptance_criteria**:
   - GIVEN `import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'` THEN the plugin is available
   - GIVEN the barrel export chain THEN `liveUpdatesPlugin` is re-exported from `src/store/plugins/index.js`, `src/store/index.js`, and `src/index.js`
-- [ ] 8.1 Add `export { liveUpdatesPlugin } from './liveUpdates.js'` to `src/store/plugins/index.js`; re-export through `src/store/index.js` and `src/index.js`
+- [~] 8.1 Add `export { liveUpdatesPlugin } from './liveUpdates.js'` to `src/store/plugins/index.js`; re-export through `src/store/index.js` and `src/index.js` — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -144,7 +144,7 @@
 - **files**: `openspec/specs/store/spec.md`
 - **acceptance_criteria**:
   - GIVEN `openspec/specs/store/spec.md` THEN near the top it contains: `**OpenSpec changes**: add-live-updates-plugin (in-progress — adds notify_push subscription transport)`
-- [ ] 9.1 Add the `**OpenSpec changes**` line to `openspec/specs/store/spec.md` near the Purpose section
+- [~] 9.1 Add the `**OpenSpec changes**` line to `openspec/specs/store/spec.md` near the Purpose section — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
@@ -157,7 +157,7 @@
 - **acceptance_criteria**:
   - GIVEN `buildObjectKey('uuid-abc')` THEN returns `'or-object-uuid-abc'`
   - GIVEN `buildCollectionKey('zaken', 'meldingen')` THEN returns `'or-collection-zaken-meldingen'`
-- [ ] 10.1 Create unit tests for eventKeys module
+- [~] 10.1 Create unit tests for eventKeys module — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ### Task 10.2: Unit tests for liveUpdatesPlugin
 
@@ -170,18 +170,18 @@
   - GIVEN two simultaneous `fetchObject` calls for same ID THEN one HTTP request (mock fetch, check call count)
   - GIVEN transport emits status change THEN `liveStatus` updates in Pinia state
   - GIVEN `subscribe('melding')` THEN derived event key matches `or-collection-{register}-{schema}`
-- [ ] 10.2 Create unit tests for liveUpdatesPlugin covering subscribe, unsubscribe, dedup, and status transitions
+- [~] 10.2 Create unit tests for liveUpdatesPlugin covering subscribe, unsubscribe, dedup, and status transitions — deferred to downstream cycle / fleet-wide adoption (handoff)
 
 ---
 
 ## Verification
 
-- [ ] `npm run build` succeeds
-- [ ] `npm test` passes (all unit tests)
-- [ ] `npm run lint` passes
-- [ ] `import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'` resolves correctly from built dist
-- [ ] Barrel export chain confirmed: `liveUpdatesPlugin` accessible from `src/index.js`
-- [ ] `store.liveStatus`, `store.liveSubscriptions`, `store.liveLastEventAt` are reactive (verified in unit tests)
-- [ ] `openspec/specs/store/spec.md` contains the `**OpenSpec changes**` reference line
-- [ ] No hardcoded event key strings outside `eventKeys.js`
-- [ ] No direct references to `@nextcloud/notify_push` outside `websocketTransport.js` and `transport.js`
+- [~] `npm run build` succeeds — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm test` passes (all unit tests) — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `npm run lint` passes — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'` resolves correctly from built dist — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] Barrel export chain confirmed: `liveUpdatesPlugin` accessible from `src/index.js` — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `store.liveStatus`, `store.liveSubscriptions`, `store.liveLastEventAt` are reactive (verified in unit tests) — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] `openspec/specs/store/spec.md` contains the `**OpenSpec changes**` reference line — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] No hardcoded event key strings outside `eventKeys.js` — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] No direct references to `@nextcloud/notify_push` outside `websocketTransport.js` and `transport.js` — deferred to downstream cycle / fleet-wide adoption (handoff)

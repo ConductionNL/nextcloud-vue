@@ -45,4 +45,4 @@
 
 ## 8. Wrap-up
 - [x] 8.1 Update this tasks.md.
-- [ ] 8.2 PR → `beta`; admin-merge.
+- [~] 8.2 PR → `beta`; admin-merge. — deferred to downstream cycle / fleet-wide adoption (handoff)
