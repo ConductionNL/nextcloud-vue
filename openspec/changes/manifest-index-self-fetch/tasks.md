@@ -45,4 +45,7 @@
 
 ## 8. Wrap-up
 - [x] 8.1 Update this tasks.md.
-- [ ] 8.2 PR → `beta`; admin-merge.
+- [x] 8.2 PR → `beta`; admin-merge. Shipped — implementation merged on
+      `origin/development` (handoff close commit `0c902714` plus
+      `fcf35303` / `02246caa` / `fc5f7395`) and reachable on
+      `origin/beta`.
