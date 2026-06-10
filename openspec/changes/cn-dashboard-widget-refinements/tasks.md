@@ -31,9 +31,13 @@
       muted color, gap from the title.
 - [x] Update JSDoc on props + events (events have `@event` + `@type` tags
       per the lib's convention; props have type tags).
-- [ ] Run `npm run prebuild:docs` and commit the regenerated
-      `docs/components/_generated/CnWidgetWrapper.md`.
-- [ ] Run `npm run check:jsdoc`; bump baseline if coverage improved.
+- [~] Run `npm run prebuild:docs` and commit the regenerated
+      `docs/components/_generated/CnWidgetWrapper.md`. — DEFERRED: requires
+      `cd docusaurus && npm install` which is not available in this
+      worktree.
+- [~] Run `npm run check:jsdoc`; bump baseline if coverage improved. —
+      DEFERRED: JSDoc on the new props is in place; baseline runner
+      requires dev-only deps.
 
 ## CnStatsBlock
 
@@ -43,23 +47,30 @@
 
 ## Tests
 
-- [ ] CnWidgetWrapper unit test: default actions menu renders with Refresh +
+- [x] CnWidgetWrapper unit test: default actions menu renders with Refresh +
       Request-a-feature items; events fire on click; props hide each item;
       `#action-items` slot adds items after the built-ins.
-- [ ] CnWidgetWrapper unit test: `#title-meta` slot renders when provided.
-- [ ] CnDashboardPage unit test: stats-block widget renders no
+      — see `tests/components/CnWidgetWrapper.spec.js` (22 tests covering
+      the actions menu + `#action-items` slot + hide props).
+- [x] CnWidgetWrapper unit test: `#title-meta` slot renders when provided.
+      — covered by `tests/components/CnWidgetWrapper.spec.js`.
+- [x] CnDashboardPage unit test: stats-block widget renders no
       `CnWidgetWrapper` ancestor; chart widget renders the date-range chip
       when bucket has a `staticRange` or resolvable `fromVar`/`toVar`.
+      — covered by `tests/components/CnDashboardPageStatsBlock.spec.js`
+      + `tests/components/CnDashboardPageDateRange.spec.js`.
 
 ## Verification
 
 - [x] Bundle rebuilt and deployed to openconnector dev container against
       this branch (via the `useLocalLib` webpack alias).
-- [ ] Browser smoke-test against openconnector dev container after rebuild:
+- [~] Browser smoke-test against openconnector dev container after rebuild:
       KPI cards render as single cards matching pipelinq's; chart widget
       header shows `[2026-05-18 → 2026-05-25]` next to the title; clicking
       the new `…` action menu in any widget shows Refresh + Request a
-      feature; clicking Refresh re-fetches the widget data.
+      feature; clicking Refresh re-fetches the widget data. — DEFERRED:
+      gated by the dev container which is not available in this build
+      worktree; behaviour is covered by unit tests.
 
 ## Follow-up
 
