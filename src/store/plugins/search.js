@@ -1,4 +1,6 @@
-import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
+import { buildQueryString, prefixUrl } from '../../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` so cross-schema
+// search fetches inherit the active tenant UUID (multi-tenancy-context).
 
 /**
  * The type slug used internally by the search plugin.
@@ -281,7 +283,7 @@ export function searchPlugin() {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					// A newer request was fired while this one was in-flight — discard
@@ -350,7 +352,7 @@ export function searchPlugin() {
 				try {
 					const response = await fetch(getSchemaApiUrl(schemaId), {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (response.ok) {
 						this._searchSchema = await response.json()
@@ -371,7 +373,7 @@ export function searchPlugin() {
 				try {
 					const response = await fetch(getRegisterApiUrl(registerId), {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (response.ok) {
 						this._searchRegister = await response.json()
