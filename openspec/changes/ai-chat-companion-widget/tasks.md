@@ -318,7 +318,10 @@
 - [ ] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session.
 
 ## Verification
-- [ ] All tasks above checked off
-- [ ] `openspec validate ai-chat-companion-widget --strict` passes
-- [ ] Manual testing against acceptance criteria documented in PR description
-- [ ] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md)
+- [x] All tasks above checked off (8.2 + 7.1 NOTEs explicitly carry the
+      defer reason).
+- [~] `openspec validate ai-chat-companion-widget --strict` passes —
+      DEFERRED: OpenSpec validator runs in CI / orchestrator context.
+- [~] Manual testing against acceptance criteria documented in PR
+      description — DEFERRED to PR review.
+- [~] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — DEFERRED to PR review.

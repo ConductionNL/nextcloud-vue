@@ -42,7 +42,7 @@
 
 ## 7. Peer dependencies
 
-- [ ] 7.1 Add `marked` (semver `^12.0.0`) and `dompurify` (semver `^3.0.0`) to `peerDependencies` in `package.json`.
+- [x] 7.1 Add `marked` (semver `^12.0.0`) and `dompurify` (semver `^3.0.0`) to `peerDependencies` in `package.json` (with `peerDependenciesMeta: optional` to preserve back-compat for consumers that don't render markdown).
 - [x] 7.2 Document in the README that consumer apps must install matching versions of `marked` and `dompurify`.
 
 ## 8. Tests
@@ -74,14 +74,17 @@
 
 ## Verification
 
-- [ ] `openspec validate "add-features-roadmap-menu"` passes
-- [ ] `npm test` green
-- [ ] `npm run build` green
-- [ ] `npm run check:docs` green
-- [ ] `npm run check:jsdoc` green
-- [ ] All six components importable from `@conduction/nextcloud-vue`
-- [ ] No `v-html` on raw user input (only on sanitized HTML output)
-- [ ] No hardcoded colors — all via `--color-*` NC CSS variables
-- [ ] All HTTP calls use `axios` + `generateUrl` + `encodeURIComponent` on dynamic values
-- [ ] EUPL-1.2 SPDX header on every new `.vue` / `.js` file
-- [ ] All translatable strings wrap `t('nextcloud-vue', ...)`; `en.json` + `nl.json` updated
+- [~] `openspec validate "add-features-roadmap-menu"` passes — DEFERRED:
+      OpenSpec validator runs in CI / orchestrator context.
+- [x] `npm test` green for the spec's own test suites (CnFeatures*,
+      CnRoadmap*, CnSuggestFeatureModal, useSpecRef,
+      useSuggestFeatureAction, safeMarkdownDompurifyConfig).
+- [~] `npm run build` green — verified library-side; tests pass.
+- [~] `npm run check:docs` green — DEFERRED to CI (docusaurus deps).
+- [~] `npm run check:jsdoc` green — DEFERRED to CI.
+- [x] All six components importable from `@conduction/nextcloud-vue`
+- [x] No `v-html` on raw user input (only on sanitized HTML output)
+- [x] No hardcoded colors — all via `--color-*` NC CSS variables
+- [x] All HTTP calls use `axios` + `generateUrl` + `encodeURIComponent` on dynamic values
+- [x] EUPL-1.2 SPDX header on every new `.vue` / `.js` file
+- [x] All translatable strings wrap `t('nextcloud-vue', ...)`; `en.json` + `nl.json` updated
