@@ -51,4 +51,7 @@
 
 ## 10. Wrap-up
 - [x] 10.1 Update this tasks.md (this commit).
-- [ ] 10.2 PR → `beta`; admin-merge.
+- [x] 10.2 PR → `beta`; admin-merge. Shipped — implementation merged on
+      `origin/development` (handoff close commit `47a4a360`);
+      `CnQuickFilterBar`, `builtInFormatters`, and the `CnCellRenderer`
+      `link` widget are present in dev and reachable on `origin/beta`.
