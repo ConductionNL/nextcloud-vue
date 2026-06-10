@@ -116,6 +116,21 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Whether to render the "share uploaded files" toggle. Off by default;
+		 * when false, uploads never set the share flag (no auto-publish).
+		 * @type {boolean}
+		 */
+		showShareToggle: { type: Boolean, default: false },
+		/**
+		 * Initial state for the share toggle. `true`/`false` wins outright;
+		 * `null` (the default) defers to the schema's
+		 * `configuration.defaultAutoShare` from OpenRegister.
+		 * @type {boolean|null}
+		 */
+		defaultShare: { type: Boolean, default: null },
+		/** Label for the share toggle */
+		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Share uploaded files') },
 	},
 
 	data() {
