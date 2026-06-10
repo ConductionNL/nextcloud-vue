@@ -22,16 +22,48 @@ export function prefixUrl(path) {
  * Includes the CSRF request token and OCS API request header
  * required by Nextcloud's API layer.
  *
- * @param {string} [contentType] Content-Type header value
+ * Two call shapes are supported:
+ *
+ *   1. **Positional (back-compat)** — `buildHeaders(contentType)`.
+ *      Returns the same object the v1 signature did.
+ *
+ *   2. **Options object** — `buildHeaders({ contentType?, organisationUuid? })`.
+ *      When `organisationUuid` is a non-empty string the returned object
+ *      includes `X-OpenRegister-Organisation: <uuid>`. The header is the
+ *      FE side of the `multi-tenancy-context` capability and is consumed
+ *      by OR's MultiTenancyTrait.
+ *
+ * @param {string|object} [opts] Content-Type string (back-compat) or options object.
+ * @param {string} [opts.contentType] Content-Type header value
+ * @param {string} [opts.organisationUuid] Active organisation UUID for the request
  * @return {object} Headers object for use with fetch()
  */
-export function buildHeaders(contentType = 'application/json') {
+export function buildHeaders(opts = 'application/json') {
+	let contentType = 'application/json'
+	let organisationUuid = null
+
+	if (typeof opts === 'string') {
+		// v1 positional signature: buildHeaders(contentType)
+		contentType = opts
+	} else if (opts && typeof opts === 'object') {
+		// Options-object signature
+		if (Object.prototype.hasOwnProperty.call(opts, 'contentType')) {
+			contentType = opts.contentType
+		}
+		if (typeof opts.organisationUuid === 'string' && opts.organisationUuid.length > 0) {
+			organisationUuid = opts.organisationUuid
+		}
+	}
+
 	const headers = {
 		requesttoken: typeof OC !== 'undefined' ? OC.requestToken : '',
 		'OCS-APIREQUEST': 'true',
 	}
 	if (contentType) {
 		headers['Content-Type'] = contentType
+	}
+	if (organisationUuid) {
+		headers['X-OpenRegister-Organisation'] = organisationUuid
 	}
 	return headers
 }
