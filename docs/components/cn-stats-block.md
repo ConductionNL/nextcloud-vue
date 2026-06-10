@@ -79,6 +79,6 @@ Keep `count` numeric and format the displayed value in the slot (currency, perce
 
 ## Reference (auto-generated)
 
-The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatsBlock.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnStatsBlock/CnStatsBlock.vue) and update automatically whenever the component changes.
+The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnStatsBlock.vue`](https://codeberg.org/Conduction/nextcloud-vue/src/branch/beta/src/components/CnStatsBlock/CnStatsBlock.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />

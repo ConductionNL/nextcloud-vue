@@ -36,7 +36,7 @@
 			</div>
 
 			<!-- Breakdown details -->
-			<div v-if="breakdown && (count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
+			<div v-if="breakdown && (hasValueSlot || count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
 				<div
 					v-for="(value, key) in breakdown"
 					:key="key"
