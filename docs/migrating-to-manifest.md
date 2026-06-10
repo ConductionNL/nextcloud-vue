@@ -160,6 +160,28 @@ new Vue({
 }).$mount('#content')
 ```
 
+### Multi-tenant apps — consuming `useTenantContext`
+
+When your app is multi-tenant — users belong to more than one OpenRegister organisation — Tier 4 is the right tier to wire the tenant context. `CnAppRoot` already mounts `provideTenantContext()`; seed it from `initial-state` so the first render scopes correctly:
+
+```vue
+<CnAppRoot
+	:manifest="manifest"
+	app-id="myapp"
+	:initial-organisation-uuid="initialOrgUuid"
+	:initial-organisation="initialOrg" />
+```
+
+Then in any descendant — composables or Options-API mixins — reach for the same surface:
+
+```js
+import { useTenantContext } from '@conduction/nextcloud-vue'
+
+const { activeOrganisationUuid, setActiveTenant, onTenantSwitch } = useTenantContext()
+```
+
+The provider stamps every store fetch with `X-OpenRegister-Organisation`, auto-fills the `organisation` field on `CnFormDialog` / `CnAdvancedFormDialog`, and renders `CnTenantBadge` in the top bar. See [docs/multi-tenancy.md](./multi-tenancy.md) for the full FE contract.
+
 ### Keeping a custom menu in Tier 4
 
 Override the `#menu` slot:
