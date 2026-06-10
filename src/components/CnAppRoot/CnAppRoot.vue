@@ -188,6 +188,35 @@
 				v-on="cnIndexSidebarConfig.value.listeners" />
 
 			<!--
+			  Hoisted object-sidebar. CnDetailPage writes into the
+			  provided `objectSidebarState` holder to publish its
+			  schema-driven sidebar (Files / Notes / Tags / Tasks /
+			  Audit) at NcContent level — same ADR-017 reason as the
+			  hoisted index sidebar above. The auto-mount is suppressed
+			  when:
+			  - the consumer fills the `#sidebar` slot (their sidebar
+			    keeps owning the slot); or
+			  - an ancestor already provides `objectSidebarState` (the
+			    ancestor renders its own sidebar, e.g. decidesk's host
+			    wrapper); or
+			  - `objectType` + `objectId` are empty (defense-in-depth
+			    against CnIndexPage's `inject('sidebarState') ??
+			    inject('objectSidebarState')` fallback leaking an
+			    `active: true` write into this channel — see
+			    CnAppRootObjectSidebar.spec.js).
+			-->
+			<CnObjectSidebar
+				v-if="shouldAutoMountObjectSidebar"
+				:tabs="effectiveObjectSidebarState.tabs"
+				:object-type="effectiveObjectSidebarState.objectType"
+				:object-id="effectiveObjectSidebarState.objectId"
+				:register="effectiveObjectSidebarState.register"
+				:schema="effectiveObjectSidebarState.schema"
+				:title="effectiveObjectSidebarState.title"
+				:subtitle="effectiveObjectSidebarState.subtitle"
+				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs" />
+
+			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
 			  children so its embedded NcAppSidebar slides in from the right
 			  edge (positioning relies on being the last NcContent sibling,
@@ -256,6 +285,7 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -301,6 +331,7 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnAiCompanion,
+		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
 	},
@@ -392,6 +423,33 @@ export default {
 			 * every Conduction app.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
+			/**
+			 * Object-sidebar channel — reactive holder that
+			 * `CnDetailPage` writes to publish its schema-driven
+			 * sidebar to the NcContent-level auto-mount above.
+			 * Always exposed (even when an ancestor provides its
+			 * own) so descendants under THIS CnAppRoot see a
+			 * consistent inject; the auto-mount itself defers to
+			 * the ancestor via `ancestorObjectSidebarState`.
+			 *
+			 * Shape mirrors what CnDetailPage.syncSidebarState
+			 * writes — `{ active, open, objectType, objectId,
+			 * title, subtitle, register, schema, hiddenTabs, tabs
+			 * }` — plus the always-truthy `_origin` marker so
+			 * tests can tell the two channels apart.
+			 */
+			objectSidebarState: this.localObjectSidebarState,
+			/**
+			 * Index-sidebar channel — CnIndexPage's inject probes
+			 * `sidebarState` FIRST and falls back to
+			 * `objectSidebarState`. Providing a distinct holder
+			 * here keeps the two channels isolated so index-page
+			 * writes never leak into the object-sidebar
+			 * auto-mount (the openbuilt double-sidebar regression).
+			 * Shape covers the CnIndexPage write surface
+			 * (`searchValue`, `activeFilters`, `facetData`, etc.).
+			 */
+			sidebarState: this.localIndexSidebarState,
 		}
 	},
 
@@ -417,6 +475,15 @@ export default {
 	inject: {
 		cnPageSidebarVisible: { default: () => ({ value: true }) },
 		cnPageSidebarComponent: { default: () => ({ value: null }) },
+		/**
+		 * Ancestor-provided `objectSidebarState` — when set, an
+		 * ancestor (e.g. decidesk's host wrapper, procest's app
+		 * shell) owns the channel and renders its own
+		 * CnObjectSidebar. We defer to it by suppressing our local
+		 * auto-mount. Default `null` so a fresh CnAppRoot always
+		 * uses its own local holder.
+		 */
+		ancestorObjectSidebarState: { from: 'objectSidebarState', default: null },
 	},
 
 	props: {
@@ -716,10 +783,86 @@ export default {
 			 * @type {object}
 			 */
 			activeModalProps: {},
+			/**
+			 * Local holder for the object-sidebar channel. Lives on
+			 * this CnAppRoot instance (Vue.observable so descendant
+			 * writes via inject trigger re-renders); the `provide()`
+			 * block exposes it under the `objectSidebarState` key.
+			 *
+			 * CnDetailPage flips `active: true` + fills the object
+			 * coordinates in its `syncSidebarState()`; we render the
+			 * hoisted CnObjectSidebar when both `objectType` and
+			 * `objectId` are non-empty AND the consumer hasn't
+			 * supplied a `#sidebar` slot AND no ancestor already
+			 * owns the channel.
+			 */
+			localObjectSidebarState: Vue.observable({
+				active: false,
+				open: false,
+				objectType: '',
+				objectId: '',
+				title: '',
+				subtitle: '',
+				register: '',
+				schema: '',
+				hiddenTabs: [],
+				tabs: undefined,
+			}),
+			/**
+			 * Local holder for the index-sidebar channel. Distinct
+			 * reference from `localObjectSidebarState` so the
+			 * `sidebarState`-first inject in CnIndexPage never
+			 * leaks an `active: true` write into the object-sidebar
+			 * channel.
+			 */
+			localIndexSidebarState: Vue.observable({
+				active: false,
+				open: false,
+				searchValue: '',
+				activeFilters: {},
+				facetData: null,
+				facetableFields: [],
+				facetableConfig: null,
+			}),
 		}
 	},
 
 	computed: {
+		/**
+		 * Active object-sidebar holder for the auto-mount block.
+		 * Mirrors the local holder; if an ancestor already provides
+		 * `objectSidebarState`, the auto-mount is suppressed by
+		 * `shouldAutoMountObjectSidebar`, so this getter is only
+		 * read when we own the channel.
+		 *
+		 * @return {object}
+		 */
+		effectiveObjectSidebarState() {
+			return this.localObjectSidebarState
+		},
+		/**
+		 * Decide whether THIS CnAppRoot should render the hoisted
+		 * CnObjectSidebar. False when:
+		 * - the consumer fills `#sidebar` (their slot owns the rail);
+		 * - an ancestor already provides `objectSidebarState`
+		 *   (ancestor renders its own sidebar);
+		 * - `localObjectSidebarState.active` is false (default);
+		 * - `objectType` + `objectId` are both empty (defense-in-
+		 *   depth against CnIndexPage's fallback writing `active:
+		 *   true` into the wrong channel — see
+		 *   CnAppRootObjectSidebar.spec.js for the regression).
+		 *
+		 * @return {boolean}
+		 */
+		shouldAutoMountObjectSidebar() {
+			if (this.$slots && this.$slots.sidebar) return false
+			if (this.$scopedSlots && this.$scopedSlots.sidebar) return false
+			if (this.ancestorObjectSidebarState) return false
+			const holder = this.localObjectSidebarState
+			if (!holder || !holder.active) return false
+			const hasObjectCoordinates = !!(holder.objectType && holder.objectId)
+			return hasObjectCoordinates
+		},
 		/**
 		 * Resolved support-dialog config object — `{}` when `supportDialog`
 		 * is `true`/`false`, or the host-supplied override object.

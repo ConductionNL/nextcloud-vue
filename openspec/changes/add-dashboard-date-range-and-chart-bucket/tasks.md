@@ -2,9 +2,9 @@
 
 ## 1. CnDateRangePicker — new component
 
-- [ ] 1.1 Create `src/components/CnDateRangePicker/` with
+- [x] 1.1 Create `src/components/CnDateRangePicker/` with
   `CnDateRangePicker.vue` and `index.js` barrel.
-- [ ] 1.2 Implement `CnDateRangePicker.vue`:
+- [x] 1.2 Implement `CnDateRangePicker.vue`:
   - props: `value: { from, to, preset }`, `presets: Array`,
     `disabled: Boolean`
   - emits: `input` with `{ from, to, preset }`
@@ -16,24 +16,24 @@
 
 ## 2. Date-range header on CnDashboardPage
 
-- [ ] 2.1 Add the `dateRange` prop to `CnDashboardPage.vue` (default
+- [x] 2.1 Add the `dateRange` prop to `CnDashboardPage.vue` (default
   `null`); declare the `date-range-change` emit; provide
   `cnDashboardDateRange` unconditionally.
-- [ ] 2.2 Render the `CnDateRangePicker` row between the header and
+- [x] 2.2 Render the `CnDateRangePicker` row between the header and
   the grid when `dateRange?.enabled === true`. Scoped styles use
   `cn-dashboard-page__date-range`.
-- [ ] 2.3 Resolve initial state: explicit `dateRange.default` →
+- [x] 2.3 Resolve initial state: explicit `dateRange.default` →
   rehydrated `localStorage` (when `persistKey`) → `last-7`.
-- [ ] 2.4 On any picker change: update the provided ref, emit
+- [x] 2.4 On any picker change: update the provided ref, emit
   `date-range-change`, and persist to `localStorage` when
   `persistKey` set. Wrap storage in try/catch.
-- [ ] 2.5 Update `CnDashboardPage.md` doc page: document the new
+- [x] 2.5 Update `CnDashboardPage.md` doc page: document the new
   prop, event, `persistKey`, default presets, and provide/inject
   contract.
 
 ## 3. Bucket data-source branch in useDataSource
 
-- [ ] 3.1 Extend `useDataSource.js`:
+- [x] 3.1 Extend `useDataSource.js`:
   - new `buildBucketQuery({ schemaSlug, filter, bucket })` helper
     emitting the document above
   - new `resolveBucketSelectors(bucket, schemaSlug)` helper
@@ -46,66 +46,78 @@
     returning `null` query + a separate error ref propagation) when
     `metric != count` and `metricField` is missing, or when an
     invalid interval / metric is given
-- [ ] 3.2 Pass the `from` / `to` variables as a reactive object
+- [x] 3.2 Pass the `from` / `to` variables as a reactive object
   computed from `inject('cnDashboardDateRange', ref(null))` +
   `bucket.staticRange`. Return `null` query when neither resolves.
-- [ ] 3.3 Export `buildBucketQuery` from the composable + the barrel
+- [x] 3.3 Export `buildBucketQuery` from the composable + the barrel
   so unit tests can hit it directly.
 
 ## 4. CnChartWidget wiring
 
-- [ ] 4.1 Add `inject: { cnDashboardDateRange: { default: () =>
+- [x] 4.1 Add `inject: { cnDashboardDateRange: { default: () =>
   ref(null) } }`.
-- [ ] 4.2 Pipe the inject + `dataSource.bucket.staticRange` into the
+- [x] 4.2 Pipe the inject + `dataSource.bucket.staticRange` into the
   variables ref consumed by `useDataSource`.
-- [ ] 4.3 Verify the existing `resolvedSeries` / `resolvedCategories`
+- [x] 4.3 Verify the existing `resolvedSeries` / `resolvedCategories`
   computeds still pull from `dsData` (no template changes needed).
-- [ ] 4.4 Update `CnChartWidget.md` doc page: add a `bucket`
+- [x] 4.4 Update `CnChartWidget.md` doc page: add a `bucket`
   shorthand section with the manifest example + the inject contract
   paragraph.
 
 ## 5. Public-API exports
 
-- [ ] 5.1 Export `CnDateRangePicker` from `src/components/index.js`
+- [x] 5.1 Export `CnDateRangePicker` from `src/components/index.js`
   and `src/index.js`.
-- [ ] 5.2 Export `buildBucketQuery` from `src/composables/index.js`
+- [x] 5.2 Export `buildBucketQuery` from `src/composables/index.js`
   and `src/index.js` (mirrors existing `buildCountQuery`).
 
 ## 6. Tests
 
-- [ ] 6.1 `tests/composables/useDataSource.spec.js` — add cases:
+- [x] 6.1 `tests/composables/useDataSource.spec.js` — add cases:
   - `bucket` shorthand builds the right query + selectors
   - `interval` is case-insensitive
   - unknown `interval` surfaces an error and does NOT fire
   - SUM without `metricField` surfaces an error and does NOT fire
   - inject + variables flow when `cnDashboardDateRange` is supplied
   - null range → null query (no fetch)
-- [ ] 6.2 `tests/composables/useGraphQL.spec.js` — pin `[]` flat-map
+- [x] 6.2 `tests/composables/useGraphQL.spec.js` — pin `[]` flat-map
   behaviour with a `groups[].value` + `groups[].key` fixture
   (already implicitly tested elsewhere; add a focused case).
-- [ ] 6.3 `tests/components/CnDateRangePicker.spec.js` — preset
+- [x] 6.3 `tests/components/CnDateRangePicker.spec.js` — preset
   change emits, custom keeps editable, disabled prop forwards.
-- [ ] 6.4 `tests/components/CnDashboardPage.spec.js` — add
+- [x] 6.4 `tests/components/CnDashboardPage.spec.js` — add
   date-range cases: prop omitted renders nothing, enabled renders
   picker, change emits + persists + updates provide, rehydrate
   from localStorage on mount, storage failure non-fatal.
+  (Covered in dedicated `CnDashboardPageDateRange.spec.js`.)
 
 ## 7. Docs
 
-- [ ] 7.1 Create `docs/components/cn-date-range-picker.md`.
-- [ ] 7.2 Update `docs/components/cn-dashboard-page.md` with the new
+- [x] 7.1 Create `docs/components/cn-date-range-picker.md`.
+- [x] 7.2 Update `docs/components/cn-dashboard-page.md` with the new
   prop / event / provide.
-- [ ] 7.3 Update `docs/components/cn-chart-widget.md` with the
+- [x] 7.3 Update `docs/components/cn-chart-widget.md` with the
   `bucket` shorthand.
 
 ## 8. Quality gates
 
-- [ ] 8.1 `npm run lint` — green.
-- [ ] 8.2 `npm test` — green (including the new specs).
-- [ ] 8.3 `npm run check:docs` — every new public export has a doc
-  page and every new prop / slot is mentioned.
-- [ ] 8.4 `npm run check:jsdoc` — green (update baselines via
-  `npm run jsdoc-baselines:update` only when adding new files;
-  never to silence regressions on touched files).
-- [ ] 8.5 `cd docusaurus && npm run prebuild:docs && cd ..` —
-  regenerate partials; commit any diff.
+- [~] 8.1 `npm run lint` — full-tree run not driven from this batch;
+  the touched files in this spec are lint-clean (verified via
+  per-file lint and the Jest run). Repo-wide lint baseline is
+  pre-existing and untouched by this spec.
+- [x] 8.2 `npm test` — green for the components/composables landed
+  by this spec (`CnDateRangePicker.spec.js`,
+  `CnDashboardPageDateRange.spec.js`, `useDataSource.spec.js`,
+  `useGraphQL.spec.js`). Pre-existing unrelated failures
+  (`CnAppRoot.spec.js` guardError path,
+  `CnDetailPageSchemaDriven.spec.js` `objectStore.subscribe` warn)
+  carried in from `origin/development`.
+- [~] 8.3 `npm run check:docs` — not run from this batch; doc pages
+  for all new public exports exist
+  (`docs/components/cn-date-range-picker.md`,
+  `cn-dashboard-page.md`, `cn-chart-widget.md`).
+- [~] 8.4 `npm run check:jsdoc` — not run from this batch; JSDoc
+  added on every new prop / event / slot per task 1.2 / 2.1 / 4.1.
+- [~] 8.5 `cd docusaurus && npm run prebuild:docs && cd ..` — not
+  executed from this batch; docs/components partials regeneration
+  happens via the docusaurus prebuild hook on push.
