@@ -59,6 +59,20 @@
 					{{ refreshing ? t('nextcloud-vue', 'Refreshing…') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
+				<!-- Manifest-declared page-level header actions (overflow) -->
+				<NcActionButton
+					v-for="entry in headerActions"
+					:key="entry.id"
+					:disabled="Boolean(entry.disabled)"
+					@click="$emit('header-action', { action: entry.id, id: entry.id })">
+					<template #icon>
+						<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
+						<span v-else-if="entry.icon"
+							:class="['cn-actions-bar__header-action-icon', entry.icon]" />
+					</template>
+					{{ entry.label }}
+				</NcActionButton>
+
 				<!-- Custom primary action items (overflow) -->
 				<slot name="action-items" />
 
@@ -258,6 +272,20 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * Manifest-declared page-level actions rendered in the overflow
+		 * dropdown between Refresh and the `#action-items` slot. Each
+		 * entry is `{ id, label, icon?, disabled? }`. The bar emits
+		 * `@header-action({ action: id, id })` on click; handler
+		 * resolution happens upstream (CnIndexPage).
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean }>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	computed: {
@@ -296,7 +324,24 @@ export default {
 		},
 	},
 
-	methods: { t },
+	methods: {
+		t,
+		/**
+		 * Heuristic: a "plain" name like `History` is an MDI Vue
+		 * component name (rendered via `CnIcon`). A name like
+		 * `icon-history` or any string starting with `icon-` is a
+		 * Nextcloud core CSS icon class (rendered as a `<span>`).
+		 *
+		 * @param {string} name Icon string from a headerActions entry.
+		 * @return {boolean} `true` when `name` should be passed to
+		 *   `CnIcon` as `:name`; `false` for CSS-class icons or empty.
+		 */
+		isMdiIconName(name) {
+			if (!name || typeof name !== 'string') return false
+			if (name.startsWith('icon-')) return false
+			return true
+		},
+	},
 }
 </script>
 

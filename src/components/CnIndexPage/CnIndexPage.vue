@@ -39,8 +39,10 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:header-actions="mergedHeaderActions"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
+			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -933,6 +935,30 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Manifest-driven page-level actions rendered inside the
+		 * NcActions overflow dropdown between Refresh and the
+		 * `#action-items` slot. Each entry is
+		 * `{ id, label, icon?, handler?, route?, disabled? }`. The
+		 * `handler` field mirrors the row-level
+		 * `actions[].handler` pattern: a function, the keyword
+		 * `'navigate'`, `'emit'`, `'none'`, or a string registry
+		 * lookup against the resolved `customComponents`. The page
+		 * dispatches the resolved handler via `onHeaderAction` AND
+		 * (unless the handler is the `'none'` keyword) emits
+		 * `@header-action({ action: id, id })`.
+		 *
+		 * Reserved ids (those used by built-ins on the bar — `refresh`,
+		 * `import`, `export`, `copy`, `delete`) are dropped from the
+		 * merged list with a `console.warn`.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	setup(props) {
@@ -984,6 +1010,41 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective customComponents registry — the explicit prop wins
+		 * over the injected `cnCustomComponents`. Mirrors the priority
+		 * used by `cardComponent` resolution and `actions[].handler`
+		 * dispatch.
+		 *
+		 * @return {object}
+		 */
+		resolvedCustomComponents() {
+			return this.customComponents || this.cnCustomComponents || {}
+		},
+		/**
+		 * Merged page-level header actions: drops reserved ids and
+		 * resolves declarative `handler` keywords (`navigate` / `emit`
+		 * / `none` / registry name) to either a function or
+		 * no-handler (emit-only) entries. Function-typed handlers are
+		 * passed through untouched. The `none` keyword sets
+		 * `_dispatchSuppress: true` and provides a no-op function so
+		 * the bar still shows a clickable item.
+		 *
+		 * @return {Array<object>}
+		 */
+		mergedHeaderActions() {
+			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
+			const merged = []
+			for (const entry of this.headerActions || []) {
+				if (entry && reserved.has(entry.id)) {
+					// eslint-disable-next-line no-console
+					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
+					continue
+				}
+				merged.push(this.resolveHeaderHandler(entry))
+			}
+			return merged
+		},
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
@@ -1340,6 +1401,90 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve a declarative `headerActions[]` entry's `handler`
+		 * field into the final dispatchable shape. Mirrors the
+		 * row-level `actions[].handler` keyword set used by
+		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
+		 * registry name (looked up against `resolvedCustomComponents`).
+		 *
+		 * @param {object} entry Raw headerActions entry.
+		 * @return {object} Possibly-mutated copy: function-typed
+		 *   handlers untouched; `'emit'` and unknown registry names
+		 *   strip the `handler` (emit-only fall-through); `'navigate'`
+		 *   becomes a `$router.push` thunk; `'none'` becomes a no-op +
+		 *   `_dispatchSuppress: true`; a registry name resolves to a
+		 *   `fn({ actionId })` thunk.
+		 */
+		resolveHeaderHandler(entry) {
+			if (!entry) return entry
+			const handler = entry.handler
+			if (typeof handler === 'function') {
+				return { ...entry }
+			}
+			if (typeof handler !== 'string') {
+				// No handler declared — emit-only fall-through.
+				return { ...entry }
+			}
+			if (handler === 'navigate') {
+				if (!entry.route) {
+					// eslint-disable-next-line no-console
+					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" handler:"navigate" requires "route"; falling back to emit-only`)
+					const { handler: _ignored, ...rest } = entry
+					return { ...rest }
+				}
+				const route = entry.route
+				const router = this.$router
+				const out = { ...entry }
+				out.handler = () => {
+					if (router && typeof router.push === 'function') {
+						router.push({ name: route })
+					}
+				}
+				return out
+			}
+			if (handler === 'emit') {
+				const { handler: _ignored, ...rest } = entry
+				return { ...rest }
+			}
+			if (handler === 'none') {
+				return { ...entry, handler: () => {}, _dispatchSuppress: true }
+			}
+			// Registry name lookup.
+			const resolved = this.resolvedCustomComponents[handler]
+			if (typeof resolved === 'function') {
+				const id = entry.id
+				return { ...entry, handler: () => resolved({ actionId: id }) }
+			}
+			if (resolved !== undefined && resolved !== null) {
+				// eslint-disable-next-line no-console
+				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+				const { handler: _ignored, ...rest } = entry
+				return { ...rest }
+			}
+			// Unknown registry name — silent emit-only fall-through.
+			const { handler: _ignored, ...rest } = entry
+			return { ...rest }
+		},
+		/**
+		 * Click dispatch from CnActionsBar's `@header-action`. Looks
+		 * up the resolved entry by id, invokes its handler if any,
+		 * and (unless the entry is `'none'`-suppressed) emits
+		 * `@header-action({ action: id, id })` upward.
+		 *
+		 * @param {{action: string, id: string}} payload Bar payload.
+		 */
+		onHeaderAction(payload) {
+			const id = payload && (payload.id ?? payload.action)
+			const entry = this.mergedHeaderActions.find((e) => e.id === id)
+			if (entry && typeof entry.handler === 'function') {
+				entry.handler()
+			}
+			if (entry && entry._dispatchSuppress) {
+				return
+			}
+			this.$emit('header-action', { action: id, id })
+		},
 		pushAiContext() {
 			applyAiContext(this.cnAiContext, 'index', {
 				register: this.register,
