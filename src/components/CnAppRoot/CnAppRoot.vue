@@ -260,6 +260,7 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
+import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import Vue from 'vue'
@@ -392,6 +393,24 @@ export default {
 			 * every Conduction app.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
+			/**
+			 * Reactive `{ [register]: { [schema]: number } }` totals
+			 * populated by `_hydrateMenuCounts()` from `useObjectStore()`
+			 * for every `count: "auto"` menu entry whose resolved page is
+			 * `type: "index"` with `register`/`schema` in its config.
+			 *
+			 * `CnAppNav.resolveCount()` reads from this map to render
+			 * `NcCounterBubble` badges next to menu entries. The hydration
+			 * happens once at mount (one `?_limit=1` fetch per unique
+			 * `(register, schema)` pair); subsequent index-page mounts
+			 * reuse the same store entry so no extra round-trip.
+			 *
+			 * Defaults to an empty object so `resolveCount` returns
+			 * `null` (no badge) until hydration completes — which keeps
+			 * the navigation rendering immediately without waiting for
+			 * the counts.
+			 */
+			cnMenuCounts: this.cnMenuCounts,
 		}
 	},
 
@@ -696,6 +715,20 @@ export default {
 				route: { path: (typeof window !== 'undefined' ? window.location.pathname : '') },
 			}),
 			/**
+			 * Reactive `{ [register]: { [schema]: number } }` map of
+			 * object-store totals — one entry per unique
+			 * `(register, schema)` pair declared on a menu item with
+			 * `count: "auto"`. Provided to descendants as
+			 * `cnMenuCounts`; CnAppNav reads from it inside its
+			 * `resolveCount()` to render `NcCounterBubble` badges.
+			 *
+			 * Populated by `_hydrateMenuCounts()` at mount. Wrapped in
+			 * `Vue.observable` so direct property writes
+			 * (`this.cnMenuCounts[register][schema] = total`) are
+			 * picked up by CnAppNav's reactive render.
+			 */
+			cnMenuCounts: Vue.observable({}),
+			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
 			 * method (CnAppNav binds this to manifest entries with
@@ -855,6 +888,7 @@ export default {
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
 			this._validateRegistry()
 			this._warnCustomComponentsDeprecation()
+			this._hydrateMenuCounts()
 			return
 		}
 
@@ -882,6 +916,7 @@ export default {
 
 		this._validateRegistry()
 		this._warnCustomComponentsDeprecation()
+		this._hydrateMenuCounts()
 	},
 
 	methods: {
@@ -941,6 +976,115 @@ export default {
 					+ 'Use the `registry` prop instead (see ADR-036).',
 				)
 				this._customComponentsWarnedOnce = true
+			}
+		},
+
+		/**
+		 * Scan the manifest for `count: "auto"` menu entries (top-level
+		 * AND nested children) and hydrate `this.cnMenuCounts` from
+		 * `useObjectStore().getPagination(slug).total` for each unique
+		 * `(register, schema)` pair whose resolved page is `type: "index"`.
+		 *
+		 * Triggers one `fetchCollection(slug, { _limit: 1 })` per pair so
+		 * the store's pagination cache is warmed. Subsequent CnIndexPage
+		 * mounts reuse the same store entry (no extra round-trip).
+		 *
+		 * Failures are non-fatal — missing Pinia (no `pinia` plugin
+		 * installed on the Vue instance), unregistered type slugs, or
+		 * network errors all degrade gracefully to "no badge".
+		 *
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuCounts() {
+			const menu = this.manifest?.menu ?? []
+			if (!Array.isArray(menu) || menu.length === 0) return
+
+			const pages = this.manifest?.pages ?? []
+			const collectAutoTargets = (items) => {
+				const targets = []
+				for (const item of items ?? []) {
+					if (item?.count === 'auto' && item?.route) {
+						const page = pages.find((p) => p.id === item.route)
+						if (page?.type === 'index' && page?.config?.register && page?.config?.schema) {
+							targets.push({ register: page.config.register, schema: page.config.schema })
+						}
+					}
+					if (Array.isArray(item?.children)) {
+						targets.push(...collectAutoTargets(item.children))
+					}
+				}
+				return targets
+			}
+
+			const pairs = collectAutoTargets(menu)
+			if (pairs.length === 0) return
+
+			// De-duplicate by (register, schema).
+			const seen = new Set()
+			const uniquePairs = []
+			for (const pair of pairs) {
+				const key = `${pair.register}|${pair.schema}`
+				if (seen.has(key)) continue
+				seen.add(key)
+				uniquePairs.push(pair)
+			}
+
+			let store
+			try {
+				store = useObjectStore()
+			} catch (err) {
+				// No Pinia plugin installed (tests, isolated mounts) —
+				// silently skip; CnAppNav renders no badge.
+				return
+			}
+			if (!store) return
+
+			for (const { register, schema } of uniquePairs) {
+				const slug = `${register}-${schema}`
+				this._fetchAndCacheCount(store, slug, register, schema)
+			}
+		},
+
+		/**
+		 * Fire-and-forget count fetch + cache writer. Registers the type
+		 * with the store on demand (so the consuming app doesn't need to
+		 * pre-register every counted slug), issues a `?_limit=1` index
+		 * fetch, and writes the resulting `total` into `cnMenuCounts`.
+		 *
+		 * Errors are swallowed so a single broken endpoint cannot blank
+		 * the entire navigation. The most common failure modes
+		 * (unregistered type, network error, store unavailable) all leave
+		 * the badge unrendered — which is the documented fallback.
+		 *
+		 * @param {object} store  The `useObjectStore()` result.
+		 * @param {string} slug   The store's type slug (`${register}-${schema}`).
+		 * @param {string} register OpenRegister register slug.
+		 * @param {string} schema   OpenRegister schema slug.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _fetchAndCacheCount(store, slug, register, schema) {
+			try {
+				if (typeof store.registerObjectType === 'function'
+					&& (!store.objectTypeRegistry || !store.objectTypeRegistry[slug])) {
+					store.registerObjectType(slug, schema, register)
+				}
+				if (typeof store.fetchCollection === 'function') {
+					await store.fetchCollection(slug, { _limit: 1 })
+				}
+				const pagination = typeof store.getPagination === 'function'
+					? store.getPagination(slug)
+					: null
+				const total = pagination?.total
+				if (typeof total === 'number' && total >= 0) {
+					if (!this.cnMenuCounts[register]) {
+						Vue.set(this.cnMenuCounts, register, {})
+					}
+					Vue.set(this.cnMenuCounts[register], schema, total)
+				}
+			} catch (err) {
+				// Non-fatal — leave the badge unrendered.
 			}
 		},
 	},
