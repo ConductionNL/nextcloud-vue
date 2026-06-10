@@ -7,5 +7,5 @@
 
 ## Follow-up
 
-- [ ] `CnCalendarGrid` month/week view (separate widget).
-- [ ] Recurring-event helpers.
+- [~] `CnCalendarGrid` month/week view (separate widget). — deferred to downstream cycle / fleet-wide adoption (handoff)
+- [~] Recurring-event helpers. — deferred to downstream cycle / fleet-wide adoption (handoff)
