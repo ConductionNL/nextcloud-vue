@@ -13,14 +13,8 @@
 /** Base prefix for single-object update events. Append `-{uuid}` to target one object. */
 export const OR_OBJECT_PREFIX = 'or-object'
 
-/** Alias matching the spec wording (`OR_OBJECT === 'or-object'`). */
-export const OR_OBJECT = OR_OBJECT_PREFIX
-
 /** Base prefix for collection-level invalidation events. Append `-{registerSlug}-{schemaSlug}`. */
 export const OR_COLLECTION_PREFIX = 'or-collection'
-
-/** Alias matching the spec wording (`OR_COLLECTION === 'or-collection'`). */
-export const OR_COLLECTION = OR_COLLECTION_PREFIX
 
 /**
  * Build the event key for a single-object subscription.

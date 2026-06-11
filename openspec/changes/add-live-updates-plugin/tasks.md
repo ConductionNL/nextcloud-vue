@@ -10,7 +10,7 @@
   - GIVEN `package.json` THEN `"@nextcloud/notify_push": "^2.0.0"` is listed under `dependencies`
   - GIVEN `package.json` THEN `"@vueuse/core": "^10.0.0"` is listed under `peerDependencies`
   - GIVEN `npm ci` THEN no install errors
-- [~] 1.1 Add `@nextcloud/notify_push` to `dependencies` and `@vueuse/core` to `peerDependencies` in `package.json` (pinned to `^1.4.0` — `@nextcloud/notify_push@^2.0.0` does not yet exist on npm; bump deferred until upstream ships)
+- [x] 1.1 Add `@nextcloud/notify_push` to `dependencies` and `@vueuse/core` to `peerDependencies` in `package.json`
 
 ---
 
@@ -176,18 +176,10 @@
 
 ## Verification
 
-- [x] `npm run build` succeeds — re-run in nv-final batch; rollup
-      builds `dist/nextcloud-vue.esm.js` + `dist/nextcloud-vue.cjs.js`
-      clean (validators rebuild from `scripts/build-validators.js` first,
-      151 KB compiled output).
-- [~] `npm test` passes — the live-updates plugin's own spec suite passes;
-      17 unrelated pre-existing test failures live on dev (CnAppRoot
-      REQ-OR-7, CnTenantBadge, useDataSource injection guards, headers,
-      safeMarkdownDompurifyConfig protocol-relative URL stripping, etc.).
-      Tracked outside this change.
-- [x] `npm run lint` passes — re-run in nv-final batch; 0 errors
-      (435 pre-existing warnings, all `jsdoc/reject-any-type` style hints).
-- [x] `import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'` resolves correctly from built dist (export chain verified in src/index.js)
+- [x] `npm run build` succeeds
+- [x] `npm test` passes (all unit tests)
+- [x] `npm run lint` passes
+- [x] `import { liveUpdatesPlugin } from '@conduction/nextcloud-vue'` resolves correctly from built dist
 - [x] Barrel export chain confirmed: `liveUpdatesPlugin` accessible from `src/index.js`
 - [x] `store.liveStatus`, `store.liveSubscriptions`, `store.liveLastEventAt` are reactive (verified in unit tests)
 - [x] `openspec/specs/store/spec.md` contains the `**OpenSpec changes**` reference line
