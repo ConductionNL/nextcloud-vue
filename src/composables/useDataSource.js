@@ -63,7 +63,14 @@ const AGGREGATION_METRICS = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
  *   Reactive resolution state.
  */
 export function useDataSource(dataSource, options = {}) {
-	const ds = computed(() => (isRef(dataSource) ? dataSource.value : dataSource))
+	const ds = computed(() => {
+		if (isRef(dataSource)) return dataSource.value
+		// Support the function form (`useDataSource(() => props.dataSource)`)
+		// used by widget wrappers; without this the raw function leaks
+		// through and no query is ever built.
+		if (typeof dataSource === 'function') return dataSource()
+		return dataSource
+	})
 	const range = computed(() => {
 		if (!options.range) return null
 		const r = options.range
