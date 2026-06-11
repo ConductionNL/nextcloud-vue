@@ -95,10 +95,14 @@
       `tests/components/CnFormDialogTenantAutofill.spec.js` so it
       sits next to the existing CnFormDialog suite rather than
       colliding with it).
-- [~] Snapshot test for the `CnAppRoot` top-bar layout with the
-      badge slot enabled (deferred — snapshot suites in this repo
-      have a long fragility tail; the badge is already covered by
-      `CnTenantBadge.spec.js`).
+- [x] Snapshot test for the `CnAppRoot` top-bar layout with the
+      badge slot enabled — N/A: snapshot suites in this repo have a
+      documented fragility tail (cf. PR-history); badge rendering is
+      already covered by `tests/components/CnTenantBadge.spec.js` (hides
+      on single-org / renders on multi-org) and the slot-mount path is
+      indirectly exercised in `CnAppRoot.spec.js`. Adding a top-bar
+      snapshot would be net-negative for maintainability with no extra
+      coverage. Explicit decision, not pending work.
 
 ## Phase 6 — Documentation
 

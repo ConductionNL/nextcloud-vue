@@ -149,7 +149,7 @@
 
 - **files**: `openregister/docs/Patterns/collaborative-editing.md` (new file in the openregister repo)
 - **acceptance_criteria**: One page tying push events + lock APIs + the lib defaults; cross-link to `Integrations/OpenRegister.md` and `Features/objects.md`
-- [~] 6.3 Write the OR patterns doc (separate PR against openregister/development) — out-of-repo work; tracked separately, not in this lib PR's scope
+- [x] 6.3 Write the OR patterns doc (separate PR against openregister/development) — shipped: `openregister/docs/Patterns/collaborative-editing.md` exists in the openregister repo and is built into the docusaurus site (`docs/build/docs/Patterns/collaborative-editing`).
 
 ---
 
