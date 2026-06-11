@@ -88,7 +88,7 @@
 - **files**: `docs/components/_generated/CnStatsBlockWidget.md`, `docs/components/_generated/CnActionsBar.md`, `docs/components/_generated/CnIndexPage.md`
 - **acceptance_criteria**:
   - GIVEN `cd docusaurus && npm run prebuild:docs` runs THEN the generated MD files include the new props
-- [~] 3.2 Run prebuild:docs and commit the regenerated files — DEFERRED: requires `cd docusaurus && npm install` which is not available in this worktree; manually authored docs cover the new props.
+- [x] 3.2 Run prebuild:docs and commit the regenerated files — done in nv-final batch; `cd docusaurus && npm run prebuild:docs` regenerates `docs/components/_generated/CnActionsBar.md`, `CnIndexPage.md`, and `CnAppRoot.md` (plus a fresh `CnTenantBadge.md` for the multi-tenancy change); committed in 7b624049.
 
 ### Task 3.3: Hand-written usage notes
 - **files**: `src/components/CnStatsBlockWidget/CnStatsBlockWidget.md` (new — bare reference page), `src/components/CnIndexPage/CnIndexPage.md` (extend)

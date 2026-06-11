@@ -101,10 +101,9 @@
 
 ## 8. Quality gates
 
-- [~] 8.1 `npm run lint` — full-tree run not driven from this batch;
-  the touched files in this spec are lint-clean (verified via
-  per-file lint and the Jest run). Repo-wide lint baseline is
-  pre-existing and untouched by this spec.
+- [x] 8.1 `npm run lint` — re-run in nv-final batch; 0 errors across
+  the whole tree (435 pre-existing `jsdoc/reject-any-type` warnings,
+  none in this spec's touched files).
 - [x] 8.2 `npm test` — green for the components/composables landed
   by this spec (`CnDateRangePicker.spec.js`,
   `CnDashboardPageDateRange.spec.js`, `useDataSource.spec.js`,
@@ -112,12 +111,12 @@
   (`CnAppRoot.spec.js` guardError path,
   `CnDetailPageSchemaDriven.spec.js` `objectStore.subscribe` warn)
   carried in from `origin/development`.
-- [~] 8.3 `npm run check:docs` — not run from this batch; doc pages
-  for all new public exports exist
-  (`docs/components/cn-date-range-picker.md`,
-  `cn-dashboard-page.md`, `cn-chart-widget.md`).
-- [~] 8.4 `npm run check:jsdoc` — not run from this batch; JSDoc
-  added on every new prop / event / slot per task 1.2 / 2.1 / 4.1.
-- [~] 8.5 `cd docusaurus && npm run prebuild:docs && cd ..` — not
-  executed from this batch; docs/components partials regeneration
-  happens via the docusaurus prebuild hook on push.
+- [x] 8.3 `npm run check:docs` — re-run in nv-final batch; all 218
+  public exports documented, all 127 component docs cover props+slots.
+- [x] 8.4 `npm run check:jsdoc` — re-run in nv-final batch; all 147
+  components meet baseline (`CnChartWidget`, `CnDateRangePicker`,
+  `CnDashboardPage` all 100%).
+- [x] 8.5 `cd docusaurus && npm run prebuild:docs` — executed in
+  nv-final batch (docusaurus deps reachable via workspace symlink);
+  regenerated `docs/components/_generated/*` partials committed in
+  7b624049.
