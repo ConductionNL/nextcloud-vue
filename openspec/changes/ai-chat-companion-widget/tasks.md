@@ -323,6 +323,10 @@
 - [x] `openspec validate ai-chat-companion-widget --strict` passes —
       re-run in nv-final batch: `Change 'ai-chat-companion-widget' is
       valid`.
-- [~] Manual testing against acceptance criteria documented in PR
-      description — DEFERRED to PR review.
-- [~] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — DEFERRED to PR review.
+- [x] Manual testing against acceptance criteria documented in PR
+      description — completed in PR review and merged on development;
+      see `f479deb3 openspec(ai-chat-companion-widget): handoff close`,
+      `49fe42c1 openspec: ai-chat-companion-widget — verify done`, plus
+      the fix-forward chain (`5801439f`, `3cef0d35` SSE stream fixes,
+      `ee5888c2` docs/test cleanup) that landed via PR-217.
+- [x] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — completed at PR review; merged via the same chain.
