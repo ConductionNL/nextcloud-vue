@@ -320,8 +320,9 @@
 ## Verification
 - [x] All tasks above checked off (8.2 + 7.1 NOTEs explicitly carry the
       defer reason).
-- [~] `openspec validate ai-chat-companion-widget --strict` passes —
-      DEFERRED: OpenSpec validator runs in CI / orchestrator context.
+- [x] `openspec validate ai-chat-companion-widget --strict` passes —
+      re-run in nv-final batch: `Change 'ai-chat-companion-widget' is
+      valid`.
 - [~] Manual testing against acceptance criteria documented in PR
       description — DEFERRED to PR review.
 - [~] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — DEFERRED to PR review.

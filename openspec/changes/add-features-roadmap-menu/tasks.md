@@ -74,8 +74,9 @@
 
 ## Verification
 
-- [~] `openspec validate "add-features-roadmap-menu"` passes — DEFERRED:
-      OpenSpec validator runs in CI / orchestrator context.
+- [x] `openspec validate "add-features-roadmap-menu" --strict` passes —
+      re-run in nv-final batch: `Change 'add-features-roadmap-menu' is
+      valid`.
 - [x] `npm test` green for the spec's own test suites (CnFeatures*,
       CnRoadmap*, CnSuggestFeatureModal, useSpecRef,
       useSuggestFeatureAction, safeMarkdownDompurifyConfig).
