@@ -291,7 +291,6 @@
 
 <script>
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import { getCapabilities } from '@nextcloud/capabilities'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
@@ -301,7 +300,7 @@ import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import { provideTenantContext, TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'

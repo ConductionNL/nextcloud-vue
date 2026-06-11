@@ -350,6 +350,7 @@ export default {
 | `sortKey` | String | `null` | Current sort key |
 | `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
+| `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding. When the bound organisation entity changes, the page calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps `X-OpenRegister-Organisation: <uuid>` and the in-memory list caches are cleared. Wire this from a tenant-switcher higher in the tree; leave `null` for single-tenant pages. |
 | `excludeColumns` | Array | `[]` | Column keys to hide in schema mode |
 | `includeColumns` | Array | `null` | Column keys to show (whitelist); `null` means all |
 | `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |

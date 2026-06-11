@@ -10,4 +10,4 @@
 
 ## Follow-up (consumer)
 
-- [ ] scholiq: replace `SignPlanModal` with a `CnWizardDialog` step hosting `CnSignatureCapture`.
+- [~] scholiq: replace `SignPlanModal` with a `CnWizardDialog` step hosting `CnSignatureCapture`. [DEFERRED — consumer-repo migration, explicitly "Follow-up (consumer)" per heading.]

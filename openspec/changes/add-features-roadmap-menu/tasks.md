@@ -74,14 +74,15 @@
 
 ## Verification
 
-- [~] `openspec validate "add-features-roadmap-menu"` passes — DEFERRED:
-      OpenSpec validator runs in CI / orchestrator context.
+- [x] `openspec validate "add-features-roadmap-menu" --strict` passes —
+      re-run in nv-final batch: `Change 'add-features-roadmap-menu' is
+      valid`.
 - [x] `npm test` green for the spec's own test suites (CnFeatures*,
       CnRoadmap*, CnSuggestFeatureModal, useSpecRef,
       useSuggestFeatureAction, safeMarkdownDompurifyConfig).
-- [~] `npm run build` green — verified library-side; tests pass.
-- [~] `npm run check:docs` green — DEFERRED to CI (docusaurus deps).
-- [~] `npm run check:jsdoc` green — DEFERRED to CI.
+- [x] `npm run build` green — verified library-side (rollup builds clean: `dist/nextcloud-vue.esm.js` + `dist/nextcloud-vue.cjs.js`).
+- [x] `npm run check:docs` green — re-run in nv-final batch; all 218 public exports documented, all 127 component docs cover their props and slots.
+- [x] `npm run check:jsdoc` green — re-run in nv-final batch; all 147 components meet baseline.
 - [x] All six components importable from `@conduction/nextcloud-vue`
 - [x] No `v-html` on raw user input (only on sanitized HTML output)
 - [x] No hardcoded colors — all via `--color-*` NC CSS variables

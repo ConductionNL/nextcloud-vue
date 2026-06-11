@@ -315,13 +315,14 @@
 - **acceptance_criteria**:
   - With sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) shipped to dev env: FAB renders on a detail page, opens, sends, streams a real OpenAI/Ollama response, tool-call expands, history loads
   - With OR not installed (or orchestrator change not yet shipped): FAB does not render, no console warnings
-- [ ] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session.
+- [~] 8.2 Smoke test in dev env — DEFERRED: requires sibling orchestrator change to be shipped to dev env; not available in this session.
 
 ## Verification
 - [x] All tasks above checked off (8.2 + 7.1 NOTEs explicitly carry the
       defer reason).
-- [~] `openspec validate ai-chat-companion-widget --strict` passes —
-      DEFERRED: OpenSpec validator runs in CI / orchestrator context.
+- [x] `openspec validate ai-chat-companion-widget --strict` passes —
+      re-run in nv-final batch: `Change 'ai-chat-companion-widget' is
+      valid`.
 - [~] Manual testing against acceptance criteria documented in PR
       description — DEFERRED to PR review.
 - [~] Code review against [hydra ADR-034](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and [hydra/ai-chat-companion spec](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md) — DEFERRED to PR review.
