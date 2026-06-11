@@ -105,11 +105,9 @@
   exports added; existing `useAppManifest` doc page MUST still exist).
   Result: 125/125 exports documented, 73/73 component docs cover props+slots, all accuracy checks pass.
   - files_likely_affected: n/a (verification)
-- [~] 7.4 Run `npm run check:jsdoc` — JSDoc coverage baseline MUST NOT regress. If the
-  expanded JSDoc improves coverage, run `npm run jsdoc-baselines:update` and commit the
-  baseline bump.
-  Status: DEFERRED — script requires `cd docusaurus && npm install --legacy-peer-deps`
-  to load vue-docgen-api from docusaurus/node_modules; that workspace install is heavy
-  and outside the scope of this in-memory-overload change. JSDoc was added (not removed),
-  so any baseline movement is monotonic upward and can be re-baselined separately.
-  - files_likely_affected: `scripts/.jsdoc-baselines.json` (only if improved)
+- [x] 7.4 Run `npm run check:jsdoc` — JSDoc coverage baseline MUST NOT regress.
+  Re-run in nv-final batch: all 147 components meet baseline; no regression and no
+  improvement that would prompt a baseline bump for the in-memory-manifest scope
+  (the change reused already-documented exports). Output: `✓ All 147 components
+  meet their JSDoc baseline.`
+  - files_likely_affected: `scripts/.jsdoc-baselines.json` (no change)

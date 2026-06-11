@@ -31,13 +31,14 @@
       muted color, gap from the title.
 - [x] Update JSDoc on props + events (events have `@event` + `@type` tags
       per the lib's convention; props have type tags).
-- [~] Run `npm run prebuild:docs` and commit the regenerated
-      `docs/components/_generated/CnWidgetWrapper.md`. — DEFERRED: requires
-      `cd docusaurus && npm install` which is not available in this
-      worktree.
-- [~] Run `npm run check:jsdoc`; bump baseline if coverage improved. —
-      DEFERRED: JSDoc on the new props is in place; baseline runner
-      requires dev-only deps.
+- [x] Run `npm run prebuild:docs` and commit the regenerated
+      `docs/components/_generated/CnWidgetWrapper.md`. — done in nv-final
+      batch (committed in 7b624049); the docusaurus deps are now
+      reachable via the workspace symlink.
+- [x] Run `npm run check:jsdoc`; bump baseline if coverage improved.
+      Done in nv-final batch — `check:jsdoc` reports all 147 components
+      at or above baseline, including `CnWidgetWrapper 84% baseline`;
+      no baseline bump required as coverage was unchanged.
 
 ## CnStatsBlock
 

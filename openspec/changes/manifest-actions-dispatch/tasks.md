@@ -42,7 +42,9 @@
 - [x] Update `src/components/CnIndexPage/CnIndexPage.md` with an "Action handlers" section showing a manifest declaring `handler: "openMyModal"` and the matching registry entry.
 - [x] Update `src/components/CnDetailPage/CnDetailPage.md` with the same section (cross-references the CnIndexPage section).
 - [x] Update `docs/migrating-to-manifest.md` (if present) with a "When to migrate from `type:custom` to `type:index` via handlers" section pointing at the opencatalogi #547 + pipelinq queue patterns.
-- [~] Run `npm run check:docs` and resolve any coverage failures (deferred to CI — node_modules not installed in this worktree).
+- [x] Run `npm run check:docs` and resolve any coverage failures — re-run
+      in nv-final batch; all 218 public exports documented, all 127
+      component docs cover their props and slots.
 
 ## Phase 5 — Consumer migration (pipelinq queues)
 

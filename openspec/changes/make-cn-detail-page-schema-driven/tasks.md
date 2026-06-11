@@ -66,8 +66,14 @@
 
 - [x] 7.1 Update `docs/components/cn-detail-page.md` with the new props (`register`, `schema`, `sidebarTabs`), schema-driven mode summary, auto-body behaviour, sidebar precedence note + manifest example.
 - [x] 7.2 Update `docs/components/cn-app-root.md` with the new auto-mount block and the `#sidebar` precedence rule (this batch).
-- [~] 7.3 `npm run check:docs` and `npm run check:jsdoc` — not re-driven from this batch; the touched files carry JSDoc per task 2.1.
-- [~] 7.4 `cd docusaurus && npm run prebuild:docs` — not re-driven from this batch; docusaurus partials regenerate on push via the prebuild hook.
+- [x] 7.3 `npm run check:docs` and `npm run check:jsdoc` — re-run in
+      nv-final batch; check:docs all 218 exports + 127 components
+      pass, check:jsdoc all 147 components meet baseline (including
+      `CnDetailPage` at 100%).
+- [x] 7.4 `cd docusaurus && npm run prebuild:docs` — executed in
+      nv-final batch (docusaurus deps reachable via workspace symlink);
+      regenerated partials committed in 7b624049 (`CnAppRoot.md`
+      among others).
 
 ## 8. Tests
 
