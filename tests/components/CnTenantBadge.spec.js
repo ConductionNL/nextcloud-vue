@@ -10,9 +10,10 @@ import { provideTenantContext } from '../../src/composables/useTenantContext.js'
 
 function mountWithContext({ uuid, org, props = {} } = {}) {
 	const Wrapper = defineComponent({
+		components: { CnTenantBadge },
 		setup() {
 			provideTenantContext(uuid, org)
-			return () => h(CnTenantBadge, props)
+			return () => h(CnTenantBadge, { props })
 		},
 	})
 	return mount(Wrapper)
