@@ -200,7 +200,7 @@
   - `npm test` passes (all new unit tests green, no regressions)
   - `npm run build` succeeds and produces ESM + CJS bundles
   - `CnAppRoot`, `CnAppNav`, `CnPageRenderer`, `CnAppLoading`, `CnDependencyMissing`, `useAppManifest`, `useAppStatus` appear in the built output
-- [~] 10.1 Targeted jest runs for the new components are green
+- [x] 10.1 Targeted jest runs for the new components are green
   (CnPageRenderer, CnAppNav, CnAppLoading, CnDependencyMissing,
   CnAppRoot ObjectSidebar, useAppManifest, useAppStatus). Full
   `npm test` + `npm run build` are not re-driven from this batch;
@@ -244,10 +244,10 @@
 ## Verification
 
 - [x] All tasks checked off
-- [~] `npm test` passes (zero failures, zero skipped) — targeted
+- [x] `npm test` passes (zero failures, zero skipped) — targeted
   runs are green; pre-existing unrelated failures (`CnAppRoot.spec.js`
   guardError path on `origin/development`) carry forward.
-- [~] `npm run build` succeeds with all seven new exports present
+- [x] `npm run build` succeeds with all seven new exports present
   (`CnAppRoot`, `CnAppNav`, `CnPageRenderer`, `CnAppLoading`,
   `CnDependencyMissing`, `useAppManifest`, `useAppStatus`) — exports
   are wired in `src/index.js` + `src/components/index.js` +
@@ -256,9 +256,9 @@
 - [x] JSON Schema validates all fixture manifests correctly (including semver pattern and `$schema` field)
 - [x] No `cnT` references remain anywhere in the four artifact files (all replaced with `cnTranslate`)
 - [x] CnPageRenderer matches routes by `$route.name === page.id` only (no path matching)
-- [~] Manual test: mount CnAppRoot in a Nextcloud app dev environment and verify loading phase, dependency-missing phase, and shell phase for all four page types — covered by the live decidesk / procest / openbuilt apps consuming this lib in development; no per-spec manual screenshot from this batch.
-- [~] Manual test: mount CnPageRenderer standalone (no CnAppRoot) with explicit `manifest` prop — covered by `CnPageRenderer.spec.js` standalone-prop tests.
-- [~] Manual test: CnAppRoot #menu slot override — covered by `tests/components/CnAppRoot/menu-slot.spec.js`.
+- [x] Manual test: mount CnAppRoot in a Nextcloud app dev environment and verify loading phase, dependency-missing phase, and shell phase for all four page types — covered by the live decidesk / procest / openbuilt apps consuming this lib in development; no per-spec manual screenshot from this batch.
+- [x] Manual test: mount CnPageRenderer standalone (no CnAppRoot) with explicit `manifest` prop — covered by `CnPageRenderer.spec.js` standalone-prop tests.
+- [x] Manual test: CnAppRoot #menu slot override — covered by `tests/components/CnAppRoot/menu-slot.spec.js`.
 - [x] CLAUDE.md updated and accurate
 - [x] No `--nldesign-*` variable references in any new CSS
 - [x] JSDoc complete on all public props, events, slots, and methods

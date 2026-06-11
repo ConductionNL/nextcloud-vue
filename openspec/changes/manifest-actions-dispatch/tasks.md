@@ -4,7 +4,7 @@
 
 - [x] Add `handler` field to the `action` $def in `src/schemas/app-manifest.schema.json`. Type `string`; pattern `^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$`; description points at the customComponents registry resolution.
 - [x] Add `route` field to the same $def (required when `handler === "navigate"`; ignored otherwise). Type `string`.
-- [~] Bump `version` in the schema from `1.2.0` to `1.3.0` (schema is now at `1.5.0` — superseded by later changes; handler/route are already in the live schema)
+- [x] Bump `version` in the schema from `1.2.0` to `1.3.0` (shipped — schema is now at `1.5.0`, superseded by later changes; handler/route are already in the live schema)
 - [x] Extend `validateActionsArray()` in `src/utils/validateManifest.js` to type-check `handler` as a string when present and reject values failing the pattern.
 - [x] Extend `validateActionsArray()` to require `route` when `handler === "navigate"`.
 
