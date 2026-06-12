@@ -27,24 +27,35 @@ export function prefixUrl(path) {
  *   1. **Positional (back-compat)** — `buildHeaders(contentType)`.
  *      Returns the same object the v1 signature did.
  *
- *   2. **Options object** — `buildHeaders({ contentType?, organisationUuid? })`.
+ *   2. **Options object** — `buildHeaders({ contentType?, organisationUuid?, targetLanguage? })`.
  *      When `organisationUuid` is a non-empty string the returned object
  *      includes `X-OpenRegister-Organisation: <uuid>`. The header is the
  *      FE side of the `multi-tenancy-context` capability and is consumed
  *      by OR's MultiTenancyTrait.
+ *      When `targetLanguage` is a non-empty BCP-47 string the returned
+ *      object includes `X-Translation-Target-Language: <bcp47>`. The
+ *      header is the FE side of the `i18n-source-of-truth` write
+ *      contract — OR stamps the value into `_translations[<bcp47>]`
+ *      instead of overwriting the source row. See the
+ *      `i18n-language-negotiation-getters` change.
  *
  * @param {string|object} [opts] Content-Type string (back-compat) or options object.
  * @param {string} [opts.contentType] Content-Type header value
  * @param {string} [opts.organisationUuid] Active organisation UUID for the request
+ * @param {string} [opts.targetLanguage] BCP-47 target language for translation writes
  * @return {object} Headers object for use with fetch()
  */
 export function buildHeaders(opts = 'application/json') {
 	let contentType = 'application/json'
 	let organisationUuid = null
+	let targetLanguage = null
 
 	if (typeof opts === 'string') {
 		// v1 positional signature: buildHeaders(contentType)
 		contentType = opts
+	} else if (opts === null) {
+		// v1 positional signature: buildHeaders(null) — explicit "no Content-Type"
+		contentType = null
 	} else if (opts && typeof opts === 'object') {
 		// Options-object signature
 		if (Object.prototype.hasOwnProperty.call(opts, 'contentType')) {
@@ -52,6 +63,9 @@ export function buildHeaders(opts = 'application/json') {
 		}
 		if (typeof opts.organisationUuid === 'string' && opts.organisationUuid.length > 0) {
 			organisationUuid = opts.organisationUuid
+		}
+		if (typeof opts.targetLanguage === 'string' && opts.targetLanguage.length > 0) {
+			targetLanguage = opts.targetLanguage
 		}
 	}
 
@@ -64,6 +78,9 @@ export function buildHeaders(opts = 'application/json') {
 	}
 	if (organisationUuid) {
 		headers['X-OpenRegister-Organisation'] = organisationUuid
+	}
+	if (targetLanguage) {
+		headers['X-Translation-Target-Language'] = targetLanguage
 	}
 	return headers
 }
