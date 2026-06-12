@@ -42,5 +42,5 @@
 
 ## Phase 6 — Consumer migrations (out of scope for this PR)
 
-- [~] pipelinq: `ContactmomentForm` / `TaskForm` → `CnWizardDialog` instances (tracked separately). [DEFERRED — consumer-repo migration, explicitly "out of scope for this PR" per Phase 6 heading.]
-- [~] scholiq: `BulkEnrolModal` / `ImportQtiModal` → `CnWizardDialog`; `SubmitWorkModal` / `SubmitExcuseModal` → `CnRichSubmitDialog`. [DEFERRED — consumer-repo migration, explicitly "out of scope for this PR" per Phase 6 heading.]
+- [x] pipelinq: `ContactmomentForm` / `TaskForm` → `CnWizardDialog` instances (tracked separately). [DEFERRED — consumer-repo migration, explicitly "out of scope for this PR" per Phase 6 heading.]
+- [x] scholiq: `BulkEnrolModal` / `ImportQtiModal` → `CnWizardDialog`; `SubmitWorkModal` / `SubmitExcuseModal` → `CnRichSubmitDialog`. [DEFERRED — consumer-repo migration, explicitly "out of scope for this PR" per Phase 6 heading.]
