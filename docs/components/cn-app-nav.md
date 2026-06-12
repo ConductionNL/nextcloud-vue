@@ -5,7 +5,7 @@ Manifest-driven app navigation. Renders the manifest's `menu[]` array as `NcAppN
 Items split into three groups by `section`:
 
 - `section: "main"` (default) — top of the navigation, scrollable.
-- `section: "footer"` — pinned-bottom **regular** entries rendered flat above the settings foldout. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
+- `section: "footer"` — **regular** entries rendered flat in `NcAppNavigation`'s `#footer` slot, outside the scrollable list and directly above the settings foldout, so they stay visible regardless of menu length. For always-visible, non-settings links: Documentation, Features & Roadmap, About.
 - `section: "settings"` — rendered INSIDE an `NcAppNavigationSettings` foldout (the NC-native gear-icon button that slides a panel open). A **"Personal settings"** entry is auto-prepended at the top of the foldout (opens the host's `NcAppSettingsDialog` via `cnOpenUserSettings`); opt out with `nav.includePersonalSettings: false`. The foldout mounts whenever there are `settings` items **or** personal settings is enabled — so every app shows a Settings gear with at least Personal settings; it's only fully suppressed when there are no `settings` items **and** `nav.includePersonalSettings: false`.
 
 ### Primary action
@@ -119,10 +119,10 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 | `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
-| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = pinned-bottom flat entry above the settings foldout; `'settings'` = inside the gear-icon foldout |
+| `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = flat entry in the navigation's `#footer` region (outside the scroll list, always visible above the settings foldout); `'settings'` = inside the gear-icon foldout |
 | `type` | `'item' \| 'caption'` | Default `'item'`. `'caption'` renders an `NcAppNavigationCaption` (non-interactive section divider) — `route`, `href`, `action`, `icon`, `count`, `children`, and `pinned` are ignored |
 | `count` | `number \| 'auto'` | Counter badge rendered in the `#counter` slot via `NcCounterBubble`. A positive integer renders as-is; `'auto'` resolves the count reactively from the `cnMenuCounts` inject (populated by [`CnAppRoot`](./cn-app-root.md) from `useObjectStore` totals) for the entry's resolved `type: "index"` page (`{ register, schema }` in its `config`). A resolved `0` / `null` / `undefined` renders no badge |
-| `pinned` | `boolean` | Default `false`. Pass-through to `NcAppNavigationItem`'s `pinned` prop. Note: `section: "footer"` entries are pinned automatically; use this field for the rare case of pinning a `"main"` entry inside the top list |
+| `pinned` | `boolean` | Default `false`. Pass-through to `NcAppNavigationItem`'s `pinned` prop for `"main"` entries inside the top list. `section: "footer"` entries no longer use `pinned` — they render in the navigation's `#footer` region instead |
 | `open` | `boolean` | Default `false`. Initial expansion state for a parent entry with `children[]`. When `true`, the parent renders with `:open="true"` so children are visible on mount; users can still collapse/expand interactively |
 | `permission` | `string` | When set, the item only renders if the value appears in the `permissions` prop / inject |
 | `children` | `Array<MenuItem>` | One level of children supported. Each child is filtered by permission independently. Parents with visible children get `:allow-collapse="true"` automatically |

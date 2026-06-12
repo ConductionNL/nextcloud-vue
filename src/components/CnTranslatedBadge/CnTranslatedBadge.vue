@@ -33,12 +33,12 @@ import { translate as t } from '@nextcloud/l10n'
  * CnTranslatedBadge — surfaces OR's `_translationMeta.translatedFrom`
  * as a small chip in detail surfaces.
  *
- * @example Basic
+ * Basic:
  * ```vue
  * <CnTranslatedBadge :object="object" />
  * ```
  *
- * @example With custom locale name formatter
+ * With custom locale name formatter:
  * ```vue
  * <CnTranslatedBadge
  *   :object="object"

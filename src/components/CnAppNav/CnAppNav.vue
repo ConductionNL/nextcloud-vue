@@ -17,11 +17,13 @@
 
   Items split into three groups by `section`:
   - `section: "main"` (default) — top of the navigation, scrollable.
-  - `section: "footer"` — bottom-pinned entries rendered via
-    NcAppNavigationItem's native `pinned` prop (NC's own
-    `order: 2; margin-top: auto`), sticking to the bottom of the list
-    above the settings foldout. For always-visible, non-settings links:
-    Documentation, Features & Roadmap, About.
+  - `section: "footer"` — rendered in NcAppNavigation's `#footer` slot,
+    OUTSIDE the scrollable list and directly above the settings foldout,
+    so they stay visible regardless of how long the main menu is. (The
+    earlier `pinned`-prop approach kept them inside the scroll container:
+    `margin-top: auto` only bottom-pins while the list does not overflow,
+    so apps with long menus showed them mid-scroll.) For always-visible,
+    non-settings links: Documentation, Features & Roadmap, About.
   - `section: "settings"` — rendered INSIDE an NcAppNavigationSettings
     foldout (the NC-native gear-icon button that slides a panel open).
     A "Personal settings" entry is auto-prepended at the top of the
@@ -137,33 +139,34 @@
 				</NcAppNavigationItem>
 			</template>
 
-			<!-- Footer-section entries (Documentation, Features & Roadmap,
-				     About) use NcAppNavigationItem's native `pinned` prop. NC
-				     bottom-pins them (above the settings foldout) via its own
-				     `order: 2; margin-top: auto` rule — no custom wrapper or
-				     CSS, just the native primitive. -->
-			<NcAppNavigationItem
-				v-for="item in footerItems"
-				:key="item.id"
-				:pinned="true"
-				:name="resolveLabel(item)"
-				:to="itemTo(item)"
-				:exact="isExact(item)"
-				:icon="cssIconClass(item)"
-				:active="isActive(item)"
-				:data-testid="`cn-nav-entry-${item.id}`"
-				@click="onItemClick(item, $event)">
-				<template v-if="mdiIconComponent(item)" #icon>
-					<component :is="mdiIconComponent(item)" :size="20" />
-				</template>
-				<template v-if="resolveCount(item)" #counter>
-					<NcCounterBubble
-						:count="resolveCount(item)"
-						:active="isActive(item)" />
-				</template>
-			</NcAppNavigationItem>
 		</template>
-		<template v-if="showSettingsFoldout" #footer>
+		<template v-if="footerItems.length > 0 || showSettingsFoldout" #footer>
+			<!-- Footer-section entries (Documentation, Features & Roadmap,
+			     About) live in NcAppNavigation's #footer slot — OUTSIDE the
+			     scrollable list — so they stay visible above the settings
+			     foldout no matter how long the main menu is. The pinned-prop
+			     approach only bottom-pinned while the list did not overflow. -->
+			<ul v-if="footerItems.length > 0" class="cn-app-nav__footer-list">
+				<NcAppNavigationItem
+					v-for="item in footerItems"
+					:key="item.id"
+					:name="resolveLabel(item)"
+					:to="itemTo(item)"
+					:exact="isExact(item)"
+					:icon="cssIconClass(item)"
+					:active="isActive(item)"
+					:data-testid="`cn-nav-entry-${item.id}`"
+					@click="onItemClick(item, $event)">
+					<template v-if="mdiIconComponent(item)" #icon>
+						<component :is="mdiIconComponent(item)" :size="20" />
+					</template>
+					<template v-if="resolveCount(item)" #counter>
+						<NcCounterBubble
+							:count="resolveCount(item)"
+							:active="isActive(item)" />
+					</template>
+				</NcAppNavigationItem>
+			</ul>
 			<!-- Settings foldout (section: "settings" items). NC-native
 			     gear-icon button that slides open a panel; the first entry
 			     is an auto-prepended "Personal settings" that opens the
@@ -791,13 +794,20 @@ export default {
 }
 
 /*
- * Footer-section items (section: "footer") now use NcAppNavigationItem's
- * native `pinned` prop — NC bottom-pins them via its own
- * `order: 2; margin-top: auto` rule. The previous hand-rolled
- * `.cn-app-nav__footer-list` <ul> wrapper (with overflow/padding/border
- * overrides) was the non-native bit that fought NC's layout and has been
- * removed entirely.
+ * Footer-section items (section: "footer") render in NcAppNavigation's
+ * #footer slot, outside the scroll container, so they stay visible above
+ * the settings foldout regardless of menu length. (The interim
+ * `pinned`-prop approach kept them inside the scrollable list, where
+ * `margin-top: auto` only bottom-pins while the list does not overflow —
+ * long menus showed Documentation / Features & roadmap mid-scroll.)
+ * The <ul> only resets list chrome and aligns with the 16px icon inset
+ * of the main list; NC's own footer layout does the rest.
  */
+.cn-app-nav__footer-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
 
 /*
  * Align the settings foldout's items with the main/footer list items,
