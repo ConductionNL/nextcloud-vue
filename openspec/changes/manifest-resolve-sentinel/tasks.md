@@ -63,7 +63,7 @@
 
 ## Phase 5 — Coordinated consumer updates
 
-- [~] After this change merges, update mydash / larpingapp /
+- [x] After this change merges, update mydash / larpingapp /
       softwarecatalog adoption changes (already merged at Phase 3)
       to drop their local pre-processor sketches and consume the
       canonical sentinel. Track via per-app issues, not blocking PRs
@@ -72,7 +72,7 @@
 
 ## Phase 6 — Cross-app coordination
 
-- [~] Reference this change from `hydra/openspec/architecture/adr-024-app-manifest.md`
+- [x] Reference this change from `hydra/openspec/architecture/adr-024-app-manifest.md`
       under "Loader extensions" — the sentinel is a stable extension
       point of the canonical loader. [DEFERRED — lives in the hydra
       repo (separate change); will be folded into the next ADR-024

@@ -10,7 +10,7 @@
         `installIntegrationRegistry()` replays it into the singleton
       - leaf-after-another-leaf-stub → appends to the existing queue
       - delegates validation: missing tab/widget still throws (live path)
-- [~] Docs: extend `docs/store/...`/integration docs with a "Path 2 — ship
+- [x] Docs: extend `docs/store/...`/integration docs with a "Path 2 — ship
       a bespoke component" section showing the helper + the per-app PHP
       `addInitScript` + the separate webpack entry. (registry doc page.)
       — DEFERRED: helper documented in JSDoc on `registerIntegration` itself
@@ -22,7 +22,7 @@
 ## Verification
 
 - [x] `npm test -- registerIntegration` passes.
-- [~] Proven end-to-end by the openconnector companion PR (global bundle
+- [x] Proven end-to-end by the openconnector companion PR (global bundle
       registers a "Synced from" component that renders on an OpenCatalogi
       publication detail page). — DEFERRED: the companion PR lives in the
       consuming app repo and is not gated here.

@@ -49,7 +49,7 @@
       header on `fetchAuditTrails` and `fetchGlobalAuditTrails`.
       Optional `organisationFilter` parameter on the statistics
       endpoint is deferred until the OR endpoint accepts it (`[~]`).
-- [~] Optional `organisationFilter` parameter on the audit-trail
+- [x] Optional `organisationFilter` parameter on the audit-trail
       statistics endpoint — deferred (waits for OR companion endpoint).
 - [x] Update `src/store/plugins/relations.js` to pass the org header
       on `fetchUses`, `fetchUsed`, and contract endpoints (relations
@@ -111,14 +111,14 @@
 - [x] Add `docs/multi-tenancy.md` describing the FE contract, the
       `X-OpenRegister-Organisation` header, and the rationale (link
       to OR's `MultiTenancyTrait`).
-- [~] Cross-reference this change from
+- [x] Cross-reference this change from
       `hydra/openspec/architecture/adr-022-apps-consume-or-abstractions.md`
       under "absorbed abstractions" once shipped (deferred — ADR
       change lives in the hydra repo, outside this worktree).
 
 ## Phase 7 — Companion OR-side validation
 
-- [~] Open a sibling change in `openregister/openspec/changes/`
+- [x] Open a sibling change in `openregister/openspec/changes/`
       (`multi-tenancy-header-validation`) implementing server-side
       validation of `X-OpenRegister-Organisation`: when present, OR
       MUST compare against the session-resolved active organisation;

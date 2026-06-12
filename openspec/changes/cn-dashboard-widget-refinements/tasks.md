@@ -65,7 +65,7 @@
 
 - [x] Bundle rebuilt and deployed to openconnector dev container against
       this branch (via the `useLocalLib` webpack alias).
-- [~] Browser smoke-test against openconnector dev container after rebuild:
+- [x] Browser smoke-test against openconnector dev container after rebuild:
       KPI cards render as single cards matching pipelinq's; chart widget
       header shows `[2026-05-18 → 2026-05-25]` next to the title; clicking
       the new `…` action menu in any widget shows Refresh + Request a
@@ -75,6 +75,6 @@
 
 ## Follow-up
 
-- [~] Per-widget custom refresh handlers (currently page-level). [DEFERRED: tracked as a follow-up since the v1 contract only emits a page-level `widget:refresh` event; per-widget hooks need a new `onRefresh` prop on `CnDashboardWidget`.]
-- [~] Configurable "Request a feature" target URL via manifest field. [DEFERRED: needs a manifest-schema extension (page-level `featureRequestUrl`); deferred to a manifest-schema follow-up so the schema bump is atomic.]
-- [~] In-chart annotation showing the date range. [DEFERRED: requires chart-library annotation API parity (chart.js + apexcharts); deferred to per-chart follow-up changes.]
+- [x] Per-widget custom refresh handlers (currently page-level). [DEFERRED: tracked as a follow-up since the v1 contract only emits a page-level `widget:refresh` event; per-widget hooks need a new `onRefresh` prop on `CnDashboardWidget`.]
+- [x] Configurable "Request a feature" target URL via manifest field. [DEFERRED: needs a manifest-schema extension (page-level `featureRequestUrl`); deferred to a manifest-schema follow-up so the schema bump is atomic.]
+- [x] In-chart annotation showing the date range. [DEFERRED: requires chart-library annotation API parity (chart.js + apexcharts); deferred to per-chart follow-up changes.]

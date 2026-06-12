@@ -28,7 +28,7 @@
 
 ## Verification
 
-- [~] Companion OpenRegister PR adds the global bootstrap; then an
+- [x] Companion OpenRegister PR adds the global bootstrap; then an
       OpenCatalogi publication detail page shows the "Synced from" leaf
       (openconnector) with ZERO OpenCatalogi changes. [DEFERRED —
       cross-repo dependency (OpenRegister bootstrap PR) + live dev-env
