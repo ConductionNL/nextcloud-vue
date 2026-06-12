@@ -24,6 +24,11 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-form-dialog"
 			data-testid-phase="form">
+			<!-- Form-level error (e.g. server validation) — keeps the form visible so the user can fix the data -->
+			<NcNoteCard v-if="formError" type="error" data-testid="cn-form-dialog-error">
+				{{ formError }}
+			</NcNoteCard>
+
 			<!-- Full form override slot -->
 			<slot
 				v-if="$scopedSlots.form"
@@ -322,6 +327,7 @@ import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -432,6 +438,13 @@ export default {
 		ContentSaveOutline,
 	},
 
+	inject: {
+		_cnTenantContext: {
+			from: TENANT_CONTEXT_KEY,
+			default: null,
+		},
+	},
+
 	props: {
 		/** Schema for auto-generating fields. Either schema or fields must be provided. */
 		schema: {
@@ -534,6 +547,8 @@ export default {
 			errors: {},
 			loading: false,
 			result: null,
+			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
+			formError: null,
 			closeTimeout: null,
 			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
 			asyncState: {},
@@ -733,20 +748,49 @@ export default {
 				}
 				this.formData = data
 			}
+			// Multi-tenancy auto-fill (multi-tenancy-context REQ-MT-4).
+			// When the schema declares an `organisation` field and the
+			// active form data does NOT already carry a value for it,
+			// stamp the active organisation UUID from the shared
+			// tenant context. Explicit values in `item` win — they are
+			// already in `formData` at this point so the guard below
+			// is correct on both create and edit paths.
+			this._autofillTenant()
 			this.errors = {}
+			this.formError = null
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
 			this.touchedFields = {}
 			this.initAsyncFields()
 		},
 
+		/**
+		 * Auto-fill the `organisation` field with the active tenant UUID
+		 * when the schema declares such a field and no value is already
+		 * set (explicit `item` data wins).
+		 *
+		 * Spec: multi-tenancy-context REQ-MT-4.
+		 */
+		_autofillTenant() {
+			const ctx = this._cnTenantContext
+			if (!ctx) return
+			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
+			if (!uuid) return
+			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
+			if (!hasOrgField) return
+			const current = this.formData.organisation
+			if (current !== null && current !== undefined && current !== '') return
+			this.$set(this.formData, 'organisation', uuid)
+		},
+
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
 			this.$set(this.touchedFields, key, true)
-			// Clear error when field is edited
+			// Clear errors when a field is edited
 			if (this.errors[key]) {
 				this.$delete(this.errors, key)
 			}
+			this.formError = null
 		},
 
 		/**
@@ -1218,6 +1262,7 @@ export default {
 			if (!this.validate()) return
 			if (!this.jsonFieldsValid) return
 
+			this.formError = null
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user confirms the form.
@@ -1269,15 +1314,19 @@ export default {
 		},
 
 		/**
-		 * Set per-field validation errors from the server. Call this from
-		 * the parent when the API returns validation errors.
+		 * Set validation errors from the server WITHOUT leaving the form phase,
+		 * so the user can correct the data. Call this from the parent (instead
+		 * of `setResult`) when the API returns a validation error.
 		 *
-		 * @param {object} fieldErrors Object keyed by field key with error messages
+		 * @param {object} [fieldErrors] Object keyed by field key with per-field error messages
+		 * @param {string} [message] Form-level message shown in an error note above the fields
 		 * @public
 		 */
-		setValidationErrors(fieldErrors) {
+		setValidationErrors(fieldErrors = {}, message = null) {
 			this.loading = false
+			this.result = null
 			this.errors = { ...this.errors, ...fieldErrors }
+			this.formError = message
 		},
 	},
 }

@@ -278,7 +278,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
@@ -431,7 +430,14 @@ export default {
 	},
 	methods: {
 		t,
-		capitalize: _.capitalize,
+
+		// Replaces the deprecated global `_.capitalize` (Nextcloud's bundled underscore).
+		capitalize(str) {
+			if (!str) {
+				return ''
+			}
+			return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+		},
 
 		/**
 		 * Set the schema-level `inheritFromPublic` flag.

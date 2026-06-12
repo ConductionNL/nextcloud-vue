@@ -27,6 +27,7 @@
 
 ### Slots
 
-| Name   | Bindings | Description |
-| ------ | -------- | ----------- |
-| `icon` | —        |             |
+| Name    | Bindings             | Description                                                                                                                                                                                                   |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon`  | —                    |                                                                                                                                                                                                               |
+| `value` | `count`, `formatted` | Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` stays the raw number; this is presentation only. Defaults to the localized count. |

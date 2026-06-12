@@ -1,5 +1,7 @@
 import { createSubResourcePlugin, emptyPaginated } from '../createSubResourcePlugin.js'
-import { buildHeaders, buildQueryString } from '../../utils/headers.js'
+import { buildQueryString } from '../../utils/headers.js'
+// `buildHeaders` is reached via `this._buildHeaders()` so tenant
+// scoping (multi-tenancy-context) survives every audit-trail fetch.
 import { parseResponseError, networkError, genericError } from '../../utils/errors.js'
 
 /**
@@ -118,7 +120,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -165,7 +167,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -203,7 +205,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'DELETE',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 
 					if (!response.ok) {
@@ -247,7 +249,7 @@ export function auditTrailsPlugin(options = {}) {
 
 					const response = await fetch(url, {
 						method: 'DELETE',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 						body: JSON.stringify({ ids }),
 					})
 

@@ -34,6 +34,24 @@ describe('parseResponseError', () => {
 		expect(error.message).toBe('Name is required')
 	})
 
+	it('surfaces a bare-string JSON body as the validation message', async () => {
+		// OpenRegister object-save returns the message as a bare JSON string:
+		// `new JSONResponse(data: $e->getMessage())`, so response.json() is a string.
+		const detail = "Property 'client' should match format 'uuid' but 'alice' does not. Please provide a value in the correct format."
+		const response = {
+			status: 400,
+			statusText: 'Bad Request',
+			json: () => Promise.resolve(detail),
+		}
+
+		const error = await parseResponseError(response, 'pipelinq-contact')
+
+		expect(error.status).toBe(400)
+		expect(error.isValidation).toBe(true)
+		// The real message surfaces instead of "Validation failed for pipelinq-contact".
+		expect(error.message).toBe(detail)
+	})
+
 	it('surfaces the message from an array of { property, message } errors', async () => {
 		const detail = "Property 'slaDeadline' should match format 'date-time' but '2026-06-18T10:14' does not."
 		const response = {

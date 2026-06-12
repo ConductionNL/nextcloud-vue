@@ -19,6 +19,7 @@ import { useObjectStore } from '../store/index.js'
  * @param {number} [options.defaultPageSize] Default `_limit` sent to the API
  * @param {number} [options.debounceMs] Search debounce in milliseconds
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
+ * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
  * @param {object|Function} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @return {object} Reactive state and event handlers
  *
@@ -59,7 +60,10 @@ export function useListView(objectTypeOrOptions, options) {
 	const sortKey = ref(opts.defaultSort?.key || null)
 	const sortOrder = ref(opts.defaultSort?.order || 'asc')
 	const activeFilters = ref({})
-	const visibleColumns = ref(null)
+	// Seed the visible-column set to the configured columns so the sidebar's
+	// Columns tab reflects the curated default and toggles add/remove from it.
+	// `null` (no seed) means "all columns visible" (schema-driven tables).
+	const visibleColumns = ref(opts.defaultVisibleColumns ?? null)
 	const pageSize = ref(opts.defaultPageSize || 20)
 
 	// ── Computed refs from the store ─────────────────────────────────────

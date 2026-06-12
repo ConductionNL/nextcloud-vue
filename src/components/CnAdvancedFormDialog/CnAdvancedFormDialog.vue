@@ -166,6 +166,7 @@ import { fieldsFromSchema } from '../../utils/schema.js'
 import CnPropertiesTab from './CnPropertiesTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnDataTab from './CnDataTab.vue'
+import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
 const EDITABLE_SUPPORTED_TYPES = ['string', 'number', 'integer', 'boolean', 'array', 'object']
@@ -194,6 +195,13 @@ export default {
 		CnPropertiesTab,
 		CnMetadataTab,
 		CnDataTab,
+	},
+
+	inject: {
+		_cnTenantContext: {
+			from: TENANT_CONTEXT_KEY,
+			default: null,
+		},
 	},
 
 	props: {
@@ -457,9 +465,30 @@ export default {
 				}
 				this.formData = data
 			}
+			// Multi-tenancy auto-fill (multi-tenancy-context REQ-MT-4) —
+			// stamp the active organisation when the schema declares it
+			// and the form does not already carry a value.
+			this._autofillTenant()
 			this.jsonData = JSON.stringify(this.formData, null, 2)
 			this.errors = {}
 			this.selectedProperty = null
+		},
+
+		/**
+		 * Auto-fill the `organisation` field with the active tenant UUID
+		 * when the schema declares such a field and no value is already
+		 * set (explicit `item` data wins).
+		 */
+		_autofillTenant() {
+			const ctx = this._cnTenantContext
+			if (!ctx) return
+			const uuid = ctx.activeOrganisationUuid && ctx.activeOrganisationUuid.value
+			if (!uuid) return
+			const hasOrgField = this.resolvedFields.some((f) => f.key === 'organisation')
+			if (!hasOrgField) return
+			const current = this.formData.organisation
+			if (current !== null && current !== undefined && current !== '') return
+			this.$set(this.formData, 'organisation', uuid)
 		},
 
 		updateField(key, value) {

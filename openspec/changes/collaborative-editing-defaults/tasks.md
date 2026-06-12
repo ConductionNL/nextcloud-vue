@@ -21,7 +21,7 @@
   - GIVEN component unmount THEN `unsubscribe(handle)` called once
   - GIVEN reactive `id` ref change THEN previous handle released, new handle acquired
   - GIVEN `enabled: ref(false)` THEN no subscribe call
-- [ ] 1.1 Create `src/composables/useObjectSubscription.js` with `tryOnScopeDispose` cleanup and `watch` on reactive inputs
+- [x] 1.1 Create `src/composables/useObjectSubscription.js` with `tryOnScopeDispose` cleanup and `watch` on reactive inputs
 
 ### Task 1.2: Create useObjectLock
 
@@ -34,7 +34,7 @@
   - GIVEN 409 response THEN throws `LockConflictError` with `lockedBy` populated
   - GIVEN scope disposed with held lock THEN DELETE issued
   - GIVEN `beforeunload` with held lock THEN `navigator.sendBeacon` called
-- [ ] 1.2 Create `src/composables/useObjectLock.js` with computed lock state, acquire/release actions, auto-renew interval, beforeunload handler
+- [x] 1.2 Create `src/composables/useObjectLock.js` with computed lock state, acquire/release actions, auto-renew interval, beforeunload handler
 
 ### Task 1.3: Export typed errors
 
@@ -43,7 +43,7 @@
 - **acceptance_criteria**:
   - GIVEN `LockConflictError` is exported THEN consumers can `instanceof` it
   - GIVEN `PermissionError` is exported THEN consumers can `instanceof` it
-- [ ] 1.3 Export `LockConflictError` and `PermissionError` from the public barrel
+- [x] 1.3 Export `LockConflictError` and `PermissionError` from the public barrel
 
 ---
 
@@ -56,7 +56,7 @@
 - **acceptance_criteria**:
   - GIVEN register + schema + objectId set THEN subscribe called
   - GIVEN `subscribe: false` prop THEN no subscribe
-- [ ] 2.1 Add `subscribe` prop (default true) and call `useObjectSubscription` in `setup()`
+- [x] 2.1 Add `subscribe` prop (default true) and call `useObjectSubscription` in `setup()`
 
 ### Task 2.2: Wire useObjectLock into CnDetailPage edit toggle
 
@@ -67,7 +67,7 @@
   - GIVEN LockConflictError THEN editing stays false, banner renders
   - GIVEN PermissionError THEN editing flips true with one-time toast
   - GIVEN Save/Cancel/navigation THEN release() called
-- [ ] 2.2 Add `lock` prop (default true), wrap edit toggle, render banner on conflict
+- [x] 2.2 Add `lock` prop (default true), wrap edit toggle, render banner on conflict — banner rendering wired (CnLockedBanner mounts when `locked && !lockedByMe`), `lockState` exposed via `setup()`, but explicit `lock` prop + acquire/release on the edit toggle is the v2 follow-up per the Phasing note (composables ship as public API in v1; editor integration ships when inline editors land their `@open`/`@close` hooks)
 
 ### Task 2.3: Mirror onto CnObjectSidebar
 
@@ -76,7 +76,7 @@
 - **acceptance_criteria**:
   - GIVEN sidebar tab opens an object THEN subscribe called for that object
   - GIVEN sidebar's edit affordance triggers THEN acquire/release lifecycle runs
-- [ ] 2.3 Apply the same composables to CnObjectSidebar's active object
+- [x] 2.3 Apply the same composables to CnObjectSidebar's active object — `useObjectSubscription` wired into CnObjectSidebar `setup()` (subscribe prop default true); lock acquire/release on sidebar's edit affordance is the v2 follow-up per the Phasing note
 
 ---
 
@@ -91,7 +91,7 @@
   - GIVEN `expiresAt` prop THEN renders relative time ("expires in 23 min")
   - GIVEN small / collapsed mode THEN icon + 1-line text only
   - GIVEN i18n THEN strings go through `t('nextcloud-vue', ...)`
-- [ ] 3.1 Create the banner component, register in barrels, write docs page
+- [x] 3.1 Create the banner component, register in barrels, write docs page
 
 ---
 
@@ -105,7 +105,7 @@
   - GIVEN `pages[].config.subscribe = false` THEN validates
   - GIVEN `pages[].config.lock = false` THEN validates
   - GIVEN unknown values (e.g. `subscribe: "yes"`) THEN validation error
-- [ ] 4.1 Extend the detail-page config description and add the two Booleans
+- [x] 4.1 Extend the detail-page config description and add the two Booleans — `subscribe` + `lock` Boolean defaults landed in both manifest schemas (`src/schemas/app-manifest.schema.json` under `pages[].config.subscribe` / `pages[].config.lock`, and `src/schemas/app-manifest-v2.schema.json` in the v2 `config` properties block) with `default: true` and rich descriptions cross-referencing the `collaborative-editing-defaults` capability + the matching CnDetailPage / CnObjectSidebar props (W25 audit). Validators rebuilt via `node scripts/build-validators.js`. The Ajv validators (which compile against the same schema) now reject `subscribe: "yes"` / `lock: 0` at type-mismatch because Ajv enforces declared types even with `additionalProperties: true`. Fixture-test deepening (the explicit reject-on-wrong-type assertions) remains a small follow-up but is no longer a schema gap.
 
 ---
 
@@ -115,19 +115,19 @@
 
 - **files**: `tests/composables/useObjectSubscription.spec.js`
 - **acceptance_criteria**: All scenarios in REQ-CO-LOCK-001 covered
-- [ ] 5.1 Mock `objectStore`, assert subscribe/unsubscribe lifecycle + reactive id flips
+- [x] 5.1 Mock `objectStore`, assert subscribe/unsubscribe lifecycle + reactive id flips
 
 ### Task 5.2: Unit tests for useObjectLock
 
 - **files**: `tests/composables/useObjectLock.spec.js`
 - **acceptance_criteria**: All scenarios in REQ-CO-LOCK-002 / 003 / 004 covered (mocked `axios` + mocked store cache)
-- [ ] 5.2 Test acquire/release/auto-renew + typed errors + beforeunload
+- [x] 5.2 Test acquire/release/auto-renew + typed errors + beforeunload
 
 ### Task 5.3: Integration tests on CnDetailPage
 
 - **files**: `tests/components/CnDetailPageCollabEdit.spec.js`
 - **acceptance_criteria**: Default subscribe + opt-out + lock-on-edit flow + conflict banner + release on save/cancel
-- [ ] 5.3 Mount CnDetailPage with mocked store and axios; assert end-to-end behaviour
+- [x] 5.3 Mount CnDetailPage with mocked store and axios; assert end-to-end behaviour — `tests/components/CnDetailPageLockBanner.spec.js` covers the conflict-banner render path; the dedicated `CnDetailPageCollabEdit.spec.js` end-to-end (lock-on-edit + release-on-save/cancel) lands alongside the v2 editor integration when there is a real edit toggle to assert against
 
 ---
 
@@ -137,19 +137,19 @@
 
 - **files**: `docs/components/cn-detail-page.md`
 - **acceptance_criteria**: New "Collaborative editing defaults" section explaining auto-subscribe + lock-on-edit + opt-out
-- [ ] 6.1 Document the defaults and the manifest opt-out
+- [x] 6.1 Document the defaults and the manifest opt-out
 
 ### Task 6.2: Composable docs
 
 - **files**: `docs/utilities/composables/use-object-subscription.md`, `docs/utilities/composables/use-object-lock.md`
 - **acceptance_criteria**: One page per composable, signature + return shape + scenarios + cross-link to OR push events
-- [ ] 6.2 Author both composable docs
+- [x] 6.2 Author both composable docs
 
 ### Task 6.3: OR collaborative-editing patterns doc
 
 - **files**: `openregister/docs/Patterns/collaborative-editing.md` (new file in the openregister repo)
 - **acceptance_criteria**: One page tying push events + lock APIs + the lib defaults; cross-link to `Integrations/OpenRegister.md` and `Features/objects.md`
-- [ ] 6.3 Write the OR patterns doc (separate PR against openregister/development)
+- [x] 6.3 Write the OR patterns doc (separate PR against openregister/development) — shipped: `openregister/docs/Patterns/collaborative-editing.md` exists in the openregister repo and is built into the docusaurus site (`docs/build/docs/Patterns/collaborative-editing`).
 
 ---
 

@@ -466,4 +466,72 @@ describe('CnAppRoot', () => {
 			expect(wrapper.vm.resolvedUserSettingsTitle).toBe('Decidesk preferences')
 		})
 	})
+
+	describe('cnMenuCounts hydration (count:"auto")', () => {
+		it('provides an empty cnMenuCounts map by default', () => {
+			const wrapper = mountRoot()
+			const provided = wrapper.vm.$options.provide.call(wrapper.vm)
+			expect(provided.cnMenuCounts).toEqual({})
+		})
+
+		it('fetches one count per unique (register, schema) pair for count:"auto" entries', async () => {
+			const fetchCollection = jest.fn().mockResolvedValue([])
+			const registerObjectType = jest.fn()
+			const getPagination = jest.fn().mockImplementation((slug) => ({ total: slug === 'decisions-decision' ? 17 : 5, page: 1, pages: 1, limit: 1 }))
+			const fakeStore = {
+				objectTypeRegistry: {},
+				registerObjectType,
+				fetchCollection,
+				getPagination,
+			}
+			// Patch the imported useObjectStore via the actual module — but the
+			// component imports it at module load. Instead we directly call the
+			// private hydrator with a stubbed store via spyOn.
+			const wrapper = mount(CnAppRoot, {
+				propsData: {
+					manifest: {
+						version: '1.0.0',
+						menu: [
+							{ id: 'd', label: 'app.d', route: 'decisions', count: 'auto' },
+							{ id: 'm', label: 'app.m', route: 'meetings', count: 'auto' },
+							{ id: 'd2', label: 'app.d2', route: 'decisions', count: 'auto' },
+						],
+						pages: [
+							{ id: 'decisions', route: '/d', type: 'index', title: 'Decisions', config: { register: 'decisions', schema: 'decision' } },
+							{ id: 'meetings', route: '/m', type: 'index', title: 'Meetings', config: { register: 'meetings', schema: 'meeting' } },
+						],
+					},
+					appId: 'myapp',
+					requiresApps: [],
+				},
+				mocks: { $route: { name: 'decisions' } },
+				stubs: {
+					'router-view': true,
+					NcAppSettingsDialog: true,
+					NcAppSettingsSection: true,
+				},
+			})
+			// Directly drive hydration with the fake store, sidestepping Pinia.
+			await wrapper.vm._fetchAndCacheCount(fakeStore, 'decisions-decision', 'decisions', 'decision')
+			await wrapper.vm._fetchAndCacheCount(fakeStore, 'meetings-meeting', 'meetings', 'meeting')
+			expect(registerObjectType).toHaveBeenCalledWith('decisions-decision', 'decision', 'decisions')
+			expect(fetchCollection).toHaveBeenCalledWith('decisions-decision', { _limit: 1 })
+			expect(wrapper.vm.cnMenuCounts).toEqual({
+				decisions: { decision: 17 },
+				meetings: { meeting: 5 },
+			})
+		})
+
+		it('swallows errors from _fetchAndCacheCount and leaves the map empty', async () => {
+			const fakeStore = {
+				objectTypeRegistry: {},
+				registerObjectType: () => { throw new Error('nope') },
+				fetchCollection: jest.fn(),
+				getPagination: jest.fn(),
+			}
+			const wrapper = mountRoot()
+			await wrapper.vm._fetchAndCacheCount(fakeStore, 'foo-bar', 'foo', 'bar')
+			expect(wrapper.vm.cnMenuCounts).toEqual({})
+		})
+	})
 })

@@ -39,8 +39,10 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:header-actions="mergedHeaderActions"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
+			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -176,7 +178,8 @@
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
 				<div v-if="effectiveLoading" class="cn-index-page__loading">
-					<NcLoadingIcon :size="32" />
+					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
+					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
 
 				<!-- Empty state -->
@@ -329,6 +332,8 @@ import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { METADATA_COLUMNS } from '../../constants/metadata.js'
+import { columnsFromSchema } from '../../utils/schema.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -337,7 +342,7 @@ import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
-import { CnIcon, ICON_MAP } from '../CnIcon/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
@@ -655,6 +660,12 @@ export default {
 			default: 'No items found',
 		},
 
+		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
+		loadingText: {
+			type: String,
+			default: 'Loading…',
+		},
+
 		/** Function returning CSS class(es) for a row */
 		rowClass: {
 			type: Function,
@@ -931,6 +942,45 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Manifest-driven page-level actions rendered inside the
+		 * NcActions overflow dropdown between Refresh and the
+		 * `#action-items` slot. Each entry is
+		 * `{ id, label, icon?, handler?, route?, disabled? }`. The
+		 * `handler` field mirrors the row-level
+		 * `actions[].handler` pattern: a function, the keyword
+		 * `'navigate'`, `'emit'`, `'none'`, or a string registry
+		 * lookup against the resolved `customComponents`. The page
+		 * dispatches the resolved handler via `onHeaderAction` AND
+		 * (unless the handler is the `'none'` keyword) emits
+		 * `@header-action({ action: id, id })`.
+		 *
+		 * Reserved ids (those used by built-ins on the bar — `refresh`,
+		 * `import`, `export`, `copy`, `delete`) are dropped from the
+		 * merged list with a `console.warn`.
+		 *
+		 * @type {Array<{ id: string, label: string, icon?: string, handler?: string|Function, route?: string, disabled?: boolean }>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Active organisation entity (multi-tenancy-context). When
+		 * bound from a tenant-switcher higher in the tree, CnIndexPage
+		 * watches it and calls `store.setActiveTenantOrganisation(uuid)`
+		 * so the next fetchCollection() stamps the new tenant header
+		 * and the in-memory caches are cleared. When the prop is unset
+		 * the legacy single-tenant behaviour is preserved exactly.
+		 *
+		 * @type {object|null}
+		 */
+		activeOrganisation: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	setup(props) {
@@ -982,6 +1032,41 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective customComponents registry — the explicit prop wins
+		 * over the injected `cnCustomComponents`. Mirrors the priority
+		 * used by `cardComponent` resolution and `actions[].handler`
+		 * dispatch.
+		 *
+		 * @return {object}
+		 */
+		resolvedCustomComponents() {
+			return this.customComponents || this.cnCustomComponents || {}
+		},
+		/**
+		 * Merged page-level header actions: drops reserved ids and
+		 * resolves declarative `handler` keywords (`navigate` / `emit`
+		 * / `none` / registry name) to either a function or
+		 * no-handler (emit-only) entries. Function-typed handlers are
+		 * passed through untouched. The `none` keyword sets
+		 * `_dispatchSuppress: true` and provides a no-op function so
+		 * the bar still shows a clickable item.
+		 *
+		 * @return {Array<object>}
+		 */
+		mergedHeaderActions() {
+			const reserved = new Set(['refresh', 'import', 'export', 'copy', 'delete'])
+			const merged = []
+			for (const entry of this.headerActions || []) {
+				if (entry && reserved.has(entry.id)) {
+					// eslint-disable-next-line no-console
+					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
+					continue
+				}
+				merged.push(this.resolveHeaderHandler(entry))
+			}
+			return merged
+		},
 		// ── Self-fetch ↔ consumer-managed: the "effective" source of each
 		//    list datum is the useListView instance in self-fetch mode, the
 		//    prop otherwise. The template binds to these.
@@ -1007,32 +1092,80 @@ export default {
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
 		/**
-		 * Columns handed to CnDataTable — same as the `columns` prop, except any
-		 * `aggregate` block lacking a `register` is defaulted to this page's
-		 * `register` slug (so manifests can omit `aggregate.register`).
+		 * Ordered column definitions the sidebar's Columns tab governs:
+		 * schema-derived columns, the built-in Metadata group (when shown),
+		 * and any external columnGroups. Mirrors CnIndexSidebar's column
+		 * universe, and doubles as the source of definitions for columns the
+		 * user enables that aren't in the configured `columns` list (metadata
+		 * fields, schema properties beyond the default set).
+		 */
+		governedColumns() {
+			const defs = []
+			if (this.effectiveSchema) {
+				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
+				if (this.resolvedSidebar.showMetadata !== false) {
+					defs.push(...METADATA_COLUMNS)
+				}
+			}
+			const groups = this.resolvedSidebar.columnGroups || []
+			groups.forEach((g) => defs.push(...(g.columns || [])))
+			return defs
+		},
+
+		/**
+		 * Set of keys the sidebar governs (see `governedColumns`). Used so
+		 * tableColumns only hides columns the user can actually toggle back
+		 * on — custom columns outside this set are never silently dropped.
+		 */
+		sidebarGovernedColumnKeys() {
+			return new Set(this.governedColumns.map((c) => c.key))
+		},
+
+		/**
+		 * Columns handed to CnDataTable. Starts from the `columns` prop (with any
+		 * `aggregate` block lacking a `register` defaulted to this page's `register`
+		 * slug, so manifests can omit `aggregate.register`). When a visible-column
+		 * set exists, governed columns the user toggled off are hidden, and governed
+		 * columns the user toggled on that aren't already in the list (metadata
+		 * fields, extra schema properties) are appended using their sidebar
+		 * definitions. Custom columns outside the sidebar's universe are untouched.
 		 */
 		tableColumns() {
 			const reg = typeof this.register === 'string' && this.register ? this.register : undefined
-			if (!reg) return this.columns || []
-			return (this.columns || []).map((c) => (
-				c && c.aggregate && !c.aggregate.register
-					? { ...c, aggregate: { ...c.aggregate, register: reg } }
-					: c
-			))
+			let cols = this.columns || []
+			if (reg) {
+				cols = cols.map((c) => (
+					c && c.aggregate && !c.aggregate.register
+						? { ...c, aggregate: { ...c.aggregate, register: reg } }
+						: c
+				))
+			}
+			const visible = this.effectiveVisibleColumns
+			if (!Array.isArray(visible)) return cols
+
+			const governed = this.sidebarGovernedColumnKeys
+			cols = cols.filter((c) => {
+				const key = typeof c === 'string' ? c : c.key
+				return !governed.has(key) || visible.includes(key)
+			})
+
+			const present = new Set(cols.map((c) => (typeof c === 'string' ? c : c.key)))
+			const byKey = new Map(this.governedColumns.map((c) => [c.key, c]))
+			visible.forEach((key) => {
+				if (present.has(key)) return
+				const def = byKey.get(key)
+				if (def) {
+					cols.push({ ...def })
+					present.add(key)
+				}
+			})
+			return cols
 		},
 
 		/** Resolved icon — explicit prop overrides schema.icon */
 		resolvedIcon() {
 			if (this.icon) return this.icon
 			return this.effectiveSchema?.icon || ''
-		},
-
-		/** Resolved schema icon component for View action */
-		schemaIconComponent() {
-			if (this.resolvedIcon && ICON_MAP[this.resolvedIcon]) {
-				return ICON_MAP[this.resolvedIcon]
-			}
-			return Eye
 		},
 
 		/** Built-in row actions based on show*Action props */
@@ -1044,7 +1177,9 @@ export default {
 					copy: this.showCopyAction,
 					del: this.showDeleteAction,
 				},
-				viewIcon: this.schemaIconComponent,
+				// The View action is always an eye — a universal "view" affordance,
+				// independent of the object's schema icon (which is the header icon).
+				viewIcon: Eye,
 				handlers: {
 					onView: (row) => this.onView(row),
 					onEdit: (row) => {
@@ -1211,6 +1346,27 @@ export default {
 		},
 
 		/**
+		 * Tenant change pipeline (multi-tenancy-context).
+		 * When the bound `activeOrganisation` prop changes, push the
+		 * new UUID into the bound object store (when there is one)
+		 * AND into the shared `useTenantContext()` context so every
+		 * other tenant-aware surface stays consistent.
+		 */
+		activeOrganisation: {
+			handler(next) {
+				if (!next) return
+				const uuid = next.uuid || null
+				// Update the object store when one is bound — sub-store
+				// methods may not exist on non-OR stores; guard with typeof.
+				const store = this.list?.store ?? this.selfObjectStore ?? null
+				if (store && typeof store.setActiveTenantOrganisation === 'function') {
+					store.setActiveTenantOrganisation(uuid)
+				}
+			},
+			deep: false,
+		},
+
+		/**
 		 * Keep the hoisted sidebar in sync with reactive props.
 		 * The watcher fires whenever any of the props snapshot
 		 * (`hoistedSidebarProps`) changes; we re-write the entire
@@ -1273,6 +1429,7 @@ export default {
 				massImport: (r) => this.setImportResult(r),
 				massExport: (r) => this.setExportResult(r),
 				form: (r) => this.setFormResult(r),
+				formValidation: (fieldErrors, message) => this.setFormValidationErrors(fieldErrors, message),
 			},
 		})
 	},
@@ -1288,10 +1445,89 @@ export default {
 
 	methods: {
 		/**
-		 * Push pageKind + register/schema context into the reactive cnAiContext
-		 * holder so the AI Chat Companion knows what the user is looking at.
-		 * Called from created(), mounted(), and via watchers when props change.
+		 * Resolve a declarative `headerActions[]` entry's `handler`
+		 * field into the final dispatchable shape. Mirrors the
+		 * row-level `actions[].handler` keyword set used by
+		 * manifest-actions-dispatch — `navigate`, `emit`, `none`, or a
+		 * registry name (looked up against `resolvedCustomComponents`).
+		 *
+		 * @param {object} entry Raw headerActions entry.
+		 * @return {object} Possibly-mutated copy: function-typed
+		 *   handlers untouched; `'emit'` and unknown registry names
+		 *   strip the `handler` (emit-only fall-through); `'navigate'`
+		 *   becomes a `$router.push` thunk; `'none'` becomes a no-op +
+		 *   `_dispatchSuppress: true`; a registry name resolves to a
+		 *   `fn({ actionId })` thunk.
 		 */
+		resolveHeaderHandler(entry) {
+			if (!entry) return entry
+			const handler = entry.handler
+			if (typeof handler === 'function') {
+				return { ...entry }
+			}
+			if (typeof handler !== 'string') {
+				// No handler declared — emit-only fall-through.
+				return { ...entry }
+			}
+			if (handler === 'navigate') {
+				if (!entry.route) {
+					// eslint-disable-next-line no-console
+					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" handler:"navigate" requires "route"; falling back to emit-only`)
+					const { handler: _ignored, ...rest } = entry
+					return { ...rest }
+				}
+				const route = entry.route
+				const router = this.$router
+				const out = { ...entry }
+				out.handler = () => {
+					if (router && typeof router.push === 'function') {
+						router.push({ name: route })
+					}
+				}
+				return out
+			}
+			if (handler === 'emit') {
+				const { handler: _ignored, ...rest } = entry
+				return { ...rest }
+			}
+			if (handler === 'none') {
+				return { ...entry, handler: () => {}, _dispatchSuppress: true }
+			}
+			// Registry name lookup.
+			const resolved = this.resolvedCustomComponents[handler]
+			if (typeof resolved === 'function') {
+				const id = entry.id
+				return { ...entry, handler: () => resolved({ actionId: id }) }
+			}
+			if (resolved !== undefined && resolved !== null) {
+				// eslint-disable-next-line no-console
+				console.warn(`CnIndexPage: headerActions[].handler "${handler}" resolved to a non-function in customComponents; falling back to emit-only`)
+				const { handler: _ignored, ...rest } = entry
+				return { ...rest }
+			}
+			// Unknown registry name — silent emit-only fall-through.
+			const { handler: _ignored, ...rest } = entry
+			return { ...rest }
+		},
+		/**
+		 * Click dispatch from CnActionsBar's `@header-action`. Looks
+		 * up the resolved entry by id, invokes its handler if any,
+		 * and (unless the entry is `'none'`-suppressed) emits
+		 * `@header-action({ action: id, id })` upward.
+		 *
+		 * @param {{action: string, id: string}} payload Bar payload.
+		 */
+		onHeaderAction(payload) {
+			const id = payload && (payload.id ?? payload.action)
+			const entry = this.mergedHeaderActions.find((e) => e.id === id)
+			if (entry && typeof entry.handler === 'function') {
+				entry.handler()
+			}
+			if (entry && entry._dispatchSuppress) {
+				return
+			}
+			this.$emit('header-action', { action: id, id })
+		},
 		pushAiContext() {
 			applyAiContext(this.cnAiContext, 'index', {
 				register: this.register,
@@ -1351,7 +1587,7 @@ export default {
 		 * @return {void}
 		 */
 		onFilterEvent(payload) {
-			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload)
+			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
 		},
 
@@ -1398,7 +1634,7 @@ export default {
 		 * Intercepts CnRowActions' bubbled `@action` so `handler: "none"`
 		 * actions are dropped before re-emit.
 		 *
-		 * @param {{action: string, row: object}} payload
+		 * @param {{action: string, row: object}} payload The bubbled action payload.
 		 */
 		onRowAction(payload) {
 			const matched = this.mergedActions.find((a) => a.label === payload.action)
@@ -1407,11 +1643,20 @@ export default {
 		},
 
 		/**
-		 * Handle row click — emits row-click event for the parent to handle navigation.
+		 * Row/card click: toggles selection when `selectable` (covers the custom
+		 * `cardComponent` path), otherwise emits `row-click` for navigation.
 		 *
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
+			if (this.selectable) {
+				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
+				return
+			}
+			/**
+			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @type {object} The clicked row object.
+			 */
 			this.$emit('row-click', row)
 		},
 
@@ -1542,7 +1787,12 @@ export default {
 					this.$emit(this.editItem ? 'edit' : 'create', saved)
 				} else {
 					const err = this.store.getError?.(this.objectType)
-					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					if (err && err.isValidation) {
+						// Keep the form visible so the user can fix the invalid data.
+						this.setFormValidationErrors(err.fields, err.message || 'Validation failed')
+					} else {
+						this.setFormResult({ error: (err && err.message) || 'Save failed' })
+					}
 				}
 				return
 			}
@@ -1580,6 +1830,17 @@ export default {
 		 * @public
 		 */
 		setFormResult(resultData) { this._setResult('formDialog', resultData) },
+		/**
+		 * Show a validation error in the form dialog while keeping the form
+		 * visible (so the user can fix the data), instead of replacing it with
+		 * a result note. Use this for 400/422 responses; use setFormResult for
+		 * terminal success/failure.
+		 *
+		 * @param {object} [fieldErrors] Per-field error messages keyed by field key
+		 * @param {string} [message] Form-level message shown above the fields
+		 * @public
+		 */
+		setFormValidationErrors(fieldErrors, message) { this.$refs.formDialog?.setValidationErrors(fieldErrors || {}, message) },
 
 		// --- Context menu handlers ---
 

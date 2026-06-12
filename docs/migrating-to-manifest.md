@@ -160,6 +160,28 @@ new Vue({
 }).$mount('#content')
 ```
 
+### Multi-tenant apps — consuming `useTenantContext`
+
+When your app is multi-tenant — users belong to more than one OpenRegister organisation — Tier 4 is the right tier to wire the tenant context. `CnAppRoot` already mounts `provideTenantContext()`; seed it from `initial-state` so the first render scopes correctly:
+
+```vue
+<CnAppRoot
+	:manifest="manifest"
+	app-id="myapp"
+	:initial-organisation-uuid="initialOrgUuid"
+	:initial-organisation="initialOrg" />
+```
+
+Then in any descendant — composables or Options-API mixins — reach for the same surface:
+
+```js
+import { useTenantContext } from '@conduction/nextcloud-vue'
+
+const { activeOrganisationUuid, setActiveTenant, onTenantSwitch } = useTenantContext()
+```
+
+The provider stamps every store fetch with `X-OpenRegister-Organisation`, auto-fills the `organisation` field on `CnFormDialog` / `CnAdvancedFormDialog`, and renders `CnTenantBadge` in the top bar. See [docs/multi-tenancy.md](./multi-tenancy.md) for the full FE contract.
+
 ### Keeping a custom menu in Tier 4
 
 Override the `#menu` slot:
@@ -1082,3 +1104,34 @@ JSON Schema-aware editors (VSCode + the JSON / YAML schema extension) surface in
 Existing v1.0 / v1.1 manifests with `columns: ["title", "status", "deadline"]` (array of strings) keep validating — the `oneOf` admits both the shorthand string form and the typed object form. Detail `config.sidebar: true` / `false` (boolean) likewise keeps validating.
 
 The component-level shapes remain the source of truth at runtime; the `$defs` are the JSON-side contract. See [docs/utilities/manifest-defs.md](utilities/manifest-defs.md) for one-line examples per `$def` plus the full custom-fallback list.
+
+## When to migrate from `type: "custom"` to `type: "index"` via handlers
+
+A frequent reason apps end up on `type: "custom"` is row-action side-effects: the table needs to fire a bespoke handler when a row's "Process" / "Approve" / "Open dashboard" button is clicked. Pre-1.3 manifests had no way to declare that, so consumers wrote a custom page wrapping `CnIndexPage` just to bolt on `@action` listeners.
+
+Schema 1.3.0 adds `actions[].handler` (manifest-actions-dispatch). The handler value resolves through the same `customComponents` registry that backs `type: "custom"` pages. A function entry runs as `fn({ actionId, item })` on click; three reserved keywords (`"navigate"` / `"emit"` / `"none"`) cover the common cases. That removes the original reason for nearly all "we needed `type:custom` for the table" migrations — see opencatalogi #547 (Configurations index) and pipelinq's queue-management page for the reference patterns.
+
+```json
+{
+	"id": "queues",
+	"route": "/queues",
+	"type": "index",
+	"title": "Queues",
+	"config": {
+		"register": "pipelinq",
+		"schema": "queue",
+		"actions": [
+			{ "id": "process", "label": "Process queue", "handler": "queueProcessHandler" },
+			{ "id": "open",    "label": "Open detail",   "handler": "navigate", "route": "queues-detail" }
+		]
+	}
+}
+```
+
+Migration shape:
+1. Replace the `type: "custom"` route with `type: "index"` (or `type: "detail"`).
+2. Declare every row action in `actions[]` with `id` + `label` + `handler`.
+3. Move the custom-page's row-action handlers into `customComponents` as named function exports (the registry already imported by `CnAppRoot`).
+4. Drop the wrapping `.vue` file — `CnIndexPage` now owns the rendering and the handler dispatch.
+
+When a row action has no side-effect (purely declarative, app emits a custom event elsewhere) keep the action declarable as `handler: "emit"`; when it's intentionally read-only use `handler: "none"`. See [CnIndexPage.md → Action handlers](../src/components/CnIndexPage/CnIndexPage.md#action-handlers-manifest-actions-dispatch) for the full keyword table.

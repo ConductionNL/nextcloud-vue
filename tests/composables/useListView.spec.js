@@ -94,3 +94,17 @@ describe('useListView — fixedFilters', () => {
 		expect(params).toEqual({ _limit: 20, _page: 1 })
 	})
 })
+
+describe('useListView — defaultVisibleColumns', () => {
+	it('seeds the visible-column set from the option', () => {
+		const store = makeStore()
+		const w = mountList(store, { defaultVisibleColumns: ['name', 'type'] })
+		expect(w.vm.list.visibleColumns.value).toEqual(['name', 'type'])
+	})
+
+	it('defaults to null when the option is omitted (every column visible)', () => {
+		const store = makeStore()
+		const w = mountList(store, {})
+		expect(w.vm.list.visibleColumns.value).toBeNull()
+	})
+})

@@ -699,4 +699,320 @@ describe('CnAppNav', () => {
 			open.mockRestore()
 		})
 	})
+
+	describe('page-scoped primary action', () => {
+		const buildManifest = ({ pageAction, navAction } = {}) => ({
+			version: '1.0.0',
+			pages: [
+				{ id: 'a', route: '/a', type: 'index', title: 'A', ...(pageAction ? { primaryAction: pageAction } : {}) },
+				{ id: 'b', route: '/b', type: 'index', title: 'B' },
+			],
+			...(navAction ? { nav: { primaryAction: navAction } } : {}),
+			menu: [
+				{ id: 'a', label: 'app.a', route: 'a' },
+				{ id: 'b', label: 'app.b', route: 'b' },
+			],
+		})
+
+		it('renders a page-scoped primaryAction when the active route matches', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest({ pageAction: { id: 'create-a', label: '+ New A', icon: 'Plus' } }),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.activePrimaryAction).toEqual({ id: 'create-a', label: '+ New A', icon: 'Plus' })
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(true)
+		})
+
+		it('falls back to nav.primaryAction when no page-level action is declared for the active route', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest({ navAction: { id: 'app-create', label: '+ New', icon: 'Plus' } }),
+				useProps: true,
+				routeName: 'b',
+			})
+			expect(wrapper.vm.activePrimaryAction).toEqual({ id: 'app-create', label: '+ New', icon: 'Plus' })
+		})
+
+		it('page-scoped action wins over nav.primaryAction when both are declared', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest({
+					pageAction: { id: 'create-a', label: '+ New A', icon: 'Plus' },
+					navAction: { id: 'app-create', label: '+ New', icon: 'Plus' },
+				}),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.activePrimaryAction.id).toBe('create-a')
+		})
+
+		it('emits @primary-action with the resolved payload + page route name', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest({ pageAction: { id: 'create-a', label: '+ New A', icon: 'Plus', payload: { presetId: 42 } } }),
+				useProps: true,
+				routeName: 'a',
+			})
+			wrapper.vm.onPrimaryActionClick()
+			const events = wrapper.emitted('primary-action')
+			expect(events).toBeTruthy()
+			expect(events[0][0]).toMatchObject({ id: 'create-a', label: '+ New A', icon: 'Plus', payload: { presetId: 42 }, page: 'a' })
+		})
+
+		it('defaults the icon to Plus when the action omits an icon field', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest({ pageAction: { id: 'create-a', label: '+ New A' } }),
+				useProps: true,
+				routeName: 'a',
+			})
+			// The computed exists and resolves to a non-null Vue component (Plus).
+			expect(wrapper.vm.primaryActionIconComponent).toBeTruthy()
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(true)
+		})
+
+		it('renders no primary-action button when neither page-scoped nor nav-root action is declared', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest(),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.activePrimaryAction).toBeNull()
+			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
+		})
+	})
+
+	describe('counter badges', () => {
+		const buildManifest = (menu, pages = []) => ({
+			version: '1.0.0',
+			pages,
+			menu,
+		})
+
+		it('renders a literal positive integer count via NcCounterBubble', () => {
+			const wrapper = mountNav({
+				manifest: buildManifest([
+					{ id: 'a', label: 'app.a', route: 'a', count: 42 },
+				]),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.resolveCount({ id: 'a', label: 'app.a', route: 'a', count: 42 })).toBe(42)
+			// NcCounterBubble renders its count in the DOM somewhere
+			expect(wrapper.html()).toContain('42')
+		})
+
+		it('does not render a bubble when count is 0', () => {
+			const item = { id: 'a', label: 'app.a', route: 'a', count: 0 }
+			const wrapper = mountNav({
+				manifest: buildManifest([item]),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.resolveCount(item)).toBeNull()
+		})
+
+		it('resolves count:"auto" from the injected cnMenuCounts map for an index-type page', () => {
+			const item = { id: 'a', label: 'app.a', route: 'a', count: 'auto' }
+			const wrapper = mount(CnAppNav, {
+				propsData: {
+					manifest: buildManifest(
+						[item],
+						[{ id: 'a', route: '/a', type: 'index', title: 'A', config: { register: 'decisions', schema: 'decision' } }],
+					),
+					translate: (k) => k,
+				},
+				provide: {
+					cnMenuCounts: { decisions: { decision: 17 } },
+				},
+				mocks: { $route: { name: 'a' } },
+			})
+			expect(wrapper.vm.resolveCount(item)).toBe(17)
+		})
+
+		it('returns null and warns once when count:"auto" cannot resolve an index page', () => {
+			const item = { id: 'a', label: 'app.a', route: 'a', count: 'auto' }
+			const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+			const wrapper = mountNav({
+				manifest: buildManifest([item], [{ id: 'a', route: '/a', type: 'detail', title: 'A' }]),
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.vm.resolveCount(item)).toBeNull()
+			expect(warn).toHaveBeenCalledTimes(1)
+			// Second call must not produce another warn (idempotent).
+			wrapper.vm.resolveCount(item)
+			expect(warn).toHaveBeenCalledTimes(1)
+			warn.mockRestore()
+		})
+
+		it('returns null when count:"auto" but the store has no entry for the slug', () => {
+			const item = { id: 'a', label: 'app.a', route: 'a', count: 'auto' }
+			const wrapper = mount(CnAppNav, {
+				propsData: {
+					manifest: buildManifest(
+						[item],
+						[{ id: 'a', route: '/a', type: 'index', title: 'A', config: { register: 'decisions', schema: 'decision' } }],
+					),
+					translate: (k) => k,
+				},
+				provide: { cnMenuCounts: {} },
+				mocks: { $route: { name: 'a' } },
+			})
+			expect(wrapper.vm.resolveCount(item)).toBeNull()
+		})
+	})
+
+	describe('caption entries', () => {
+		it('renders type:"caption" as NcAppNavigationCaption (not an NcAppNavigationItem)', () => {
+			const wrapper = mountNav({
+				manifest: {
+					version: '1.0.0',
+					pages: [],
+					menu: [
+						{ id: 'section-1', type: 'caption', label: 'Section', order: 1 },
+						{ id: 'a', label: 'app.a', route: 'a', order: 2 },
+					],
+				},
+				useProps: true,
+				routeName: 'a',
+			})
+			expect(wrapper.find('[data-testid="cn-nav-caption-section-1"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-section-1"]').exists()).toBe(false)
+		})
+	})
+
+	describe('allow-collapse + open', () => {
+		it('passes allow-collapse=true to a parent with visible children', () => {
+			const wrapper = mountNav({
+				manifest: {
+					version: '1.0.0',
+					pages: [],
+					menu: [
+						{
+							id: 'parent',
+							label: 'app.p',
+							route: 'parent',
+							open: true,
+							children: [{ id: 'child', label: 'app.c', route: 'child' }],
+						},
+					],
+				},
+				useProps: true,
+				routeName: 'parent',
+			})
+			// The parent renders + has the child
+			expect(wrapper.find('[data-testid="cn-nav-entry-parent"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-nav-entry-child"]').exists()).toBe(true)
+		})
+
+		const groupManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{
+					id: 'group',
+					label: 'app.group',
+					children: [{ id: 'leaf', label: 'app.leaf', route: 'leaf' }],
+				},
+			],
+		}
+
+		it('toggles a route-less group open/closed on title click', async () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(groupManifest.menu[0], event)
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+			wrapper.vm.onItemClick(groupManifest.menu[0], event)
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
+		})
+
+		it('does not toggle on title click when the item has a route', () => {
+			const item = {
+				id: 'parent',
+				label: 'app.p',
+				route: 'parent',
+				children: [{ id: 'child', label: 'app.c', route: 'child' }],
+			}
+			const wrapper = mountNav({
+				manifest: { version: '1.0.0', pages: [], menu: [item] },
+				useProps: true,
+				routeName: 'parent',
+			})
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(item, event)
+			// Routed parents navigate via :to — the click handler must not
+			// hijack them into a collapse toggle.
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(item)).toBe(false)
+		})
+
+		it('syncs chevron-driven update:open into local state', () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			wrapper.vm.setItemOpen(groupManifest.menu[0], true)
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+		})
+
+		it('seeds the open state from the manifest item.open until first interaction', () => {
+			const openedGroup = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'group',
+						label: 'app.group',
+						open: true,
+						children: [{ id: 'leaf', label: 'app.leaf', route: 'leaf' }],
+					},
+				],
+			}
+			const wrapper = mountNav({ manifest: openedGroup, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(openedGroup.menu[0])).toBe(true)
+			wrapper.vm.onItemClick(openedGroup.menu[0], { preventDefault: jest.fn() })
+			expect(wrapper.vm.isItemOpen(openedGroup.menu[0])).toBe(false)
+		})
+	})
+
+	describe('per-item pinned pass-through', () => {
+		it('forwards pinned:true on a main-section item to the rendered NcAppNavigationItem', () => {
+			const wrapper = mountNav({
+				manifest: {
+					version: '1.0.0',
+					pages: [],
+					menu: [{ id: 'pinned-one', label: 'app.p', route: 'p', pinned: true }],
+				},
+				useProps: true,
+				routeName: 'p',
+			})
+			expect(wrapper.find('[data-testid="cn-nav-entry-pinned-one"]').exists()).toBe(true)
+		})
+	})
+
+	describe('search slot pass-through', () => {
+		it('forwards the host #search slot into NcAppNavigation', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: { version: '1.0.0', pages: [], menu: [] }, translate: (k) => k },
+				mocks: { $route: { name: 'a' } },
+				slots: { search: '<div class="host-search">Search</div>' },
+			})
+			expect(wrapper.find('.host-search').exists()).toBe(true)
+		})
+	})
+
+	describe('per-item actions slot pass-through', () => {
+		it('renders content from item-${id}-actions slot inside the NcAppNavigationItem #actions slot', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: {
+					manifest: {
+						version: '1.0.0',
+						pages: [],
+						menu: [{ id: 'a', label: 'app.a', route: 'a' }],
+					},
+					translate: (k) => k,
+				},
+				mocks: { $route: { name: 'a' } },
+				scopedSlots: { 'item-a-actions': '<button class="host-action">Do</button>' },
+			})
+			expect(wrapper.find('.host-action').exists()).toBe(true)
+		})
+	})
 })

@@ -187,6 +187,7 @@ export default {
 | `objectId` | String\|Number | `''` | Object ID to display in the sidebar |
 | `subtitle` | String | `''` | Subtitle shown in the sidebar header |
 | `sidebarProps` | Object | `{}` | Extra sidebar configuration (`register`, `schema`, `hiddenTabs`, `title`, `subtitle`) |
+| `sidebarTabs` (`sidebar-tabs`) | Array | `[]` | Manifest-driven sidebar-tab descriptors published to the host's `objectSidebarState.tabs`. The hoisted `CnObjectSidebar` (mounted at `NcContent` level by `CnAppRoot` per ADR-017) renders them; the page itself only publishes. Each descriptor mirrors a `pages[].sidebar.tabs[]` entry (`{ id, label, component, props?, integrationKey? }`). When empty, the page emits no tabs and the host falls back to its own discovery (integration registry / schema-derived). |
 | `error` | Boolean | `false` | Whether the page is in an error state |
 | `errorMessage` | String | `'An error occurred'` | Error message shown in the error state |
 | `onRetry` | Function | `null` | Callback for the retry button; when `null` no retry button is shown |
@@ -199,6 +200,7 @@ export default {
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content area |
 | `subscribe` | Boolean | `true` | When `true` and `objectStore` is provided, auto-subscribes to live updates for `objectType` + `objectId` via `useObjectSubscription`, and renders `CnLockedBanner` when a remote pessimistic lock is active. |
 | `objectStore` | Object | `null` | Pinia store instance (typically `useObjectStore()`). Required for `subscribe` to take effect. |
+| `sidebarTabs` | Array | `[]` | Tab definitions forwarded to the host App's `CnObjectSidebar` via the injected `objectSidebarState`. Each entry follows the `CnObjectSidebar` tab shape (`{ id, label, icon?, widgets?, component?, order? }`). When empty (default), the sidebar falls back to its own default tab set. The actual `<CnObjectSidebar>` is rendered at `NcContent` level by `CnAppRoot` (ADR-017 — external sidebar pattern); this page only publishes the tabs. |
 
 ## Slots
 
@@ -243,3 +245,7 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | Slot | Description |
 |------|-------------|
 | `action-items` | Extra `NcActionButton`-family items appended inside the overflow menu, after the built-in trio. |
+
+## Action handlers (manifest-actions-dispatch)
+
+CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When a CnIndexPage is nested INSIDE a detail page, the `cnCustomComponents` registry inject continues to come from the surrounding `CnAppRoot` — no extra wiring is needed at the detail-page level. See [CnIndexPage.md → Action handlers](../CnIndexPage/CnIndexPage.md#action-handlers-manifest-actions-dispatch) for the reserved-keyword table, the registry resolution semantics, and the manifest declaration example.

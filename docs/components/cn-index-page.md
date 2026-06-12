@@ -33,12 +33,14 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
+| `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `rowKey` | String | `'id'` | Unique row identifier field |
+| `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
@@ -95,8 +97,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked. Conceptually distinct from `view` — handle row interaction here (selection, expand, drilldown). |
-| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row"; bind alongside `row-click` (with the same handler) when click-to-view is desired. |
+| `row-click` | `row` | Row or card clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
+| `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row". For a non-selectable list bind alongside `row-click` (same handler) for click-to-view; for a **selectable** list, plain clicks toggle selection, so use `@view` (the eye action) as the open-detail affordance. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
 | `page-size-changed` | `size` | Page size changed |
@@ -131,7 +133,8 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 
 | Method | Description |
 |--------|-------------|
-| `setFormResult(result)` | Set form dialog result (`\{ success?, error? \}`) |
+| `setFormResult(result)` | Set the terminal form dialog result (`\{ success?, error? \}`) — switches to the result phase, replacing the form |
+| `setFormValidationErrors(fieldErrors, message?)` | Show a validation error while keeping the form visible (so the user can fix the data). Use for 400/422; store integration calls this automatically for `isValidation` errors |
 | `setSingleDeleteResult(result)` | Set delete dialog result |
 | `setSingleCopyResult(result)` | Set copy dialog result |
 | `setMassDeleteResult(result)` | Set mass delete result |
@@ -185,7 +188,7 @@ Set `use-advanced-form-dialog` to use [CnAdvancedFormDialog](./cn-advanced-form-
 
 ### Store integration
 
-Set `store` and `objectType` to have the form dialog save directly to the store. The object type must be registered in the store (via `registerObjectType()`) before passing the store here. On save, `store.saveObject(objectType, formData)` is called; the result phase is shown automatically and `@create` / `@edit` are still emitted with the saved object on success.
+Set `store` and `objectType` to have the form dialog save directly to the store. The object type must be registered in the store (via `registerObjectType()`) before passing the store here. On save, `store.saveObject(objectType, formData)` is called; on success the result phase is shown and `@create` / `@edit` are emitted with the saved object. On a **validation error** (`isValidation`, i.e. 400/422) the form stays open with the server message shown above the fields so the user can correct the data; other failures show a terminal error result.
 
 ```vue
 <CnIndexPage
@@ -497,9 +500,11 @@ export const customComponents = \{ OrganisatieCard \}
 ```
 
 The resolved card component receives `\{ item, object, schema, register, selected \}`
-props and emits `click` (forwarded as `row-click` on the page) and
-`select` (forwarded as `select` on the page). `item` and `object` are
-aliases of each other; pick whichever feels natural.
+props and emits `click` and `select`. When the page is **not** selectable a
+`click` is forwarded as `row-click`; when it **is** selectable a `click` toggles
+the item's selection instead (matching the default card/row behaviour). `select`
+is always forwarded as `select` on the page. `item` and `object` are aliases of
+each other; pick whichever feels natural.
 
 Resolution priority (highest first):
 

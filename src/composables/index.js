@@ -4,7 +4,13 @@ export { useListView } from './useListView.js'
 export { useDetailView } from './useDetailView.js'
 export { useSubResource } from './useSubResource.js'
 export { useDashboardView } from './useDashboardView.js'
-export { useContextMenu } from './useContextMenu.js'
+export {
+	useContextMenu,
+	clearContextMenuPositionDom,
+	CTX_MENU_CSS_VAR_X,
+	CTX_MENU_CSS_VAR_Y,
+	CTX_MENU_DATA_ATTR,
+} from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'
@@ -16,3 +22,10 @@ export { cnRenderMarkdown } from './cnRenderMarkdown.js'
 export { useIntegrationRegistry } from './useIntegrationRegistry.js'
 export { useRuntimeManifest } from './useRuntimeManifest.js'
 export { useSupportDialog } from './useSupportDialog.js'
+export { useClickDragGuard, CLICK_DRAG_THRESHOLD } from './useClickDragGuard.js'
+export {
+	useTenantContext,
+	provideTenantContext,
+	createTenantContext,
+	TENANT_CONTEXT_KEY,
+} from './useTenantContext.js'

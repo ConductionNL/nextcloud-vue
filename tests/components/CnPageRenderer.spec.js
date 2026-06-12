@@ -112,16 +112,16 @@ function mountRenderer(routeName, {
 	const provide = useProps
 		? {}
 		: {
-				cnManifest: manifest,
-				cnCustomComponents: customComponents,
-				cnTranslate: (k) => k,
-			}
+			cnManifest: manifest,
+			cnCustomComponents: customComponents,
+			cnTranslate: (k) => k,
+		}
 	const propsData = useProps
 		? {
-				manifest,
-				customComponents,
-				translate: (k) => k,
-			}
+			manifest,
+			customComponents,
+			translate: (k) => k,
+		}
 		: {}
 	return shallowMount(CnPageRenderer, {
 		propsData,
@@ -244,6 +244,123 @@ describe('CnPageRenderer', () => {
 			})
 			expect(wrapper.vm.resolvedComponent).toBe(RegistryStub)
 			expect(wrapper.vm.resolvedComponent).not.toBe(LegacyStub)
+		})
+
+		it('renders a type=custom page authored with slots.main (no component) as the page body from the v2 registry (kind:"page")', () => {
+			// procest pattern — a custom page declared purely via
+			// `slots: { main: "DeelzaakList" }` with NO top-level
+			// `component`. `slots.main` MUST be promoted to the page body
+			// and resolved against the v2 registry (kind:"page").
+			const BodyStub = {
+				name: 'BodyStub',
+				template: '<section data-stub="slots-main-body" />',
+			}
+			const slotsMainManifest = {
+				version: '1.0.0',
+				pages: [
+					{
+						id: 'deelzaak-list',
+						route: '/cases/:id/deelzaken',
+						type: 'custom',
+						title: 'Sub-cases',
+						slots: { main: 'DeelzaakList' },
+					},
+				],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: slotsMainManifest,
+					cnRegistry: { DeelzaakList: { kind: 'page', component: BodyStub } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'deelzaak-list', params: {} } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(BodyStub)
+			// The promoted `main` entry must NOT also appear as a named slot.
+			expect(wrapper.vm.resolvedSlotEntries.find((e) => e.name === 'main')).toBeUndefined()
+			expect(wrapper.findComponent(BodyStub).exists()).toBe(true)
+		})
+
+		it('still renders slots.main via the legacy customComponents map when the registry is silent', () => {
+			const BodyStub = { name: 'LegacyBodyStub', template: '<section data-stub="legacy-main" />' }
+			const slotsMainManifest = {
+				version: '1.0.0',
+				pages: [
+					{ id: 'deelzaak-list', route: '/x', type: 'custom', title: 'Sub-cases', slots: { main: 'DeelzaakList' } },
+				],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: slotsMainManifest,
+					cnCustomComponents: { DeelzaakList: BodyStub },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'deelzaak-list', params: {} } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(BodyStub)
+		})
+
+		it('still prefers an explicit page.component over slots.main on a custom page', () => {
+			const ComponentStub = { name: 'ExplicitStub', template: '<section data-stub="explicit" />' }
+			const MainStub = { name: 'MainStub', template: '<section data-stub="main" />' }
+			const m = {
+				version: '1.0.0',
+				pages: [
+					{ id: 'p', route: '/p', type: 'custom', title: 'P', component: 'Explicit', slots: { main: 'Main' } },
+				],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: m,
+					cnRegistry: {
+						Explicit: { kind: 'page', component: ComponentStub },
+						Main: { kind: 'page', component: MainStub },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'p', params: {} } },
+			})
+			expect(wrapper.vm.resolvedComponent).toBe(ComponentStub)
+			// With an explicit component, slots.main behaves as a normal named slot.
+			expect(wrapper.vm.resolvedSlotEntries.find((e) => e.name === 'main')?.component).toBe(MainStub)
+		})
+
+		it('keys the v2-branch page component by currentPage.id so a route change re-mounts it', () => {
+			// Regression guard: the v2 render branch MUST carry
+			// :key="currentPage.id" on the resolved page component. Without it
+			// Vue reuses the same instance across route changes and the page
+			// keeps showing stale data / fetches / sidebar (this bug has
+			// regressed twice — the v1 branch kept its key, the v2 branch lost it).
+			const PageStub = {
+				name: 'PageStub',
+				template: '<section data-stub="v2-page" />',
+			}
+			const v2Manifest = {
+				$schema: 'https://example.test/app-manifest-v2.schema.json',
+				pages: [
+					{ id: 'leads', route: '/leads', type: 'custom', title: 'Leads', component: 'LeadsPage' },
+					{ id: 'clients', route: '/clients', type: 'custom', title: 'Clients', component: 'ClientsPage' },
+				],
+			}
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: v2Manifest,
+					cnRegistry: {
+						LeadsPage: { kind: 'page', component: PageStub },
+						ClientsPage: { kind: 'page', component: PageStub },
+					},
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'leads' } },
+			})
+			expect(wrapper.vm.isV2Manifest).toBe(true)
+			const page = wrapper.findComponent(PageStub)
+			expect(page.exists()).toBe(true)
+			expect(page.vm.$vnode.key).toBe('leads')
 		})
 
 		it('falls back to legacy customComponents when the v2 registry has no kind:"page" entry for the name', () => {
@@ -584,8 +701,6 @@ describe('CnPageRenderer', () => {
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.settings)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.chat)
 			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.files)
-			// manifest-wiki-page-type addition:
-			expect(['function', 'object']).toContain(typeof wrapper.vm.effectivePageTypes.wiki)
 		})
 	})
 

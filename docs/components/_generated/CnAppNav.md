@@ -2,20 +2,23 @@
 
 ### Props
 
-| Name          | Type            | Required | Default | Description                                                                                                                                                                                                                                |
-| ------------- | --------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `manifest`    | `union`         |          | `null`  | Manifest object. Falls back to injected `cnManifest`. Provide explicitly when mounting CnAppNav outside of CnAppRoot.                                                                                                                      |
-| `translate`   | `union`         |          | `null`  | Translate function. Falls back to injected `cnTranslate`, which itself defaults to an identity function.                                                                                                                                   |
-| `permissions` | `Array<string>` |          | `[]`    | List of permission strings the current user holds. Items declaring a `permission` only render when their permission appears in this list. When the prop is omitted (or empty), all items are visible regardless of their permission field. |
+| Name          | Type                                  | Required | Default | Description                                                                                                                                                                                                                                |
+| ------------- | ------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `manifest`    | `union`                               |          | `null`  | Manifest object. Falls back to injected `cnManifest`. Provide explicitly when mounting CnAppNav outside of CnAppRoot.                                                                                                                      |
+| `translate`   | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to injected `cnTranslate`, which itself defaults to an identity function.                                                                                                                                   |
+| `permissions` | `Array<string>`                       |          | `[]`    | List of permission strings the current user holds. Items declaring a `permission` only render when their permission appears in this list. When the prop is omitted (or empty), all items are visible regardless of their permission field. |
 
 ### Events
 
-| Name                   | Payload | Description                                                                                                            |
-| ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `primary-action-click` | —       | Emitted when the manifest-declared primary-action button is clicked. Payload is the resolved nav.primaryAction object. |
+| Name                   | Payload | Description                                                                                                                                                                                                 |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `primary-action`       | —       | Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers. |
+| `primary-action-click` | —       | Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.                                                                                         |
 
 ### Slots
 
-| Name             | Bindings | Description                                               |
-| ---------------- | -------- | --------------------------------------------------------- |
-| `primary-action` | —        | primary-action Optional primary action rendered above the |
+| Name                      | Bindings       | Description                                               |
+| ------------------------- | -------------- | --------------------------------------------------------- |
+| `search`                  | —              | search                                                    |
+| `primary-action`          | —              | primary-action Optional primary action rendered above the |
+| `item-${item.id}-actions` | `name`, `item` | `item-\${item.id}-actions`                                |

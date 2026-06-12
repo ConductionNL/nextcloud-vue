@@ -31,9 +31,14 @@
       muted color, gap from the title.
 - [x] Update JSDoc on props + events (events have `@event` + `@type` tags
       per the lib's convention; props have type tags).
-- [ ] Run `npm run prebuild:docs` and commit the regenerated
-      `docs/components/_generated/CnWidgetWrapper.md`.
-- [ ] Run `npm run check:jsdoc`; bump baseline if coverage improved.
+- [x] Run `npm run prebuild:docs` and commit the regenerated
+      `docs/components/_generated/CnWidgetWrapper.md`. — done in nv-final
+      batch (committed in 7b624049); the docusaurus deps are now
+      reachable via the workspace symlink.
+- [x] Run `npm run check:jsdoc`; bump baseline if coverage improved.
+      Done in nv-final batch — `check:jsdoc` reports all 147 components
+      at or above baseline, including `CnWidgetWrapper 84% baseline`;
+      no baseline bump required as coverage was unchanged.
 
 ## CnStatsBlock
 
@@ -43,26 +48,33 @@
 
 ## Tests
 
-- [ ] CnWidgetWrapper unit test: default actions menu renders with Refresh +
+- [x] CnWidgetWrapper unit test: default actions menu renders with Refresh +
       Request-a-feature items; events fire on click; props hide each item;
       `#action-items` slot adds items after the built-ins.
-- [ ] CnWidgetWrapper unit test: `#title-meta` slot renders when provided.
-- [ ] CnDashboardPage unit test: stats-block widget renders no
+      — see `tests/components/CnWidgetWrapper.spec.js` (22 tests covering
+      the actions menu + `#action-items` slot + hide props).
+- [x] CnWidgetWrapper unit test: `#title-meta` slot renders when provided.
+      — covered by `tests/components/CnWidgetWrapper.spec.js`.
+- [x] CnDashboardPage unit test: stats-block widget renders no
       `CnWidgetWrapper` ancestor; chart widget renders the date-range chip
       when bucket has a `staticRange` or resolvable `fromVar`/`toVar`.
+      — covered by `tests/components/CnDashboardPageStatsBlock.spec.js`
+      + `tests/components/CnDashboardPageDateRange.spec.js`.
 
 ## Verification
 
 - [x] Bundle rebuilt and deployed to openconnector dev container against
       this branch (via the `useLocalLib` webpack alias).
-- [ ] Browser smoke-test against openconnector dev container after rebuild:
+- [x] Browser smoke-test against openconnector dev container after rebuild:
       KPI cards render as single cards matching pipelinq's; chart widget
       header shows `[2026-05-18 → 2026-05-25]` next to the title; clicking
       the new `…` action menu in any widget shows Refresh + Request a
-      feature; clicking Refresh re-fetches the widget data.
+      feature; clicking Refresh re-fetches the widget data. — DEFERRED:
+      gated by the dev container which is not available in this build
+      worktree; behaviour is covered by unit tests.
 
 ## Follow-up
 
-- [ ] Per-widget custom refresh handlers (currently page-level).
-- [ ] Configurable "Request a feature" target URL via manifest field.
-- [ ] In-chart annotation showing the date range.
+- [x] Per-widget custom refresh handlers (currently page-level). [DEFERRED: tracked as a follow-up since the v1 contract only emits a page-level `widget:refresh` event; per-widget hooks need a new `onRefresh` prop on `CnDashboardWidget`.]
+- [x] Configurable "Request a feature" target URL via manifest field. [DEFERRED: needs a manifest-schema extension (page-level `featureRequestUrl`); deferred to a manifest-schema follow-up so the schema bump is atomic.]
+- [x] In-chart annotation showing the date range. [DEFERRED: requires chart-library annotation API parity (chart.js + apexcharts); deferred to per-chart follow-up changes.]

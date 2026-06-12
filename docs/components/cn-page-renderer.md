@@ -13,12 +13,24 @@ Both can co-exist while consumers migrate; pass either. The legacy map is the de
 
 The discriminator on registry lookups depends on the resolution site:
 
-- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map.
+- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map. A `type:"custom"` page MAY omit `page.component` and instead name its body component via `page.slots.main` — when `page.component` is absent the `main` slot entry is promoted to the page body (resolved as `kind:"page"`) and is **not** also mounted as a named slot. An explicit `page.component` still wins, and `slots.main` then behaves as an ordinary named slot.
 - **Slot overrides** (`page.slots[*]`, `page.headerComponent`, `page.actionsComponent`, `page.config.sections[*].component`) are kind-agnostic — any registry entry with a `component` field resolves, so consumers can fully migrate off `customComponents` by parking dashboard widgets / settings sections / action menus in `registry.js` with semantic kinds (`widget` / `section` / `actions`).
 
 Each entry in `pageTypes` is wrapped in `defineAsyncComponent`, so apps using only a subset pay no bundle cost for the others (notably the GridStack-backed `dashboard`).
 
 `manifest`, `customComponents`, `pageTypes`, and `translate` are injected from [`CnAppRoot`](./cn-app-root.md) by default; each can also be passed as props for standalone use. **Props always win over inject.**
+
+## `$listeners` and `$attrs` forwarding
+
+`CnPageRenderer` declares `inheritAttrs: false` and forwards both `$listeners` and `$attrs` to every dispatched page component (alongside the explicit `:is`, `:key`, and `v-bind="resolvedProps"`). This is the Vue 2 idiom for transparent listener / attribute pass-through.
+
+Practical consequences:
+
+- **Events emitted by the page surface to the host.** A `CnDashboardPage` emitting `@widget-action` bubbles through `CnPageRenderer` and reaches the host App (typically `CnAppRoot`) without any manifest plumbing. Same for `@primary-action` (from `CnAppNav`'s primary-action button) and any other custom events the dispatched page chooses to emit.
+- **Attributes set on `<CnPageRenderer>` reach the page's `$attrs`** — useful for instrumentation (`data-host-context="…"`). The wrapping `.cn-page-renderer` `<div>` does **not** also receive them (because `inheritAttrs: false`), so the attribute lands exactly once on the dispatched component.
+- **Explicit prop bindings still win.** When `resolvedProps` declares `title: "Decisions"` and the host passes a `title` attribute on `<CnPageRenderer>`, the explicit `resolvedProps.title` wins for the page's `title` prop; the host attribute reaches `$attrs` but does not override.
+
+Hosts that previously relied on manifest-config plumbing to expose page events should now listen directly on `CnAppRoot` (the events bubble through).
 
 ## Usage
 

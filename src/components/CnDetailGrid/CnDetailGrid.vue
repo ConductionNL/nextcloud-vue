@@ -13,6 +13,17 @@
 		class="cn-detail-grid"
 		:class="rootClasses"
 		:style="rootStyles">
+		<!-- Translation header (cn-detail-translation-aware-surfacing).
+		     Renders the `CnTranslatedBadge` for the bound object when
+		     `:object` is passed. The badge auto-hides via its own
+		     v-if when `_translationMeta.translatedFrom` is null, so
+		     the header block harmlessly stays in the DOM for source
+		     objects with no visible content. -->
+		<div v-if="object && !$scopedSlots.header" class="cn-detail-grid__translation-header">
+			<CnTranslatedBadge :object="object" />
+		</div>
+		<slot name="header" :object="object" />
+
 		<!-- Empty state -->
 		<div v-if="!items.length && !$scopedSlots.default" class="cn-detail-grid__empty">
 			<slot name="empty">
@@ -63,6 +74,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /**
  * CnDetailGrid — Data-driven label-value grid for detail/info sections.
@@ -96,7 +108,26 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 export default {
 	name: 'CnDetailGrid',
 
+	components: {
+		CnTranslatedBadge,
+	},
+
 	props: {
+		/**
+		 * The OR object backing the detail grid. When passed AND it
+		 * carries a `_translationMeta.translatedFrom` value, the grid
+		 * renders a `CnTranslatedBadge` above the items so the user
+		 * sees that the projection is a translation rather than the
+		 * source row. Optional — existing consumers that don't pass
+		 * `:object` see no visual change. See
+		 * `openspec/changes/cn-detail-translation-aware-surfacing`.
+		 *
+		 * @type {object|null}
+		 */
+		object: {
+			type: Object,
+			default: null,
+		},
 		/**
 		 * Array of detail items to render.
 		 *
@@ -317,6 +348,12 @@ export default {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
+}
+
+/* ===== Translation header (cn-detail-translation-aware-surfacing) ===== */
+.cn-detail-grid__translation-header {
+	grid-column: 1 / -1;
+	margin-bottom: var(--default-grid-baseline, 4px);
 }
 
 /* ===== Empty state ===== */

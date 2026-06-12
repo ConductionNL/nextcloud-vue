@@ -1,3 +1,5 @@
+import { translateValidationMessage } from './validationMessages.js'
+
 /**
  * Unified error shape returned by all store actions.
  *
@@ -22,7 +24,7 @@
  */
 function extractValidationMessage(errors) {
 	if (typeof errors === 'string') {
-		return errors
+		return translateValidationMessage(errors)
 	}
 
 	const pick = (entry) => {
@@ -42,7 +44,7 @@ function extractValidationMessage(errors) {
 		messages = Object.values(errors).map(pick)
 	}
 
-	messages = messages.filter(Boolean)
+	messages = messages.filter(Boolean).map(translateValidationMessage)
 	return messages.length ? messages.join('\n') : null
 }
 
@@ -64,8 +66,15 @@ export async function parseResponseError(response, type) {
 
 	try {
 		const body = await response.json()
-		details = body.errors || body.error || body.message || null
-		fields = body.validationErrors || body.errors || null
+		if (typeof body === 'string') {
+			// Some endpoints return the error as a bare JSON string rather than
+			// an object (e.g. OpenRegister object-save returns the validation
+			// message directly: `new JSONResponse(data: $e->getMessage())`).
+			details = body
+		} else if (body && typeof body === 'object') {
+			details = body.errors || body.error || body.message || null
+			fields = body.validationErrors || body.errors || null
+		}
 	} catch {
 		// Response body is not JSON
 	}

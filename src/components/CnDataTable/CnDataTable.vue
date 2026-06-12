@@ -66,7 +66,8 @@
 						isSelected(row) ? 'cn-table-row--selected' : '',
 						rowClass ? rowClass(row) : '',
 					]"
-					@click="$emit('row-click', row)"
+					@mousedown="onPointerDown"
+					@click="onRowClick(row, $event)"
 					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
@@ -92,7 +93,7 @@
 							     #column-{key} slot still wins. -->
 							<CnCellRenderer
 								:value="cellValue(row, col)"
-								:property="getSchemaProperty(col.key)"
+								:property="columnProperty(col)"
 								:formatter="col.formatter || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
@@ -118,6 +119,7 @@ import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
 /**
  * CnDataTable — Generic sortable data table for list views.
@@ -288,6 +290,11 @@ export default {
 		},
 	},
 
+	setup() {
+		// Tell a deliberate row click apart from a text-selection drag.
+		return useClickDragGuard()
+	},
+
 	data() {
 		return {
 			/**
@@ -295,7 +302,7 @@ export default {
 			 * then by column key. Populated by `loadAggregates()` for columns
 			 * that declare `aggregate` (see CnIndexPage's manifest config).
 			 *
-			 * @type {Object<string, Object<string, number>>}
+			 * @type {{[rowId: string]: {[colKey: string]: number}}}
 			 */
 			aggregateValues: {},
 			/** True while a batch of aggregate-count requests is in flight. */
@@ -365,6 +372,13 @@ export default {
 	methods: {
 		/**
 		 * Get a cell value from a row using dot-notation key.
+		 *
+		 * OpenRegister system/metadata fields (created, updated, owner, uri,
+		 * size, register, schema, ...) live under the object's `@self` block.
+		 * For a flat key we fall back to `@self` when the top level has no
+		 * value, so sidebar-enabled metadata columns resolve. Top-level fields
+		 * always win, keeping existing behaviour unchanged.
+		 *
 		 * @param {object} row The row data
 		 * @param {string} key The column key (supports dot notation: 'address.city')
 		 * @return {*} The cell value
@@ -376,7 +390,10 @@ export default {
 			if (key.includes('.')) {
 				return key.split('.').reduce((obj, k) => obj?.[k], row)
 			}
-			return row[key]
+			if (row?.[key] === undefined && row?.['@self'] && typeof row['@self'] === 'object') {
+				return row['@self'][key]
+			}
+			return row?.[key]
 		},
 
 		/**
@@ -390,6 +407,29 @@ export default {
 		 */
 		getSchemaProperty(key) {
 			return this.schema?.properties?.[key] || {}
+		},
+
+		/**
+		 * Effective property definition handed to CnCellRenderer for a column:
+		 * the schema property augmented with the column's own `type`/`format`/
+		 * `enum` hints. Lets synthesized columns that have no schema property
+		 * (e.g. metadata fields with `format: 'date-time'` / `'uri'`) still get
+		 * type-aware rendering.
+		 *
+		 * @param {object} col Column definition.
+		 * @return {object} Property definition for CnCellRenderer.
+		 */
+		columnProperty(col) {
+			const base = this.getSchemaProperty(col.key)
+			if (col && (col.format || col.type || col.enum)) {
+				return {
+					...base,
+					...(col.type ? { type: col.type } : {}),
+					...(col.format ? { format: col.format } : {}),
+					...(col.enum ? { enum: col.enum } : {}),
+				}
+			}
+			return base
 		},
 
 		/**
@@ -486,6 +526,26 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
+		},
+
+		/**
+		 * Row-body click: toggles selection when `selectable` (ignoring drags),
+		 * otherwise emits `row-click` for navigation.
+		 *
+		 * @param {object} row The clicked row object
+		 * @param {MouseEvent} [event] The originating click event.
+		 */
+		onRowClick(row, event) {
+			if (this.selectable) {
+				if (this.wasDrag(event)) return
+				this.toggleSelect(row)
+				return
+			}
+			/**
+			 * @event row-click Emitted when a non-selectable row is clicked. Only fires when `selectable` is false; selectable rows toggle selection instead.
+			 * @type {object} The clicked row object.
+			 */
+			this.$emit('row-click', row)
 		},
 
 		/**

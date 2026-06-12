@@ -18,8 +18,13 @@
 				<h4>{{ title || t('nextcloud-vue', 'Objects') }}</h4>
 			</div>
 
-			<div v-if="count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
-				<span class="cn-stats-block__count-value">{{ formattedCount }}</span>
+			<div v-if="hasValueSlot || count > 0 || (showZeroCount && count === 0)" class="cn-stats-block__count">
+				<span class="cn-stats-block__count-value">
+					<!-- @slot Override the prominently-displayed value — render a pre-formatted string (currency, percent, a "—" placeholder, …). `count` stays the raw number; this is presentation only. Defaults to the localized count. -->
+					<!-- @binding {number} count The raw numeric count. -->
+					<!-- @binding {string} formatted The default localized count string. -->
+					<slot name="value" :count="count" :formatted="formattedCount">{{ formattedCount }}</slot>
+				</span>
 				<span class="cn-stats-block__count-label">{{ countLabel }}</span>
 			</div>
 			<div v-else-if="loading" class="cn-stats-block__loading">
@@ -31,7 +36,7 @@
 			</div>
 
 			<!-- Breakdown details -->
-			<div v-if="breakdown && (count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
+			<div v-if="breakdown && (hasValueSlot || count > 0 || showZeroCount)" class="cn-stats-block__breakdown">
 				<div
 					v-for="(value, key) in breakdown"
 					:key="key"
@@ -191,6 +196,14 @@ export default {
 	computed: {
 		hasIcon() {
 			return this.icon !== null || this.$scopedSlots.icon || this.$slots.icon
+		},
+
+		/**
+		 * Whether a consumer provided the `value` slot. When set, the value
+		 * area always renders (the slot decides what to show, even at count 0).
+		 */
+		hasValueSlot() {
+			return !!this.$scopedSlots.value || !!this.$slots.value
 		},
 
 		formattedCount() {

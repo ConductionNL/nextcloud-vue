@@ -49,6 +49,7 @@
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
+				:key="currentPage.id"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners">
 				<template
@@ -120,7 +121,7 @@ const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'mod
 /**
  * Test whether a slot name is a recognised v2 slot pattern.
  *
- * @param {string} slotName
+ * @param {string} slotName The slot name to test (e.g. `body`, `tab:overview`).
  * @return {boolean}
  */
 function isKnownSlot(slotName) {
@@ -435,7 +436,16 @@ export default {
 				return null
 			}
 			if (page.type === 'custom') {
-				const name = page.component
+				// Two authoring styles for a custom page body:
+				//   1. `page.component` — a single registry component name.
+				//   2. `page.slots.main` — the body component referenced via
+				//      the generic slot map (same field used for header /
+				//      actions / sidebar overrides). When `component` is
+				//      absent we treat the `main` slot entry as the page body
+				//      so a custom page authored purely with `slots` still
+				//      renders. The remaining slot entries continue to mount
+				//      as named slots inside it via `resolvedSlotEntries`.
+				const name = page.component || page.slots?.main
 				const resolved = this.resolveCustomComponent(name, 'page')
 				if (!resolved) {
 					// eslint-disable-next-line no-console
@@ -595,6 +605,13 @@ export default {
 			const page = this.currentPage
 			if (!page) return []
 			const map = { ...(page.slots ?? {}) }
+			// For a custom page that has no explicit `component`, `slots.main`
+			// is promoted to the page BODY by `resolvedComponent`, so drop it
+			// here — otherwise it would also try to mount as a (non-existent)
+			// `main` named slot inside itself.
+			if (page.type === 'custom' && !page.component && map.main) {
+				delete map.main
+			}
 			if (page.headerComponent) map.header = page.headerComponent
 			if (page.actionsComponent) map.actions = page.actionsComponent
 			const entries = []

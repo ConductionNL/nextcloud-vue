@@ -7,8 +7,8 @@ const stubs = {
 		props: ['name', 'size', 'canClose'],
 	},
 	NcButton: {
-		template: '<button :type="type" @click="$emit(\'click\', $event)" :data-button-type="type"><slot /></button>',
-		props: ['type'],
+		template: '<button :data-button-type="variant" @click="$emit(\'click\', $event)"><slot /></button>',
+		props: ['variant', 'wide'],
 	},
 	HandHeart: true,
 	HeartOutline: true,

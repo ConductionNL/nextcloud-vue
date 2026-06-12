@@ -102,6 +102,8 @@ export { CnAppNav } from './CnAppNav/index.js'
 export { CnAppLoading } from './CnAppLoading/index.js'
 export { CnDependencyMissing } from './CnDependencyMissing/index.js'
 export { CnAppRoot } from './CnAppRoot/index.js'
+export { CnTenantBadge } from './CnTenantBadge/index.js'
+export { CnTranslatedBadge } from './CnTranslatedBadge/index.js'
 
 // V2 widget components (manifest-v2-renderer)
 export { default as CnWidgetGrid } from './CnWidgetGrid/CnWidgetGrid.vue'

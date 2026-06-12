@@ -101,4 +101,65 @@ describe('CnDetailPage — sidebarProps.tabs forwarding', () => {
 		})
 		expect(state.tabs).toHaveLength(2)
 	})
+
+	// A non-empty top-level `sidebarTabs` prop (the manifest pattern —
+	// CnPageRenderer forwards `config.sidebarTabs`) must by itself opt
+	// the sidebar in, even when no `sidebar` config object is present.
+	// Without this, a `type:"detail"` page that declares only
+	// `config.sidebarTabs` (procest CaseDetail) never publishes its
+	// strip because resolvedSidebar defaulted to show/enabled: false.
+	describe('sidebarTabs prop implies an enabled sidebar', () => {
+		// A no-op store so the schema-driven mount path (register+schema+
+		// objectId) doesn't reach Pinia — we only exercise the sidebar sync.
+		const noopStore = {
+			objects: {}, schemas: {}, loading: {},
+			registerObjectType() {}, fetchObject() { return Promise.resolve(null) }, fetchSchema() { return Promise.resolve(null) },
+			getObject() { return null }, getSchema() { return null },
+		}
+		function mountSchemaDriven(extra, state) {
+			return mountDetailPage({
+				title: 'Case 1',
+				register: 'procest',
+				schema: 'case',
+				objectId: 'abc-123',
+				objectStore: noopStore,
+				subscribe: false,
+				...extra,
+			}, state)
+		}
+
+		it('activates + publishes tabs when only sidebarTabs is set (no sidebar config)', () => {
+			const state = makeState()
+			const tabs = [
+				{ id: 'tasks', label: 'Tasks', component: 'CaseTasksTab' },
+				{ id: 'email', label: 'Email', component: 'CaseEmailTab' },
+			]
+			mountSchemaDriven({ sidebarTabs: tabs }, state)
+			expect(state.active).toBe(true)
+			expect(state.objectType).toBe('procest-case')
+			expect(state.objectId).toBe('abc-123')
+			expect(state.tabs).toBe(tabs)
+		})
+
+		it('stays inactive when sidebarTabs is empty and no sidebar config', () => {
+			const state = makeState()
+			mountSchemaDriven({ sidebarTabs: [] }, state)
+			expect(state.active).toBe(false)
+			expect(state.tabs).toBeUndefined()
+		})
+
+		it('the Object form sidebar:{show:false} suppresses even with a non-empty sidebarTabs', () => {
+			// Boolean false is indistinguishable from the prop default (and
+			// from "no manifest sidebar config"), so tabs win over it. A page
+			// that genuinely wants to hide a declared strip uses the explicit
+			// Object form, which always wins.
+			const state = makeState()
+			mountSchemaDriven({
+				sidebar: { show: false },
+				sidebarTabs: [{ id: 'tasks', label: 'Tasks', component: 'CaseTasksTab' }],
+			}, state)
+			expect(state.active).toBe(false)
+			expect(state.tabs).toBeUndefined()
+		})
+	})
 })

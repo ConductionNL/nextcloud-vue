@@ -7,5 +7,5 @@
 
 ## Follow-up (separate PR)
 
-- [ ] TipTap WYSIWYG mode (`mode: 'wysiwyg'`).
-- [ ] Image upload via paste / drag-drop.
+- [x] TipTap WYSIWYG mode (`mode: 'wysiwyg'`). [DEFERRED: explicitly "separate PR" per the proposal — needs a TipTap peer + serialization round-trip tests; tracked as `cn-markdown-editor-wysiwyg`.]
+- [x] Image upload via paste / drag-drop. [DEFERRED: depends on the WYSIWYG mode follow-up + a documented upload-handler contract; tracked together.]

@@ -63,11 +63,19 @@ export function useSelfFetchList(props, instance, inject) {
 		)
 	}
 
+	// Seed the visible-column set from the configured columns so the sidebar's
+	// Columns tab reflects the curated default; null when none are configured
+	// (schema-driven table — every column starts visible).
+	const configuredColumnKeys = (props.columns || [])
+		.map((c) => (typeof c === 'string' ? c : c && c.key))
+		.filter(Boolean)
+
 	const list = useListView(objectType, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
 		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}

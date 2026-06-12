@@ -132,7 +132,11 @@ export function createCrudStore(name, config = {}) {
 			...pluginState,
 
 			// ── Internal config (available to extend actions and plugins) ──
-			_options: { endpoint, cleanFields, baseApiUrl, entity: Entity },
+			_options: { endpoint, cleanFields, baseApiUrl, entity: Entity, organisationUuidGetter: config.organisationUuidGetter || null },
+
+			// ── Multi-tenancy (multi-tenancy-context) ──
+			/** @type {string|null} */
+			activeTenantOrganisationUuid: null,
 
 			// ── Domain-specific state ──
 			...(typeof extend.state === 'function' ? extend.state() : {}),
@@ -156,6 +160,57 @@ export function createCrudStore(name, config = {}) {
 		},
 
 		actions: {
+			// ── Multi-tenancy (multi-tenancy-context) ──
+
+			/**
+			 * Resolve the active organisation UUID for the next outgoing
+			 * request. Resolution order matches `useObjectStore`:
+			 * factory `organisationUuidGetter` → `activeTenantOrganisationUuid`
+			 * → `null` (no header).
+			 *
+			 * @return {string|null}
+			 */
+			_resolveOrganisationUuid() {
+				const getter = this._options.organisationUuidGetter
+				if (typeof getter === 'function') {
+					try {
+						const v = getter()
+						return typeof v === 'string' && v.length > 0 ? v : null
+					} catch {
+						return null
+					}
+				}
+				return this.activeTenantOrganisationUuid || null
+			},
+
+			/**
+			 * Build outbound headers stamped with the active tenant UUID.
+			 *
+			 * @param {string} [contentType] Content-Type header value
+			 * @return {object}
+			 */
+			_buildHeaders(contentType = 'application/json') {
+				return buildHeaders({
+					contentType,
+					organisationUuid: this._resolveOrganisationUuid() || undefined,
+				})
+			},
+
+			/**
+			 * Set the active tenant organisation. Clears the in-memory item
+			 * + list caches so a re-fetch hits the new tenant. No-op when
+			 * the new UUID equals the currently-active one.
+			 *
+			 * @param {string|null} uuid The new tenant UUID
+			 */
+			setActiveTenantOrganisation(uuid) {
+				const next = (typeof uuid === 'string' && uuid.length > 0) ? uuid : null
+				if (this.activeTenantOrganisationUuid === next) return
+				this.activeTenantOrganisationUuid = next
+				this.item = null
+				this.list = []
+			},
+
 			// ── Setters ──
 
 			/**
@@ -228,7 +283,7 @@ export function createCrudStore(name, config = {}) {
 					}
 					const response = await fetch(url, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (!response.ok) {
 						throw await parseResponseError(response, name)
@@ -261,7 +316,7 @@ export function createCrudStore(name, config = {}) {
 				try {
 					const response = await fetch(`${this._options.baseApiUrl}/${id}`, {
 						method: 'GET',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (!response.ok) {
 						throw await parseResponseError(response, name)
@@ -296,7 +351,7 @@ export function createCrudStore(name, config = {}) {
 				try {
 					const response = await fetch(`${this._options.baseApiUrl}/${item.id}`, {
 						method: 'DELETE',
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 					})
 					if (!response.ok) {
 						throw await parseResponseError(response, name)
@@ -353,7 +408,7 @@ export function createCrudStore(name, config = {}) {
 				try {
 					const response = await fetch(url, {
 						method,
-						headers: buildHeaders(),
+						headers: this._buildHeaders(),
 						body: JSON.stringify(body),
 					})
 					if (!response.ok) {

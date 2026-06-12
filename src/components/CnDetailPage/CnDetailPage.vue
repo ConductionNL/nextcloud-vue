@@ -28,6 +28,14 @@
 			     renders the icon + title + description. The right-hand
 			     #actions slot remains separate so headerComponent and
 			     actionsComponent can be replaced independently. -->
+			<!--
+				@slot header
+				@description Replace the entire left header block (icon + title + description).
+				@binding {string} title Page title.
+				@binding {string} description Subtitle / description.
+				@binding {string} icon MDI icon name resolved by CnIcon.
+				@binding {number} icon-size Icon size in pixels.
+			-->
 			<slot
 				name="header"
 				:title="title"
@@ -35,6 +43,12 @@
 				:icon="icon"
 				:icon-size="iconSize">
 				<div class="cn-detail-page__header-left">
+					<!--
+						@slot icon
+						@description Replace only the header icon (keeping the lib's title +
+						description rendering). Default content: a `<CnIcon>` resolved from
+						the `icon` prop.
+					-->
 					<slot name="icon">
 						<CnIcon
 							v-if="icon"
@@ -46,6 +60,17 @@
 						<h2 v-if="title" class="cn-detail-page__title">
 							{{ title }}
 						</h2>
+						<!--
+							@slot translation-badge
+							@description Replace the default `CnTranslatedBadge` rendered when the
+							resolved object's `_translationMeta.translatedFrom` is set. Receives
+							`:object="resolvedObject"`. Default renders `<CnTranslatedBadge :object="resolvedObject" />`
+							(which auto-hides when there's nothing to surface). See
+							`openspec/changes/cn-detail-translation-aware-surfacing`.
+						-->
+						<slot name="translation-badge" :object="resolvedObject">
+							<CnTranslatedBadge v-if="resolvedObject" :object="resolvedObject" />
+						</slot>
 						<p v-if="description" class="cn-detail-page__description">
 							{{ description }}
 						</p>
@@ -53,6 +78,11 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!--
+					@slot actions
+					@description Right-hand action surface in the page header (typically NcActions
+					or buttons). Renders alongside (not inside) the `header` slot.
+				-->
 				<slot name="actions" />
 			</div>
 		</div>
@@ -73,6 +103,11 @@
 
 		<!-- Error state -->
 		<div v-else-if="error" class="cn-detail-page__error">
+			<!--
+				@slot error
+				@description Replace the default `<NcEmptyContent>` error surface. Default
+				content uses `errorMessage` + an MDI alert icon + an optional retry button.
+			-->
 			<slot name="error">
 				<NcEmptyContent :name="errorMessage">
 					<template #icon>
@@ -85,6 +120,11 @@
 							</template>
 							{{ retryLabel }}
 						</NcButton>
+						<!--
+							@slot error-actions
+							@description Extra buttons rendered inside the default error
+							surface's action area, after the (optional) Retry button.
+						-->
 						<slot name="error-actions" />
 					</template>
 				</NcEmptyContent>
@@ -93,12 +133,21 @@
 
 		<!-- Empty state -->
 		<div v-else-if="empty" class="cn-detail-page__empty">
+			<!--
+				@slot empty
+				@description Replace the default empty-state `<NcEmptyContent>` surface.
+			-->
 			<slot name="empty">
 				<NcEmptyContent :name="emptyLabel">
 					<template #icon>
 						<InformationOutline :size="48" />
 					</template>
 					<template #action>
+						<!--
+							@slot empty-actions
+							@description Buttons rendered inside the default empty-state
+							action area.
+						-->
 						<slot name="empty-actions" />
 					</template>
 				</NcEmptyContent>
@@ -121,6 +170,15 @@
 						class="cn-detail-page__widget-title">
 						{{ findWidget(item).title }}
 					</h3>
+					<!--
+						@slot `widget-${item.widgetId}`
+						@description Per-widget slot whose name is `widget-<widgetId>`. Use
+						it to inject custom widget content into a grid slot. Default
+						fallback for `type: 'integration'` widget defs renders the registry
+						widget; for any other widget type, the slot is empty by default.
+						@binding {object} item Layout item descriptor.
+						@binding {object} widget Resolved widget definition.
+					-->
 					<slot
 						:name="`widget-${item.widgetId}`"
 						:item="item"
@@ -139,6 +197,11 @@
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
+				<!--
+					@slot stats-header
+					@description Replace the heading above the stats table. Default
+					content: an `<h3>` showing `statsTitle`.
+				-->
 				<slot name="stats-header">
 					<h3 v-if="statsTitle" class="cn-detail-page__section-title">
 						{{ statsTitle }}
@@ -153,6 +216,11 @@
 						</tr>
 					</thead>
 					<tbody>
+						<!--
+							@slot stats-rows
+							@description Replace the default rendering of the `statsRows`
+							prop. Use when rows need custom formatting per column.
+						-->
 						<slot name="stats-rows">
 							<tr v-for="(row, index) in statsRows" :key="index" :class="{ 'cn-detail-page__stats-row--sub': row.indent }">
 								<td v-for="col in statsColumns" :key="col.key" :class="[row.indent ? 'cn-detail-page__stats-cell--indented' : '', col.align ? 'cn-detail-page__stats-cell--' + col.align : '']">
@@ -185,17 +253,33 @@
 
 				<!-- Default content -->
 				<div v-else class="cn-detail-page__content">
+					<!--
+						@slot default
+						@description Main body content rendered when no grid layout, no
+						stats table, and no schema-driven auto-body apply. Use it to ship
+						a hand-authored detail page.
+					-->
 					<slot />
 				</div>
 
 				<!-- Sections slot — additional content below stats -->
 				<div v-if="$slots.sections" class="cn-detail-page__sections">
+					<!--
+						@slot sections
+						@description Additional vertically-stacked content rendered below
+						the default body / stats table.
+					-->
 					<slot name="sections" />
 				</div>
 			</div>
 
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
+				<!--
+					@slot footer
+					@description Footer surface rendered below the detail-page body. Use
+					it for save/cancel button rows or status text.
+				-->
 				<slot name="footer" />
 			</div>
 		</div>
@@ -217,6 +301,7 @@ import { useObjectSubscription } from '../../composables/useObjectSubscription.j
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -306,6 +391,7 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnObjectMetadataWidget,
+		CnTranslatedBadge,
 	},
 
 	mixins: [gridLayout],
@@ -716,6 +802,32 @@ export default {
 		},
 
 		/**
+		 * The resolved OR object surfaced to the header's translation
+		 * badge slot (cn-detail-translation-aware-surfacing). Falls
+		 * back to `currentObject` from the schema-driven path AND, when
+		 * the schema-driven path is unavailable, attempts to read the
+		 * store via `objectType` + `objectId` directly (so legacy direct
+		 * mounts that don't pass `register` / `schema` still benefit).
+		 * Returns `null` when nothing can be resolved — the badge then
+		 * auto-hides.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedObject() {
+			// Schema-driven path: reuse what `currentObject` already
+			// computed.
+			const fromSchemaDriven = this.currentObject
+			if (fromSchemaDriven) return fromSchemaDriven
+			// Direct-mount fallback: legacy callers pass `objectType` +
+			// `objectId`. Read the same cache shape but keyed off the
+			// explicit slug.
+			const store = this.effectiveObjectStore
+			if (!store) return null
+			if (!this.objectType || !this.objectId) return null
+			return store.objects?.[this.objectType]?.[this.objectId] ?? null
+		},
+
+		/**
 		 * The fetched JSON Schema for the schema-driven mode. Read from
 		 * the store's `schemas[type]` cache populated by `fetchSchema`.
 		 * Required to render `CnObjectDataWidget` (which takes a schema
@@ -778,8 +890,19 @@ export default {
 		 */
 		resolvedSidebar() {
 			const cfg = this.sidebar
+			// A non-empty manifest `sidebarTabs` prop is itself an opt-in:
+			// a `type:"detail"` page that declares tabs clearly wants the
+			// sidebar. The `sidebar` prop defaults to Boolean `false`, and
+			// CnPageRenderer only forwards a `sidebar` config when the
+			// manifest page sets one — so a page that declares ONLY
+			// `config.sidebarTabs` (procest CaseDetail) would otherwise fall
+			// into the Boolean-`false` branch below and never publish its
+			// strip. When tabs are present we treat the sidebar as enabled
+			// (the explicit Object form below still overrides show/enabled).
+			const hasTabs = Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			if (typeof cfg === 'boolean') {
-				return { show: cfg, enabled: cfg }
+				if (cfg) return { show: true, enabled: true }
+				return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 			}
 			if (cfg && typeof cfg === 'object') {
 				return {
@@ -788,7 +911,7 @@ export default {
 					...cfg,
 				}
 			}
-			return { show: false, enabled: false }
+			return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 		},
 
 		/**

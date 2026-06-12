@@ -88,6 +88,30 @@ describe('CnFormDialog', () => {
 		expect(wrapper.vm.result).toEqual({ success: true })
 	})
 
+	it('setValidationErrors keeps the form visible and shows a form-level error', async () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: testSchema, item: null },
+			stubs,
+		})
+		wrapper.vm.loading = true
+		wrapper.vm.setValidationErrors({ title: 'Title is required' }, "Property 'client' should match format 'uuid'.")
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.loading).toBe(false)
+		// The form must NOT be replaced by the result phase.
+		expect(wrapper.vm.result).toBeNull()
+		expect(wrapper.find('[data-testid-phase="form"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid-phase="result"]').exists()).toBe(false)
+		// Form-level message shown, per-field error recorded.
+		expect(wrapper.vm.formError).toBe("Property 'client' should match format 'uuid'.")
+		expect(wrapper.find('[data-testid="cn-form-dialog-error"]').exists()).toBe(true)
+		expect(wrapper.vm.errors.title).toBe('Title is required')
+
+		// Editing a field clears the form-level error so the user can retry.
+		wrapper.vm.updateField('title', 'Acme')
+		expect(wrapper.vm.formError).toBeNull()
+	})
+
 	// === Async enum detection ===
 
 	it('isAsyncEnum returns true for function, false for array', () => {

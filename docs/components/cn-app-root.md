@@ -73,6 +73,8 @@ export default {
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
 | `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
+| `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
 
 ## Provided values
 
@@ -85,6 +87,9 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `cnTranslate` | The `translate` prop |
 | `cnPageTypes` | The `pageTypes` prop |
 | `cnOpenUserSettings` | Function that opens the hosted `NcAppSettingsDialog`. CnAppNav binds this to manifest entries with `action: "user-settings"`; consumer apps can also invoke it directly via inject for custom triggers (e.g. an avatar-menu entry). |
+| `cnAppId` | The consuming app's slug (mirrors the `appId` prop, e.g. `"pipelinq"`). Read by [`CnWidgetWrapper`](./cn-widget-wrapper.md)'s built-in **Request a feature** default to pre-fill `CnSuggestFeatureModal`'s `app` prop — apps don't have to wire it per-widget. |
+| `cnFeatureRequestRepo` | Target repo slug for the in-product feature-request deep link (e.g. `"ConductionNL/pipelinq"`). Read from `manifest.nav.featureRequestRepo` when set; otherwise falls back to `ConductionNL/<appId>` (the convention for every Conduction app). Used by `CnWidgetWrapper`'s built-in **Request a feature** default. |
+| `cnMenuCounts` | Reactive `{ [register]: { [schema]: number } }` map of `useObjectStore` totals. Populated at mount for every `menu[].count: "auto"` entry whose resolved page is `type: "index"` with `register + schema` in its `config`. Read by [`CnAppNav`](./cn-app-nav.md) inside `resolveCount()` to render `NcCounterBubble` badges. One `?_limit=1` fetch per unique `(register, schema)` pair; failures degrade silently to "no badge" so a broken endpoint never blanks the navigation. |
 
 ## Slots
 
@@ -126,6 +131,32 @@ The slot defaults to a single placeholder section ("User preferences will appear
 The hoist is automatic — apps using `CnAppRoot` get correct positioning the moment they pass a `sidebar: { enabled: true }` config on a `type: 'index'` manifest page. No consumer template changes required. The hoisted sidebar mounts as a sibling of the consumer's `#sidebar` slot, so existing `#sidebar` content (e.g. `CnObjectSidebar` for detail pages) keeps working unchanged.
 
 Apps mounting `CnIndexPage` standalone (without `CnAppRoot`) keep the legacy inline rendering — the `cnHostsIndexSidebar` sentinel defaults to `false` in that case, so `CnIndexPage` renders the sidebar in-tree as before.
+
+## Hoisted object sidebar (detail pages)
+
+`CnAppRoot` also provides an `objectSidebarState` holder that
+[`CnDetailPage`](./cn-detail-page.md) writes into via
+`syncSidebarState()` — `{ active, objectType, objectId, register,
+schema, title, subtitle, tabs, hiddenTabs, ... }`. When a detail page
+is active and provides an `objectType` + `objectId`, CnAppRoot
+auto-mounts `CnObjectSidebar` at NcContent level with those props.
+ADR-017 again: NcAppSidebar must be a direct child of NcContent to
+position correctly.
+
+The auto-mount defers when:
+
+- the consumer supplies a `#sidebar` slot (their slot keeps owning
+  the rail);
+- an ancestor already provides `objectSidebarState` (the ancestor
+  renders its own sidebar — e.g. decidesk's host wrapper); or
+- `objectType` + `objectId` are empty (defense-in-depth against
+  CnIndexPage's `inject('sidebarState') ?? inject('objectSidebarState')`
+  fallback writing `active: true` into the wrong channel).
+
+CnAppRoot also exposes a dedicated `sidebarState` holder for the
+index-sidebar channel. The two reactive holders are distinct
+references so index-page writes never leak into the object-sidebar
+auto-mount (the openbuilt double-sidebar regression).
 
 ## Mounting virtual apps with an in-memory manifest
 

@@ -76,6 +76,8 @@ With loading state, custom components, translate, permissions, and custom page t
 | `pageTypes` | Object | No | `null` | Page-type registry map (`type → component`). Falls back to the library's `defaultPageTypes`. Extend with `{ ...defaultPageTypes, report: MyReportPage }` |
 | `userSettingsTitle` | String | No | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')`. Override per app to brand the modal (e.g. `'Decidesk preferences'`). |
 | `requiresApps` | Array | No | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the empty state from the `or-missing` slot (default: `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. mydash, the docs/styleguide app) — useful for any consumer that does not depend on OpenRegister. |
+| `initialOrganisationUuid` | String \| null | No | `null` | Seed UUID for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls `provideTenantContext(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to `useTenantContext()` see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
+| `initialOrganisation` | Object \| null | No | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components (`CnTenantBadge`, `CnFormDialog` auto-fill) have the name/icon available immediately without a follow-up fetch. |
 
 ## Slots
 

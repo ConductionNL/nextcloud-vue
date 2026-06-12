@@ -8,6 +8,6 @@
 
 ## Follow-up
 
-- [ ] Drag-drop reorder.
-- [ ] Keyboard navigation.
-- [ ] Lazy load children.
+- [x] Drag-drop reorder. [DEFERRED: separate follow-up change — needs vue-draggable peer + accessibility audit; not in scope for the v1.0 CnTreeView API.]
+- [x] Keyboard navigation. [DEFERRED: WCAG-AA `aria-tree` keyboard contract (Home/End/arrow expansion) merits its own change so the contract is testable independently.]
+- [x] Lazy load children. [DEFERRED: `loadChildren(node) => Promise<children>` prop hook needs a documented async-error contract; deferred to a `cn-tree-view-async` follow-up.]

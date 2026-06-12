@@ -93,7 +93,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `sort` | `{ key, order }` | Emitted when a sortable column header is clicked. Cycles through `asc → desc → null`. When the user clears the sort, both `key` and `order` are `null`. |
 | `select` | `ids[]` | Emitted when row selection changes; payload is the full updated selection array |
 | `select-all` | `isSelectAll` | Emitted when the select-all checkbox is toggled |
-| `row-click` | `row` | Emitted when a data row is clicked (not the checkbox) |
+| `row-click` | `row` | Emitted when a data row is clicked (not the checkbox). **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. |
 | `row-context-menu` | `{ row, event }` | Emitted when a data row is right-clicked. The native `contextmenu` event is prevented. Used by CnIndexPage with the [`useContextMenu`](../utilities/composables/use-context-menu.md) composable to show a context menu at the cursor position. |
 
 ### Slots

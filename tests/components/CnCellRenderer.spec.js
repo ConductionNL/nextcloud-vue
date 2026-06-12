@@ -230,3 +230,38 @@ describe('CnCellRenderer — built-in "link" widget (REQ-MIPFU-2)', () => {
 		expect(wrapper.find('[data-test="router-link"]').text()).toBe('RAW')
 	})
 })
+
+describe('CnCellRenderer — date-time & uri rendering', () => {
+	it('renders a date-time value through NcDateTime as a Date', () => {
+		const wrapper = mountRenderer({ value: '2026-06-04T10:00:00Z', property: { type: 'string', format: 'date-time' } })
+		const dt = wrapper.find('time.nc-date-time')
+		expect(dt.exists()).toBe(true)
+		expect(dt.text()).toBe(new Date('2026-06-04T10:00:00Z').toISOString())
+	})
+
+	it('renders a dash for an empty date-time value', () => {
+		const wrapper = mountRenderer({ value: null, property: { type: 'string', format: 'date-time' } })
+		expect(wrapper.find('time.nc-date-time').exists()).toBe(false)
+		expect(wrapper.find('.cn-cell-renderer__dash').exists()).toBe(true)
+	})
+
+	it('falls back to a dash for an unparseable date-time value', () => {
+		const wrapper = mountRenderer({ value: 'not a date', property: { type: 'string', format: 'date-time' } })
+		expect(wrapper.find('time.nc-date-time').exists()).toBe(false)
+		expect(wrapper.find('.cn-cell-renderer__dash').exists()).toBe(true)
+	})
+
+	it('renders a uri value as an external link to itself', () => {
+		const wrapper = mountRenderer({ value: 'https://example.com/x', property: { type: 'string', format: 'uri' } })
+		const a = wrapper.find('a.cn-cell-renderer__link')
+		expect(a.exists()).toBe(true)
+		expect(a.attributes('href')).toBe('https://example.com/x')
+		expect(a.attributes('target')).toBe('_blank')
+	})
+
+	it('renders a dash for an absent uri value', () => {
+		const wrapper = mountRenderer({ value: null, property: { type: 'string', format: 'uri' } })
+		expect(wrapper.find('a.cn-cell-renderer__link').exists()).toBe(false)
+		expect(wrapper.find('.cn-cell-renderer__dash').exists()).toBe(true)
+	})
+})
