@@ -395,6 +395,16 @@
 									"items": { "$ref": "#/$defs/sidebarTab" }
 								}
 							}
+						},
+						"subscribe": {
+							"type": "boolean",
+							"default": true,
+							"description": "Collaborative-editing default for type='detail'. When true (the default) CnDetailPage calls `objectStore.subscribe(objectType, objectId)` on mount via `useObjectSubscription` and unsubscribes on unmount. Set to false for read-only or archive views where live updates are undesired. Mirrors the `subscribe` Boolean prop on CnDetailPage / CnObjectSidebar — declared here so consumer manifests can opt out of live updates declaratively. See the `collaborative-editing-defaults` capability for the wiring contract."
+						},
+						"lock": {
+							"type": "boolean",
+							"default": true,
+							"description": "Collaborative-editing default for type='detail'. When true (the default) the page wires `useObjectLock` so the locked-by-other banner renders when a remote lock is active and `lockState` is exposed to slot consumers. Explicit lock acquire/release on the edit toggle is the v2 follow-up of the collaborative-editing-defaults capability — at v1 this flag only controls whether the read-side `lockState` is wired. Set to false for views that should never display a lock banner. Mirrors the `lock` Boolean prop on CnDetailPage / CnObjectSidebar."
 						}
 					}
 				},

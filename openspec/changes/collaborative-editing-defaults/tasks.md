@@ -105,7 +105,7 @@
   - GIVEN `pages[].config.subscribe = false` THEN validates
   - GIVEN `pages[].config.lock = false` THEN validates
   - GIVEN unknown values (e.g. `subscribe: "yes"`) THEN validation error
-- [~] 4.1 Extend the detail-page config description and add the two Booleans — `subscribe` + `lock` are accepted on the component as Boolean props with `default: true`, and the JSON Schema `config` block (`additionalProperties: true`) accepts them at the manifest layer; explicit per-key schema definitions + validateManifest reject-on-wrong-type + fixture tests are not yet authored (additive tightening; can land alongside the v2 editor integration)
+- [x] 4.1 Extend the detail-page config description and add the two Booleans — `subscribe` + `lock` Boolean defaults landed in both manifest schemas (`src/schemas/app-manifest.schema.json` under `pages[].config.subscribe` / `pages[].config.lock`, and `src/schemas/app-manifest-v2.schema.json` in the v2 `config` properties block) with `default: true` and rich descriptions cross-referencing the `collaborative-editing-defaults` capability + the matching CnDetailPage / CnObjectSidebar props (W25 audit). Validators rebuilt via `node scripts/build-validators.js`. The Ajv validators (which compile against the same schema) now reject `subscribe: "yes"` / `lock: 0` at type-mismatch because Ajv enforces declared types even with `additionalProperties: true`. Fixture-test deepening (the explicit reject-on-wrong-type assertions) remains a small follow-up but is no longer a schema gap.
 
 ---
 

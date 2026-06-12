@@ -725,6 +725,16 @@
 							"type": "string",
 							"enum": ["edit", "create", "public"],
 							"description": "Authoring / access mode. type='form': 'edit' loads from `data`, 'create' starts blank, 'public' shows the public-form success banner and skips auth-state requirements. type='detail': 'public' marks the route as unauthenticated (token-scoped reader pages — pair with a route-param token via the @route.<param> sentinel). Maps to CnFormPage / CnDetailPage `mode` prop."
+						},
+						"subscribe": {
+							"type": "boolean",
+							"default": true,
+							"description": "Collaborative-editing default for type='detail'. When true (the default) CnDetailPage calls `objectStore.subscribe(objectType, objectId)` on mount via `useObjectSubscription` and unsubscribes on unmount. Set to false for read-only or archive views. Mirrors the `subscribe` Boolean prop on CnDetailPage / CnObjectSidebar. See the `collaborative-editing-defaults` capability."
+						},
+						"lock": {
+							"type": "boolean",
+							"default": true,
+							"description": "Collaborative-editing default for type='detail'. When true (the default) the page wires `useObjectLock` so the locked-by-other banner renders when a remote lock is active. Explicit lock acquire/release on the edit toggle is the v2 follow-up; at v1 this flag controls whether read-side `lockState` is wired. Mirrors the `lock` Boolean prop on CnDetailPage / CnObjectSidebar."
 						}
 					}
 				},
