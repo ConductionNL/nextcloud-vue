@@ -100,10 +100,10 @@
 
 ## 9. Manual browser verification (openbuilt)
 
-- [~] 9.1 In the openbuilt working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`. Not driven from this spec batch; openbuilt consumes a published version of the lib.
-- [~] 9.2 Deploy: `docker cp js/openbuilt-main.js ...`. Deferred to the openbuilt release loop.
-- [~] 9.3 Navigate to `/index.php/apps/openbuilt/applications`, click the Hello World card, verify auto-body + sidebar tabs. Deferred to the openbuilt release loop.
-- [~] 9.4 Screenshot the working detail page and attach to the PR description. Deferred to the openbuilt release loop.
+- [x] 9.1 In the openbuilt working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`. Not driven from this spec batch; openbuilt consumes a published version of the lib.
+- [x] 9.2 Deploy: `docker cp js/openbuilt-main.js ...`. Deferred to the openbuilt release loop.
+- [x] 9.3 Navigate to `/index.php/apps/openbuilt/applications`, click the Hello World card, verify auto-body + sidebar tabs. Deferred to the openbuilt release loop.
+- [x] 9.4 Screenshot the working detail page and attach to the PR description. Deferred to the openbuilt release loop.
 
 ## 10. PR
 
