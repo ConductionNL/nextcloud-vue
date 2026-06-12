@@ -91,8 +91,9 @@
 					:active="isActive(item)"
 					:pinned="Boolean(item.pinned)"
 					:allow-collapse="visibleChildren(item).length > 0"
-					:open="Boolean(item.open)"
+					:open="isItemOpen(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
+					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
 					<template v-if="mdiIconComponent(item)" #icon>
 						<component :is="mdiIconComponent(item)" :size="20" />
@@ -267,7 +268,7 @@ export default {
 		 * Translate function. Falls back to injected `cnTranslate`,
 		 * which itself defaults to an identity function.
 		 *
-		 * @type {Function|null}
+		 * @type {((key: string) => string)|null}
 		 */
 		translate: {
 			type: Function,
@@ -285,6 +286,19 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+	},
+
+	data() {
+		return {
+			/**
+			 * Per-item expand/collapse state for menu groups, keyed by
+			 * item id. Seeded lazily from the manifest's `item.open` by
+			 * `isItemOpen`; written by the collapse chevron (via
+			 * `@update:open`) and by title clicks on route-less group
+			 * items (via `onItemClick`).
+			 */
+			openState: {},
+		}
 	},
 
 	computed: {
@@ -643,16 +657,43 @@ export default {
 			return item.route ? { name: item.route } : null
 		},
 		/**
+		 * Whether a menu group renders expanded. Local `openState` (set
+		 * by the chevron or a title click) wins; falls back to the
+		 * manifest's `item.open` for the initial render.
+		 *
+		 * @param {{ id: string, open?: boolean }} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		isItemOpen(item) {
+			const local = this.openState[item.id]
+			return local !== undefined ? local : Boolean(item.open)
+		},
+		/**
+		 * Record a group's expand/collapse state. Bound to
+		 * NcAppNavigationItem's `@update:open` (chevron clicks) and
+		 * called from `onItemClick` for title clicks on route-less
+		 * group items.
+		 *
+		 * @param {{ id: string }} item Menu entry descriptor.
+		 * @param {boolean} value New open state.
+		 */
+		setItemOpen(item, value) {
+			this.$set(this.openState, item.id, value)
+		},
+		/**
 		 * Click handler. Dispatch order: action keyword → external href
-		 * → route. For `action: "user-settings"` invokes the injected
-		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default. For `href` items, opens the URL in a new tab with
-		 * safe rel attributes. Route items are handled by `:to` and
-		 * skip this path.
+		 * → group toggle → route. For `action: "user-settings"` invokes
+		 * the injected `cnOpenUserSettings` (provided by CnAppRoot) and
+		 * prevents default. For `href` items, opens the URL in a new tab
+		 * with safe rel attributes. Route-less items with visible
+		 * children are pure group headers: their anchor is a dead `#`
+		 * link, so clicking the title toggles the children open/closed
+		 * (same effect as the collapse chevron). Route items are handled
+		 * by `:to` and skip this path.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
-		 *   preventDefault for action / external links).
+		 *   preventDefault for action / external / group links).
 		 */
 		onItemClick(item, event) {
 			if (item.action === 'user-settings') {
@@ -662,11 +703,19 @@ export default {
 				this.cnOpenUserSettings()
 				return
 			}
-			if (!item.href) return
-			if (event && typeof event.preventDefault === 'function') {
-				event.preventDefault()
+			if (item.href) {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				window.open(item.href, '_blank', 'noopener,noreferrer')
+				return
 			}
-			window.open(item.href, '_blank', 'noopener,noreferrer')
+			if (!item.route && this.visibleChildren(item).length > 0) {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.setItemOpen(item, !this.isItemOpen(item))
+			}
 		},
 		/**
 		 * Click handler for the auto-prepended Personal-settings entry in
@@ -705,7 +754,7 @@ export default {
 			}
 			/**
 			 * @event primary-action Emitted when the resolved primary-action button is clicked. Payload includes the action descriptor (`{ id, label, icon, route, href, payload }`) plus the current `page` (route name) for host dispatchers.
-			 * @type {{ id?: string, label: string, icon?: string, route?: string, href?: string, payload?: any, page?: string }}
+			 * @type {{ id?: string, label: string, icon?: string, route?: string, href?: string, payload?: unknown, page?: string }}
 			 */
 			this.$emit('primary-action', payload)
 			/**
