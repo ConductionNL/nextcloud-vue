@@ -890,8 +890,19 @@ export default {
 		 */
 		resolvedSidebar() {
 			const cfg = this.sidebar
+			// A non-empty manifest `sidebarTabs` prop is itself an opt-in:
+			// a `type:"detail"` page that declares tabs clearly wants the
+			// sidebar. The `sidebar` prop defaults to Boolean `false`, and
+			// CnPageRenderer only forwards a `sidebar` config when the
+			// manifest page sets one — so a page that declares ONLY
+			// `config.sidebarTabs` (procest CaseDetail) would otherwise fall
+			// into the Boolean-`false` branch below and never publish its
+			// strip. When tabs are present we treat the sidebar as enabled
+			// (the explicit Object form below still overrides show/enabled).
+			const hasTabs = Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			if (typeof cfg === 'boolean') {
-				return { show: cfg, enabled: cfg }
+				if (cfg) return { show: true, enabled: true }
+				return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 			}
 			if (cfg && typeof cfg === 'object') {
 				return {
@@ -900,7 +911,7 @@ export default {
 					...cfg,
 				}
 			}
-			return { show: false, enabled: false }
+			return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 		},
 
 		/**
