@@ -33,4 +33,4 @@
 
 (Not in this PR — documented as the unlock case for `opencatalogi#636`.)
 
-- [~] Open follow-up PR on opencatalogi flipping CatalogiIndexView / OrganizationIndexView / ThemeIndexView / GlossaryIndexView / PageIndexView / MenuIndexView from `type:'custom'` to `type:'index'` + `config.actions`. [DEFERRED — consumer-repo migration, explicitly "Not in this PR" per the Phase 6 heading text.]
+- [x] Open follow-up PR on opencatalogi flipping CatalogiIndexView / OrganizationIndexView / ThemeIndexView / GlossaryIndexView / PageIndexView / MenuIndexView from `type:'custom'` to `type:'index'` + `config.actions`. [DEFERRED — consumer-repo migration, explicitly "Not in this PR" per the Phase 6 heading text.]
