@@ -192,6 +192,13 @@ describe('$defs.layoutItem', () => {
 		expect(r.valid).toBe(false)
 		expect(r.errors.some((e) => e.includes('gridWidth: must be >= 1'))).toBe(true)
 	})
+	it('declares the optional dateChip boolean (1.6.0, default false)', () => {
+		const dateChip = schema.$defs.layoutItem.properties.dateChip
+		expect(dateChip).toBeDefined()
+		expect(dateChip.type).toBe('boolean')
+		expect(dateChip.default).toBe(false)
+		expect(schema.$defs.layoutItem.required).not.toContain('dateChip')
+	})
 })
 
 describe('$defs.formField', () => {
@@ -236,7 +243,7 @@ describe('$defs.sidebarTab', () => {
 })
 
 describe('manifest-config-defs additivity', () => {
-	it('schema version reflects the current bump (1.5.0)', () => {
+	it('schema version reflects the current bump (1.6.0)', () => {
 		// The page-type-extensions and abstract-sidebar changes bumped the
 		// schema version (to 1.1.0 in feature/manifest-v1). The follow-up
 		// manifest-config-refs change wired up $refs and bumped to 1.2.0.
@@ -250,8 +257,11 @@ describe('manifest-config-defs additivity', () => {
 		// 1.5.0 adds an optional `action` field (closed enum: "user-settings")
 		// to the `menuItem` / `menuItemLeaf` $defs, so CnAppNav can dispatch
 		// clicks to a host-provided NcAppSettingsDialog instead of routing.
+		// 1.6.0 adds an optional `dateChip` boolean to the `layoutItem` $def
+		// so custom widgets can opt into the shared dashboard date-range
+		// chip in their title bar (chart widgets get it automatically).
 		// Existing $defs unchanged either way.
-		expect(schema.version).toBe('1.5.0')
+		expect(schema.version).toBe('1.6.0')
 	})
 
 	it('keeps pages[].config OUTER additionalProperties as true (per-app keys remain free-form)', () => {
