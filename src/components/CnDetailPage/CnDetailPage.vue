@@ -462,7 +462,10 @@ export default {
 		 */
 		sidebar: {
 			type: [Boolean, Object],
-			default: false,
+			// Object default (not Boolean `false`) so apps that omit the
+			// prop don't trip the Boolean-form deprecation warning. Equivalent
+			// to `false`: resolves to a suppressed/inactive sidebar.
+			default: () => ({ enabled: false }),
 		},
 
 		/** Whether the sidebar is open (expanded) */
