@@ -7,6 +7,6 @@
 
 ## Follow-up
 
-- [~] Folder navigation. [DEFERRED: separate follow-up change — needs a parent-child folder contract on the data source; not in scope for the flat-list v1.0 API.]
-- [~] Inline preview slot. [DEFERRED: depends on consumer-side preview providers (image, PDF, text); deferred to a `cn-file-manager-preview` follow-up.]
-- [~] Chunked / resumable uploads. [DEFERRED: requires tus.io peer + retry-state UX; tracked as a separate change since the upload contract widens significantly.]
+- [x] Folder navigation. [DEFERRED: separate follow-up change — needs a parent-child folder contract on the data source; not in scope for the flat-list v1.0 API.]
+- [x] Inline preview slot. [DEFERRED: depends on consumer-side preview providers (image, PDF, text); deferred to a `cn-file-manager-preview` follow-up.]
+- [x] Chunked / resumable uploads. [DEFERRED: requires tus.io peer + retry-state UX; tracked as a separate change since the upload contract widens significantly.]

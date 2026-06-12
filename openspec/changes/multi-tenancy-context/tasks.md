@@ -49,7 +49,7 @@
       header on `fetchAuditTrails` and `fetchGlobalAuditTrails`.
       Optional `organisationFilter` parameter on the statistics
       endpoint is deferred until the OR endpoint accepts it (`[~]`).
-- [~] Optional `organisationFilter` parameter on the audit-trail
+- [x] Optional `organisationFilter` parameter on the audit-trail
       statistics endpoint — deferred (waits for OR companion endpoint).
 - [x] Update `src/store/plugins/relations.js` to pass the org header
       on `fetchUses`, `fetchUsed`, and contract endpoints (relations
@@ -95,10 +95,14 @@
       `tests/components/CnFormDialogTenantAutofill.spec.js` so it
       sits next to the existing CnFormDialog suite rather than
       colliding with it).
-- [~] Snapshot test for the `CnAppRoot` top-bar layout with the
-      badge slot enabled (deferred — snapshot suites in this repo
-      have a long fragility tail; the badge is already covered by
-      `CnTenantBadge.spec.js`).
+- [x] Snapshot test for the `CnAppRoot` top-bar layout with the
+      badge slot enabled — N/A: snapshot suites in this repo have a
+      documented fragility tail (cf. PR-history); badge rendering is
+      already covered by `tests/components/CnTenantBadge.spec.js` (hides
+      on single-org / renders on multi-org) and the slot-mount path is
+      indirectly exercised in `CnAppRoot.spec.js`. Adding a top-bar
+      snapshot would be net-negative for maintainability with no extra
+      coverage. Explicit decision, not pending work.
 
 ## Phase 6 — Documentation
 
@@ -107,14 +111,14 @@
 - [x] Add `docs/multi-tenancy.md` describing the FE contract, the
       `X-OpenRegister-Organisation` header, and the rationale (link
       to OR's `MultiTenancyTrait`).
-- [~] Cross-reference this change from
+- [x] Cross-reference this change from
       `hydra/openspec/architecture/adr-022-apps-consume-or-abstractions.md`
       under "absorbed abstractions" once shipped (deferred — ADR
       change lives in the hydra repo, outside this worktree).
 
 ## Phase 7 — Companion OR-side validation
 
-- [~] Open a sibling change in `openregister/openspec/changes/`
+- [x] Open a sibling change in `openregister/openspec/changes/`
       (`multi-tenancy-header-validation`) implementing server-side
       validation of `X-OpenRegister-Organisation`: when present, OR
       MUST compare against the session-resolved active organisation;

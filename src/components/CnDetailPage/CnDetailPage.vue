@@ -60,6 +60,17 @@
 						<h2 v-if="title" class="cn-detail-page__title">
 							{{ title }}
 						</h2>
+						<!--
+							@slot translation-badge
+							@description Replace the default `CnTranslatedBadge` rendered when the
+							resolved object's `_translationMeta.translatedFrom` is set. Receives
+							`:object="resolvedObject"`. Default renders `<CnTranslatedBadge :object="resolvedObject" />`
+							(which auto-hides when there's nothing to surface). See
+							`openspec/changes/cn-detail-translation-aware-surfacing`.
+						-->
+						<slot name="translation-badge" :object="resolvedObject">
+							<CnTranslatedBadge v-if="resolvedObject" :object="resolvedObject" />
+						</slot>
 						<p v-if="description" class="cn-detail-page__description">
 							{{ description }}
 						</p>
@@ -290,6 +301,7 @@ import { useObjectSubscription } from '../../composables/useObjectSubscription.j
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -379,6 +391,7 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnObjectMetadataWidget,
+		CnTranslatedBadge,
 	},
 
 	mixins: [gridLayout],
@@ -792,6 +805,32 @@ export default {
 		},
 
 		/**
+		 * The resolved OR object surfaced to the header's translation
+		 * badge slot (cn-detail-translation-aware-surfacing). Falls
+		 * back to `currentObject` from the schema-driven path AND, when
+		 * the schema-driven path is unavailable, attempts to read the
+		 * store via `objectType` + `objectId` directly (so legacy direct
+		 * mounts that don't pass `register` / `schema` still benefit).
+		 * Returns `null` when nothing can be resolved — the badge then
+		 * auto-hides.
+		 *
+		 * @return {object|null}
+		 */
+		resolvedObject() {
+			// Schema-driven path: reuse what `currentObject` already
+			// computed.
+			const fromSchemaDriven = this.currentObject
+			if (fromSchemaDriven) return fromSchemaDriven
+			// Direct-mount fallback: legacy callers pass `objectType` +
+			// `objectId`. Read the same cache shape but keyed off the
+			// explicit slug.
+			const store = this.effectiveObjectStore
+			if (!store) return null
+			if (!this.objectType || !this.objectId) return null
+			return store.objects?.[this.objectType]?.[this.objectId] ?? null
+		},
+
+		/**
 		 * The fetched JSON Schema for the schema-driven mode. Read from
 		 * the store's `schemas[type]` cache populated by `fetchSchema`.
 		 * Required to render `CnObjectDataWidget` (which takes a schema
@@ -854,8 +893,19 @@ export default {
 		 */
 		resolvedSidebar() {
 			const cfg = this.sidebar
+			// A non-empty manifest `sidebarTabs` prop is itself an opt-in:
+			// a `type:"detail"` page that declares tabs clearly wants the
+			// sidebar. The `sidebar` prop defaults to Boolean `false`, and
+			// CnPageRenderer only forwards a `sidebar` config when the
+			// manifest page sets one — so a page that declares ONLY
+			// `config.sidebarTabs` (procest CaseDetail) would otherwise fall
+			// into the Boolean-`false` branch below and never publish its
+			// strip. When tabs are present we treat the sidebar as enabled
+			// (the explicit Object form below still overrides show/enabled).
+			const hasTabs = Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
 			if (typeof cfg === 'boolean') {
-				return { show: cfg, enabled: cfg }
+				if (cfg) return { show: true, enabled: true }
+				return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 			}
 			if (cfg && typeof cfg === 'object') {
 				return {
@@ -864,7 +914,7 @@ export default {
 					...cfg,
 				}
 			}
-			return { show: false, enabled: false }
+			return hasTabs ? { show: true, enabled: true } : { show: false, enabled: false }
 		},
 
 		/**

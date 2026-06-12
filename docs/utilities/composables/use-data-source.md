@@ -10,7 +10,7 @@ import { useDataSource, buildCountQuery } from '@conduction/nextcloud-vue'
 const { data, loading, error, refetch } = useDataSource(dataSource)
 ```
 
-`dataSource` may be an object or a ref. When `null`/`undefined` the composable never queries and `data.value` stays `null`.
+`dataSource` may be an object, a ref, or a getter function (`() => props.dataSource`) for reactive inputs. When `null`/`undefined` the composable never queries and `data.value` stays `null`.
 
 ## Manifest forms
 

@@ -268,6 +268,32 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 		expect(c.props('schema')).toBe('lead')
 	})
 
+	it('resolves a tab.component from the injected v2 cnRegistry (kind:"page")', () => {
+		// procest pattern (ADR-036) — sidebar tab components migrated to
+		// the v2 registry as kind:"page" entries. The tab `component` ref
+		// MUST resolve against cnRegistry, not just the legacy map.
+		const wrapper = mountSidebar(
+			{
+				tabs: [{ id: 'subCases', label: 'Sub-cases', component: 'DeelzaakList' }],
+			},
+			{ provide: { cnRegistry: { DeelzaakList: { kind: 'page', component: MyCustomTab } } } },
+		)
+		expect(wrapper.findComponent(MyCustomTab).exists()).toBe(true)
+	})
+
+	it('prefers the v2 cnRegistry over the legacy customComponents map on name collision', () => {
+		const RegistryTab = { name: 'RegistryTab', props: ['objectId'], template: '<div class="registry-tab" />' }
+		const wrapper = mountSidebar(
+			{
+				tabs: [{ id: 'subCases', label: 'Sub-cases', component: 'DeelzaakList' }],
+				customComponents: { DeelzaakList: MyCustomTab },
+			},
+			{ provide: { cnRegistry: { DeelzaakList: { kind: 'page', component: RegistryTab } } } },
+		)
+		expect(wrapper.findComponent(RegistryTab).exists()).toBe(true)
+		expect(wrapper.findComponent(MyCustomTab).exists()).toBe(false)
+	})
+
 	it('falls back to injected cnCustomComponents when prop is unset', () => {
 		const wrapper = mountSidebar(
 			{

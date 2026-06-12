@@ -902,6 +902,74 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-entry-parent"]').exists()).toBe(true)
 			expect(wrapper.find('[data-testid="cn-nav-entry-child"]').exists()).toBe(true)
 		})
+
+		const groupManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{
+					id: 'group',
+					label: 'app.group',
+					children: [{ id: 'leaf', label: 'app.leaf', route: 'leaf' }],
+				},
+			],
+		}
+
+		it('toggles a route-less group open/closed on title click', async () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(groupManifest.menu[0], event)
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+			wrapper.vm.onItemClick(groupManifest.menu[0], event)
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
+		})
+
+		it('does not toggle on title click when the item has a route', () => {
+			const item = {
+				id: 'parent',
+				label: 'app.p',
+				route: 'parent',
+				children: [{ id: 'child', label: 'app.c', route: 'child' }],
+			}
+			const wrapper = mountNav({
+				manifest: { version: '1.0.0', pages: [], menu: [item] },
+				useProps: true,
+				routeName: 'parent',
+			})
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(item, event)
+			// Routed parents navigate via :to — the click handler must not
+			// hijack them into a collapse toggle.
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(wrapper.vm.isItemOpen(item)).toBe(false)
+		})
+
+		it('syncs chevron-driven update:open into local state', () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			wrapper.vm.setItemOpen(groupManifest.menu[0], true)
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+		})
+
+		it('seeds the open state from the manifest item.open until first interaction', () => {
+			const openedGroup = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{
+						id: 'group',
+						label: 'app.group',
+						open: true,
+						children: [{ id: 'leaf', label: 'app.leaf', route: 'leaf' }],
+					},
+				],
+			}
+			const wrapper = mountNav({ manifest: openedGroup, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(openedGroup.menu[0])).toBe(true)
+			wrapper.vm.onItemClick(openedGroup.menu[0], { preventDefault: jest.fn() })
+			expect(wrapper.vm.isItemOpen(openedGroup.menu[0])).toBe(false)
+		})
 	})
 
 	describe('per-item pinned pass-through', () => {

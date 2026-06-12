@@ -50,6 +50,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 |------|-------|-------------|
 | `#icon` | — | Custom icon (replaces CnIcon) |
 | `#header-actions` | — | Action buttons in the header (right side) |
+| `#translation-badge` | `{ object }` | Replace the default [`CnTranslatedBadge`](./cn-translated-badge.md) rendered between the title and description when the resolved object's `_translationMeta.translatedFrom` is set. The badge auto-hides on source-of-truth objects, so consumers don't need to gate the slot. Introduced by the `cn-detail-translation-aware-surfacing` change. |
 | `#error` | — | Custom error state content |
 | `#error-actions` | — | Extra buttons inside the default error state |
 | `#empty` | — | Custom empty state content |

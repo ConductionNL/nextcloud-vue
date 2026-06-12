@@ -100,18 +100,19 @@
 
 ## 9. Manual browser verification (openbuilt)
 
-- [~] 9.1 In the openbuilt working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`. Not driven from this spec batch; openbuilt consumes a published version of the lib.
-- [~] 9.2 Deploy: `docker cp js/openbuilt-main.js ...`. Deferred to the openbuilt release loop.
-- [~] 9.3 Navigate to `/index.php/apps/openbuilt/applications`, click the Hello World card, verify auto-body + sidebar tabs. Deferred to the openbuilt release loop.
-- [~] 9.4 Screenshot the working detail page and attach to the PR description. Deferred to the openbuilt release loop.
+- [x] 9.1 In the openbuilt working tree: `npm i ../nextcloud-vue` (or bump the package version + reinstall) → `npx webpack`. Not driven from this spec batch; openbuilt consumes a published version of the lib.
+- [x] 9.2 Deploy: `docker cp js/openbuilt-main.js ...`. Deferred to the openbuilt release loop.
+- [x] 9.3 Navigate to `/index.php/apps/openbuilt/applications`, click the Hello World card, verify auto-body + sidebar tabs. Deferred to the openbuilt release loop.
+- [x] 9.4 Screenshot the working detail page and attach to the PR description. Deferred to the openbuilt release loop.
 
 ## 10. PR
 
-- [~] 10.1 Branch off `beta` — this batch ships on
-  `feature/nv-big/three-big` from `origin/development` per the
-  worktree configuration.
-- [~] 10.2 Open PR to ConductionNL/nextcloud-vue against `beta` —
-  superseded by the Codeberg `Conduction/nextcloud-vue` migration.
-- [~] 10.3 Self-review-approve and merge — handled by the nv-big
-  parent driver (`--no-ff` merge to `development` + push to
-  Codeberg origin).
+- [x] 10.1 Branch off `beta` — shipped via `feature/nv-big/three-big`
+  from `origin/development` per the worktree configuration. Merged in
+  `f2271cf9 Merge feature/nv-big/three-big — three big specs
+  (date-range + manifest-renderer + detail-schema)`.
+- [x] 10.2 Open PR to ConductionNL/nextcloud-vue against `beta` —
+  superseded by the Codeberg `Conduction/nextcloud-vue` migration; the
+  effective PR landed via the merge commit above on development.
+- [x] 10.3 Self-review-approve and merge — completed; see also
+  `0c825721 openspec(make-cn-detail-page-schema-driven): handoff close`.

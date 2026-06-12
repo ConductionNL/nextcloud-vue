@@ -134,4 +134,51 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		})
 		expect(findSidebar(wrapper).exists()).toBe(false)
 	})
+
+	it('re-provides the ANCESTOR objectSidebarState holder so a deep CnDetailPage writes into the holder the host #sidebar slot reads', () => {
+		// The host App (decidesk / procest) provides its OWN objectSidebarState
+		// and renders a CnObjectSidebar in CnAppRoot's #sidebar slot bound to
+		// that holder. CnDetailPage is a DEEP descendant of CnAppRoot (via
+		// <router-view>) — it injects whichever objectSidebarState CnAppRoot
+		// provides. If CnAppRoot re-provided its OWN local holder, CnDetailPage
+		// would write there while the host slot reads the ancestor holder, and
+		// the tab strip would never render. CnAppRoot must forward the
+		// ancestor holder.
+		const ancestorState = {
+			active: false,
+			open: true,
+			objectType: '',
+			objectId: '',
+			title: '',
+			subtitle: '',
+			register: '',
+			schema: '',
+			hiddenTabs: [],
+			tabs: undefined,
+		}
+		const Parent = {
+			components: { CnAppRoot },
+			provide() { return { objectSidebarState: ancestorState } },
+			template: '<CnAppRoot :manifest="manifest" :requires-apps="[]" />',
+			data() { return { manifest } },
+		}
+		const wrapper = shallowMount(Parent, {
+			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
+		})
+		const appRoot = wrapper.findComponent(CnAppRoot)
+		// The provide map a deep descendant (CnDetailPage) would inject from.
+		expect(appRoot.vm._provided.objectSidebarState).toBe(ancestorState)
+		expect(appRoot.vm._provided.objectSidebarState).not.toBe(appRoot.vm.localObjectSidebarState)
+	})
+
+	it('still provides its OWN local holder when NO ancestor provides one', () => {
+		// Standalone CnAppRoot (openregister-style host without an ancestor
+		// provider, or a manifest-only app relying on the auto-mount) keeps
+		// using its local holder so the hoisted auto-mount path is unaffected.
+		const wrapper = shallowMount(CnAppRoot, {
+			propsData: { manifest, requiresApps: [] },
+			stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
+		})
+		expect(wrapper.vm._provided.objectSidebarState).toBe(wrapper.vm.localObjectSidebarState)
+	})
 })

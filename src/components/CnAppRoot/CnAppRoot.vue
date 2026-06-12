@@ -452,8 +452,21 @@ export default {
 			 * title, subtitle, register, schema, hiddenTabs, tabs
 			 * }` — plus the always-truthy `_origin` marker so
 			 * tests can tell the two channels apart.
+			 *
+			 * When an ANCESTOR already provides `objectSidebarState`
+			 * (a host App shell that mounts its own CnObjectSidebar in
+			 * the `#sidebar` slot — decidesk / procest / openregister),
+			 * we re-provide THAT holder rather than our local one.
+			 * Otherwise the descendant CnDetailPage (a deep child of
+			 * this CnAppRoot via `<router-view>`) would inject our
+			 * local holder and write the published tab strip there,
+			 * while the host's `#sidebar` slot — compiled in the
+			 * ancestor's render scope — reads the ancestor's holder.
+			 * The two never meet and the strip never renders. Sharing
+			 * the ancestor holder here keeps the write target and the
+			 * read target the same object.
 			 */
-			objectSidebarState: this.localObjectSidebarState,
+			objectSidebarState: this.ancestorObjectSidebarState || this.localObjectSidebarState,
 			/**
 			 * Index-sidebar channel — CnIndexPage's inject probes
 			 * `sidebarState` FIRST and falls back to

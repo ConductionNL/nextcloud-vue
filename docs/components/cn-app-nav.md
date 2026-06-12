@@ -213,6 +213,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 - **Exact matching** — when the resolved page's `route === '/'`, `exact` is set on the underlying router-link. Without this, the root item would look permanently active for nested routes.
 - **External links** — `href` items return `null` for `:to`, intercept the click, call `preventDefault()`, then open the URL via `window.open(..., '_blank', 'noopener,noreferrer')`.
 - **User settings action** — items with `action: "user-settings"` return `null` for `:to`, intercept the click, and invoke the injected `cnOpenUserSettings()`. CnAppRoot provides this inject and toggles its hosted `NcAppSettingsDialog`. When CnAppNav is mounted standalone (no CnAppRoot ancestor), the inject defaults to a no-op so the click silently does nothing.
+- **Group headers toggle on title click** — an item with no `route` / `href` / `action` but with visible `children[]` is a pure group header: its anchor would be a dead `#` link, so clicking the title toggles the children open/closed — the same effect as the collapse chevron. CnAppNav tracks this expand/collapse state locally (seeded from the manifest's `item.open`, kept in sync with chevron clicks via `update:open`), so both click targets always agree.
 - **Active icon colour** — `icon-*` background-image classes have a hardcoded dark fill, so the component injects `filter: brightness(0) invert(1)` to whiten them when active. `<template #icon>` MDI components inherit `currentColor` and don't need this.
 
 ## Dynamic per-tenant menu entries

@@ -26,6 +26,17 @@ export const useObjectStore = createObjectStore(storeId, options)
 | `options.state` | Function | Extra state factory — merged after plugin state | `undefined` |
 | `options.getters` | Object | Extra getters — merged after plugin getters | `undefined` |
 | `options.actions` | Object | Extra actions — merged after plugin actions | `undefined` |
+| `options.organisationUuidGetter` | Function | `() => string\|null` — when set, every request stamps `X-OpenRegister-Organisation: <uuid>` (multi-tenancy). | `null` |
+| `options.languageGetter` | Function | `() => string\|null` — when set, every read URL stamps `?_lang=<bcp47>` so OR returns the localised projection (`i18n-api-language-negotiation`). | `null` |
+| `options.targetLanguageGetter` | Function | `() => string\|null` — when set, every write request stamps `X-Translation-Target-Language: <bcp47>` so OR authors the payload into `_translations[<bcp47>]` instead of overwriting the source row (`i18n-source-of-truth`). | `null` |
+
+The three getters above are tolerant: a `null` / empty / throwing
+return is downgraded to "no stamp" — a buggy getter NEVER breaks an
+outbound request. See
+[`docs/composables/use-object-store.md`](../composables/use-object-store.md)
+for the language-negotiation deep-dive and
+[`docs/composables/use-tenant-context.md`](../composables/use-tenant-context.md)
+for the tenancy deep-dive.
 
 ### Return Value
 

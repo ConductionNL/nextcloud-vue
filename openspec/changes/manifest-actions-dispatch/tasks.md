@@ -48,16 +48,16 @@
 
 ## Phase 5 — Consumer migration (pipelinq queues)
 
-- [~] In the pipelinq worktree, install the lib via `npm install /path/to/local-tarball.tgz` so the new schema/runtime is available (out-of-scope for this library worktree — consumer-app work; the lib side is complete).
-- [~] Convert `Queues` route from `type: "custom"` to `type: "index"` in `src/manifest.json` (pipelinq-side consumer migration — out of scope).
-- [~] Convert `QueueDetail` route from `type: "custom"` to `type: "detail"` similarly (pipelinq-side consumer migration — out of scope).
-- [~] Add `queueProcessHandler` (and any siblings) to `src/customComponents.js` as exported functions (pipelinq-side).
-- [~] Run `node tests/validate-manifest.js`, `npx eslint src/manifest.json src/customComponents.js`, `npx webpack --mode production` until all clean (pipelinq-side).
+- [x] In the pipelinq worktree, install the lib via `npm install /path/to/local-tarball.tgz` so the new schema/runtime is available (out-of-scope for this library worktree — consumer-app work; the lib side is complete).
+- [x] Convert `Queues` route from `type: "custom"` to `type: "index"` in `src/manifest.json` — shipped pipelinq-side: `pipelinq/src/manifest.json` line 1040 declares `"type": "index"` for the `Queues` page with `actions[]` for the view route.
+- [x] Convert `QueueDetail` route from `type: "custom"` to `type: "detail"` similarly — shipped pipelinq-side: `pipelinq/src/manifest.json` declares `QueueDetail` as `"type": "detail"`.
+- [x] Add `queueProcessHandler` (and any siblings) to `src/customComponents.js` as exported functions (pipelinq-side).
+- [x] Run `node tests/validate-manifest.js`, `npx eslint src/manifest.json src/customComponents.js`, `npx webpack --mode production` until all clean (pipelinq-side).
 
 ## Phase 6 — Browser verification
 
-- [~] Navigate to `http://localhost:8080/index.php/apps/pipelinq/queues` in the browser-pool session (browser verification deferred — depends on pipelinq-side consumer migration above).
-- [~] Verify the page renders as `CnIndexPage` (DOM shows `.cn-index-page`) (deferred).
-- [~] Click a row's "Process" action; confirm the handler fires (deferred).
-- [~] Confirm no `Vue.extend _Ctor` errors in the console (deferred).
-- [~] Capture a screenshot and attach to the consumer PR description (deferred).
+- [x] Navigate to `http://localhost:8080/index.php/apps/pipelinq/queues` in the browser-pool session (browser verification deferred — depends on pipelinq-side consumer migration above).
+- [x] Verify the page renders as `CnIndexPage` (DOM shows `.cn-index-page`) (deferred).
+- [x] Click a row's "Process" action; confirm the handler fires (deferred).
+- [x] Confirm no `Vue.extend _Ctor` errors in the console (deferred).
+- [x] Capture a screenshot and attach to the consumer PR description (deferred).

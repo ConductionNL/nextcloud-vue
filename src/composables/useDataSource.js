@@ -53,7 +53,7 @@ const AGGREGATION_METRICS = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
  * singular/plural slugs onto one connection field, so
  * `schema: 'meeting'` yields `meeting(filter: …) { totalCount }`.
  *
- * @param {object|import('vue').Ref<object|null>} dataSource Manifest dataSource block (or null).
+ * @param {object|import('vue').Ref<object|null>|(() => object|null)} dataSource Manifest dataSource block (or null). Also accepts a ref or a getter function (`() => props.dataSource`) for reactive inputs.
  * @param {object} [options] Optional config.
  * @param {import('vue').Ref<{from: string, to: string}|null>|(() => {from: string, to: string}|null)} [options.range]
  *   Reactive date-range source feeding the bucket shorthand's
@@ -63,7 +63,14 @@ const AGGREGATION_METRICS = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
  *   Reactive resolution state.
  */
 export function useDataSource(dataSource, options = {}) {
-	const ds = computed(() => (isRef(dataSource) ? dataSource.value : dataSource))
+	const ds = computed(() => {
+		const v = isRef(dataSource) ? dataSource.value : dataSource
+		// Getter form (`() => props.dataSource`) — call it inside the computed
+		// so reactivity tracks the underlying prop. CnStatsBlockWidget and
+		// CnChartWidget pass this form; without unwrapping it the query
+		// builder sees a function and never issues a request.
+		return typeof v === 'function' ? v() : v
+	})
 	const range = computed(() => {
 		if (!options.range) return null
 		const r = options.range
@@ -165,10 +172,32 @@ function resolveSelectors(dataSource) {
  * @return {string} The GraphQL document.
  */
 export function buildCountQuery(schemaSlug, filter) {
+	assertGraphQLName(schemaSlug, 'schemaSlug')
 	const filterArg = filter && Object.keys(filter).length > 0
 		? `(filter: ${stringifyFilter(filter)})`
 		: ''
 	return `{ ${schemaSlug}${filterArg} { totalCount } }`
+}
+
+/**
+ * GraphQL Name production (spec §2.1.9). Slugs and filter keys are
+ * inlined into the query document, so anything outside this grammar
+ * is an injection vector (C2) and must throw before emission.
+ */
+const GRAPHQL_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+/**
+ * Throw when a value interpolated into a GraphQL document is not a
+ * valid GraphQL Name.
+ *
+ * @param {string} value Candidate name (schema slug or filter key).
+ * @param {string} what  Label used in the error message.
+ * @return {void}
+ */
+function assertGraphQLName(value, what) {
+	if (typeof value !== 'string' || !GRAPHQL_NAME_RE.test(value)) {
+		throw new TypeError(`buildCountQuery: ${what} ${JSON.stringify(value)} is not a valid GraphQL name`)
+	}
 }
 
 /**
@@ -296,6 +325,7 @@ function stringifyFilter(value) {
 	if (typeof value === 'object') {
 		const parts = []
 		for (const [k, v] of Object.entries(value)) {
+			assertGraphQLName(k, 'filter key')
 			parts.push(`${k}: ${stringifyFilter(v)}`)
 		}
 		return '{' + parts.join(', ') + '}'

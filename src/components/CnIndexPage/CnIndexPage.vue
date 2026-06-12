@@ -178,7 +178,8 @@
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
 				<div v-if="effectiveLoading" class="cn-index-page__loading">
-					<NcLoadingIcon :size="32" />
+					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
+					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
 
 				<!-- Empty state -->
@@ -657,6 +658,12 @@ export default {
 		emptyText: {
 			type: String,
 			default: 'No items found',
+		},
+
+		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
+		loadingText: {
+			type: String,
+			default: 'Loading…',
 		},
 
 		/** Function returning CSS class(es) for a row */
