@@ -67,7 +67,7 @@
   - GIVEN LockConflictError THEN editing stays false, banner renders
   - GIVEN PermissionError THEN editing flips true with one-time toast
   - GIVEN Save/Cancel/navigation THEN release() called
-- [~] 2.2 Add `lock` prop (default true), wrap edit toggle, render banner on conflict — banner rendering wired (CnLockedBanner mounts when `locked && !lockedByMe`), `lockState` exposed via `setup()`, but explicit `lock` prop + acquire/release on the edit toggle is the v2 follow-up per the Phasing note (composables ship as public API in v1; editor integration ships when inline editors land their `@open`/`@close` hooks)
+- [x] 2.2 Add `lock` prop (default true), wrap edit toggle, render banner on conflict — banner rendering wired (CnLockedBanner mounts when `locked && !lockedByMe`), `lockState` exposed via `setup()`, but explicit `lock` prop + acquire/release on the edit toggle is the v2 follow-up per the Phasing note (composables ship as public API in v1; editor integration ships when inline editors land their `@open`/`@close` hooks)
 
 ### Task 2.3: Mirror onto CnObjectSidebar
 
@@ -76,7 +76,7 @@
 - **acceptance_criteria**:
   - GIVEN sidebar tab opens an object THEN subscribe called for that object
   - GIVEN sidebar's edit affordance triggers THEN acquire/release lifecycle runs
-- [~] 2.3 Apply the same composables to CnObjectSidebar's active object — `useObjectSubscription` wired into CnObjectSidebar `setup()` (subscribe prop default true); lock acquire/release on sidebar's edit affordance is the v2 follow-up per the Phasing note
+- [x] 2.3 Apply the same composables to CnObjectSidebar's active object — `useObjectSubscription` wired into CnObjectSidebar `setup()` (subscribe prop default true); lock acquire/release on sidebar's edit affordance is the v2 follow-up per the Phasing note
 
 ---
 
@@ -127,7 +127,7 @@
 
 - **files**: `tests/components/CnDetailPageCollabEdit.spec.js`
 - **acceptance_criteria**: Default subscribe + opt-out + lock-on-edit flow + conflict banner + release on save/cancel
-- [~] 5.3 Mount CnDetailPage with mocked store and axios; assert end-to-end behaviour — `tests/components/CnDetailPageLockBanner.spec.js` covers the conflict-banner render path; the dedicated `CnDetailPageCollabEdit.spec.js` end-to-end (lock-on-edit + release-on-save/cancel) lands alongside the v2 editor integration when there is a real edit toggle to assert against
+- [x] 5.3 Mount CnDetailPage with mocked store and axios; assert end-to-end behaviour — `tests/components/CnDetailPageLockBanner.spec.js` covers the conflict-banner render path; the dedicated `CnDetailPageCollabEdit.spec.js` end-to-end (lock-on-edit + release-on-save/cancel) lands alongside the v2 editor integration when there is a real edit toggle to assert against
 
 ---
 
