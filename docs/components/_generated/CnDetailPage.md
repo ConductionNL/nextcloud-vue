@@ -43,6 +43,7 @@
 | ------------------------- | ------------------------------------------- | -------------------------- |
 | `header`                  | `title`, `description`, `icon`, `icon-size` | header                     |
 | `icon`                    | —                                           | icon                       |
+| `translation-badge`       | `object`                                    | translation-badge          |
 | `actions`                 | —                                           | actions                    |
 | `error`                   | —                                           | error                      |
 | `error-actions`           | —                                           | error-actions              |
