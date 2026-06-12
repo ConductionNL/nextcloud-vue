@@ -276,6 +276,12 @@ export default {
 
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		// v2 component registry (ADR-036). Kind-tagged entries
+		// ({ kind, component }); a sidebar tab's `component` ref resolves
+		// against this first so apps that migrated their tab components to
+		// the registry (e.g. as `kind: 'page'`) still render. Empty default
+		// keeps the legacy `customComponents`-only path unchanged.
+		cnRegistry: { default: () => ({}) },
 	},
 
 	props: {
@@ -519,6 +525,15 @@ export default {
 			return this.customComponents || this.cnCustomComponents || {}
 		},
 		/**
+		 * Effective v2 component registry (ADR-036). Kind-tagged entries
+		 * keyed by component name. Consulted by `resolveTabComponent` so a
+		 * tab's `component` ref resolves against the registry as well as the
+		 * legacy `customComponents` map.
+		 */
+		effectiveRegistry() {
+			return this.cnRegistry || {}
+		},
+		/**
 		 * Shared object context forwarded to every widget / component
 		 * mounted inside a custom tab — same context the built-in tabs
 		 * receive today.
@@ -625,11 +640,19 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnObjectSidebar] Tab "${tab.id}" declares both widgets[] and component — component wins, widgets are ignored.`)
 			}
+			// v2 registry first (ADR-036): any kind-tagged entry with a
+			// `component` field is acceptable for a slot/tab lookup — this
+			// is what lets a `kind: 'page'` tab component (the procest
+			// pattern) render. Fall back to the legacy customComponents map.
+			const registryEntry = this.effectiveRegistry[tab.component]
+			if (registryEntry && registryEntry.component) {
+				return registryEntry.component
+			}
 			const reg = this.effectiveCustomComponents
 			const resolved = reg && reg[tab.component]
 			if (!resolved) {
 				// eslint-disable-next-line no-console
-				console.warn(`[CnObjectSidebar] Tab "${tab.id}" component "${tab.component}" not found in customComponents registry.`)
+				console.warn(`[CnObjectSidebar] Tab "${tab.id}" component "${tab.component}" not found in registry or customComponents.`)
 				return null
 			}
 			return resolved

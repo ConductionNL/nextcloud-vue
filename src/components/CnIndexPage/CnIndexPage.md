@@ -355,6 +355,7 @@ export default {
 | `includeColumns` | Array | `null` | Column keys to show (whitelist); `null` means all |
 | `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |
 | `emptyText` | String | `'No items found'` | Text shown in the empty state |
+| `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |

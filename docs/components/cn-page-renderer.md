@@ -13,7 +13,7 @@ Both can co-exist while consumers migrate; pass either. The legacy map is the de
 
 The discriminator on registry lookups depends on the resolution site:
 
-- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map.
+- **Page dispatch** (`page.component` for `type:"custom"` pages, `page.sidebarComponent`) requires `kind: "page"`. Other-kind entries with the same name are ignored and resolution falls through to the legacy map. A `type:"custom"` page MAY omit `page.component` and instead name its body component via `page.slots.main` — when `page.component` is absent the `main` slot entry is promoted to the page body (resolved as `kind:"page"`) and is **not** also mounted as a named slot. An explicit `page.component` still wins, and `slots.main` then behaves as an ordinary named slot.
 - **Slot overrides** (`page.slots[*]`, `page.headerComponent`, `page.actionsComponent`, `page.config.sections[*].component`) are kind-agnostic — any registry entry with a `component` field resolves, so consumers can fully migrate off `customComponents` by parking dashboard widgets / settings sections / action menus in `registry.js` with semantic kinds (`widget` / `section` / `actions`).
 
 Each entry in `pageTypes` is wrapped in `defineAsyncComponent`, so apps using only a subset pay no bundle cost for the others (notably the GridStack-backed `dashboard`).

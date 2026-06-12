@@ -33,6 +33,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
+| `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
