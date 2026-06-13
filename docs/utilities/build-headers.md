@@ -32,6 +32,7 @@ buildHeaders({ contentType: null, organisationUuid: 'org-uuid-123' })
 | `opts` | `string \| object` | `'application/json'` | Either a Content-Type string (back-compat) or the options object documented below. |
 | `opts.contentType` | `string \| null` | `'application/json'` | Value for the `Content-Type` header. Pass `null` (or falsy) to omit — required when posting `FormData` so the browser can write the multipart boundary. |
 | `opts.organisationUuid` | `string \| null` | `null` | Active tenant UUID. When a non-empty string is passed, the returned object includes `X-OpenRegister-Organisation: <uuid>` — the FE side of the [`multi-tenancy-context`](./composables/use-tenant-context.md) capability, consumed server-side by OpenRegister's `MultiTenancyTrait`. |
+| `opts.targetLanguage` | `string \| null` | `null` | BCP-47 target language for translation writes. When a non-empty string is passed, the returned object includes `X-Translation-Target-Language: <bcp47>` — the FE side of the `i18n-source-of-truth` write contract; OpenRegister stamps the value into `_translations[<bcp47>]` instead of overwriting the source row. |
 
 ## Returns
 

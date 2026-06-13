@@ -16,11 +16,11 @@
 
 ### Slots
 
-| Name                      | Bindings                | Description |
-| ------------------------- | ----------------------- | ----------- |
-| `header`                  | `object`                |             |
-| `empty`                   | —                       |             |
-| `'label-' + index`        | `name`, `item`, `index` |             |
-| `'item-' + index`         | `name`, `item`, `index` |             |
-| `'item-actions-' + index` | `name`, `item`, `index` |             |
-| `default`                 | —                       |             |
+| Name                      | Bindings                | Description                                                                                                      |
+| ------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `header`                  | `object`                | header Replaces the default translation-badge header row above the grid.                                         |
+| `empty`                   | —                       | empty Replaces the default empty-state text shown when there are no items.                                       |
+| `'label-' + index`        | `name`, `item`, `index` | label-\{index\} Per-item label override (e.g. `#label-0`). Defaults to `item.label`.                             |
+| `'item-' + index`         | `name`, `item`, `index` | item-\{index\} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. |
+| `'item-actions-' + index` | `name`, `item`, `index` | item-actions-\{index\} Optional per-item action buttons rendered after the value (e.g. `#item-actions-0`).       |
+| `default`                 | —                       | default Appended after the data-driven items — add manual rows or arbitrary content here.                        |

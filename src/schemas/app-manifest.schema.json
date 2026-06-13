@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -687,6 +687,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "When false the widget renders without its title bar (and without the surrounding card chrome). Defaults to true."
+				},
+				"dateChip": {
+					"type": "boolean",
+					"default": false,
+					"description": "Opt-in (custom widgets only): when true AND the dashboard page's `dateRange.enabled` is true, CnDashboardPage renders the shared date-range chip in this widget's title bar — the same chip chart widgets with a `dataSource.bucket` get automatically. The chip reads and writes the SHARED dashboard range (`cnDashboardDateRange`); combine with `dateRange.showHeaderPicker: false` to surface the range exclusively in widget headers. Defaults to false."
 				}
 			}
 		},

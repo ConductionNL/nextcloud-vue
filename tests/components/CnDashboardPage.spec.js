@@ -277,3 +277,74 @@ describe('CnDashboardPage — integration widget dispatcher', () => {
 		wrapper.destroy()
 	})
 })
+
+describe('CnDashboardPage — custom-widget date chip (layout dateChip opt-in)', () => {
+	// The chip renders inside CnWidgetWrapper's #title-meta slot, so the
+	// wrapper stub must forward that named slot (the shared `stubs` above
+	// only renders the default slot).
+	const chipStubs = {
+		...stubs,
+		CnWidgetWrapper: {
+			template: `
+				<div class="cn-widget-wrapper-stub">
+					<div class="cn-widget-wrapper-stub__title-meta"><slot name="title-meta" /></div>
+					<slot />
+				</div>
+			`,
+			props: ['title', 'iconUrl', 'iconClass', 'showTitle', 'borderless', 'flush', 'buttons', 'styleConfig', 'titleIconPosition', 'titleIconColor'],
+		},
+		CnDateRangePicker: { template: '<div class="cn-date-range-picker-stub" />' },
+		NcActions: { template: '<div class="nc-actions-stub" v-bind="$attrs"><slot name="icon" /><slot /></div>' },
+		NcActionButton: { template: '<button class="nc-action-button-stub"><slot /></button>' },
+		NcActionInput: { template: '<input class="nc-action-input-stub" />' },
+		NcActionSeparator: { template: '<hr class="nc-action-separator-stub" />' },
+	}
+
+	const widgets = [{ id: 'custom1', title: 'Custom analytics', type: 'custom' }]
+
+	const mountWith = (layoutExtra = {}, propsExtra = {}) => mount(CnDashboardPage, {
+		propsData: {
+			widgets,
+			layout: [{ id: '1', widgetId: 'custom1', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3, ...layoutExtra }],
+			dateRange: { enabled: true },
+			...propsExtra,
+		},
+		scopedSlots: {
+			'widget-custom1': '<div class="custom-body">body</div>',
+		},
+		stubs: chipStubs,
+	})
+
+	beforeEach(() => {
+		window.localStorage.clear()
+	})
+
+	it('renders the shared date chip on a custom widget when layout dateChip is true', () => {
+		const wrapper = mountWith({ dateChip: true })
+		const chip = wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]')
+		expect(chip.exists()).toBe(true)
+		// The chip label is the formatted SHARED dashboard range (last-7
+		// fallback resolves a from/to window on created()).
+		expect(wrapper.find('.cn-dashboard-page__date-chip').text()).not.toHaveLength(0)
+		wrapper.destroy()
+	})
+
+	it('renders NO chip on a custom widget without the dateChip flag', () => {
+		const wrapper = mountWith({})
+		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('renders NO chip when the dashboard dateRange feature is disabled', () => {
+		const wrapper = mountWith({ dateChip: true }, { dateRange: null })
+		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('hides the header picker but keeps the chip when showHeaderPicker is false', () => {
+		const wrapper = mountWith({ dateChip: true }, { dateRange: { enabled: true, showHeaderPicker: false } })
+		expect(wrapper.find('[data-testid="cn-dashboard-page-date-range"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-custom1"]').exists()).toBe(true)
+		wrapper.destroy()
+	})
+})
