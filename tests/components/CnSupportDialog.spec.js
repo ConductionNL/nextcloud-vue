@@ -55,7 +55,7 @@ describe('CnSupportDialog', () => {
 		const links = wrapper.findAll('a.cn-support-dialog__link')
 		expect(links.length).toBe(2)
 		expect(links.at(0).attributes('href')).toBe('https://www.conduction.nl')
-		expect(links.at(1).attributes('href')).toBe('https://www.conduction.nl/apps')
+		expect(links.at(1).attributes('href')).toBe('https://www.conduction.nl/connext')
 	})
 
 	it('renders the founder avatar linking to the profile URL', () => {

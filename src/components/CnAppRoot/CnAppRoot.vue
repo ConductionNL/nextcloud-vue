@@ -1004,14 +1004,15 @@ export default {
 		},
 		/**
 		 * Feature-request URL — host override, else the conventional
-		 * `github.com/ConductionNL/{appId}/issues/new` (GitHub redirects
-		 * resolve repo-name casing).
+		 * `codeberg.org/Conduction/{appId}/issues/new`. The fleet's source
+		 * of truth moved from GitHub to Codeberg (org `ConductionNL` →
+		 * `Conduction`); Codeberg resolves repo-name casing.
 		 *
 		 * @return {string}
 		 */
 		cnSupportFeatureRequestUrl() {
 			return this.cnSupportConfig.featureRequestUrl
-				|| ('https://github.com/ConductionNL/' + this.appId + '/issues/new')
+				|| ('https://codeberg.org/Conduction/' + this.appId + '/issues/new')
 		},
 		/**
 		 * Pass-through of any other `CnSupportDialog` props supplied in
