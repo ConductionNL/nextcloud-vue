@@ -255,6 +255,63 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 6. Dashboard custom-widget slot wiring (CnDashboardPage /
+	//    CnPageRenderer). A `type:"dashboard"` page wires each
+	//    `type:"custom"` widget in `config.widgets[]` to a registry
+	//    component through the PAGE-TOP-LEVEL `slots` map
+	//    (`{ "widget-<id>": "<ComponentName>" }`), which CnPageRenderer
+	//    reads as `page.slots` and turns into the `#widget-<id>` scoped
+	//    slots CnDashboardPage consumes. Two ways to get this wrong — both
+	//    pass JSON-schema validation (config is additionalProperties:true)
+	//    yet render every affected widget as the `unavailableLabel`
+	//    ("Widget not available") at runtime:
+	//      (a) the slots map nested under `config` (config.slots) — never
+	//          read by the renderer; must be a sibling of `config`.
+	//      (b) a custom widget with no slots entry at all.
+	//    Built-in widget types (stats-block, chart, tile, integration, …)
+	//    render via their own paths and need no slots entry, so only
+	//    `type:"custom"` is checked. Observed 2026-06-13 on
+	//    decidesk-dashboard-v2-layout: the slots map shipped under config,
+	//    so 9 of 11 widgets rendered the unavailable placeholder while
+	//    gate-22 (schema-only) reported the manifest clean.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'dashboard') return
+			const config = isPlainObject(page.config) ? page.config : null
+			if (!config || !Array.isArray(config.widgets)) return
+			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
+			const topSlots = isPlainObject(page.slots) ? page.slots : {}
+			const configSlots = isPlainObject(config.slots) ? config.slots : null
+
+			// (a) slots map misplaced under config
+			if (configSlots) {
+				errors.push(
+					`pages[${pageId}]/config/slots: the dashboard widget slots map must be at the page top level (pages[${pIndex}]/slots, a sibling of "config"), not under "config". `
+					+ 'CnPageRenderer reads page.slots; a slots map under config is never wired, so every custom widget renders the unavailable placeholder. '
+					+ 'Move "slots" up one level to sit beside "config".',
+				)
+			}
+
+			// (b) each custom widget needs a top-level slots entry
+			config.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.type !== 'custom') return
+				const id = typeof widget.id === 'string' ? widget.id : null
+				if (!id) return
+				const slotKey = `widget-${id}`
+				const wiredTop = typeof topSlots[slotKey] === 'string' && topSlots[slotKey].length > 0
+				// If it is (only) under config.slots, (a) already named the
+				// real fix — don't double-report the same widget.
+				const underConfig = configSlots && typeof configSlots[slotKey] === 'string'
+				if (!wiredTop && !underConfig) {
+					errors.push(
+						`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
+						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`,
+					)
+				}
+			})
+		})
+	}
+
 	return { valid: errors.length === 0, errors }
 }
 
