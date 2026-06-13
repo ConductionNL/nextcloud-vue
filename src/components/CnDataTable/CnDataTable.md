@@ -191,6 +191,8 @@ export default {
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
+| `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 
 ## Slots
 

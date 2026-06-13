@@ -240,7 +240,7 @@ export default {
 		 */
 		appsUrl: {
 			type: String,
-			default: 'https://www.conduction.nl/apps',
+			default: 'https://www.conduction.nl/connext',
 		},
 		/**
 		 * Name rendered in the handwritten signature line. Defaults to
@@ -311,7 +311,7 @@ export default {
 		},
 		appsLabel() { return t('nextcloud-vue', 'apps') },
 		teamTrail() {
-			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 on GitHub, so your data stays yours and you can read, fork or improve the code yourself.')
+			return t('nextcloud-vue', 'for Nextcloud. Every app is EUPL-1.2 on Codeberg, so your data stays yours and you can read, fork or improve the code yourself.')
 		},
 		featureParagraph() {
 			return t('nextcloud-vue', 'Feature requests are what move {appName} forward, not sales calls. If something is missing, awkward, or you\'d like it to work differently, tell us. That\'s how the app grows.', { appName: this.appName })
@@ -367,12 +367,12 @@ export default {
 	/* Bottom padding restores the breathing room the NcDialog actions slot
 	   used to provide — the CTAs now live in the body, so without it the
 	   bottom row sits flush against the dialog edge. */
-	padding: 0 4px 16px;
+	padding: 0 4px 12px;
 }
 
 .cn-support-dialog__paragraph {
-	margin: 0 0 12px 0;
-	line-height: 1.55;
+	margin: 0 0 8px 0;
+	line-height: 1.45;
 	color: var(--color-main-text);
 }
 
@@ -386,9 +386,7 @@ export default {
 	flex-direction: row;
 	align-items: center;
 	gap: 12px;
-	margin-top: 8px;
-	padding-top: 12px;
-	border-top: 1px solid var(--color-border);
+	margin-top: 4px;
 }
 
 .cn-support-dialog__avatar-link {
@@ -414,7 +412,7 @@ export default {
 
 .cn-support-dialog__signature-name {
 	font-family: 'Caveat', 'Brush Script MT', 'Lucida Handwriting', cursive;
-	font-size: 28px;
+	font-size: 26px;
 	line-height: 1;
 	color: var(--color-main-text);
 }
@@ -430,7 +428,7 @@ export default {
 	column-gap: 8px;
 	row-gap: 8px;
 	align-items: stretch;
-	margin-top: 16px;
+	margin-top: 10px;
 }
 
 /* Normalise per-button margins so the grid gap is the only spacing —
