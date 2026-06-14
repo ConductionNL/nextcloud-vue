@@ -2,15 +2,17 @@
 
 ### Props
 
-| Name             | Type     | Required | Default    | Description                                             |
-| ---------------- | -------- | -------- | ---------- | ------------------------------------------------------- |
-| `register`       | `string` |          | `null`     | Register slug for form data submission.                 |
-| `schema`         | `string` |          | `null`     | Schema slug for the form data shape.                    |
-| `fields`         | `array`  |          | `[]`       | Form fields. Forwarded to CnFormPage.                   |
-| `submitHandler`  | `string` |          | `''`       | Submit handler name. Forwarded to CnFormPage.           |
-| `submitEndpoint` | `string` |          | `''`       | Submit endpoint URL. Forwarded to CnFormPage.           |
-| `submitMethod`   | `string` |          | `'POST'`   | HTTP method for endpoint mode. Forwarded to CnFormPage. |
-| `mode`           | `string` |          | `'public'` | Form mode. Forwarded to CnFormPage.                     |
-| `title`          | `string` |          | `''`       | Page title. Forwarded to CnFormPage.                    |
-| `description`    | `string` |          | `''`       | Page description. Forwarded to CnFormPage.              |
-| `initialValue`   | `object` |          | `\{\}`     | Pre-filled form state. Forwarded to CnFormPage.         |
+| Name               | Type     | Required | Default                               | Description                                                                                                                                                                 |
+| ------------------ | -------- | -------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`            | `string` |          | `() =&gt; t('nextcloud-vue', 'Form')` | Widget title shown in the CnWidgetWrapper header.                                                                                                                           |
+| `documentationUrl` | `string` |          | `''`                                  | Documentation link surfaced in the widget's overflow Actions menu. Empty (the default) hides the Documentation item; the Refresh and Request-a-feature items always render. |
+| `widgetId`         | `string` |          | `''`                                  | Stable id forwarded to the widget chrome for the Refresh / Request-a-feature payloads.                                                                                      |
+| `register`         | `string` |          | `null`                                | Register slug for form data submission.                                                                                                                                     |
+| `schema`           | `string` |          | `null`                                | Schema slug for the form data shape.                                                                                                                                        |
+| `fields`           | `array`  |          | `[]`                                  | Form fields. Forwarded to CnFormPage.                                                                                                                                       |
+| `submitHandler`    | `string` |          | `''`                                  | Submit handler name. Forwarded to CnFormPage.                                                                                                                               |
+| `submitEndpoint`   | `string` |          | `''`                                  | Submit endpoint URL. Forwarded to CnFormPage.                                                                                                                               |
+| `submitMethod`     | `string` |          | `'POST'`                              | HTTP method for endpoint mode. Forwarded to CnFormPage.                                                                                                                     |
+| `mode`             | `string` |          | `'public'`                            | Form mode. Forwarded to CnFormPage.                                                                                                                                         |
+| `description`      | `string` |          | `''`                                  | Page description. Forwarded to CnFormPage.                                                                                                                                  |
+| `initialValue`     | `object` |          | `\{\}`                                | Pre-filled form state. Forwarded to CnFormPage.                                                                                                                             |

@@ -207,6 +207,7 @@ export default {
 | Slot | Description |
 |------|-------------|
 | `header` | Replace the left header block (icon + title + description). Scope: `{ title, description, icon, iconSize }` |
+| `translation-badge` | Replace the default `CnTranslatedBadge` rendered when the resolved object was translated from another language. Scope: `{ object }` (the resolved object) |
 | `icon` | Replace the icon inside the default header |
 | `actions` | Action buttons rendered in the right-hand header area |
 | `error` | Custom error state content (replaces default `NcEmptyContent`) |

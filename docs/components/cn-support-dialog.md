@@ -100,7 +100,7 @@ Use `reset()` from the same composable to re-enable the dialog (tests, admin "sh
 | `donateUrl` | `String` | `https://github.com/sponsors/ConductionNL` | Override per-app if the host has its own donation channel. |
 | `supportUrl` | `String` | `https://www.conduction.nl/support` | "Get support" CTA target — the partner-matching page. |
 | `conductionUrl` | `String` | `https://www.conduction.nl` | Target of the inline "Conduction" link in the default body. Ignored when `bodyParagraphs` is set. |
-| `appsUrl` | `String` | `https://www.conduction.nl/apps` | Target of the inline "apps" link in the default body. Ignored when `bodyParagraphs` is set. |
+| `appsUrl` | `String` | `https://www.conduction.nl/connext` | Target of the inline "apps" link in the default body. Ignored when `bodyParagraphs` is set. |
 | `founderName` | `String` | `Ruben van der Linde` | Rendered in the handwritten signature. |
 | `founderTitle` | `String` | `a founder of Conduction` | Title under the signature. |
 | `founderAvatarUrl` | `String` | bundled portrait (data URI) | Avatar shown left of the signature. Defaults to the self-hosted founder portrait (no third-party request). Override with any URL or data URI when signing your own apps. |

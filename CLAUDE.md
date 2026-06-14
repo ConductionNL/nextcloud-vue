@@ -75,8 +75,12 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnIndexSidebar` — Index page sidebar
 
 **Object Widgets**
-- `CnObjectDataWidget` — Schema-driven editable data grid widget. Displays object properties in a CSS grid, supports inline editing (click-to-edit with all widget types), dirty tracking, and saves via objectStore. Configurable per-property overrides for order, grid span, visibility, editability, label, and widget type.
-- `CnObjectMetadataWidget` — Read-only metadata display widget. Automatically extracts and formats system metadata from OpenRegister objects (@self block: id, uuid, uri, register, schema, created, updated, owner, etc.). Supports include/exclude filters and extra items.
+- `CnObjectDataWidget` — Schema-driven editable data grid widget. Renders on the `CnWidgetWrapper` chrome (Widget family — carries the shared Actions menu, with a **Metadata** action item that opens `CnObjectMetadataModal`). Displays object properties in a CSS grid, supports inline editing (click-to-edit with all widget types), dirty tracking, and saves via objectStore. Configurable per-property overrides for order, grid span, visibility, editability, label, and widget type.
+- `CnRelatedObjectsWidget` — Aggregates everything linked to an object — related objects (uses/used/contracts), files, and leaf-integration entry points (mails/calendar/…) — into grouped, clickable sections on the `CnWidgetWrapper` chrome. Registered as the `related` built-in widget key; rendered beneath `CnObjectDataWidget` on the default detail-page auto-body.
+- `CnObjectMetadataWidget` — Read-only metadata display widget (Card family — stays on `CnDetailCard`, no Actions menu). Automatically extracts and formats system metadata from OpenRegister objects (@self block: id, uuid, uri, register, schema, created, updated, owner, etc.). Supports include/exclude filters and extra items.
+- `CnObjectMetadataModal` — Small `NcDialog` wrapping `CnObjectMetadataWidget` (header suppressed) — surfaces `@self` metadata on demand from the data widget's **Metadata** action item instead of a permanent page widget.
+
+> **Cards vs Widgets** — the library has two content-surface families. **Cards** (single-headline / read-only: KPI cards, stats blocks, single-metric tiles, info, object metadata) use `CnDetailCard` and have **no** Actions menu. **Widgets** (full surfaces: data, related, object-table, card-grid, form-renderer, map-viewer, integration, chart) render on `CnWidgetWrapper` and carry the shared overflow Actions menu (Refresh / Documentation / Request a feature). When building a new surface, pick the family deliberately. See `docs/architecture/cards-and-widgets.md`.
 
 **Dashboard**
 - `CnDashboardPage` — Top-level dashboard page with GridStack widget grid (the dashboard equivalent of CnIndexPage)

@@ -30,3 +30,5 @@ See the [Pluggable Integration Registry](../../CLAUDE.md) section for registrati
 | `include` | Array | `null` | Allowlist of integration ids to render (others hidden). |
 | `apiBase` | String | — | Base path for integration API calls. |
 | `objectType` | String | `''` | Object type/schema the widget is bound to. |
+| `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu. |
+| `widget-id` | `String` | `''` | Stable id forwarded to the menu. |

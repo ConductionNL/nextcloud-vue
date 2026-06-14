@@ -99,6 +99,7 @@ Empty state — custom message via the `empty` slot when `items` is empty:
 | Slot | Scope | Description |
 |---|---|---|
 | `empty` | — | Custom empty state, shown when `items` is empty and no default slot content is provided |
+| `header` | `{ object }` | Replaces the default translation-badge header row above the grid |
 | `item-{index}` | `{ item, index }` | Override the value cell for a specific item |
 | `label-{index}` | `{ item, index }` | Override the label cell for a specific item |
 | `item-actions-{index}` | `{ item, index }` | Add action buttons after the value for a specific item |
