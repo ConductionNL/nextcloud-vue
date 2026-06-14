@@ -12,7 +12,10 @@
 
 		<!-- Built-in "badge" widget — renders the (possibly formatter-shaped) value as a status pill -->
 		<template v-else-if="widget === 'badge'">
-			<CnStatusBadge v-if="hasValue" :label="String(formattedValue)" :variant="badgeVariant" />
+			<CnStatusBadge v-if="hasValue"
+				:label="String(formattedValue)"
+				:variant="badgeVariant"
+				:color-map="badgeColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -69,9 +72,9 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
-		<!-- Enum: status badge -->
+		<!-- Enum: status badge (auto-coloured from the property's optional colorMap) -->
 		<template v-else-if="isEnum">
-			<CnStatusBadge v-if="value" :label="String(value)" />
+			<CnStatusBadge v-if="value" :label="String(value)" :color-map="enumColorMap" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -270,6 +273,29 @@ export default {
 		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
 		badgeVariant() {
 			return (this.widgetProps && this.widgetProps.variant) || 'default'
+		},
+
+		/**
+		 * Color map for the built-in `badge` widget — `widgetProps.colorMap`,
+		 * a `{ value: variant }` map (e.g. `{ placed: 'primary', delivered: 'success' }`)
+		 * that CnStatusBadge resolves per label. Null when unset (falls back to
+		 * `badgeVariant`). Lets a manifest colour a status column without code.
+		 *
+		 * @return {object|null}
+		 */
+		badgeColorMap() {
+			return (this.widgetProps && this.widgetProps.colorMap) || null
+		},
+
+		/**
+		 * Color map for the auto-rendered enum badge — read from the schema
+		 * property's optional `colorMap` (or `x-color-map`). Null when unset, so
+		 * enum cells stay the default grey unless the schema opts into colours.
+		 *
+		 * @return {object|null}
+		 */
+		enumColorMap() {
+			return (this.property && (this.property.colorMap || this.property['x-color-map'])) || null
 		},
 
 		/**

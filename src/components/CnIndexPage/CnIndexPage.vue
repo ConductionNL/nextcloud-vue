@@ -201,6 +201,7 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="tableColumns"
+					:row-icon="rowIcon"
 					:rows="effectiveObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
@@ -630,6 +631,17 @@ export default {
 		rowKey: {
 			type: String,
 			default: 'id',
+		},
+
+		/**
+		 * Optional leading icon for every table row — a static MDI icon name or
+		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * @type {string | ((row: object) => string) | null}
+		 */
+		rowIcon: {
+			type: [String, Function],
+			default: null,
 		},
 
 		/** Columns to exclude in schema mode */

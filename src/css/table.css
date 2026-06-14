@@ -79,6 +79,17 @@
 	text-align: center;
 }
 
+.cn-table-col--icon {
+	width: 40px;
+	padding-right: 0;
+	text-align: center;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-table-col--icon .material-design-icon {
+	display: inline-flex;
+}
+
 .cn-table-col--actions {
 	width: 120px;
 	text-align: center;
