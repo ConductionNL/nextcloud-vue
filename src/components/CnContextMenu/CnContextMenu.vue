@@ -309,10 +309,12 @@ export default {
 		/**
 		 * Clear the active panel and return to the default action list.
 		 * Exposed to custom panel slots via the `back` scope binding.
-		 *
-		 * @event update:activePanel Emitted with `null` to clear the active panel.
 		 */
 		back() {
+			/**
+			 * @event update:activePanel Emitted with `null` to clear the active panel — fired by the panel's `back()` binding and whenever the menu closes while a panel is open. Bind with `:active-panel.sync`.
+			 * @type {null}
+			 */
 			this.$emit('update:activePanel', null)
 		},
 
