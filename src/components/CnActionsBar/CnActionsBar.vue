@@ -96,6 +96,21 @@
 				-->
 				<slot name="action-items" />
 
+				<!-- Built-in "Documentation" entry (opt-in via documentationUrl).
+				     Opens the app's docs in a new tab. Mirrors the widget /
+				     detail Actions menus. -->
+				<NcActionLink
+					v-if="documentationUrl"
+					:href="documentationUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					data-testid="cn-actions-bar-documentation">
+					<template #icon>
+						<BookOpenVariant :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Documentation') }}
+				</NcActionLink>
+
 				<!-- Built-in "Request a feature" entry (opt-in via showRequestFeature).
 				     Emits @request-feature; the host (CnIndexPage) opens the
 				     CnSuggestFeatureModal. Mirrors the widget Actions menu so the
@@ -183,13 +198,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Import from 'vue-material-design-icons/Import.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -212,6 +228,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		NcActionSeparator,
 		NcButton,
 		NcCheckboxRadioSwitch,
@@ -220,6 +237,7 @@ export default {
 		Plus,
 		Refresh,
 		LightbulbOutline,
+		BookOpenVariant,
 		ContentCopy,
 		TrashCanOutline,
 		Import,
@@ -343,6 +361,19 @@ export default {
 		showRequestFeature: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Documentation link target. When a non-empty URL is provided, a
+		 * built-in "Documentation" entry renders in the overflow dropdown
+		 * and opens the link in a new tab (`target="_blank"` +
+		 * `rel="noopener noreferrer"`). Empty (the default) hides it.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
 		},
 
 		/**

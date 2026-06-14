@@ -44,7 +44,7 @@
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
-			@request-feature="onRequestFeature"
+			@request-feature="onRequestFeatureClick"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -71,7 +71,7 @@
 			:repo="cnFeatureRequestRepo"
 			:app="cnAppId"
 			:page="$route ? ($route.name || '') : ''"
-			surface="list"
+			:surface="requestFeatureSurface"
 			:conduction-submit-enabled="false"
 			@close="featureRequestModalOpen = false" />
 
@@ -1133,6 +1133,23 @@ export default {
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
 		},
 
+		/**
+		 * Feature-request surface string forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so the resulting GitHub issue records where
+		 * the request originated. Derives `index:<schema name>` from the
+		 * resolved schema (object `name`, or a schema-slug string); falls
+		 * back to a bare `index` when no schema name can be resolved.
+		 *
+		 * @return {string}
+		 */
+		requestFeatureSurface() {
+			const s = this.effectiveSchema
+			let name = ''
+			if (s && typeof s === 'object') name = s.name || s.slug || s.title || ''
+			else if (typeof this.schema === 'string') name = this.schema
+			return name ? `index:${name}` : 'index'
+		},
+
 		/** Sort key / order: list state in self-fetch mode, else the props. */
 		effectiveSortKey() { return this.isSelfFetchMode ? this.list.sortKey.value : this.sortKey },
 		effectiveSortOrder() { return this.isSelfFetchMode ? this.list.sortOrder.value : this.sortOrder },
@@ -1665,7 +1682,7 @@ export default {
 		 *
 		 * @return {void}
 		 */
-		onRequestFeature() {
+		onRequestFeatureClick() {
 			/**
 			 * @event request-feature User clicked the built-in "Request a
 			 * feature" entry in the actions-bar overflow menu. No payload.
