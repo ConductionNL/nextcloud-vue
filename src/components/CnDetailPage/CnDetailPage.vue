@@ -169,12 +169,13 @@
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
 			<!-- Grid layout mode -->
-			<div v-if="hasGridLayout" class="cn-detail-page__content cn-detail-page__content--grid">
+			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
 				<section
 					v-for="item in sortedLayout"
 					:key="item.id"
-					:style="widgetGridStyle(item)"
-					class="cn-detail-page__grid-item"
+					:style="cnGridCellStyle(item)"
+					class="cn-grid__item cn-detail-page__grid-item"
+					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
 					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
 					<h3
 						v-if="item.showTitle !== false && findWidget(item)"
@@ -255,19 +256,22 @@
 				     widget's "Metadata" action item rather than a permanent
 				     widget. The consumer's slot below short-circuits the
 				     auto-body when present. -->
-				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
-					<CnObjectDataWidget
-						v-if="currentSchema"
-						:schema="currentSchema"
-						:object-data="currentObject"
-						:object-type="resolvedObjectType"
-						:store="effectiveObjectStore" />
-					<CnRelatedObjectsWidget
-						:object-type="resolvedObjectType"
-						:object-id="objectId"
-						:object-data="currentObject"
-						:store="effectiveObjectStore"
-						@open-integration="onAutoBodyOpenIntegration" />
+				<div v-if="shouldRenderAutoBody" class="cn-grid cn-grid--responsive cn-detail-page__auto-body">
+					<div v-if="currentSchema" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+						<CnObjectDataWidget
+							:schema="currentSchema"
+							:object-data="currentObject"
+							:object-type="resolvedObjectType"
+							:store="effectiveObjectStore" />
+					</div>
+					<div class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+						<CnRelatedObjectsWidget
+							:object-type="resolvedObjectType"
+							:object-id="objectId"
+							:object-data="currentObject"
+							:store="effectiveObjectStore"
+							@open-integration="onAutoBodyOpenIntegration" />
+					</div>
 				</div>
 
 				<!-- Default content -->
@@ -319,6 +323,7 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -1073,6 +1078,10 @@ export default {
 	},
 
 	methods: {
+		// Expose the shared grid helpers to the template (grid mode + auto-body).
+		cnGridCellStyle,
+		hasGridRow,
+
 		/**
 		 * Re-emit the page-header menu's Refresh to the host.
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
