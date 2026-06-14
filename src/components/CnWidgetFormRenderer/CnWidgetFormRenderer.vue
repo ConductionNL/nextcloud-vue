@@ -1,28 +1,71 @@
 <!--
   CnWidgetFormRenderer — built-in v2 widget wrapping CnFormPage.
 
-  Referenced in v2 manifests via `widgetKey: "form-renderer"`. Forwards
+  Referenced in v2 manifests via `widgetKey: "form-renderer"`. Renders the
+  form on the shared CnWidgetWrapper chrome (title + standard overflow
+  Actions menu: Refresh / Documentation / Request a feature) and forwards
   `register`, `schema`, and all form-relevant props to CnFormPage.
 
-  Note: CnFormPage renders the full form surface (header, fields, submit
-  button). As a widget it is embedded inside a grid cell; consumer apps
-  should set appropriate grid dimensions.
+  Note: CnFormPage renders the full form surface (fields, submit button).
+  As a widget it is embedded inside a grid cell; consumer apps should set
+  appropriate grid dimensions.
 
   Spec: REQ-MVR-007 (manifest-v2-renderer) — built-in widget: form-renderer
 -->
 <template>
-	<CnFormPage v-bind="$props" v-on="$listeners" />
+	<CnWidgetWrapper
+		:title="title"
+		:widget-id="widgetId"
+		:documentation-url="documentationUrl"
+		flush>
+		<CnFormPage v-bind="innerProps" v-on="$listeners" />
+	</CnWidgetWrapper>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import CnFormPage from '../CnFormPage/CnFormPage.vue'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
+/**
+ * CnWidgetFormRenderer — built-in v2 widget wrapping CnFormPage.
+ *
+ * Renders a form on the shared CnWidgetWrapper chrome, which supplies the
+ * widget title and the standard overflow Actions menu (Refresh /
+ * Documentation / Request a feature). All form props are forwarded to the
+ * inner CnFormPage; the chrome props (`title`, `documentationUrl`,
+ * `widgetId`) are consumed by the wrapper and not passed down.
+ */
 export default {
 	name: 'CnWidgetFormRenderer',
 
-	components: { CnFormPage },
+	components: { CnFormPage, CnWidgetWrapper },
 
 	props: {
+		/**
+		 * Widget title shown in the CnWidgetWrapper header.
+		 */
+		title: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Form'),
+		},
+		/**
+		 * Documentation link surfaced in the widget's overflow Actions menu.
+		 * Empty (the default) hides the Documentation item; the Refresh and
+		 * Request-a-feature items always render.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Stable id forwarded to the widget chrome for the Refresh /
+		 * Request-a-feature payloads.
+		 */
+		widgetId: {
+			type: String,
+			default: '',
+		},
 		/** Register slug for form data submission. */
 		register: {
 			type: String,
@@ -58,11 +101,6 @@ export default {
 			type: String,
 			default: 'public',
 		},
-		/** Page title. Forwarded to CnFormPage. */
-		title: {
-			type: String,
-			default: '',
-		},
 		/** Page description. Forwarded to CnFormPage. */
 		description: {
 			type: String,
@@ -72,6 +110,19 @@ export default {
 		initialValue: {
 			type: Object,
 			default: () => ({}),
+		},
+	},
+
+	computed: {
+		/**
+		 * `$props` minus the chrome props (`title`, `documentationUrl`,
+		 * `widgetId`) so they are consumed by CnWidgetWrapper and never
+		 * forwarded to the inner CnFormPage.
+		 * @return {object}
+		 */
+		innerProps() {
+			const { title, documentationUrl, widgetId, ...rest } = this.$props
+			return rest
 		},
 	},
 }

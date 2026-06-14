@@ -21,21 +21,27 @@
 -->
 <template>
 	<div
-		class="cn-widget-grid"
-		:style="containerStyle"
+		class="cn-widget-grid cn-grid"
+		:class="{ 'cn-grid--responsive': isResponsive }"
+		:style="gridVars"
 		:data-slot="slotName">
 		<template v-for="(widget, index) in resolvedWidgets">
-			<component
-				:is="widget.component"
+			<div
 				:key="`${widget.widgetKey}-${index}`"
-				v-bind="widget.props"
-				:style="gridCellStyle(widget)" />
+				class="cn-grid__item"
+				:class="{ 'cn-grid__item--row': hasGridRow(widget) }"
+				:style="cnGridCellStyle(widget, gridColumns)">
+				<component
+					:is="widget.component"
+					v-bind="widget.props" />
+			</div>
 		</template>
 	</div>
 </template>
 
 <script>
 import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
+import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 
 /**
  * Per-slot column counts per ADR-036 Decision 2.
@@ -143,12 +149,25 @@ export default {
 			}
 			return out
 		},
-		containerStyle() {
-			return {
-				display: 'grid',
-				gridTemplateColumns: `repeat(${this.gridColumns}, 1fr)`,
-				gap: 'var(--default-grid-baseline, 4px)',
-			}
+		/**
+		 * CSS custom properties driving the shared `.cn-grid` engine — the
+		 * desktop column count for this slot. Responsive collapse (12 → 6 →
+		 * 1) lives in `grid.css`.
+		 *
+		 * @return {object}
+		 */
+		gridVars() {
+			return { '--cn-grid-cols': this.gridColumns }
+		},
+		/**
+		 * Whether this slot's grid collapses responsively. Multi-column
+		 * slots (body/footer/tab/section) do; the single-column sidebar
+		 * slot stays put.
+		 *
+		 * @return {boolean}
+		 */
+		isResponsive() {
+			return this.gridColumns > 1
 		},
 		resolvedWidgets() {
 			const columns = this.gridColumns
@@ -206,9 +225,17 @@ export default {
 					widgetKey: key,
 					component,
 					// Detail-page object context first, then the top-level
-					// `dataSource`, then the manifest's per-widget `props`
-					// last so explicit props always win.
-					props: { ...this.detailContextProps, ...dataSourceProp, ...(widget.props ?? {}) },
+					// `dataSource` (v2 unified widget shape), then the
+					// entry-level `title` / `documentationUrl` so the widget
+					// chrome (CnWidgetWrapper) can render them, then the
+					// manifest's per-widget `props` last so explicit props win.
+					props: {
+						...this.detailContextProps,
+						...dataSourceProp,
+						...(widget.title ? { title: widget.title } : {}),
+						...(widget.documentationUrl ? { documentationUrl: widget.documentationUrl } : {}),
+						...(widget.props ?? {}),
+					},
 					gridX: typeof widget.gridX === 'number' ? widget.gridX : 0,
 					gridY: typeof widget.gridY === 'number' ? widget.gridY : 0,
 					gridWidth,
@@ -221,18 +248,9 @@ export default {
 	},
 
 	methods: {
-		/**
-		 * Generate the CSS grid placement style for a widget entry.
-		 *
-		 * @param {object} widget Resolved widget entry with grid coordinates.
-		 * @return {object} Vue style object.
-		 */
-		gridCellStyle(widget) {
-			return {
-				gridColumn: `${widget.gridX + 1} / span ${widget.gridWidth}`,
-				gridRow: `${widget.gridY + 1} / span ${widget.gridHeight}`,
-			}
-		},
+		// Expose the shared grid helpers to the template.
+		cnGridCellStyle,
+		hasGridRow,
 	},
 }
 </script>

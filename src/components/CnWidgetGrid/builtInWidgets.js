@@ -20,6 +20,7 @@ import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
 import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 
 /**
@@ -50,5 +51,6 @@ export const BUILT_IN_WIDGETS = {
 	'card-grid': CnWidgetCardGrid,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
+	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
 }

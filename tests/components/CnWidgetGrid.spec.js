@@ -133,11 +133,24 @@ describe('CnWidgetGrid — dataSource forwarding', () => {
 	})
 })
 
-describe('CnWidgetGrid — gridCellStyle', () => {
-	it('generates correct CSS grid placement', () => {
+describe('CnWidgetGrid — shared grid engine cell vars', () => {
+	it('emits the responsive grid CSS custom properties', () => {
 		const wrapper = mount('body', [])
-		const style = wrapper.vm.gridCellStyle({ gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2 })
-		expect(style.gridColumn).toBe('1 / span 6')
-		expect(style.gridRow).toBe('1 / span 2')
+		// The shared engine emits CSS vars (read by .cn-grid in grid.css)
+		// rather than a fixed grid-column/grid-row, so the grid can collapse
+		// responsively (12 → 6 → 1) without per-item media queries.
+		const style = wrapper.vm.cnGridCellStyle({ gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2 }, 12)
+		expect(style['--cn-grid-cs']).toBe(1)
+		expect(style['--cn-grid-cspan']).toBe(6)
+		expect(style['--cn-grid-cspan-md']).toBe(6)
+		expect(style['--cn-grid-rs']).toBe(1)
+		expect(style['--cn-grid-rspan']).toBe(2)
+	})
+
+	it('clamps a wide span to 6 columns at the medium breakpoint', () => {
+		const wrapper = mount('body', [])
+		const style = wrapper.vm.cnGridCellStyle({ gridX: 0, gridWidth: 8 }, 12)
+		expect(style['--cn-grid-cspan']).toBe(8)
+		expect(style['--cn-grid-cspan-md']).toBe(6)
 	})
 })

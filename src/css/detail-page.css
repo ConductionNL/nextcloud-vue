@@ -168,13 +168,9 @@
 	gap: calc(4 * var(--default-grid-baseline));
 }
 
-/* Grid layout mode */
-.cn-detail-page__content--grid {
-	display: grid;
-	grid-template-columns: repeat(12, 1fr);
-	gap: calc(4 * var(--default-grid-baseline));
-}
-
+/* Grid layout mode + schema-driven auto-body both render on the shared
+   responsive grid engine (`.cn-grid` / `.cn-grid__item`, see grid.css) —
+   no detail-page-specific grid CSS needed here. */
 .cn-detail-page__grid-item {
 	min-width: 0;
 }
@@ -224,16 +220,5 @@
 
 	.cn-detail-page__header-actions {
 		width: 100%;
-	}
-}
-
-@media (max-width: 600px) {
-	.cn-detail-page__content--grid {
-		grid-template-columns: 1fr;
-	}
-
-	.cn-detail-page__content--grid .cn-detail-page__grid-item {
-		grid-column: 1 / -1 !important;
-		grid-row: auto !important;
 	}
 }

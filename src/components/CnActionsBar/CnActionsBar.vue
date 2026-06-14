@@ -76,6 +76,16 @@
 					{{ refreshing ? t('nextcloud-vue', 'Refreshing…') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
+				<NcActionLink v-if="documentationUrl"
+					:href="documentationUrl"
+					target="_blank"
+					rel="noopener noreferrer">
+					<template #icon>
+						<BookOpenVariantOutline :size="20" />
+					</template>
+					{{ documentationLabel }}
+				</NcActionLink>
+
 				<!-- Manifest-declared page-level header actions (overflow) -->
 				<NcActionButton
 					v-for="entry in headerActions"
@@ -169,7 +179,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Import from 'vue-material-design-icons/Import.vue'
@@ -197,11 +208,13 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		NcActionSeparator,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		CnIcon,
+		BookOpenVariantOutline,
 		Plus,
 		Refresh,
 		ContentCopy,
@@ -326,6 +339,22 @@ export default {
 		headerActions: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * When set, adds a Documentation entry to the overflow menu (after
+		 * Refresh, before headerActions). Opens the URL in a new tab.
+		 * Empty string hides the entry.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the Documentation overflow entry. */
+		documentationLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Documentation'),
 		},
 	},
 

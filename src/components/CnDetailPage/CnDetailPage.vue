@@ -84,6 +84,18 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+				<CnActionsMenu
+					:show-refresh="showRefresh"
+					:show-request-feature="showRequestFeature"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel || undefined"
+					:widget-id="resolvedPageId"
+					:title="title"
+					:surface="`detail:${resolvedPageId}`"
+					refresh-channel="cn:page:refresh"
+					testid-base="cn-detail-page"
+					@refresh="onHeaderRefresh"
+					@request-feature="onHeaderRequestFeature" />
 			</div>
 		</div>
 
@@ -157,12 +169,13 @@
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
 			<!-- Grid layout mode -->
-			<div v-if="hasGridLayout" class="cn-detail-page__content cn-detail-page__content--grid">
+			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
 				<section
 					v-for="item in sortedLayout"
 					:key="item.id"
-					:style="widgetGridStyle(item)"
-					class="cn-detail-page__grid-item"
+					:style="cnGridCellStyle(item)"
+					class="cn-grid__item cn-detail-page__grid-item"
+					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
 					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
 					<h3
 						v-if="item.showTitle !== false && findWidget(item)"
@@ -237,18 +250,28 @@
 				<!-- Schema-driven auto-body: fires when the manifest passed
 				     register+schema+objectId, the object resolved, and no
 				     consumer-supplied slot content is present. Renders the
-				     data + metadata widgets stacked so a `type: "detail"`
-				     manifest page is meaningful without per-app code. The
-				     consumer's slot below short-circuits the auto-body
-				     when present. -->
-				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
-					<CnObjectDataWidget
-						v-if="currentSchema"
-						:schema="currentSchema"
-						:object-data="currentObject"
-						:object-type="resolvedObjectType"
-						:store="effectiveObjectStore" />
-					<CnObjectMetadataWidget :object-data="currentObject" />
+				     data widget with the related-objects widget beneath it
+				     so a `type: "detail"` manifest page is meaningful without
+				     per-app code. Object metadata is reachable from the data
+				     widget's "Metadata" action item rather than a permanent
+				     widget. The consumer's slot below short-circuits the
+				     auto-body when present. -->
+				<div v-if="shouldRenderAutoBody" class="cn-grid cn-grid--responsive cn-detail-page__auto-body">
+					<div v-if="currentSchema" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+						<CnObjectDataWidget
+							:schema="currentSchema"
+							:object-data="currentObject"
+							:object-type="resolvedObjectType"
+							:store="effectiveObjectStore" />
+					</div>
+					<div class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+						<CnRelatedObjectsWidget
+							:object-type="resolvedObjectType"
+							:object-id="objectId"
+							:object-data="currentObject"
+							:store="effectiveObjectStore"
+							@open-integration="onAutoBodyOpenIntegration" />
+					</div>
 				</div>
 
 				<!-- Default content -->
@@ -292,13 +315,15 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
-import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
+import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -388,9 +413,10 @@ export default {
 		AlertCircleOutline,
 		InformationOutline,
 		Refresh,
+		CnActionsMenu,
 		CnLockedBanner,
 		CnObjectDataWidget,
-		CnObjectMetadataWidget,
+		CnRelatedObjectsWidget,
 		CnTranslatedBadge,
 	},
 
@@ -677,6 +703,46 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Documentation link surfaced in the page-header Actions menu. When
+		 * set, the menu renders a "Documentation" entry that opens this URL
+		 * in a new tab. The Refresh and Request-a-feature entries render by
+		 * default regardless of this value.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the Documentation entry in the header menu. */
+		documentationLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Stable id for the page-header Actions menu — forwarded as the
+		 * `widgetId` on the `@refresh` / `cn:page:refresh` payloads and as
+		 * the `surface: "detail:<pageId>"` on the feature-request modal.
+		 * Falls back to a slugified title when empty.
+		 */
+		pageId: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether the Refresh entry renders in the page-header menu. */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** Whether the Request-a-feature entry renders in the page-header menu. */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
 	setup(props) {
@@ -723,6 +789,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Stable id for the page-header Actions menu. Prefers the explicit
+		 * `pageId` prop; falls back to a slugified `title` so the menu still
+		 * gets a usable id / surface.
+		 *
+		 * @return {string}
+		 */
+		resolvedPageId() {
+			if (this.pageId) return this.pageId
+			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+		},
+
 		/**
 		 * Effective object-type slug, used for subscription, lock, store
 		 * registration, fetch, and sidebar state. Explicit `objectType`
@@ -1000,6 +1078,58 @@ export default {
 	},
 
 	methods: {
+		// Expose the shared grid helpers to the template (grid mode + auto-body).
+		cnGridCellStyle,
+		hasGridRow,
+
+		/**
+		 * Re-emit the page-header menu's Refresh to the host.
+		 * @param {{ widgetId: string, title: string }} payload - Action payload.
+		 * @param {object} event - Synthetic event (host may preventDefault).
+		 */
+		onHeaderRefresh(payload, event) {
+			/**
+			 * @event refresh The page-header Refresh action was clicked.
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('refresh', payload, event)
+		},
+
+		/**
+		 * Re-emit the page-header menu's Request-a-feature to the host.
+		 * @param {{ widgetId: string, title: string }} payload - Action payload.
+		 * @param {object} event - Synthetic event (host may preventDefault).
+		 */
+		onHeaderRequestFeature(payload, event) {
+			/**
+			 * @event request-feature The page-header Request-a-feature action
+			 * was clicked.
+			 * @type {{ widgetId: string, title: string }}
+			 */
+			this.$emit('request-feature', payload, event)
+		},
+
+		/**
+		 * Open the sidebar leaf a "Linked apps" row on the auto-body
+		 * CnRelatedObjectsWidget points at. Publishes the requested tab and
+		 * opens the external sidebar via `objectSidebarState`, and re-emits
+		 * `open-integration` so a host can override the routing.
+		 *
+		 * @param {string} integrationId - The leaf integration id (tab id).
+		 */
+		onAutoBodyOpenIntegration(integrationId) {
+			if (this.hasExternalSidebar && this.objectSidebarState) {
+				this.objectSidebarState.open = true
+				this.objectSidebarState.requestedTab = integrationId
+			}
+			/**
+			 * @event open-integration A related-objects "Linked apps" row
+			 * was clicked on the auto-body. Payload is the leaf id.
+			 * @type {string}
+			 */
+			this.$emit('open-integration', integrationId)
+		},
+
 		/**
 		 * Schema-driven fetch entry point — no-op outside the
 		 * `register`+`schema`+`objectId` mode. Registers the type on
