@@ -96,6 +96,20 @@
 				-->
 				<slot name="action-items" />
 
+				<!-- Built-in "Request a feature" entry (opt-in via showRequestFeature).
+				     Emits @request-feature; the host (CnIndexPage) opens the
+				     CnSuggestFeatureModal. Mirrors the widget Actions menu so the
+				     list/detail/widget surfaces stay in lockstep. -->
+				<NcActionButton
+					v-if="showRequestFeature"
+					data-testid="cn-actions-bar-request-feature"
+					@click="$emit('request-feature')">
+					<template #icon>
+						<LightbulbOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Request a feature') }}
+				</NcActionButton>
+
 				<!-- Separator between primary and mass actions. Hidden when the
 				     inline-action-count hoists every pre-separator item out of the
 				     overflow, which would otherwise leave the separator orphaned. -->
@@ -175,6 +189,7 @@ import Export from 'vue-material-design-icons/Export.vue'
 import Import from 'vue-material-design-icons/Import.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -204,6 +219,7 @@ export default {
 		CnIcon,
 		Plus,
 		Refresh,
+		LightbulbOutline,
 		ContentCopy,
 		TrashCanOutline,
 		Import,
@@ -312,6 +328,21 @@ export default {
 		showAdd: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show a built-in "Request a feature" entry in the overflow
+		 * dropdown (after Refresh + headerActions + the `#action-items`
+		 * slot). Emits `@request-feature` on click; the host
+		 * (CnIndexPage) opens the CnSuggestFeatureModal. Off by default
+		 * for backward compatibility — CnIndexPage opts in so every list
+		 * view gets it.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -424,6 +455,10 @@ export default {
 			 * @event header-action User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.
 			 */
 			this.$emit('header-action')
+			/**
+			 * @event request-feature User clicked the built-in "Request a feature" entry in the overflow Actions menu (only rendered when `showRequestFeature`). No payload. The host opens the CnSuggestFeatureModal.
+			 */
+			this.$emit('request-feature')
 		},
 	},
 }
