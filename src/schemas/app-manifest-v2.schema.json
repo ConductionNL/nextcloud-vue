@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.8.0",
+	"version": "2.9.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -475,8 +475,8 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "custom"],
-					"description": "Page type. Closed enum of 13 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'custom' requires a _note field explaining why a standard type was not feasible."
+					"enum": ["index", "detail", "dashboard", "logs", "settings", "chat", "files", "form", "map", "roadmap", "search", "wiki", "custom"],
+					"description": "Page type. Closed enum of 14 supported types. 'roadmap' mounts CnFeaturesAndRoadmapPage (features + GitHub-issue-backed roadmap). 'search' mounts CnSearchPage (cross-schema query + facet sidebar + results list; consumers wire the actual search via @search). 'wiki' mounts CnWikiPage (manifest-declared markdown article + optional sidebar tree; MUST declare config.register + config.schema). 'custom' requires a _note field explaining why a standard type was not feasible."
 				},
 				"title": {
 					"type": "string",
@@ -534,6 +534,50 @@
 						"schema": {
 							"type": "string",
 							"description": "OpenRegister schema slug."
+						},
+						"contentField": {
+							"type": "string",
+							"description": "type='wiki': property on the article object holding the markdown body. Defaults to 'body'. Maps to CnWikiPage `contentField` prop."
+						},
+						"titleField": {
+							"type": "string",
+							"description": "type='wiki': property on the article object holding the page title. Defaults to 'title'. Maps to CnWikiPage `titleField` prop."
+						},
+						"idParam": {
+							"type": "string",
+							"description": "type='wiki': $route.params key holding the article id. Defaults to 'id'. Maps to CnWikiPage `idParam` prop."
+						},
+						"treeField": {
+							"type": "string",
+							"description": "type='wiki': property on each sidebar tree node holding its child array. Defaults to 'children'. Maps to CnWikiPage `treeField` prop."
+						},
+						"sidebarTitleField": {
+							"type": "string",
+							"description": "type='wiki': property on each sidebar tree node holding its label. Defaults to `titleField`. Maps to CnWikiPage `sidebarTitleField` prop."
+						},
+						"sidebarRegister": {
+							"type": "string",
+							"description": "type='wiki': register slug for the sidebar tree. Defaults to `register`. Maps to CnWikiPage `sidebarRegister` prop."
+						},
+						"sidebarSchema": {
+							"type": "string",
+							"description": "type='wiki': schema slug providing the sidebar tree. When set AND `tree` is non-empty the sidebar renders. Maps to CnWikiPage `sidebarSchema` prop."
+						},
+						"emptyText": {
+							"type": "string",
+							"description": "type='wiki': empty-state heading shown when the article is null. Maps to CnWikiPage `emptyText` prop."
+						},
+						"emptyDescription": {
+							"type": "string",
+							"description": "type='wiki': empty-state description shown when the article is null. Maps to CnWikiPage `emptyDescription` prop."
+						},
+						"emptyBodyText": {
+							"type": "string",
+							"description": "type='wiki': empty-body heading shown when the article has no content. Maps to CnWikiPage `emptyBodyText` prop."
+						},
+						"emptyBodyDescription": {
+							"type": "string",
+							"description": "type='wiki': empty-body description shown when the article has no content. Maps to CnWikiPage `emptyBodyDescription` prop."
 						},
 						"cardComponent": {
 							"type": "string",
@@ -760,6 +804,26 @@
 				}
 			},
 			"allOf": [
+				{
+					"description": "type='wiki' (CnWikiPage) renders one manifest-declared markdown article. It MUST declare both config.register and config.schema as non-empty strings so the manifest stays the source of truth for which OpenRegister register/schema the article body is read from (manifest-wiki-page-type).",
+					"if": {
+						"properties": { "type": { "const": "wiki" } },
+						"required": ["type"]
+					},
+					"then": {
+						"properties": {
+							"config": {
+								"type": "object",
+								"required": ["register", "schema"],
+								"properties": {
+									"register": { "type": "string", "minLength": 1 },
+									"schema": { "type": "string", "minLength": 1 }
+								}
+							}
+						},
+						"required": ["config"]
+					}
+				},
 				{
 					"description": "type='custom' requires _note documenting why decomposition into a standard page type was not feasible. Relaxed by ConductionNL/nextcloud-vue#315: when `component` matches the lib `Cn[A-Z]\\w+` pattern, the component name already documents the choice and _note is optional. When `component` is absent or non-Cn (host-app SFC), _note remains required.",
 					"if": {
