@@ -226,7 +226,8 @@
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
-				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs" />
+				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
+				:requested-tab="effectiveObjectSidebarState.requestedTab" />
 
 			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
@@ -911,6 +912,10 @@ export default {
 				schema: '',
 				hiddenTabs: [],
 				tabs: undefined,
+				// Host-requested active tab id (e.g. a detail-page "Linked
+				// apps" row deep-linking into a specific leaf). null = let
+				// the sidebar pick its own default.
+				requestedTab: null,
 			}),
 			/**
 			 * Local holder for the index-sidebar channel. Distinct

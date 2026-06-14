@@ -44,10 +44,11 @@
 
 ### Events
 
-| Name              | Payload | Description                                                                                                                                                                                                                                 |
-| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `refresh`         | —       | Re-emitted from the header Actions menu when the user clicks Refresh. Payload: `{ widgetId, title }`. Handlers may `preventDefault()` the second arg to suppress the `cn:page:refresh` event-bus default.                                   |
-| `request-feature` | —       | Re-emitted from the header Actions menu when the user clicks "Request a feature". Payload: `{ widgetId, title }`. Handlers may `preventDefault()` the second arg to suppress the built-in default (auto-opening the CnSuggestFeatureModal). |
+| Name               | Payload | Description                                                                                                                                                                                                                                 |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refresh`          | —       | Re-emitted from the header Actions menu when the user clicks Refresh. Payload: `{ widgetId, title }`. Handlers may `preventDefault()` the second arg to suppress the `cn:page:refresh` event-bus default.                                   |
+| `request-feature`  | —       | Re-emitted from the header Actions menu when the user clicks "Request a feature". Payload: `{ widgetId, title }`. Handlers may `preventDefault()` the second arg to suppress the built-in default (auto-opening the CnSuggestFeatureModal). |
+| `open-integration` | —       | A related-objects "Linked apps" row was clicked on the auto-body. Payload is the leaf id.                                                                                                                                                   |
 
 ### Slots
 

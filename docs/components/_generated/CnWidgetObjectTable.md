@@ -2,10 +2,13 @@
 
 ### Props
 
-| Name       | Type      | Required | Default | Description                                   |
-| ---------- | --------- | -------- | ------- | --------------------------------------------- |
-| `register` | `string`  |          | `null`  | Register slug. Forwarded to CnDataTable.      |
-| `schema`   | `string`  |          | `null`  | Schema slug. Forwarded to CnDataTable.        |
-| `columns`  | `array`   |          | `[]`    | Column definitions. Forwarded to CnDataTable. |
-| `rows`     | `array`   |          | `[]`    | Rows array. Forwarded to CnDataTable.         |
-| `loading`  | `boolean` |          | `false` | Loading state. Forwarded to CnDataTable.      |
+| Name               | Type      | Required | Default                                | Description                                                                                                                                                                 |
+| ------------------ | --------- | -------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`            | `string`  |          | `() =&gt; t('nextcloud-vue', 'Table')` | Widget title shown in the CnWidgetWrapper header.                                                                                                                           |
+| `documentationUrl` | `string`  |          | `''`                                   | Documentation link surfaced in the widget's overflow Actions menu. Empty (the default) hides the Documentation item; the Refresh and Request-a-feature items always render. |
+| `widgetId`         | `string`  |          | `''`                                   | Stable id forwarded to the widget chrome for the Refresh / Request-a-feature payloads.                                                                                      |
+| `register`         | `string`  |          | `null`                                 | Register slug. Forwarded to CnDataTable.                                                                                                                                    |
+| `schema`           | `string`  |          | `null`                                 | Schema slug. Forwarded to CnDataTable.                                                                                                                                      |
+| `columns`          | `array`   |          | `[]`                                   | Column definitions. Forwarded to CnDataTable.                                                                                                                               |
+| `rows`             | `array`   |          | `[]`                                   | Rows array. Forwarded to CnDataTable.                                                                                                                                       |
+| `loading`          | `boolean` |          | `false`                                | Loading state. Forwarded to CnDataTable.                                                                                                                                    |

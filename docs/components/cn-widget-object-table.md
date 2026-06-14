@@ -48,6 +48,9 @@ commonly used ones in manifest widgets are:
 | `objects` | `Array` | Pre-fetched objects (disables self-fetch). |
 | `rows` | `Array` | Alias for `objects` — forwarded directly to CnDataTable's `rows` prop. |
 | `loading` | `Boolean` | Loading flag forwarded to CnDataTable's skeleton state. |
+| `title` | `String` | Widget title shown in the chrome header (default `'Table'`). |
+| `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
+| `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
 
 ## Events
 

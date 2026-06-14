@@ -208,6 +208,7 @@ export default {
 |------|-------------|
 | `header` | Replace the left header block (icon + title + description). Scope: `{ title, description, icon, iconSize }` |
 | `icon` | Replace the icon inside the default header |
+| `translation-badge` | Replace the default `CnTranslatedBadge` shown when the resolved object was translated. Scope: `{ object }` |
 | `actions` | Action buttons rendered in the right-hand header area |
 | `error` | Custom error state content (replaces default `NcEmptyContent`) |
 | `empty` | Custom empty state content |

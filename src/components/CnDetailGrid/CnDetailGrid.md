@@ -98,6 +98,7 @@ Empty state — custom message via the `empty` slot when `items` is empty:
 
 | Slot | Scope | Description |
 |---|---|---|
+| `header` | — | Content rendered above the detail grid (e.g. a section title or actions row) |
 | `empty` | — | Custom empty state, shown when `items` is empty and no default slot content is provided |
 | `item-{index}` | `{ item, index }` | Override the value cell for a specific item |
 | `label-{index}` | `{ item, index }` | Override the label cell for a specific item |
