@@ -1,38 +1,62 @@
 <template>
-	<NcActions
-		:open.sync="internalOpen"
-		:manual-open="true"
-		:force-menu="true"
-		class="cn-context-menu"
-		container="body"
-		data-testid="cn-context-menu"
-		@close="onClose"
-		@closed="onClosed">
-		<!-- Dynamic actions from array prop -->
-		<NcActionButton
-			v-for="action in visibleActions"
-			:key="action.label"
-			:title="resolveTitle(action)"
-			:disabled="resolveDisabled(action)"
-			:class="{ 'cn-row-action--destructive': action.destructive }"
-			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-			close-after-click
-			@click="onAction(action)">
-			<template v-if="action.icon" #icon>
-				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
-				<component :is="action.icon" v-else :size="20" />
-			</template>
-			{{ action.label }}
-		</NcActionButton>
+	<div class="cn-context-menu-root">
+		<NcActions
+			:open.sync="internalOpen"
+			:manual-open="true"
+			:force-menu="true"
+			class="cn-context-menu"
+			container="body"
+			data-testid="cn-context-menu"
+			@close="onClose"
+			@closed="onClosed">
+			<!-- Dynamic actions from array prop -->
+			<NcActionButton
+				v-for="action in visibleActions"
+				:key="action.label"
+				:title="resolveTitle(action)"
+				:disabled="resolveDisabled(action)"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				close-after-click
+				@click="onAction(action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ action.label }}
+			</NcActionButton>
+
+			<!--
+				@slot default
+				@description Custom NcActionButton-family content rendered inside the
+				NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
+				the `actions` prop is empty.
+			-->
+			<slot />
+		</NcActions>
 
 		<!--
-			@slot default
-			@description Custom NcActionButton-family content rendered inside the
-			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
-			the `actions` prop is empty.
+			Panels API — an overlay that replaces the action list with a
+			named sub-panel (e.g. a colour picker). Rendered only while the
+			menu is open AND an `activePanel` is set. The `#panel:<name>`
+			scoped slot receives `{ targetItem, back }`; `back()` returns to
+			the action list. A backdrop closes the menu entirely.
 		-->
-		<slot />
-	</NcActions>
+		<template v-if="internalOpen && activePanel">
+			<div
+				class="cn-context-menu__backdrop"
+				@click="onBackdrop" />
+			<div
+				class="cn-context-menu__panel"
+				data-testid="cn-context-menu-panel"
+				:data-panel="activePanel">
+				<slot
+					:name="`panel:${activePanel}`"
+					:target-item="targetItem"
+					:back="back" />
+			</div>
+		</template>
+	</div>
 </template>
 
 <script>
@@ -119,6 +143,19 @@ export default {
 		 */
 		targetItem: {
 			type: [Object, String, Number],
+			default: null,
+		},
+
+		/**
+		 * Name of the active sub-panel. When set (and the menu is open), the
+		 * matching `#panel:<name>` scoped slot is rendered as an overlay in
+		 * place of the action list. Use with `.sync`; `back()` / a backdrop
+		 * click reset it to `null`.
+		 *
+		 * @type {string|null}
+		 */
+		activePanel: {
+			type: String,
 			default: null,
 		},
 	},
@@ -244,6 +281,24 @@ export default {
 			this.$emit('action', { action: action.label, row: this.targetItem })
 		},
 
+		/**
+		 * Return from a sub-panel to the action list.
+		 *
+		 * @event update:activePanel Fired with `null` to clear the active panel.
+		 */
+		back() {
+			this.$emit('update:activePanel', null)
+		},
+
+		/**
+		 * Backdrop click — closes the whole menu and clears any active panel.
+		 */
+		onBackdrop() {
+			this.$emit('update:activePanel', null)
+			this.internalOpen = false
+			this.$emit('close')
+		},
+
 		onClose() {
 			this.internalOpen = false
 			/**
@@ -285,5 +340,22 @@ export default {
 	left: -9999px;
 	opacity: 0;
 	pointer-events: none;
+}
+
+.cn-context-menu__backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	background: transparent;
+}
+
+.cn-context-menu__panel {
+	position: absolute;
+	z-index: 1001;
+	min-width: 200px;
+	padding: 8px;
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+	box-shadow: 0 2px 8px var(--color-box-shadow);
 }
 </style>
