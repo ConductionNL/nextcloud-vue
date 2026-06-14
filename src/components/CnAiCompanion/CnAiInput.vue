@@ -180,11 +180,13 @@ export default {
 	background: var(--color-primary-element-hover, var(--color-primary-element));
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-ai-input__send-button:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-ai-input__send-button:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;

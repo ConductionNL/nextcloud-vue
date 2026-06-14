@@ -662,6 +662,7 @@ a.cn-xwiki-card__title:hover {
 	text-overflow: ellipsis;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-xwiki-card__chip a {
 	color: var(--color-main-text);
 	text-decoration: none;

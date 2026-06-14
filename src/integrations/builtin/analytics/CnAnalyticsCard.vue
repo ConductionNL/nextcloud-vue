@@ -487,6 +487,7 @@ a.cn-analytics-card__title:hover {
 	font-size: 0.8em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-analytics-card__view-all a {
 	color: var(--color-primary-element);
 	text-decoration: none;
