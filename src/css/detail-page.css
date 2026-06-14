@@ -168,6 +168,15 @@
 	gap: calc(4 * var(--default-grid-baseline));
 }
 
+/* Schema-driven auto-body: stack the data + related widgets with the
+   same spacing the rest of the detail page uses (previously they sat
+   flush against each other). */
+.cn-detail-page__auto-body {
+	display: flex;
+	flex-direction: column;
+	gap: calc(4 * var(--default-grid-baseline));
+}
+
 /* Grid layout mode */
 .cn-detail-page__content--grid {
 	display: grid;

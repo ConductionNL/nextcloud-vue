@@ -23,9 +23,9 @@
 
 ### Events
 
-| Name               | Payload | Description |
-| ------------------ | ------- | ----------- |
-| `select-object`    | —       |             |
-| `select-file`      | —       |             |
-| `select-extra`     | —       |             |
-| `open-integration` | —       |             |
+| Name               | Payload | Description                                                 |
+| ------------------ | ------- | ----------------------------------------------------------- |
+| `select-object`    | —       | A related-object row was clicked.                           |
+| `select-file`      | —       | A file row was clicked.                                     |
+| `select-extra`     | —       | A row in a host-supplied `extraSections` group was clicked. |
+| `open-integration` | —       | A "Linked apps" row was clicked.                            |
