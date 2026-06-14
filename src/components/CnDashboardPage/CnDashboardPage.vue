@@ -159,6 +159,49 @@
 						<template v-if="$slots['widget-' + item.widgetId + '-actions']" #actions>
 							<slot :name="'widget-' + item.widgetId + '-actions'" :item="item" :widget="getWidgetDef(item.widgetId)" />
 						</template>
+						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`).
+						     Mirrors the chart-widget chip below — same popover,
+						     same handlers, same SHARED dashboard range — so
+						     custom widgets that consume `cnDashboardDateRange`
+						     can surface the range in their own header instead
+						     of (or alongside) the page-level picker. Keep the
+						     two blocks in sync when editing either. -->
+						<template v-if="dateRangeEnabled && item.dateChip === true && formatDashboardDateRange()" #title-meta>
+							<NcActions
+								:force-menu="true"
+								:open.sync="openChipPicker[item.widgetId]"
+								container="body"
+								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
+								class="cn-dashboard-page__date-chip-trigger">
+								<template #icon>
+									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
+										{{ formatDashboardDateRange() }}
+									</span>
+								</template>
+								<NcActionButton
+									v-for="preset in effectivePresets"
+									:key="preset.id"
+									:close-after-click="true"
+									@click="onChipPresetPick(preset, item)">
+									<template #icon>
+										<CalendarRange v-if="currentRange.preset === preset.id" :size="16" />
+										<span v-else class="cn-dashboard-page__date-chip-preset-spacer" />
+									</template>
+									{{ preset.label }}
+								</NcActionButton>
+								<NcActionSeparator />
+								<NcActionInput
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange.from)"
+									:label="t('nextcloud-vue', 'From')"
+									@input="onChipDateInput('from', $event)" />
+								<NcActionInput
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange.to)"
+									:label="t('nextcloud-vue', 'To')"
+									@input="onChipDateInput('to', $event)" />
+							</NcActions>
+						</template>
 						<!-- @slot widget-{widgetId} Per-widget body content (e.g. `#widget-my-work`). Apps inject custom widget rendering here. Scope: `{ item, widget }`. -->
 						<slot :name="'widget-' + item.widgetId" :item="item" :widget="getWidgetDef(item.widgetId)" />
 					</CnWidgetWrapper>
@@ -605,6 +648,12 @@ export default {
 		 * Default preset when no explicit `default` and no persisted
 		 * state is found: `last-7` (`now − 7d → now`).
 		 *
+		 * Per-widget surfacing: chart widgets with a `dataSource.bucket`
+		 * get an in-header date chip automatically; CUSTOM widgets opt in
+		 * via `layout[].dateChip: true` (same chip, same popover, writes
+		 * the same shared range). Set `showHeaderPicker: false` to rely
+		 * solely on the per-widget chips.
+		 *
 		 * @type {object|null}
 		 */
 		dateRange: {
@@ -966,11 +1015,35 @@ export default {
 				if (bucket.fromVar && rng[bucket.fromVar]) from = from || rng[bucket.fromVar]
 				if (bucket.toVar && rng[bucket.toVar]) to = to || rng[bucket.toVar]
 			}
+			return this.formatRangeLabel(from, to)
+		},
+
+		/**
+		 * Format the SHARED dashboard date range as a compact chip label.
+		 * Used by the opt-in custom-widget date chip (`layout[].dateChip`),
+		 * which has no per-widget dataSource to derive a window from —
+		 * the chip always surfaces the dashboard-level range.
+		 *
+		 * @return {string|null} `"18 May – 25 May"` or null when no range is set.
+		 */
+		formatDashboardDateRange() {
+			const rng = this.dashboardDateRange
+			if (!rng) return null
+			return this.formatRangeLabel(rng.from || null, rng.to || null)
+		},
+
+		/**
+		 * Friendly compact label: "18 May – 25 May" / "18 Dec 2025 – 2 Jan 2026".
+		 * The year is only shown when a bound falls outside the current
+		 * year, keeping the common same-year case short while staying
+		 * unambiguous for older / cross-year windows.
+		 *
+		 * @param {string|null} from ISO-8601 lower bound (or null).
+		 * @param {string|null} to ISO-8601 upper bound (or null).
+		 * @return {string|null} Formatted label, or null when both bounds are empty.
+		 */
+		formatRangeLabel(from, to) {
 			if (!from && !to) return null
-			// Friendly compact label: "18 May – 25 May" / "18 Dec 2025 – 2 Jan 2026".
-			// The year is only shown when a bound falls outside the current
-			// year, keeping the common same-year case short while staying
-			// unambiguous for older / cross-year windows.
 			const toDate = (v) => {
 				if (typeof v !== 'string' || v.length < 10) return null
 				const d = new Date(`${v.slice(0, 10)}T00:00:00`)
@@ -991,7 +1064,7 @@ export default {
 			const left = fmt(fromDate)
 			const right = fmt(toDateValue)
 			if (left && right) return `${left} – ${right}`
-			return left || right
+			return (left || right) || null
 		},
 
 		/**

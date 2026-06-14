@@ -76,16 +76,6 @@
 					{{ refreshing ? t('nextcloud-vue', 'Refreshing…') : t('nextcloud-vue', 'Refresh') }}
 				</NcActionButton>
 
-				<NcActionLink v-if="documentationUrl"
-					:href="documentationUrl"
-					target="_blank"
-					rel="noopener noreferrer">
-					<template #icon>
-						<BookOpenVariantOutline :size="20" />
-					</template>
-					{{ documentationLabel }}
-				</NcActionLink>
-
 				<!-- Manifest-declared page-level header actions (overflow) -->
 				<NcActionButton
 					v-for="entry in headerActions"
@@ -105,6 +95,35 @@
 					@description Additional NcActionButton-family items rendered inside the overflow menu, between the built-in Refresh entry and the mass-actions separator. Use for app-level page actions.
 				-->
 				<slot name="action-items" />
+
+				<!-- Built-in "Documentation" entry (opt-in via documentationUrl).
+				     Opens the app's docs in a new tab. Mirrors the widget /
+				     detail Actions menus. -->
+				<NcActionLink
+					v-if="documentationUrl"
+					:href="documentationUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					data-testid="cn-actions-bar-documentation">
+					<template #icon>
+						<BookOpenVariant :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Documentation') }}
+				</NcActionLink>
+
+				<!-- Built-in "Request a feature" entry (opt-in via showRequestFeature).
+				     Emits @request-feature; the host (CnIndexPage) opens the
+				     CnSuggestFeatureModal. Mirrors the widget Actions menu so the
+				     list/detail/widget surfaces stay in lockstep. -->
+				<NcActionButton
+					v-if="showRequestFeature"
+					data-testid="cn-actions-bar-request-feature"
+					@click="$emit('request-feature')">
+					<template #icon>
+						<LightbulbOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Request a feature') }}
+				</NcActionButton>
 
 				<!-- Separator between primary and mass actions. Hidden when the
 				     inline-action-count hoists every pre-separator item out of the
@@ -180,12 +199,13 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
-import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
 import Import from 'vue-material-design-icons/Import.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -214,9 +234,10 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		CnIcon,
-		BookOpenVariantOutline,
 		Plus,
 		Refresh,
+		LightbulbOutline,
+		BookOpenVariant,
 		ContentCopy,
 		TrashCanOutline,
 		Import,
@@ -328,6 +349,34 @@ export default {
 		},
 
 		/**
+		 * Show a built-in "Request a feature" entry in the overflow
+		 * dropdown (after Refresh + headerActions + the `#action-items`
+		 * slot). Emits `@request-feature` on click; the host
+		 * (CnIndexPage) opens the CnSuggestFeatureModal. Off by default
+		 * for backward compatibility — CnIndexPage opts in so every list
+		 * view gets it.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Documentation link target. When a non-empty URL is provided, a
+		 * built-in "Documentation" entry renders in the overflow dropdown
+		 * and opens the link in a new tab (`target="_blank"` +
+		 * `rel="noopener noreferrer"`). Empty (the default) hides it.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Manifest-declared page-level actions rendered in the overflow
 		 * dropdown between Refresh and the `#action-items` slot. Each
 		 * entry is `{ id, label, icon?, disabled? }`. The bar emits
@@ -339,22 +388,6 @@ export default {
 		headerActions: {
 			type: Array,
 			default: () => [],
-		},
-
-		/**
-		 * When set, adds a Documentation entry to the overflow menu (after
-		 * Refresh, before headerActions). Opens the URL in a new tab.
-		 * Empty string hides the entry.
-		 */
-		documentationUrl: {
-			type: String,
-			default: '',
-		},
-
-		/** Label for the Documentation overflow entry. */
-		documentationLabel: {
-			type: String,
-			default: () => t('nextcloud-vue', 'Documentation'),
 		},
 	},
 
@@ -453,6 +486,10 @@ export default {
 			 * @event header-action User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.
 			 */
 			this.$emit('header-action')
+			/**
+			 * @event request-feature User clicked the built-in "Request a feature" entry in the overflow Actions menu (only rendered when `showRequestFeature`). No payload. The host opens the CnSuggestFeatureModal.
+			 */
+			this.$emit('request-feature')
 		},
 	},
 }
