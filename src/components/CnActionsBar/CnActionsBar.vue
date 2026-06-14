@@ -17,43 +17,48 @@
 			</span>
 		</div>
 		<div class="cn-actions-bar__actions">
-			<!-- View mode toggle (Cards / Table) -->
-			<div v-if="showViewToggle" class="cn-actions-bar__view-toggle">
+			<!-- View mode toggle (Cards / Table) — segmented control with a
+			     sliding thumb that animates between the two segments. -->
+			<div v-if="showViewToggle"
+				class="cn-actions-bar__view-toggle"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'View mode')">
+				<!-- Sliding pill that sits behind the active segment. -->
+				<span
+					class="cn-actions-bar__view-toggle-thumb"
+					:class="{ 'cn-actions-bar__view-toggle-thumb--right': viewMode === 'table' }"
+					aria-hidden="true" />
 				<!--
 					@event view-mode-change
 					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
 					@type {'cards' | 'table'}
 				-->
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="cards"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'cards')">
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'cards' }"
+					:aria-pressed="viewMode === 'cards'"
+					@click="$emit('view-mode-change', 'cards')">
 					<CnIcon v-if="cardsIcon"
 						:name="cardsIcon"
-						:size="18"
+						:size="24"
 						class="cn-actions-bar__view-toggle-icon" />
-					<ViewGridOutline v-else :size="18" class="cn-actions-bar__view-toggle-icon" />
-					{{ cardsLabel || t('nextcloud-vue', 'Cards') }}
-				</NcCheckboxRadioSwitch>
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="table"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'table')">
+					<ViewGridOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ cardsLabel || t('nextcloud-vue', 'Cards') }}</span>
+				</button>
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'table' }"
+					:aria-pressed="viewMode === 'table'"
+					@click="$emit('view-mode-change', 'table')">
 					<CnIcon v-if="tableIcon"
 						:name="tableIcon"
-						:size="18"
+						:size="24"
 						class="cn-actions-bar__view-toggle-icon" />
-					<FormatListBulletedSquare v-else :size="18" class="cn-actions-bar__view-toggle-icon" />
-					{{ tableLabel || t('nextcloud-vue', 'Table') }}
-				</NcCheckboxRadioSwitch>
+					<FormatListBulletedSquare v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ tableLabel || t('nextcloud-vue', 'Table') }}</span>
+				</button>
 			</div>
 
 			<!-- Add button (primary) -->
@@ -200,7 +205,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -235,7 +240,6 @@ export default {
 		NcActionLink,
 		NcActionSeparator,
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		CnIcon,
 		BookOpenVariantOutline,

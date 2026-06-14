@@ -5,7 +5,7 @@ import GeneratedRef from './_generated/CnActionsBar.md'
 
 Toolbar that combines an item count display, a primary Add button, a view-mode toggle (Cards / Table), and an overflow actions menu containing Refresh, Import, Export, Copy-selected, and Delete-selected. All built-in mass actions are individually toggle-able.
 
-**Wraps**: NcButton, NcActions, NcCheckboxRadioSwitch
+**Wraps**: NcButton, NcActions
 
 ## Try it
 
