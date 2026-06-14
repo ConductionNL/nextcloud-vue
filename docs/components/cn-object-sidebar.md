@@ -76,6 +76,7 @@ Right sidebar for entity detail pages. Provides standardized tabs — Files, Not
 | `auditTrailLabel` | String | | `'Audit Trail'` | Audit Trail tab label |
 | `tabs` | Array | | `null` | Open-enum tab definitions `[\{ id, label, icon?, widgets?, component?, order? \}]`. When set with at least one entry, REPLACES the hard-coded built-in tab set. See [Custom tabs](#custom-tabs) below. |
 | `customComponents` | Object | | `null` | Custom-component registry for tab `component` names and unknown widget `type` values. Falls back to the injected `cnCustomComponents` from a `CnAppRoot` ancestor. |
+| `requested-tab` | String | | `null` | Externally-requested active tab id — lets a host deep-link into a specific leaf, e.g. a 'Linked apps' row opening the Mails tab. |
 
 A tab's `component` name is resolved against the v2 component registry (`cnRegistry` inject from `CnAppRoot`, ADR-036) **first** — any kind-tagged entry with a `component` field resolves, including `kind: "page"` tab components — then falls back to the legacy `customComponents` map. This lets apps that migrated their sidebar-tab components into `registry.js` (the procest pattern) keep rendering tabs without duplicating them in `customComponents`.
 

@@ -39,14 +39,12 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
-			:show-request-feature="showRequestFeature"
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
-			@request-feature="onRequestFeatureClick"
 			@show-import="showImportDialog = true"
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
@@ -62,20 +60,6 @@
 				<slot name="actions" />
 			</template>
 		</CnActionsBar>
-
-		<!-- Auto-mounted feature-request modal. Opened by the built-in
-		     "Request a feature" overflow entry in CnActionsBar (see
-		     onRequestFeature). Lazy-loaded so the modal bundle only ships
-		     when a list view actually opens it. Mirrors the widget surface
-		     (CnActionsMenu auto-mounts the same modal). -->
-		<CnSuggestFeatureModal
-			v-if="featureRequestModalOpen"
-			:repo="cnFeatureRequestRepo"
-			:app="cnAppId"
-			:page="$route ? ($route.name || '') : ''"
-			:surface="requestFeatureSurface"
-			:conduction-submit-enabled="false"
-			@close="featureRequestModalOpen = false" />
 
 		<!-- Mass delete dialog -->
 		<CnMassDeleteDialog
@@ -474,9 +458,6 @@ export default {
 		CnAdvancedFormDialog,
 		CnContextMenu,
 		CnIndexSidebar,
-		// Lazy-loaded so the feature-request modal bundle only ships when a
-		// list view actually opens it (mirrors CnActionsMenu).
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
 	},
 
 	/**
@@ -519,20 +500,6 @@ export default {
 		 * subsequent custom pages.
 		 */
 		cnAiContext: { default: null },
-		/**
-		 * Consuming app's slug (e.g. "pipelinq"), provided by CnAppRoot.
-		 * Forwarded to the auto-mounted CnSuggestFeatureModal as `app`.
-		 * Defaults to empty string when no CnAppRoot ancestor exists.
-		 */
-		cnAppId: { default: () => '' },
-		/**
-		 * Repo slug used as the GitHub deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`), provided by
-		 * CnAppRoot from the manifest. Empty when no ancestor — the
-		 * request-feature handler warns and skips opening rather than open a
-		 * broken link.
-		 */
-		cnFeatureRequestRepo: { default: () => '' },
 	},
 
 	props: {
@@ -861,19 +828,6 @@ export default {
 		},
 
 		/**
-		 * Whether the built-in "Request a feature" entry renders in the
-		 * actions-bar overflow menu. Defaults to `true` so every list view
-		 * gets it (matching the widget surface). Clicking it auto-opens the
-		 * CnSuggestFeatureModal; set `:show-request-feature="false"` to hide.
-		 *
-		 * @type {boolean}
-		 */
-		showRequestFeature: {
-			type: Boolean,
-			default: true,
-		},
-
-		/**
 		 * Store instance for automatic save integration. When provided alongside
 		 * objectType, the form dialog saves directly to the store instead of
 		 * emitting create/edit events. The object type must already be registered
@@ -1091,9 +1045,6 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
-			// Auto-mounted feature-request modal (opened by the CnActionsBar
-			// "Request a feature" overflow entry via onRequestFeature).
-			featureRequestModalOpen: false,
 		}
 	},
 
@@ -1148,23 +1099,6 @@ export default {
 		effectiveSchema() {
 			if (this.isSelfFetchMode) return this.list.schema.value
 			return (this.schema && typeof this.schema === 'object') ? this.schema : null
-		},
-
-		/**
-		 * Feature-request surface string forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so the resulting GitHub issue records where
-		 * the request originated. Derives `index:<schema name>` from the
-		 * resolved schema (object `name`, or a schema-slug string); falls
-		 * back to a bare `index` when no schema name can be resolved.
-		 *
-		 * @return {string}
-		 */
-		requestFeatureSurface() {
-			const s = this.effectiveSchema
-			let name = ''
-			if (s && typeof s === 'object') name = s.name || s.slug || s.title || ''
-			else if (typeof this.schema === 'string') name = this.schema
-			return name ? `index:${name}` : 'index'
 		},
 
 		/** Sort key / order: list state in self-fetch mode, else the props. */
@@ -1687,33 +1621,6 @@ export default {
 		onRefreshEvent() {
 			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
 			this.$emit('refresh')
-		},
-
-		/**
-		 * Handle the CnActionsBar built-in "Request a feature" overflow
-		 * click. Re-emits `@request-feature` for hosts that want to override,
-		 * then opens the auto-mounted CnSuggestFeatureModal unless no
-		 * `cnFeatureRequestRepo` inject can be resolved (mounted outside a
-		 * CnAppRoot), in which case it warns and skips opening rather than
-		 * render a broken GitHub link. Mirrors CnActionsMenu's default.
-		 *
-		 * @return {void}
-		 */
-		onRequestFeatureClick() {
-			/**
-			 * @event request-feature User clicked the built-in "Request a
-			 * feature" entry in the actions-bar overflow menu. No payload.
-			 * The default opens the CnSuggestFeatureModal.
-			 */
-			this.$emit('request-feature')
-			if (!this.cnFeatureRequestRepo) {
-				// eslint-disable-next-line no-console
-				console.warn(
-					'[CnIndexPage] Cannot open feature request modal: missing cnFeatureRequestRepo inject (mount under CnAppRoot or hide via :show-request-feature="false").',
-				)
-				return
-			}
-			this.featureRequestModalOpen = true
 		},
 
 		/**

@@ -93,6 +93,14 @@
 						:size="20"
 						class="cn-integration-widget__header-icon" />
 					<span class="cn-integration-widget__header-label">{{ singleProvider.label }}</span>
+					<div class="cn-integration-widget__header-actions">
+						<CnActionsMenu
+							:documentation-url="documentationUrl"
+							:widget-id="resolvedWidgetId"
+							:title="singleProvider.label"
+							:surface="`widget:${resolvedWidgetId}`"
+							testid-base="cn-integration-widget" />
+					</div>
 				</header>
 				<div class="cn-integration-widget__panel">
 					<CnIntegrationWidgetEmpty
@@ -114,32 +122,42 @@
 				v-if="visibleProviders.length === 0"
 				:name="noIntegrationsLabel" />
 			<template v-else>
-				<div
-					class="cn-integration-widget__tabs"
-					role="tablist"
-					:aria-label="tabListLabel">
-					<button
-						v-for="(provider, idx) in visibleProviders"
-						:id="tabId(provider)"
-						:key="provider.id"
-						type="button"
-						role="tab"
-						class="cn-integration-widget__tab"
-						:class="{ 'cn-integration-widget__tab--active': provider.id === activeId }"
-						:style="tabAccentStyle(provider)"
-						:aria-selected="provider.id === activeId ? 'true' : 'false'"
-						:tabindex="provider.id === activeId ? 0 : -1"
-						:aria-controls="panelId(provider)"
-						:data-testid="`cn-integration-widget-tab-${provider.id}`"
-						@click="selectTab(provider.id)"
-						@keydown="onTabKeydown($event, idx)">
-						<CnIcon
-							v-if="provider.icon"
-							:name="provider.icon"
-							:size="18"
-							class="cn-integration-widget__tab-icon" />
-						<span class="cn-integration-widget__tab-label">{{ provider.label }}</span>
-					</button>
+				<div class="cn-integration-widget__tabbar">
+					<div
+						class="cn-integration-widget__tabs"
+						role="tablist"
+						:aria-label="tabListLabel">
+						<button
+							v-for="(provider, idx) in visibleProviders"
+							:id="tabId(provider)"
+							:key="provider.id"
+							type="button"
+							role="tab"
+							class="cn-integration-widget__tab"
+							:class="{ 'cn-integration-widget__tab--active': provider.id === activeId }"
+							:style="tabAccentStyle(provider)"
+							:aria-selected="provider.id === activeId ? 'true' : 'false'"
+							:tabindex="provider.id === activeId ? 0 : -1"
+							:aria-controls="panelId(provider)"
+							:data-testid="`cn-integration-widget-tab-${provider.id}`"
+							@click="selectTab(provider.id)"
+							@keydown="onTabKeydown($event, idx)">
+							<CnIcon
+								v-if="provider.icon"
+								:name="provider.icon"
+								:size="18"
+								class="cn-integration-widget__tab-icon" />
+							<span class="cn-integration-widget__tab-label">{{ provider.label }}</span>
+						</button>
+					</div>
+					<div class="cn-integration-widget__header-actions">
+						<CnActionsMenu
+							:documentation-url="documentationUrl"
+							:widget-id="resolvedWidgetId"
+							:title="headerTitle"
+							:surface="`widget:${resolvedWidgetId}`"
+							testid-base="cn-integration-widget" />
+					</div>
 				</div>
 
 				<div
@@ -168,6 +186,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIntegrationWidgetEmpty from './CnIntegrationWidgetEmpty.vue'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { resolveProviderAvailability } from './availability.js'
@@ -187,7 +206,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
 export default {
 	name: 'CnIntegrationWidget',
 
-	components: { NcEmptyContent, CnIcon, CnIntegrationWidgetEmpty },
+	components: { NcEmptyContent, CnIcon, CnIntegrationWidgetEmpty, CnActionsMenu },
 
 	props: {
 		/**
@@ -229,6 +248,22 @@ export default {
 		apiBase: { type: String, default: '/apps/openregister/api' },
 		/** Optional object type forwarded to each leaf content component. */
 		objectType: { type: String, default: '' },
+		/**
+		 * Documentation link target for the header's shared Actions menu.
+		 * When non-empty a "Documentation" item opens it in a new tab;
+		 * empty (the default) hides the item.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: { type: String, default: '' },
+		/**
+		 * Stable id carried on the Actions-menu refresh / request-feature
+		 * payloads and surface string. When empty the header title is
+		 * slugified as a fallback (see `resolvedWidgetId`).
+		 *
+		 * @type {string}
+		 */
+		widgetId: { type: String, default: '' },
 	},
 
 	setup(props) {
@@ -313,6 +348,38 @@ export default {
 
 		tabListLabel() {
 			return t('nextcloud-vue', 'Integrations')
+		},
+
+		/**
+		 * Label shown by the active header — the single-mode provider's
+		 * label, else the active tab's label, else the generic tab-list
+		 * label. Fed to the shared Actions menu as its `title`.
+		 *
+		 * @return {string}
+		 */
+		headerTitle() {
+			if (this.mode === 'single') {
+				return this.singleProvider ? this.singleProvider.label : this.unknownLeafLabel
+			}
+			return this.activeProvider ? this.activeProvider.label : this.tabListLabel
+		},
+
+		/**
+		 * Stable widget id for the Actions menu: the explicit `widgetId`
+		 * prop when set, else a slugified `headerTitle` (lowercase,
+		 * non-alphanumerics → '-'), falling back to 'integration'.
+		 *
+		 * @return {string}
+		 */
+		resolvedWidgetId() {
+			if (this.widgetId) {
+				return this.widgetId
+			}
+			const slug = String(this.headerTitle || '')
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-+|-+$/g, '')
+			return slug || 'integration'
 		},
 	},
 
@@ -489,12 +556,20 @@ export default {
 	min-height: 0;
 }
 
+.cn-integration-widget__tabbar {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+	border-bottom: 1px solid var(--color-border);
+	margin-bottom: 12px;
+}
+
 .cn-integration-widget__tabs {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 2px;
-	border-bottom: 1px solid var(--color-border);
-	margin-bottom: 12px;
+	flex: 1;
+	min-width: 0;
 }
 
 .cn-integration-widget__tab {
@@ -553,6 +628,11 @@ export default {
 .cn-integration-widget__header-label {
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+.cn-integration-widget__header-actions {
+	margin-inline-start: auto;
+	flex-shrink: 0;
 }
 
 .cn-integration-widget__panel {

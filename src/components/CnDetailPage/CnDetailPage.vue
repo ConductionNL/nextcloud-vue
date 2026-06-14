@@ -84,24 +84,18 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
-
-				<!-- Built-in header Actions menu (Refresh / Documentation /
-				     Request a feature) delegated to the shared CnActionsMenu,
-				     keeping the detail surface in lockstep with widgets and
-				     list pages. On by default; the page re-emits @refresh /
-				     @request-feature so hosts can override. -->
 				<CnActionsMenu
 					:show-refresh="showRefresh"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
-					:widget-id="pageId"
+					:documentation-label="documentationLabel || undefined"
+					:widget-id="resolvedPageId"
 					:title="title"
-					:surface="requestFeatureSurface"
-					:spec-ref="specRef"
+					:surface="`detail:${resolvedPageId}`"
 					refresh-channel="cn:page:refresh"
 					testid-base="cn-detail-page"
-					@refresh="(p, e) => $emit('refresh', p, e)"
-					@request-feature="(p, e) => $emit('request-feature', p, e)" />
+					@refresh="onHeaderRefresh"
+					@request-feature="onHeaderRequestFeature" />
 			</div>
 		</div>
 
@@ -255,10 +249,12 @@
 				<!-- Schema-driven auto-body: fires when the manifest passed
 				     register+schema+objectId, the object resolved, and no
 				     consumer-supplied slot content is present. Renders the
-				     data + metadata widgets stacked so a `type: "detail"`
-				     manifest page is meaningful without per-app code. The
-				     consumer's slot below short-circuits the auto-body
-				     when present. -->
+				     data widget with the related-objects widget beneath it
+				     so a `type: "detail"` manifest page is meaningful without
+				     per-app code. Object metadata is reachable from the data
+				     widget's "Metadata" action item rather than a permanent
+				     widget. The consumer's slot below short-circuits the
+				     auto-body when present. -->
 				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
 					<CnObjectDataWidget
 						v-if="currentSchema"
@@ -266,7 +262,12 @@
 						:object-data="currentObject"
 						:object-type="resolvedObjectType"
 						:store="effectiveObjectStore" />
-					<CnObjectMetadataWidget :object-data="currentObject" />
+					<CnRelatedObjectsWidget
+						:object-type="resolvedObjectType"
+						:object-id="objectId"
+						:object-data="currentObject"
+						:store="effectiveObjectStore"
+						@open-integration="onAutoBodyOpenIntegration" />
 				</div>
 
 				<!-- Default content -->
@@ -310,10 +311,10 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
-import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -410,7 +411,7 @@ export default {
 		CnActionsMenu,
 		CnLockedBanner,
 		CnObjectDataWidget,
-		CnObjectMetadataWidget,
+		CnRelatedObjectsWidget,
 		CnTranslatedBadge,
 	},
 
@@ -699,64 +700,43 @@ export default {
 		},
 
 		/**
-		 * Stable id for this detail surface. Forwarded as the `widgetId`
-		 * on the header Actions menu's `@refresh` / `@request-feature`
-		 * payloads and on the `cn:page:refresh` event-bus emit, and used
-		 * to derive the feature-request surface (`detail:<pageId>`).
-		 *
-		 * @type {string}
-		 */
-		pageId: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * Whether the built-in header Refresh action renders in the
-		 * shared CnActionsMenu. On by default.
-		 *
-		 * @type {boolean}
-		 */
-		showRefresh: {
-			type: Boolean,
-			default: true,
-		},
-
-		/**
-		 * Whether the built-in header "Request a feature" action renders
-		 * in the shared CnActionsMenu. On by default; clicking it
-		 * auto-opens the CnSuggestFeatureModal with a `detail:<pageId>`
-		 * surface.
-		 *
-		 * @type {boolean}
-		 */
-		showRequestFeature: {
-			type: Boolean,
-			default: true,
-		},
-
-		/**
-		 * Documentation link target for the header Actions menu. When a
-		 * non-empty URL is provided, a "Documentation" item opens it in a
-		 * new tab. Empty (default) hides the item.
-		 *
-		 * @type {string}
+		 * Documentation link surfaced in the page-header Actions menu. When
+		 * set, the menu renders a "Documentation" entry that opens this URL
+		 * in a new tab. The Refresh and Request-a-feature entries render by
+		 * default regardless of this value.
 		 */
 		documentationUrl: {
 			type: String,
 			default: '',
 		},
 
-		/**
-		 * Optional spec reference forwarded to the auto-mounted
-		 * CnSuggestFeatureModal so the GitHub issue links to the spec
-		 * capability this surface belongs to.
-		 *
-		 * @type {string}
-		 */
-		specRef: {
+		/** Label for the Documentation entry in the header menu. */
+		documentationLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Stable id for the page-header Actions menu — forwarded as the
+		 * `widgetId` on the `@refresh` / `cn:page:refresh` payloads and as
+		 * the `surface: "detail:<pageId>"` on the feature-request modal.
+		 * Falls back to a slugified title when empty.
+		 */
+		pageId: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether the Refresh entry renders in the page-header menu. */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** Whether the Request-a-feature entry renders in the page-header menu. */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
 		},
 	},
 
@@ -805,16 +785,15 @@ export default {
 
 	computed: {
 		/**
-		 * Feature-request surface string forwarded to the header Actions
-		 * menu (and through it, the auto-mounted CnSuggestFeatureModal) so
-		 * the resulting GitHub issue records where the request originated.
-		 * Derives `detail:<pageId>`; falls back to a bare `detail` when no
-		 * `pageId` is set.
+		 * Stable id for the page-header Actions menu. Prefers the explicit
+		 * `pageId` prop; falls back to a slugified `title` so the menu still
+		 * gets a usable id / surface.
 		 *
 		 * @return {string}
 		 */
-		requestFeatureSurface() {
-			return this.pageId ? `detail:${this.pageId}` : 'detail'
+		resolvedPageId() {
+			if (this.pageId) return this.pageId
+			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 		},
 
 		/**
@@ -1095,28 +1074,51 @@ export default {
 
 	methods: {
 		/**
-		 * Emit declarations — invoked via the template `$emit(...)` sites
-		 * on the header CnActionsMenu re-emit. Listed here so vue-docgen-api
-		 * picks up the events for the generated docs and the JSDoc ratchet.
-		 *
-		 * @private
-		 * @return {void}
+		 * Re-emit the page-header menu's Refresh to the host.
+		 * @param {{ widgetId: string, title: string }} payload - Action payload.
+		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
-		_emitDocs() {
+		onHeaderRefresh(payload, event) {
 			/**
-			 * @event refresh Re-emitted from the header Actions menu when the
-			 * user clicks Refresh. Payload: `{ widgetId, title }`. Handlers may
-			 * `preventDefault()` the second arg to suppress the `cn:page:refresh`
-			 * event-bus default.
+			 * @event refresh The page-header Refresh action was clicked.
+			 * @type {{ widgetId: string, title: string }}
 			 */
-			this.$emit('refresh')
+			this.$emit('refresh', payload, event)
+		},
+
+		/**
+		 * Re-emit the page-header menu's Request-a-feature to the host.
+		 * @param {{ widgetId: string, title: string }} payload - Action payload.
+		 * @param {object} event - Synthetic event (host may preventDefault).
+		 */
+		onHeaderRequestFeature(payload, event) {
 			/**
-			 * @event request-feature Re-emitted from the header Actions menu when
-			 * the user clicks "Request a feature". Payload: `{ widgetId, title }`.
-			 * Handlers may `preventDefault()` the second arg to suppress the
-			 * built-in default (auto-opening the CnSuggestFeatureModal).
+			 * @event request-feature The page-header Request-a-feature action
+			 * was clicked.
+			 * @type {{ widgetId: string, title: string }}
 			 */
-			this.$emit('request-feature')
+			this.$emit('request-feature', payload, event)
+		},
+
+		/**
+		 * Open the sidebar leaf a "Linked apps" row on the auto-body
+		 * CnRelatedObjectsWidget points at. Publishes the requested tab and
+		 * opens the external sidebar via `objectSidebarState`, and re-emits
+		 * `open-integration` so a host can override the routing.
+		 *
+		 * @param {string} integrationId - The leaf integration id (tab id).
+		 */
+		onAutoBodyOpenIntegration(integrationId) {
+			if (this.hasExternalSidebar && this.objectSidebarState) {
+				this.objectSidebarState.open = true
+				this.objectSidebarState.requestedTab = integrationId
+			}
+			/**
+			 * @event open-integration A related-objects "Linked apps" row
+			 * was clicked on the auto-body. Payload is the leaf id.
+			 * @type {string}
+			 */
+			this.$emit('open-integration', integrationId)
 		},
 
 		/**

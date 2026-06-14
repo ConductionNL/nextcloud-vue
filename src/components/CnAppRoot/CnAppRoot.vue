@@ -226,7 +226,8 @@
 				:schema="effectiveObjectSidebarState.schema"
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
-				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs" />
+				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
+				:requested-tab="effectiveObjectSidebarState.requestedTab" />
 
 			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
@@ -911,6 +912,10 @@ export default {
 				schema: '',
 				hiddenTabs: [],
 				tabs: undefined,
+				// Host-requested active tab id (e.g. a detail-page "Linked
+				// apps" row deep-linking into a specific leaf). null = let
+				// the sidebar pick its own default.
+				requestedTab: null,
 			}),
 			/**
 			 * Local holder for the index-sidebar channel. Distinct
@@ -1004,14 +1009,15 @@ export default {
 		},
 		/**
 		 * Feature-request URL — host override, else the conventional
-		 * `github.com/ConductionNL/{appId}/issues/new` (GitHub redirects
-		 * resolve repo-name casing).
+		 * `codeberg.org/Conduction/{appId}/issues/new`. The fleet's source
+		 * of truth moved from GitHub to Codeberg (org `ConductionNL` →
+		 * `Conduction`); Codeberg resolves repo-name casing.
 		 *
 		 * @return {string}
 		 */
 		cnSupportFeatureRequestUrl() {
 			return this.cnSupportConfig.featureRequestUrl
-				|| ('https://github.com/ConductionNL/' + this.appId + '/issues/new')
+				|| ('https://codeberg.org/Conduction/' + this.appId + '/issues/new')
 		},
 		/**
 		 * Pass-through of any other `CnSupportDialog` props supplied in
