@@ -41,9 +41,9 @@
 			:post-url="postUrl"
 			:schema="schema">
 			<iframe
-				v-if="conversationSource"
+				v-if="safeSrc"
 				class="cn-chat-page__iframe"
-				:src="conversationSource"
+				:src="safeSrc"
 				:title="title"
 				allow="microphone; camera; display-capture"
 				:sandbox="sandbox" />
@@ -64,6 +64,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcEmptyContent } from '@nextcloud/vue'
 import MessageOutline from 'vue-material-design-icons/MessageOutline.vue'
+import { safeHref } from '../../utils/safeHref.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 
 /**
@@ -127,13 +128,21 @@ export default {
 			default: '',
 		},
 		/**
-		 * URL of the embedded conversation (NC Talk iframe URL by
-		 * default). Required for v1 unless the consumer supplies a
-		 * `#conversation` slot.
+		 * URL of the embedded conversation (NC Talk iframe URL by default).
+		 * Validated by `safeHref` — `javascript:`, `data:`, `vbscript:`, and
+		 * protocol-relative (`//`) URLs are blocked; the iframe will not render
+		 * when an unsafe value is passed. Required for v1 unless the consumer
+		 * supplies a `#conversation` slot.
 		 */
 		conversationSource: {
 			type: String,
 			default: '',
+			validator(value) {
+				if (!value) return true
+				// Block dangerous schemes before Vue even renders.
+				// safeHref returns '#' for javascript:/data:/vbscript:// etc.
+				return safeHref(value) !== '#'
+			},
 		},
 		/**
 		 * Custom thread-API endpoint. Used by consumers building their
@@ -166,6 +175,21 @@ export default {
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No conversation selected'),
+		},
+	},
+
+	computed: {
+		/**
+		 * Sanitised `conversationSource` safe for use in an iframe `:src`.
+		 * Returns the validated URL, or `null` when the input is empty or
+		 * contains a dangerous scheme (suppresses the iframe render).
+		 *
+		 * @return {string|null}
+		 */
+		safeSrc() {
+			if (!this.conversationSource) return null
+			const validated = safeHref(this.conversationSource)
+			return validated === '#' ? null : validated
 		},
 	},
 }

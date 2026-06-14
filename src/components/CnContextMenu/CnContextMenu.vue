@@ -1,38 +1,75 @@
 <template>
-	<NcActions
-		:open.sync="internalOpen"
-		:manual-open="true"
-		:force-menu="true"
-		class="cn-context-menu"
-		container="body"
-		data-testid="cn-context-menu"
-		@close="onClose"
-		@closed="onClosed">
-		<!-- Dynamic actions from array prop -->
-		<NcActionButton
-			v-for="action in visibleActions"
-			:key="action.label"
-			:title="resolveTitle(action)"
-			:disabled="resolveDisabled(action)"
-			:class="{ 'cn-row-action--destructive': action.destructive }"
-			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-			close-after-click
-			@click="onAction(action)">
-			<template v-if="action.icon" #icon>
-				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
-				<component :is="action.icon" v-else :size="20" />
-			</template>
-			{{ action.label }}
-		</NcActionButton>
+	<div class="cn-context-menu-root">
+		<NcActions
+			v-if="!activePanel"
+			:open.sync="internalOpen"
+			:manual-open="true"
+			:force-menu="true"
+			class="cn-context-menu"
+			container="body"
+			data-testid="cn-context-menu"
+			@close="onClose"
+			@closed="onClosed">
+			<!-- Dynamic actions from array prop -->
+			<NcActionButton
+				v-for="action in visibleActions"
+				:key="action.label"
+				:title="resolveTitle(action)"
+				:disabled="resolveDisabled(action)"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
+				close-after-click
+				@click="onAction(action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ action.label }}
+			</NcActionButton>
 
-		<!--
+			<!--
 			@slot default
 			@description Custom NcActionButton-family content rendered inside the
 			NcActions menu. Use this for hardcoded buttons (Doriath pattern) when
 			the `actions` prop is empty.
 		-->
-		<slot />
-	</NcActions>
+			<slot />
+		</NcActions>
+
+		<!-- CUSTOM PANEL — bypass NcActions, render arbitrary slot content
+		     anchored at the cursor. The `#panel:<name>` slot may contain any
+		     markup (grids, inputs, custom components) without the NcActions
+		     child-allowlist filter. -->
+		<template v-if="activePanel && internalOpen">
+			<div
+				class="cn-context-menu__backdrop"
+				@click="onClose"
+				@contextmenu.prevent="onClose" />
+			<div
+				ref="panel"
+				class="cn-context-menu__panel"
+				role="menu"
+				tabindex="-1"
+				data-testid="cn-context-menu-panel"
+				:data-panel="activePanel"
+				@keydown.esc.stop="onClose"
+				@click.stop>
+				<!-- @slot panel:<name> Free-form custom panel content shown when
+				     `activePanel === '<name>'`. Bypasses the NcActions child
+				     allowlist — put any markup here (grids, inputs, custom
+				     components, etc.). The slot name is dynamic: define one
+				     `#panel:<name>` per panel you want to support. -->
+				<!-- @binding {Function} back Clear `activePanel`, returning to the default action list. -->
+				<!-- @binding {Function} close Close the entire menu, equivalent to clicking outside. -->
+				<!-- @binding {*} targetItem The right-clicked item, forwarded from the `targetItem` prop. -->
+				<slot
+					:name="`panel:${activePanel}`"
+					:back="back"
+					:close="onClose"
+					:target-item="targetItem" />
+			</div>
+		</template>
+	</div>
 </template>
 
 <script>
@@ -119,6 +156,20 @@ export default {
 		 */
 		targetItem: {
 			type: [Object, String, Number],
+			default: null,
+		},
+
+		/**
+		 * Name of the currently-active custom panel. When set (and the menu is
+		 * open), the default NcActions list is replaced by the matching
+		 * `#panel:<name>` slot, rendered free-form (no NcActions child filter).
+		 * Use with `.sync` — the component emits `update:activePanel(null)` when
+		 * the panel's `back()` binding is invoked or the menu closes.
+		 *
+		 * @type {string|null}
+		 */
+		activePanel: {
+			type: String,
 			default: null,
 		},
 	},
@@ -246,10 +297,23 @@ export default {
 
 		onClose() {
 			this.internalOpen = false
+			if (this.activePanel) {
+				this.$emit('update:activePanel', null)
+			}
 			/**
 			 * @event close Fired when the menu starts closing (before the popper's hide animation). Use `@closed` for the post-animation point.
 			 */
 			this.$emit('close')
+		},
+
+		/**
+		 * Clear the active panel and return to the default action list.
+		 * Exposed to custom panel slots via the `back` scope binding.
+		 *
+		 * @event update:activePanel Emitted with `null` to clear the active panel.
+		 */
+		back() {
+			this.$emit('update:activePanel', null)
 		},
 
 		/**
@@ -285,5 +349,25 @@ export default {
 	left: -9999px;
 	opacity: 0;
 	pointer-events: none;
+}
+
+.cn-context-menu__backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 9998;
+}
+
+.cn-context-menu__panel {
+	position: fixed;
+	top: var(--cn-ctx-menu-y, 0);
+	left: var(--cn-ctx-menu-x, 0);
+	z-index: 9999;
+	min-width: 220px;
+	padding: 4px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+	outline: none;
 }
 </style>

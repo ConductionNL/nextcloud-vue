@@ -31,8 +31,10 @@ function mountDialog({ uuid, org, props = {} } = {}) {
 		setup() {
 			provideTenantContext(uuid, org)
 			return () => h(CnFormDialog, {
-				...props,
-				open: true,
+				props: {
+					...props,
+					open: true,
+				},
 			})
 		},
 	})

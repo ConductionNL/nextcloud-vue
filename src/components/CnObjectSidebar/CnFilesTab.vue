@@ -91,6 +91,7 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../utils/index.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnFilesTab',
@@ -266,7 +267,15 @@ export default {
 
 		openFile(file) {
 			if (file.accessUrl) {
-				window.open(file.accessUrl, '_blank')
+				// Security: accessUrl originates from the OR files API and may be
+				// attacker-controlled. Validate the scheme via safeHref before
+				// opening — this blocks javascript: / data: payloads. Add
+				// noopener,noreferrer to prevent the opened tab from accessing
+				// window.opener and to strip the Referer header.
+				const safe = safeHref(file.accessUrl)
+				if (safe !== '#') {
+					window.open(safe, '_blank', 'noopener,noreferrer')
+				}
 			} else if (file.id) {
 				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
 				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')

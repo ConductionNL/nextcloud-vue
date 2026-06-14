@@ -52,7 +52,13 @@ export const NcDateTime = {
 	functional: true,
 	render(h, { props, data }) {
 		const ts = props && props.timestamp
-		return h('time', { class: ['stub', 'NcDateTime'], ...data }, ts === undefined || ts === null ? '' : String(ts))
+		// A Date instance is rendered as its ISO string (the real NcDateTime
+		// emits a <time> element); other primitives are stringified as-is so
+		// relative-time rows keep observable text.
+		const text = ts === undefined || ts === null
+			? ''
+			: (ts instanceof Date ? ts.toISOString() : String(ts))
+		return h('time', { class: ['stub', 'NcDateTime', 'nc-date-time'], ...data }, text)
 	},
 }
 
