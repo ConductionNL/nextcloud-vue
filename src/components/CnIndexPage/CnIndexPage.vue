@@ -40,6 +40,8 @@
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			:header-actions="mergedHeaderActions"
+			:documentation-url="documentationUrl"
+			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
@@ -980,6 +982,21 @@ export default {
 		activeOrganisation: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * When set, adds a Documentation entry to the Actions overflow
+		 * (after Refresh). Opens the URL in a new tab. Empty hides it.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the Documentation overflow entry. */
+		documentationLabel: {
+			type: String,
+			default: '',
 		},
 	},
 

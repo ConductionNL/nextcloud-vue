@@ -84,6 +84,10 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+				<CnActionsMenu
+					v-if="documentationUrl"
+					:documentation-url="documentationUrl"
+					:documentation-label="documentationLabel || undefined" />
 			</div>
 		</div>
 
@@ -237,10 +241,12 @@
 				<!-- Schema-driven auto-body: fires when the manifest passed
 				     register+schema+objectId, the object resolved, and no
 				     consumer-supplied slot content is present. Renders the
-				     data + metadata widgets stacked so a `type: "detail"`
-				     manifest page is meaningful without per-app code. The
-				     consumer's slot below short-circuits the auto-body
-				     when present. -->
+				     data widget with the related-objects widget beneath it
+				     so a `type: "detail"` manifest page is meaningful without
+				     per-app code. Object metadata is reachable from the data
+				     widget's "Metadata" action item rather than a permanent
+				     widget. The consumer's slot below short-circuits the
+				     auto-body when present. -->
 				<div v-if="shouldRenderAutoBody" class="cn-detail-page__auto-body">
 					<CnObjectDataWidget
 						v-if="currentSchema"
@@ -248,7 +254,12 @@
 						:object-data="currentObject"
 						:object-type="resolvedObjectType"
 						:store="effectiveObjectStore" />
-					<CnObjectMetadataWidget :object-data="currentObject" />
+					<CnRelatedObjectsWidget
+						:object-type="resolvedObjectType"
+						:object-id="objectId"
+						:object-data="currentObject"
+						:store="effectiveObjectStore"
+						@open-integration="onAutoBodyOpenIntegration" />
 				</div>
 
 				<!-- Default content -->
@@ -292,6 +303,7 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
@@ -388,6 +400,7 @@ export default {
 		AlertCircleOutline,
 		InformationOutline,
 		Refresh,
+		CnActionsMenu,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnObjectMetadataWidget,
@@ -676,6 +689,22 @@ export default {
 		sidebarTabs: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * When set, a CnActionsMenu is added to the page header with a
+		 * Documentation entry that opens this URL in a new tab.
+		 * Empty string suppresses the menu.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the Documentation entry in the header menu. */
+		documentationLabel: {
+			type: String,
+			default: '',
 		},
 	},
 
