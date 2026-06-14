@@ -1,7 +1,18 @@
 <template>
 	<div class="cn-actions-bar" data-testid="cn-actions-bar">
 		<div class="cn-actions-bar__info">
-			<span v-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
+			<!-- Inline search field (opt-in) -->
+			<div v-if="showSearch" class="cn-actions-bar__search">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					@input="onSearchInput">
+			</div>
+			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 		</div>
@@ -21,6 +32,7 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:model-value="$emit('view-mode-change', 'cards')">
+					<ViewGridOutline :size="18" class="cn-actions-bar__view-toggle-icon" />
 					{{ t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
@@ -31,6 +43,7 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:model-value="$emit('view-mode-change', 'table')">
+					<FormatListBulletedSquare :size="18" class="cn-actions-bar__view-toggle-icon" />
 					{{ t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>
@@ -183,10 +196,13 @@ import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, N
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
+import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import Import from 'vue-material-design-icons/Import.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -221,6 +237,9 @@ export default {
 		TrashCanOutline,
 		Import,
 		Export,
+		Magnify,
+		ViewGridOutline,
+		FormatListBulletedSquare,
 	},
 
 	props: {
@@ -301,6 +320,24 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** Whether to show the inline search field on the left of the bar */
+		showSearch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Current value of the inline search field (controlled) */
+		searchValue: {
+			type: String,
+			default: '',
+		},
+
+		/** Placeholder / accessible label for the inline search field */
+		searchPlaceholder: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether the refresh action is currently in progress */
@@ -396,6 +433,20 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Forward the inline search field's input to the host.
+		 *
+		 * @param {Event} event The native input event.
+		 * @return {void}
+		 */
+		onSearchInput(event) {
+			/**
+			 * @event search Emitted when the user types in the inline search field.
+			 * @type {string}
+			 */
+			this.$emit('search', event.target.value)
+		},
+
 		/**
 		 * Heuristic: a "plain" name like `History` is an MDI Vue
 		 * component name (rendered via `CnIcon`). A name like

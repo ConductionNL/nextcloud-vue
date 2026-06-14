@@ -55,7 +55,10 @@ Custom action items can be injected into the overflow menu:
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
 | `viewMode` | String | `'table'` | Current view mode: `'table'` or `'cards'` |
-| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle |
+| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
+| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
+| `searchValue` | String | `''` | Current value of the inline search field (controlled) |
+| `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the Refresh action is disabled |
 | `showMassImport` | Boolean | `true` | Whether to show the Import action |

@@ -35,6 +35,8 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:show-search="inlineSearch"
+			:search-value="effectiveSearchValue"
 			:refreshing="refreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
@@ -49,6 +51,7 @@
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
 			@show-delete="showMassDeleteDialog = true"
+			@search="onSearchEvent"
 			@view-mode-change="onViewModeChange">
 			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
 				<slot name="mass-actions" :count="count" :selected-ids="ids" />
@@ -813,6 +816,15 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show an inline search field in the actions bar (in addition to / instead
+		 * of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`.
+		 */
+		inlineSearch: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether the refresh action is currently in progress */
