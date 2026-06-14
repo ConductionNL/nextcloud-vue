@@ -51,6 +51,8 @@ commonly used ones in manifest widgets are:
 | `title` | `String` | Optional form title rendered above the fields. |
 | `description` | `String` | Optional descriptive text rendered under the title. |
 | `initialValue` | `Object` | Initial form values (alternative to `item`; merged with the schema's defaults). |
+| `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
+| `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
 
 ## Events
 

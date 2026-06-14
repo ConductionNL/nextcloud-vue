@@ -79,7 +79,7 @@ export const leafIntegrations = [
 	leaf({ id: 'talk', label: t('nextcloud-vue', 'Chat'), appName: t('nextcloud-vue', 'Talk'), icon: 'ChatOutline', group: 'comms', requiredApp: 'spreed', order: 23 }),
 
 	leaf({ id: 'bookmarks', label: t('nextcloud-vue', 'Bookmarks'), appName: t('nextcloud-vue', 'Bookmarks'), icon: 'Bookmark', group: 'docs', requiredApp: 'bookmarks', order: 40 }),
-	leaf({ id: 'collectives', label: t('nextcloud-vue', 'Knowledge'), appName: t('nextcloud-vue', 'Collectives'), icon: 'BookOpenPageVariant', group: 'docs', requiredApp: 'collectives', order: 41 }),
+	leaf({ id: 'collectives', label: t('nextcloud-vue', 'Collectives'), appName: t('nextcloud-vue', 'Collectives'), icon: 'BookOpenPageVariant', group: 'docs', requiredApp: 'collectives', order: 41 }),
 	leaf({ id: 'maps', label: t('nextcloud-vue', 'Location'), appName: t('nextcloud-vue', 'Maps'), icon: 'MapMarker', group: 'docs', requiredApp: 'maps', order: 42, defaultSize: { w: 4, h: 3 } }),
 	leaf({ id: 'photos', label: t('nextcloud-vue', 'Photos'), appName: t('nextcloud-vue', 'Photos'), icon: 'Image', group: 'docs', requiredApp: 'photos', order: 43 }),
 

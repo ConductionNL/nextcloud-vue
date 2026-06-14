@@ -194,9 +194,16 @@ export default {
 				result.push({
 					widgetKey: key,
 					component,
-					// Detail-page object context first, the manifest's
+					// Detail-page object context first, then the entry-level
+					// `title` / `documentationUrl` so the widget chrome
+					// (CnWidgetWrapper) can render them, then the manifest's
 					// per-widget `props` last so explicit props always win.
-					props: { ...this.detailContextProps, ...(widget.props ?? {}) },
+					props: {
+						...this.detailContextProps,
+						...(widget.title ? { title: widget.title } : {}),
+						...(widget.documentationUrl ? { documentationUrl: widget.documentationUrl } : {}),
+						...(widget.props ?? {}),
+					},
 					gridX: typeof widget.gridX === 'number' ? widget.gridX : 0,
 					gridY: typeof widget.gridY === 'number' ? widget.gridY : 0,
 					gridWidth,

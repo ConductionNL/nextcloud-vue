@@ -37,6 +37,9 @@ a responsive flex grid inside the widget's cell.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `objects` | `Array` | Object records to render as cards. |
+| `title` | `String` | Widget title shown in the chrome header (default `'Items'`). |
+| `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
+| `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
 
 (Forwarded to `CnObjectCard` per item — see its docs for the per-card surface.)
 
