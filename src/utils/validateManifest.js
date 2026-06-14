@@ -823,12 +823,64 @@ function validateTypeConfig(page, index, errors) {
 		}
 		break
 	}
+	case 'wiki': {
+		// `manifest-wiki-page-type` REQ — a wiki page renders one
+		// manifest-declared markdown article (CnWikiPage). It MUST
+		// declare both `register` and `schema` as non-empty strings so
+		// the manifest stays the source of truth for which OpenRegister
+		// register/schema the article body is read from.
+		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
+		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
+		if (!hasRegister || !hasSchema) {
+			errors.push(`${pathBracket}: wiki pages must declare register and schema`)
+		}
+		// `manifest-wiki-stabilise` REQ — the remaining typed config
+		// fields the CnWikiPage component accepts MUST be strings when
+		// present. Omitted fields are tolerated (runtime defaults take
+		// over); unknown keys pass for forward-compat.
+		validateWikiConfigFields(cfg, pathSlash, errors)
+		break
+	}
 	default:
 		// No per-type rules for index/detail/dashboard/custom or
 		// consumer-defined types; their `config` shape is enforced
 		// by the target component at runtime (or by a future spec).
 		break
 	}
+}
+
+/**
+ * Validate the optional typed config fields of a `type:'wiki'` page
+ * (`manifest-wiki-stabilise`). Each known field MUST be a string when
+ * present; omitted fields are tolerated and unknown keys pass for
+ * forward-compatibility. `register` / `schema` are validated by the
+ * caller (they are required, not merely typed) so they are excluded
+ * here.
+ *
+ * @param {object|null} cfg The page `config` object.
+ * @param {string} pathSlash JSON-pointer prefix for the config object.
+ * @param {string[]} errors Accumulator for error messages.
+ */
+function validateWikiConfigFields(cfg, pathSlash, errors) {
+	if (!isPlainObject(cfg)) return
+	const stringFields = [
+		'contentField',
+		'titleField',
+		'idParam',
+		'treeField',
+		'sidebarTitleField',
+		'sidebarRegister',
+		'sidebarSchema',
+		'emptyText',
+		'emptyDescription',
+		'emptyBodyText',
+		'emptyBodyDescription',
+	]
+	stringFields.forEach((field) => {
+		if (cfg[field] !== undefined && typeof cfg[field] !== 'string') {
+			errors.push(`${pathSlash}/${field}: must be a string when set`)
+		}
+	})
 }
 
 /**

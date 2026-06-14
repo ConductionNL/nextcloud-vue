@@ -191,6 +191,7 @@ export default {
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
+| `rowIcon` | String \| Function | `null` | Optional leading row icon. A static MDI icon name, or `(row) => string` returning the icon name per row; renders a leading icon column when set |
 
 ## Slots
 
