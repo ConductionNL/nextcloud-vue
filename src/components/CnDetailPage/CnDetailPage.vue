@@ -1095,6 +1095,31 @@ export default {
 
 	methods: {
 		/**
+		 * Emit declarations — invoked via the template `$emit(...)` sites
+		 * on the header CnActionsMenu re-emit. Listed here so vue-docgen-api
+		 * picks up the events for the generated docs and the JSDoc ratchet.
+		 *
+		 * @private
+		 * @return {void}
+		 */
+		_emitDocs() {
+			/**
+			 * @event refresh Re-emitted from the header Actions menu when the
+			 * user clicks Refresh. Payload: `{ widgetId, title }`. Handlers may
+			 * `preventDefault()` the second arg to suppress the `cn:page:refresh`
+			 * event-bus default.
+			 */
+			this.$emit('refresh')
+			/**
+			 * @event request-feature Re-emitted from the header Actions menu when
+			 * the user clicks "Request a feature". Payload: `{ widgetId, title }`.
+			 * Handlers may `preventDefault()` the second arg to suppress the
+			 * built-in default (auto-opening the CnSuggestFeatureModal).
+			 */
+			this.$emit('request-feature')
+		},
+
+		/**
 		 * Schema-driven fetch entry point — no-op outside the
 		 * `register`+`schema`+`objectId` mode. Registers the type on
 		 * the store with the canonical 4-arg signature (matches what
