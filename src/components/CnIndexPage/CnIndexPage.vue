@@ -35,8 +35,13 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:cards-label="cardsLabel"
+			:table-label="tableLabel"
+			:cards-icon="cardsIcon"
+			:table-icon="tableIcon"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
+			:search-placeholder="searchPlaceholder"
 			:refreshing="refreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
@@ -243,7 +248,7 @@
 					<template v-if="filterMenu && filterableFields.length" #actions-header>
 						<NcActions :force-menu="true" :aria-label="t('nextcloud-vue', 'Filter')">
 							<template #icon>
-								<FilterVariant :size="20" />
+								<FilterOutline :size="20" />
 							</template>
 							<template v-for="field in filterableFields">
 								<NcActionCaption :key="`${field.key}-caption`" :name="field.label" />
@@ -358,7 +363,7 @@ import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoading
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
-import FilterVariant from 'vue-material-design-icons/FilterVariant.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -469,7 +474,7 @@ export default {
 		NcActionCaption,
 		NcActionCheckbox,
 		DatabaseSearch,
-		FilterVariant,
+		FilterOutline,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -851,6 +856,36 @@ export default {
 		inlineSearch: {
 			type: Boolean,
 			default: false,
+		},
+
+		/** Placeholder for the inline search field (manifest `config.searchPlaceholder`) */
+		searchPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards view-toggle option (manifest `config.cardsIcon`) */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table view-toggle option (manifest `config.tableIcon`) */
+		tableIcon: {
+			type: String,
+			default: '',
 		},
 
 		/**

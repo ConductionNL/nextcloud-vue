@@ -32,8 +32,12 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:model-value="$emit('view-mode-change', 'cards')">
-					<ViewGridOutline :size="18" class="cn-actions-bar__view-toggle-icon" />
-					{{ t('nextcloud-vue', 'Cards') }}
+					<CnIcon v-if="cardsIcon"
+						:name="cardsIcon"
+						:size="18"
+						class="cn-actions-bar__view-toggle-icon" />
+					<ViewGridOutline v-else :size="18" class="cn-actions-bar__view-toggle-icon" />
+					{{ cardsLabel || t('nextcloud-vue', 'Cards') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
 					:model-value="viewMode"
@@ -43,8 +47,12 @@
 					type="radio"
 					button-variant-grouped="horizontal"
 					@update:model-value="$emit('view-mode-change', 'table')">
-					<FormatListBulletedSquare :size="18" class="cn-actions-bar__view-toggle-icon" />
-					{{ t('nextcloud-vue', 'Table') }}
+					<CnIcon v-if="tableIcon"
+						:name="tableIcon"
+						:size="18"
+						class="cn-actions-bar__view-toggle-icon" />
+					<FormatListBulletedSquare v-else :size="18" class="cn-actions-bar__view-toggle-icon" />
+					{{ tableLabel || t('nextcloud-vue', 'Table') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 
@@ -320,6 +328,30 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** Label for the cards/grid view-toggle option (defaults to "Cards") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table/list view-toggle option (defaults to "Table") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards option (defaults to the built-in grid icon). Resolved via CnIcon. */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table option (defaults to the built-in list icon). Resolved via CnIcon. */
+		tableIcon: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether to show the inline search field on the left of the bar */

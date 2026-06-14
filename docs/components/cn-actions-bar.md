@@ -56,6 +56,10 @@ Custom action items can be injected into the overflow menu:
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
 | `viewMode` | String | `'table'` | Current view mode: `'table'` or `'cards'` |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
+| `cardsLabel` | String | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
+| `tableLabel` | String | `''` | Label for the table/list view-toggle option (defaults to "Table") |
+| `cardsIcon` | String | `''` | MDI icon name for the cards option (defaults to the built-in grid icon); resolved via CnIcon |
+| `tableIcon` | String | `''` | MDI icon name for the table option (defaults to the built-in list icon); resolved via CnIcon |
 | `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
 | `searchValue` | String | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
