@@ -11,9 +11,7 @@ status: in-progress
 `CnWidgetWrapper` is a widget container shell that provides a consistent visual frame for all widget types: optional header with icon and title, scrollable content area, and optional footer. It is used internally by `CnDashboardPage` to wrap each widget rendered by `CnDashboardGrid`.
 
 ---
-
 ## Requirements
-
 ### Requirement: widget container shell
 
 CnWidgetWrapper SHALL render a flex-column container that fills its parent height, providing three distinct zones: header, content, and footer.
@@ -108,22 +106,39 @@ CnWidgetWrapper SHALL render a scrollable content area via the default slot that
 
 ### Requirement: header actions slot
 
-CnWidgetWrapper SHALL support a `#header-actions` slot for placing action buttons in the header's right side.
+`CnWidgetWrapper` SHALL render an overflow `…` actions menu in its header containing at least the built-in **Refresh** and **Request a feature** entries. The menu SHALL be hidden when both built-ins are explicitly opted out AND no host `#header-actions` slot content is supplied.
 
-#### Scenario: action buttons rendered
+When the host app does NOT bind a listener for `@refresh` or `@request-feature`, the action MUST still be functional via the built-in default handlers documented in the `widget-wrapper-actions` capability. The events SHALL still be emitted in both cases, so a host listener (when present) wins over the default and lets the host opt out per-event without disabling the menu.
 
-- GIVEN content is placed in the `#header-actions` slot
-- WHEN the header renders
-- THEN the slot content appears in the `.cn-widget-wrapper__actions` area on the right side of the header
-- AND the actions area uses `display: flex` with `gap: 4px` and `flex-shrink: 0`
+The menu entries SHALL each carry a stable `data-testid` (`cn-widget-wrapper-action-refresh`, `cn-widget-wrapper-action-request-feature`) so consumer tests can target them.
 
-#### Scenario: no actions provided
+#### Scenario: built-in actions render by default
 
-- GIVEN no content is placed in the `#header-actions` slot
-- WHEN the header renders
-- THEN the actions area is rendered but empty, and the title takes maximum available width
+- **GIVEN** `CnWidgetWrapper` is mounted with a widget body slot
+- **AND** the host app binds no `@refresh` or `@request-feature` listener
+- **WHEN** the user opens the `…` actions menu
+- **THEN** both "Refresh" and "Request a feature" entries render
+- **AND** clicking either triggers the built-in default handler (per `widget-wrapper-actions`)
 
----
+#### Scenario: host listener overrides built-in default
+
+- **GIVEN** the host binds `<CnWidgetWrapper @refresh="customHandler">`
+- **WHEN** the user clicks Refresh
+- **THEN** `customHandler` runs
+- **AND** the built-in default (event-bus emit) does NOT also run
+
+#### Scenario: opt out a single built-in
+
+- **GIVEN** `CnWidgetWrapper` is mounted with `:show-refresh="false"` and no opt-out for Request a feature
+- **WHEN** the user opens the actions menu
+- **THEN** only "Request a feature" renders
+- **AND** the menu still appears
+
+#### Scenario: opt out everything
+
+- **GIVEN** `CnWidgetWrapper` is mounted with `:show-refresh="false"` and `:show-request-feature="false"` and no `#header-actions` slot content
+- **WHEN** the wrapper renders
+- **THEN** the `…` actions menu does NOT appear
 
 ### Requirement: footer area with slot and buttons prop
 

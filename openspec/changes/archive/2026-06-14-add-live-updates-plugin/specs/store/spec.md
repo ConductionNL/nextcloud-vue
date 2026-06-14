@@ -18,7 +18,7 @@ The backend counterpart (OR `NotifyPushListener`, event strings `or-object-{uuid
 
 ## MODIFIED Requirements
 
-### Requirement: REQ-ST-001 — Object Type Registration (extended with slugs)
+### Requirement: REQ-ST-001 — Object Type Registration
 
 The existing `registerObjectType(slug, schemaUuid, registerUuid)` signature MUST be extended to accept an optional fourth argument carrying the canonical OR slugs:
 
