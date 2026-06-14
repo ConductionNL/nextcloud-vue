@@ -84,6 +84,24 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+
+				<!-- Built-in header Actions menu (Refresh / Documentation /
+				     Request a feature) delegated to the shared CnActionsMenu,
+				     keeping the detail surface in lockstep with widgets and
+				     list pages. On by default; the page re-emits @refresh /
+				     @request-feature so hosts can override. -->
+				<CnActionsMenu
+					:show-refresh="showRefresh"
+					:show-request-feature="showRequestFeature"
+					:documentation-url="documentationUrl"
+					:widget-id="pageId"
+					:title="title"
+					:surface="requestFeatureSurface"
+					:spec-ref="specRef"
+					refresh-channel="cn:page:refresh"
+					testid-base="cn-detail-page"
+					@refresh="(p, e) => $emit('refresh', p, e)"
+					@request-feature="(p, e) => $emit('request-feature', p, e)" />
 			</div>
 		</div>
 
@@ -292,6 +310,7 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
@@ -388,6 +407,7 @@ export default {
 		AlertCircleOutline,
 		InformationOutline,
 		Refresh,
+		CnActionsMenu,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnObjectMetadataWidget,
@@ -677,6 +697,67 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Stable id for this detail surface. Forwarded as the `widgetId`
+		 * on the header Actions menu's `@refresh` / `@request-feature`
+		 * payloads and on the `cn:page:refresh` event-bus emit, and used
+		 * to derive the feature-request surface (`detail:<pageId>`).
+		 *
+		 * @type {string}
+		 */
+		pageId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Whether the built-in header Refresh action renders in the
+		 * shared CnActionsMenu. On by default.
+		 *
+		 * @type {boolean}
+		 */
+		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the built-in header "Request a feature" action renders
+		 * in the shared CnActionsMenu. On by default; clicking it
+		 * auto-opens the CnSuggestFeatureModal with a `detail:<pageId>`
+		 * surface.
+		 *
+		 * @type {boolean}
+		 */
+		showRequestFeature: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Documentation link target for the header Actions menu. When a
+		 * non-empty URL is provided, a "Documentation" item opens it in a
+		 * new tab. Empty (default) hides the item.
+		 *
+		 * @type {string}
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Optional spec reference forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so the GitHub issue links to the spec
+		 * capability this surface belongs to.
+		 *
+		 * @type {string}
+		 */
+		specRef: {
+			type: String,
+			default: '',
+		},
 	},
 
 	setup(props) {
@@ -723,6 +804,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Feature-request surface string forwarded to the header Actions
+		 * menu (and through it, the auto-mounted CnSuggestFeatureModal) so
+		 * the resulting GitHub issue records where the request originated.
+		 * Derives `detail:<pageId>`; falls back to a bare `detail` when no
+		 * `pageId` is set.
+		 *
+		 * @return {string}
+		 */
+		requestFeatureSurface() {
+			return this.pageId ? `detail:${this.pageId}` : 'detail'
+		},
+
 		/**
 		 * Effective object-type slug, used for subscription, lock, store
 		 * registration, fetch, and sidebar state. Explicit `objectType`
@@ -1000,6 +1094,31 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Emit declarations — invoked via the template `$emit(...)` sites
+		 * on the header CnActionsMenu re-emit. Listed here so vue-docgen-api
+		 * picks up the events for the generated docs and the JSDoc ratchet.
+		 *
+		 * @private
+		 * @return {void}
+		 */
+		_emitDocs() {
+			/**
+			 * @event refresh Re-emitted from the header Actions menu when the
+			 * user clicks Refresh. Payload: `{ widgetId, title }`. Handlers may
+			 * `preventDefault()` the second arg to suppress the `cn:page:refresh`
+			 * event-bus default.
+			 */
+			this.$emit('refresh')
+			/**
+			 * @event request-feature Re-emitted from the header Actions menu when
+			 * the user clicks "Request a feature". Payload: `{ widgetId, title }`.
+			 * Handlers may `preventDefault()` the second arg to suppress the
+			 * built-in default (auto-opening the CnSuggestFeatureModal).
+			 */
+			this.$emit('request-feature')
+		},
+
 		/**
 		 * Schema-driven fetch entry point — no-op outside the
 		 * `register`+`schema`+`objectId` mode. Registers the type on
