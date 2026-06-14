@@ -216,6 +216,7 @@ export default {
 	background: var(--color-primary-element-light, rgba(var(--color-primary-rgb), 0.1));
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-ai-history-dialog__item-button {
 	display: flex;
 	flex-direction: column;

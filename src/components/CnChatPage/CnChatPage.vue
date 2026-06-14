@@ -41,9 +41,9 @@
 			:post-url="postUrl"
 			:schema="schema">
 			<iframe
-				v-if="conversationSource"
+				v-if="safeConversationSource"
 				class="cn-chat-page__iframe"
-				:src="conversationSource"
+				:src="safeConversationSource"
 				:title="title"
 				allow="microphone; camera; display-capture"
 				:sandbox="sandbox" />
@@ -166,6 +166,47 @@ export default {
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No conversation selected'),
+		},
+	},
+
+	computed: {
+		/**
+		 * Sanitized iframe source (C2 defence). Only same-origin
+		 * root-relative paths (`/talk/abc`) and absolute http(s) URLs are
+		 * allowed to reach the iframe `:src`. `javascript:`, `data:`, and
+		 * protocol-relative (`//host`) URLs are rejected — the iframe is
+		 * not rendered and the empty-state placeholder shows instead.
+		 *
+		 * @return {string} The safe URL, or an empty string when unsafe.
+		 */
+		safeConversationSource() {
+			const source = (this.conversationSource || '').trim()
+			if (source === '') {
+				return ''
+			}
+			// Protocol-relative (`//host`) resolves to http(s)://host in a
+			// browser — reject it even though it starts with a slash.
+			if (source.startsWith('//')) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnChatPage] Blocked unsafe conversationSource', source)
+				return ''
+			}
+			// Same-origin root-relative path — always safe.
+			if (source.startsWith('/')) {
+				return source
+			}
+			// Absolute URL — only http(s) schemes are permitted.
+			try {
+				const url = new URL(source, window.location.origin)
+				if (url.protocol === 'http:' || url.protocol === 'https:') {
+					return source
+				}
+			} catch (e) {
+				// Falls through to the warning below.
+			}
+			// eslint-disable-next-line no-console
+			console.warn('[CnChatPage] Blocked unsafe conversationSource', source)
+			return ''
 		},
 	},
 }

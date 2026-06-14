@@ -371,6 +371,7 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-bookmarks-card__chip a {
 	color: var(--color-main-text);
 	text-decoration: none;
@@ -442,6 +443,7 @@ a.cn-bookmarks-card__title:hover {
 	font-size: 0.8em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-bookmarks-card__view-all a {
 	color: var(--color-primary-element);
 	text-decoration: none;
