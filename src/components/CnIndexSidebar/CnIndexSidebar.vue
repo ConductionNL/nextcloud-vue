@@ -68,6 +68,7 @@
 							placeholder="Select..."
 							:input-label="filter.label"
 							:multiple="true"
+							:keep-open="true"
 							:clearable="true"
 							@input="onFilterChange(filter.key, $event)" />
 					</div>
