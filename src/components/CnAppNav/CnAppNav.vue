@@ -185,25 +185,32 @@
 							<Cog :size="20" />
 						</template>
 					</NcAppNavigationItem>
-					<NcAppNavigationItem
-						v-for="item in settingsItems"
-						:key="item.id"
-						:name="resolveLabel(item)"
-						:to="itemTo(item)"
-						:exact="isExact(item)"
-						:icon="cssIconClass(item)"
-						:active="isActive(item)"
-						:data-testid="`cn-nav-entry-${item.id}`"
-						@click="onItemClick(item, $event)">
-						<template v-if="mdiIconComponent(item)" #icon>
-							<component :is="mdiIconComponent(item)" :size="20" />
-						</template>
-						<template v-if="resolveCount(item)" #counter>
-							<NcCounterBubble
-								:count="resolveCount(item)"
-								:active="isActive(item)" />
-						</template>
-					</NcAppNavigationItem>
+					<template v-for="item in settingsItems">
+						<NcAppNavigationCaption
+							v-if="isCaption(item)"
+							:key="item.id"
+							:name="resolveLabel(item)"
+							:data-testid="`cn-nav-caption-${item.id}`" />
+						<NcAppNavigationItem
+							v-else
+							:key="item.id"
+							:name="resolveLabel(item)"
+							:to="itemTo(item)"
+							:exact="isExact(item)"
+							:icon="cssIconClass(item)"
+							:active="isActive(item)"
+							:data-testid="`cn-nav-entry-${item.id}`"
+							@click="onItemClick(item, $event)">
+							<template v-if="mdiIconComponent(item)" #icon>
+								<component :is="mdiIconComponent(item)" :size="20" />
+							</template>
+							<template v-if="resolveCount(item)" #counter>
+								<NcCounterBubble
+									:count="resolveCount(item)"
+									:active="isActive(item)" />
+							</template>
+						</NcAppNavigationItem>
+					</template>
 				</ul>
 			</NcAppNavigationSettings>
 		</template>
