@@ -255,6 +255,63 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 6. Dashboard custom-widget slot wiring (CnDashboardPage /
+	//    CnPageRenderer). A `type:"dashboard"` page wires each
+	//    `type:"custom"` widget in `config.widgets[]` to a registry
+	//    component through the PAGE-TOP-LEVEL `slots` map
+	//    (`{ "widget-<id>": "<ComponentName>" }`), which CnPageRenderer
+	//    reads as `page.slots` and turns into the `#widget-<id>` scoped
+	//    slots CnDashboardPage consumes. Two ways to get this wrong — both
+	//    pass JSON-schema validation (config is additionalProperties:true)
+	//    yet render every affected widget as the `unavailableLabel`
+	//    ("Widget not available") at runtime:
+	//      (a) the slots map nested under `config` (config.slots) — never
+	//          read by the renderer; must be a sibling of `config`.
+	//      (b) a custom widget with no slots entry at all.
+	//    Built-in widget types (stats-block, chart, tile, integration, …)
+	//    render via their own paths and need no slots entry, so only
+	//    `type:"custom"` is checked. Observed 2026-06-13 on
+	//    decidesk-dashboard-v2-layout: the slots map shipped under config,
+	//    so 9 of 11 widgets rendered the unavailable placeholder while
+	//    gate-22 (schema-only) reported the manifest clean.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'dashboard') return
+			const config = isPlainObject(page.config) ? page.config : null
+			if (!config || !Array.isArray(config.widgets)) return
+			const pageId = typeof page.id === 'string' ? page.id : `[${pIndex}]`
+			const topSlots = isPlainObject(page.slots) ? page.slots : {}
+			const configSlots = isPlainObject(config.slots) ? config.slots : null
+
+			// (a) slots map misplaced under config
+			if (configSlots) {
+				errors.push(
+					`pages[${pageId}]/config/slots: the dashboard widget slots map must be at the page top level (pages[${pIndex}]/slots, a sibling of "config"), not under "config". `
+					+ 'CnPageRenderer reads page.slots; a slots map under config is never wired, so every custom widget renders the unavailable placeholder. '
+					+ 'Move "slots" up one level to sit beside "config".',
+				)
+			}
+
+			// (b) each custom widget needs a top-level slots entry
+			config.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.type !== 'custom') return
+				const id = typeof widget.id === 'string' ? widget.id : null
+				if (!id) return
+				const slotKey = `widget-${id}`
+				const wiredTop = typeof topSlots[slotKey] === 'string' && topSlots[slotKey].length > 0
+				// If it is (only) under config.slots, (a) already named the
+				// real fix — don't double-report the same widget.
+				const underConfig = configSlots && typeof configSlots[slotKey] === 'string'
+				if (!wiredTop && !underConfig) {
+					errors.push(
+						`pages[${pageId}]/config/widgets[${wIndex}]: custom widget "${id}" has no slot-component mapping at pages[${pIndex}]/slots["${slotKey}"]. `
+						+ `It will render the unavailable placeholder. Add "${slotKey}": "<ComponentName>" to the page-top-level slots map, or use a built-in widget type.`,
+					)
+				}
+			})
+		})
+	}
+
 	return { valid: errors.length === 0, errors }
 }
 
@@ -766,12 +823,64 @@ function validateTypeConfig(page, index, errors) {
 		}
 		break
 	}
+	case 'wiki': {
+		// `manifest-wiki-page-type` REQ — a wiki page renders one
+		// manifest-declared markdown article (CnWikiPage). It MUST
+		// declare both `register` and `schema` as non-empty strings so
+		// the manifest stays the source of truth for which OpenRegister
+		// register/schema the article body is read from.
+		const hasRegister = cfg && typeof cfg.register === 'string' && cfg.register.length > 0
+		const hasSchema = cfg && typeof cfg.schema === 'string' && cfg.schema.length > 0
+		if (!hasRegister || !hasSchema) {
+			errors.push(`${pathBracket}: wiki pages must declare register and schema`)
+		}
+		// `manifest-wiki-stabilise` REQ — the remaining typed config
+		// fields the CnWikiPage component accepts MUST be strings when
+		// present. Omitted fields are tolerated (runtime defaults take
+		// over); unknown keys pass for forward-compat.
+		validateWikiConfigFields(cfg, pathSlash, errors)
+		break
+	}
 	default:
 		// No per-type rules for index/detail/dashboard/custom or
 		// consumer-defined types; their `config` shape is enforced
 		// by the target component at runtime (or by a future spec).
 		break
 	}
+}
+
+/**
+ * Validate the optional typed config fields of a `type:'wiki'` page
+ * (`manifest-wiki-stabilise`). Each known field MUST be a string when
+ * present; omitted fields are tolerated and unknown keys pass for
+ * forward-compatibility. `register` / `schema` are validated by the
+ * caller (they are required, not merely typed) so they are excluded
+ * here.
+ *
+ * @param {object|null} cfg The page `config` object.
+ * @param {string} pathSlash JSON-pointer prefix for the config object.
+ * @param {string[]} errors Accumulator for error messages.
+ */
+function validateWikiConfigFields(cfg, pathSlash, errors) {
+	if (!isPlainObject(cfg)) return
+	const stringFields = [
+		'contentField',
+		'titleField',
+		'idParam',
+		'treeField',
+		'sidebarTitleField',
+		'sidebarRegister',
+		'sidebarSchema',
+		'emptyText',
+		'emptyDescription',
+		'emptyBodyText',
+		'emptyBodyDescription',
+	]
+	stringFields.forEach((field) => {
+		if (cfg[field] !== undefined && typeof cfg[field] !== 'string') {
+			errors.push(`${pathSlash}/${field}: must be a string when set`)
+		}
+	})
 }
 
 /**

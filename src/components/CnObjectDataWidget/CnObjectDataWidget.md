@@ -128,3 +128,6 @@ export default {
 | `saveLabel` | String | `'Save'` | Label for the save button |
 | `discardLabel` | String | `'Discard'` | Label for the discard button |
 | `emptyLabel` | String | `'No data available'` | Label shown when no properties are displayable |
+| `documentation-url` | String | `''` | Documentation link surfaced in the widget's overflow Actions menu (empty hides the Documentation item) |
+| `widget-id` | String | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
+| `metadata-label` | String | `'Metadata'` | Label for the Metadata item in the overflow Actions menu |

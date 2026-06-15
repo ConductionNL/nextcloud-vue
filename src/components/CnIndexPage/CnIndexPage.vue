@@ -35,11 +35,20 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:cards-label="cardsLabel"
+			:table-label="tableLabel"
+			:cards-icon="cardsIcon"
+			:table-icon="tableIcon"
+			:show-search="inlineSearch"
+			:search-value="effectiveSearchValue"
+			:search-placeholder="searchPlaceholder"
 			:refreshing="effectiveRefreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
 			:header-actions="mergedHeaderActions"
+			:documentation-url="documentationUrl"
+			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
@@ -47,6 +56,7 @@
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
 			@show-delete="showMassDeleteDialog = true"
+			@search="onSearchEvent"
 			@view-mode-change="onViewModeChange">
 			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
 				<slot name="mass-actions" :count="count" :selected-ids="ids" />
@@ -199,6 +209,7 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="tableColumns"
+					:row-icon="rowIcon"
 					:rows="effectiveObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
@@ -229,6 +240,27 @@
 								:row="row"
 								@action="onRowAction" />
 						</slot>
+					</template>
+
+					<!-- Table-header filter menu (opt-in): a funnel button above the
+					     row-actions column whose menu lists each enum column's values
+					     as toggleable facet filters. -->
+					<template v-if="filterMenu && filterableFields.length" #actions-header>
+						<NcActions :force-menu="true" :aria-label="t('nextcloud-vue', 'Filter')">
+							<template #icon>
+								<FilterOutline :size="20" />
+							</template>
+							<template v-for="field in filterableFields">
+								<NcActionCaption :key="`${field.key}-caption`" :name="field.label" />
+								<NcActionCheckbox
+									v-for="val in field.values"
+									:key="`${field.key}-${val}`"
+									:model-value="isFilterActive(field.key, val)"
+									@update:model-value="toggleFilter(field.key, val)">
+									{{ val }}
+								</NcActionCheckbox>
+							</template>
+						</NcActions>
 					</template>
 				</CnDataTable>
 
@@ -327,10 +359,11 @@
 </template>
 
 <script>
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -437,7 +470,11 @@ export default {
 	components: {
 		NcLoadingIcon,
 		NcEmptyContent,
+		NcActions,
+		NcActionCaption,
+		NcActionCheckbox,
 		DatabaseSearch,
+		FilterOutline,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -630,6 +667,17 @@ export default {
 			default: 'id',
 		},
 
+		/**
+		 * Optional leading icon for every table row — a static MDI icon name or
+		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * @type {string | ((row: object) => string) | null}
+		 */
+		rowIcon: {
+			type: [String, Function],
+			default: null,
+		},
+
 		/** Columns to exclude in schema mode */
 		excludeColumns: {
 			type: Array,
@@ -799,6 +847,56 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show an inline search field in the actions bar (in addition to / instead
+		 * of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`.
+		 */
+		inlineSearch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Placeholder for the inline search field (manifest `config.searchPlaceholder`) */
+		searchPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards view-toggle option (manifest `config.cardsIcon`) */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table view-toggle option (manifest `config.tableIcon`) */
+		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Show a filter menu (funnel button) in the table header, above the
+		 * row-actions column. Its menu lists every enum/badge column's values as
+		 * toggleable facet filters — a compact alternative to the facet sidebar.
+		 * Fed from the manifest as `pages[].config.filterMenu`.
+		 */
+		filterMenu: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether the refresh action is currently in progress */
@@ -981,6 +1079,21 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * When set, adds a Documentation entry to the Actions overflow
+		 * (after Refresh). Opens the URL in a new tab. Empty hides it.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the Documentation overflow entry. */
+		documentationLabel: {
+			type: String,
+			default: '',
+		},
 	},
 
 	setup(props) {
@@ -1101,6 +1214,40 @@ export default {
 		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+
+		/**
+		 * Enum schema columns offered in the header filter menu: one entry per
+		 * visible column whose schema property declares an `enum`, with its
+		 * values. Empty (so the menu hides) when there is no schema or no enum
+		 * column. Drives the `showFilterMenu` funnel button.
+		 *
+		 * @return {Array<{ key: string, label: string, values: string[] }>}
+		 */
+		filterableFields() {
+			const props = this.effectiveSchema?.properties || {}
+			const out = []
+			for (const col of this.tableColumns) {
+				const key = typeof col === 'string' ? col : col.key
+				const def = props[key] || {}
+				const colObj = typeof col === 'object' ? col : {}
+				// Source the filter values, in priority order: schema enum, a
+				// column `enum` hint, or a badge column's colorMap keys (so a
+				// status column stays filterable even when the runtime schema
+				// doesn't carry the enum).
+				let values = null
+				if (Array.isArray(def.enum) && def.enum.length) {
+					values = def.enum
+				} else if (Array.isArray(colObj.enum) && colObj.enum.length) {
+					values = colObj.enum
+				} else if (colObj.widget === 'badge' && colObj.widgetProps && colObj.widgetProps.colorMap) {
+					values = Object.keys(colObj.widgetProps.colorMap)
+				}
+				if (values && values.length) {
+					out.push({ key, label: colObj.label || def.title || key, values: values.map((v) => String(v)) })
+				}
+			}
+			return out
+		},
 		/**
 		 * Ordered column definitions the sidebar's Columns tab governs:
 		 * schema-derived columns, the built-in Metadata group (when shown),
@@ -1599,6 +1746,32 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * Whether a given value is currently an active facet filter for a field.
+		 *
+		 * @param {string} key The schema field key.
+		 * @param {string} val The enum value.
+		 * @return {boolean} True when the value is in the active filter set.
+		 */
+		isFilterActive(key, val) {
+			const current = this.effectiveActiveFilters[key]
+			return Array.isArray(current) && current.includes(val)
+		},
+
+		/**
+		 * Toggle one enum value in a field's facet filter, then apply it through
+		 * the standard filter path (`onFilterEvent`).
+		 *
+		 * @param {string} key The schema field key.
+		 * @param {string} val The enum value to toggle.
+		 * @return {void}
+		 */
+		toggleFilter(key, val) {
+			const current = Array.isArray(this.effectiveActiveFilters[key]) ? this.effectiveActiveFilters[key] : []
+			const values = current.includes(val) ? current.filter((v) => v !== val) : [...current, val]
+			this.onFilterEvent({ key, values })
 		},
 
 		/**

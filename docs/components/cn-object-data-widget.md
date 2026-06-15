@@ -30,6 +30,9 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `save-label` | `String` | `'Save'` | Label for the save button |
 | `discard-label` | `String` | `'Discard'` | Label for the discard button |
 | `empty-label` | `String` | `'No data available'` | Label when no properties are found |
+| `documentation-url` | `String` | `''` | Documentation link surfaced in the widget's overflow Actions menu (empty hides the Documentation item). |
+| `widget-id` | `String` | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`). |
+| `metadata-label` | `String` | `'Metadata'` | Label for the Metadata item in the overflow Actions menu. |
 
 ## Slots
 

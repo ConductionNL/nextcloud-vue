@@ -628,6 +628,7 @@ export default {
 	border-bottom-color: var(--color-primary);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-tabbed-form-dialog__tab-button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;

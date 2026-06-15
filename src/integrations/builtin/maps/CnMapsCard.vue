@@ -438,6 +438,7 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-maps-card__chip a {
 	color: var(--color-main-text);
 	text-decoration: none;
@@ -532,6 +533,7 @@ a.cn-maps-card__title:hover {
 	font-size: 0.8em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-maps-card__view-all a {
 	color: var(--color-primary-element);
 	text-decoration: none;

@@ -9,7 +9,14 @@
   Supports per-property overrides for order, grid span, visibility, editability, and widget type.
 -->
 <template>
-	<CnDetailCard :title="title" :icon="iconComponent">
+	<CnWidgetWrapper
+		:title="title"
+		:widget-id="widgetId || objectType"
+		:documentation-url="documentationUrl"
+		:title-icon-position="iconComponent ? 'left' : 'right'">
+		<template v-if="iconComponent" #title-icon>
+			<component :is="iconComponent" :size="20" />
+		</template>
 		<template #actions>
 			<NcButton
 				v-if="isDirty"
@@ -28,6 +35,18 @@
 				{{ discardLabel }}
 			</NcButton>
 			<slot name="actions" />
+		</template>
+		<!-- Object-specific item appended after the built-in
+		     Refresh / Documentation / Request-a-feature trio. -->
+		<template #action-items>
+			<NcActionButton
+				:close-after-click="true"
+				@click="metadataModalOpen = true">
+				<template #icon>
+					<InformationOutline :size="20" />
+				</template>
+				{{ metadataLabel }}
+			</NcActionButton>
 		</template>
 
 		<!-- Empty state -->
@@ -215,14 +234,23 @@
 				</div>
 			</div>
 		</div>
-	</CnDetailCard>
+
+		<!-- Read-only @self metadata, surfaced on demand from the
+		     Metadata action item rather than as a permanent page widget. -->
+		<CnObjectMetadataModal
+			v-if="metadataModalOpen"
+			:object-data="objectData"
+			@close="metadataModalOpen = false" />
+	</CnWidgetWrapper>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { CnDetailCard } from '../CnDetailCard/index.js'
+import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
+import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -269,23 +297,44 @@ export default {
 		NcTextField,
 		NcSelect,
 		NcCheckboxRadioSwitch,
-		CnDetailCard,
+		NcActionButton,
+		CnWidgetWrapper,
+		CnObjectMetadataModal,
 		ContentSaveOutline,
+		InformationOutline,
 		Pencil,
 		Check,
 		Close,
 	},
 
 	props: {
-		/** Widget title shown in the card header */
+		/** Widget title shown in the widget header. */
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Data'),
 		},
-		/** Optional MDI icon component for the header */
+		/** Optional MDI icon component for the header. */
 		icon: {
 			type: [Object, Function],
 			default: null,
+		},
+		/**
+		 * Documentation link surfaced in the widget's overflow Actions
+		 * menu. Empty (the default) hides the Documentation item; the
+		 * Refresh and Request-a-feature items always render.
+		 */
+		documentationUrl: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Stable id forwarded to the widget chrome for the Refresh /
+		 * Request-a-feature payloads. Falls back to `objectType`, then to a
+		 * slugified title.
+		 */
+		widgetId: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * The JSON Schema describing the object's properties.
@@ -383,10 +432,17 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
 		},
+		/** Label for the Metadata item in the overflow Actions menu. */
+		metadataLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Metadata'),
+		},
 	},
 
 	data() {
 		return {
+			/** Whether the read-only metadata modal is open. */
+			metadataModalOpen: false,
 			/** Currently editing field key, or null */
 			editingField: null,
 			/** Working copy of changed field values */

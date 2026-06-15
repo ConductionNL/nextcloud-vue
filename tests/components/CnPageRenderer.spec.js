@@ -34,6 +34,13 @@ const sampleManifest = {
 			title: 'app.map',
 			config: { center: [52.13, 5.29], zoom: 7, layers: [] },
 		},
+		{
+			id: 'wiki-article',
+			route: '/articles/:id',
+			type: 'wiki',
+			title: 'app.article',
+			config: { register: 'pipelinq', schema: 'article' },
+		},
 		{ id: 'settings', route: '/settings', type: 'custom', title: 'app.settings', component: 'SettingsPage' },
 		{ id: 'broken', route: '/broken', type: 'custom', title: 'app.broken', component: 'NonExistent' },
 		{
@@ -181,6 +188,21 @@ describe('CnPageRenderer', () => {
 		it('returns an async component wrapper for type=dashboard', () => {
 			const wrapper = mountRenderer('overview')
 			expect(wrapper.vm.resolvedComponent).not.toBeNull()
+		})
+
+		it('returns an async component wrapper for type=wiki (manifest-wiki-page-type)', () => {
+			const wrapper = mountRenderer('wiki-article')
+			const component = wrapper.vm.resolvedComponent
+			expect(component).not.toBeNull()
+			// defineAsyncComponent wrapper — function or object, never a
+			// custom-registry stub fallback.
+			expect(['function', 'object']).toContain(typeof component)
+			expect(component).not.toBe(SettingsPageStub)
+			// Wiki pages get their config (register/schema) spread as props.
+			expect(wrapper.vm.resolvedProps).toMatchObject({
+				register: 'pipelinq',
+				schema: 'article',
+			})
 		})
 
 		it('returns an async component wrapper for type=form (manifest-form-page-type)', () => {

@@ -447,6 +447,17 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Externally-requested active tab id. When set to a non-null id,
+		 * the sidebar switches to that tab — lets a host deep-link into a
+		 * specific leaf (e.g. a "Linked apps" row on the detail page that
+		 * opens the Mails tab). Leave null for normal internal tracking.
+		 */
+		requestedTab: {
+			type: String,
+			default: null,
+		},
 	},
 
 	emits: ['update:open'],
@@ -484,7 +495,7 @@ export default {
 
 	data() {
 		return {
-			activeTab: this.computeInitialActiveTab(),
+			activeTab: this.requestedTab || this.computeInitialActiveTab(),
 		}
 	},
 
@@ -556,8 +567,12 @@ export default {
 				// Re-anchor activeTab when the tab set changes so the
 				// active id stays valid (otherwise NcAppSidebar shows no
 				// active tab when the consumer swaps in a fresh array).
-				this.activeTab = this.computeInitialActiveTab()
+				this.activeTab = this.requestedTab || this.computeInitialActiveTab()
 			},
+		},
+		requestedTab(id) {
+			// Host deep-link: switch to the requested tab when it changes.
+			if (id) this.activeTab = id
 		},
 	},
 

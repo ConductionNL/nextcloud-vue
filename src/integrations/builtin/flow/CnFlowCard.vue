@@ -416,6 +416,7 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-flow-card__chip a {
 	color: var(--color-main-text);
 	text-decoration: none;

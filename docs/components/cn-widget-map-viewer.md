@@ -50,6 +50,9 @@ Forwarded to `CnMapWidget`. The commonly used ones:
 | `layers` | `Array` | Additional tile / overlay layer configurations (`{ id, type, url, opacity, attribution }`). |
 | `clustering` | `Boolean` | Group nearby markers into clusters via leaflet.markercluster. Defaults `true` once a threshold is reached. |
 | `autoFit` | `Boolean` | Automatically fit the map bounds to the marker set on mount. Defaults `true`. |
+| `title` | `String` | Widget title shown in the chrome header (default `'Map'`). |
+| `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
+| `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
 
 See [CnMapWidget](./cn-map-widget.md) for the complete surface.
 

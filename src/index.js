@@ -110,6 +110,8 @@ export {
 	CnNoteCard,
 	CnObjectDataWidget,
 	CnObjectMetadataWidget,
+	CnObjectMetadataModal,
+	CnRelatedObjectsWidget,
 	CnLogsPage,
 	CnSettingsPage,
 	CnChatPage,

@@ -22,10 +22,13 @@
 		<div v-if="object && !$scopedSlots.header" class="cn-detail-grid__translation-header">
 			<CnTranslatedBadge :object="object" />
 		</div>
+		<!-- @slot header Replaces the default translation-badge header row above the grid. -->
+		<!-- @binding {object} object The source object the grid renders. -->
 		<slot name="header" :object="object" />
 
 		<!-- Empty state -->
 		<div v-if="!items.length && !$scopedSlots.default" class="cn-detail-grid__empty">
+			<!-- @slot empty Replaces the default empty-state text shown when there are no items. -->
 			<slot name="empty">
 				{{ emptyLabel }}
 			</slot>
@@ -39,6 +42,9 @@
 			:class="itemClasses">
 			<!-- Label -->
 			<div class="cn-detail-grid__label">
+				<!-- @slot label-{index} Per-item label override (e.g. `#label-0`). Defaults to `item.label`. -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'label-' + index" :item="item" :index="index">
 					{{ item.label }}
 				</slot>
@@ -46,6 +52,9 @@
 
 			<!-- Value -->
 			<div class="cn-detail-grid__value">
+				<!-- @slot item-{index} Per-item value override (e.g. `#item-0`). Defaults to `item.value` or the AD-18 reference widget. -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'item-' + index" :item="item" :index="index">
 					<!-- referenceType (AD-18): render the integration's
 					     single-entity widget instead of a raw value. A
@@ -62,11 +71,14 @@
 
 			<!-- Optional per-item actions -->
 			<div v-if="$scopedSlots['item-actions-' + index]" class="cn-detail-grid__actions">
+				<!-- @slot item-actions-{index} Optional per-item action buttons rendered after the value (e.g. `#item-actions-0`). -->
+				<!-- @binding {object} item The item definition being rendered. -->
+				<!-- @binding {number} index The item's position in `items`. -->
 				<slot :name="'item-actions-' + index" :item="item" :index="index" />
 			</div>
 		</div>
 
-		<!-- Append slot for manual items -->
+		<!-- @slot default Appended after the data-driven items — add manual rows or arbitrary content here. -->
 		<slot />
 	</div>
 </template>

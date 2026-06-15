@@ -396,17 +396,18 @@ describe('CnAppRoot', () => {
 			expect(wrapper.find('.router-view-stub').exists()).toBe(false)
 		})
 
-		// REQ-OR-7: getCapabilities() rejecting → renderer mounts (fall through), warn logged.
-		it('falls through to the renderer when getCapabilities() throws (REQ-OR-7)', async () => {
+		// REQ-OR-7: getCapabilities() throwing → useAppStatus swallows the error
+		// and reports the app as not-installed, so the guard surfaces the
+		// dependency-missing screen (fail-closed) and logs a warn. This mirrors
+		// the returns-null path below — an unverifiable dependency is treated as
+		// missing rather than silently hidden.
+		it('treats a getCapabilities() throw as a missing dependency (REQ-OR-7)', async () => {
 			getCapabilities.mockImplementation(() => { throw new Error('capabilities-api-down') })
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const wrapper = mountWithGuard()
 			await wrapper.vm.$nextTick()
-			expect(wrapper.vm.guardError).toBeInstanceOf(Error)
-			expect(wrapper.vm.missingApps).toEqual([])
 			expect(wrapper.vm.capabilitiesLoading).toBe(false)
-			expect(wrapper.find('.router-view-stub').exists()).toBe(true)
-			expect(wrapper.find('.cn-app-root__or-missing').exists()).toBe(false)
+			expect(wrapper.vm.missingApps).toEqual(['openregister'])
 			expect(warnSpy).toHaveBeenCalled()
 			warnSpy.mockRestore()
 		})

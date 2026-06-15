@@ -40,6 +40,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
 | `rowKey` | String | `'id'` | Unique row identifier field |
+| `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
@@ -73,6 +74,11 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
+| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
+| `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
+| `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
+| `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
+| `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `\${registerId}-\${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
 | `sidebar` | Object | `null` | Manifest-driven sidebar configuration. When set with `enabled: true`, CnIndexPage auto-mounts an embedded `CnIndexSidebar` and forwards its props. Shape: `\{ enabled, show?, columnGroups?, facets?, showMetadata?, search? \}`. `show` (default `true`) is the visibility gate — set `false` to hide the configured sidebar without removing config. When unset (the default), the legacy slot-based pattern is preserved — consumers wire their own `CnIndexSidebar` at the App.vue level. See [Manifest-driven sidebar](#manifest-driven-sidebar) below. |

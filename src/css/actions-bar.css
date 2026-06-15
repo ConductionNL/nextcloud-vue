@@ -19,6 +19,39 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* Inline search field */
+.cn-actions-bar__search {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 280px;
+	max-width: 100%;
+}
+
+.cn-actions-bar__search-icon {
+	position: absolute;
+	left: 12px;
+	color: var(--color-text-maxcontrast);
+	pointer-events: none;
+	display: inline-flex;
+}
+
+.cn-actions-bar__search-input {
+	width: 100%;
+	height: 40px;
+	margin: 0;
+	padding: 0 12px 0 38px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-pill);
+	background: var(--color-main-background);
+	font-size: var(--default-font-size);
+	font-weight: 400;
+}
+
+.cn-actions-bar__view-toggle-icon {
+	display: inline-flex;
+}
+
 .cn-actions-bar__actions {
 	display: flex;
 	align-items: center;
@@ -31,14 +64,106 @@
 	min-width: fit-content !important;
 }
 
-/* View mode toggle container */
+/* View mode toggle — segmented control with a sliding thumb.
+   Styled entirely with Nextcloud CSS variables so any active theme (incl.
+   the nldesign design systems) colours it automatically. The thumb is an
+   absolutely-positioned pill that animates with `transform` between the two
+   segments, giving the toggle its sliding feel. */
 .cn-actions-bar__view-toggle {
-	display: flex;
+	position: relative;
+	display: inline-flex;
 	align-items: center;
+	box-sizing: border-box;
+	padding: 4px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-background-dark);
 }
 
-.cn-actions-bar__view-toggle span {
-	max-height: 34px;
+/* Scoped under the toggle (specificity 0,2,0) so it beats any stale copy of the
+   PREVIOUS actions-bar.css that other apps may co-load on the same page. Older
+   builds shipped `.cn-actions-bar__view-toggle span { max-height: 34px }`
+   (specificity 0,1,1); since the thumb is a <span>, that rule would cap it at
+   34px and break the vertical centring. `max-height: none` here overrides it.
+   The inset top/bottom (not a calc'd height) keeps the thumb centred and 40px. */
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-thumb {
+	position: absolute;
+	top: 4px;
+	bottom: 4px;
+	left: 4px;
+	width: calc(50% - 4px);
+	max-height: none;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-main-background);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+	transition: transform 0.25s ease;
+	will-change: transform;
+}
+
+.cn-actions-bar__view-toggle-thumb--right {
+	transform: translateX(100%);
+}
+
+/* Segment buttons must shed Nextcloud core's global <button> chrome (server.css
+   gives every button a tinted background, 1px border, rounded corners, box-shadow
+   and a 3px margin). NC's selectors vary in specificity and some outrank a plain
+   scoped class, so the chrome reset uses !important — a deliberate, contained
+   reset against framework CSS. Without it the button backgrounds hide the sliding
+   thumb and the 3px button margin inflates the track height. The old toggle got
+   this for free from NcCheckboxRadioSwitch; raw buttons have to opt out. */
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	flex: 1 1 50%;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-width: 0;
+	min-height: 40px;
+	margin: 0 !important;
+	padding-block: 4px;
+	/* Symmetric inline padding so the centred icon+label sit dead-centre in the
+	   segment (and under the thumb). Asymmetric padding offsets the centring box. */
+	padding-inline: 12px;
+	appearance: none;
+	-webkit-appearance: none;
+	border: none !important;
+	border-radius: var(--border-radius-pill) !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 140%;
+	cursor: pointer;
+	transition: color 0.25s ease;
+}
+
+/* Neutralise Nextcloud's global button hover/focus (tint / border / shadow). */
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn:hover,
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn:focus,
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn:active {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn:hover {
+	color: var(--color-main-text);
+}
+
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+
+.cn-actions-bar__view-toggle .cn-actions-bar__view-toggle-btn--active {
+	color: var(--color-main-text);
+}
+
+.cn-actions-bar__view-toggle-label {
+	white-space: nowrap;
 }
 
 /* Override Nextcloud's pointer-events:none on disabled action items
