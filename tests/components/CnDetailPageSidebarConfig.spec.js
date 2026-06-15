@@ -103,6 +103,18 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 			const matching = warnSpy.mock.calls.filter((c) => /\[CnDetailPage\].*deprecated/.test(c[0]))
 			expect(matching.length).toBe(0)
 		})
+
+		it('does NOT log the deprecation warning when the prop is omitted (Object default)', () => {
+			const state = makeState()
+			mountDetailPage({
+				title: 'Lead',
+				objectType: 'lead',
+				objectId: '1',
+			}, state)
+			expect(state.active).toBe(false)
+			const matching = warnSpy.mock.calls.filter((c) => /\[CnDetailPage\].*deprecated/.test(c[0]))
+			expect(matching.length).toBe(0)
+		})
 	})
 
 	describe('Object form fields', () => {

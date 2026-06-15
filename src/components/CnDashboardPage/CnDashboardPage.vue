@@ -49,7 +49,6 @@
 					:request-feature-label="requestFeatureLabel"
 					:actions-menu-label="actionsMenuLabel"
 					:refreshing="refreshing"
-					:optimistic-spin-ms="optimisticSpinMs"
 					:widget-id="resolvedPageId"
 					:title="title"
 					:surface="`dashboard:${resolvedPageId}`"
@@ -716,15 +715,10 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Whether a page-level refresh is in flight (drives the Refresh icon spin). */
+		/** Whether a page-level refresh is in flight (disables the Refresh item and shows its spinner). */
 		refreshing: {
 			type: Boolean,
 			default: false,
-		},
-		/** Optimistic Refresh-icon spin duration (ms) when `refreshing` is unbound. */
-		optimisticSpinMs: {
-			type: Number,
-			default: 800,
 		},
 		/** Pre-translated label for the Refresh action. */
 		refreshLabel: {

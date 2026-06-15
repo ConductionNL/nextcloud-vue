@@ -198,52 +198,30 @@ describe('CnWidgetWrapper — default Request-a-feature handler (widget-wrapper-
 	})
 })
 
-describe('CnWidgetWrapper — refresh icon spin', () => {
+describe('CnWidgetWrapper — refresh spinner', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		jest.useFakeTimers()
 		jest.spyOn(console, 'warn').mockImplementation(() => {})
 	})
-	afterEach(() => {
-		jest.runOnlyPendingTimers()
-		jest.useRealTimers()
-		jest.restoreAllMocks()
-	})
+	afterEach(() => jest.restoreAllMocks())
 
-	// Spin state now lives on the delegated CnActionsMenu child; the
-	// wrapper forwards :refreshing / :optimistic-spin-ms. Read the child's
-	// isRefreshing to assert the behaviour still holds end-to-end. The
-	// full spin mechanics are also covered in CnActionsMenu.spec.js.
-	const menuVm = (wrapper) => wrapper.findComponent({ name: 'CnActionsMenu' }).vm
+	// The spinner state lives on the delegated CnActionsMenu child, driven
+	// solely by the `:refreshing` prop the wrapper forwards. Read the child's
+	// forwarded prop to assert the wiring end-to-end. The render mechanics
+	// (disabled + loading icon) are covered in CnActionsMenu.spec.js.
+	const menu = (wrapper) => wrapper.findComponent({ name: 'CnActionsMenu' })
 
-	it('spins optimistically on click then stops after optimisticSpinMs', async () => {
-		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 800 })
-		expect(menuVm(wrapper).isRefreshing).toBe(false)
-		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
-		expect(menuVm(wrapper).isRefreshing).toBe(true)
-		jest.advanceTimersByTime(800)
-		await wrapper.vm.$nextTick()
-		expect(menuVm(wrapper).isRefreshing).toBe(false)
-	})
-
-	it('does NOT optimistically spin when optimisticSpinMs is 0', async () => {
-		const wrapper = mountWrapper({ widgetId: 'w1', optimisticSpinMs: 0 })
-		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
-		expect(menuVm(wrapper).isRefreshing).toBe(false)
-	})
-
-	it('spins for as long as the :refreshing prop is true (host-driven)', async () => {
+	it('forwards :refreshing to the delegated CnActionsMenu (host-driven)', async () => {
 		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
-		expect(menuVm(wrapper).isRefreshing).toBe(true)
+		expect(menu(wrapper).props('refreshing')).toBe(true)
 		await wrapper.setProps({ refreshing: false })
-		expect(menuVm(wrapper).isRefreshing).toBe(false)
+		expect(menu(wrapper).props('refreshing')).toBe(false)
 	})
 
-	it('with :refreshing bound true, clicking does not leave an optimistic spin behind', async () => {
-		const wrapper = mountWrapper({ widgetId: 'w1', refreshing: true })
+	it('does not spin on click alone — refreshing stays false until the host sets it', async () => {
+		const wrapper = mountWrapper({ widgetId: 'w1' })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
-		await wrapper.setProps({ refreshing: false })
-		expect(menuVm(wrapper).isRefreshing).toBe(false)
+		expect(menu(wrapper).props('refreshing')).toBe(false)
 	})
 })
 
