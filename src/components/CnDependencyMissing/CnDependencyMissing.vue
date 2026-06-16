@@ -93,7 +93,7 @@ export default {
 			if (dep.enabled === false) {
 				return `/index.php/settings/apps/disabled/${dep.id}`
 			}
-			return `/index.php/settings/apps/${dep.category ?? 'organization'}/${dep.id}`
+			return `/index.php/settings/apps/${dep.category ?? 'featured'}/${dep.id}`
 		},
 	},
 }
