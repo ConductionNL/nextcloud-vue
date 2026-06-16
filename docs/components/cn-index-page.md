@@ -76,6 +76,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
 | `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
 | `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
+| `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
 | `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
 | `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
 | `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
@@ -342,6 +343,34 @@ Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContex
 - Destructive actions are styled with `--color-error`
 - The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
 - Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
+
+## Filter and columns: table header vs sidebar
+
+Faceted **filtering** and **column visibility** can live in **two** places, and you choose per page from the manifest:
+
+| Surface | Filter | Columns | Config |
+|---------|--------|---------|--------|
+| **Table header** (recommended default) | `filterMenu: true` → funnel button | `columnMenu: true` → columns button | `config.filterMenu` / `config.columnMenu` |
+| **Sidebar** | `sidebar.facets` | `sidebar.columnGroups` (Columns tab) | `config.sidebar.enabled: true` |
+
+**The recommended default for an index page is the table header** — it keeps both controls one click away inside the table and frees the sidebar for the detail/object surface. Use the sidebar variant when you want a persistently-open faceting panel.
+
+```jsonc
+// Recommended index-page default — both controls in the table header,
+// search inline, sidebar off so the space is reclaimed.
+{
+  "type": "index",
+  "config": {
+    "register": "petstore", "schema": "order",
+    "inlineSearch": true,
+    "filterMenu": true,
+    "columnMenu": true,
+    "sidebar": { "enabled": false }
+  }
+}
+```
+
+Both surfaces drive the same state — `filterMenu`/`columnMenu` toggle the same `activeFilters` / `visibleColumns` the sidebar would, and emit the same `@filter-change` / `@columns-change` events — so a page can even expose both at once if desired.
 
 ## Manifest-driven sidebar
 

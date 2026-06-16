@@ -823,11 +823,20 @@ export default {
  * long menus showed Documentation / Features & roadmap mid-scroll.)
  * The <ul> only resets list chrome and aligns with the 16px icon inset
  * of the main list; NC's own footer layout does the rest.
+ *
+ * As a direct `> ul` child of `.app-navigation__content`, NC's scoped rule
+ * makes it a shrinkable, scrollable flex item (`overflow: hidden auto;
+ * flex: 0 1 auto`). With a couple of footer entries that let the list be
+ * squeezed a few pixels below its content and grow an unwanted scrollbar,
+ * even on a short menu with plenty of room. Footer entries are few and must
+ * always show in full, so opt out of shrinking and scrolling here.
  */
 .cn-app-nav__footer-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	flex-shrink: 0 !important;
+	overflow: visible !important;
 }
 
 /*
