@@ -242,11 +242,18 @@
 						</slot>
 					</template>
 
-					<!-- Table-header filter menu (opt-in): a funnel button above the
-					     row-actions column whose menu lists each enum column's values
-					     as toggleable facet filters. -->
-					<template v-if="filterMenu && filterableFields.length" #actions-header>
-						<NcActions :force-menu="true" :aria-label="t('nextcloud-vue', 'Filter')">
+					<!-- Table-header filter + column menus (both opt-in): funnel and
+					     columns buttons above the row-actions column. The filter menu
+					     lists each enum column's values as toggleable facet filters;
+					     the column menu lists every governed column as a visibility
+					     checkbox — compact, in-table alternatives to the sidebar. -->
+					<template
+						v-if="(filterMenu && filterableFields.length) || (columnMenu && governedColumns.length)"
+						#actions-header>
+						<NcActions
+							v-if="filterMenu && filterableFields.length"
+							:force-menu="true"
+							:aria-label="t('nextcloud-vue', 'Filter')">
 							<template #icon>
 								<FilterOutline :size="20" />
 							</template>
@@ -260,6 +267,22 @@
 									{{ val }}
 								</NcActionCheckbox>
 							</template>
+						</NcActions>
+						<NcActions
+							v-if="columnMenu && governedColumns.length"
+							:force-menu="true"
+							:aria-label="t('nextcloud-vue', 'Columns')">
+							<template #icon>
+								<ViewColumnOutline :size="20" />
+							</template>
+							<NcActionCaption :name="t('nextcloud-vue', 'Columns')" />
+							<NcActionCheckbox
+								v-for="col in governedColumns"
+								:key="`col-${col.key}`"
+								:model-value="isColumnVisible(col.key)"
+								@update:model-value="toggleColumn(col.key)">
+								{{ col.label || col.key }}
+							</NcActionCheckbox>
 						</NcActions>
 					</template>
 				</CnDataTable>
@@ -364,6 +387,7 @@ import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -475,6 +499,7 @@ export default {
 		NcActionCheckbox,
 		DatabaseSearch,
 		FilterOutline,
+		ViewColumnOutline,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -895,6 +920,18 @@ export default {
 		 * Fed from the manifest as `pages[].config.filterMenu`.
 		 */
 		filterMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show a column menu (columns button) in the table header, above the
+		 * row-actions column. Its menu lists every governed column as a toggleable
+		 * checkbox — a compact, in-table alternative to the sidebar's Columns tab,
+		 * so the sidebar space can be reclaimed. Fed from the manifest as
+		 * `pages[].config.columnMenu`.
+		 */
+		columnMenu: {
 			type: Boolean,
 			default: false,
 		},
@@ -1772,6 +1809,33 @@ export default {
 			const current = Array.isArray(this.effectiveActiveFilters[key]) ? this.effectiveActiveFilters[key] : []
 			const values = current.includes(val) ? current.filter((v) => v !== val) : [...current, val]
 			this.onFilterEvent({ key, values })
+		},
+
+		/**
+		 * Whether a governed column is currently visible. A null visible-column set
+		 * means "all governed columns visible" (the initial state).
+		 *
+		 * @param {string} key The column key.
+		 * @return {boolean} True when the column is shown in the table.
+		 */
+		isColumnVisible(key) {
+			const visible = this.effectiveVisibleColumns
+			return Array.isArray(visible) ? visible.includes(key) : true
+		},
+
+		/**
+		 * Toggle a governed column on/off from the table-header column menu, then
+		 * apply it through the same path as the sidebar (`onColumnsEvent`).
+		 *
+		 * @param {string} key The column key to toggle.
+		 * @return {void}
+		 */
+		toggleColumn(key) {
+			const base = Array.isArray(this.effectiveVisibleColumns)
+				? this.effectiveVisibleColumns
+				: this.governedColumns.map((c) => c.key)
+			const next = base.includes(key) ? base.filter((k) => k !== key) : [...base, key]
+			this.onColumnsEvent(next)
 		},
 
 		/**
