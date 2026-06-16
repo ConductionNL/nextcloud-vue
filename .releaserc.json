@@ -18,9 +18,8 @@
 		[
 			"@semantic-release/exec",
 			{
-				"publishCmd": "npx -y npm@latest publish --access public --provenance --tag <%= nextRelease.channel || 'latest' %>"
+				"publishCmd": "npx -y npm@latest publish --access public --tag <%= nextRelease.channel || 'latest' %>"
 			}
-		],
-		"@semantic-release/github"
+		]
 	]
 }

@@ -309,6 +309,61 @@ describe('useAppManifest', () => {
 	})
 
 	// -----------------------------------------------------------------
+	// Bug fix: sentinel resolution must NOT depend on a successful
+	// /api/manifest backend fetch. Most apps don't serve that endpoint
+	// (Nextcloud returns SPA HTML with a 200), yet their BUNDLED manifest
+	// still carries @resolve: sentinels that must resolve from
+	// initial-state / /api/configs.
+	// -----------------------------------------------------------------
+	describe('sentinels resolve from the bundled manifest independent of /api/manifest', () => {
+		const bundledWithSentinel = {
+			version: '1.0.0',
+			menu: validBundled.menu,
+			pages: [
+				{ id: 'home', route: '/', type: 'index', title: 'app.home', config: { register: '@resolve:voorzieningen_register', schema: 'voorziening' } },
+			],
+		}
+
+		it('resolves bundled sentinels when the backend fetch 404s', async () => {
+			axios.get.mockRejectedValue({ response: { status: 404 } })
+			const { manifest, unresolvedSentinels, validationErrors } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async (_, key) => (key === 'voorzieningen_register' ? 'voorzieningen' : null) },
+			)
+			await flush()
+			expect(manifest.value.pages[0].config.register).toBe('voorzieningen')
+			expect(unresolvedSentinels.value).toEqual([])
+			expect(validationErrors.value).toBeNull()
+		})
+
+		it('resolves bundled sentinels when /api/manifest returns SPA HTML (200, non-object body)', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: '<!DOCTYPE html><html></html>' })
+			const { manifest, unresolvedSentinels } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async (_, key) => (key === 'voorzieningen_register' ? 'voorzieningen' : null) },
+			)
+			await flush()
+			// SPA HTML is NOT merged; the bundled manifest's sentinel still resolves.
+			expect(manifest.value.pages[0].config.register).toBe('voorzieningen')
+			expect(unresolvedSentinels.value).toEqual([])
+		})
+
+		it('surfaces unresolved keys from a bundled sentinel when the fetch fails and the key is unset', async () => {
+			axios.get.mockRejectedValue(new Error('network'))
+			const { manifest, unresolvedSentinels } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async () => null },
+			)
+			await flush()
+			expect(manifest.value.pages[0].config.register).toBeNull()
+			expect(unresolvedSentinels.value).toEqual(['voorzieningen_register'])
+		})
+	})
+
+	// -----------------------------------------------------------------
 	// manifest-dynamic-menu — backend-populated `menu[]` contract
 	// -----------------------------------------------------------------
 	// Locks the lib-side contract documented in

@@ -84,6 +84,8 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `rowClass` | Function | `null` | Callback `(row) => cssClass` to add dynamic CSS classes to rows |
 | `cellClass` | Function | `null` | Callback `(row, col) => cssClass` to add dynamic CSS classes to individual data cells |
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
+| `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
+| `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 
 ### Events
 
