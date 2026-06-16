@@ -90,7 +90,10 @@ export default {
 	methods: {
 		resolveLink(dep) {
 			if (dep.installUrl) return dep.installUrl
-			return '/index.php/settings/apps'
+			if (dep.enabled === false) {
+				return `/index.php/settings/apps/disabled/${dep.id}`
+			}
+			return `/index.php/settings/apps/${dep.category ?? 'organization'}/${dep.id}`
 		},
 	},
 }
