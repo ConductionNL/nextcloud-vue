@@ -7,7 +7,7 @@
   - `sidebarRegister`, `sidebarSchema`
   - `emptyText`, `emptyDescription`, `emptyBodyText`, `emptyBodyDescription`
 - [x] Each declared as `{ "type": "string" }` with a description pointing at the matching `CnWikiPage` prop.
-- [x] Bump schema `version` 2.0.0 → 2.4.0.
+- [x] Bump v2 schema `version` (was 2.8.0 on development → 2.9.0; the 2.4.0 target in the original plan was superseded by intervening schema bumps). Also enumerate the 11 fields in the v1 schema `pages[].type` description (additive, no v1 version bump per the page-type policy).
 
 ## Phase 2 — Validator
 

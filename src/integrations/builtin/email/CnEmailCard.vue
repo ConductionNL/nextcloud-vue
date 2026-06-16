@@ -337,6 +337,7 @@ export default {
 	gap: 8px;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-email-card__subject {
 	color: var(--color-main-text);
 	font-weight: normal;
@@ -345,6 +346,7 @@ export default {
 	white-space: nowrap;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-email-card__row--unread .cn-email-card__subject {
 	font-weight: bold;
 }

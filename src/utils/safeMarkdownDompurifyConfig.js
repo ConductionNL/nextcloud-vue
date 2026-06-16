@@ -34,7 +34,13 @@ export const SAFE_MARKDOWN_DOMPURIFY_CONFIG = Object.freeze({
 		'table', 'thead', 'tbody', 'tr', 'th', 'td',
 	],
 	ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title'],
-	ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+	// Allow: absolute http(s)/mailto URLs, single-slash root-relative paths
+	// (`/apps/files`) and scheme-less relative paths. Reject protocol-relative
+	// URLs (`//attacker.com`, which a browser resolves to http(s)://attacker.com)
+	// and any other scheme (`javascript:`, `data:`, …). The `\/(?!\/)` branch
+	// admits `/path` but not `//host`; `[^/:]+(?:[/?#]|$)` admits relative paths
+	// that have no scheme separator before the first slash/query/hash.
+	ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|\/(?!\/)|[^/:]+(?:[/?#]|$))/i,
 	FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'button'],
 	// Strip every event-handler attribute (onclick, onerror, ...).
 	FORBID_ATTR: [

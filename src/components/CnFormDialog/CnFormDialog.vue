@@ -150,6 +150,7 @@
 								:options="getEffectiveArrayOptions(field)"
 								:model-value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
+								:keep-open="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
@@ -184,6 +185,7 @@
 								:model-value="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
+								:keep-open="true"
 								:taggable="true"
 								:clearable="true"
 								:disabled="field.readOnly"
@@ -783,6 +785,53 @@ export default {
 			this.$set(this.formData, 'organisation', uuid)
 		},
 
+		/**
+		 * Evaluate a field's conditional-visibility predicate (#327).
+		 *
+		 * A field is visible when it has no `condition`/`visibleWhen`, or when
+		 * its predicate evaluates true against the current `formData`. The
+		 * predicate references another field via `field` and one of the
+		 * supported operators: `equals`, `notEquals`, `in`, `notIn`,
+		 * `truthy`, `falsy`. An unrecognised predicate keeps the field visible
+		 * and logs a warning (fail-open — better to show a field than hide it
+		 * by accident).
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {boolean} Whether the field should be shown.
+		 */
+		fieldVisible(field) {
+			const condition = field.condition || field.visibleWhen
+			if (!condition || typeof condition !== 'object') return true
+
+			const target = this.formData[condition.field]
+
+			if (Object.hasOwn(condition, 'equals')) {
+				return target === condition.equals
+			}
+			if (Object.hasOwn(condition, 'notEquals')) {
+				return target !== condition.notEquals
+			}
+			if (Object.hasOwn(condition, 'in')) {
+				return Array.isArray(condition.in) && condition.in.includes(target)
+			}
+			if (Object.hasOwn(condition, 'notIn')) {
+				return !(Array.isArray(condition.notIn) && condition.notIn.includes(target))
+			}
+			if (Object.hasOwn(condition, 'truthy')) {
+				return condition.truthy ? !!target : !target
+			}
+			if (Object.hasOwn(condition, 'falsy')) {
+				return condition.falsy ? !target : !!target
+			}
+
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[CnFormDialog] Field "${field.key}" has a condition with no recognised predicate; keeping it visible.`,
+				condition,
+			)
+			return true
+		},
+
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
 			this.$set(this.touchedFields, key, true)
@@ -791,6 +840,25 @@ export default {
 				this.$delete(this.errors, key)
 			}
 			this.formError = null
+			// A field change may flip the visibility of conditional fields.
+			// Drop the form-data of any field that just became hidden so a
+			// stale value isn't submitted (#327).
+			this.pruneHiddenFields()
+		},
+
+		/**
+		 * Remove `formData` (and any error) for fields that are currently
+		 * hidden by their conditional-visibility predicate (#327).
+		 */
+		pruneHiddenFields() {
+			for (const field of this.resolvedFields) {
+				if (!this.fieldVisible(field) && Object.hasOwn(this.formData, field.key)) {
+					this.$delete(this.formData, field.key)
+					if (this.errors[field.key]) {
+						this.$delete(this.errors, field.key)
+					}
+				}
+			}
 		},
 
 		/**

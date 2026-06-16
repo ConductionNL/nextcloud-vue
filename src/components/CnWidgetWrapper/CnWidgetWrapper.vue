@@ -59,7 +59,6 @@
 					:request-feature-label="requestFeatureLabel"
 					:actions-menu-label="actionsMenuLabel"
 					:refreshing="refreshing"
-					:optimistic-spin-ms="optimisticSpinMs"
 					:widget-id="resolvedWidgetId"
 					:title="displayTitle"
 					:surface="`widget:${resolvedWidgetId}`"
@@ -307,30 +306,14 @@ export default {
 		/**
 		 * Whether a refresh is currently in flight. When bound by the host
 		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
-		 * icon spins for exactly as long as this stays true — accurate
-		 * feedback. When left at its default `false`, clicking Refresh
-		 * still spins optimistically for a short fixed duration
-		 * (`optimisticSpinMs`) so the action feels responsive even without
-		 * host wiring.
+		 * item is disabled and shows a loading spinner for exactly as long
+		 * as this stays true — so the spinner reflects the real refresh time.
 		 *
 		 * @type {boolean}
 		 */
 		refreshing: {
 			type: Boolean,
 			default: false,
-		},
-		/**
-		 * Duration (ms) of the optimistic spin shown on Refresh click when
-		 * the host has NOT bound `:refreshing`. Defaults to 800ms — roughly
-		 * two rotations at the icon's spin speed. Set to 0 to disable the
-		 * optimistic spin entirely (icon only spins while `refreshing` is
-		 * true).
-		 *
-		 * @type {number}
-		 */
-		optimisticSpinMs: {
-			type: Number,
-			default: 800,
 		},
 		/**
 		 * Optional pre-translated label for the Refresh action. Defaults

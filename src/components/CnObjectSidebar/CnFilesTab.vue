@@ -91,6 +91,7 @@ import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import { buildHeaders } from '../../utils/index.js'
+import { safeHref } from '../../utils/safeHref.js'
 
 export default {
 	name: 'CnFilesTab',
@@ -116,6 +117,21 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Whether to render the "share uploaded files" toggle. Off by default;
+		 * when false, uploads never set the share flag (no auto-publish).
+		 * @type {boolean}
+		 */
+		showShareToggle: { type: Boolean, default: false },
+		/**
+		 * Initial state for the share toggle. `true`/`false` wins outright;
+		 * `null` (the default) defers to the schema's
+		 * `configuration.defaultAutoShare` from OpenRegister.
+		 * @type {boolean|null}
+		 */
+		defaultShare: { type: Boolean, default: null },
+		/** Label for the share toggle */
+		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Share uploaded files') },
 	},
 
 	data() {
@@ -266,7 +282,14 @@ export default {
 
 		openFile(file) {
 			if (file.accessUrl) {
-				window.open(file.accessUrl, '_blank')
+				// Validate the OR-supplied URL scheme before navigating (C4).
+				// A misbehaving file record returning `javascript:`/`data:`
+				// must never reach window.open. `noopener,noreferrer` blocks
+				// reverse-tabnabbing on the new window.
+				const href = safeHref(file.accessUrl)
+				if (href !== '#') {
+					window.open(href, '_blank', 'noopener,noreferrer')
+				}
 			} else if (file.id) {
 				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
 				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')

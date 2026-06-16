@@ -302,6 +302,7 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
+import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
@@ -1050,10 +1051,43 @@ export default {
 				: []
 			return deps.map((id) => ({ id, status: useAppStatus(id) }))
 		},
+		/**
+		 * App statuses injected by the PHP boot() via IInitialStateService.
+		 * Keyed by app id: { installed: bool, enabled: bool }.
+		 * Falls back to {} when not injected (non-pipelinq consumers, tests).
+		 */
+		serverAppStatuses() {
+			try {
+				const statuses = loadState(this.appId, 'dependency_statuses', {})
+				return statuses
+			} catch {
+				return {}
+			}
+		},
+
 		unresolvedDependencies() {
 			return this.dependencyStatuses
-				.filter(({ status }) => !status.installed.value || !status.enabled.value)
-				.map(({ id }) => ({ id, name: id, enabled: false }))
+				.filter(({ id, status }) => {
+					const server = this.serverAppStatuses[id]
+					if (server !== undefined) return !server.installed || !server.enabled
+					return !status.installed.value || !status.enabled.value
+				})
+				.map(({ id }) => {
+					const server = this.serverAppStatuses[id]
+					if (server !== undefined) {
+						// Server data available: correctly distinguish the two states.
+						// enabled: false → installed but disabled (→ "Enable")
+						// enabled: undefined → not installed (→ "Install")
+						return {
+							id,
+							name: id,
+							category: server.category ?? 'featured',
+							enabled: server.installed ? false : undefined,
+						}
+					}
+					// No server data — cannot tell installed from disabled, show "Enable"
+					return { id, name: id, category: 'featured', enabled: false }
+				})
 		},
 		phase() {
 			if (this.isLoading) return 'loading'

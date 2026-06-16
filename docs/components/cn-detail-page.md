@@ -302,8 +302,7 @@ Set `:page-id` for a stable id/surface (it otherwise falls back to a slugified `
 | `documentationUrl` | `''` | When set, renders the **Documentation** entry (opens in a new tab). |
 | `documentationLabel` | `t('Documentation')` | Pre-translated Documentation label. |
 | `specRef` | `''` | Forwarded to the feature-request modal. |
-| `refreshing` | `false` | When bound, the Refresh icon spins while true. |
-| `optimisticSpinMs` | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshing` | `false` | While true, the Refresh item is disabled and shows a loading spinner for as long as this stays true (reflects the real refresh time). |
 | `refreshLabel` | `t('Refresh')` | Pre-translated Refresh label. |
 | `requestFeatureLabel` | `t('Request a feature')` | Pre-translated Request-a-feature label. |
 | `actionsMenuLabel` | `t('Actions')` | Pre-translated overflow-menu trigger label. |

@@ -301,7 +301,8 @@ If `npm install` fails with a peer dep error, the fix is to adjust the version r
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
-8. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
+8. **Table-row side accents use inset box-shadow, NEVER `border-left`** — a colored left accent on a table row (e.g. selected/highlighted rows in `CnDataTable` / `CnIndexPage`, including consumer classes applied via the `row-class` prop) must be drawn with an inset box-shadow, not a border. `border-left` adds layout width and shifts the row's cell content sideways; box-shadow paints inside the box without moving anything. Canonical pattern (see `.cn-table-row--selected` in [src/css/table.css](src/css/table.css)): `box-shadow: inset 3px 0 0 0 var(--color-error);`. This applies to table rows only — cards/timeline/detail items whose padding accommodates a left border may keep `border-left`.
+9. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
 
 ## Code Comments
 

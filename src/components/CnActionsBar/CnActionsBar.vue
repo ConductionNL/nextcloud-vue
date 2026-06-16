@@ -1,38 +1,64 @@
 <template>
 	<div class="cn-actions-bar" data-testid="cn-actions-bar">
 		<div class="cn-actions-bar__info">
-			<span v-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
+			<!-- Inline search field (opt-in) -->
+			<div v-if="showSearch" class="cn-actions-bar__search">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					@input="onSearchInput">
+			</div>
+			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 		</div>
 		<div class="cn-actions-bar__actions">
-			<!-- View mode toggle (Cards / Table) -->
-			<div v-if="showViewToggle" class="cn-actions-bar__view-toggle">
+			<!-- View mode toggle (Cards / Table) — segmented control with a
+			     sliding thumb that animates between the two segments. -->
+			<div v-if="showViewToggle"
+				class="cn-actions-bar__view-toggle"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'View mode')">
+				<!-- Sliding pill that sits behind the active segment. -->
+				<span
+					class="cn-actions-bar__view-toggle-thumb"
+					:class="{ 'cn-actions-bar__view-toggle-thumb--right': viewMode === 'table' }"
+					aria-hidden="true" />
 				<!--
 					@event view-mode-change
 					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
 					@type {'cards' | 'table'}
 				-->
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="cards"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'cards')">
-					{{ t('nextcloud-vue', 'Cards') }}
-				</NcCheckboxRadioSwitch>
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="table"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'table')">
-					{{ t('nextcloud-vue', 'Table') }}
-				</NcCheckboxRadioSwitch>
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'cards' }"
+					:aria-pressed="viewMode === 'cards'"
+					@click="$emit('view-mode-change', 'cards')">
+					<CnIcon v-if="cardsIcon"
+						:name="cardsIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<ViewGridOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ cardsLabel || t('nextcloud-vue', 'Cards') }}</span>
+				</button>
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'table' }"
+					:aria-pressed="viewMode === 'table'"
+					@click="$emit('view-mode-change', 'table')">
+					<CnIcon v-if="tableIcon"
+						:name="tableIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<FormatListBulletedSquare v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ tableLabel || t('nextcloud-vue', 'Table') }}</span>
+				</button>
 			</div>
 
 			<!-- Add button (primary) -->
@@ -179,14 +205,17 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
+import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import Import from 'vue-material-design-icons/Import.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -211,7 +240,6 @@ export default {
 		NcActionLink,
 		NcActionSeparator,
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		CnIcon,
 		BookOpenVariantOutline,
@@ -221,6 +249,9 @@ export default {
 		TrashCanOutline,
 		Import,
 		Export,
+		Magnify,
+		ViewGridOutline,
+		FormatListBulletedSquare,
 	},
 
 	props: {
@@ -301,6 +332,48 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** Label for the cards/grid view-toggle option (defaults to "Cards") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table/list view-toggle option (defaults to "Table") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards option (defaults to the built-in grid icon). Resolved via CnIcon. */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table option (defaults to the built-in list icon). Resolved via CnIcon. */
+		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether to show the inline search field on the left of the bar */
+		showSearch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Current value of the inline search field (controlled) */
+		searchValue: {
+			type: String,
+			default: '',
+		},
+
+		/** Placeholder / accessible label for the inline search field */
+		searchPlaceholder: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether the refresh action is currently in progress */
@@ -396,6 +469,20 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Forward the inline search field's input to the host.
+		 *
+		 * @param {Event} event The native input event.
+		 * @return {void}
+		 */
+		onSearchInput(event) {
+			/**
+			 * @event search Emitted when the user types in the inline search field.
+			 * @type {string}
+			 */
+			this.$emit('search', event.target.value)
+		},
+
 		/**
 		 * Heuristic: a "plain" name like `History` is an MDI Vue
 		 * component name (rendered via `CnIcon`). A name like

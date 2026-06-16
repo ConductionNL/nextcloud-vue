@@ -35,7 +35,14 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
-			:refreshing="refreshing"
+			:cards-label="cardsLabel"
+			:table-label="tableLabel"
+			:cards-icon="cardsIcon"
+			:table-icon="tableIcon"
+			:show-search="inlineSearch"
+			:search-value="effectiveSearchValue"
+			:search-placeholder="searchPlaceholder"
+			:refreshing="effectiveRefreshing"
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
@@ -49,6 +56,7 @@
 			@show-export="showExportDialog = true"
 			@show-copy="showMassCopyDialog = true"
 			@show-delete="showMassDeleteDialog = true"
+			@search="onSearchEvent"
 			@view-mode-change="onViewModeChange">
 			<template v-if="$scopedSlots['mass-actions']" #mass-actions="{ count, selectedIds: ids }">
 				<slot name="mass-actions" :count="count" :selected-ids="ids" />
@@ -201,6 +209,7 @@
 					v-else-if="currentViewMode === 'table'"
 					:schema="effectiveSchema"
 					:columns="tableColumns"
+					:row-icon="rowIcon"
 					:rows="effectiveObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
@@ -231,6 +240,50 @@
 								:row="row"
 								@action="onRowAction" />
 						</slot>
+					</template>
+
+					<!-- Table-header filter + column menus (both opt-in): funnel and
+					     columns buttons above the row-actions column. The filter menu
+					     lists each enum column's values as toggleable facet filters;
+					     the column menu lists every governed column as a visibility
+					     checkbox — compact, in-table alternatives to the sidebar. -->
+					<template
+						v-if="(filterMenu && filterableFields.length) || (columnMenu && governedColumns.length)"
+						#actions-header>
+						<NcActions
+							v-if="filterMenu && filterableFields.length"
+							:force-menu="true"
+							:aria-label="t('nextcloud-vue', 'Filter')">
+							<template #icon>
+								<FilterOutline :size="20" />
+							</template>
+							<template v-for="field in filterableFields">
+								<NcActionCaption :key="`${field.key}-caption`" :name="field.label" />
+								<NcActionCheckbox
+									v-for="val in field.values"
+									:key="`${field.key}-${val}`"
+									:model-value="isFilterActive(field.key, val)"
+									@update:model-value="toggleFilter(field.key, val)">
+									{{ val }}
+								</NcActionCheckbox>
+							</template>
+						</NcActions>
+						<NcActions
+							v-if="columnMenu && governedColumns.length"
+							:force-menu="true"
+							:aria-label="t('nextcloud-vue', 'Columns')">
+							<template #icon>
+								<ViewColumnOutline :size="20" />
+							</template>
+							<NcActionCaption :name="t('nextcloud-vue', 'Columns')" />
+							<NcActionCheckbox
+								v-for="col in governedColumns"
+								:key="`col-${col.key}`"
+								:model-value="isColumnVisible(col.key)"
+								@update:model-value="toggleColumn(col.key)">
+								{{ col.label || col.key }}
+							</NcActionCheckbox>
+						</NcActions>
 					</template>
 				</CnDataTable>
 
@@ -329,10 +382,12 @@
 </template>
 
 <script>
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
@@ -439,7 +494,12 @@ export default {
 	components: {
 		NcLoadingIcon,
 		NcEmptyContent,
+		NcActions,
+		NcActionCaption,
+		NcActionCheckbox,
 		DatabaseSearch,
+		FilterOutline,
+		ViewColumnOutline,
 		CnPageHeader,
 		CnQuickFilterBar,
 		CnActionsBar,
@@ -632,6 +692,17 @@ export default {
 			default: 'id',
 		},
 
+		/**
+		 * Optional leading icon for every table row — a static MDI icon name or
+		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * @type {string | ((row: object) => string) | null}
+		 */
+		rowIcon: {
+			type: [String, Function],
+			default: null,
+		},
+
 		/** Columns to exclude in schema mode */
 		excludeColumns: {
 			type: Array,
@@ -801,6 +872,68 @@ export default {
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Show an inline search field in the actions bar (in addition to / instead
+		 * of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`.
+		 */
+		inlineSearch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Placeholder for the inline search field (manifest `config.searchPlaceholder`) */
+		searchPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards view-toggle option (manifest `config.cardsIcon`) */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table view-toggle option (manifest `config.tableIcon`) */
+		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Show a filter menu (funnel button) in the table header, above the
+		 * row-actions column. Its menu lists every enum/badge column's values as
+		 * toggleable facet filters — a compact alternative to the facet sidebar.
+		 * Fed from the manifest as `pages[].config.filterMenu`.
+		 */
+		filterMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show a column menu (columns button) in the table header, above the
+		 * row-actions column. Its menu lists every governed column as a toggleable
+		 * checkbox — a compact, in-table alternative to the sidebar's Columns tab,
+		 * so the sidebar space can be reclaimed. Fed from the manifest as
+		 * `pages[].config.columnMenu`.
+		 */
+		columnMenu: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether the refresh action is currently in progress */
@@ -1045,6 +1178,9 @@ export default {
 			// Dialog targets
 			actionTargetItem: null,
 			editItem: null,
+			// Drives the Actions-menu Refresh spinner during a self-fetch
+			// refresh, where the host has no promise to bind `:refreshing` to.
+			internalRefreshing: false,
 		}
 	},
 
@@ -1093,6 +1229,13 @@ export default {
 		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
+		/**
+		 * Refresh-spinner flag for the Actions menu: the `refreshing` prop
+		 * OR (self-fetch mode) the internally-tracked refresh. Lets manifest
+		 * and self-fetch pages spin the Refresh action without the host
+		 * wiring `:refreshing` (it has no fetch promise to await).
+		 */
+		effectiveRefreshing() { return this.refreshing || this.internalRefreshing },
 		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
 		effectivePagination() { return this.isSelfFetchMode ? this.list.pagination.value : this.pagination },
 		/** Resolved schema OBJECT (for column generation / icons / labels). */
@@ -1108,6 +1251,40 @@ export default {
 		effectiveSearchValue() { return this.isSelfFetchMode ? (this.list.searchTerm.value || '') : (this.searchValue || '') },
 		effectiveVisibleColumns() { return this.isSelfFetchMode ? this.list.visibleColumns.value : this.visibleColumns },
 		effectiveActiveFilters() { return this.isSelfFetchMode ? (this.list.activeFilters.value || {}) : (this.activeFilters || {}) },
+
+		/**
+		 * Enum schema columns offered in the header filter menu: one entry per
+		 * visible column whose schema property declares an `enum`, with its
+		 * values. Empty (so the menu hides) when there is no schema or no enum
+		 * column. Drives the `showFilterMenu` funnel button.
+		 *
+		 * @return {Array<{ key: string, label: string, values: string[] }>}
+		 */
+		filterableFields() {
+			const props = this.effectiveSchema?.properties || {}
+			const out = []
+			for (const col of this.tableColumns) {
+				const key = typeof col === 'string' ? col : col.key
+				const def = props[key] || {}
+				const colObj = typeof col === 'object' ? col : {}
+				// Source the filter values, in priority order: schema enum, a
+				// column `enum` hint, or a badge column's colorMap keys (so a
+				// status column stays filterable even when the runtime schema
+				// doesn't carry the enum).
+				let values = null
+				if (Array.isArray(def.enum) && def.enum.length) {
+					values = def.enum
+				} else if (Array.isArray(colObj.enum) && colObj.enum.length) {
+					values = colObj.enum
+				} else if (colObj.widget === 'badge' && colObj.widgetProps && colObj.widgetProps.colorMap) {
+					values = Object.keys(colObj.widgetProps.colorMap)
+				}
+				if (values && values.length) {
+					out.push({ key, label: colObj.label || def.title || key, values: values.map((v) => String(v)) })
+				}
+			}
+			return out
+		},
 		/**
 		 * Ordered column definitions the sidebar's Columns tab governs:
 		 * schema-derived columns, the built-in Metadata group (when shown),
@@ -1609,6 +1786,59 @@ export default {
 		},
 
 		/**
+		 * Whether a given value is currently an active facet filter for a field.
+		 *
+		 * @param {string} key The schema field key.
+		 * @param {string} val The enum value.
+		 * @return {boolean} True when the value is in the active filter set.
+		 */
+		isFilterActive(key, val) {
+			const current = this.effectiveActiveFilters[key]
+			return Array.isArray(current) && current.includes(val)
+		},
+
+		/**
+		 * Toggle one enum value in a field's facet filter, then apply it through
+		 * the standard filter path (`onFilterEvent`).
+		 *
+		 * @param {string} key The schema field key.
+		 * @param {string} val The enum value to toggle.
+		 * @return {void}
+		 */
+		toggleFilter(key, val) {
+			const current = Array.isArray(this.effectiveActiveFilters[key]) ? this.effectiveActiveFilters[key] : []
+			const values = current.includes(val) ? current.filter((v) => v !== val) : [...current, val]
+			this.onFilterEvent({ key, values })
+		},
+
+		/**
+		 * Whether a governed column is currently visible. A null visible-column set
+		 * means "all governed columns visible" (the initial state).
+		 *
+		 * @param {string} key The column key.
+		 * @return {boolean} True when the column is shown in the table.
+		 */
+		isColumnVisible(key) {
+			const visible = this.effectiveVisibleColumns
+			return Array.isArray(visible) ? visible.includes(key) : true
+		},
+
+		/**
+		 * Toggle a governed column on/off from the table-header column menu, then
+		 * apply it through the same path as the sidebar (`onColumnsEvent`).
+		 *
+		 * @param {string} key The column key to toggle.
+		 * @return {void}
+		 */
+		toggleColumn(key) {
+			const base = Array.isArray(this.effectiveVisibleColumns)
+				? this.effectiveVisibleColumns
+				: this.governedColumns.map((c) => c.key)
+			const next = base.includes(key) ? base.filter((k) => k !== key) : [...base, key]
+			this.onColumnsEvent(next)
+		},
+
+		/**
 		 * @param {Array} columns Visible-column change from the sidebar.
 		 * @return {void}
 		 */
@@ -1617,10 +1847,17 @@ export default {
 			this.$emit('columns-change', columns)
 		},
 
-		/** @return {void} */
-		onRefreshEvent() {
-			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh()
+		/** @return {Promise<void>} */
+		async onRefreshEvent() {
 			this.$emit('refresh')
+			if (this.isSelfFetchMode && typeof this.list.refresh === 'function') {
+				this.internalRefreshing = true
+				try {
+					await this.list.refresh()
+				} finally {
+					this.internalRefreshing = false
+				}
+			}
 		},
 
 		/**

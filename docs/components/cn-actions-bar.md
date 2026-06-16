@@ -5,7 +5,7 @@ import GeneratedRef from './_generated/CnActionsBar.md'
 
 Toolbar that combines an item count display, a primary Add button, a view-mode toggle (Cards / Table), and an overflow actions menu containing Refresh, Import, Export, Copy-selected, and Delete-selected. All built-in mass actions are individually toggle-able.
 
-**Wraps**: NcButton, NcActions, NcCheckboxRadioSwitch
+**Wraps**: NcButton, NcActions
 
 ## Try it
 
@@ -55,7 +55,14 @@ Custom action items can be injected into the overflow menu:
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
 | `viewMode` | String | `'table'` | Current view mode: `'table'` or `'cards'` |
-| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle |
+| `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
+| `cardsLabel` | String | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
+| `tableLabel` | String | `''` | Label for the table/list view-toggle option (defaults to "Table") |
+| `cardsIcon` | String | `''` | MDI icon name for the cards option (defaults to the built-in grid icon); resolved via CnIcon |
+| `tableIcon` | String | `''` | MDI icon name for the table option (defaults to the built-in list icon); resolved via CnIcon |
+| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
+| `searchValue` | String | `''` | Current value of the inline search field (controlled) |
+| `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the Refresh action is disabled |
 | `showMassImport` | Boolean | `true` | Whether to show the Import action |

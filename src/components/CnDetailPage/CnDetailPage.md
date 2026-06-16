@@ -237,8 +237,7 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation label. |
 | `pageId` | String | `''` | Stable id for the menu surface + `@refresh`/`@request-feature` payloads; falls back to a slugified `title`. |
 | `specRef` | String | `''` | Forwarded to the feature-request modal so the issue links to the spec capability. |
-| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins while true. |
-| `optimisticSpinMs` | Number | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshing` | Boolean | `false` | While true, the Refresh item is disabled and shows a loading spinner for as long as this stays true (reflects the real refresh time). |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
 | `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |

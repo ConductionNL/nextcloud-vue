@@ -185,25 +185,32 @@
 							<Cog :size="20" />
 						</template>
 					</NcAppNavigationItem>
-					<NcAppNavigationItem
-						v-for="item in settingsItems"
-						:key="item.id"
-						:name="resolveLabel(item)"
-						:to="itemTo(item)"
-						:exact="isExact(item)"
-						:icon="cssIconClass(item)"
-						:active="isActive(item)"
-						:data-testid="`cn-nav-entry-${item.id}`"
-						@click="onItemClick(item, $event)">
-						<template v-if="mdiIconComponent(item)" #icon>
-							<component :is="mdiIconComponent(item)" :size="20" />
-						</template>
-						<template v-if="resolveCount(item)" #counter>
-							<NcCounterBubble
-								:count="resolveCount(item)"
-								:active="isActive(item)" />
-						</template>
-					</NcAppNavigationItem>
+					<template v-for="item in settingsItems">
+						<NcAppNavigationCaption
+							v-if="isCaption(item)"
+							:key="item.id"
+							:name="resolveLabel(item)"
+							:data-testid="`cn-nav-caption-${item.id}`" />
+						<NcAppNavigationItem
+							v-else
+							:key="item.id"
+							:name="resolveLabel(item)"
+							:to="itemTo(item)"
+							:exact="isExact(item)"
+							:icon="cssIconClass(item)"
+							:active="isActive(item)"
+							:data-testid="`cn-nav-entry-${item.id}`"
+							@click="onItemClick(item, $event)">
+							<template v-if="mdiIconComponent(item)" #icon>
+								<component :is="mdiIconComponent(item)" :size="20" />
+							</template>
+							<template v-if="resolveCount(item)" #counter>
+								<NcCounterBubble
+									:count="resolveCount(item)"
+									:active="isActive(item)" />
+							</template>
+						</NcAppNavigationItem>
+					</template>
 				</ul>
 			</NcAppNavigationSettings>
 		</template>
@@ -661,15 +668,29 @@ export default {
 		},
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
-		 * by the chevron or a title click) wins; falls back to the
-		 * manifest's `item.open` for the initial render.
+		 * by the chevron or a title click) wins; otherwise the group
+		 * auto-expands when it contains the active route — so deep-linking
+		 * to a child page reveals which group it lives in — and finally
+		 * falls back to the manifest's `item.open` for the initial render.
 		 *
 		 * @param {{ id: string, open?: boolean }} item Menu entry descriptor.
 		 * @return {boolean}
 		 */
 		isItemOpen(item) {
 			const local = this.openState[item.id]
-			return local !== undefined ? local : Boolean(item.open)
+			if (local !== undefined) return local
+			if (this.hasActiveChild(item)) return true
+			return Boolean(item.open)
+		},
+		/**
+		 * Whether any of a group's visible children is the active route.
+		 * Drives auto-expansion of the parent group on page load.
+		 *
+		 * @param {object} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		hasActiveChild(item) {
+			return this.visibleChildren(item).some((child) => this.isActive(child))
 		},
 		/**
 		 * Record a group's expand/collapse state. Bound to
@@ -802,11 +823,20 @@ export default {
  * long menus showed Documentation / Features & roadmap mid-scroll.)
  * The <ul> only resets list chrome and aligns with the 16px icon inset
  * of the main list; NC's own footer layout does the rest.
+ *
+ * As a direct `> ul` child of `.app-navigation__content`, NC's scoped rule
+ * makes it a shrinkable, scrollable flex item (`overflow: hidden auto;
+ * flex: 0 1 auto`). With a couple of footer entries that let the list be
+ * squeezed a few pixels below its content and grow an unwanted scrollbar,
+ * even on a short menu with plenty of room. Footer entries are few and must
+ * always show in full, so opt out of shrinking and scrolling here.
  */
 .cn-app-nav__footer-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	flex-shrink: 0 !important;
+	overflow: visible !important;
 }
 
 /*

@@ -52,7 +52,15 @@ export const NcDateTime = {
 	functional: true,
 	render(h, { props, data }) {
 		const ts = props && props.timestamp
-		return h('time', { class: ['stub', 'NcDateTime'], ...data }, ts === undefined || ts === null ? '' : String(ts))
+		// Render an ISO string for a Date object (the canonical, stable form
+		// the cell/card specs assert against); fall back to String() for a
+		// numeric epoch. `nc-date-time` matches the real component's class
+		// hook so specs can target `time.nc-date-time`.
+		let text = ''
+		if (ts !== undefined && ts !== null) {
+			text = ts instanceof Date ? ts.toISOString() : String(ts)
+		}
+		return h('time', { class: ['stub', 'NcDateTime', 'nc-date-time'], ...data }, text)
 	},
 }
 

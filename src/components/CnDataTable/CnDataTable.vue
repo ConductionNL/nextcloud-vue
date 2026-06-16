@@ -19,6 +19,9 @@
 							@update:model-value="toggleSelectAll" />
 					</th>
 
+					<!-- Leading icon column (header is intentionally blank) -->
+					<th v-if="rowIcon" class="cn-table-col--icon" />
+
 					<!-- Data columns -->
 					<th
 						v-for="col in effectiveColumns"
@@ -77,6 +80,11 @@
 							@update:model-value="toggleSelect(row)" />
 					</td>
 
+					<!-- Leading icon -->
+					<td v-if="rowIcon" class="cn-table-col--icon">
+						<CnIcon :name="getRowIcon(row)" :size="20" />
+					</td>
+
 					<!-- Data cells -->
 					<td
 						v-for="col in effectiveColumns"
@@ -118,6 +126,7 @@ import { NcLoadingIcon, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { columnsFromSchema } from '../../utils/schema.js'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 
@@ -170,6 +179,7 @@ export default {
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
+		CnIcon,
 	},
 
 	props: {
@@ -184,6 +194,17 @@ export default {
 		columns: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Optional leading icon shown at the start of every row. Either a static
+		 * MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all
+		 * rows, or a function `(row) => iconName` to vary it per row. The icon is
+		 * resolved through the shared CnIcon registry. Unset = no icon column.
+		 * @type {string | ((row: object) => string) | null}
+		 */
+		rowIcon: {
+			type: [String, Function],
+			default: null,
 		},
 		/**
 		 * Schema object with `properties` field (schema-driven mode).
@@ -341,6 +362,7 @@ export default {
 		totalColumns() {
 			let count = this.effectiveColumns.length
 			if (this.selectable) count++
+			if (this.rowIcon) count++
 			if (this.$scopedSlots['row-actions']) count++
 			return count
 		},
@@ -370,6 +392,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Resolve the leading-row icon name for a row. Returns the static
+		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
+		 *
+		 * @param {object} row The row object.
+		 * @return {string} The MDI icon name (PascalCase).
+		 */
+		getRowIcon(row) {
+			return typeof this.rowIcon === 'function' ? this.rowIcon(row) : this.rowIcon
+		},
+
 		/**
 		 * Get a cell value from a row using dot-notation key.
 		 *

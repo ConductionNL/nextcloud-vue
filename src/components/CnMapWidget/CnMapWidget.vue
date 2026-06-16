@@ -66,6 +66,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import DOMPurify from 'dompurify'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -460,7 +462,14 @@ export default {
 				onEachFeature: (feature, lyr) => {
 					const popupField = this.markers && this.markers.popupField
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
-					if (popupHtml) lyr.bindPopup(String(popupHtml))
+					if (popupHtml) {
+						// Popup content comes from arbitrary GeoJSON feature
+						// properties (often an OR-backed data source). Sanitize
+						// it before Leaflet injects it into the DOM (C1) so a
+						// `<script>` / `onerror=` payload cannot execute.
+						const safeHtml = DOMPurify.sanitize(String(popupHtml), SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+						lyr.bindPopup(safeHtml)
+					}
 					lyr.on('click', (e) => {
 						/**
 						 * Marker click event. Fired when a marker is clicked.

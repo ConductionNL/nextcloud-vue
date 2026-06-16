@@ -20,11 +20,11 @@
 		<NcActionButton
 			v-if="showRefresh"
 			:data-testid="`${testidBase}-action-refresh`"
+			:disabled="refreshing"
 			@click="onRefreshClick">
 			<template #icon>
-				<Refresh
-					:size="20"
-					:class="{ 'cn-actions-menu__refresh-icon--spinning': isRefreshing }" />
+				<NcLoadingIcon v-if="refreshing" :size="20" />
+				<Refresh v-else :size="20" />
 			</template>
 			{{ refreshLabel }}
 		</NcActionButton>
@@ -70,7 +70,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionLink } from '@nextcloud/vue'
+import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -122,6 +122,7 @@ export default {
 		NcActions,
 		NcActionButton,
 		NcActionLink,
+		NcLoadingIcon,
 		DotsHorizontal,
 		Refresh,
 		LightbulbOutline,
@@ -232,26 +233,15 @@ export default {
 			default: '',
 		},
 		/**
-		 * Whether a refresh is currently in flight. When bound by the host,
-		 * the Refresh icon spins for exactly as long as this stays true.
-		 * When left `false`, clicking Refresh spins optimistically for
-		 * `optimisticSpinMs`.
+		 * Whether a refresh is currently in flight. While true, the Refresh
+		 * item is disabled and shows a loading spinner for exactly as long as
+		 * this stays true — so the spinner reflects the real refresh time.
 		 *
 		 * @type {boolean}
 		 */
 		refreshing: {
 			type: Boolean,
 			default: false,
-		},
-		/**
-		 * Duration (ms) of the optimistic spin shown on Refresh click when
-		 * the host has NOT bound `:refreshing`. Set to 0 to disable.
-		 *
-		 * @type {number}
-		 */
-		optimisticSpinMs: {
-			type: Number,
-			default: 800,
 		},
 		/**
 		 * Event-bus channel the default Refresh handler emits on when no
@@ -297,27 +287,10 @@ export default {
 			 * the host did not `preventDefault()` on `@request-feature`.
 			 */
 			featureRequestModalOpen: false,
-			/**
-			 * Optimistic-spin flag. Set true on Refresh click when the host
-			 * hasn't bound `:refreshing`, then auto-cleared after
-			 * `optimisticSpinMs`. OR-ed with `refreshing` by `isRefreshing`.
-			 */
-			optimisticSpinning: false,
 		}
 	},
 
 	computed: {
-		/**
-		 * Whether the Refresh icon should spin. True while the host's bound
-		 * `:refreshing` is true OR during the short optimistic window after
-		 * a click when no prop is bound.
-		 *
-		 * @return {boolean}
-		 */
-		isRefreshing() {
-			return this.refreshing || this.optimisticSpinning
-		},
-
 		/**
 		 * Whether the overflow `…` menu renders at all. True when at least
 		 * one built-in item is visible OR the caller provided an
@@ -333,13 +306,6 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
-		if (this._optimisticSpinTimer) {
-			clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = null
-		}
-	},
-
 	methods: {
 		/**
 		 * Refresh click — emits `@refresh`, then runs the built-in default
@@ -349,7 +315,6 @@ export default {
 		 * @return {void}
 		 */
 		onRefreshClick() {
-			this.startOptimisticSpin()
 			const ev = createSyntheticEvent()
 			/**
 			 * @event refresh User clicked the Refresh item. Payload:
@@ -364,24 +329,6 @@ export default {
 				widgetId: this.widgetId,
 				title: this.title,
 			})
-		},
-
-		/**
-		 * Spin the Refresh icon optimistically for `optimisticSpinMs`, but
-		 * only when the host has not bound `:refreshing`. No-op when
-		 * `optimisticSpinMs` is 0.
-		 *
-		 * @return {void}
-		 */
-		startOptimisticSpin() {
-			if (this.refreshing) return
-			if (!this.optimisticSpinMs || this.optimisticSpinMs <= 0) return
-			this.optimisticSpinning = true
-			if (this._optimisticSpinTimer) clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = setTimeout(() => {
-				this.optimisticSpinning = false
-				this._optimisticSpinTimer = null
-			}, this.optimisticSpinMs)
 		},
 
 		/**
@@ -424,23 +371,3 @@ export default {
 	},
 }
 </script>
-
-<style scoped>
-/* Refresh icon spin — driven by the `isRefreshing` class binding. One
-   full rotation per 400ms, so the default 800ms optimistic window reads
-   as ~2 turns. Disabled under prefers-reduced-motion. */
-.cn-actions-menu__refresh-icon--spinning {
-	animation: cn-actions-menu-spin 400ms linear infinite;
-}
-
-@keyframes cn-actions-menu-spin {
-	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.cn-actions-menu__refresh-icon--spinning {
-		animation: none;
-	}
-}
-</style>
