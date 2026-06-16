@@ -71,6 +71,7 @@
 		<CnSuggestFeatureModal
 			v-if="featureRequestModalOpen"
 			:repo="cnFeatureRequestRepo"
+			:forge="cnFeatureRequestForge"
 			:spec-ref="specRef"
 			:app="cnAppId"
 			:page="$route ? ($route.name || '') : ''"
@@ -153,14 +154,21 @@ export default {
 		 */
 		cnAppId: { default: () => '' },
 		/**
-		 * Repo slug used as the GitHub deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`). Provided by
+		 * Repo slug used as the forge deep-link target on the auto-mounted
+		 * CnSuggestFeatureModal (e.g. `Conduction/pipelinq`). Provided by
 		 * CnAppRoot from the manifest's `nav.featureRequestRepo` field (with
-		 * fallback to `ConductionNL/<appId>`). Empty when no ancestor — the
+		 * fallback to `Conduction/<appId>`). Empty when no ancestor — the
 		 * default handler warns and skips opening rather than open a broken
 		 * link.
 		 */
 		cnFeatureRequestRepo: { default: () => '' },
+		/**
+		 * Forge config (`{type, baseUrl}`) forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so its "Continue on …" deep-link targets the
+		 * right forge. Provided by CnAppRoot from `manifest.nav.forge`.
+		 * Defaults to Codeberg when no CnAppRoot ancestor exists.
+		 */
+		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
 	},
 
 	props: {

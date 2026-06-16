@@ -61,10 +61,10 @@
 				:helper-text="anythingElseHelper"
 				:rows="3" />
 
-			<NcNoteCard type="info" class="cn-suggest-feature-modal__github-info">
-				<strong>{{ githubInfoTitle }}</strong>
-				<p class="cn-suggest-feature-modal__github-info-body">
-					{{ githubInfoBody }}
+			<NcNoteCard type="info" class="cn-suggest-feature-modal__forge-info">
+				<strong>{{ forgeInfoTitle }}</strong>
+				<p class="cn-suggest-feature-modal__forge-info-body">
+					{{ forgeInfoBody }}
 				</p>
 			</NcNoteCard>
 		</div>
@@ -82,11 +82,11 @@
 			<NcButton
 				variant="primary"
 				:disabled="!canSubmit"
-				@click="submitToGithub">
+				@click="submitToForge">
 				<template #icon>
 					<OpenInNew :size="20" />
 				</template>
-				{{ githubSubmitLabel }}
+				{{ forgeSubmitLabel }}
 			</NcButton>
 		</template>
 	</NcDialog>
@@ -100,19 +100,18 @@
  * SuggestFeatureModal — proposal-grade feature-request dialog. Five
  * structured user-written fields (`title`, `problem`, `proposedSolution`,
  * `whoBenefits`, `priorityToYou`) plus one optional context field
- * (`anythingElse`), mirroring the canonical
- * `.github/ISSUE_TEMPLATE/feature-request.yml` Issue Form. Each field's
- * answer flows directly into the OpenSpec proposal that gets scaffolded
- * once a maintainer applies the `ready-to-build` label.
+ * (`anythingElse`). Each field's answer flows into the proposal that gets
+ * scaffolded once a maintainer triages the request.
  *
  * Two submission paths:
  *
- *   - **Submit on GitHub (primary)**: builds a deep-link URL to the
- *     consuming repo's Issue Form with every structured field + the
- *     auto-detected context (`app`, `page`, `surface`, `object`,
- *     `spec-ref`) pre-filled. Opens in a new tab; user reviews +
- *     submits on github.com under their own account. No app PAT, no
- *     proxy, no server-side write path.
+ *   - **Continue on the forge (primary)**: builds a pre-filled "new issue"
+ *     deep-link on the consuming repo's forge and opens it in a new tab;
+ *     the user reviews + submits under their own account. No app token, no
+ *     proxy, no server-side write path. The target forge is configurable
+ *     via the `forge` prop — Codeberg (Forgejo) by default, GitHub or a
+ *     self-hosted Forgejo/Gitea by switching `forge.type` (+ `baseUrl`).
+ *     See `utils/forge.js` for how each forge type is deep-linked.
  *
  *   - **Send to Conduction (secondary)**: emits `submit-conduction`
  *     with the full structured payload. Parent forwards to the Pipelinq
@@ -130,8 +129,7 @@ import {
 	NcDialog, NcButton, NcTextField, NcTextArea, NcSelect, NcNoteCard,
 } from '@nextcloud/vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
-
-const ISSUE_FORM_TEMPLATE = 'feature-request.yml'
+import { DEFAULT_FORGE, buildFeatureRequestUrl, forgeDisplayName } from '../../utils/forge.js'
 
 export default {
 	name: 'CnSuggestFeatureModal',
@@ -148,17 +146,18 @@ export default {
 
 	props: {
 		/**
-		 * `<owner>/<repo>` of the app's GitHub repository. Used to build
-		 * the Issue Form deep-link URL.
+		 * `<owner>/<repo>` of the app's repository on the forge. Used to
+		 * build the "new issue" deep-link URL.
 		 */
 		repo: {
 			type: String,
 			required: true,
 		},
 		/**
-		 * Optional kebab-case capability slug. When set, becomes the
-		 * `spec-ref` query parameter so GitHub pre-fills the matching form
-		 * field — links the suggestion to an existing capability.
+		 * Optional kebab-case capability slug linking the suggestion to an
+		 * existing capability. On GitHub it pre-fills the form's spec-ref
+		 * field; on Forgejo/Gitea it's recorded in the issue body's context
+		 * block.
 		 * @type {string|null}
 		 */
 		specRef: {
@@ -166,10 +165,9 @@ export default {
 			default: null,
 		},
 		/**
-		 * Optional auto-captured context. Each non-empty value becomes a
-		 * matching query parameter on the deep-link so GitHub's Issue
-		 * Form renders with the field pre-filled. Mirrors the field ids
-		 * declared in `.github/ISSUE_TEMPLATE/feature-request.yml`.
+		 * Optional auto-captured context. Each non-empty value is carried
+		 * into the deep-link — as a form field on GitHub, or in the issue
+		 * body's context block on Forgejo/Gitea/Codeberg.
 		 * @type {string}
 		 */
 		app: { type: String, default: '' },
@@ -201,6 +199,19 @@ export default {
 		conductionSubmitEnabled: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Target forge for the primary "Continue on …" deep-link. `type`
+		 * selects how the issue is pre-filled (`codeberg`/`forgejo`/`gitea`
+		 * assemble a Markdown `body`; `github` uses per-field Issue-Form
+		 * query params). `baseUrl` overrides the host — required for
+		 * self-hosted `forgejo`/`gitea`, optional for `codeberg`/`github`.
+		 * Defaults to Codeberg, the fleet's current source of truth.
+		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}}
+		 */
+		forge: {
+			type: Object,
+			default: () => ({ ...DEFAULT_FORGE }),
 		},
 	},
 
@@ -257,26 +268,38 @@ export default {
 
 		// ── Deep-link builder ────────────────────────────────────────
 		/**
-		 * Build the GitHub Issue Form deep-link. Each query parameter
-		 * matches an `id:` from `.github/ISSUE_TEMPLATE/feature-request.yml`.
+		 * Build the forge "new issue" deep-link from the structured fields
+		 * + auto-captured context. The shape is forge-specific (see
+		 * `utils/forge.js`): GitHub gets per-field Issue-Form query params,
+		 * Forgejo/Gitea/Codeberg get an assembled Markdown body.
 		 *
-		 * @return {string} Absolute github.com URL safe to pass to window.open.
+		 * @return {string} Absolute URL safe to pass to window.open.
 		 */
-		githubIssueUrl() {
-			const params = new URLSearchParams()
-			params.set('template', ISSUE_FORM_TEMPLATE)
-			params.set('title', `[FEATURE] ${this.form.title.trim()}`)
-			params.set('problem', this.form.problem.trim())
-			params.set('proposed-solution', this.form.proposedSolution.trim())
-			params.set('who-benefits', this.form.whoBenefits.trim())
-			if (this.priorityValue) params.set('priority-to-you', this.priorityValue)
-			if (this.form.anythingElse.trim()) params.set('context', this.form.anythingElse.trim())
-			if (this.app) params.set('app', this.app)
-			if (this.page) params.set('page', this.page)
-			if (this.surface) params.set('surface', this.surface)
-			if (this.object) params.set('object', this.object)
-			if (this.specRef) params.set('spec-ref', this.specRef)
-			return `https://github.com/${this.repo}/issues/new?${params.toString()}`
+		issueUrl() {
+			return buildFeatureRequestUrl(this.forge, this.repo, {
+				title: this.form.title.trim(),
+				problem: this.form.problem.trim(),
+				proposedSolution: this.form.proposedSolution.trim(),
+				whoBenefits: this.form.whoBenefits.trim(),
+				priorityToYou: this.priorityValue,
+				anythingElse: this.form.anythingElse.trim(),
+				context: {
+					app: this.app,
+					page: this.page,
+					surface: this.surface,
+					object: this.object,
+					specRef: this.specRef,
+				},
+			})
+		},
+		/**
+		 * Display name of the configured forge (proper noun, not
+		 * translated) — interpolated into the primary button + info copy.
+		 *
+		 * @return {string}
+		 */
+		forgeName() {
+			return forgeDisplayName(this.forge && this.forge.type)
 		},
 		priorityValue() {
 			const v = this.form.priorityToYou
@@ -322,25 +345,25 @@ export default {
 		anythingElseHelper() { return t('nextcloud-vue', 'Edge cases, alternatives you considered, things to avoid, related capabilities. Optional.') },
 
 		cancelLabel() { return t('nextcloud-vue', 'Cancel') },
-		githubSubmitLabel() { return t('nextcloud-vue', 'Continue on GitHub') },
+		forgeSubmitLabel() { return t('nextcloud-vue', 'Continue on {forge}', { forge: this.forgeName }) },
 		conductionSubmitLabel() { return t('nextcloud-vue', 'Send to Conduction') },
 		conductionDisabledTooltip() { return t('nextcloud-vue', 'Coming soon. Contact Conduction for early access.') },
-		githubInfoTitle() { return t('nextcloud-vue', 'Why continue on GitHub?') },
-		githubInfoBody() { return t('nextcloud-vue', 'Posting on GitHub uses your own account. You get credit when the feature ships, see live comments and status, and the maintainers can ping you for follow-up. No GitHub account? Use "Send to Conduction". We file it for you, no public exposure.') },
+		forgeInfoTitle() { return t('nextcloud-vue', 'Why continue on {forge}?', { forge: this.forgeName }) },
+		forgeInfoBody() { return t('nextcloud-vue', 'Posting on {forge} uses your own account. You get credit when the feature ships, see live comments and status, and the maintainers can ping you for follow-up. No {forge} account? Use "Send to Conduction". We file it for you, no public exposure.', { forge: this.forgeName }) },
 	},
 
 	methods: {
 		/**
-		 * Path A: open the pre-filled GitHub Issue Form in a new tab.
-		 * Fully client-side — no server proxy, no app PAT, the issue
-		 * gets posted under the user's own GitHub identity once they
-		 * submit on github.com.
+		 * Path A: open the pre-filled "new issue" form on the configured
+		 * forge in a new tab. Fully client-side — no server proxy, no app
+		 * token; the issue gets posted under the user's own forge identity
+		 * once they submit.
 		 *
 		 * @return {void}
 		 */
-		submitToGithub() {
+		submitToForge() {
 			if (!this.canSubmit) return
-			window.open(this.githubIssueUrl, '_blank', 'noopener,noreferrer')
+			window.open(this.issueUrl, '_blank', 'noopener,noreferrer')
 			/**
 			 * @event close Emitted when the dialog should be closed (cancel, close button, or after a submit hand-off).
 			 */
@@ -358,9 +381,9 @@ export default {
 			if (!this.canSubmit || !this.conductionSubmitEnabled) return
 			/**
 			 * Emitted when the user picks the Conduction (Path B)
-			 * submission instead of GitHub. Parent must wire the actual
-			 * intake endpoint; the modal just collects + forwards. Payload
-			 * mirrors the Issue Form fields 1:1.
+			 * submission instead of the forge deep-link. Parent must wire
+			 * the actual intake endpoint; the modal just collects +
+			 * forwards. Payload carries all six structured fields + context.
 			 *
 			 * @event submit-conduction
 			 * @type {{title: string, problem: string, proposedSolution: string, whoBenefits: string, priorityToYou: string, anythingElse: string, repo: string, specRef: string|null, app: string, page: string, surface: string, object: string}}
@@ -394,12 +417,12 @@ export default {
 }
 
 .cn-suggest-feature-modal__intro,
-.cn-suggest-feature-modal__github-info {
+.cn-suggest-feature-modal__forge-info {
 	margin: 0;
 }
 
 .cn-suggest-feature-modal__intro-body,
-.cn-suggest-feature-modal__github-info-body {
+.cn-suggest-feature-modal__forge-info-body {
 	margin: 6px 0 0 0;
 	line-height: 1.45;
 }
