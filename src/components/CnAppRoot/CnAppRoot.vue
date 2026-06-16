@@ -1081,12 +1081,12 @@ export default {
 						return {
 							id,
 							name: id,
-							category: server.category ?? 'organization',
+							category: server.category ?? 'featured',
 							enabled: server.installed ? false : undefined,
 						}
 					}
 					// No server data — cannot tell installed from disabled, show "Enable"
-					return { id, name: id, category: 'organization', enabled: false }
+					return { id, name: id, category: 'featured', enabled: false }
 				})
 		},
 		phase() {
