@@ -43,6 +43,7 @@
 					:placeholder="filter.label"
 					:input-label="filter.label"
 					:multiple="true"
+					:keep-open="true"
 					:clearable="true"
 					@input="onSelectChange(filter.key, $event)" />
 

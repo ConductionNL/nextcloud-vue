@@ -668,15 +668,29 @@ export default {
 		},
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
-		 * by the chevron or a title click) wins; falls back to the
-		 * manifest's `item.open` for the initial render.
+		 * by the chevron or a title click) wins; otherwise the group
+		 * auto-expands when it contains the active route — so deep-linking
+		 * to a child page reveals which group it lives in — and finally
+		 * falls back to the manifest's `item.open` for the initial render.
 		 *
 		 * @param {{ id: string, open?: boolean }} item Menu entry descriptor.
 		 * @return {boolean}
 		 */
 		isItemOpen(item) {
 			const local = this.openState[item.id]
-			return local !== undefined ? local : Boolean(item.open)
+			if (local !== undefined) return local
+			if (this.hasActiveChild(item)) return true
+			return Boolean(item.open)
+		},
+		/**
+		 * Whether any of a group's visible children is the active route.
+		 * Drives auto-expansion of the parent group on page load.
+		 *
+		 * @param {object} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		hasActiveChild(item) {
+			return this.visibleChildren(item).some((child) => this.isActive(child))
 		},
 		/**
 		 * Record a group's expand/collapse state. Bound to

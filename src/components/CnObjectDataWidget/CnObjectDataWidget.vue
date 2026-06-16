@@ -134,6 +134,7 @@
 							:options="getMultiselectOptions(field)"
 							:value="getSelectedMultiselectOptions(field)"
 							:multiple="true"
+							:keep-open="true"
 							:clearable="true"
 							@input="onMultiselectChange(field, $event)" />
 
@@ -143,6 +144,7 @@
 							ref="activeEditor"
 							:value="editData[field.key] || []"
 							:multiple="true"
+							:keep-open="true"
 							:taggable="true"
 							:clearable="true"
 							@input="val => updateField(field.key, val)" />

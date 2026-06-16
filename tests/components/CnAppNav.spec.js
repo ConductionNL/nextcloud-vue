@@ -919,7 +919,9 @@ describe('CnAppNav', () => {
 		}
 
 		it('toggles a route-less group open/closed on title click', async () => {
-			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			// routeName is not the group's child, so the group starts collapsed
+			// (no active child) — isolating the title-click toggle behaviour.
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'home' })
 			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
 			const event = { preventDefault: jest.fn() }
 			wrapper.vm.onItemClick(groupManifest.menu[0], event)
@@ -947,6 +949,18 @@ describe('CnAppNav', () => {
 			// hijack them into a collapse toggle.
 			expect(event.preventDefault).not.toHaveBeenCalled()
 			expect(wrapper.vm.isItemOpen(item)).toBe(false)
+		})
+
+		it('auto-expands a group when the active route is one of its children', () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+		})
+
+		it('lets a manual collapse override auto-expansion of the active group', () => {
+			const wrapper = mountNav({ manifest: groupManifest, useProps: true, routeName: 'leaf' })
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
+			wrapper.vm.setItemOpen(groupManifest.menu[0], false)
+			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(false)
 		})
 
 		it('syncs chevron-driven update:open into local state', () => {
