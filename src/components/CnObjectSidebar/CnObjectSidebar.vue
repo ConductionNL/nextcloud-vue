@@ -675,3 +675,24 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* NcAppSidebar lays every tab out as an equal share of the sidebar width
+ * (`flex: 1 1`) with an ellipsis caption, so an object with many tabs — e.g. a
+ * lead's 5+ tabs — shrinks them until the labels truncate. Keep the tabs
+ * equal-width (uniform) but stop them shrinking below a readable minimum, and
+ * let the strip scroll horizontally once they no longer fit. `flex-basis: 0`
+ * + equal grow keeps every tab the same width whether the row fits or scrolls.
+ * Apps with longer labels can widen the floor via --cn-sidebar-tab-min-width. */
+:deep(.app-sidebar-tabs__nav) {
+	overflow-x: auto;
+}
+
+:deep(.app-sidebar-tabs__nav .app-sidebar-tabs__tab) {
+	flex-grow: 1;
+	flex-shrink: 0;
+	flex-basis: 0;
+	/* !important to beat NcAppSidebar's own min-width on the button variant. */
+	min-width: var(--cn-sidebar-tab-min-width, 7rem) !important;
+}
+</style>
