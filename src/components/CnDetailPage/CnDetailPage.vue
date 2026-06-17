@@ -1276,15 +1276,6 @@ export default {
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
-				this.objectSidebarState.active = true
-				this.objectSidebarState.open = this.sidebarOpen
-				this.objectSidebarState.objectType = this.resolvedObjectType
-				this.objectSidebarState.objectId = this.objectId
-				this.objectSidebarState.title = merged.title || this.title || ''
-				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || this.register || ''
-				this.objectSidebarState.schema = merged.schema || this.schema || ''
-				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
@@ -1292,12 +1283,51 @@ export default {
 				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
 				// Falls back to `undefined` so the host's CnObjectSidebar
 				// renders its built-in tab set.
-				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
+				const tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
 					? this.sidebarTabs
 					: merged.tabs
+				this.assignSidebarState({
+					active: true,
+					open: this.sidebarOpen,
+					objectType: this.resolvedObjectType,
+					objectId: this.objectId,
+					title: merged.title || this.title || '',
+					subtitle: merged.subtitle || this.subtitle || '',
+					register: merged.register || this.register || '',
+					schema: merged.schema || this.schema || '',
+					hiddenTabs: merged.hiddenTabs || [],
+					tabs,
+				})
 			} else {
-				this.objectSidebarState.active = false
-				this.objectSidebarState.tabs = undefined
+				this.assignSidebarState({ active: false, tabs: undefined })
+			}
+		},
+		/**
+		 * Apply fields onto the shared `objectSidebarState` only when they
+		 * actually change. Writing the same logical value — notably a fresh
+		 * `[]` for `hiddenTabs` when none is configured — would otherwise put
+		 * a new array reference on the reactive object every call and trigger
+		 * a host re-render. That churn fed an infinite render loop: the host
+		 * App re-renders on the new `hiddenTabs` ref → its `<router-view>`
+		 * re-renders the routed detail page → the page's inline `:sidebar`
+		 * prop re-fires this sync → repeat. Arrays are compared shallowly so
+		 * an equivalent array is treated as unchanged.
+		 *
+		 * @param {object} fields Partial `objectSidebarState` to apply.
+		 */
+		assignSidebarState(fields) {
+			const state = this.objectSidebarState
+			for (const key of Object.keys(fields)) {
+				const next = fields[key]
+				const cur = state[key]
+				if (Array.isArray(next) && Array.isArray(cur)
+					&& next.length === cur.length
+					&& next.every((v, i) => v === cur[i])) {
+					continue
+				}
+				if (cur !== next) {
+					state[key] = next
+				}
 			}
 		},
 
