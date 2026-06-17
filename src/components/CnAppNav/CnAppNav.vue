@@ -450,6 +450,43 @@ export default {
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
 		},
+		/**
+		 * Route name of the menu item that best matches the current route.
+		 * A direct match (current route name IS a menu target) wins;
+		 * otherwise the current path is matched against each item's page
+		 * path and the LONGEST prefix wins, so detail / nested routes (e.g.
+		 * `/expenses/:id`) light up — and auto-expand — their index entry
+		 * even though the detail route name is not in the menu. Longest
+		 * prefix disambiguates nested namespaces (e.g. `/pos` vs
+		 * `/pos/refunds`). Returns null when nothing matches.
+		 *
+		 * @return {string|null}
+		 */
+		activeRouteName() {
+			const routeName = this.$route?.name
+			const path = this.$route?.path
+			const flat = []
+			for (const item of this.visibleItems) {
+				flat.push(item)
+				for (const child of this.visibleChildren(item)) flat.push(child)
+			}
+			if (routeName && flat.some((it) => it.route === routeName)) return routeName
+			if (!path) return routeName ?? null
+			let best = null
+			let bestLen = -1
+			for (const it of flat) {
+				if (!it.route) continue
+				const pagePath = this.pageForItem(it)?.route
+				if (!pagePath || pagePath === '/' || pagePath.includes(':')) continue
+				if (path === pagePath || path.startsWith(pagePath + '/')) {
+					if (pagePath.length > bestLen) {
+						best = it.route
+						bestLen = pagePath.length
+					}
+				}
+			}
+			return best ?? routeName ?? null
+		},
 	},
 
 	methods: {
@@ -539,7 +576,7 @@ export default {
 		},
 		isActive(item) {
 			if (item.href || !item.route) return false
-			return this.$route?.name === item.route
+			return item.route === this.activeRouteName
 		},
 		/**
 		 * Whether a menu entry renders as a `NcAppNavigationCaption`
