@@ -86,7 +86,7 @@
 				<slot name="actions" />
 				<CnActionsMenu
 					:show-refresh="showRefresh"
-					:refreshing="refreshing"
+					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
 					:documentation-label="documentationLabel || undefined"
@@ -109,7 +109,7 @@
 			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
-		<div v-if="loading" class="cn-detail-page__loading">
+		<div v-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -802,6 +802,25 @@ export default {
 		}
 	},
 
+	data() {
+		return {
+			/**
+			 * Drives the Actions-menu Refresh spinner during a schema-driven
+			 * self-fetch refresh, where the host has no promise to bind
+			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
+			 */
+			internalRefreshing: false,
+			/**
+			 * Whether a load has completed at least once. Gates the
+			 * full-page loading state to the FIRST load only: once content
+			 * has been shown, later loads (refresh, re-fetch) stay in place
+			 * and surface as the action-button spinner instead of blanking
+			 * the page. Set true the first time `loading` falls to false.
+			 */
+			hasLoadedOnce: false,
+		}
+	},
+
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
@@ -813,6 +832,34 @@ export default {
 		resolvedPageId() {
 			if (this.pageId) return this.pageId
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+		},
+
+		/**
+		 * Whether to show the full-page loading state (spinner that replaces
+		 * the page content). Only on the FIRST load — when `loading` is true
+		 * and nothing has been shown yet. Once `hasLoadedOnce` is set, a
+		 * subsequent `loading` (refresh / re-fetch) keeps the existing
+		 * content in place; the action-button spinner signals the refresh
+		 * instead (see `effectiveRefreshing`).
+		 *
+		 * @return {boolean}
+		 */
+		showLoadingState() {
+			return this.loading && !this.hasLoadedOnce
+		},
+
+		/**
+		 * Refresh-spinner flag for the page-header Actions menu. True when:
+		 * an explicit `refreshing` prop is set; OR a schema-driven self-fetch
+		 * is in flight (`internalRefreshing`); OR a background load is running
+		 * after the first one completed (`loading && hasLoadedOnce`) — so
+		 * legacy `objectType` hosts get the spinner for free just by passing
+		 * `:loading`, without wiring `:refreshing` themselves.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing || (this.loading && this.hasLoadedOnce)
 		},
 
 		/**
@@ -1023,6 +1070,19 @@ export default {
 	},
 
 	watch: {
+		// A load just settled (true → false) — remember it so later loads
+		// refresh in place (full-page spinner only on the first load). Not
+		// `immediate`: `loading` starts false before the first fetch begins,
+		// so reacting to that initial false would suppress the first spinner.
+		loading(val) {
+			if (!val) {
+				this.hasLoadedOnce = true
+				// Refresh settled — re-assert the sidebar state that
+				// syncSidebarState skipped while loading was in flight.
+				this.syncSidebarState()
+			}
+		},
+
 		sidebar: {
 			immediate: true,
 			handler() { this.syncSidebarState() },
@@ -1101,12 +1161,22 @@ export default {
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
-		onHeaderRefresh(payload, event) {
+		async onHeaderRefresh(payload, event) {
 			/**
 			 * @event refresh The page-header Refresh action was clicked.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', payload, event)
+			// Schema-driven (manifest) detail pages self-fetch — without this
+			// the Refresh action has no host listener to act on and does
+			// nothing. Re-fetch the object + schema and spin the action.
+			if (!this.hasSchemaDrivenFetch) return
+			this.internalRefreshing = true
+			try {
+				await this.fetchObjectIfNeeded()
+			} finally {
+				this.internalRefreshing = false
+			}
 		},
 
 		/**
@@ -1273,6 +1343,14 @@ export default {
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
+			// During a background refresh (content stays in place — see
+			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
+			// must NOT tear down the sidebar. Hosts commonly bind
+			// `:sidebar="{ enabled: !loading }"`, so without this guard every
+			// refresh unmounts the host's CnObjectSidebar and re-fetches all
+			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
+			// while refreshing; the `loading` watcher re-syncs once it settles.
+			if (this.loading && this.hasLoadedOnce) return
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
