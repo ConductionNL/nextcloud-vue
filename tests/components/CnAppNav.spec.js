@@ -534,6 +534,61 @@ describe('CnAppNav', () => {
 			expect(openUserSettings).toHaveBeenCalledTimes(1)
 			window.open = originalOpen
 		})
+
+		it('returns null for itemHref so the anchor stays a router-link / button', () => {
+			const wrapper = mountNav({ manifest: actionManifest, routeName: 'home' })
+			expect(wrapper.vm.itemHref(actionManifest.menu[1])).toBeNull()
+		})
+	})
+
+	describe('href menu items', () => {
+		const hrefManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+				{ id: 'docs', label: 'app.docs', href: 'https://docs.example.org/', order: 2 },
+				{ id: 'shillinq', label: 'app.shillinq', href: '/index.php/apps/shillinq/', order: 3 },
+			],
+		}
+
+		it('itemHref returns the href for an href item and null for a route item', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			expect(wrapper.vm.itemHref(hrefManifest.menu[1])).toBe('https://docs.example.org/')
+			expect(wrapper.vm.itemHref(hrefManifest.menu[0])).toBeNull()
+		})
+
+		it('itemTo returns null for href items so vue-router does not navigate', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			expect(wrapper.vm.itemTo(hrefManifest.menu[1])).toBeNull()
+		})
+
+		// NcAppNavigationItem is stubbed in this suite, so the rendered
+		// anchor (and its `target="_blank"` derivation for external URLs)
+		// belongs to that component's own contract. Here we assert only
+		// that CnAppNav forwards the real `href` through to it — the stub
+		// reflects props as attributes — for both external and internal
+		// destinations.
+		it('forwards an external URL as the entry href', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const entry = wrapper.find('[data-testid="cn-nav-entry-docs"]')
+			expect(entry.attributes('href')).toBe('https://docs.example.org/')
+		})
+
+		it('forwards an internal app path as the entry href', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const entry = wrapper.find('[data-testid="cn-nav-entry-shillinq"]')
+			expect(entry.attributes('href')).toBe('/index.php/apps/shillinq/')
+		})
+
+		it('does not intercept the click with window.open (native navigation)', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const originalOpen = window.open
+			window.open = jest.fn()
+			wrapper.vm.onItemClick(hrefManifest.menu[1], { preventDefault: jest.fn() })
+			expect(window.open).not.toHaveBeenCalled()
+			window.open = originalOpen
+		})
 	})
 
 	describe('three-section model (main / footer / settings foldout)', () => {
