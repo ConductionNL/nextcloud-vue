@@ -148,6 +148,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="widgetShowRefresh"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -219,6 +220,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="widgetShowRefresh"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
@@ -292,6 +294,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="widgetShowRefresh"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<component
@@ -313,6 +316,7 @@
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
+						:show-refresh="widgetShowRefresh"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -325,7 +329,8 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="item.showTitle !== false"
+					:show-refresh="widgetShowRefresh">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>
@@ -668,6 +673,20 @@ export default {
 		 * @type {boolean}
 		 */
 		showRefresh: {
+			type: Boolean,
+			default: true,
+		},
+		/**
+		 * Show the built-in Refresh item in each per-widget overflow Actions
+		 * menu (distinct from the page-level `showRefresh`). On by default.
+		 * Set to `false` when the host refreshes all widgets centrally (e.g.
+		 * a single page-header Refresh button), so the per-widget Refresh —
+		 * which would otherwise emit a `@widget-refresh` no consumer handles —
+		 * is hidden across every widget on the dashboard.
+		 *
+		 * @type {boolean}
+		 */
+		widgetShowRefresh: {
 			type: Boolean,
 			default: true,
 		},

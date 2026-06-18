@@ -101,3 +101,44 @@ describe('CnDashboardPage — page-level Actions menu', () => {
 		expect(wrapper.findComponent({ name: 'CnSuggestFeatureModal' }).props('surface')).toBe('dashboard:overview')
 	})
 })
+
+describe('CnDashboardPage — per-widget Refresh visibility', () => {
+	// Stub that exposes the props it received so we can assert what
+	// CnDashboardPage forwards to each per-widget wrapper.
+	const WidgetWrapperProbe = {
+		name: 'CnWidgetWrapper',
+		props: ['title', 'showTitle', 'showRefresh', 'borderless', 'flush', 'buttons', 'styleConfig'],
+		template: '<div class="widget-wrapper-probe"><slot /></div>',
+	}
+	// Grid stub that renders the #widget slot for each layout item so the
+	// per-widget CnWidgetWrapper is actually mounted (the real grid relies
+	// on GridStack, which doesn't run under jsdom).
+	const GridProbe = {
+		name: 'CnDashboardGrid',
+		props: ['layout'],
+		template: '<div><template v-for="item in layout"><slot name="widget" :item="item" /></template></div>',
+	}
+
+	const mountWithWidget = (propsData = {}) => mount(CnDashboardPage, {
+		propsData: {
+			title: 'Overview',
+			widgets: [{ id: 'leads', title: 'Leads over time', type: 'custom' }],
+			layout: [{ id: 'l1', widgetId: 'leads', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 4 }],
+			...propsData,
+		},
+		stubs: { ...stubs, CnWidgetWrapper: WidgetWrapperProbe, CnDashboardGrid: GridProbe },
+		scopedSlots: { 'widget-leads': '<div class="leads-body" />' },
+		mocks: { $route: { name: 'dashboard' } },
+		provide: { cnAppId: 'pipelinq' },
+	})
+
+	it('shows the per-widget Refresh by default', () => {
+		const wrapper = mountWithWidget()
+		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(true)
+	})
+
+	it('hides the per-widget Refresh when widgetShowRefresh is false', () => {
+		const wrapper = mountWithWidget({ widgetShowRefresh: false })
+		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(false)
+	})
+})
