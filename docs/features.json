@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "architecture-guide",
+    "title": "architecture-guide",
+    "summary": "Explains the design philosophy and layered architecture of `@conduction/nextcloud-vue` — how it builds on Nextcloud's own component system to provide higher-level, schema-driven page patterns. This specification also defines the project structure, build pipeline, coding conventions, dependency management, and consumer integration rules that govern the library.",
+    "docsUrl": "openspec/specs/architecture-guide/spec.md"
+  },
+  {
+    "slug": "component-library",
+    "title": "Component Library — Core Conventions",
+    "summary": "Defines the foundational conventions all components in @conduction/nextcloud-vue MUST follow.",
+    "docsUrl": "openspec/specs/component-library/spec.md"
+  },
+  {
+    "slug": "component-reference",
+    "title": "component-reference",
+    "summary": "Defines the per-component documentation pages that explain each Cn* component's purpose, props, events, slots, and usage examples. This is the primary reference for developers building apps with `@conduction/nextcloud-vue`.",
+    "docsUrl": "openspec/specs/component-reference/spec.md"
+  },
+  {
+    "slug": "data-display",
+    "title": "Data Display — Components Spec",
+    "summary": "Specifies the data display components: CnDataTable, CnCardGrid, CnObjectCard, CnCellRenderer, CnStatusBadge, CnPagination, CnFilterBar, CnFacetSidebar, CnKpiGrid.",
+    "docsUrl": "openspec/specs/data-display/spec.md"
+  },
+  {
+    "slug": "dialog-system",
+    "title": "Dialog System — Components Spec",
+    "summary": "Specifies the two-phase dialog pattern used by all 8 dialog components: CnDeleteDialog, CnCopyDialog, CnFormDialog, CnAdvancedFormDialog, CnMassDeleteDialog, CnMassCopyDialog, CnMassExportDialog, CnMassImportDialog.",
+    "docsUrl": "openspec/specs/dialog-system/spec.md"
+  },
+  {
+    "slug": "docs-site-infrastructure",
+    "title": "docs-site-infrastructure",
+    "summary": "Defines the Docusaurus project setup, build pipeline, GitHub Pages deployment, and site structure for the `@conduction/nextcloud-vue` documentation website. This is the foundation that all other documentation specs build on.",
+    "docsUrl": "openspec/specs/docs-site-infrastructure/spec.md"
+  },
+  {
+    "slug": "getting-started-guide",
+    "title": "getting-started-guide",
+    "summary": "Provides a quick-start guide for building a new Nextcloud app using `@conduction/nextcloud-vue`. Walks developers through the minimum steps to go from zero to a working app with a list page, detail view, and sidebar navigation.",
+    "docsUrl": "openspec/specs/getting-started-guide/spec.md"
+  },
+  {
+    "slug": "integration-guides",
+    "title": "integration-guides",
+    "summary": "Documents how `@conduction/nextcloud-vue` connects to external systems -- specifically OpenRegister (the backend schema/object engine), the NL Design System (theming layer), and the consumer app ecosystem. These guides help developers understand the full stack, not just the Vue components in isolation.",
+    "docsUrl": "openspec/specs/integration-guides/spec.md"
+  },
+  {
+    "slug": "layout-components",
+    "title": "Layout Components — Spec",
+    "summary": "Specifies the page layout components: CnPageHeader, CnActionsBar, CnFilterBar, CnFacetSidebar, CnMassActionBar, CnIndexSidebar.",
+    "docsUrl": "openspec/specs/layout-components/spec.md"
+  },
+  {
+    "slug": "manifest-wiki-page-type",
+    "title": "manifest-wiki-page-type",
+    "summary": "Add a built-in `wiki` page type to the app-manifest renderer: CnPageRenderer dispatches `type: \"wiki\"` pages to `CnWikiPage`, which renders a manifest-declared markdown article body (via the `marked`-backed `cnRenderMarkdown` helper) plus an optional in-page sidebar tree. The manifest validator enforces that wiki pages declare `register` + `schema`. This is the read-only counterpart to `manifest-form-page-type`; wiki authoring UIs stay `type: \"custom\"`.",
+    "docsUrl": "openspec/specs/manifest-wiki-page-type/spec.md"
+  },
+  {
+    "slug": "manifest-wiki-stabilise",
+    "title": "manifest-wiki-stabilise",
+    "summary": "Stabilise the `type:'wiki'` page type by documenting and type-checking its config. The JSON schema declares the eleven optional string config fields `CnWikiPage` accepts (so IDE completion + hover docs work), and the manifest validator type-checks each known field as a string when present (typed errors with JSON-pointer paths), while tolerating omitted fields and passing unknown keys for forward-compatibility. This lets consumer apps flip wiki-shaped `type:'custom'` routes to `type:'wiki'` with confidence.",
+    "docsUrl": "openspec/specs/manifest-wiki-stabilise/spec.md"
+  },
+  {
+    "slug": "schema-utilities",
+    "title": "Schema Utilities — Spec",
+    "summary": "Specifies the utility functions that auto-generate table columns, form fields, and filter definitions from JSON Schema properties, plus helper utilities for value formatting, HTTP headers, query strings, and error parsing.",
+    "docsUrl": "openspec/specs/schema-utilities/spec.md"
+  },
+  {
+    "slug": "settings-components",
+    "title": "Settings Components — Spec",
+    "summary": "Specifies the admin settings components: CnSettingsCard, CnSettingsSection, CnConfigurationCard, CnVersionInfoCard, CnStatsBlock, and CnRegisterMapping. These components provide a consistent, themeable settings page layout for all Conduction Nextcloud apps.",
+    "docsUrl": "openspec/specs/settings-components/spec.md"
+  },
+  {
+    "slug": "timeline-stages-widget",
+    "title": "Timeline Stages Widget",
+    "summary": "Provides a reusable Vue component for visualizing sequential progression through named stages. Used in case management, pipeline tracking, and any workflow with discrete phases.",
+    "docsUrl": "openspec/specs/timeline-stages-widget/spec.md"
+  },
+  {
+    "slug": "use-detail-view",
+    "title": "useDetailView",
+    "summary": "`useDetailView(objectType, id, options?)` is a composable exported by `@conduction/nextcloud-vue` that provides reactive object data, save/delete operations, loading state, and optional post-operation router navigation for detail/edit views. It eliminates the boilerplate that was previously duplicated across every detail-view component.",
+    "docsUrl": "openspec/specs/use-detail-view/spec.md"
+  },
+  {
+    "slug": "use-list-view",
+    "title": "useListView",
+    "summary": "`useListView(objectType, options?)` is a composable exported by `@conduction/nextcloud-vue` that provides everything a `CnIndexPage`-based list view needs: schema, reactive collection data, loading and pagination state, sidebar wiring, and event handlers for search, sort, filter, and pagination. It eliminates boilerplate that was previously duplicated verbatim across every list-view component.",
+    "docsUrl": "openspec/specs/use-list-view/spec.md"
+  }
+]

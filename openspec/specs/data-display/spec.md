@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # Data Display — Components Spec

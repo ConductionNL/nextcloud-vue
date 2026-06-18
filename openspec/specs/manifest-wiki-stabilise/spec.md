@@ -1,3 +1,7 @@
+---
+status: done
+---
+
 # manifest-wiki-stabilise Specification
 
 ## Purpose
