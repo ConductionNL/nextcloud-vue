@@ -85,7 +85,7 @@
 				-->
 				<slot name="actions" />
 				<CnActionsMenu
-					:show-refresh="showRefresh"
+					:show-refresh="effectiveHeaderShowRefresh"
 					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
@@ -736,10 +736,21 @@ export default {
 			default: '',
 		},
 
-		/** Whether the Refresh entry renders in the page-header menu. */
+		/**
+		 * Whether the Refresh entry renders in the page-header menu.
+		 * Tri-state:
+		 * - `true` / `false` — force it on or off.
+		 * - `null` (the default) — **auto**: show Refresh only when it will
+		 *   do something, i.e. a consumer attached an `@refresh` listener OR
+		 *   the page is in schema-driven mode (`register` + `schema` +
+		 *   `objectId`) and can self-fetch. Legacy `objectType`-mode detail
+		 *   pages that never wire `@refresh` therefore show no dead button.
+		 *
+		 * @type {boolean|null}
+		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 
 		/**
@@ -891,6 +902,19 @@ export default {
 		 */
 		hasSchemaDrivenFetch() {
 			return Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * Effective Refresh visibility for the page header. An explicit
+		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
+		 * it will do something — a consumer attached an `@refresh` listener,
+		 * or the page can self-fetch (`hasSchemaDrivenFetch`).
+		 *
+		 * @return {boolean}
+		 */
+		effectiveHeaderShowRefresh() {
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners.refresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**

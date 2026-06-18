@@ -228,7 +228,11 @@ The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) ove
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
 - **Request a feature** opens `CnSuggestFeatureModal` with `surface: "dashboard:<id>"` when mounted under `CnAppRoot`.
 
-Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
+Refresh and Request-a-feature are on by default for the page-level menu; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
+
+### Per-widget Refresh
+
+Each widget's own overflow menu shows Refresh based on `widgetShowRefresh` (tri-state, default `null` = **auto**). For **custom-slot** widgets, auto shows Refresh only when the app attached a `@widget-refresh` listener that will handle it — so a dashboard that refreshes centrally by another route (e.g. a header button bumping a shared signal) gets no dead per-widget buttons. Force all custom widgets on/off with `:widget-show-refresh="true"`/`false`. Built-in **chart / NC / integration** widgets always show Refresh (they refresh via the `cn:widget:refresh` bus or their renderer).
 
 ## Reference (auto-generated)
 

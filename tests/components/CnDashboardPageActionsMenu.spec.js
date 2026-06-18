@@ -119,7 +119,7 @@ describe('CnDashboardPage — per-widget Refresh visibility', () => {
 		template: '<div><template v-for="item in layout"><slot name="widget" :item="item" /></template></div>',
 	}
 
-	const mountWithWidget = (propsData = {}) => mount(CnDashboardPage, {
+	const mountWithWidget = (propsData = {}, opts = {}) => mount(CnDashboardPage, {
 		propsData: {
 			title: 'Overview',
 			widgets: [{ id: 'leads', title: 'Leads over time', type: 'custom' }],
@@ -130,15 +130,26 @@ describe('CnDashboardPage — per-widget Refresh visibility', () => {
 		scopedSlots: { 'widget-leads': '<div class="leads-body" />' },
 		mocks: { $route: { name: 'dashboard' } },
 		provide: { cnAppId: 'pipelinq' },
+		...opts,
 	})
 
-	it('shows the per-widget Refresh by default', () => {
+	it('hides the custom-widget Refresh by default (no @widget-refresh listener)', () => {
 		const wrapper = mountWithWidget()
+		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(false)
+	})
+
+	it('shows the custom-widget Refresh when the app wires @widget-refresh', () => {
+		const wrapper = mountWithWidget({}, { listeners: { 'widget-refresh': () => {} } })
 		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(true)
 	})
 
-	it('hides the per-widget Refresh when widgetShowRefresh is false', () => {
-		const wrapper = mountWithWidget({ widgetShowRefresh: false })
+	it('explicit widgetShowRefresh=true forces it on even without a listener', () => {
+		const wrapper = mountWithWidget({ widgetShowRefresh: true })
+		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(true)
+	})
+
+	it('explicit widgetShowRefresh=false forces it off even with a listener', () => {
+		const wrapper = mountWithWidget({ widgetShowRefresh: false }, { listeners: { 'widget-refresh': () => {} } })
 		expect(wrapper.findComponent(WidgetWrapperProbe).props('showRefresh')).toBe(false)
 	})
 })

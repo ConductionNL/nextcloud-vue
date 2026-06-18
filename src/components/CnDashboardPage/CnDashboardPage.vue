@@ -148,7 +148,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
-						:show-refresh="widgetShowRefresh"
+						:show-refresh="effectiveWidgetShowRefresh"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -220,7 +220,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
-						:show-refresh="widgetShowRefresh"
+						:show-refresh="true"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
@@ -294,7 +294,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
-						:show-refresh="widgetShowRefresh"
+						:show-refresh="true"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<component
@@ -316,7 +316,7 @@
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
-						:show-refresh="widgetShowRefresh"
+						:show-refresh="true"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -330,7 +330,7 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:show-title="item.showTitle !== false"
-					:show-refresh="widgetShowRefresh">
+					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>
@@ -677,18 +677,23 @@ export default {
 			default: true,
 		},
 		/**
-		 * Show the built-in Refresh item in each per-widget overflow Actions
-		 * menu (distinct from the page-level `showRefresh`). On by default.
-		 * Set to `false` when the host refreshes all widgets centrally (e.g.
-		 * a single page-header Refresh button), so the per-widget Refresh —
-		 * which would otherwise emit a `@widget-refresh` no consumer handles —
-		 * is hidden across every widget on the dashboard.
+		 * Show the built-in Refresh item on each **custom-slot** widget
+		 * (distinct from the page-level `showRefresh`). Tri-state:
+		 * - `true` / `false` — force it on or off for all custom widgets.
+		 * - `null` (the default) — **auto**: show it only when the app using
+		 *   `CnDashboardPage` attached a `@widget-refresh` listener (i.e. it
+		 *   will actually handle the refresh). Apps that refresh widgets
+		 *   centrally by another route (e.g. a header button bumping a shared
+		 *   signal) leave it unset and get no dead per-widget buttons.
 		 *
-		 * @type {boolean}
+		 * Built-in chart / NC / integration widgets always show Refresh
+		 * (they refresh via the `cn:widget:refresh` bus or their renderer).
+		 *
+		 * @type {boolean|null}
 		 */
 		widgetShowRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/**
 		 * Show the built-in Request-a-feature item in the page-level
@@ -813,6 +818,20 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective Refresh visibility for custom-slot widgets. An explicit
+		 * `widgetShowRefresh` prop wins; when unset (`null`), show Refresh
+		 * only if the app attached a `@widget-refresh` listener that will
+		 * handle it. (The page always attaches its own `@refresh` re-emitter
+		 * to each wrapper, so wrapper-level auto-detection can't be relied on
+		 * here — we resolve it at the page instead.)
+		 *
+		 * @return {boolean}
+		 */
+		effectiveWidgetShowRefresh() {
+			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
+			return Boolean(this.$listeners['widget-refresh'])
+		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit
 		 * `pageId` prop; falls back to a slugified `title`, then

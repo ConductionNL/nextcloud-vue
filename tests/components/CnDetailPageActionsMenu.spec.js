@@ -66,11 +66,16 @@ describe('CnDetailPage — header Actions menu', () => {
 	})
 	afterEach(() => jest.restoreAllMocks())
 
-	it('shows Refresh + Request a feature by default', () => {
+	it('auto: hides Refresh by default (legacy mode, no @refresh listener), shows Request a feature', () => {
 		const wrapper = mountPage()
-		expect(wrapper.find('[data-testid="cn-detail-page-action-refresh"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-detail-page-action-refresh"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-detail-page-action-request-feature"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-detail-page-action-documentation"]').exists()).toBe(false)
+	})
+
+	it('auto: shows Refresh when the host attaches an @refresh listener', () => {
+		const wrapper = mountPage({}, { listeners: { refresh: () => {} } })
+		expect(wrapper.find('[data-testid="cn-detail-page-action-refresh"]').exists()).toBe(true)
 	})
 
 	it('renders the Documentation link when documentationUrl is set', () => {
@@ -80,8 +85,8 @@ describe('CnDetailPage — header Actions menu', () => {
 		expect(link.attributes('target')).toBe('_blank')
 	})
 
-	it('re-emits @refresh and fires the cn:page:refresh bus by default', async () => {
-		const wrapper = mountPage({ pageId: 'cases' })
+	it('re-emits @refresh and fires the cn:page:refresh bus when shown', async () => {
+		const wrapper = mountPage({ pageId: 'cases', showRefresh: true })
 		await wrapper.find('[data-testid="cn-detail-page-action-refresh"]').trigger('click')
 		expect(wrapper.emitted('refresh')).toBeTruthy()
 		expect(emitOnBus).toHaveBeenCalledWith('cn:page:refresh', { widgetId: 'cases', title: 'Case 42' })
