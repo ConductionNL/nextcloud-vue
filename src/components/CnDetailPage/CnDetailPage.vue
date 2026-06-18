@@ -1262,7 +1262,14 @@ export default {
 			// the positional id slots is intentional (OR's REST accepts
 			// either numeric ids or kebab slugs there), and the 4th-arg
 			// hints feed the live-updates transport.
-			if (typeof store.registerObjectType === 'function') {
+			// Register the type ONCE. `registerObjectType` resets the type's
+			// cache (`objects[type] = {}`, `schemas[type] = null`), so calling
+			// it on every refresh blanks the object + schema until the
+			// re-fetch lands — the content visibly disappears mid-refresh.
+			// Skip re-registration when the type is already registered so a
+			// refresh re-fetches and replaces the data in place.
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
 				store.registerObjectType(
 					type,
 					this.schema,
