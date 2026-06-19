@@ -27,6 +27,14 @@ import { mergePluginState, mergePluginGetters, mergePluginActions } from './plug
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 
+// Coalesces concurrent identical fetch-by-id requests into a single network
+// call: callers asking for a URL already in flight share the pending promise
+// instead of firing a duplicate request. Keyed by the built URL and cleared
+// once the request settles. Module-scoped (not reactive state) so it never
+// triggers re-renders and de-duplicates across store instances hitting the
+// same endpoint.
+const _inflightObjectFetches = new Map()
+
 // ── Base state ──────────────────────────────────────────────────────────
 
 function baseState(baseUrl = DEFAULT_BASE_URL) {
@@ -603,12 +611,36 @@ const baseActions = {
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
 	async fetchObject(type, id) {
+		const url = this._buildUrl(type, id)
+		// Share a single in-flight request across concurrent callers asking
+		// for the same object, instead of firing a duplicate network call.
+		const existing = _inflightObjectFetches.get(url)
+		if (existing) {
+			return existing
+		}
+		const request = this._requestObject(type, id, url)
+		_inflightObjectFetches.set(url, request)
+		try {
+			return await request
+		} finally {
+			_inflightObjectFetches.delete(url)
+		}
+	},
+
+	/**
+	 * Perform the actual fetch-by-id network request and cache the result.
+	 * Wrapped by `fetchObject`, which de-duplicates concurrent calls.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {string} url The pre-built request URL
+	 * @return {Promise<object|null>} The object or null on error
+	 */
+	async _requestObject(type, id, url) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type, id)
-
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: this._buildHeaders(),

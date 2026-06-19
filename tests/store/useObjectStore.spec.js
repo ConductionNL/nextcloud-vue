@@ -169,6 +169,44 @@ describe('useObjectStore', () => {
 			expect(result).toEqual({ id: 'abc', name: 'Test Client' })
 			expect(store.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
 		})
+
+		it('de-duplicates concurrent requests for the same object into one network call', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			let resolveFetch
+			global.fetch = jest.fn().mockReturnValue(new Promise((resolve) => {
+				resolveFetch = () => resolve({
+					ok: true,
+					json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+				})
+			}))
+
+			// Fire three concurrent requests before the first settles.
+			const promises = [
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+			]
+			resolveFetch()
+			const results = await Promise.all(promises)
+
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			results.forEach((r) => expect(r).toEqual({ id: 'abc', name: 'Test Client' }))
+		})
+
+		it('fetches again after a prior request settled (cache is per-flight, not permanent)', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			await store.fetchObject('client', 'abc')
+			await store.fetchObject('client', 'abc')
+
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+		})
 	})
 
 	describe('saveObject', () => {
