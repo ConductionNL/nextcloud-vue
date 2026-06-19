@@ -248,13 +248,30 @@ export default {
 		// useDataSource — Vue treats inject() within setup and the
 		// Options `inject:` declaration as the same resolution.
 		const range = inject('cnDashboardDateRange', null) || ref(null)
-		const { data, refetch } = useDataSource(() => props.dataSource, { range })
+		// The `bucket` (time) and `groupBy` (category) shorthands are fetched
+		// over REST by this component (fetchTimeBucket / fetchGroupBy) against
+		// OpenRegister's /timeseries + /grouped aggregation endpoints — the
+		// GraphQL bucket path is bypassed. Hide those shapes from useDataSource
+		// so it stays a no-op for them (raw `graphql` / `count` still flow
+		// through it).
+		const dsForGraphql = () => {
+			const ds = props.dataSource
+			if (ds && (ds.bucket || ds.groupBy)) return null
+			return ds
+		}
+		const { data, refetch } = useDataSource(dsForGraphql, { range })
 		return { dsData: data, dsRefetch: refetch }
 	},
 
 	data() {
 		return {
 			chartComponent: null,
+			// Series/categories resolved from a categorical `dataSource.groupBy`
+			// (REST /grouped) or a time `dataSource.bucket` (REST /timeseries),
+			// kept separate from the raw-GraphQL path (`dsData`). Null until the
+			// respective source resolves.
+			groupByData: null,
+			bucketData: null,
 		}
 	},
 
@@ -273,16 +290,46 @@ export default {
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			const rest = this.bucketData || this.groupByData
+			if (rest?.series !== undefined) return rest.series
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
 		resolvedCategories() {
+			const rest = this.bucketData || this.groupByData
+			if (rest?.categories !== undefined) return rest.categories
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
 		resolvedLabels() {
+			const rest = this.bucketData || this.groupByData
+			if (rest?.labels !== undefined) return rest.labels
 			const fromDs = this.dsData?.labels
 			return fromDs !== undefined ? fromDs : this.labels
+		},
+		/** Stable signature of a categorical groupBy source (else null). */
+		groupByKey() {
+			const gb = this.dataSource && this.dataSource.groupBy
+			if (!gb || !this.dataSource.schema) return null
+			return JSON.stringify({
+				register: this.dataSource.register || '',
+				schema: this.dataSource.schema,
+				filter: this.dataSource.filter || {},
+				groupBy: gb,
+			})
+		},
+		/** Stable signature of a time-bucket source + the active range (else null). */
+		bucketKey() {
+			const b = this.dataSource && this.dataSource.bucket
+			if (!b || !this.dataSource.schema) return null
+			const r = this.cnDashboardDateRange && this.cnDashboardDateRange.value
+			return JSON.stringify({
+				register: this.dataSource.register || '',
+				schema: this.dataSource.schema,
+				filter: this.dataSource.filter || {},
+				bucket: b,
+				range: r ? { from: r.from, to: r.to } : null,
+			})
 		},
 		defaultColors() {
 			if (this.colors.length > 0) return this.colors
@@ -382,11 +429,22 @@ export default {
 		},
 	},
 
+	watch: {
+		groupByKey() {
+			this.fetchGroupBy()
+		},
+		bucketKey() {
+			this.fetchTimeBucket()
+		},
+	},
+
 	created() {
 		this.chartComponent = VueApexCharts
 	},
 
 	mounted() {
+		this.fetchGroupBy()
+		this.fetchTimeBucket()
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -438,6 +496,137 @@ export default {
 		refresh() {
 			if (typeof this.dsRefetch === 'function') {
 				this.dsRefetch()
+			}
+			this.fetchGroupBy()
+			this.fetchTimeBucket()
+		},
+		/**
+		 * Fetch a time series from OpenRegister's REST `/timeseries` aggregation
+		 * when `dataSource.bucket` is set, mapping `{groups:[{key,value}]}` into
+		 * ApexCharts `series` + date `categories`. The window comes from the
+		 * dashboard date chip; a too-narrow chip (< ~90 days) widens to a 12-month
+		 * lookback so the curve stays meaningful. Replaces the GraphQL bucket
+		 * path. Lazily imports axios/router.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchTimeBucket() {
+			const ds = this.dataSource || {}
+			const b = ds.bucket
+			if (!b || !b.field || !ds.schema) {
+				this.bucketData = null
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				// Resolve the [from, to] window: chip range, else staticRange,
+				// else a 12-month lookback; widen a too-narrow chip.
+				const r = (this.cnDashboardDateRange && this.cnDashboardDateRange.value) || b.staticRange || {}
+				let to = r.to || new Date().toISOString()
+				let from = r.from
+				const span = (from && to) ? (new Date(to).getTime() - new Date(from).getTime()) : 0
+				if (!from || span < (90 * 86400000)) {
+					from = new Date(new Date(to).getTime() - (365 * 86400000)).toISOString()
+				}
+				const url = generateUrl(
+					'/apps/openregister/api/objects/aggregations/{register}/{schema}/timeseries',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const params = {
+					field: b.field,
+					interval: String(b.interval || 'month').toUpperCase(),
+					metric: b.metric || 'count',
+					from,
+					to,
+				}
+				if (b.metricField) params.metricField = b.metricField
+				if (ds.filter && typeof ds.filter === 'object') {
+					for (const [k, v] of Object.entries(ds.filter)) {
+						if (v && typeof v === 'object') {
+							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+						} else if (v !== '' && v !== null && v !== undefined) {
+							params[`filter[${k}]`] = v
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
+				const groups = (res && res.data && res.data.groups) || []
+				const categories = groups.map((g) => this.formatBucketKey(g.key))
+				const values = groups.map((g) => Number(g.value) || 0)
+				this.bucketData = { series: [{ name: b.metricField || b.metric || 'count', data: values }], categories, labels: categories }
+			} catch (e) {
+				this.bucketData = null
+			}
+		},
+		/**
+		 * Format a time-bucket key (ISO date) into a short axis label.
+		 *
+		 * @param {string} key The bucket key (ISO date string).
+		 * @return {string} A short, locale-aware label.
+		 */
+		formatBucketKey(key) {
+			if (!key) return ''
+			const d = new Date(key)
+			if (Number.isNaN(d.getTime())) return String(key)
+			return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+		},
+		/**
+		 * Fetch a categorical breakdown from OpenRegister's REST `/grouped`
+		 * aggregation when `dataSource.groupBy` is set, mapping `{groups}` into
+		 * ApexCharts `series` + `categories`/`labels` (pie/donut use a flat
+		 * value array + labels; other types use one named series + categories).
+		 * No-op for the time-bucket (GraphQL) path. Lazily imports axios/router.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchGroupBy() {
+			const ds = this.dataSource || {}
+			const gb = ds.groupBy
+			if (!gb || !gb.field || !ds.schema) {
+				this.groupByData = null
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/aggregations/{register}/{schema}/grouped',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const params = { groupBy: gb.field, metric: gb.metric || 'count' }
+				if (gb.metricField) params.field = gb.metricField
+				if (gb.sort === 'asc' || gb.sort === 'desc') params.sort = gb.sort
+				if (gb.limit) params.limit = gb.limit
+				if (ds.filter && typeof ds.filter === 'object') {
+					for (const [k, v] of Object.entries(ds.filter)) {
+						if (v && typeof v === 'object') {
+							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+						} else if (v !== '' && v !== null && v !== undefined) {
+							params[`filter[${k}]`] = v
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
+				let groups = (res && res.data && res.data.groups) || []
+				// Client-side sort + top-N (robust even if the backend ignored them).
+				if (gb.sort === 'asc' || gb.sort === 'desc') {
+					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
+				}
+				if (gb.limit) groups = groups.slice(0, gb.limit)
+				const keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
+				const values = groups.map((g) => Number(g.value) || 0)
+				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+					this.groupByData = { series: values, labels: keys, categories: keys }
+				} else {
+					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys }
+				}
+			} catch (e) {
+				this.groupByData = null
 			}
 		},
 		/**

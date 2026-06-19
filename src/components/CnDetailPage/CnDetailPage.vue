@@ -84,6 +84,8 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
+				<CnOpenBuildEditButton />
 				<CnActionsMenu
 					:show-refresh="showRefresh"
 					:show-request-feature="showRequestFeature"
@@ -316,6 +318,7 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
@@ -414,6 +417,7 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
+		CnOpenBuildEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
@@ -1003,7 +1007,15 @@ export default {
 		 */
 		sidebarActive() {
 			const r = this.resolvedSidebar
-			return r.show !== false && r.enabled !== false
+			// An explicit `show: false` always suppresses the sidebar. Otherwise a
+			// non-empty `sidebarTabs` opt-in activates it even past the prop's
+			// default `{ enabled: false }` — the procest CaseDetail manifest
+			// pattern, where a page declares only `config.sidebarTabs`.
+			if (r.show === false) return false
+			if (r.enabled === false) {
+				return Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
+			}
+			return true
 		},
 
 		hasStats() {

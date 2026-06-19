@@ -186,3 +186,20 @@ export { CnCospendCreate } from './CnCospendCreate/index.js'
 // Time-tracker integration leaf (Tier-2)
 export { CnTimeTrackerPicker } from './CnTimeTrackerPicker/index.js'
 export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
+
+// OpenBuild in-app edit shell (ADR-041)
+export { CnOpenBuildEditButton } from './CnOpenBuildEditButton/index.js'
+export { default as CnEditMenuModal } from '../modals/CnEditMenuModal.vue'
+export { default as CnEditSidebarModal } from '../modals/CnEditSidebarModal.vue'
+export { default as CnEditActionsModal } from '../modals/CnEditActionsModal.vue'
+
+// Dashboard widget library (cn-widget-library) — public API. The 21 widget
+// components self-register into dashboardWidgetRegistry via the side-effect
+// import below and are resolved by type key, so they are not exported here.
+import './CnWidgetGrid/registerDashboardWidgets.js'
+export { default as CnAddWidgetModal } from '../modals/CnAddWidgetModal.vue'
+export { default as CnWidgetStyleEditorModal } from '../modals/CnWidgetStyleEditorModal.vue'
+export { default as CnWidgetVisibilityRulesModal } from '../modals/CnWidgetVisibilityRulesModal.vue'
+export { CnMenuItemEditor } from './CnMenuItemEditor/index.js'
+export { CnTextTableEditor } from './CnTextTableEditor/index.js'
+export { CnNcWidgetGridPicker } from './CnNcWidgetGridPicker/index.js'
