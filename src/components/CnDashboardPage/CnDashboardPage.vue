@@ -1712,6 +1712,12 @@ export default {
 .cn-dashboard-page {
 	padding: 20px;
 	max-width: 1400px;
+	/* Scroll the dashboard itself when its widgets are taller than the host
+	   region (height:100% is a no-op when the host height is content-sized, so
+	   this only kicks in when an ancestor constrains the height). */
+	height: 100%;
+	overflow-y: auto;
+	box-sizing: border-box;
 }
 
 .cn-dashboard-page__header {

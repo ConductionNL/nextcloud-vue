@@ -33,6 +33,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
@@ -167,6 +168,7 @@ export default {
 		 */
 		flattenFilter(target, filter) {
 			if (!filter || typeof filter !== 'object') return
+			filter = resolveFilterTokens(filter)
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov

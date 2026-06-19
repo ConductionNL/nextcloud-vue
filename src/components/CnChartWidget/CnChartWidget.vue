@@ -35,6 +35,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
@@ -543,8 +544,9 @@ export default {
 					to,
 				}
 				if (b.metricField) params.metricField = b.metricField
-				if (ds.filter && typeof ds.filter === 'object') {
-					for (const [k, v] of Object.entries(ds.filter)) {
+				const _f = resolveFilterTokens(ds.filter || {})
+				if (_f && typeof _f === "object") {
+					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
 						} else if (v !== '' && v !== null && v !== undefined) {
@@ -602,8 +604,9 @@ export default {
 				if (gb.metricField) params.field = gb.metricField
 				if (gb.sort === 'asc' || gb.sort === 'desc') params.sort = gb.sort
 				if (gb.limit) params.limit = gb.limit
-				if (ds.filter && typeof ds.filter === 'object') {
-					for (const [k, v] of Object.entries(ds.filter)) {
+				const _f = resolveFilterTokens(ds.filter || {})
+				if (_f && typeof _f === "object") {
+					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
 						} else if (v !== '' && v !== null && v !== undefined) {

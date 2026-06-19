@@ -17,6 +17,7 @@
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { translate as t } from '@nextcloud/l10n'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -127,12 +128,16 @@ export default {
 				if (c.sort && c.sort.field) {
 					params[`_order[${c.sort.field}]`] = (c.sort.dir === 'desc' ? 'desc' : 'asc')
 				}
-				if (c.filter && typeof c.filter === 'object') {
-					for (const [k, v] of Object.entries(c.filter)) {
+				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
+				// params (`status=open`, `value[gt]=30000`) — unlike the
+				// aggregation endpoints which use the nested `filter[...]` shape.
+				const filter = resolveFilterTokens(c.filter || {})
+				if (filter && typeof filter === 'object') {
+					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {
-							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+							for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
 						} else if (v !== '' && v !== null && v !== undefined) {
-							params[`filter[${k}]`] = v
+							params[k] = v
 						}
 					}
 				}
