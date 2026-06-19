@@ -680,16 +680,38 @@ export default {
 		},
 		/**
 		 * Pass-through for `NcAppNavigationItem`'s router-link `exact`.
-		 * Root paths (`/`) match every nested route by default, which
-		 * makes the root item permanently look active. Returning true
-		 * for `route === '/'` restores the expected behaviour.
+		 *
+		 * `NcAppNavigationItem` folds the router-link's `isActive` into its
+		 * highlight as `to && isActive || active`. When `exact` is false that
+		 * `isActive` is an INCLUSIVE prefix match, so an ancestor-namespace
+		 * entry (`/pos`) lights up on any `/pos/...` path — which is correct
+		 * for an index entry's own nested routes (e.g. `/pos/:id` detail), but
+		 * wrong when the deeper path is itself an independent menu entry
+		 * (`/pos/tender-types`).
+		 *
+		 * So default to inclusive (the backwards-compatible behaviour) and only
+		 * force exact when a MORE SPECIFIC sibling entry owns the current route:
+		 * `activeRouteName` (longest-prefix-wins) names that owner, so when it
+		 * is a different entry and this entry's path is merely an ancestor
+		 * prefix of the current path, exact matching stops the router-link from
+		 * also lighting up this ancestor. Root (`/`) is always exact — it would
+		 * otherwise prefix-match every route.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {boolean} Whether to enable exact router-link matching.
 		 */
 		isExact(item) {
-			const page = this.pageForItem(item)
-			return page?.route === '/'
+			const pagePath = this.pageForItem(item)?.route
+			if (pagePath === '/') return true
+			const active = this.activeRouteName
+			// No owner, or this entry IS the owner → keep inclusive matching so
+			// the entry still lights up for its own nested routes.
+			if (!active || item.route === active) return false
+			const path = this.$route?.path
+			if (!path || !pagePath || pagePath.includes(':')) return false
+			// A different entry owns the route; force exact only when this entry
+			// is an ancestor prefix that inclusive matching would falsely light.
+			return path === pagePath || path.startsWith(pagePath + '/')
 		},
 		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. Action

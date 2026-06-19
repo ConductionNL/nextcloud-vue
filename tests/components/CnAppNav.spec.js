@@ -49,6 +49,7 @@ function mountNav({
 	permissions = [],
 	useProps = false,
 	routeName = 'a',
+	routePath,
 	translate,
 	openUserSettings,
 } = {}) {
@@ -72,9 +73,25 @@ function mountNav({
 		propsData,
 		provide,
 		mocks: {
-			$route: { name: routeName },
+			$route: { name: routeName, path: routePath },
 		},
 	})
+}
+
+// Manifest with two independent, prefix-sharing namespaces (`/pos` and
+// `/pos/tender-types`) plus a detail route under `/pos`, to exercise
+// active-route disambiguation.
+const posManifest = {
+	version: '1.0.0',
+	pages: [
+		{ id: 'pos', route: '/pos' },
+		{ id: 'posTenderTypes', route: '/pos/tender-types' },
+		{ id: 'posDetail', route: '/pos/:id' },
+	],
+	menu: [
+		{ id: 'pos', label: 'POS', route: 'pos', order: 1 },
+		{ id: 'posTenderTypes', label: 'Tender types', route: 'posTenderTypes', order: 2 },
+	],
 }
 
 describe('CnAppNav', () => {
@@ -151,6 +168,56 @@ describe('CnAppNav', () => {
 		it('returns false when item has no route', () => {
 			const wrapper = mountNav()
 			expect(wrapper.vm.isActive({ id: 'noroute' })).toBe(false)
+		})
+
+		// Regression: an ancestor-namespace entry (`/pos`) must NOT light up
+		// when a sibling route that merely shares its prefix is active
+		// (`/pos/tender-types`), since they are independent menu items.
+		it('does not mark a prefix-sharing sibling namespace as active', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posTenderTypes',
+				routePath: '/pos/tender-types',
+			})
+			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(true)
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(false)
+		})
+
+		// A genuine nested detail route (no menu entry of its own) still lights
+		// up its index entry via the longest-prefix `activeRouteName` resolution.
+		it('marks the index entry active for its own nested detail route', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posDetail',
+				routePath: '/pos/42',
+			})
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(true)
+			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(false)
+		})
+
+		// An ancestor entry overruled by a more specific sibling owner must use
+		// exact matching so the router-link's inclusive active state can't
+		// independently light it up.
+		it('forces exact matching on an ancestor namespace owned by a more specific sibling', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posTenderTypes',
+				routePath: '/pos/tender-types',
+			})
+			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(true)
+			// The owner itself keeps inclusive matching.
+			expect(wrapper.vm.isExact({ route: 'posTenderTypes' })).toBe(false)
+		})
+
+		// Backwards compatible: an index entry on its OWN nested route (no
+		// dedicated menu entry) keeps inclusive matching so it still lights up.
+		it('keeps inclusive matching for an index entry on its own nested detail route', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posDetail',
+				routePath: '/pos/42',
+			})
+			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(false)
 		})
 	})
 
