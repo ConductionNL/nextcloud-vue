@@ -28,11 +28,18 @@ const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 
 // Coalesces concurrent identical fetch-by-id requests into a single network
-// call: callers asking for a URL already in flight share the pending promise
-// instead of firing a duplicate request. Keyed by the built URL and cleared
-// once the request settles. Module-scoped (not reactive state) so it never
-// triggers re-renders and de-duplicates across store instances hitting the
-// same endpoint.
+// call: callers asking for an object already in flight share the pending
+// promise instead of firing a duplicate request. The entry clears once the
+// request settles. Module-scoped (not reactive state) so it never triggers
+// re-renders.
+//
+// The key is `${storeId}::${type}::${id}`, NOT the URL alone: the resolved
+// store write target is `objects[type][id]` on a specific store instance, and
+// each `_requestObject` writes only its own store. Coalescing across different
+// stores (e.g. the library default store vs an app's own createObjectStore)
+// or different type slugs would let one caller's request satisfy another whose
+// cache then never gets written — leaving that store's `objects[type][id]`
+// empty. Keying by (store, type, id) dedupes only truly-identical operations.
 const _inflightObjectFetches = new Map()
 
 // ── Base state ──────────────────────────────────────────────────────────
@@ -613,17 +620,20 @@ const baseActions = {
 	async fetchObject(type, id) {
 		const url = this._buildUrl(type, id)
 		// Share a single in-flight request across concurrent callers asking
-		// for the same object, instead of firing a duplicate network call.
-		const existing = _inflightObjectFetches.get(url)
+		// for the same object on this store, instead of firing a duplicate
+		// network call. Scoped to (store, type, id) so it never starves a
+		// different store's cache — see `_inflightObjectFetches` above.
+		const key = `${this.$id}::${type}::${id}`
+		const existing = _inflightObjectFetches.get(key)
 		if (existing) {
 			return existing
 		}
 		const request = this._requestObject(type, id, url)
-		_inflightObjectFetches.set(url, request)
+		_inflightObjectFetches.set(key, request)
 		try {
 			return await request
 		} finally {
-			_inflightObjectFetches.delete(url)
+			_inflightObjectFetches.delete(key)
 		}
 	},
 
