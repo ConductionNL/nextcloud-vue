@@ -68,11 +68,17 @@
 				@update:value="updateWeighted('divisor', Number($event) || 1)" />
 		</div>
 
-		<!-- Aggregate + Weighted use one filter; Ratio uses numerator/denominator. -->
-		<template v-if="kind === 'ratio'">
-			<label class="cn-stat-widget-form__sublabel">{{ t('nextcloud-vue', 'Numerator (the part)') }}</label>
+		<!-- Aggregate + Weighted use one filter; Ratio + Computed use two parts. -->
+		<template v-if="kind === 'ratio' || kind === 'computed'">
+			<NcTextField
+				v-if="kind === 'computed'"
+				:value="formula"
+				:label="t('nextcloud-vue', 'Formula (A, B)')"
+				placeholder="A/B*100"
+				@update:value="updateField('formula', $event)" />
+			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part A') : t('nextcloud-vue', 'Numerator (the part)') }}</label>
 			<CnFilterRowsEditor :value="numeratorRows" :fields="availableFields" @input="onRows('numeratorRows', $event)" />
-			<label class="cn-stat-widget-form__sublabel">{{ t('nextcloud-vue', 'Denominator (the whole)') }}</label>
+			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
 			<CnFilterRowsEditor :value="denominatorRows" :fields="availableFields" @input="onRows('denominatorRows', $event)" />
 		</template>
 		<CnFilterRowsEditor v-else :value="filterRows" :fields="availableFields" @input="onRows('filterRows', $event)" />
@@ -235,8 +241,9 @@ export default {
 				divisor: Number.isFinite(src.divisor) ? src.divisor : 100,
 			},
 			filterRows: filterToRows(src.filter || {}),
-			numeratorRows: filterToRows((src.numerator && src.numerator.filter) || {}),
-			denominatorRows: filterToRows((src.denominator && src.denominator.filter) || {}),
+			numeratorRows: filterToRows((src.numerator && src.numerator.filter) || (src.parts && src.parts.A && src.parts.A.filter) || {}),
+			denominatorRows: filterToRows((src.denominator && src.denominator.filter) || (src.parts && src.parts.B && src.parts.B.filter) || {}),
+			formula: src.formula ?? 'A/B*100',
 			availableFields: [],
 		}
 	},
@@ -253,7 +260,7 @@ export default {
 	computed: {
 		/** Source-kind options. */
 		kindOptions() {
-			return ['aggregate', 'ratio', 'weighted']
+			return ['aggregate', 'ratio', 'computed', 'weighted']
 		},
 		/** Aggregation metric options. */
 		metricOptions() {
@@ -279,6 +286,16 @@ export default {
 					field: this.field,
 					numerator: { filter: rowsToFilter(this.numeratorRows) },
 					denominator: { filter: rowsToFilter(this.denominatorRows) },
+				}
+			} else if (this.kind === 'computed') {
+				source = {
+					...base,
+					kind: 'computed',
+					formula: this.formula,
+					parts: {
+						A: { metric: this.metric, field: this.field, filter: rowsToFilter(this.numeratorRows) },
+						B: { metric: this.metric, field: this.field, filter: rowsToFilter(this.denominatorRows) },
+					},
 				}
 			} else if (this.kind === 'weighted') {
 				source = {
@@ -315,6 +332,7 @@ export default {
 		/** Human label for a source kind. */
 		kindLabel(id) {
 			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
+			if (id === 'computed') return t('nextcloud-vue', 'Formula')
 			if (id === 'weighted') return t('nextcloud-vue', 'Weighted sum')
 			return t('nextcloud-vue', 'Aggregate')
 		},

@@ -8,11 +8,14 @@
  * OpenRegister.
  *
  * Supported tokens:
- *  - `@me`            → the current Nextcloud user id (`window.OC.currentUser`)
- *  - `@now`           → the current instant, ISO-8601
- *  - `@today`         → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
- *  - `@today±Nd`      → N days from today (e.g. `@today-7d`, `@today+30d`)
- *  - `@monthStart`    → first day of the current month, `YYYY-MM-DD`
+ *  - `@me`                → the current Nextcloud user id (`window.OC.currentUser`)
+ *  - `@now`               → the current instant, ISO-8601
+ *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
+ *  - `@today±Nd`          → N days from today (e.g. `@today-7d`, `@today+30d`)
+ *  - `@monthStart`        → first day of the current month, `YYYY-MM-DD`
+ *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
+ *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
+ *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
  *
  * @module utils/resolveFilterTokens
  */
@@ -49,6 +52,15 @@ export function resolveFilterValue(v) {
 	}
 	if (v === '@monthStart') {
 		return ymd(new Date(now.getFullYear(), now.getMonth(), 1))
+	}
+	if (v === '@quarterStart') {
+		return ymd(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1))
+	}
+	if (v === '@yearStart') {
+		return ymd(new Date(now.getFullYear(), 0, 1))
+	}
+	if (v === '@currentFiscalYear') {
+		return String(now.getFullYear())
 	}
 	const m = v.match(/^@today([+-]\d+)d$/)
 	if (m) {

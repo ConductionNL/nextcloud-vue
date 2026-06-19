@@ -228,6 +228,15 @@ export default {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
 					this.value = (den && Number(den) !== 0) ? (Number(num) / Number(den)) * 100 : null
+				} else if (s.kind === 'computed') {
+					// Fetch each named part, then evaluate the formula over them.
+					const { evalFormula } = await import('../../utils/evalFormula.js')
+					const parts = s.parts || {}
+					const vars = {}
+					for (const [name, p] of Object.entries(parts)) {
+						vars[name] = Number(await this.fetchAggregate(axios, generateUrl, s, p.metric || 'count', p.field, p.filter || {})) || 0
+					}
+					this.value = evalFormula(s.formula || '', vars)
 				} else if (s.kind === 'weighted') {
 					this.value = await this.fetchWeighted(axios, generateUrl, s)
 				} else {
