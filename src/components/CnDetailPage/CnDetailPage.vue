@@ -209,13 +209,26 @@
 						:name="`widget-${item.widgetId}`"
 						:item="item"
 						:widget="findWidget(item)">
+						<!-- `type: 'data'` widget: render the schema-driven data
+						     widget with the page's loaded object + the def's
+						     per-property overrides. Lets a detail page compose the
+						     data widget into a grid (instead of the auto-body). -->
+						<CnObjectDataWidget
+							v-if="isDataWidget(item) && currentSchema"
+							:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+							:schema="currentSchema"
+							:object-data="currentObject"
+							:object-type="resolvedObjectType"
+							:store="effectiveObjectStore"
+							:overrides="widgetContentFor(item).overrides || {}"
+							:columns="widgetContentFor(item).columns || 3" />
 						<!-- Fallback for `type: 'integration'` widget defs:
 						     render the registry widget on the detail-page
 						     surface. A consumer-supplied #widget-<id> slot
 						     still overrides this. -->
 						<component
 							:is="resolveIntegrationWidget(item)"
-							v-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
+							v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 							v-bind="getIntegrationProps(item)" />
 						<!-- Fallback for content-driven catalog widgets
 						     (stat / chart / delta / gauge / object-list / …):
@@ -1337,6 +1350,18 @@ export default {
 				...(this.integrationContext || derivedContext),
 				...(def?.props || {}),
 			}
+		},
+
+		/**
+		 * Whether a grid item is a schema-driven `data` widget — rendered via
+		 * CnObjectDataWidget with the page's loaded object + the def's overrides.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'data'`.
+		 */
+		isDataWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'data'
 		},
 
 		/**

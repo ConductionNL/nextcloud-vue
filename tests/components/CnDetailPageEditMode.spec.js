@@ -73,4 +73,20 @@ describe('CnDetailPage OpenBuild edit mode', () => {
 		expect(w.vm.widgetContentFor({ widgetId: 'kpi' })).toEqual({ label: 'Revenue' })
 		expect(w.vm.widgetContentFor({ widgetId: 'plain' })).toEqual({})
 	})
+
+	it('identifies a type:data widget for schema-driven grid rendering', () => {
+		const w = shallowMount(CnDetailPage, {
+			propsData: {
+				title: 'Detail',
+				widgets: [{ id: 'main', title: 'Details', type: 'data', content: { columns: 2 } }, { id: 'kpi', type: 'test-stat' }],
+				layout: [{ id: 1, widgetId: 'main', gridX: 0, gridY: 0, gridWidth: 12 }],
+			},
+			provide: { cnEditingBody: ref(false) },
+			stubs: { CnWidgetStyleEditorModal: true },
+		})
+		expect(w.vm.isDataWidget({ widgetId: 'main' })).toBe(true)
+		expect(w.vm.isDataWidget({ widgetId: 'kpi' })).toBe(false)
+		// data is excluded from the generic registry-renderer fallback (it has its own branch)
+		expect(w.vm.registryRendererFor({ widgetId: 'main' })).toBeNull()
+	})
 })
