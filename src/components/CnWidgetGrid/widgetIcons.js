@@ -39,6 +39,8 @@ import CashMultipleIcon from 'vue-material-design-icons/CashMultiple.vue'
 import CurrencyEurIcon from 'vue-material-design-icons/CurrencyEur.vue'
 import TrophyIcon from 'vue-material-design-icons/Trophy.vue'
 import TrendingUpIcon from 'vue-material-design-icons/TrendingUp.vue'
+import TrendingDownIcon from 'vue-material-design-icons/TrendingDown.vue'
+import GaugeIcon from 'vue-material-design-icons/Gauge.vue'
 import ChartLineIcon from 'vue-material-design-icons/ChartLine.vue'
 import ScaleBalanceIcon from 'vue-material-design-icons/ScaleBalance.vue'
 import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
@@ -73,6 +75,8 @@ export const DASHBOARD_ICONS = Object.freeze({
 	CurrencyEur: CurrencyEurIcon,
 	Trophy: TrophyIcon,
 	TrendingUp: TrendingUpIcon,
+	TrendingDown: TrendingDownIcon,
+	Gauge: GaugeIcon,
 	ChartLine: ChartLineIcon,
 	ScaleBalance: ScaleBalanceIcon,
 	FilterVariant: FilterVariantIcon,
