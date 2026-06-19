@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # Dialog System — Components Spec
