@@ -54,6 +54,38 @@ registerDashboardWidget('chart', {
 	icon: 'ChartLine',
 })
 
+// `stats-block` (single-count KPI card) renders through CnDashboardPage's
+// isStatsBlock() branch (CnStatsBlockWidget) — registered here only so the cog
+// editor + Add-widget get a config FORM. `table` aliases the object-list
+// renderer/form for legacy manifests that use type:'table'.
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
+import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
+import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+
+registerDashboardWidget('stats-block', {
+	renderer: CnStatsBlockWidget,
+	form: CnStatsBlockWidgetForm,
+	defaultContent: {
+		title: '',
+		props: { countLabel: '', variant: 'default', iconClass: '' },
+		dataSource: { register: '', schema: '', metric: 'count', field: '', filter: {} },
+	},
+	displayName: 'Statistic card',
+	icon: 'ChartBar',
+})
+
+registerDashboardWidget('table', {
+	renderer: CnObjectListWidget2,
+	form: CnObjectListWidgetForm2,
+	defaultContent: {
+		register: '', schema: '', filter: {}, sort: { field: '', dir: 'asc' }, limit: 10,
+		columns: [{ key: 'title', label: 'Title' }],
+	},
+	displayName: 'Table',
+	icon: 'ClipboardList',
+})
+
 /**
  * Explicit no-op that guarantees this module (and therefore every widget's
  * self-registration side effect) is evaluated. Call it once at app bootstrap if

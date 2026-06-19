@@ -942,6 +942,20 @@ export default {
 		 */
 		configWidget() {
 			const def = this.getWidgetDef(this.configWidgetId) || {}
+			// Bridge legacy data-driven widgets (chart / stats-block / table that
+			// carry top-level `props` + `dataSource` instead of `content`) into a
+			// `content` shape so their config form pre-fills. Once saved, the
+			// content-aware getters take over.
+			let content = def.content || {}
+			if ((!content || Object.keys(content).length === 0) && (def.props || def.dataSource)) {
+				content = {}
+				if (def.title) content.title = def.title
+				if (def.props) {
+					content.props = def.props
+					if (def.props.chartKind) content.chartKind = def.props.chartKind
+				}
+				if (def.dataSource) content.dataSource = def.dataSource
+			}
 			return {
 				id: def.id || this.configWidgetId,
 				type: def.type || '',
@@ -950,7 +964,7 @@ export default {
 				showTitle: def.showTitle !== false,
 				customTitle: def.customTitle || '',
 				customIcon: def.customIcon || '',
-				content: def.content || {},
+				content,
 			}
 		},
 
@@ -1661,8 +1675,11 @@ export default {
 		 */
 		getStatsBlockProps(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const props = def?.props || {}
-			const out = { title: def?.title || item.widgetId }
+			// In-app-editable cards carry config in `content` (set by
+			// CnStatsBlockWidgetForm); legacy manifests use top-level props.
+			const content = def?.content || {}
+			const props = content.props || def?.props || {}
+			const out = { title: content.title || def?.title || item.widgetId }
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
