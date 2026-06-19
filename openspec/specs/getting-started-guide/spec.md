@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # getting-started-guide Specification

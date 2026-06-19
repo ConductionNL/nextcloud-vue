@@ -90,6 +90,11 @@
 		"observability": {
 			"$ref": "#/$defs/observability",
 			"description": "Declarative observability block (ADR-040). Consumed at request time by the OpenRegister AppHost observability engine (GenericHealthController + GenericMetricsController), NOT by the Vue renderer. Declares the app's health checks and Prometheus metric descriptors so adopting apps ship zero hand-written observability PHP while keeping their /api/health + /api/metrics URLs and the ADR-006 contract."
+		},
+		"deepLinks": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/deepLink" },
+			"description": "ADR-040: object deep-link descriptors consumed by the integration registry / cross-app linking, NOT by the Vue renderer. Optional and additive."
 		}
 	},
 	"$defs": {
@@ -967,6 +972,30 @@
 					"type": "string",
 					"minLength": 1,
 					"description": "Nextcloud app id that MUST be installed and enabled for this entry to render."
+				}
+			}
+		},
+		"deepLink": {
+			"type": "object",
+			"additionalProperties": true,
+			"required": ["registerSlug", "schemaSlug", "urlTemplate"],
+			"description": "ADR-040 object deep-link descriptor. Maps an OR register+schema to an in-app URL template so other apps / the integration registry can resolve a deep link to an object. Permissive: extra keys are tolerated for forward-compatibility.",
+			"properties": {
+				"registerSlug": {
+					"type": "string",
+					"description": "OR register slug the deep link targets."
+				},
+				"schemaSlug": {
+					"type": "string",
+					"description": "OR schema slug the deep link targets."
+				},
+				"urlTemplate": {
+					"type": "string",
+					"description": "In-app URL template; {uuid} (and other object placeholders) are substituted at resolve time."
+				},
+				"displayName": {
+					"type": "string",
+					"description": "Human-readable label for the linked object type."
 				}
 			}
 		}
