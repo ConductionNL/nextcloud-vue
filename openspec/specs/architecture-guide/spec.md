@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: done
 ---
 
 # architecture-guide Specification
