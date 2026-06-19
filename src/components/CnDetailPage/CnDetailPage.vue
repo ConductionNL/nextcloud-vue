@@ -344,6 +344,7 @@
 </template>
 
 <script>
+import { provide, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -804,6 +805,15 @@ export default {
 		const { resolveWidget } = useIntegrationRegistry()
 		const registryExposed = { resolveRegistryWidget: resolveWidget }
 
+		// Object context for detail-page abstract widgets (ADR-041): a reactive
+		// `{ objectId, object, register, schema }` holder kept current by the
+		// Options watcher below. Provided so CnObjectListWidget / CnStatWidget
+		// can resolve `@objectId` / `@object.<field>` filter tokens and scope
+		// their query to the object on this page. Null fields until loaded.
+		const cnObjectContext = ref({ objectId: props.objectId || null, object: null, register: props.register || '', schema: props.schema || '' })
+		provide('cnObjectContext', cnObjectContext)
+		registryExposed.cnObjectContextRef = cnObjectContext
+
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
 		// when subscribe is false (read-only / archive views), or when
@@ -1105,6 +1115,14 @@ export default {
 			handler() { this.syncSidebarState() },
 		},
 
+		// Keep the provided object context current so detail-page abstract
+		// widgets (CnObjectListWidget / CnStatWidget) can resolve `@objectId` /
+		// `@object.<field>` tokens against the live object.
+		currentObject: {
+			immediate: true,
+			handler() { this.syncObjectContext() },
+		},
+
 		title() { this.syncSidebarState() },
 		subtitle() { this.syncSidebarState() },
 		objectType() { this.syncSidebarState() },
@@ -1128,6 +1146,7 @@ export default {
 			this.syncSidebarState()
 			this.pushAiContext()
 			this.fetchObjectIfNeeded()
+			this.syncObjectContext()
 		},
 
 		sidebarTabs: {
@@ -1434,6 +1453,23 @@ export default {
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
 			this.cnAiContext.registerSlug = resolved.register || this.register || this.sidebarProps?.register || undefined
 			this.cnAiContext.schemaSlug = resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || undefined
+		},
+
+		/**
+		 * Refresh the provided `cnObjectContext` ref so detail-page abstract
+		 * widgets can resolve `@objectId` / `@object.<field>` filter tokens
+		 * against the current object. No-op when setup() didn't expose the ref
+		 * (standalone / read-only mounts).
+		 */
+		syncObjectContext() {
+			if (!this.cnObjectContextRef) return
+			const resolved = this.resolvedSidebar || {}
+			this.cnObjectContextRef.value = {
+				objectId: this.objectId !== undefined && this.objectId !== null ? String(this.objectId) : null,
+				object: this.currentObject || null,
+				register: resolved.register || this.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+			}
 		},
 
 		/**

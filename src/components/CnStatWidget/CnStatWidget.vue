@@ -67,6 +67,16 @@ export default {
 		NcLoadingIcon,
 	},
 
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, object, register, schema }`)
+		 * provided by CnDetailPage — enables `@objectId` / `@object.<field>`
+		 * filter tokens so a detail-page KPI can be scoped to the current
+		 * object. Null on dashboards (tokens then pass through unresolved).
+		 */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/**
 		 * The widget's persisted configuration blob.
@@ -87,6 +97,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The unwrapped detail-page object context for token resolution, or null
+		 * on surfaces (dashboards) that don't provide one.
+		 *
+		 * @return {object|null}
+		 */
+		objectCtx() {
+			const c = this.cnObjectContext
+			if (!c) return null
+			return (typeof c === 'object' && 'value' in c) ? c.value : c
+		},
 		/** Resolved icon component from the shared widget-icon catalog. */
 		iconComponent() {
 			return this.content.icon ? getIconComponent(this.content.icon) : null
@@ -132,7 +153,7 @@ export default {
 		},
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
-			return JSON.stringify(this.content.source || {})
+			return JSON.stringify({ s: this.content.source || {}, o: this.objectCtx ? this.objectCtx.objectId : null })
 		},
 	},
 
@@ -170,7 +191,7 @@ export default {
 		 */
 		flattenFilter(target, filter) {
 			if (!filter || typeof filter !== 'object') return
-			filter = resolveFilterTokens(filter)
+			filter = resolveFilterTokens(filter, this.objectCtx)
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov

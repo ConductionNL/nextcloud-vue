@@ -46,6 +46,16 @@ export default {
 
 	components: { CnDataTable },
 
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, object, register, schema }`)
+		 * provided by CnDetailPage. Enables `@objectId` / `@object.<field>`
+		 * filter tokens so a detail-page list can be scoped to the current
+		 * object. Null on dashboards (tokens then pass through unresolved).
+		 */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/**
 		 * The widget's persisted configuration blob.
@@ -66,6 +76,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The unwrapped detail-page object context for token resolution, or null
+		 * on surfaces (dashboards) that don't provide one.
+		 *
+		 * @return {object|null}
+		 */
+		objectCtx() {
+			const c = this.cnObjectContext
+			if (!c) return null
+			return (typeof c === 'object' && 'value' in c) ? c.value : c
+		},
 		/** Column definitions normalised to `{ key, label }` for CnDataTable. */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
@@ -86,6 +107,7 @@ export default {
 				filter: c.filter || {},
 				sort: c.sort || {},
 				limit: c.limit || 5,
+				objectId: this.objectCtx ? this.objectCtx.objectId : null,
 			})
 		},
 	},
@@ -133,7 +155,7 @@ export default {
 				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
 				// params (`status=open`, `value[gt]=30000`) — unlike the
 				// aggregation endpoints which use the nested `filter[...]` shape.
-				const filter = resolveFilterTokens(c.filter || {})
+				const filter = resolveFilterTokens(c.filter || {}, this.objectCtx)
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {

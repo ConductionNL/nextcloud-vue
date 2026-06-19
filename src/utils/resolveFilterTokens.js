@@ -16,6 +16,12 @@
  *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
  *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
  *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
+ *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
+ *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
+ *
+ * The last two are OBJECT-CONTEXT tokens: they resolve only when a `ctx`
+ * `{ objectId, object }` is supplied (a detail page provides it via the
+ * `cnObjectContext` inject). Without `ctx` they pass through unchanged.
  *
  * @module utils/resolveFilterTokens
  */
@@ -36,11 +42,21 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {*} v The candidate value.
+ * @param {{objectId?: (string|number), object?: object}} [ctx] Optional
+ *   detail-page object context for `@objectId` / `@object.<field>` tokens.
  * @return {*} The resolved value.
  */
-export function resolveFilterValue(v) {
+export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') return v
 	const now = new Date()
+	if (v === '@objectId') {
+		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
+	}
+	if (v.startsWith('@object.')) {
+		const field = v.slice('@object.'.length)
+		if (ctx && ctx.object && field && ctx.object[field] !== undefined) return ctx.object[field]
+		return v
+	}
 	if (v === '@me') {
 		return (typeof window !== 'undefined' && window.OC && window.OC.currentUser) || ''
 	}
@@ -76,18 +92,21 @@ export function resolveFilterValue(v) {
  * Resolve every dynamic `@`-token in a filter map (equality + operator shapes).
  *
  * @param {object} filter The filter map (`{ field: value | { op: value } }`).
+ * @param {{objectId?: (string|number), object?: object}} [ctx] Optional
+ *   detail-page object context forwarded to {@link resolveFilterValue} for
+ *   `@objectId` / `@object.<field>` tokens.
  * @return {object} A new filter map with tokens resolved.
  */
-export function resolveFilterTokens(filter) {
+export function resolveFilterTokens(filter, ctx) {
 	if (!filter || typeof filter !== 'object') return filter
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object' && !Array.isArray(v)) {
 			const inner = {}
-			for (const [op, ov] of Object.entries(v)) inner[op] = resolveFilterValue(ov)
+			for (const [op, ov] of Object.entries(v)) inner[op] = resolveFilterValue(ov, ctx)
 			out[k] = inner
 		} else {
-			out[k] = resolveFilterValue(v)
+			out[k] = resolveFilterValue(v, ctx)
 		}
 	}
 	return out
