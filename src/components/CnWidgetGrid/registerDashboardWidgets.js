@@ -36,6 +36,7 @@ import '../CnSpendAnalyticsWidget/index.js'
 import '../CnStatWidget/index.js'
 import '../CnDeltaWidget/index.js'
 import '../CnGaugeWidget/index.js'
+import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
 
 // The `chart` type renders through CnDashboardPage's dedicated isChart() branch

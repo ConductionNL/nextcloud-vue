@@ -37,6 +37,7 @@
  * @property {object} defaultContent Initial `content` payload seeded into new placements.
  * @property {string} displayName Human-readable type name shown in the type picker.
  * @property {string} icon Material Design icon name used in the type picker.
+ * @property {string[]} [surfaces] Surfaces this type may be added on (e.g. `['app-dashboard']`, `['detail-page']`). Omitted means the default dashboard surfaces. A detail-only widget (like `data`) sets `['detail-page']` so it never appears in the dashboard Add-widget picker.
  * @property {{graphql?: string[]}} [requires] Soft runtime-source hint for cross-app widgets — names the sibling-app schemas the widget reads. NEVER a `manifest.dependencies` entry.
  */
 
@@ -79,13 +80,18 @@ export function registerDashboardWidget(type, entry) {
  * a null/undefined `form`) are excluded so the user is never offered a type
  * they cannot configure.
  *
+ * @param {string} [surface] Optional surface key to filter by (default
+ *   `'app-dashboard'`). Entries whose `surfaces` excludes it are dropped, so a
+ *   detail-only type (e.g. `data`) never appears in the dashboard picker. Pass
+ *   the matching surface to list detail-page types.
  * @return {string[]} the registered type keys whose entry has a non-null form.
  */
-export function listWidgetTypes() {
+export function listWidgetTypes(surface = 'app-dashboard') {
 	return Object.keys(dashboardWidgetRegistry).filter(
 		(type) => dashboardWidgetRegistry[type]
 			&& dashboardWidgetRegistry[type].form !== null
-			&& dashboardWidgetRegistry[type].form !== undefined,
+			&& dashboardWidgetRegistry[type].form !== undefined
+			&& widgetTypeAllowsSurface(dashboardWidgetRegistry[type], surface),
 	)
 }
 
@@ -98,6 +104,20 @@ export function listWidgetTypes() {
  */
 export function getWidgetTypeEntry(type) {
 	return dashboardWidgetRegistry[type] || null
+}
+
+/**
+ * Whether a registry entry is offerable on a given surface. An entry with no
+ * `surfaces` is offerable everywhere; otherwise the surface must be listed.
+ *
+ * @param {DashboardWidgetEntry} entry the registry entry.
+ * @param {string} surface the surface key (e.g. `'app-dashboard'`, `'detail-page'`).
+ * @return {boolean} true when the entry may be added on that surface.
+ */
+export function widgetTypeAllowsSurface(entry, surface) {
+	if (!entry) return false
+	if (!Array.isArray(entry.surfaces) || entry.surfaces.length === 0) return true
+	return entry.surfaces.includes(surface)
 }
 
 /**

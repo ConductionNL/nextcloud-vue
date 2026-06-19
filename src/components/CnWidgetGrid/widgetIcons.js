@@ -47,6 +47,7 @@ import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import PercentIcon from 'vue-material-design-icons/Percent.vue'
 import AccountIcon from 'vue-material-design-icons/Account.vue'
 import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
+import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
 
 /**
  * Map of icon registry name → Vue component reference. Iteration order is the
@@ -83,6 +84,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	Percent: PercentIcon,
 	Account: AccountIcon,
 	ClipboardList: ClipboardListIcon,
+	TableColumn: TableColumnIcon,
 })
 
 /**
