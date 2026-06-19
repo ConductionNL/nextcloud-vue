@@ -179,6 +179,15 @@
 					class="cn-grid__item cn-detail-page__grid-item"
 					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
 					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+					<!-- In-app edit overlay (ADR-041): a configure cog appears on
+					     widgets that have a registered config form while the page
+					     is in OpenBuild edit mode. The modal's own Delete affordance
+					     covers removal, so no separate remove button here. -->
+					<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+							<template #icon><Cog :size="18" /></template>
+						</NcButton>
+					</div>
 					<h3
 						v-if="item.showTitle !== false && findWidget(item)"
 						:id="`widget-title-${item.id}`"
@@ -189,8 +198,10 @@
 						@slot `widget-${item.widgetId}`
 						@description Per-widget slot whose name is `widget-<widgetId>`. Use
 						it to inject custom widget content into a grid slot. Default
-						fallback for `type: 'integration'` widget defs renders the registry
-						widget; for any other widget type, the slot is empty by default.
+						fallback renders a registry widget: `type: 'integration'` resolves
+						from the integration registry; any other content-driven catalog
+						type (stat / chart / delta / gauge / object-list / …) renders its
+						registered renderer with the widget def's `content`.
 						@binding {object} item Layout item descriptor.
 						@binding {object} widget Resolved widget definition.
 					-->
@@ -206,6 +217,15 @@
 							:is="resolveIntegrationWidget(item)"
 							v-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 							v-bind="getIntegrationProps(item)" />
+						<!-- Fallback for content-driven catalog widgets
+						     (stat / chart / delta / gauge / object-list / …):
+						     render the registered renderer with the def's
+						     `content`. These self-fetch from OpenRegister. -->
+						<component
+							:is="registryRendererFor(item)"
+							v-else-if="registryRendererFor(item)"
+							:content="widgetContentFor(item)"
+							v-bind="widgetContentFor(item)" />
 					</slot>
 				</section>
 			</div>
@@ -308,6 +328,18 @@
 				<slot name="footer" />
 			</div>
 		</div>
+
+		<!-- Per-widget style/config editor (ADR-041). Opened by the per-widget
+		     configure cog while in OpenBuild edit mode; the modal's own Delete
+		     button removes the widget from the grid. -->
+		<CnWidgetStyleEditorModal
+			v-if="showWidgetConfig"
+			:show="showWidgetConfig"
+			:widget="configWidget"
+			:deletable="true"
+			@save="onWidgetConfigSave"
+			@delete="onWidgetConfigDelete"
+			@close="showWidgetConfig = false" />
 	</div>
 </template>
 
@@ -317,11 +349,15 @@ import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -422,6 +458,8 @@ export default {
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
 		CnTranslatedBadge,
+		CnWidgetStyleEditorModal,
+		Cog,
 	},
 
 	mixins: [gridLayout],
@@ -434,6 +472,12 @@ export default {
 		 * in created() and watches for changes. Resets on beforeDestroy().
 		 */
 		cnAiContext: { default: null },
+		/**
+		 * OpenBuild in-app edit state (ADR-041), a ref provided by CnAppRoot /
+		 * the edit button. When truthy, configurable grid widgets show a
+		 * configure cog. Defaults to null (no edit affordance) for standalone use.
+		 */
+		cnEditingBody: { default: null },
 	},
 
 	props: {
@@ -795,6 +839,15 @@ export default {
 		}
 	},
 
+	data() {
+		return {
+			/** Whether the per-widget style/config editor modal is open. */
+			showWidgetConfig: false,
+			/** The widgetId currently being configured via the cog. */
+			configWidgetId: null,
+		}
+	},
+
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
@@ -803,6 +856,29 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * Whether the page is in OpenBuild edit mode — unwraps the injected
+		 * `cnEditingBody` ref (or plain boolean). Drives the per-widget cog.
+		 *
+		 * @return {boolean}
+		 */
+		editingBody() {
+			const e = this.cnEditingBody
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
+
+		/**
+		 * The widget definition currently being configured, shaped for
+		 * `CnWidgetStyleEditorModal` (carries `id`, `type`, `title`, `content`).
+		 *
+		 * @return {object|null}
+		 */
+		configWidget() {
+			if (!this.configWidgetId) return null
+			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			return def || null
+		},
+
 		resolvedPageId() {
 			if (this.pageId) return this.pageId
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -1242,6 +1318,108 @@ export default {
 				...(this.integrationContext || derivedContext),
 				...(def?.props || {}),
 			}
+		},
+
+		/**
+		 * The registered config FORM for a grid item's widget type, or null.
+		 * Used to gate the per-widget configure cog (only configurable widgets
+		 * show one) in OpenBuild edit mode.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The form component, or null.
+		 */
+		registryFormFor(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type) return null
+			const entry = getWidgetTypeEntry(def.type)
+			return (entry && entry.form) || null
+		},
+
+		/**
+		 * The registered RENDERER for a grid item's content-driven catalog
+		 * widget type (stat / chart / delta / gauge / object-list / …), or null.
+		 * Integration widgets resolve separately; the `data` renderer needs
+		 * object context the slot supplies, so it is excluded from this generic
+		 * fallback.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The renderer component, or null.
+		 */
+		registryRendererFor(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
+			const entry = getWidgetTypeEntry(def.type)
+			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * The stored content/config blob for a grid item's catalog widget
+		 * (passed to its renderer).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} The widget def's `content`, or an empty object.
+		 */
+		widgetContentFor(item) {
+			const def = this.findWidget(item)
+			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+		},
+
+		/**
+		 * Open the per-widget style/config editor for a grid item (cog click).
+		 *
+		 * @param {object} item Layout item to configure.
+		 */
+		configureWidget(item) {
+			this.configWidgetId = item.widgetId
+			this.showWidgetConfig = true
+		},
+
+		/**
+		 * Persist the editor's changes onto the matching widget definition IN
+		 * PLACE (so an injected in-place manifest editor picks them up), close
+		 * the modal, and emit `widget-config-change` for consumers that persist
+		 * the page config themselves.
+		 *
+		 * @param {object} edited The widget object mutated by the editor.
+		 *
+		 * @event widget-config-change Emitted after a widget's config is saved.
+		 * @type {object}
+		 */
+		onWidgetConfigSave(edited) {
+			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			if (def) {
+				if (edited.title !== undefined) this.$set(def, 'title', edited.title)
+				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
+				this.$set(def, 'styleConfig', edited.styleConfig || {})
+			}
+			this.showWidgetConfig = false
+			/**
+			 * @event widget-config-change Emitted after a grid widget's config is
+			 * saved via the cog editor, or after the widget is removed (payload
+			 * null). Consumers persist the updated page/widget config.
+			 * @type {object|null}
+			 */
+			this.$emit('widget-config-change', def || null)
+		},
+
+		/**
+		 * Delete from inside the editor — drop the widget def + its layout
+		 * placement and close.
+		 *
+		 * @param {object} _w The widget the editor wants deleted (unused; routed
+		 *   by `configWidgetId`).
+		 *
+		 * @event widget-config-change Emitted after the widget is removed.
+		 * @type {null}
+		 */
+		onWidgetConfigDelete(_w) {
+			const id = this.configWidgetId
+			const wIdx = this.widgets.findIndex((w) => w.id === id)
+			if (wIdx !== -1) this.widgets.splice(wIdx, 1)
+			const lIdx = this.layout.findIndex((l) => l.widgetId === id)
+			if (lIdx !== -1) this.layout.splice(lIdx, 1)
+			this.showWidgetConfig = false
+			this.$emit('widget-config-change', null)
 		},
 
 		/**

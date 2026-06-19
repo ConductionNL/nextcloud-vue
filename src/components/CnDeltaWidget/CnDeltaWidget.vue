@@ -60,7 +60,8 @@ import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
  * Resolved by its registry type key `delta`; reference it from a manifest
  * placement `{ id, type: 'delta', content: { label, source, format, ... } }`.
  *
- * @example
+ * Example content blob:
+ * ```js
  * content: {
  *   label: 'Revenue (MTD)',
  *   icon: 'Cash',
@@ -72,6 +73,7 @@ import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
  *     previous: { filter: { status: 'won', closedAt: { gte: '@monthStart-1mo', lt: '@monthStart' } } },
  *   },
  * }
+ * ```
  */
 export default {
 	name: 'CnDeltaWidget',

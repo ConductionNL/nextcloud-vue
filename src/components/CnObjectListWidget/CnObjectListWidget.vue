@@ -29,7 +29,8 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * through the cog modal (ADR-041). Resolved by its registry type key
  * `object-list`; configured via `CnObjectListWidgetForm`.
  *
- * @example
+ * Example content blob:
+ * ```js
  * content: {
  *   register: 'pipelinq', schema: 'lead',
  *   filter: { status: 'open' },
@@ -38,6 +39,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  *   columns: [{ key: 'title', label: 'Deal' }, { key: 'value', label: 'Value' }],
  *   rowRoute: 'leads-detail',
  * }
+ * ```
  */
 export default {
 	name: 'CnObjectListWidget',

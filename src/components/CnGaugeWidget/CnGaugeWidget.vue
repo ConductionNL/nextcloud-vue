@@ -44,7 +44,8 @@ import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
  * Resolved by its registry type key `gauge`; reference it from a manifest
  * placement `{ id, type: 'gauge', content: { label, source, target, ... } }`.
  *
- * @example
+ * Example content blob:
+ * ```js
  * content: {
  *   label: 'Pipeline coverage',
  *   format: { style: 'currency', currency: 'EUR', decimals: 0 },
@@ -52,6 +53,7 @@ import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
  *   target: { kind: 'static', value: 500000 },
  *   thresholds: { warn: 80, danger: 100, invert: false },
  * }
+ * ```
  */
 export default {
 	name: 'CnGaugeWidget',

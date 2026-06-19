@@ -49,7 +49,8 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * `CnStatWidget/index.js`); apps reference it from a manifest placement, e.g.
  * `{ id, widgetKey: 'stat', type: 'stat', content: { label, source, ... } }`.
  *
- * @example
+ * Example content blob:
+ * ```js
  * content: {
  *   label: 'Revenue',
  *   icon: 'Cash',
@@ -57,6 +58,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  *   format: { style: 'currency', currency: 'EUR', decimals: 0 },
  *   source: { register: 'pipelinq', schema: 'lead', metric: 'sum', field: 'value', filter: { status: 'won' } },
  * }
+ * ```
  */
 export default {
 	name: 'CnStatWidget',
