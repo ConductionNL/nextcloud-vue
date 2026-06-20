@@ -30,6 +30,7 @@
 
 <script>
 import { GridStack } from 'gridstack'
+import { compactEmptyRows } from '../../utils/grid.js'
 import 'gridstack/dist/gridstack.min.css'
 
 /**
@@ -96,6 +97,9 @@ export default {
 	data() {
 		return {
 			grid: null,
+			// Guards re-entrant grid change events while we re-position widgets
+			// to remove emptied rows.
+			compacting: false,
 		}
 	},
 
@@ -149,7 +153,8 @@ export default {
 		},
 
 		handleGridChange(items) {
-			if (!items || items.length === 0) return
+			// Ignore the change event our own compaction re-positioning triggers.
+			if (this.compacting || !items || items.length === 0) return
 
 			const updated = this.layout.map(item => {
 				const gridItem = items.find(gi => String(gi.id) === String(item.id))
@@ -165,7 +170,36 @@ export default {
 				return item
 			})
 
+			// Remove rows that became empty (e.g. a widget dragged out of a row),
+			// shifting everything below up so no dead vertical gap is left.
+			const { layout: compacted, changed } = compactEmptyRows(updated)
+			if (changed) {
+				this.applyRowPositions(compacted)
+				this.$emit('layout-change', compacted)
+				return
+			}
+
 			this.$emit('layout-change', updated)
+		},
+
+		/**
+		 * Push the compacted `gridY` values back into GridStack so the visual
+		 * grid reflects the removed empty rows. Guarded so the resulting change
+		 * event doesn't recurse into `handleGridChange`.
+		 *
+		 * @param {Array} compacted The layout with empty rows removed.
+		 * @return {void}
+		 */
+		applyRowPositions(compacted) {
+			if (!this.grid) return
+			this.compacting = true
+			this.grid.batchUpdate()
+			for (const item of compacted) {
+				const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
+				if (el) this.grid.update(el, { y: item.gridY })
+			}
+			this.grid.commit()
+			this.$nextTick(() => { this.compacting = false })
 		},
 
 		syncGridItems(newLayout) {

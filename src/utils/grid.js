@@ -62,3 +62,44 @@ export function cnGridCellStyle(item = {}, columns = GRID_COLUMNS) {
 export function hasGridRow(item = {}) {
 	return item.gridY !== undefined && Boolean(item.gridHeight)
 }
+
+/**
+ * Collapse fully-empty grid rows by shifting every widget up past the empty
+ * bands above it. A "row" is a horizontal cell band (`gridY`); a row is empty
+ * only when NO widget covers any of its columns. This preserves each widget's
+ * column (`gridX`) and any intentional horizontal gaps within a row — it only
+ * removes whole empty rows (the dead vertical space left when a widget is
+ * removed or moved out of a row). Leading empty rows at the top are removed
+ * too, so the grid always starts at row 0.
+ *
+ * @param {Array<{gridY?: number, gridHeight?: number}>} layout The layout placements.
+ * @return {{layout: Array, changed: boolean}} The compacted layout and whether anything moved.
+ */
+export function compactEmptyRows(layout) {
+	if (!Array.isArray(layout) || layout.length === 0) {
+		return { layout, changed: false }
+	}
+	const maxRow = layout.reduce((m, i) => Math.max(m, (i.gridY || 0) + (i.gridHeight || 1)), 0)
+	// Mark every row that any widget occupies.
+	const occupied = new Array(maxRow).fill(false)
+	for (const i of layout) {
+		const y = i.gridY || 0
+		const h = i.gridHeight || 1
+		for (let r = y; r < y + h && r < maxRow; r++) occupied[r] = true
+	}
+	// emptyAbove[r] = number of empty rows strictly above row r.
+	const emptyAbove = new Array(maxRow + 1).fill(0)
+	let count = 0
+	for (let r = 0; r <= maxRow; r++) {
+		emptyAbove[r] = count
+		if (r < maxRow && !occupied[r]) count++
+	}
+	let changed = false
+	const out = layout.map((i) => {
+		const y = i.gridY || 0
+		const ny = y - emptyAbove[y]
+		if (ny !== y) changed = true
+		return ny === y ? i : { ...i, gridY: ny }
+	})
+	return { layout: out, changed }
+}

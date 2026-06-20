@@ -426,6 +426,7 @@ import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { compactEmptyRows } from '../../utils/grid.js'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
@@ -1581,6 +1582,12 @@ export default {
 			if (Array.isArray(this.widgets)) {
 				const wIdx = this.widgets.findIndex((w) => w.id === id)
 				if (wIdx !== -1) this.widgets.splice(wIdx, 1)
+			}
+			// Removing a widget may leave its row empty — collapse any empty rows
+			// so no dead vertical gap is left behind (writes gridY back in place).
+			const { layout: compacted, changed } = compactEmptyRows(this.layout)
+			if (changed) {
+				compacted.forEach((c, idx) => { this.$set(this.layout, idx, c) })
 			}
 			this.$emit('layout-change', this.layout)
 		},
