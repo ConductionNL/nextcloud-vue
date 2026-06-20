@@ -16,3 +16,9 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | `placement` | `object`  |          | `\{\}`  | Placement entity; its `id` scopes the host Files endpoint.                                                                                                                          |
 | `isAdmin`   | `boolean` |          | `false` | Whether the dashboard shell is in admin mode.                                                                                                                                       |
 | `canEdit`   | `boolean` |          | `false` | Whether the dashboard shell is in edit mode.                                                                                                                                        |
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `apiBase` | String | `/apps/files` | App base for the host files-widget endpoints (`{apiBase}/api/widgets/files/{placementId}/...`). Set to point the widget at a consuming app's backend (e.g. `/apps/mydash`). |

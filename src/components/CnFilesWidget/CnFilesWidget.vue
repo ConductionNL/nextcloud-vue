@@ -218,6 +218,18 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/**
+		 * App base for the host's files-widget endpoints
+		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
+		 * app point the widget at its own backend (e.g. `/apps/mydash`).
+		 * Defaults to `/apps/files`.
+		 *
+		 * @type {string}
+		 */
+		apiBase: {
+			type: String,
+			default: '/apps/files',
+		},
 	},
 
 	data() {
@@ -375,7 +387,7 @@ export default {
 				])
 
 				const url = generateUrl(
-					'/apps/files/api/widgets/files/{placementId}/contents',
+					`${this.apiBase}/api/widgets/files/{placementId}/contents`,
 					{ placementId: this.placementId },
 				)
 				const params = {
@@ -541,7 +553,7 @@ export default {
 				])
 
 				const url = generateUrl(
-					'/apps/files/api/widgets/files/{placementId}/files/{fileId}',
+					`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
 					{ placementId: this.placementId, fileId: target.fileId },
 				)
 				await axios.delete(url)
@@ -588,7 +600,7 @@ export default {
 				])
 
 				const url = generateUrl(
-					'/apps/files/api/widgets/files/{placementId}/upload',
+					`${this.apiBase}/api/widgets/files/{placementId}/upload`,
 					{ placementId: this.placementId },
 				)
 				await axios.post(url, formData, {
