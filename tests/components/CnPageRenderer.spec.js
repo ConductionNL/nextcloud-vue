@@ -100,8 +100,24 @@ const sampleManifest = {
 				mode: 'public',
 			},
 		},
+		{
+			id: 'clients',
+			route: '/clients',
+			type: 'index',
+			title: 'app.clients',
+			config: { register: 'pipelinq', schema: 'client', createOverride: 'createClientContactAware' },
+		},
+		{
+			id: 'clients-bad-override',
+			route: '/clients-bad',
+			type: 'index',
+			title: 'app.clients',
+			config: { register: 'pipelinq', schema: 'client', createOverride: 'doesNotExist' },
+		},
 	],
 }
+
+const createClientContactAware = jest.fn().mockResolvedValue({ id: 'c-1' })
 
 const defaultRegistry = () => ({
 	SettingsPage: SettingsPageStub,
@@ -109,6 +125,7 @@ const defaultRegistry = () => ({
 	MyActions: ActionsStub,
 	CreateDialog: CreateDialogStub,
 	FormFields: FormFieldsStub,
+	createClientContactAware,
 })
 
 function mountRenderer(routeName, {
@@ -833,6 +850,36 @@ describe('CnPageRenderer', () => {
 			expect(props.showAdd).toBeUndefined()
 			expect(props.selectable).toBeUndefined()
 			expect(props.register).toBe('x')
+		})
+	})
+
+	describe('config.createOverride name resolution', () => {
+		// Stub the `index` page type so reading resolvedProps doesn't mount the
+		// real CnIndexPage (which boots a pinia store in self-fetch mode).
+		const IndexStub = { name: 'IndexStub', template: '<div class="index-stub" />' }
+
+		function mountClients(routeName) {
+			return shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: sampleManifest,
+					customComponents: defaultRegistry(),
+					translate: (k) => k,
+					pageTypes: { index: IndexStub },
+				},
+				mocks: { $route: { name: routeName, params: {} } },
+			})
+		}
+
+		it('resolves a string config.createOverride to the registered function', () => {
+			const props = mountClients('clients').vm.resolvedProps
+			expect(typeof props.createOverride).toBe('function')
+			expect(props.createOverride).toBe(createClientContactAware)
+		})
+
+		it('drops an unresolved createOverride name (with a warn) instead of forwarding the string', () => {
+			const props = mountClients('clients-bad-override').vm.resolvedProps
+			expect(props.createOverride).toBeUndefined()
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('createOverride'))
 		})
 	})
 
