@@ -1,0 +1,363 @@
+<!--
+  SPDX-FileCopyrightText: 2026 Conduction B.V.
+  SPDX-License-Identifier: EUPL-1.2
+-->
+<template>
+	<div class="cn-stat-widget">
+		<div
+			v-if="iconComponent"
+			class="cn-stat-widget__icon"
+			:style="iconCircleStyle">
+			<component :is="iconComponent" :size="24" />
+		</div>
+
+		<div class="cn-stat-widget__body">
+			<div v-if="content.label" class="cn-stat-widget__label">
+				{{ content.label }}
+			</div>
+
+			<div class="cn-stat-widget__value-row">
+				<NcLoadingIcon v-if="loading" :size="22" />
+				<span v-else-if="error" class="cn-stat-widget__error" :title="error">—</span>
+				<span v-else class="cn-stat-widget__value" :style="valueStyle">
+					{{ formattedValue }}
+				</span>
+				<span v-if="!loading && !error && content.caption" class="cn-stat-widget__caption">
+					{{ content.caption }}
+				</span>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+import { NcLoadingIcon } from '@nextcloud/vue'
+import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+
+/**
+ * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
+ *
+ * Reads ONE scalar value from OpenRegister's ad-hoc aggregation endpoint
+ * (`/apps/openregister/api/objects/aggregations/{register}/{schema}/value`)
+ * given a `source` config (register, schema, metric, field, filter) and renders
+ * it with a configurable label, icon, value colour, and number format. Nothing
+ * about the data or presentation is hard-coded — every fleet app gets the same
+ * editable KPI tile, replacing per-app coded KPI components (ADR-041).
+ *
+ * The widget is resolved by its registry type key `stat` (see
+ * `CnStatWidget/index.js`); apps reference it from a manifest placement, e.g.
+ * `{ id, widgetKey: 'stat', type: 'stat', content: { label, source, ... } }`.
+ *
+ * Example content blob:
+ * ```js
+ * content: {
+ *   label: 'Revenue',
+ *   icon: 'Cash',
+ *   valueColor: '#0082c9',
+ *   format: { style: 'currency', currency: 'EUR', decimals: 0 },
+ *   source: { register: 'pipelinq', schema: 'lead', metric: 'sum', field: 'value', filter: { status: 'won' } },
+ * }
+ * ```
+ */
+export default {
+	name: 'CnStatWidget',
+
+	components: {
+		NcLoadingIcon,
+	},
+
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, object, register, schema }`)
+		 * provided by CnDetailPage — enables `@objectId` / `@object.<field>`
+		 * filter tokens so a detail-page KPI can be scoped to the current
+		 * object. Null on dashboards (tokens then pass through unresolved).
+		 */
+		cnObjectContext: { default: null },
+	},
+
+	props: {
+		/**
+		 * The widget's persisted configuration blob.
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}}}
+		 */
+		content: {
+			type: Object,
+			default: () => ({}),
+		},
+	},
+
+	data() {
+		return {
+			value: null,
+			loading: false,
+			error: '',
+		}
+	},
+
+	computed: {
+		/**
+		 * The unwrapped detail-page object context for token resolution, or null
+		 * on surfaces (dashboards) that don't provide one.
+		 *
+		 * @return {object|null}
+		 */
+		objectCtx() {
+			const c = this.cnObjectContext
+			if (!c) return null
+			return (typeof c === 'object' && 'value' in c) ? c.value : c
+		},
+		/** Resolved icon component from the shared widget-icon catalog. */
+		iconComponent() {
+			return this.content.icon ? getIconComponent(this.content.icon) : null
+		},
+		/** Inline style for the icon circle (tinted with iconColor). */
+		iconCircleStyle() {
+			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
+			return { color, backgroundColor: this.tint(color) }
+		},
+		/** Inline style for the value text (the configurable primary colour). */
+		valueStyle() {
+			return this.content.valueColor ? { color: this.content.valueColor } : {}
+		},
+		/** The formatted value string per the content.format spec. */
+		formattedValue() {
+			if (this.value === null || this.value === undefined) return '—'
+			const fmt = this.content.format || {}
+			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
+			let num = Number(this.value)
+			if (!Number.isFinite(num)) return String(this.value)
+
+			let body
+			if (fmt.style === 'currency') {
+				body = new Intl.NumberFormat(undefined, {
+					style: 'currency',
+					currency: fmt.currency || 'EUR',
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			} else if (fmt.style === 'percent') {
+				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num) + '%'
+			} else {
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			}
+			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+		},
+		/** Stable signature of the data source so the watcher only refetches on real change. */
+		sourceKey() {
+			return JSON.stringify({ s: this.content.source || {}, o: this.objectCtx ? this.objectCtx.objectId : null })
+		},
+	},
+
+	watch: {
+		sourceKey() {
+			this.fetchValue()
+		},
+	},
+
+	mounted() {
+		this.fetchValue()
+	},
+
+	methods: {
+		/**
+		 * Derive a faint background tint for the icon circle from a colour.
+		 * Falls back to the NC light primary token for CSS variables / unknowns.
+		 *
+		 * @param {string} color The base colour (hex or CSS var).
+		 * @return {string} A translucent or token background.
+		 */
+		tint(color) {
+			if (typeof color === 'string' && /^#([0-9a-f]{6})$/i.test(color)) {
+				return color + '1f' // ~12% alpha
+			}
+			return 'var(--color-primary-element-light, rgba(0,130,201,0.1))'
+		},
+		/**
+		 * Flatten a filter map into `filter[key]=value` / `filter[key][op]=value`
+		 * query params (operator-aware, matching the OpenRegister vocabulary).
+		 *
+		 * @param {object} target The params object to write into.
+		 * @param {object} filter The filter map.
+		 * @return {void}
+		 */
+		flattenFilter(target, filter) {
+			if (!filter || typeof filter !== 'object') return
+			filter = resolveFilterTokens(filter, this.objectCtx)
+			for (const [k, v] of Object.entries(filter)) {
+				if (v && typeof v === 'object') {
+					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov
+				} else if (v !== '' && v !== null && v !== undefined) {
+					target[`filter[${k}]`] = v
+				}
+			}
+		},
+		/**
+		 * Fetch one scalar from the OpenRegister `/value` aggregation endpoint.
+		 *
+		 * @param {Function} axios The axios instance.
+		 * @param {Function} generateUrl The router helper.
+		 * @param {object} s The source (register/schema).
+		 * @param {string} metric The aggregation metric.
+		 * @param {?string} field The numeric field (non-count metrics).
+		 * @param {object} filter The filter map.
+		 * @return {Promise<number|null>} The aggregated value.
+		 */
+		async fetchAggregate(axios, generateUrl, s, metric, field, filter) {
+			const url = generateUrl(
+				'/apps/openregister/api/objects/aggregations/{register}/{schema}/value',
+				{ register: s.register, schema: s.schema },
+			)
+			const params = { metric: metric || 'count' }
+			if (field) params.field = field
+			this.flattenFilter(params, filter)
+			const res = await axios.get(url, { params })
+			return res?.data?.value ?? null
+		},
+		/**
+		 * Resolve the widget's value from its `source`. Supports three source
+		 * kinds (ADR-041): a plain `aggregate` (count/sum/avg/min/max with
+		 * operator filters), a `ratio` (numerator ÷ denominator × 100, e.g. a
+		 * win-rate), and a `weighted` sum (Σ field × weightField ÷ divisor,
+		 * computed client-side over the fetched objects). Lazily imports
+		 * axios/router (same pattern as CnFilesWidget).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchValue() {
+			const s = this.content.source || {}
+			if (!s.register || !s.schema) {
+				this.value = null
+				this.error = ''
+				return
+			}
+			this.loading = true
+			this.error = ''
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+
+				if (s.kind === 'ratio') {
+					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
+					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
+					this.value = (den && Number(den) !== 0) ? (Number(num) / Number(den)) * 100 : null
+				} else if (s.kind === 'computed') {
+					// Fetch each named part, then evaluate the formula over them.
+					const { evalFormula } = await import('../../utils/evalFormula.js')
+					const parts = s.parts || {}
+					const vars = {}
+					for (const [name, p] of Object.entries(parts)) {
+						vars[name] = Number(await this.fetchAggregate(axios, generateUrl, s, p.metric || 'count', p.field, p.filter || {})) || 0
+					}
+					this.value = evalFormula(s.formula || '', vars)
+				} else if (s.kind === 'weighted') {
+					this.value = await this.fetchWeighted(axios, generateUrl, s)
+				} else {
+					this.value = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, s.filter || {})
+				}
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+				this.value = null
+			} finally {
+				this.loading = false
+			}
+		},
+		/**
+		 * Compute a weighted sum `Σ (field × weightField) ÷ divisor` client-side
+		 * (no OpenRegister expression-aggregation primitive yet). Pulls the
+		 * matching objects (capped at `limit`, default 1000) and folds them.
+		 *
+		 * @param {Function} axios The axios instance.
+		 * @param {Function} generateUrl The router helper.
+		 * @param {object} s The weighted source `{ field, weightField, divisor?, filter?, limit? }`.
+		 * @return {Promise<number|null>} The weighted sum.
+		 */
+		async fetchWeighted(axios, generateUrl, s) {
+			if (!s.field || !s.weightField) return null
+			const url = generateUrl(
+				'/apps/openregister/api/objects/{register}/{schema}',
+				{ register: s.register, schema: s.schema },
+			)
+			const params = { _limit: s.limit || 1000 }
+			this.flattenFilter(params, s.filter || {})
+			const res = await axios.get(url, { params })
+			const rows = (res && res.data && res.data.results) || []
+			const divisor = Number(s.divisor) || 1
+			let sum = 0
+			for (const r of rows) {
+				const v = Number(r[s.field])
+				const w = Number(r[s.weightField])
+				if (Number.isFinite(v) && Number.isFinite(w)) sum += (v * w) / divisor
+			}
+			return sum
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-stat-widget {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 8px 4px;
+	min-height: 64px;
+}
+
+.cn-stat-widget__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.cn-stat-widget__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-stat-widget__label {
+	font-size: 0.95em;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-stat-widget__value-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.cn-stat-widget__value {
+	font-size: 1.8em;
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--color-primary-element);
+}
+
+.cn-stat-widget__caption {
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-stat-widget__error {
+	font-size: 1.8em;
+	font-weight: 700;
+	color: var(--color-text-maxcontrast);
+}
+</style>

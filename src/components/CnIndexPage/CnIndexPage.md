@@ -376,6 +376,14 @@ export default {
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
+| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. |
+| `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
+| `cardsLabel` | String | `''` | Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles"). |
+| `tableLabel` | String | `''` | Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List"). |
+| `cardsIcon` | String | `''` | MDI icon name for the cards view-toggle option (manifest `config.cardsIcon`). |
+| `tableIcon` | String | `''` | MDI icon name for the table view-toggle option (manifest `config.tableIcon`). |
+| `filterMenu` | Boolean | `false` | Show a filter menu (funnel button) in the table header listing each enum/badge column's values as toggleable facet filters — a compact alternative to the facet sidebar. Fed from the manifest as `pages[].config.filterMenu`. |
+| `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a toggleable checkbox — a compact, in-table alternative to the sidebar's Columns tab. Fed from the manifest as `pages[].config.columnMenu`. |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the refresh button is disabled |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |

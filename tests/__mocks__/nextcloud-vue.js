@@ -20,12 +20,14 @@ const createStub = (name) => ({
 })
 
 export const NcDialog = createStub('NcDialog')
+export const NcModal = createStub('NcModal')
 export const NcButton = createStub('NcButton')
 export const NcNoteCard = createStub('NcNoteCard')
 export const NcLoadingIcon = createStub('NcLoadingIcon')
 export const NcTextField = createStub('NcTextField')
 export const NcTextArea = createStub('NcTextArea')
 export const NcCheckboxRadioSwitch = createStub('NcCheckboxRadioSwitch')
+export const NcColorPicker = createStub('NcColorPicker')
 export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
 export const NcContent = createStub('NcContent')
@@ -66,12 +68,14 @@ export const NcDateTime = {
 
 export default {
 	NcDialog,
+	NcModal,
 	NcButton,
 	NcNoteCard,
 	NcLoadingIcon,
 	NcTextField,
 	NcTextArea,
 	NcCheckboxRadioSwitch,
+	NcColorPicker,
 	NcAppNavigation,
 	NcAppNavigationItem,
 	NcContent,
