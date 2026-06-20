@@ -337,7 +337,7 @@
 							:object-type="resolvedObjectType"
 							:store="effectiveObjectStore" />
 					</div>
-					<div class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+					<div v-if="showRelatedObjects" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
 						<CnRelatedObjectsWidget
 							:object-type="resolvedObjectType"
 							:object-id="objectId"
@@ -755,6 +755,19 @@ export default {
 		 * @type {boolean}
 		 */
 		subscribe: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Whether the schema-driven auto-body renders the related-objects widget
+		 * beneath the data widget. Defaults to true (back-compat). Set false on a
+		 * page that surfaces relations elsewhere (e.g. in the sidebar) to drop the
+		 * "Related" section from the body.
+		 *
+		 * @type {boolean}
+		 */
+		showRelatedObjects: {
 			type: Boolean,
 			default: true,
 		},
