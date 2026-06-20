@@ -46,10 +46,13 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:show-sidebar-toggle="hasSidebar"
+			:sidebar-open="sidebarOpen"
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
+			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
@@ -365,6 +368,7 @@
 		     here so the legacy contract still works. -->
 		<CnIndexSidebar
 			v-if="shouldRenderInlineSidebar"
+			:open="sidebarOpen"
 			:schema="effectiveSchema"
 			:title="title"
 			:icon="resolvedIcon"
@@ -375,6 +379,7 @@
 			:facet-data="resolvedSidebar.facets || {}"
 			:show-metadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
+			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columns-change="onColumnsEvent"
 			@filter-change="onFilterEvent" />
@@ -1181,6 +1186,10 @@ export default {
 			// Drives the Actions-menu Refresh spinner during a self-fetch
 			// refresh, where the host has no promise to bind `:refreshing` to.
 			internalRefreshing: false,
+			// Search/Columns sidebar open state. Defaults closed so the page
+			// content (table / cards) starts at the top and fills the width;
+			// opened on demand via the actions-bar toggle.
+			sidebarOpen: false,
 		}
 	},
 
@@ -1465,6 +1474,17 @@ export default {
 			return { enabled: false }
 		},
 
+		/**
+		 * Whether a Search/Columns sidebar is configured for this page (mirrors
+		 * the mount gate used by `shouldRenderInlineSidebar` /
+		 * `publishHoistedSidebar`). Drives the actions-bar toggle visibility.
+		 *
+		 * @return {boolean}
+		 */
+		hasSidebar() {
+			return !!this.resolvedSidebar.enabled && this.resolvedSidebar.show !== false
+		},
+
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
@@ -1494,6 +1514,7 @@ export default {
 		 */
 		hoistedSidebarProps() {
 			return {
+				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
 				title: this.title,
 				icon: this.resolvedIcon,
@@ -1877,6 +1898,7 @@ export default {
 				component: CnIndexSidebar,
 				props: this.hoistedSidebarProps,
 				listeners: {
+					'update:open': (val) => { this.sidebarOpen = val },
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
