@@ -870,10 +870,26 @@ describe('CnPageRenderer', () => {
 			})
 		}
 
-		it('resolves a string config.createOverride to the registered function', () => {
+		it('resolves a string config.createOverride to a function-valued customComponents entry', () => {
 			const props = mountClients('clients').vm.resolvedProps
 			expect(typeof props.createOverride).toBe('function')
 			expect(props.createOverride).toBe(createClientContactAware)
+		})
+
+		it('resolves a string config.createOverride from a v2 registry kind:create-override entry (.handler)', () => {
+			const handler = jest.fn().mockResolvedValue({ id: 'c-2' })
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: sampleManifest,
+					translate: (k) => k,
+					pageTypes: { index: IndexStub },
+				},
+				provide: {
+					cnRegistry: { createClientContactAware: { kind: 'create-override', handler } },
+				},
+				mocks: { $route: { name: 'clients', params: {} } },
+			})
+			expect(wrapper.vm.resolvedProps.createOverride).toBe(handler)
 		})
 
 		it('drops an unresolved createOverride name (with a warn) instead of forwarding the string', () => {

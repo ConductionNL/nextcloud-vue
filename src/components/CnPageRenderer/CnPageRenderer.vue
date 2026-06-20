@@ -580,7 +580,7 @@ export default {
 			// left untouched. Unresolved names are dropped with a one-shot warn.
 			if (isIndex && typeof normalizedConfig.createOverride === 'string') {
 				const name = normalizedConfig.createOverride
-				const fn = this.effectiveCustomComponents[name]
+				const fn = this.resolveCreateOverride(name)
 				const { createOverride, ...rest } = normalizedConfig
 				if (typeof fn === 'function') {
 					normalizedConfig = { ...rest, createOverride: fn }
@@ -860,6 +860,35 @@ export default {
 			}
 
 			return null
+		},
+
+		/**
+		 * Resolve a named create-override handler for CnIndexPage's
+		 * `createOverride` prop (see `resolvedProps`). Unlike components, a
+		 * create-override is a plain async function, so it is looked up across
+		 * both registries by value shape:
+		 *   1. v2 registry (`cnRegistry`) — a `kind:'create-override'` entry
+		 *      exposing the function as `.handler` (or `.fn`), or a directly
+		 *      function-valued entry.
+		 *   2. legacy customComponents — a function-valued entry.
+		 *
+		 * @param {string} name The registered handler name from `config.createOverride`.
+		 * @return {?Function} The async create handler, or null if unresolved.
+		 */
+		resolveCreateOverride(name) {
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
+			const entry = this.effectiveRegistry[name]
+			if (typeof entry === 'function') {
+				return entry
+			}
+			if (entry && typeof entry === 'object') {
+				if (typeof entry.handler === 'function') return entry.handler
+				if (typeof entry.fn === 'function') return entry.fn
+			}
+			const legacy = this.effectiveCustomComponents[name]
+			return typeof legacy === 'function' ? legacy : null
 		},
 
 		/**
