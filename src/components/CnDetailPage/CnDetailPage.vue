@@ -88,6 +88,7 @@
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
 					:show-refresh="showRefresh"
+					:refreshing="refreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
 					:documentation-label="documentationLabel || undefined"
@@ -801,6 +802,16 @@ export default {
 		showRefresh: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Whether a header refresh is in flight. Disables the Refresh entry
+		 * and swaps its icon for a spinner. Wire this to the same flag the
+		 * host toggles around its `@refresh` handler.
+		 */
+		refreshing: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether the Request-a-feature entry renders in the page-header menu. */

@@ -33,7 +33,7 @@
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
-				<h3 class="cn-widget-wrapper__title">
+				<h3 :id="titleId" class="cn-widget-wrapper__title">
 					{{ displayTitle }}
 				</h3>
 				<!-- @slot title-meta Rendered inside the header's left group,
@@ -85,7 +85,21 @@
 		</div>
 
 		<!-- Content -->
-		<div class="cn-widget-wrapper__content">
+		<!--
+		  The content area is `overflow: auto`, so it can become a scrollable
+		  region. WCAG 2.1.1 (Keyboard) requires scrollable regions to be
+		  keyboard-focusable so keyboard-only users can scroll them, and 4.1.2
+		  requires an accessible name. We expose it as a labelled region and
+		  give it tabindex="0". When the header (and its title) is hidden we
+		  fall back to an explicit aria-label from the widget title so the
+		  region is never anonymous.
+		-->
+		<div
+			class="cn-widget-wrapper__content"
+			tabindex="0"
+			role="region"
+			:aria-labelledby="showTitle ? titleId : null"
+			:aria-label="showTitle ? null : displayTitle">
 			<slot />
 		</div>
 
@@ -334,6 +348,19 @@ export default {
 		},
 
 		/**
+		 * Stable DOM id for the header title `<h3>`, used as the
+		 * `aria-labelledby` target of the scrollable content region so the
+		 * region gets an accessible name from the widget title (WCAG 4.1.2).
+		 * Derived from `resolvedWidgetId` so it is stable and unique per
+		 * widget instance on the page.
+		 *
+		 * @return {string}
+		 */
+		titleId() {
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		},
+
+		/**
 		 * Effective Refresh visibility. Either `hideRefresh: true` OR
 		 * `showRefresh: false` hides the action. The show-prefixed prop
 		 * is the spec-canonical form (per `widget-wrapper` scenario);
@@ -466,6 +493,12 @@ export default {
 	overflow: auto;
 	min-height: 0;
 	padding: 16px;
+}
+
+/* Keyboard focus ring for the now-focusable scrollable content region. */
+.cn-widget-wrapper__content:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
 }
 
 .cn-widget-wrapper--borderless {

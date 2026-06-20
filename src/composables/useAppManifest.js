@@ -187,45 +187,69 @@ function loadFromBackend(appId, bundledManifest, options) {
 
 	;(async () => {
 		try {
-			const response = await fetcher(endpoint)
-			if (!response || response.status !== 200 || !response.data) {
-				return
-			}
-			// `delta` mode applies a keyed structural delta to the bundled
-			// manifest (ADR-036 Amendment); default mode deep-merges as before.
-			let merged
-			if (options.mergeStrategy === 'delta') {
-				const deltaResult = mergeManifestDelta(bundledManifest, response.data)
-				merged = deltaResult.manifest
-				orphanedDeltaPaths.value = deltaResult.orphanedDeltaPaths
-			} else {
-				merged = deepMerge(bundledManifest, response.data)
+			// Phase 1: optional backend merge. The fetch is best-effort —
+			// most apps DON'T serve `/api/manifest` (Nextcloud returns the
+			// SPA index HTML with a 200, which is not a plain object), so
+			// `base` stays the bundled manifest in the common case. Any
+			// failure here is swallowed and we proceed with `bundledManifest`.
+			let base = bundledManifest
+			try {
+				const response = await fetcher(endpoint)
+				// Only a 200 with a plain-object body is a real manifest
+				// response. An HTML string (SPA fallback), a non-200, or a
+				// missing body all mean "no backend manifest" → keep bundled.
+				if (response && response.status === 200 && isPlainObject(response.data)) {
+					// `delta` mode applies a keyed structural delta to the
+					// bundled manifest (ADR-036 Amendment); default mode
+					// deep-merges as before.
+					if (options.mergeStrategy === 'delta') {
+						const deltaResult = mergeManifestDelta(bundledManifest, response.data)
+						base = deltaResult.manifest
+						orphanedDeltaPaths.value = deltaResult.orphanedDeltaPaths
+					} else {
+						base = deepMerge(bundledManifest, response.data)
+					}
+				}
+			} catch (fetchErr) {
+				// Network / 404 / unauthenticated — keep the bundled manifest.
 			}
 
-			// Sentinel resolution runs BEFORE validation per
-			// REQ-MRS-002: the validator MUST NEVER observe an
-			// unresolved sentinel at runtime. Resolution failures
-			// (unset IAppConfig keys) substitute null and accumulate
-			// on `unresolvedSentinels`; they do NOT block validation.
-			const { manifest: resolved, unresolved } = await resolveManifestSentinels(merged, appId, {
+			// Phase 2: sentinel resolution ALWAYS runs, on the bundled (or
+			// merged) manifest, INDEPENDENT of whether the backend fetch
+			// succeeded. `@resolve:<key>` sentinels resolve from
+			// `@nextcloud/initial-state` (zero-network) then a per-key
+			// `/api/configs/{key}` fetch — neither depends on `/api/manifest`
+			// serving a valid body. Previously this only ran inside the
+			// successful-fetch branch, so the >90% of apps that don't serve
+			// `/api/manifest` never had their sentinels substituted.
+			//
+			// Runs BEFORE validation per REQ-MRS-002: the validator MUST
+			// NEVER observe an unresolved sentinel. Resolution failures
+			// (unset IAppConfig keys) substitute null and accumulate on
+			// `unresolvedSentinels`; they do NOT block validation.
+			const { manifest: resolved, unresolved } = await resolveManifestSentinels(base, appId, {
 				getAppConfigValue: options.getAppConfigValue,
 			})
 			unresolvedSentinels.value = unresolved
 
+			// Phase 3: validation. On failure, keep the bundled manifest
+			// (informational policy — never replace with an invalid doc).
 			const result = validateManifest(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors
 				// eslint-disable-next-line no-console
 				console.warn(
-					'[useAppManifest] Backend manifest failed schema validation; falling back to bundled manifest.',
+					'[useAppManifest] Resolved manifest failed schema validation; keeping the unresolved bundled manifest.',
 					result.errors,
 				)
 				return
 			}
+			// Publish the resolved manifest whenever it differs from the
+			// bundled input (sentinels substituted and/or backend merged).
 			manifest.value = resolved
 		} catch (err) {
-			// Silent fallback on 404, network errors, non-200 responses.
-			// Apps without a backend endpoint should keep working.
+			// Defensive: any unexpected error leaves the bundled manifest in
+			// place. Apps without a backend endpoint keep working.
 		} finally {
 			isLoading.value = false
 		}

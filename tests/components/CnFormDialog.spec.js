@@ -523,6 +523,135 @@ describe('CnFormDialog', () => {
 		wrapper.vm.executeConfirm()
 		expect(wrapper.emitted('confirm')[0][0].template).toBe('<div>{{ name }}</div>')
 	})
+
+	// === BUG 1: required enum select commits and enables submit ===
+
+	it('selecting a required enum commits the value and enables submit', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				meetingType: { type: 'string', title: 'Type', enum: ['regular', 'special'] },
+			},
+			required: ['meetingType'],
+		}
+		const wrapper = mount(CnFormDialog, { propsData: { schema, item: null }, stubs })
+
+		// Nothing selected yet → submit disabled.
+		expect(wrapper.vm.requiredFieldsFilled).toBe(false)
+
+		const field = wrapper.vm.resolvedFields.find(f => f.key === 'meetingType')
+		// Simulate the NcSelect @input firing with the chosen option object.
+		wrapper.vm.onEffectiveSelectChange(field, { id: 'special', label: 'special' })
+
+		expect(wrapper.vm.formData.meetingType).toBe('special')
+		expect(wrapper.vm.requiredFieldsFilled).toBe(true)
+	})
+
+	it('getSelectedEnumOption returns the same option-list reference (so NcSelect marks it selected)', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: { mode: { type: 'string', title: 'Mode', enum: ['in-person', 'remote'] } },
+		}
+		const wrapper = mount(CnFormDialog, { propsData: { schema, item: { mode: 'remote' } }, stubs })
+		const field = wrapper.vm.resolvedFields.find(f => f.key === 'mode')
+		const options = wrapper.vm.getEnumOptions(field)
+		const selected = wrapper.vm.getSelectedEnumOption(field)
+		// Identity match — must be the very object from the option list.
+		expect(selected).toBe(options.find(o => o.id === 'remote'))
+	})
+
+	// === BUG 2a: edit dialog accepts persisted (space-separated) date-time ===
+
+	it('normalises a persisted space-separated date-time on edit-open into a schema-valid value', () => {
+		const schema = {
+			title: 'Meeting',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', title: 'M', scheduledDate: '2026-10-15 14:30:00' } },
+			stubs,
+		})
+		const v = wrapper.vm.formData.scheduledDate
+		// RFC3339 with seconds + timezone offset (so ajv date-time accepts it).
+		expect(v).toMatch(/^2026-10-15T14:30:00[+-]\d{2}:\d{2}$/)
+	})
+
+	it('editing only the title does not reject a persisted date-time / uuid (no format error)', () => {
+		const schema = {
+			title: 'Decision',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				caseId: { type: 'string', title: 'Case', format: 'uuid' },
+				scheduledDate: { type: 'string', title: 'Scheduled', format: 'date-time' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				schema,
+				item: { id: '1', title: 'D', caseId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301', scheduledDate: '2026-10-15 14:30:00' },
+			},
+			stubs,
+		})
+		// User edits only the title.
+		wrapper.vm.updateField('title', 'D-edited')
+		expect(wrapper.vm.validate()).toBe(true)
+		expect(wrapper.vm.errors.caseId).toBeUndefined()
+		expect(wrapper.vm.errors.scheduledDate).toBeUndefined()
+	})
+
+	it('coerces a persisted-but-empty uuid field to null on submit (so the backend format check passes)', () => {
+		const schema = {
+			title: 'Decision',
+			properties: {
+				title: { type: 'string', title: 'Title' },
+				caseId: { type: 'string', title: 'Case', format: 'uuid' },
+			},
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema, item: { id: '1', title: 'D', caseId: '' } },
+			stubs,
+		})
+		wrapper.vm.updateField('title', 'D-edited')
+		wrapper.vm.executeConfirm()
+		const payload = wrapper.emitted('confirm')[0][0]
+		expect(payload.caseId).toBeNull()
+		expect(payload.title).toBe('D-edited')
+	})
+
+	// === BUG 3: maxLength null means "no limit" ===
+
+	it('treats maxLength null/undefined as no limit (does not block save)', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'versie', widget: 'text', label: 'Versie', required: true, validation: { maxLength: null, minLength: null } },
+				],
+				item: null,
+			},
+			stubs,
+		})
+		wrapper.vm.updateField('versie', 'a'.repeat(500))
+		expect(wrapper.vm.validate()).toBe(true)
+		expect(wrapper.vm.errors.versie).toBeUndefined()
+	})
+
+	it('still enforces a real numeric maxLength', () => {
+		const wrapper = mount(CnFormDialog, {
+			propsData: {
+				fields: [
+					{ key: 'code', widget: 'text', label: 'Code', validation: { maxLength: 3 } },
+				],
+				item: null,
+			},
+			stubs,
+		})
+		wrapper.vm.updateField('code', 'abcd')
+		expect(wrapper.vm.validate()).toBe(false)
+		expect(wrapper.vm.errors.code).toBe('Maximum 3 characters.')
+	})
 })
 
 describe('CnFormDialog — referenceType (pluggable integration registry)', () => {

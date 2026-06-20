@@ -15,6 +15,7 @@
 						<NcCheckboxRadioSwitch
 							:model-value="allSelected"
 							:indeterminate="someSelected && !allSelected"
+							:aria-label="selectAllLabel"
 							@update:model-value="toggleSelectAll" />
 					</th>
 
@@ -75,6 +76,7 @@
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
 							:model-value="isSelected(row)"
+							:aria-label="selectRowLabel"
 							@update:model-value="toggleSelect(row)" />
 					</td>
 
@@ -287,6 +289,25 @@ export default {
 		loadingText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Loading...'),
+		},
+		/**
+		 * Accessible name for the select-all checkbox in the header row.
+		 * Used as the checkbox's `aria-label` so screen readers announce a
+		 * named control (WCAG 4.1.2). Defaults to the lib's translation of
+		 * "Select all rows".
+		 */
+		selectAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Select all rows'),
+		},
+		/**
+		 * Accessible name for a per-row select checkbox. Used as the
+		 * checkbox's `aria-label` so screen readers announce a named control
+		 * (WCAG 4.1.2). Defaults to the lib's translation of "Select row".
+		 */
+		selectRowLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Select row'),
 		},
 	},
 

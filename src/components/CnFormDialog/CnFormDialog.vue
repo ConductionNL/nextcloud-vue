@@ -150,6 +150,7 @@
 								:options="getEffectiveArrayOptions(field)"
 								:model-value="getEffectiveSelectedArrayOptions(field)"
 								:multiple="true"
+								:keep-open="true"
 								:clearable="true"
 								:disabled="field.readOnly"
 								:loading="isFieldLoading(field)"
@@ -184,6 +185,7 @@
 								:model-value="formData[field.key] || []"
 								:options="isFieldAsync(field) ? ((asyncState[field.key] && asyncState[field.key].options) || []) : []"
 								:multiple="true"
+								:keep-open="true"
 								:taggable="true"
 								:clearable="true"
 								:disabled="field.readOnly"
@@ -326,6 +328,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
 
 /**
@@ -555,6 +558,8 @@ export default {
 			jsonDrafts: {},
 			/** Per-field parse-error messages for `json` widgets (blocks confirm) */
 			jsonErrors: {},
+			/** Field keys the user has actually edited this session (used to avoid re-validating untouched persisted server values) */
+			touchedFields: {},
 		}
 	},
 
@@ -584,7 +589,7 @@ export default {
 			return t('nextcloud-vue', '{title} saved successfully.', { title: this.schemaTitle })
 		},
 
-		/** Whether all required fields have a non-empty value */
+		/** Whether all required fields have a non-empty value (hidden fields are skipped) */
 		requiredFieldsFilled() {
 			return this.visibleFields
 				.filter((f) => f.required)
@@ -614,16 +619,18 @@ export default {
 		},
 
 		/**
-		 * Resolved fields filtered by their conditional-visibility predicate
-		 * (#327). A field with a `condition` (alias `visibleWhen`) is only
-		 * shown when its predicate evaluates true against the current
-		 * `formData`. Fields without a condition are always visible. This is
-		 * the list the form actually renders and validates against.
+		 * Fields filtered through their per-field `condition` / `visibleWhen`
+		 * descriptor. Fields without a condition are always visible.
 		 *
-		 * @return {Array} The currently-visible field descriptors.
+		 * The template iterates this computed instead of `resolvedFields`,
+		 * so hidden fields don't render at all. A watcher (below) clears
+		 * the form-data value for any field that transitions from visible
+		 * to hidden, so stale state is never submitted.
+		 *
+		 * @return {object[]} The visible subset of `resolvedFields`.
 		 */
 		visibleFields() {
-			return this.resolvedFields.filter((field) => this.fieldVisible(field))
+			return this.resolvedFields.filter((field) => shouldShow(field, this.formData))
 		},
 	},
 
@@ -634,6 +641,41 @@ export default {
 				this.initFormData(newItem)
 			},
 		},
+
+		/**
+		 * When a field transitions from visible to hidden, clear its
+		 * form-data value so a stale (now-irrelevant) value isn't
+		 * carried into the submitted payload. We diff key lists rather
+		 * than mutating during the computed itself.
+		 *
+		 * @param {object[]} newFields The new visible field set.
+		 * @param {object[]} oldFields The previous visible field set.
+		 */
+		visibleFields(newFields, oldFields) {
+			if (!Array.isArray(oldFields)) return
+			const newKeys = new Set(newFields.map((f) => f.key))
+			for (const oldField of oldFields) {
+				if (!newKeys.has(oldField.key) && Object.prototype.hasOwnProperty.call(this.formData, oldField.key)) {
+					this.$delete(this.formData, oldField.key)
+					if (Object.prototype.hasOwnProperty.call(this.errors, oldField.key)) {
+						this.$delete(this.errors, oldField.key)
+					}
+					if (Object.prototype.hasOwnProperty.call(this.jsonErrors, oldField.key)) {
+						this.$delete(this.jsonErrors, oldField.key)
+					}
+					if (Object.prototype.hasOwnProperty.call(this.jsonDrafts, oldField.key)) {
+						this.$delete(this.jsonDrafts, oldField.key)
+					}
+				}
+			}
+		},
+	},
+
+	created() {
+		// Non-reactive cache of built enum option lists, keyed by field key.
+		// Kept off `data` so Vue doesn't make the option objects reactive —
+		// stable identity is what lets NcSelect recognise the selected option.
+		this._enumOptionCache = {}
 	},
 
 	beforeDestroy() {
@@ -683,8 +725,13 @@ export default {
 
 		initFormData(item) {
 			if (item) {
-				// Edit mode: clone item data
+				// Edit mode: clone item data, then normalise persisted
+				// date/datetime values so an untouched field re-submits a
+				// schema-valid value (the backend stores date-times
+				// space-separated without a timezone, which would otherwise
+				// fail the schema's `date-time` format on save).
 				this.formData = JSON.parse(JSON.stringify(item))
+				this.normalizePersistedDates()
 			} else {
 				// Create mode: initialize with field defaults
 				const data = {}
@@ -715,6 +762,7 @@ export default {
 			this.formError = null
 			this.jsonDrafts = {}
 			this.jsonErrors = {}
+			this.touchedFields = {}
 			this.initAsyncFields()
 		},
 
@@ -786,6 +834,7 @@ export default {
 
 		updateField(key, value) {
 			this.$set(this.formData, key, value)
+			this.$set(this.touchedFields, key, true)
 			// Clear errors when a field is edited
 			if (this.errors[key]) {
 				this.$delete(this.errors, key)
@@ -870,7 +919,10 @@ export default {
 		dateValueFor(field) {
 			const raw = this.formData[field.key]
 			if (!raw) return null
-			const parts = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/)
+			// Accept both ISO ('2026-10-15T14:30:00Z') and OpenRegister's
+			// space-separated persisted form ('2026-10-15 14:30:00'); the
+			// optional trailing 'Z'/offset is ignored for the local-time picker.
+			const parts = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/)
 			if (parts) {
 				return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]), Number(parts[4] || 0), Number(parts[5] || 0))
 			}
@@ -879,9 +931,42 @@ export default {
 		},
 
 		/**
+		 * Serialise a Date into the canonical string a date/datetime field
+		 * stores and submits: 'YYYY-MM-DD' for `date`, and a full RFC 3339
+		 * 'YYYY-MM-DDTHH:mm:ss±hh:mm' (local-offset, lossless) for `datetime`.
+		 *
+		 * The datetime form includes seconds and a timezone offset so it
+		 * satisfies the JSON-Schema `date-time` format (ajv-formats requires
+		 * an offset) — the backend would otherwise reject a bare
+		 * 'YYYY-MM-DDTHH:mm' value on save.
+		 *
+		 * @param {string} widget The field widget ('date' | 'datetime').
+		 * @param {Date} date A valid Date instance.
+		 * @return {string} The serialised value.
+		 */
+		formatDateValue(widget, date) {
+			const yyyy = String(date.getFullYear()).padStart(4, '0')
+			const MM = String(date.getMonth() + 1).padStart(2, '0')
+			const dd = String(date.getDate()).padStart(2, '0')
+			if (widget !== 'datetime') {
+				return `${yyyy}-${MM}-${dd}`
+			}
+			const hh = String(date.getHours()).padStart(2, '0')
+			const mm = String(date.getMinutes()).padStart(2, '0')
+			const ss = String(date.getSeconds()).padStart(2, '0')
+			// Local timezone offset as ±hh:mm (getTimezoneOffset is minutes
+			// behind UTC, so the sign is inverted).
+			const offMin = -date.getTimezoneOffset()
+			const sign = offMin >= 0 ? '+' : '-'
+			const offAbs = Math.abs(offMin)
+			const offH = String(Math.floor(offAbs / 60)).padStart(2, '0')
+			const offM = String(offAbs % 60).padStart(2, '0')
+			return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`
+		},
+
+		/**
 		 * Convert the Date emitted by NcDateTimePickerNative back to the
-		 * stored string format: 'YYYY-MM-DD' for date, 'YYYY-MM-DDTHH:mm'
-		 * for datetime. Stores null when cleared.
+		 * stored string format (see `formatDateValue`). Stores null when cleared.
 		 *
 		 * @param {object} field The field definition
 		 * @param {Date|null} date The chosen date
@@ -891,30 +976,61 @@ export default {
 				this.updateField(field.key, null)
 				return
 			}
-			const yyyy = String(date.getFullYear()).padStart(4, '0')
-			const MM = String(date.getMonth() + 1).padStart(2, '0')
-			const dd = String(date.getDate()).padStart(2, '0')
-			if (field.widget === 'datetime') {
-				const hh = String(date.getHours()).padStart(2, '0')
-				const mm = String(date.getMinutes()).padStart(2, '0')
-				this.updateField(field.key, `${yyyy}-${MM}-${dd}T${hh}:${mm}`)
-			} else {
-				this.updateField(field.key, `${yyyy}-${MM}-${dd}`)
+			this.updateField(field.key, this.formatDateValue(field.widget, date))
+		},
+
+		/**
+		 * Rewrite any persisted date/datetime field value in formData into
+		 * the canonical, schema-valid string produced by `formatDateValue`.
+		 * Runs once on edit-open so a field the user never touches still
+		 * re-submits a value the schema's `date`/`date-time` format accepts.
+		 * Leaves empty/unparseable values untouched.
+		 */
+		normalizePersistedDates() {
+			for (const field of this.resolvedFields) {
+				if (field.widget !== 'date' && field.widget !== 'datetime') continue
+				const raw = this.formData[field.key]
+				if (raw === null || raw === undefined || raw === '') continue
+				const date = this.dateValueFor(field)
+				if (date instanceof Date && !isNaN(date.getTime())) {
+					this.$set(this.formData, field.key, this.formatDateValue(field.widget, date))
+				}
 			}
 		},
 
 		getEnumOptions(field) {
 			if (!field.enum) return []
+			// Cache the built option list per field so the same option object
+			// references are reused across renders. NcSelect/vue-select match
+			// the selected model against options by identity — returning fresh
+			// objects each call left the selection unrecognised (the headless
+			// "chip renders but value never commits" defect).
+			const cached = this._enumOptionCache[field.key]
+			if (cached && cached.enum === field.enum && cached.enumLabels === (field.enumLabels || null)) {
+				return cached.options
+			}
 			const labels = field.enumLabels || {}
-			return field.enum.map((val) => ({
+			const options = field.enum.map((val) => ({
 				id: val,
 				label: labels[val] || String(val),
 			}))
+			this._enumOptionCache[field.key] = { enum: field.enum, enumLabels: field.enumLabels || null, options }
+			return options
 		},
 
 		getSelectedEnumOption(field) {
 			const val = this.formData[field.key]
 			if (val === null || val === undefined) return null
+			// Return the SAME option object reference from the field's option
+			// list so NcSelect/vue-select recognises it as selected (it matches
+			// the model against options by identity). Returning a fresh
+			// `{ id, label }` each render left the model unrecognised, which —
+			// under headless Chromium — could drop the committed value and keep
+			// the submit button disabled. Fall back to a constructed option for
+			// values not present in the list.
+			const options = this.getEnumOptions(field)
+			const match = options.find((o) => o.id === val)
+			if (match) return match
 			const labels = field.enumLabels || {}
 			return { id: val, label: labels[val] || String(val) }
 		},
@@ -1169,13 +1285,22 @@ export default {
 
 				const v = field.validation || {}
 
-				// String length checks
+				// Whether the user actually edited this field this session.
+				// Persisted server values that the user never touched are
+				// trusted as-is — re-running format/pattern checks against
+				// them would block editing an unrelated field (e.g. a stored
+				// uuid relation or a normalised date-time).
+				const touched = !!this.touchedFields[field.key]
+
+				// String length / pattern checks. minLength/maxLength only
+				// apply when they are real numbers — an explicit `null`
+				// (or undefined) means "no limit", not a zero cap.
 				if (typeof value === 'string') {
-					if (v.minLength !== undefined && value.length < v.minLength) {
+					if (typeof v.minLength === 'number' && value.length < v.minLength) {
 						newErrors[field.key] = `Minimum ${v.minLength} characters.`
-					} else if (v.maxLength !== undefined && value.length > v.maxLength) {
+					} else if (typeof v.maxLength === 'number' && value.length > v.maxLength) {
 						newErrors[field.key] = `Maximum ${v.maxLength} characters.`
-					} else if (v.pattern !== undefined) {
+					} else if (v.pattern !== undefined && v.pattern !== null && touched) {
 						try {
 							if (!new RegExp(v.pattern).test(value)) {
 								newErrors[field.key] = 'Invalid format.'
@@ -1187,11 +1312,11 @@ export default {
 					}
 				}
 
-				// Number range checks
+				// Number range checks (numeric bounds only)
 				if (typeof value === 'number') {
-					if (v.minimum !== undefined && value < v.minimum) {
+					if (typeof v.minimum === 'number' && value < v.minimum) {
 						newErrors[field.key] = `Minimum value is ${v.minimum}.`
-					} else if (v.maximum !== undefined && value > v.maximum) {
+					} else if (typeof v.maximum === 'number' && value > v.maximum) {
 						newErrors[field.key] = `Maximum value is ${v.maximum}.`
 					}
 				}
@@ -1211,7 +1336,32 @@ export default {
 			 * @event confirm Emitted when the user confirms the form.
 			 * Payload: form data object. Includes `id` when editing.
 			 */
-			this.$emit('confirm', { ...this.formData })
+			this.$emit('confirm', this.buildSubmitPayload())
+		},
+
+		/**
+		 * Build the payload emitted on confirm. A shallow clone of formData
+		 * with one normalisation: an empty-string value on a field that
+		 * carries a `format` or `pattern` constraint is coerced to `null`.
+		 * An empty string is not a valid `uuid` / `email` / `date-time` etc.,
+		 * so re-submitting a persisted-but-blank constrained field as `''`
+		 * would trip the backend's format validator; `null` (no value) does
+		 * not. Plain unconstrained string fields are left as-is.
+		 *
+		 * @return {object} The payload to emit.
+		 */
+		buildSubmitPayload() {
+			const payload = { ...this.formData }
+			for (const field of this.resolvedFields) {
+				if (payload[field.key] !== '') continue
+				const v = field.validation || {}
+				const hasFormatConstraint = !!field.format
+					|| (v.pattern !== undefined && v.pattern !== null)
+				if (hasFormatConstraint) {
+					payload[field.key] = null
+				}
+			}
+			return payload
 		},
 
 		/**

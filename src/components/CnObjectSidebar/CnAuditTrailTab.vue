@@ -9,14 +9,14 @@
 					:options="actionOptions"
 					:placeholder="actionFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					class="cn-audit-filters__select" />
 				<NcSelect
 					v-model="filterUser"
 					:options="userOptions"
 					:placeholder="userFilterLabel"
 					:multiple="true"
-					:close-on-select="false"
+					:keep-open="true"
 					class="cn-audit-filters__select" />
 				<NcDateTimePickerNative
 					id="audit-date-from"

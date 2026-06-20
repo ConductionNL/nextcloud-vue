@@ -88,19 +88,39 @@ export function useSupportDialog(appSlug, options = {}) {
 
 	// Local mode resolves synchronously; server mode starts hidden and
 	// resolves after the GET so the note never flashes on a return visit.
-	const visible = ref(persistence === 'local' ? !hasFlag(storage, storageKey) : false)
+	// Local mode only opens when storage is present, readable, AND the flag
+	// is positively unset (fail-closed: a storage-less / quota-blocked /
+	// throwing browser stays hidden rather than nagging or trapping clicks).
+	const visible = ref(persistence === 'local' && flagIsReadableAndUnset(storage, storageKey))
+
+	/**
+	 * Persist "seen" the moment the note is shown, so a later navigation /
+	 * reload that re-runs the composable never re-opens it (which would
+	 * re-mount the modal mask and trap clicks). Keeps the local flag and
+	 * the server preference in sync.
+	 *
+	 * @return {void}
+	 */
+	function markSeen() {
+		setFlag(storage, storageKey)
+		if (persistence === 'server') {
+			putFlag(http, endpoint, '1')
+		}
+	}
 
 	const handle = {
 		visible,
 		show() {
+			// Showing the note ALSO records it as seen immediately, so a
+			// navigation or reload that re-runs the composable never
+			// re-opens (and never re-traps clicks behind the modal mask).
+			// The personal note is a one-time nudge, not a per-visit gate.
 			visible.value = true
+			markSeen()
 		},
 		hide() {
 			visible.value = false
-			setFlag(storage, storageKey)
-			if (persistence === 'server') {
-				putFlag(http, endpoint, '1')
-			}
+			markSeen()
 		},
 		reset() {
 			clearFlag(storage, storageKey)
@@ -114,37 +134,84 @@ export function useSupportDialog(appSlug, options = {}) {
 	cache.set(cacheKey, handle)
 
 	if (persistence === 'server') {
-		resolveServerVisibility(http, endpoint, storage, storageKey, visible)
+		resolveServerVisibility(http, endpoint, storage, storageKey, visible, markSeen)
+	} else if (visible.value) {
+		// Local mode decided synchronously to show: record "seen" now so a
+		// reload / route change never re-opens (and never re-traps clicks).
+		markSeen()
 	}
 
 	return handle
 }
 
 /**
- * Resolve `visible` from the server preferences endpoint, falling back
- * to `localStorage` on any failure (unauthenticated, 404, network).
+ * Resolve `visible` from the server preferences endpoint.
+ *
+ * The note is a one-time, low-priority nudge — it must NEVER auto-open in
+ * a way that traps clicks across an app, and must never re-appear on every
+ * navigation. So this resolver is deliberately fail-CLOSED:
+ *
+ *  - It only opens the note when it has a DEFINITIVE "not seen yet" answer
+ *    from a real preferences endpoint — i.e. the response is a JSON object
+ *    carrying a `value` field (the documented shape). Most apps don't
+ *    serve `/api/preferences/{key}`, so Nextcloud returns the SPA index
+ *    HTML with a 200 status; that is NOT a real "not seen" signal and is
+ *    treated as "endpoint absent" → the note stays hidden (rather than the
+ *    old behaviour, which read `htmlString.value === undefined` as
+ *    "unseen" and re-opened a click-trapping modal on every page load).
+ *  - When the endpoint is genuinely absent / errors, it falls back to the
+ *    per-browser localStorage flag, and ONLY shows when that flag is
+ *    explicitly known to be unset (storage present + key absent). A
+ *    storage-unavailable environment stays hidden.
+ *  - The instant it decides to show, it records "seen" via `markSeen` so a
+ *    reload or route change never re-opens the note.
  *
  * @param {object}  http     axios instance.
  * @param {string}  endpoint Preferences endpoint URL.
  * @param {Storage} storage  localStorage backend (fallback + cache).
  * @param {string}  key      localStorage key.
  * @param {import('vue').Ref<boolean>} visible Visibility ref to update.
+ * @param {() => void} markSeen Persist the "seen" flag (local + server).
  * @return {Promise<void>}
  */
-async function resolveServerVisibility(http, endpoint, storage, key, visible) {
+async function resolveServerVisibility(http, endpoint, storage, key, visible, markSeen) {
+	// A previously-recorded local flag is authoritative and zero-cost:
+	// if we've already shown the note in this browser, never re-open.
+	if (storage && hasRealFlag(storage, key)) {
+		visible.value = false
+		return
+	}
+
 	try {
 		const { data } = await http.get(endpoint)
-		const seen = (data && (data.value === '1' || data.value === 1)) === true
-		visible.value = !seen
-		// Mirror into localStorage so a later page load (or an offline
-		// blip) stays consistent with the server's answer.
-		if (seen) {
-			setFlag(storage, key)
+		// Only a proper JSON object with a `value` field counts as a real
+		// preferences response. An HTML string (SPA fallback) or any other
+		// non-object shape means the endpoint is not served → stay hidden.
+		if (!isPlainObject(data) || !('value' in data)) {
+			visible.value = false
+			return
 		}
+		const seen = data.value === '1' || data.value === 1 || data.value === true
+		if (seen) {
+			visible.value = false
+			setFlag(storage, key)
+			return
+		}
+		// Definitive "not seen yet" from a real endpoint — show ONCE and
+		// record it immediately so it never re-traps on navigation.
+		visible.value = true
+		markSeen()
 	} catch (e) {
-		// Unauthenticated / endpoint missing / offline — degrade to the
-		// per-browser flag rather than nagging or hard-failing.
-		visible.value = !hasFlag(storage, key)
+		// Unauthenticated / endpoint missing / offline. Fall back to the
+		// per-browser flag, but only show when we can positively confirm
+		// the flag is readable AND unset. Otherwise stay hidden — a support
+		// nudge must never block the UI on uncertainty.
+		if (flagIsReadableAndUnset(storage, key)) {
+			visible.value = true
+			markSeen()
+		} else {
+			visible.value = false
+		}
 	}
 }
 
@@ -173,15 +240,59 @@ function resolveStorage(injected) {
 	}
 }
 
-function hasFlag(storage, key) {
+/**
+ * True only when the "seen" flag is positively set to `'1'` in storage.
+ * Returns `false` for a missing key, missing storage, or a read error —
+ * the opposite fail-safe to a generic presence check. Callers gate
+ * showing the note on `!hasRealFlag`, so any uncertainty keeps the note
+ * hidden rather than nagging.
+ *
+ * @param {Storage|null} storage localStorage backend.
+ * @param {string} key Flag key.
+ * @return {boolean} True only when the flag is definitively set.
+ */
+function hasRealFlag(storage, key) {
 	if (!storage) {
-		return true
+		return false
 	}
 	try {
 		return storage.getItem(key) === '1'
 	} catch (e) {
-		return true
+		return false
 	}
+}
+
+/**
+ * True only when storage is present, the key is READABLE, and it is
+ * positively unset (not yet '1'). Returns `false` on missing storage or
+ * any read error (SSR / private-mode / SecurityError) — the fail-closed
+ * gate for *showing* the note, so uncertainty never opens a click-trapping
+ * modal.
+ *
+ * @param {Storage|null} storage localStorage backend.
+ * @param {string} key Flag key.
+ * @return {boolean} True only when readable AND unset.
+ */
+function flagIsReadableAndUnset(storage, key) {
+	if (!storage) {
+		return false
+	}
+	try {
+		return storage.getItem(key) !== '1'
+	} catch (e) {
+		return false
+	}
+}
+
+/**
+ * Type guard — true when value is a plain (non-array, non-null) object.
+ * Used to reject SPA HTML-string responses from the preferences endpoint.
+ *
+ * @param {*} value Candidate.
+ * @return {boolean} True when value is a plain object.
+ */
+function isPlainObject(value) {
+	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function setFlag(storage, key) {
