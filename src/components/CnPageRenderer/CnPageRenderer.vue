@@ -46,7 +46,7 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-					slot-name="body" />
+				slot-name="body" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
@@ -571,6 +571,24 @@ export default {
 				const { readOnly, ...rest } = normalizedConfig
 				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...params }
 			}
+			// `config.createOverride` can be declared in the JSON manifest as a
+			// STRING naming an async create handler the consumer registered in
+			// its customComponents registry (functions are valid registry
+			// values). Resolve it to the function so CnIndexPage's per-schema
+			// create-override hook fires from a purely declarative page. A
+			// non-string value (an actual function passed programmatically) is
+			// left untouched. Unresolved names are dropped with a one-shot warn.
+			if (isIndex && typeof normalizedConfig.createOverride === 'string') {
+				const name = normalizedConfig.createOverride
+				const fn = this.resolveCreateOverride(name)
+				const { createOverride, ...rest } = normalizedConfig
+				if (typeof fn === 'function') {
+					normalizedConfig = { ...rest, createOverride: fn }
+				} else {
+					console.warn(`[CnPageRenderer] config.createOverride "${name}" did not resolve to a registered function; dropping it.`)
+					normalizedConfig = rest
+				}
+			}
 			// Precedence (highest wins): route params > config > top-level
 			// page fields. URL truth trumps everything; config trumps
 			// top-level so per-route config still beats the page default.
@@ -842,6 +860,35 @@ export default {
 			}
 
 			return null
+		},
+
+		/**
+		 * Resolve a named create-override handler for CnIndexPage's
+		 * `createOverride` prop (see `resolvedProps`). Unlike components, a
+		 * create-override is a plain async function, so it is looked up across
+		 * both registries by value shape:
+		 *   1. v2 registry (`cnRegistry`) — a `kind:'create-override'` entry
+		 *      exposing the function as `.handler` (or `.fn`), or a directly
+		 *      function-valued entry.
+		 *   2. legacy customComponents — a function-valued entry.
+		 *
+		 * @param {string} name The registered handler name from `config.createOverride`.
+		 * @return {?Function} The async create handler, or null if unresolved.
+		 */
+		resolveCreateOverride(name) {
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
+			const entry = this.effectiveRegistry[name]
+			if (typeof entry === 'function') {
+				return entry
+			}
+			if (entry && typeof entry === 'object') {
+				if (typeof entry.handler === 'function') return entry.handler
+				if (typeof entry.fn === 'function') return entry.fn
+			}
+			const legacy = this.effectiveCustomComponents[name]
+			return typeof legacy === 'function' ? legacy : null
 		},
 
 		/**

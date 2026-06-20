@@ -109,7 +109,9 @@
 			</template>
 		</CnMassImportDialog>
 
-		<!-- Single delete dialog (overridable via slot) -->
+		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
+		<!-- @binding {object} item The item targeted for deletion. -->
+		<!-- @binding {Function} close Closes the delete dialog. -->
 		<slot
 			name="delete-dialog"
 			:item="actionTargetItem"
@@ -124,7 +126,9 @@
 				@close="closeSingleDelete" />
 		</slot>
 
-		<!-- Single copy dialog (overridable via slot) -->
+		<!-- @slot copy-dialog Replace the single-item copy dialog. -->
+		<!-- @binding {object} item The item targeted for copy. -->
+		<!-- @binding {Function} close Closes the copy dialog. -->
 		<slot
 			name="copy-dialog"
 			:item="actionTargetItem"
@@ -139,7 +143,11 @@
 				@close="closeSingleCopy" />
 		</slot>
 
-		<!-- Form dialog for create/edit (overridable via slot) -->
+		<!-- @slot form-dialog Replace the create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). -->
+		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
+		<!-- @binding {?object} item The item being edited, or null in create mode. -->
+		<!-- @binding {object} schema The effective JSON schema driving the form. -->
+		<!-- @binding {Function} close Closes the form dialog. -->
 		<slot
 			name="form-dialog"
 			:show="showFormDialogVisible"
@@ -818,6 +826,30 @@ export default {
 		useAdvancedFormDialog: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Opt-in async create hook. When provided, a **create** (not edit)
+		 * confirmed from the built-in form dialog calls
+		 * `await createOverride(formData, ctx)` INSTEAD of persisting via the
+		 * store / self-store `saveObject`. The override owns persistence
+		 * (e.g. an app posting through a contact-aware endpoint that fills a
+		 * required FK before saving to OpenRegister) and MUST return the
+		 * created object (a truthy value) on success; return a falsy value to
+		 * signal failure. The returned object is used as the created result
+		 * (`@create` payload + dialog success). Throwing rejects with the
+		 * error surfaced in the form dialog. Edits are never routed here.
+		 *
+		 * `ctx` carries `{ register, schema, objectType, effectiveSchema }`
+		 * so a single handler can branch per schema.
+		 *
+		 * When absent, create behaviour is unchanged (store / self-store save).
+		 *
+		 * @type {?(formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>}
+		 */
+		createOverride: {
+			type: Function,
+			default: null,
 		},
 
 		/**
@@ -2030,6 +2062,36 @@ export default {
 		},
 
 		async onFormConfirm(formData) {
+			// Opt-in create-override hook: an app supplies a custom async create
+			// handler (e.g. a contact-aware endpoint that fills a required FK)
+			// that owns persistence instead of saveObject. Create-only; edits
+			// always fall through to the normal store / self-store path.
+			if (!this.editItem && typeof this.createOverride === 'function') {
+				try {
+					const created = await this.createOverride(formData, {
+						register: this.register,
+						schema: this.schema,
+						objectType: this.objectType || this.selfObjectType,
+						effectiveSchema: this.effectiveSchema,
+					})
+					if (created) {
+						this.setFormResult({ success: true })
+						/**
+						 * @event create Emitted after a create is confirmed (store, self-store, or createOverride).
+						 * @type {object} The created object.
+						 */
+						this.$emit('create', created)
+						if (this.list && typeof this.list.refresh === 'function') {
+							this.list.refresh()
+						}
+					} else {
+						this.setFormResult({ error: 'Save failed' })
+					}
+				} catch (err) {
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')
