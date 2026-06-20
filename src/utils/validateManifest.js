@@ -7,6 +7,10 @@
 // via the `build:validators` script, and is gitignored.
 // eslint-disable-next-line import/no-unresolved
 import _compiledValidateV2 from './validateManifestV2.compiled.js'
+// Shared slot→columns resolution so the validator's grid bound matches the
+// renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
+// validation yet clip at render time.
+import { resolveSlotColumns } from './resolveSlotColumns.js'
 
 // CJS/ESM interop: compiled file exports default via module.exports.default
 // in some bundlers. Unwrap when present.
@@ -134,9 +138,9 @@ export function validateManifestV2(manifest) {
 				const gx = widget.gridX
 				const gw = widget.gridWidth
 				if (typeof gx === 'number' && typeof gw === 'number') {
-					if (gx + gw > 12) {
+					const resolved = resolveSlotColumns(widget.slot, isPlainObject(page.config) ? page.config.slotColumns : null); if (gx + gw > resolved) {
 						errors.push(
-							`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds 12`,
+							`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`,
 						)
 					}
 				}
@@ -182,7 +186,62 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
-	// 4. @resolve: sentinel rejection on registry-key paths
+	// 3a. Optional widget-id uniqueness within a page. The id is the delta
+		//     merge key, so duplicates would make a patch ambiguous.
+		if (Array.isArray(clone.pages)) {
+			clone.pages.forEach((page, pIndex) => {
+				if (!page || !Array.isArray(page.widgets)) return
+				const seen = new Set()
+				page.widgets.forEach((widget, wIndex) => {
+					if (!widget || typeof widget.id !== 'string') return
+					if (seen.has(widget.id)) {
+						errors.push(`pages[${pIndex}]/widgets[${wIndex}]/id: "${widget.id}" must be unique within the page's widgets[]`)
+					} else {
+						seen.add(widget.id)
+					}
+				})
+			})
+		}
+
+		// 3b. Delta-only artefacts must not appear in a full (non-delta) manifest.
+		//     $op / __order are markers consumed by mergeManifestDelta; their
+		//     presence means a delta was loaded as a manifest. (props subtrees
+		//     are free-form user data and are not scanned.)
+		;(function walkReserved(node, path) {
+			if (Array.isArray(node)) {
+				node.forEach((v, i) => walkReserved(v, `${path}[${i}]`))
+				return
+			}
+			if (!isPlainObject(node)) return
+			for (const k of Object.keys(node)) {
+				if (k === '$op' || k === '__order') {
+					errors.push(`${path || ''}/${k}: reserved delta marker "${k}" is not allowed in a manifest (only inside a delta payload consumed by mergeManifestDelta)`)
+				}
+				if (k === 'props') continue
+				walkReserved(node[k], `${path}/${k}`)
+			}
+		})(clone, '')
+
+		// 3c. Optional per-page config.slotColumns override shape (slot →
+		//     positive integer). A wrong shape silently falls back to defaults
+		//     at render time, so flag it here.
+		if (Array.isArray(clone.pages)) {
+			clone.pages.forEach((page, pIndex) => {
+				const sc = isPlainObject(page && page.config) ? page.config.slotColumns : undefined
+				if (sc === undefined) return
+				if (!isPlainObject(sc)) {
+					errors.push(`pages[${pIndex}]/config/slotColumns: must be an object mapping slot name to a positive integer`)
+					return
+				}
+				for (const [slotName, value] of Object.entries(sc)) {
+					if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+						errors.push(`pages[${pIndex}]/config/slotColumns/${slotName}: must be a positive integer`)
+					}
+				}
+			})
+		}
+
+		// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
 		errors.push('/version must not be a @resolve: sentinel (sentinels are only valid under pages[].config.*)')

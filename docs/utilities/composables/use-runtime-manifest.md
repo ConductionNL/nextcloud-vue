@@ -18,11 +18,15 @@ import { useRuntimeManifest } from '@conduction/nextcloud-vue'
 function useRuntimeManifest(
     appId: string,
     stubManifest?: object | null,
-    options?: { fetcher?: (url: string) => Promise<{ status: number, data: object }> },
+    options?: {
+        fetcher?: (url: string) => Promise<{ status: number, data: object }>,
+        mergeStrategy?: 'replace' | 'delta',
+    },
 ): {
     manifest: Ref<object | null>
     isLoading: Ref<boolean>
     validationErrors: Ref<string[] | null>
+    orphanedDeltaPaths: Ref<string[]>
 }
 ```
 
@@ -31,6 +35,7 @@ function useRuntimeManifest(
 | `appId` | `string` | Nextcloud app ID. Used to build `GET /apps/{appId}/api/manifest`. |
 | `stubManifest` | `object \| null` | Fallback manifest used on 404/error/validation failure. When omitted, `manifest.value` stays `null` on failure. |
 | `options.fetcher` | `Function` | Override the fetch function. Must resolve to `{ status, data }`. Defaults to `axios.get`. Useful in tests. |
+| `options.mergeStrategy` | `'replace' \| 'delta'` | How to combine the fetched payload with the stub. Default `'replace'` fully replaces the stub (unchanged). `'delta'` treats the payload as a keyed structural delta applied to the stub base via [mergeManifestDelta](../merge-manifest-delta.md); orphaned patches surface on `orphanedDeltaPaths`. |
 
 ## Return shape
 
@@ -39,6 +44,7 @@ function useRuntimeManifest(
 | `manifest` | `Ref<object \| null>` | The validated manifest, or the stub if the fetch/validation failed. |
 | `isLoading` | `Ref<boolean>` | `true` until the fetcher promise settles. |
 | `validationErrors` | `Ref<string[] \| null>` | Schema errors when validation failed; `null` on success. |
+| `orphanedDeltaPaths` | `Ref<string[]>` | In `delta` mode, paths of delta entries that targeted a missing base entry and were skipped; `[]` otherwise. |
 
 ## Replace-not-merge
 

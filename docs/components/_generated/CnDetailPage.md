@@ -45,11 +45,12 @@
 
 ### Events
 
-| Name               | Payload     | Description                                                                               |
-| ------------------ | ----------- | ----------------------------------------------------------------------------------------- |
-| `refresh`          | `undefined` | The page-header Refresh action was clicked.                                               |
-| `request-feature`  | `undefined` | The page-header Request-a-feature action was clicked.                                     |
-| `open-integration` | —           | A related-objects "Linked apps" row was clicked on the auto-body. Payload is the leaf id. |
+| Name                   | Payload     | Description                                                                                                                                                        |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `refresh`              | `undefined` | The page-header Refresh action was clicked.                                                                                                                        |
+| `request-feature`      | `undefined` | The page-header Request-a-feature action was clicked.                                                                                                              |
+| `open-integration`     | —           | A related-objects "Linked apps" row was clicked on the auto-body. Payload is the leaf id.                                                                          |
+| `widget-config-change` | —           | Emitted after a grid widget's config is saved via the cog editor, or after the widget is removed (payload null). Consumers persist the updated page/widget config. |
 
 ### Slots
 

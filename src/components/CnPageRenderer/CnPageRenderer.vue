@@ -45,7 +45,8 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
-				slot-name="body" />
+				:editable="bodyEditable"
+					slot-name="body" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
@@ -164,6 +165,8 @@ export default {
 		cnPageTypes: { default: null },
 		cnRegistry: { default: () => ({}) },
 		cnOpenModal: { default: null },
+		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
+		cnEditingBody: { default: false },
 	},
 
 	/**
@@ -187,7 +190,14 @@ export default {
 	 * field.
 	 */
 	provide() {
+		const self = this
 		return {
+			// Per-page slot→columns override (page.config.slotColumns), read by
+			// CnWidgetGrid. A getter so it tracks the active page reactively
+			// despite provide() running once.
+			get cnSlotColumns() {
+				return self.currentPage?.config?.slotColumns ?? null
+			},
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
 			// Loaded object for a type:"detail" page (reactive holder). See
@@ -306,6 +316,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the body slot should be editable (ADR-041). Unwraps the
+		 * injected `cnEditingBody`, which CnAppRoot provides as a raw ref.
+		 *
+		 * @return {boolean}
+		 */
+		bodyEditable() {
+			const e = this.cnEditingBody
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
 		/**
 		 * Convenience accessor on the reactive holder so the template
 		 * `v-bind:class` reads a primitive boolean. Vue 2 templates

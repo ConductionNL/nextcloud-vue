@@ -173,6 +173,19 @@
    no detail-page-specific grid CSS needed here. */
 .cn-detail-page__grid-item {
 	min-width: 0;
+	position: relative;
+}
+
+/* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget
+   while the page is in edit mode. Mirrors the dashboard's widget-edit cog. */
+.cn-detail-page__widget-edit {
+	position: absolute;
+	top: 4px;
+	inset-inline-end: 4px;
+	z-index: 5;
+	background: var(--color-main-background);
+	border-radius: var(--border-radius);
+	box-shadow: 0 1px 4px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
 }
 
 .cn-detail-page__widget-title {
