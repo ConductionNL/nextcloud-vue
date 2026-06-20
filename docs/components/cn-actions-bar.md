@@ -102,3 +102,10 @@ Set `documentationUrl` to add a **Documentation** entry to the overflow menu (ju
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnActionsBar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnActionsBar/CnActionsBar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSidebarToggle` | Boolean | `false` | Whether to show the Search/Columns sidebar toggle button (lets the index sidebar default to closed and open on demand). |
+| `sidebarOpen` | Boolean | `false` | Current open state of the sidebar (controls the toggle button's pressed state). |

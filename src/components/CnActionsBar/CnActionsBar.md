@@ -172,3 +172,10 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 |------|------|---------|-------------|
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation entry label. |
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSidebarToggle` | Boolean | `false` | Whether to show the Search/Columns sidebar toggle button (lets the index sidebar default to closed and open on demand). |
+| `sidebarOpen` | Boolean | `false` | Current open state of the sidebar (controls the toggle button's pressed state). |
