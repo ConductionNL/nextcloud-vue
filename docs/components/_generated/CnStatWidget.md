@@ -2,6 +2,6 @@
 
 ### Props
 
-| Name      | Type                                                                                                                                                                                                                                                                                             | Required | Default | Description                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------- | ------------------------------------------ |
-| `content` | `{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}}` |          | `\{\}`  | The widget's persisted configuration blob. |
+| Name      | Type    | Required | Default | Description                                                                                                                                                                                 |
+| --------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content` | `union` |          | `\{\}`  | The widget's persisted configuration blob. An optional `route` (vue-router location) or `link` (external href) turns the whole tile into a click-through target (see the widgetLink mixin). |

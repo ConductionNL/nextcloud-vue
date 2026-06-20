@@ -144,9 +144,37 @@
 						<template #icon><Cog :size="18" /></template>
 					</NcButton>
 				</div>
+				<!-- requiresApp gate — when a widget declares `requiresApp`
+				     (any widget type) and the owning app is not installed,
+				     replace its body with an "Install …" CTA. Because all
+				     fleet data lives in OpenRegister, an app can surface
+				     another app's data; this keeps the tile honest when the
+				     owning app is absent instead of showing an empty value. -->
+				<CnWidgetWrapper
+					v-if="missingRequiredApp(item)"
+					:title="getWidgetTitle(item)"
+					:show-title="item.showTitle !== false">
+					<NcEmptyContent
+						:name="installAppLabel(missingRequiredApp(item))"
+						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
+						class="cn-dashboard-page__requires-app">
+						<template #icon>
+							<Download :size="32" />
+						</template>
+						<template #action>
+							<NcButton
+								variant="primary"
+								:href="appInstallUrl(missingRequiredApp(item))">
+								<template #icon><Download :size="18" /></template>
+								{{ installAppLabel(missingRequiredApp(item)) }}
+							</NcButton>
+						</template>
+					</NcEmptyContent>
+				</CnWidgetWrapper>
+
 				<!-- Tile widget -->
 				<CnTileWidget
-					v-if="isTile(item)"
+					v-else-if="isTile(item)"
 					:tile="getTileConfig(item)" />
 
 				<!-- Custom slot widget — apps provide their own rendering -->
@@ -396,6 +424,8 @@ import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import Download from 'vue-material-design-icons/Download.vue'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
@@ -518,6 +548,7 @@ export default {
 		Cog,
 		CalendarRange,
 		ViewDashboardOutline,
+		Download,
 		CnDashboardGrid,
 		CnWidgetWrapper,
 		CnWidgetRenderer,
@@ -669,6 +700,24 @@ export default {
 		 * @type {object|null}
 		 */
 		integrationContext: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Optional per-app install/enable status map used by the
+		 * `requiresApp` widget gate. Shape: `{ [appId]: { installed:
+		 * boolean, enabled: boolean, category?: string } }` — typically
+		 * the `dependency_statuses` initial state a consuming app injects.
+		 * When a widget definition carries `requiresApp` (a string or
+		 * array of app ids) and a required app is not enabled here, that
+		 * widget renders an "Install …" call-to-action instead of its
+		 * normal content. When this prop is `null` the gate falls back to
+		 * the `isAppInstalled()` runtime check (`OC.appswebroots` →
+		 * capabilities), so the gate works with or without injected data.
+		 *
+		 * @type {object|null}
+		 */
+		appStatuses: {
 			type: Object,
 			default: null,
 		},
@@ -1414,6 +1463,81 @@ export default {
 
 		getWidgetDef(widgetId) {
 			return this.widgetMap[widgetId] || null
+		},
+
+		/**
+		 * The app id(s) a widget depends on, declared via `requiresApp`
+		 * (a single id string or an array of ids). Empty array when the
+		 * widget has no cross-app dependency.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string[]} Required app ids (possibly empty).
+		 */
+		requiredAppsFor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const req = def && def.requiresApp
+			if (!req) return []
+			return Array.isArray(req) ? req.filter(Boolean) : [req]
+		},
+
+		/**
+		 * Whether a given app counts as available. Prefers the injected
+		 * `appStatuses` map (an app is available when `enabled`, or when
+		 * only `installed` is known); falls back to the `isAppInstalled()`
+		 * runtime check when no status was injected for that app.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {boolean} True when the app is present/usable.
+		 */
+		isAppAvailable(appId) {
+			const status = this.appStatuses && this.appStatuses[appId]
+			if (status) {
+				if (typeof status.enabled === 'boolean') return status.enabled
+				if (typeof status.installed === 'boolean') return status.installed
+			}
+			return isAppInstalled(appId)
+		},
+
+		/**
+		 * The first required app that is missing for a widget, or null when
+		 * all its `requiresApp` dependencies are available. Drives the
+		 * install-CTA gate that replaces the widget body for any widget
+		 * type (stat, chart, object-list, …) surfacing another app's data.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {(string|null)} Missing app id, or null.
+		 */
+		missingRequiredApp(item) {
+			for (const appId of this.requiredAppsFor(item)) {
+				if (!this.isAppAvailable(appId)) return appId
+			}
+			return null
+		},
+
+		/**
+		 * App-store deep link used by the install CTA. Prefers the
+		 * injected per-app `category` (when present) so the user lands on
+		 * the right App Store section; otherwise links to the app's own
+		 * App Store entry.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {string} Settings/apps URL.
+		 */
+		appInstallUrl(appId) {
+			const category = this.appStatuses && this.appStatuses[appId] && this.appStatuses[appId].category
+			return category
+				? `/index.php/settings/apps/${encodeURIComponent(category)}/${encodeURIComponent(appId)}`
+				: `/index.php/settings/apps/${encodeURIComponent(appId)}`
+		},
+
+		/**
+		 * Human-readable "Install {app}" heading for the gate CTA.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {string} Localized install label.
+		 */
+		installAppLabel(appId) {
+			return t('nextcloud-vue', 'Install {app}', { app: appId })
 		},
 
 		/**

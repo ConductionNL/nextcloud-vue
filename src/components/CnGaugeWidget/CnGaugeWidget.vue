@@ -3,7 +3,11 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-gauge-widget">
+	<component
+		:is="linkTag"
+		class="cn-gauge-widget"
+		:class="{ 'cn-gauge-widget--linked': isLinked }"
+		v-bind="linkAttrs">
 		<div class="cn-gauge-widget__head">
 			<span v-if="content.label" class="cn-gauge-widget__label">{{ content.label }}</span>
 			<span class="cn-gauge-widget__pct" :style="{ color: barColor }">
@@ -23,12 +27,13 @@
 			<span class="cn-gauge-widget__value">{{ formattedValue }}</span>
 			<span class="cn-gauge-widget__target">/ {{ formattedTarget }}</span>
 		</div>
-	</div>
+	</component>
 </template>
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import widgetLink from '../../mixins/widgetLink.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.
@@ -62,10 +67,14 @@ export default {
 		NcLoadingIcon,
 	},
 
+	mixins: [widgetLink],
+
 	props: {
 		/**
-		 * The widget's persisted configuration blob.
-		 * @type {{label?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}, target?: {kind?: ('static'|'aggregate'), value?: number, metric?: string, field?: string, filter?: object}, thresholds?: {warn?: number, danger?: number, invert?: boolean}}}
+		 * The widget's persisted configuration blob. An optional `route`
+		 * (vue-router location) or `link` (external href) turns the whole
+		 * tile into a click-through target (see the widgetLink mixin).
+		 * @type {{label?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}, target?: {kind?: ('static'|'aggregate'), value?: number, metric?: string, field?: string, filter?: object}, thresholds?: {warn?: number, danger?: number, invert?: boolean}}}
 		 */
 		content: {
 			type: Object,
@@ -205,6 +214,24 @@ export default {
 	flex-direction: column;
 	gap: 8px;
 	padding: 10px 4px;
+}
+
+/* Whole-tile click target when the widget declares a `route`/`link`. */
+.cn-gauge-widget--linked {
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--border-radius-large, 8px);
+	transition: background-color 0.1s ease-in-out;
+}
+
+.cn-gauge-widget--linked:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-gauge-widget--linked:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-gauge-widget__head {

@@ -3,7 +3,11 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-stat-widget">
+	<component
+		:is="linkTag"
+		class="cn-stat-widget"
+		:class="{ 'cn-stat-widget--linked': isLinked }"
+		v-bind="linkAttrs">
 		<div
 			v-if="iconComponent"
 			class="cn-stat-widget__icon"
@@ -27,13 +31,14 @@
 				</span>
 			</div>
 		</div>
-	</div>
+	</component>
 </template>
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import widgetLink from '../../mixins/widgetLink.js'
 
 /**
  * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
@@ -67,6 +72,8 @@ export default {
 		NcLoadingIcon,
 	},
 
+	mixins: [widgetLink],
+
 	inject: {
 		/**
 		 * Detail-page object context (`{ objectId, object, register, schema }`)
@@ -79,8 +86,10 @@ export default {
 
 	props: {
 		/**
-		 * The widget's persisted configuration blob.
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}}}
+		 * The widget's persisted configuration blob. An optional `route`
+		 * (vue-router location) or `link` (external href) turns the whole
+		 * tile into a click-through target (see the widgetLink mixin).
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}}}
 		 */
 		content: {
 			type: Object,
@@ -312,6 +321,24 @@ export default {
 	gap: 16px;
 	padding: 8px 4px;
 	min-height: 64px;
+}
+
+/* Whole-tile click target when the widget declares a `route`/`link`. */
+.cn-stat-widget--linked {
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--border-radius-large, 8px);
+	transition: background-color 0.1s ease-in-out;
+}
+
+.cn-stat-widget--linked:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-stat-widget--linked:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-stat-widget__icon {

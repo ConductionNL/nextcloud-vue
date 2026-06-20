@@ -3,7 +3,11 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-delta-widget">
+	<component
+		:is="linkTag"
+		class="cn-delta-widget"
+		:class="{ 'cn-delta-widget--linked': isLinked }"
+		v-bind="linkAttrs">
 		<div
 			v-if="iconComponent"
 			class="cn-delta-widget__icon"
@@ -35,7 +39,7 @@
 				{{ content.caption }}
 			</div>
 		</div>
-	</div>
+	</component>
 </template>
 
 <script>
@@ -45,6 +49,7 @@ import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
 import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import widgetLink from '../../mixins/widgetLink.js'
 
 /**
  * CnDeltaWidget — an abstract comparison / delta KPI tile.
@@ -85,10 +90,14 @@ export default {
 		TrendingNeutral,
 	},
 
+	mixins: [widgetLink],
+
 	props: {
 		/**
-		 * The widget's persisted configuration blob.
-		 * @type {{label?: string, icon?: string, iconColor?: string, caption?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, goodDirection?: ('up'|'down'), current?: {filter?: object}, previous?: {filter?: object}}}}
+		 * The widget's persisted configuration blob. An optional `route`
+		 * (vue-router location) or `link` (external href) turns the whole
+		 * tile into a click-through target (see the widgetLink mixin).
+		 * @type {{label?: string, icon?: string, iconColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, goodDirection?: ('up'|'down'), current?: {filter?: object}, previous?: {filter?: object}}}}
 		 */
 		content: {
 			type: Object,
@@ -236,6 +245,24 @@ export default {
 	gap: 16px;
 	padding: 8px 4px;
 	min-height: 64px;
+}
+
+/* Whole-tile click target when the widget declares a `route`/`link`. */
+.cn-delta-widget--linked {
+	cursor: pointer;
+	text-decoration: none;
+	color: inherit;
+	border-radius: var(--border-radius-large, 8px);
+	transition: background-color 0.1s ease-in-out;
+}
+
+.cn-delta-widget--linked:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-delta-widget--linked:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
 }
 
 .cn-delta-widget__icon {
