@@ -330,6 +330,15 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	page: [],
 	'form-field': ['appliesTo'],
 	'cell-renderer': ['appliesTo'],
+	// Slot-component kinds: a registered component mounted into a named page
+	// slot (CnPageRenderer resolves these by registry name, independent of
+	// `kind`). `header`/`actions` back the `headerComponent`/`actionsComponent`
+	// manifest sugar; `tab` backs `config.sidebarTabs[].component`. They carry
+	// no required metadata (like `page`) — listing them here keeps the mount-time
+	// registry validator from rejecting a valid slot registration.
+	header: [],
+	actions: [],
+	tab: [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
@@ -715,7 +724,8 @@ export default {
 		 * kind-metadata emits `console.warn`.
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
-		 * `cell-renderer`. See spec REQ-MVR-002.
+		 * `cell-renderer`, and the slot-component kinds `header`, `actions`,
+		 * `tab` (mounted into named page slots). See spec REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */

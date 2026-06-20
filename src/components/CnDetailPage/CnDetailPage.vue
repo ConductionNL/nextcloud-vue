@@ -171,6 +171,29 @@
 
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
+			<!--
+				@slot before-body
+				@description Content rendered at the top of the body, above the grid
+				layout / stats / schema-driven auto-body (Data + Related). Use it to
+				surface page-level widgets (e.g. a KPI/insights dashboard) in the body
+				below the header+actions line without suppressing the auto Data/Related
+				sections (which a `default` slot override would).
+				@binding {object} object The resolved record.
+				@binding {object} schema The resolved schema.
+				@binding {string} objectType The resolved object type.
+				@binding {string} objectId The resolved object id.
+				@binding {object} store The effective object store.
+			-->
+			<div v-if="$scopedSlots['before-body'] || $slots['before-body']" class="cn-detail-page__before-body">
+				<slot
+					name="before-body"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:object-type="resolvedObjectType"
+					:object-id="objectId"
+					:store="effectiveObjectStore" />
+			</div>
+
 			<!-- Grid layout mode -->
 			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
 				<section
