@@ -36,8 +36,67 @@
 				{{ t('nextcloud-vue', 'No calendar available') }}
 			</div>
 
-			<div v-else-if="events.length === 0" class="cn-calendar-widget__state">
+			<div v-else-if="events.length === 0 && activeMode === 'agenda'" class="cn-calendar-widget__state">
 				{{ emptyMessage }}
+			</div>
+
+			<!-- Month view: 7-column grid padded to whole weeks. -->
+			<div v-else-if="activeMode === 'month'" class="cn-calendar-widget__month">
+				<div
+					v-for="(weekday, idx) in weekdayHeaders"
+					:key="'wh-' + idx"
+					class="cn-calendar-widget__month-header">
+					{{ weekday }}
+				</div>
+				<div
+					v-for="day in monthGrid"
+					:key="day.iso"
+					class="cn-calendar-widget__month-cell"
+					:class="{ 'is-today': day.isToday, 'is-other-month': day.isOtherMonth }">
+					<span class="cn-calendar-widget__month-day">{{ day.dayNum }}</span>
+					<ul v-if="day.events.length" class="cn-calendar-widget__month-events">
+						<li
+							v-for="event in day.events.slice(0, 3)"
+							:key="event.uid + '-' + event.start"
+							class="cn-calendar-widget__month-event"
+							:title="event.title"
+							:style="eventStyle(event)">
+							{{ event.title }}
+						</li>
+						<li
+							v-if="day.events.length > 3"
+							class="cn-calendar-widget__month-overflow">
+							+{{ day.events.length - 3 }}
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<!-- Week view: 7 day columns. -->
+			<div v-else-if="activeMode === 'week'" class="cn-calendar-widget__week">
+				<div
+					v-for="day in weekDays"
+					:key="day.iso"
+					class="cn-calendar-widget__week-col"
+					:class="{ 'is-today': day.isToday }">
+					<header class="cn-calendar-widget__week-day">
+						<span class="cn-calendar-widget__week-name">{{ day.weekday }}</span>
+						<span class="cn-calendar-widget__week-num">{{ day.dayNum }}</span>
+					</header>
+					<ul v-if="day.events.length" class="cn-calendar-widget__week-events">
+						<li
+							v-for="event in day.events"
+							:key="event.uid + '-' + event.start"
+							class="cn-calendar-widget__week-event"
+							:style="eventStyle(event)">
+							<span class="cn-calendar-widget__week-time">{{ formatTime(event) }}</span>
+							<span class="cn-calendar-widget__week-title">{{ event.title }}</span>
+						</li>
+					</ul>
+					<p v-else class="cn-calendar-widget__week-empty">
+						—
+					</p>
+				</div>
 			</div>
 
 			<!-- Agenda view: chronological list grouped by day. -->
@@ -64,7 +123,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 
-const VIEW_MODES = ['agenda', 'upcoming']
+const VIEW_MODES = ['month', 'week', 'agenda']
 const DEFAULT_DAYS_AHEAD = 14
 
 /**
@@ -207,6 +266,100 @@ export default {
 		},
 
 		/**
+		 * The first/last day of the current month (month-view window).
+		 *
+		 * @return {{from: Date, to: Date}} the month window.
+		 */
+		monthRange() {
+			const today = this.today
+			const first = new Date(today.getFullYear(), today.getMonth(), 1)
+			const last = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+			return { from: first, to: last }
+		},
+
+		/**
+		 * The Sun–Sat window containing today (week-view window).
+		 *
+		 * @return {{from: Date, to: Date}} the week window.
+		 */
+		weekRange() {
+			const today = this.today
+			const start = new Date(today)
+			start.setDate(today.getDate() - today.getDay())
+			start.setHours(0, 0, 0, 0)
+			const end = new Date(start)
+			end.setDate(start.getDate() + 6)
+			end.setHours(23, 59, 59, 999)
+			return { from: start, to: end }
+		},
+
+		/**
+		 * Events bucketed by `YYYY-MM-DD` for grid lookup.
+		 *
+		 * @return {Object<string, object[]>} iso-date → events.
+		 */
+		eventsByDay() {
+			const buckets = {}
+			for (const event of this.events) {
+				const iso = this.toIsoDate(this.parseDate(event.start))
+				if (!buckets[iso]) {
+					buckets[iso] = []
+				}
+				buckets[iso].push(event)
+			}
+			return buckets
+		},
+
+		/**
+		 * The 7-column month grid (leading/trailing days padded to whole weeks).
+		 *
+		 * @return {Array<object>} grid cells with day metadata + events.
+		 */
+		monthGrid() {
+			const { from, to } = this.monthRange
+			const cells = []
+			const gridStart = new Date(from)
+			gridStart.setDate(from.getDate() - from.getDay())
+			const totalDays = Math.ceil((to.getDate() + from.getDay()) / 7) * 7
+			for (let i = 0; i < totalDays; i++) {
+				const cellDate = new Date(gridStart)
+				cellDate.setDate(gridStart.getDate() + i)
+				const iso = this.toIsoDate(cellDate)
+				cells.push({
+					iso,
+					dayNum: cellDate.getDate(),
+					isToday: this.toIsoDate(this.today) === iso,
+					isOtherMonth: cellDate.getMonth() !== from.getMonth(),
+					events: this.eventsByDay[iso] || [],
+				})
+			}
+			return cells
+		},
+
+		/**
+		 * The 7 day-columns for the week view.
+		 *
+		 * @return {Array<object>} day columns with metadata + events.
+		 */
+		weekDays() {
+			const { from } = this.weekRange
+			const out = []
+			for (let i = 0; i < 7; i++) {
+				const day = new Date(from)
+				day.setDate(from.getDate() + i)
+				const iso = this.toIsoDate(day)
+				out.push({
+					iso,
+					weekday: this.weekdayHeaders[day.getDay()],
+					dayNum: day.getDate(),
+					isToday: this.toIsoDate(this.today) === iso,
+					events: this.eventsByDay[iso] || [],
+				})
+			}
+			return out
+		},
+
+		/**
 		 * Events grouped into per-day buckets in chronological order.
 		 *
 		 * @return {Array<{iso: string, label: string, events: object[]}>} the groups.
@@ -233,6 +386,10 @@ export default {
 			handler() {
 				this.fetchEvents()
 			},
+		},
+		// Month/week/agenda use different fetch windows — refetch on switch.
+		activeMode() {
+			this.fetchEvents()
 		},
 	},
 
@@ -262,15 +419,34 @@ export default {
 		 * @return {string} the localised label.
 		 */
 		modeLabel(mode) {
-			return mode === 'upcoming' ? t('nextcloud-vue', 'Upcoming') : t('nextcloud-vue', 'Agenda')
+			if (mode === 'month') {
+				return t('nextcloud-vue', 'Month')
+			}
+			if (mode === 'week') {
+				return t('nextcloud-vue', 'Week')
+			}
+			return t('nextcloud-vue', 'Agenda')
 		},
 
 		/**
-		 * Compute the inclusive look-ahead window.
+		 * Compute the fetch window for the active view: the whole month in
+		 * month view, the Sun–Sat week in week view, else the daysAhead
+		 * look-ahead (agenda).
 		 *
 		 * @return {{from: Date, to: Date}} the window.
 		 */
 		computeRange() {
+			if (this.activeMode === 'month') {
+				const { from, to } = this.monthRange
+				const start = new Date(from)
+				start.setHours(0, 0, 0, 0)
+				const end = new Date(to)
+				end.setHours(23, 59, 59, 999)
+				return { from: start, to: end }
+			}
+			if (this.activeMode === 'week') {
+				return this.weekRange
+			}
 			const from = new Date(this.today)
 			from.setHours(0, 0, 0, 0)
 			const to = new Date(from)
@@ -450,6 +626,125 @@ export default {
 	color: var(--color-main-text);
 	cursor: pointer;
 	border-radius: var(--border-radius);
+}
+
+.cn-calendar-widget__month {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 2px;
+}
+
+.cn-calendar-widget__month-header {
+	font-size: 11px;
+	font-weight: 600;
+	text-align: center;
+	padding: 4px 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__month-cell {
+	min-height: 60px;
+	padding: 2px 4px;
+	border: 1px solid var(--color-border);
+	border-radius: 2px;
+	background: var(--color-main-background);
+}
+
+.cn-calendar-widget__month-cell.is-today {
+	background: var(--color-background-hover);
+}
+
+.cn-calendar-widget__month-cell.is-other-month {
+	opacity: 0.45;
+}
+
+.cn-calendar-widget__month-day {
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.cn-calendar-widget__month-events {
+	list-style: none;
+	margin: 2px 0 0;
+	padding: 0;
+}
+
+.cn-calendar-widget__month-event {
+	font-size: 10px;
+	padding: 1px 3px;
+	margin-bottom: 1px;
+	border-radius: 2px;
+	background: var(--color-background-dark);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-calendar-widget__month-overflow {
+	font-size: 10px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__week {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 4px;
+}
+
+.cn-calendar-widget__week-col {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	padding: 4px;
+}
+
+.cn-calendar-widget__week-col.is-today {
+	background: var(--color-background-hover);
+}
+
+.cn-calendar-widget__week-day {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	border-bottom: 1px solid var(--color-border);
+	padding-bottom: 2px;
+	margin-bottom: 4px;
+}
+
+.cn-calendar-widget__week-name {
+	font-size: 10px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__week-num {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-calendar-widget__week-events {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-calendar-widget__week-event {
+	font-size: 11px;
+	padding: 2px 4px;
+	margin-bottom: 2px;
+	background: var(--color-background-dark);
+	border-radius: 2px;
+}
+
+.cn-calendar-widget__week-time {
+	font-weight: 600;
+	margin-right: 4px;
+}
+
+.cn-calendar-widget__week-empty {
+	font-size: 11px;
+	text-align: center;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-calendar-widget__agenda {
