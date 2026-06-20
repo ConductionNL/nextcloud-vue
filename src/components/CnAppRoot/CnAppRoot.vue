@@ -226,6 +226,7 @@
 			-->
 			<CnObjectSidebar
 				v-if="shouldAutoMountObjectSidebar"
+				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
 				:object-type="effectiveObjectSidebarState.objectType"
 				:object-id="effectiveObjectSidebarState.objectId"
@@ -234,7 +235,8 @@
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
 				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
-				:requested-tab="effectiveObjectSidebarState.requestedTab" />
+				:requested-tab="effectiveObjectSidebarState.requestedTab"
+				@update:open="effectiveObjectSidebarState.open = $event" />
 
 			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
@@ -309,7 +311,7 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import { ref, watch } from 'vue'
+import Vue, { ref, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
@@ -318,7 +320,6 @@ import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
-import Vue from 'vue'
 
 /**
  * Recognised registry kinds and their required metadata fields.

@@ -84,6 +84,20 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+				<!-- Object-sidebar toggle — opens/closes the right sidebar (the
+				     sidebar defaults closed; its own X also closes it). Only shown
+				     when this page actually has an active sidebar. -->
+				<NcButton
+					v-if="hasObjectSidebar"
+					variant="tertiary"
+					:aria-label="t('nextcloud-vue', 'Toggle sidebar')"
+					:title="t('nextcloud-vue', 'Toggle sidebar')"
+					:pressed="objectSidebarOpen"
+					@click="toggleObjectSidebar">
+					<template #icon>
+						<PageLayoutSidebarRight :size="20" />
+					</template>
+				</NcButton>
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
@@ -388,6 +402,7 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
@@ -498,6 +513,7 @@ export default {
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
 		Cog,
+		PageLayoutSidebarRight,
 	},
 
 	mixins: [gridLayout],
@@ -593,10 +609,17 @@ export default {
 			default: () => ({ enabled: false }),
 		},
 
-		/** Whether the sidebar is open (expanded) */
+		/**
+		 * Initial open state of the object sidebar when it first activates.
+		 * Defaults to closed so the detail content fills the page; the user
+		 * opens it on demand via the header sidebar-toggle (and the sidebar's
+		 * own X closes it). After the first activation the open state is owned
+		 * by the shared `objectSidebarState` channel (toggle / close), so this
+		 * prop only seeds the initial value.
+		 */
 		sidebarOpen: {
 			type: Boolean,
-			default: true,
+			default: false,
 		},
 
 		/** The registered object type slug for the sidebar */
@@ -902,6 +925,12 @@ export default {
 			showWidgetConfig: false,
 			/** The widgetId currently being configured via the cog. */
 			configWidgetId: null,
+			/**
+			 * Whether the object sidebar has been seeded with its initial open
+			 * state for the current activation. Gates the one-shot `sidebarOpen`
+			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
+			 */
+			sidebarSeeded: false,
 		}
 	},
 
@@ -1153,6 +1182,26 @@ export default {
 
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
+		},
+
+		/**
+		 * Whether this page has an active object sidebar (wired through the
+		 * external `objectSidebarState` channel). Drives the header
+		 * sidebar-toggle button's visibility.
+		 *
+		 * @return {boolean}
+		 */
+		hasObjectSidebar() {
+			return this.hasExternalSidebar && this.sidebarActive
+		},
+
+		/**
+		 * Current open state of the object sidebar (from the shared channel).
+		 *
+		 * @return {boolean}
+		 */
+		objectSidebarOpen() {
+			return !!(this.objectSidebarState && this.objectSidebarState.open === true)
 		},
 	},
 
@@ -1544,6 +1593,18 @@ export default {
 		 * `tabs` so a hidden detail page does not leak prior tab
 		 * state to the next mount.
 		 */
+		/**
+		 * Toggle the object sidebar open/closed via the shared channel. Wired to
+		 * the header sidebar-toggle button; the sidebar's own X also closes it
+		 * (CnObjectSidebar → `update:open` → CnAppRoot writes the channel).
+		 *
+		 * @return {void}
+		 */
+		toggleObjectSidebar() {
+			if (!this.objectSidebarState) return
+			this.objectSidebarState.open = !(this.objectSidebarState.open === true)
+		},
+
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
@@ -1551,7 +1612,14 @@ export default {
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				this.objectSidebarState.active = true
-				this.objectSidebarState.open = this.sidebarOpen
+				// Seed `open` only on the inactive→active edge (first activation
+				// of this object). Subsequent syncs must NOT clobber it, otherwise
+				// the user's close/toggle would be undone on the next reactive
+				// change. The shared channel owns `open` after seeding.
+				if (!this.sidebarSeeded) {
+					this.objectSidebarState.open = this.sidebarOpen
+					this.sidebarSeeded = true
+				}
 				this.objectSidebarState.objectType = this.resolvedObjectType
 				this.objectSidebarState.objectId = this.objectId
 				this.objectSidebarState.title = merged.title || this.title || ''
@@ -1572,6 +1640,8 @@ export default {
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined
+				// Re-arm the seed so the next activation re-applies `sidebarOpen`.
+				this.sidebarSeeded = false
 			}
 		},
 
