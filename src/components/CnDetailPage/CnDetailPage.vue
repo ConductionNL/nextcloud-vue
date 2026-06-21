@@ -84,20 +84,10 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
-				<!-- Object-sidebar toggle — opens/closes the right sidebar (the
-				     sidebar defaults closed; its own X also closes it). Only shown
-				     when this page actually has an active sidebar. -->
-				<NcButton
-					v-if="hasObjectSidebar"
-					variant="tertiary"
-					:aria-label="t('nextcloud-vue', 'Toggle sidebar')"
-					:title="t('nextcloud-vue', 'Toggle sidebar')"
-					:pressed="objectSidebarOpen"
-					@click="toggleObjectSidebar">
-					<template #icon>
-						<PageLayoutSidebarRight :size="20" />
-					</template>
-				</NcButton>
+				<!-- NB: no sidebar-toggle here — NcObjectSidebar/NcAppSidebar
+				     renders its own open toggle (`.app-sidebar__toggle`) when
+				     closed and an X (`.app-sidebar__close`) when open, so a custom
+				     button would duplicate it. -->
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
@@ -402,7 +392,6 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
-import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
@@ -513,7 +502,6 @@ export default {
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
 		Cog,
-		PageLayoutSidebarRight,
 	},
 
 	mixins: [gridLayout],
@@ -1196,26 +1184,6 @@ export default {
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
-
-		/**
-		 * Whether this page has an active object sidebar (wired through the
-		 * external `objectSidebarState` channel). Drives the header
-		 * sidebar-toggle button's visibility.
-		 *
-		 * @return {boolean}
-		 */
-		hasObjectSidebar() {
-			return this.hasExternalSidebar && this.sidebarActive
-		},
-
-		/**
-		 * Current open state of the object sidebar (from the shared channel).
-		 *
-		 * @return {boolean}
-		 */
-		objectSidebarOpen() {
-			return !!(this.objectSidebarState && this.objectSidebarState.open === true)
-		},
 	},
 
 	watch: {
@@ -1606,18 +1574,6 @@ export default {
 		 * `tabs` so a hidden detail page does not leak prior tab
 		 * state to the next mount.
 		 */
-		/**
-		 * Toggle the object sidebar open/closed via the shared channel. Wired to
-		 * the header sidebar-toggle button; the sidebar's own X also closes it
-		 * (CnObjectSidebar → `update:open` → CnAppRoot writes the channel).
-		 *
-		 * @return {void}
-		 */
-		toggleObjectSidebar() {
-			if (!this.objectSidebarState) return
-			this.objectSidebarState.open = !(this.objectSidebarState.open === true)
-		},
-
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
