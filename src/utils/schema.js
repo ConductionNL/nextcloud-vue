@@ -362,6 +362,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// surfaces (CnFormDialog, CnDetailGrid) render that
 			// integration's single-entity widget instead of a plain input.
 			referenceType: prop.referenceType || null,
+			// Conditional immutability (AD: x-openregister-readonly-when): a
+			// property can declare it becomes read-only when another field on the
+			// same object holds a given value — e.g. a hybrid app's identity
+			// fields. Consumers (CnObjectDataWidget) evaluate this against the
+			// object's current data. Shape: `{ field, equals }` or `{ field, in: [] }`.
+			readOnlyWhen: prop['x-openregister-readonly-when'] || prop.readOnlyWhen || null,
 			validation: {
 				minLength: prop.minLength,
 				maxLength: prop.maxLength,
