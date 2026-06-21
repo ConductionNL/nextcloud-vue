@@ -25,6 +25,7 @@ export {
 	CnStructuredDocReview,
 	CnConfigurationCard,
 	CnVersionInfoCard,
+	CnAdminSettingsShell,
 	CnCellRenderer,
 	CnObjectCard,
 	CnCardGrid,
