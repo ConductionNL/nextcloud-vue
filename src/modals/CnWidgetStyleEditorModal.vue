@@ -89,7 +89,7 @@
 
 				<NcSelect
 					v-model="selectedIcon"
-					:options="iconOptions"
+					:options="allIconOptions"
 					:input-label="t('nextcloud-vue', 'Icon')"
 					:aria-label-combobox="t('nextcloud-vue', 'Icon')"
 					label="label"
@@ -97,7 +97,11 @@
 					data-testid="cn-widget-style-icon">
 					<template #selected-option="{ label }">
 						<span class="cn-widget-style-editor__icon-option">
-							<svg class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
+							<img v-if="isUrlIcon(selectedIcon.icon)"
+								:src="selectedIcon.icon"
+								:alt="label"
+								class="cn-widget-style-editor__icon-preview">
+							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
 								<path :d="selectedIcon.icon" />
 							</svg>
 							<span class="cn-widget-style-editor__icon-label">{{ label }}</span>
@@ -105,7 +109,11 @@
 					</template>
 					<template #option="option">
 						<span class="cn-widget-style-editor__icon-option">
-							<svg class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
+							<img v-if="isUrlIcon(option.icon)"
+								:src="option.icon"
+								:alt="option.label"
+								class="cn-widget-style-editor__icon-preview">
+							<svg v-else class="cn-widget-style-editor__icon-preview" viewBox="0 0 24 24">
 								<path :d="option.icon" />
 							</svg>
 							<span class="cn-widget-style-editor__icon-label">{{ option.label }}</span>
@@ -229,6 +237,17 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+		/**
+		 * Extra icon options appended to the built-in set, e.g. an app's own
+		 * icon pack. Each `{ id, label, icon }` where `icon` may be an MDI path
+		 * OR a URL/absolute path (rendered as an `<img>`). Default `[]`.
+		 *
+		 * @type {Array<{id: string, label: string, icon: string}>}
+		 */
+		extraIconOptions: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: [
@@ -317,12 +336,21 @@ export default {
 		 */
 		selectedIcon: {
 			get() {
-				const option = this.iconOptions.find((opt) => opt.icon === this.draft.customIcon)
-				return option || this.iconOptions[0]
+				const option = this.allIconOptions.find((opt) => opt.icon === this.draft.customIcon)
+				return option || this.allIconOptions[0]
 			},
 			set(value) {
 				this.draft.customIcon = value ? value.icon : ''
 			},
+		},
+
+		/**
+		 * The built-in icon set plus any consumer-supplied `extraIconOptions`.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string}>} all options.
+		 */
+		allIconOptions() {
+			return this.extraIconOptions.length ? [...this.iconOptions, ...this.extraIconOptions] : this.iconOptions
 		},
 	},
 
@@ -353,6 +381,17 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Whether an icon value is a URL/absolute path (render as `<img>`)
+		 * rather than an MDI path string (render as `<svg><path>`).
+		 *
+		 * @param {string} icon the icon value.
+		 * @return {boolean} true for URL/path icons.
+		 */
+		isUrlIcon(icon) {
+			return typeof icon === 'string' && (icon.startsWith('/') || icon.startsWith('http'))
+		},
 
 		/**
 		 * Build the working-copy draft from a widget's current chrome + styleConfig.
@@ -547,6 +586,7 @@ export default {
 	display: block;
 	flex-shrink: 0;
 	fill: currentColor;
+	object-fit: contain;
 }
 
 .cn-widget-style-editor__icon-label {
