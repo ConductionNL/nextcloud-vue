@@ -62,6 +62,8 @@ export {
 	CnDashboardGrid,
 	CnWidgetWrapper,
 	CnWidgetEditCog,
+	CnIconPicker,
+	CnDashboardIcon,
 	CnWidgetRenderer,
 	CnTileWidget,
 	CnTimelineView,
@@ -245,6 +247,7 @@ export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurren
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
+export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
