@@ -301,6 +301,17 @@ export default {
 	overflow: visible;
 }
 
+/* The wrapped CnDataTable renders its own `.cn-table-container` card (border +
+   radius + shadow). When the widget is borderless that inner card is the very
+   double-card we are avoiding, so flatten it too — the surrounding container
+   (dashboard widget) owns the single card. */
+.cn-table-widget--borderless :deep(.cn-table-container) {
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+}
+
 .cn-table-widget__header {
 	display: flex;
 	align-items: center;
