@@ -13,8 +13,8 @@
 			v-if="showVersionCard"
 			:app-name="appName"
 			:app-version="resolvedVersion"
-			:configured-version="configuredVersion"
-			:is-up-to-date="isUpToDate"
+			:configured-version="resolvedConfiguredVersion"
+			:is-up-to-date="resolvedIsUpToDate"
 			:show-update-button="showUpdateButton"
 			:updating="updating"
 			:title="versionTitle"
@@ -169,18 +169,25 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Configured version (for apps that track a separate config version). */
+		/**
+		 * Configured version (for apps that track a separate config version).
+		 * When omitted, read from `loadState(appId, 'configuredVersion', '')`
+		 * (AppHost stamps it on each config import).
+		 */
 		configuredVersion: {
 			type: String,
 			default: '',
 		},
 		/**
 		 * Whether the installation is up to date. Drives the badge/button in the
-		 * version card. Pass a real comparison; do NOT hardcode true.
+		 * version card. When left null, the shell reads the REAL value from
+		 * `loadState(appId, 'isUpToDate', true)` — AppHost's GenericAdminSettings
+		 * provides it by comparing the running version to the imported config
+		 * version. Pass an explicit boolean to override; do NOT hardcode true.
 		 */
 		isUpToDate: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/** Whether to show the version card's up-to-date / update button. */
 		showUpdateButton: {
@@ -237,6 +244,17 @@ export default {
 				return this.appVersion
 			}
 			return loadState(this.appId, 'version', 'Unknown')
+		},
+		/** @return {string} Configured version, falling back to AppHost initial state. */
+		resolvedConfiguredVersion() {
+			return this.configuredVersion || loadState(this.appId, 'configuredVersion', '')
+		},
+		/** @return {boolean} Real up-to-date signal: explicit prop wins, else AppHost initial state. */
+		resolvedIsUpToDate() {
+			if (this.isUpToDate !== null) {
+				return this.isUpToDate
+			}
+			return loadState(this.appId, 'isUpToDate', true)
 		},
 		/** @return {string} Page title, defaulting to "<appName> Settings". */
 		resolvedTitle() {

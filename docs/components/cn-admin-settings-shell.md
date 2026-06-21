@@ -58,8 +58,8 @@ With a real up-to-date check (when the backend reports a configured version):
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
 | `versionTitle` | String | `'Version information'` | Version card heading |
 | `versionDescription` | String | `''` | Version card description. Defaults to `"Information about the current <appName> installation"` |
-| `configuredVersion` | String | `''` | Configured version (apps that track a separate config version) |
-| `isUpToDate` | Boolean | `true` | Whether the install is up to date. Pass a real comparison — do **not** hardcode `true` |
+| `configuredVersion` | String | `''` | Configured version. When omitted, read from `loadState(appId, 'configuredVersion', '')` (AppHost stamps it on each config import) |
+| `isUpToDate` | Boolean | `null` | Whether the install is up to date. When `null`, the shell reads the **real** value from `loadState(appId, 'isUpToDate', true)` (AppHost's GenericAdminSettings compares running vs imported config version). Pass an explicit boolean to override |
 | `showUpdateButton` | Boolean | `true` | Show the version card's up-to-date / update button |
 | `updating` | Boolean | `false` | Whether an update is in progress |
 | `showReimport` | Boolean | `true` | Show the "Re-import configuration" action |

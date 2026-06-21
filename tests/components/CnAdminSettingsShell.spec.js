@@ -53,10 +53,25 @@ describe('CnAdminSettingsShell', () => {
 		expect(loadState).toHaveBeenCalledWith('shillinq', 'version', 'Unknown')
 	})
 
-	it('prefers an explicit appVersion prop over loadState', () => {
+	it('prefers an explicit appVersion prop over loadState for the version', () => {
 		const wrapper = mountShell({ appVersion: '1.2.3' })
 		expect(wrapper.findComponent({ name: 'CnVersionInfoCard' }).props('appVersion')).toBe('1.2.3')
-		expect(loadState).not.toHaveBeenCalled()
+		// version comes from the prop, so loadState is never queried for 'version'
+		expect(loadState).not.toHaveBeenCalledWith('shillinq', 'version', expect.anything())
+	})
+
+	it('reads the real up-to-date signal from loadState when isUpToDate is not passed', () => {
+		loadState.mockImplementation((app, key, def) => (key === 'isUpToDate' ? false : (key === 'configuredVersion' ? '0.8.0' : def)))
+		const wrapper = mountShell()
+		const card = wrapper.findComponent({ name: 'CnVersionInfoCard' })
+		expect(card.props('isUpToDate')).toBe(false)
+		expect(card.props('configuredVersion')).toBe('0.8.0')
+	})
+
+	it('lets an explicit isUpToDate prop override the loadState signal', () => {
+		loadState.mockImplementation((app, key, def) => (key === 'isUpToDate' ? false : def))
+		const wrapper = mountShell({ isUpToDate: true })
+		expect(wrapper.findComponent({ name: 'CnVersionInfoCard' }).props('isUpToDate')).toBe(true)
 	})
 
 	it('re-imports via the canonical AppHost endpoint and emits reimported', async () => {
