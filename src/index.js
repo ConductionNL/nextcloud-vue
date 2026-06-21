@@ -243,6 +243,7 @@ export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resol
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
+export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
