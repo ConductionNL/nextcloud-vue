@@ -186,6 +186,7 @@ export {
 	CnSpendAnalyticsWidgetForm,
 	CnNcWidgetWidget,
 	CnNcDashboardWidgetForm,
+	CnDashTileWidget,
 	CnDashTileWidgetForm,
 } from './components/index.js'
 
