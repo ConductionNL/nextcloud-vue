@@ -61,6 +61,7 @@ export {
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
+	CnWidgetEditCog,
 	CnWidgetRenderer,
 	CnTileWidget,
 	CnTimelineView,
