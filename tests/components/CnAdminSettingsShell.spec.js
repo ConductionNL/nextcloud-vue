@@ -30,11 +30,17 @@ describe('CnAdminSettingsShell', () => {
 
 	it('renders the title header with computed defaults', () => {
 		const wrapper = mountShell({ docUrl: 'https://x/docs' })
-		const header = wrapper.findComponent({ name: 'CnSettingsSection' })
-		expect(header.exists()).toBe(true)
-		expect(header.props('name')).toBe('Shillinq Settings')
-		expect(header.props('description')).toBe('Configure your Shillinq installation')
-		expect(header.props('docUrl')).toBe('https://x/docs')
+		// Header uses NcSettingsSection directly so its description subtitle renders.
+		expect(wrapper.findComponent({ name: 'NcSettingsSection' }).exists()).toBe(true)
+		expect(wrapper.vm.resolvedTitle).toBe('Shillinq Settings')
+		expect(wrapper.vm.resolvedDescription).toBe('Configure your Shillinq installation')
+		expect(wrapper.props('docUrl')).toBe('https://x/docs')
+	})
+
+	it('honours explicit title/description overrides', () => {
+		const wrapper = mountShell({ title: 'Custom', description: 'Desc' })
+		expect(wrapper.vm.resolvedTitle).toBe('Custom')
+		expect(wrapper.vm.resolvedDescription).toBe('Desc')
 	})
 
 	it('passes version to the version card, falling back to loadState', () => {

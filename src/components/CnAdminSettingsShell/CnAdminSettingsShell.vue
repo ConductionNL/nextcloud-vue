@@ -1,7 +1,9 @@
 <template>
 	<div class="cn-admin-settings-shell">
-		<!-- Page title header — the uniform "<App> Settings / Configure your <App> installation" block -->
-		<CnSettingsSection
+		<!-- Page title header — the uniform "<App> Settings / Configure your <App> installation" block.
+		     Uses NcSettingsSection directly (not CnSettingsSection) so the description subtitle and
+		     doc-url icon render — CnSettingsSection repurposes those props and does not forward them. -->
+		<NcSettingsSection
 			:name="resolvedTitle"
 			:description="resolvedDescription"
 			:doc-url="docUrl" />
@@ -69,9 +71,8 @@ import { loadState } from '@nextcloud/initial-state'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { showSuccess, showError } from '@nextcloud/dialogs'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
-import { CnSettingsSection } from '../CnSettingsSection/index.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
 
 /**
@@ -111,7 +112,7 @@ export default {
 	name: 'CnAdminSettingsShell',
 
 	components: {
-		CnSettingsSection,
+		NcSettingsSection,
 		CnVersionInfoCard,
 		NcButton,
 		NcLoadingIcon,
