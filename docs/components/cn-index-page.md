@@ -63,6 +63,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
 | `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens the CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject) to open — warns + no-ops otherwise |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
+| `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject`. The override owns persistence (e.g. an app posting through a contact-aware endpoint that fills a required FK before saving to OpenRegister) and must return the created object on success (falsy = failure; throwing surfaces the error in the dialog). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Edits are never routed here; when absent, create behaviour is unchanged. See [Per-schema create-override hook](#per-schema-create-override-hook). |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
@@ -211,6 +212,41 @@ Set `store` and `objectType` to have the form dialog save directly to the store.
 ```
 
 No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
+
+### Per-schema create-override hook
+
+Some schemas can't be persisted by a plain `saveObject` straight to OpenRegister — they have a server-side prerequisite that must run first. The canonical example: a `client` whose required `contactsUid` is a foreign key to a Nextcloud addressbook contact. The generic create flow would POST without that FK and get a `400`. The app already has a contact-aware endpoint (`POST /api/contacts-sync/create`) that resolves/creates the contact and saves with the FK filled in — but the **generic** "Add" button on the list went straight through `saveObject`.
+
+`createOverride` closes that gap. Pass an async function; on a **create** (not edit), the built-in form dialog calls it instead of `saveObject`. The override owns persistence and returns the created object:
+
+```vue
+<CnIndexPage
+  title="Clients"
+  :schema="clientSchema"
+  :store="objectStore"
+  object-type="crm-client"
+  :create-override="createClientContactAware"
+  @refresh="fetchClients"
+/>
+```
+
+```js
+methods: {
+  // Route generic client creates through the contact-aware endpoint that
+  // fills the required contactsUid (FK to a NC addressbook contact) before
+  // saving to OpenRegister. Other schemas can branch on ctx.objectType.
+  async createClientContactAware(formData, ctx) {
+    const created = await contactSyncApi.create(formData) // POST /api/contacts-sync/create
+    return created // truthy => @create emitted + dialog success; falsy => failure
+  },
+}
+```
+
+Rules:
+- **Create-only.** Edits always fall through to the normal store / self-store path; the override is never called for an edit.
+- **Return the created object** (truthy) on success; return a falsy value to signal failure (terminal error shown). **Throw** to surface `err.message` in the dialog.
+- `ctx` is `{ register, schema, objectType, effectiveSchema }` so one handler can branch per schema.
+- When the prop is absent, create behaviour is **unchanged** — no regression for existing consumers.
 
 ### Custom item names in dialogs
 

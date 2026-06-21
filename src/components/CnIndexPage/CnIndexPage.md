@@ -367,6 +367,7 @@ export default {
 | `importOptions` | Array | `[]` | Import option definitions for the import dialog |
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
+| `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |

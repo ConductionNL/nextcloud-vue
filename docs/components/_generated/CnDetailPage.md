@@ -65,7 +65,7 @@
 | `error-actions`           | —                                                       | error-actions              |
 | `empty`                   | —                                                       | empty                      |
 | `empty-actions`           | —                                                       | empty-actions              |
-| `before-body`             | `object`, `schema`, `object-type`, `object-id`, `store` |                            |
+| `before-body`             | `object`, `schema`, `object-type`, `object-id`, `store` | before-body                |
 | `widget-${item.widgetId}` | `name`, `item`, `widget`                                | `widget-\${item.widgetId}` |
 | `stats-header`            | —                                                       | stats-header               |
 | `stats-rows`              | —                                                       | stats-rows                 |
