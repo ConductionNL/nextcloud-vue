@@ -43,6 +43,13 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `statsColumns` | Array | `[]` | Column defs for stats table: `[{ key: string, label: string, align?: 'left'\|'center'\|'right' }]` |
 | `statsRows` | Array | `[]` | Row data for stats table (objects keyed by column keys; set `indent: true` for sub-row styling) |
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content |
+| `lifecycleActions` | Object \| null | `null` | **Declarative lifecycle/transition buttons.** When set, renders status-gated transition buttons in the page header driven by the object's `x-openregister-lifecycle`. `{ field?: 'status' }` fetches the allowed transitions live from OpenRegister's `/available-actions` endpoint; an explicit `{ transitions: [{ from, to, action, label, confirm?, variant? }] }` is filtered client-side by the object's current state. See [CnLifecycleActions](./cn-lifecycle-actions.md). |
+
+## Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `transitioned` | `{ action, to, object }` | A declarative lifecycle transition (from `lifecycleActions`) succeeded on this page's object. |
 
 ## Slots
 

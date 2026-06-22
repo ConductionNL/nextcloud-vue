@@ -255,3 +255,4 @@ CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+| `lifecycleActions` | Object \| null | `null` | Declarative status-gated transition buttons in the page header, driven by the object's `x-openregister-lifecycle`. `{ field: 'status' }` fetches allowed transitions from OpenRegister's `/available-actions`; an explicit `{ transitions: [...] }` is filtered client-side by current state. Emits `@transitioned`. See [CnLifecycleActions](../CnLifecycleActions/CnLifecycleActions.md) / docs `cn-lifecycle-actions.md`. |

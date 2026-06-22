@@ -93,6 +93,7 @@ export {
 	CnIntegrationWidget,
 	CnDetailCard,
 	CnDetailPage,
+	CnLifecycleActions,
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,

@@ -78,6 +78,17 @@
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- Declarative lifecycle/transition buttons (manifest
+				     `config.lifecycleActions`). Status-gated; driven by the
+				     object's x-openregister-lifecycle. Renders nothing when no
+				     transitions apply. -->
+				<CnLifecycleActions
+					v-if="lifecycleActions && (objectId || currentObject)"
+					:object-id="objectId"
+					:object="currentObject"
+					:config="lifecycleActions"
+					@transitioned="onTransitioned"
+					@reload="onLifecycleReload" />
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
@@ -397,6 +408,7 @@ import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButto
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
@@ -499,6 +511,7 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
+		CnLifecycleActions,
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
 		Cog,
@@ -865,6 +878,24 @@ export default {
 		showRequestFeature: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Declarative lifecycle/transition actions (manifest `config.lifecycleActions`).
+		 * When set, renders status-gated transition buttons in the page header driven
+		 * by the object's `x-openregister-lifecycle`. Shape:
+		 * `{ field?: 'status', transitions?: [{ from, to, action, label, confirm?, variant? }], autoFetch?: boolean }`.
+		 * With just `{ field: 'status' }` the allowed transitions are fetched live from
+		 * OpenRegister's `/available-actions` endpoint (server-authoritative). An
+		 * explicit `transitions` array is filtered client-side by the object's current
+		 * state. Omit (default `null`) to keep the current behaviour (no transition
+		 * buttons). See `CnLifecycleActions`.
+		 *
+		 * @type {object|null}
+		 */
+		lifecycleActions: {
+			type: Object,
+			default: null,
 		},
 	},
 
@@ -1315,6 +1346,28 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
+		},
+
+		/**
+		 * Re-emit a successful lifecycle transition to the host.
+		 *
+		 * @param {{ action: string, to: string, object: object }} payload The transition result.
+		 */
+		onTransitioned(payload) {
+			/**
+			 * @event transitioned A declarative lifecycle transition succeeded on this
+			 * page's object. Payload is `{ action, to, object }`.
+			 * @type {{ action: string, to: string, object: object }}
+			 */
+			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Re-fetch the page's object after a lifecycle transition so the new state
+		 * (and any other server-side mutations the guard applied) render.
+		 */
+		onLifecycleReload() {
+			this.fetchObjectIfNeeded()
 		},
 
 		/**
