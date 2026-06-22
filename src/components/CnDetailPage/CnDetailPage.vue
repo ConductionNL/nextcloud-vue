@@ -74,6 +74,12 @@
 						<p v-if="description" class="cn-detail-page__description">
 							{{ description }}
 						</p>
+						<!-- Declarative cross-schema summary chips (manifest
+						     `config.summaryAggregates`). Count/sum/avg over a
+						     related schema scoped to this object via @objectId. -->
+						<CnSummaryAggregates
+							v-if="summaryAggregates && summaryAggregates.length > 0"
+							:aggregates="summaryAggregates" />
 					</div>
 				</div>
 			</slot>
@@ -370,6 +376,32 @@
 				</div>
 			</div>
 
+			<!-- Declarative related-object list sections (manifest
+			     `config.relatedCollections`). Rendered below the detail body;
+			     each section's filter is scoped to this object via @objectId.
+			     An optional relation-link button opens CnRelationLinkModal. -->
+			<div
+				v-if="(relatedCollections && relatedCollections.length > 0) || (relationLinks && relationLinks.length > 0)"
+				class="cn-detail-page__related-collections">
+				<div v-if="relationLinks && relationLinks.length > 0" class="cn-detail-page__relation-links">
+					<NcButton
+						v-for="(link, li) in relationLinks"
+						:key="li"
+						class="cn-detail-page__relation-link-button"
+						:data-testid="`cn-detail-relation-link-${li}`"
+						@click="openRelationLink(link)">
+						<template #icon>
+							<Plus :size="18" />
+						</template>
+						{{ link.label || t('nextcloud-vue', 'Link related object') }}
+					</NcButton>
+				</div>
+				<CnRelatedCollections
+					v-if="relatedCollections && relatedCollections.length > 0"
+					:collections="relatedCollections"
+					@row-click="onRelatedRowClick" />
+			</div>
+
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
 				<!--
@@ -392,6 +424,22 @@
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
 			@close="showWidgetConfig = false" />
+
+		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
+		     target schema and patch a FK on the current object. -->
+		<CnRelationLinkModal
+			v-if="activeRelationLink"
+			:title="activeRelationLink.title || undefined"
+			:select-label="activeRelationLink.selectLabel || undefined"
+			:register="activeRelationLink.register"
+			:schema="activeRelationLink.schema"
+			:label-field="activeRelationLink.labelField || 'name'"
+			:allow-create="activeRelationLink.allowCreate === true"
+			:current-type="resolvedObjectType"
+			:current-object="currentObject || {}"
+			:fk-field="activeRelationLink.fkField"
+			@linked="onRelationLinked"
+			@close="activeRelationLink = null" />
 	</div>
 </template>
 
@@ -403,13 +451,17 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
+import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnRelationLinkModal from '../../modals/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -512,9 +564,13 @@ export default {
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
 		CnLifecycleActions,
+		CnSummaryAggregates,
+		CnRelatedCollections,
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
+		CnRelationLinkModal,
 		Cog,
+		Plus,
 	},
 
 	mixins: [gridLayout],
@@ -897,6 +953,51 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Declarative related-object list sections (manifest
+		 * `config.relatedCollections`). Each entry renders a titled
+		 * `CnObjectListWidget` below the detail body, filtered to this object via
+		 * `@objectId` / `@object.<field>` tokens. Shape per entry:
+		 * `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnRelatedCollections`.
+		 *
+		 * @type {Array<object>}
+		 */
+		relatedCollections: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative cross-schema summary chips (manifest
+		 * `config.summaryAggregates`). Each entry runs ONE count/sum/avg over a
+		 * related schema scoped to this object and shows it as a stat chip in the
+		 * header. Shape per entry:
+		 * `{ label, register, schema, metric?, field?, filter?, format? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnSummaryAggregates`.
+		 *
+		 * @type {Array<object>}
+		 */
+		summaryAggregates: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative relation-link actions (manifest `config.relationLinks`).
+		 * Each entry renders a button that opens a search-and-link modal which
+		 * patches a foreign-key field on THIS object with the chosen object's id.
+		 * Shape per entry:
+		 * `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }`.
+		 * Empty / omitted (default `[]`) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		relationLinks: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	setup(props) {
@@ -963,6 +1064,8 @@ export default {
 			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
 			 */
 			sidebarSeeded: false,
+			/** The relation-link descriptor whose modal is currently open (or null). */
+			activeRelationLink: null,
 		}
 	},
 
@@ -1368,6 +1471,45 @@ export default {
 		 */
 		onLifecycleReload() {
 			this.fetchObjectIfNeeded()
+		},
+
+		/**
+		 * Open the relation-link modal for a configured `relationLinks` entry.
+		 *
+		 * @param {object} link The relation-link descriptor.
+		 */
+		openRelationLink(link) {
+			this.activeRelationLink = link
+		},
+
+		/**
+		 * A relation-link modal saved a patched FK — re-fetch the object and
+		 * re-emit so the host can react.
+		 *
+		 * @param {object} saved The updated object.
+		 */
+		onRelationLinked(saved) {
+			this.fetchObjectIfNeeded()
+			/**
+			 * @event relation-linked A relation-link action patched a foreign key on
+			 * this page's object. Payload is the updated object.
+			 * @type {object}
+			 */
+			this.$emit('relation-linked', saved)
+		},
+
+		/**
+		 * Re-emit a related-collection row click to the host.
+		 *
+		 * @param {{ collection: object, row: object, index: number }} payload The click payload.
+		 */
+		onRelatedRowClick(payload) {
+			/**
+			 * @event related-row-click A row in a `relatedCollections` section was
+			 * clicked. Payload is `{ collection, row, index }`.
+			 * @type {{ collection: object, row: object, index: number }}
+			 */
+			this.$emit('related-row-click', payload)
 		},
 
 		/**

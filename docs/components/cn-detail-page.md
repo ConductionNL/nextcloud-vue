@@ -44,12 +44,17 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `statsRows` | Array | `[]` | Row data for stats table (objects keyed by column keys; set `indent: true` for sub-row styling) |
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content |
 | `lifecycleActions` | Object \| null | `null` | **Declarative lifecycle/transition buttons.** When set, renders status-gated transition buttons in the page header driven by the object's `x-openregister-lifecycle`. `{ field?: 'status' }` fetches the allowed transitions live from OpenRegister's `/available-actions` endpoint; an explicit `{ transitions: [{ from, to, action, label, confirm?, variant? }] }` is filtered client-side by the object's current state. See [CnLifecycleActions](./cn-lifecycle-actions.md). |
+| `relatedCollections` | Array | `[]` | **Declarative related-object list sections** rendered below the detail body. Each entry `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }` renders a titled `CnObjectListWidget` scoped to this object via `@objectId` / `@object.<field>` tokens. See [CnRelatedCollections](./cn-related-collections.md). |
+| `summaryAggregates` | Array | `[]` | **Declarative cross-schema summary chips** in the header. Each entry `{ label, register, schema, metric?, field?, filter?, format? }` runs one count/sum/avg over a related schema scoped to this object. See [CnSummaryAggregates](./cn-summary-aggregates.md). |
+| `relationLinks` | Array | `[]` | **Declarative relation-link actions.** Each entry `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }` renders a button that opens a search-and-link modal which patches a foreign key on this object. See [CnRelationLinkModal](./cn-relation-link-modal.md). |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `transitioned` | `{ action, to, object }` | A declarative lifecycle transition (from `lifecycleActions`) succeeded on this page's object. |
+| `relation-linked` | `object` | A `relationLinks` action patched a foreign key on this page's object; payload is the updated object. |
+| `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
 
 ## Slots
 
