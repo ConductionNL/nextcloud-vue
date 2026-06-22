@@ -12,14 +12,25 @@
 .cn-detail-page__header {
 	display: flex;
 	justify-content: space-between;
-	align-items: center;
+	/* Pin the action surface to the TOP-right (not vertically centred against a
+	   tall header) so actions always sit on the title row. */
+	align-items: flex-start;
 	margin-bottom: calc(4 * var(--default-grid-baseline));
-	flex-wrap: wrap;
+	/* Keep actions on the same row — the header content shrinks (min-width:0
+	   on the first child below) rather than wrapping actions onto a new line. */
+	flex-wrap: nowrap;
 	gap: calc(4 * var(--default-grid-baseline));
 	/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
 	   positioned at the left edge of .app-content) plus 12px breathing
 	   room. Only the HEADER shifts right — body content keeps full width. */
 	padding-inline-start: 56px;
+}
+
+/* Header content block (#header slot / default left block) takes the remaining
+   width and may shrink so the actions stay top-right. */
+.cn-detail-page__header > :first-child {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .cn-detail-page__header-left {
@@ -173,6 +184,19 @@
    no detail-page-specific grid CSS needed here. */
 .cn-detail-page__grid-item {
 	min-width: 0;
+	position: relative;
+}
+
+/* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget
+   while the page is in edit mode. Mirrors the dashboard's widget-edit cog. */
+.cn-detail-page__widget-edit {
+	position: absolute;
+	top: 4px;
+	inset-inline-end: 4px;
+	z-index: 5;
+	background: var(--color-main-background);
+	border-radius: var(--border-radius);
+	box-shadow: 0 1px 4px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
 }
 
 .cn-detail-page__widget-title {

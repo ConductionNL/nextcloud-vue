@@ -103,3 +103,28 @@ The widget auto-detects the editor based on the JSON Schema property type:
     internalNotes: { hidden: true },
   }" />
 ```
+
+## Conditional immutability (`x-openregister-readonly-when`)
+
+A schema property can declare that it becomes **read-only when another field on
+the same object holds a given value** — the widget evaluates the rule against the
+live object data and renders the field locked (shown, not hidden). This is the
+declarative way to express identity fields that must not be edited in a
+particular state (e.g. a hybrid app's `slug`/`name`/`description`/
+`productionVersion`, which mirror the installed app it customizes).
+
+```jsonc
+// In the OpenRegister schema property:
+"slug": {
+  "type": "string",
+  "x-openregister-readonly-when": { "field": "appType", "equals": "hybrid" }
+}
+// or match a set of values:
+"slug": { "type": "string", "x-openregister-readonly-when": { "field": "appType", "in": ["hybrid", "managed"] } }
+```
+
+An unconditional `"readOnly": true` on the property locks the field in every
+state (still shown, never editable). Both are honoured by `isEditable`; a
+per-field `overrides[key].editable` still takes priority. Read-only here is a UI
+affordance — pair it with server-side enforcement (an OpenRegister write guard /
+listener) for the authoritative boundary.

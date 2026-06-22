@@ -94,3 +94,6 @@ export default {
 | `margin` | Number | `12` | Gutter between grid items in pixels |
 | `minWidth` | Number | `2` | Minimum widget width in grid units |
 | `minHeight` | Number | `2` | Minimum widget height in grid units |
+| `columnOpts` | Object | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build with `getDashboardColumnOpts()`. Default `null` = fixed `columns`. |
+| `cellHeightCssVar` | String | `null` | When set, `cellHeight` is mirrored into this CSS custom property on the document root at init. Default `null` = none. |
+| `itemKey` | Function | `null` | Optional `(item) => string\|number` to derive each item's render key; forces a re-render when an item changes in a way its `id` doesn't capture (e.g. style edits). Default `null` = key on `item.id`. |

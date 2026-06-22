@@ -16,7 +16,7 @@
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header">
+		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="headerStyles">
 			<!-- Title icon — left: rendered before the title group -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 				class="cn-widget-wrapper__title-icon"
@@ -428,6 +428,29 @@ export default {
 				styles.padding = `${p.top || 0}px ${p.right || 0}px ${p.bottom || 0}px ${p.left || 0}px`
 			}
 
+			return styles
+		},
+
+		/**
+		 * Inline styles for the header bar, derived from
+		 * `styleConfig.headerStyle.{backgroundColor, textColor}`. Lets a host
+		 * give individual widgets a custom header colour without a per-app CSS
+		 * workaround. Empty object when no header style is configured.
+		 *
+		 * @return {object} the header style bindings.
+		 */
+		headerStyles() {
+			const hs = this.styleConfig.headerStyle
+			if (!hs || typeof hs !== 'object') {
+				return {}
+			}
+			const styles = {}
+			if (hs.backgroundColor) {
+				styles.backgroundColor = hs.backgroundColor
+			}
+			if (hs.textColor) {
+				styles.color = hs.textColor
+			}
 			return styles
 		},
 	},

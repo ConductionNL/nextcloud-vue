@@ -84,6 +84,12 @@
 					or buttons). Renders alongside (not inside) the `header` slot.
 				-->
 				<slot name="actions" />
+				<!-- NB: no sidebar-toggle here — NcObjectSidebar/NcAppSidebar
+				     renders its own open toggle (`.app-sidebar__toggle`) when
+				     closed and an X (`.app-sidebar__close`) when open, so a custom
+				     button would duplicate it. -->
+				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
+				<CnOpenBuildEditButton />
 				<CnActionsMenu
 					:show-refresh="showRefresh"
 					:refreshing="refreshing"
@@ -169,6 +175,29 @@
 
 		<!-- Main content -->
 		<div v-else class="cn-detail-page__body">
+			<div v-if="$scopedSlots['before-body'] || $slots['before-body']" class="cn-detail-page__before-body">
+				<!--
+					@slot before-body
+					@description Content rendered at the top of the body, above the grid
+					layout / stats / schema-driven auto-body (Data + Related). Use it to
+					surface page-level widgets (e.g. a KPI/insights dashboard) in the body
+					below the header+actions line without suppressing the auto Data/Related
+					sections (which a `default` slot override would).
+					@binding {object} object The resolved record.
+					@binding {object} schema The resolved schema.
+					@binding {string} objectType The resolved object type.
+					@binding {string} objectId The resolved object id.
+					@binding {object} store The effective object store.
+				-->
+				<slot
+					name="before-body"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:object-type="resolvedObjectType"
+					:object-id="objectId"
+					:store="effectiveObjectStore" />
+			</div>
+
 			<!-- Grid layout mode -->
 			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
 				<section
@@ -178,6 +207,15 @@
 					class="cn-grid__item cn-detail-page__grid-item"
 					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
 					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+					<!-- In-app edit overlay (ADR-041): a configure cog appears on
+					     widgets that have a registered config form while the page
+					     is in OpenBuild edit mode. The modal's own Delete affordance
+					     covers removal, so no separate remove button here. -->
+					<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+							<template #icon><Cog :size="18" /></template>
+						</NcButton>
+					</div>
 					<h3
 						v-if="item.showTitle !== false && findWidget(item)"
 						:id="`widget-title-${item.id}`"
@@ -188,8 +226,10 @@
 						@slot `widget-${item.widgetId}`
 						@description Per-widget slot whose name is `widget-<widgetId>`. Use
 						it to inject custom widget content into a grid slot. Default
-						fallback for `type: 'integration'` widget defs renders the registry
-						widget; for any other widget type, the slot is empty by default.
+						fallback renders a registry widget: `type: 'integration'` resolves
+						from the integration registry; any other content-driven catalog
+						type (stat / chart / delta / gauge / object-list / …) renders its
+						registered renderer with the widget def's `content`.
 						@binding {object} item Layout item descriptor.
 						@binding {object} widget Resolved widget definition.
 					-->
@@ -197,14 +237,36 @@
 						:name="`widget-${item.widgetId}`"
 						:item="item"
 						:widget="findWidget(item)">
+						<!-- `type: 'data'` widget: render the schema-driven data
+						     widget with the page's loaded object + the def's
+						     per-property overrides. Lets a detail page compose the
+						     data widget into a grid (instead of the auto-body). -->
+						<CnObjectDataWidget
+							v-if="isDataWidget(item) && currentSchema"
+							:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+							:schema="currentSchema"
+							:object-data="currentObject"
+							:object-type="resolvedObjectType"
+							:store="effectiveObjectStore"
+							:overrides="widgetContentFor(item).overrides || {}"
+							:columns="widgetContentFor(item).columns || 3" />
 						<!-- Fallback for `type: 'integration'` widget defs:
 						     render the registry widget on the detail-page
 						     surface. A consumer-supplied #widget-<id> slot
 						     still overrides this. -->
 						<component
 							:is="resolveIntegrationWidget(item)"
-							v-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
+							v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 							v-bind="getIntegrationProps(item)" />
+						<!-- Fallback for content-driven catalog widgets
+						     (stat / chart / delta / gauge / object-list / …):
+						     render the registered renderer with the def's
+						     `content`. These self-fetch from OpenRegister. -->
+						<component
+							:is="registryRendererFor(item)"
+							v-else-if="registryRendererFor(item)"
+							:content="widgetContentFor(item)"
+							v-bind="widgetContentFor(item)" />
 					</slot>
 				</section>
 			</div>
@@ -265,7 +327,7 @@
 							:object-type="resolvedObjectType"
 							:store="effectiveObjectStore" />
 					</div>
-					<div class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
+					<div v-if="showRelatedObjects" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
 						<CnRelatedObjectsWidget
 							:object-type="resolvedObjectType"
 							:object-id="objectId"
@@ -307,19 +369,37 @@
 				<slot name="footer" />
 			</div>
 		</div>
+
+		<!-- Per-widget style/config editor (ADR-041). Opened by the per-widget
+		     configure cog while in OpenBuild edit mode; the modal's own Delete
+		     button removes the widget from the grid. -->
+		<CnWidgetStyleEditorModal
+			v-if="showWidgetConfig"
+			:show="showWidgetConfig"
+			:widget="configWidget"
+			:deletable="true"
+			@save="onWidgetConfigSave"
+			@delete="onWidgetConfigDelete"
+			@close="showWidgetConfig = false" />
 	</div>
 </template>
 
 <script>
+import { provide, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -415,10 +495,13 @@ export default {
 		InformationOutline,
 		Refresh,
 		CnActionsMenu,
+		CnOpenBuildEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
 		CnTranslatedBadge,
+		CnWidgetStyleEditorModal,
+		Cog,
 	},
 
 	mixins: [gridLayout],
@@ -431,6 +514,12 @@ export default {
 		 * in created() and watches for changes. Resets on beforeDestroy().
 		 */
 		cnAiContext: { default: null },
+		/**
+		 * OpenBuild in-app edit state (ADR-041), a ref provided by CnAppRoot /
+		 * the edit button. When truthy, configurable grid widgets show a
+		 * configure cog. Defaults to null (no edit affordance) for standalone use.
+		 */
+		cnEditingBody: { default: null },
 	},
 
 	props: {
@@ -508,10 +597,17 @@ export default {
 			default: () => ({ enabled: false }),
 		},
 
-		/** Whether the sidebar is open (expanded) */
+		/**
+		 * Initial open state of the object sidebar when it first activates.
+		 * Defaults to closed so the detail content fills the page; the user
+		 * opens it on demand via the header sidebar-toggle (and the sidebar's
+		 * own X closes it). After the first activation the open state is owned
+		 * by the shared `objectSidebarState` channel (toggle / close), so this
+		 * prop only seeds the initial value.
+		 */
 		sidebarOpen: {
 			type: Boolean,
-			default: true,
+			default: false,
 		},
 
 		/** The registered object type slug for the sidebar */
@@ -652,6 +748,19 @@ export default {
 		},
 
 		/**
+		 * Whether the schema-driven auto-body renders the related-objects widget
+		 * beneath the data widget. Defaults to true (back-compat). Set false on a
+		 * page that surfaces relations elsewhere (e.g. in the sidebar) to drop the
+		 * "Related" section from the body.
+		 *
+		 * @type {boolean}
+		 */
+		showRelatedObjects: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * Optional explicit Pinia store instance to subscribe / lock
 		 * against. When omitted, the page resolves `useObjectStore()`
 		 * lazily so consumer apps that haven't activated Pinia yet
@@ -767,6 +876,15 @@ export default {
 		const { resolveWidget } = useIntegrationRegistry()
 		const registryExposed = { resolveRegistryWidget: resolveWidget }
 
+		// Object context for detail-page abstract widgets (ADR-041): a reactive
+		// `{ objectId, object, register, schema }` holder kept current by the
+		// Options watcher below. Provided so CnObjectListWidget / CnStatWidget
+		// can resolve `@objectId` / `@object.<field>` filter tokens and scope
+		// their query to the object on this page. Null fields until loaded.
+		const cnObjectContext = ref({ objectId: props.objectId || null, object: null, register: props.register || '', schema: props.schema || '' })
+		provide('cnObjectContext', cnObjectContext)
+		registryExposed.cnObjectContextRef = cnObjectContext
+
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
 		// when subscribe is false (read-only / archive views), or when
@@ -802,6 +920,21 @@ export default {
 		}
 	},
 
+	data() {
+		return {
+			/** Whether the per-widget style/config editor modal is open. */
+			showWidgetConfig: false,
+			/** The widgetId currently being configured via the cog. */
+			configWidgetId: null,
+			/**
+			 * Whether the object sidebar has been seeded with its initial open
+			 * state for the current activation. Gates the one-shot `sidebarOpen`
+			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
+			 */
+			sidebarSeeded: false,
+		}
+	},
+
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
@@ -810,6 +943,29 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/**
+		 * Whether the page is in OpenBuild edit mode — unwraps the injected
+		 * `cnEditingBody` ref (or plain boolean). Drives the per-widget cog.
+		 *
+		 * @return {boolean}
+		 */
+		editingBody() {
+			const e = this.cnEditingBody
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
+
+		/**
+		 * The widget definition currently being configured, shaped for
+		 * `CnWidgetStyleEditorModal` (carries `id`, `type`, `title`, `content`).
+		 *
+		 * @return {object|null}
+		 */
+		configWidget() {
+			if (!this.configWidgetId) return null
+			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			return def || null
+		},
+
 		resolvedPageId() {
 			if (this.pageId) return this.pageId
 			return String(this.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -1014,7 +1170,15 @@ export default {
 		 */
 		sidebarActive() {
 			const r = this.resolvedSidebar
-			return r.show !== false && r.enabled !== false
+			// An explicit `show: false` always suppresses the sidebar. Otherwise a
+			// non-empty `sidebarTabs` opt-in activates it even past the prop's
+			// default `{ enabled: false }` — the procest CaseDetail manifest
+			// pattern, where a page declares only `config.sidebarTabs`.
+			if (r.show === false) return false
+			if (r.enabled === false) {
+				return Array.isArray(this.sidebarTabs) && this.sidebarTabs.length > 0
+			}
+			return true
 		},
 
 		hasStats() {
@@ -1026,6 +1190,14 @@ export default {
 		sidebar: {
 			immediate: true,
 			handler() { this.syncSidebarState() },
+		},
+
+		// Keep the provided object context current so detail-page abstract
+		// widgets (CnObjectListWidget / CnStatWidget) can resolve `@objectId` /
+		// `@object.<field>` tokens against the live object.
+		currentObject: {
+			immediate: true,
+			handler() { this.syncObjectContext() },
 		},
 
 		title() { this.syncSidebarState() },
@@ -1051,6 +1223,7 @@ export default {
 			this.syncSidebarState()
 			this.pushAiContext()
 			this.fetchObjectIfNeeded()
+			this.syncObjectContext()
 		},
 
 		sidebarTabs: {
@@ -1244,6 +1417,120 @@ export default {
 		},
 
 		/**
+		 * Whether a grid item is a schema-driven `data` widget — rendered via
+		 * CnObjectDataWidget with the page's loaded object + the def's overrides.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'data'`.
+		 */
+		isDataWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'data'
+		},
+
+		/**
+		 * The registered config FORM for a grid item's widget type, or null.
+		 * Used to gate the per-widget configure cog (only configurable widgets
+		 * show one) in OpenBuild edit mode.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The form component, or null.
+		 */
+		registryFormFor(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type) return null
+			const entry = getWidgetTypeEntry(def.type)
+			return (entry && entry.form) || null
+		},
+
+		/**
+		 * The registered RENDERER for a grid item's content-driven catalog
+		 * widget type (stat / chart / delta / gauge / object-list / …), or null.
+		 * Integration widgets resolve separately; the `data` renderer needs
+		 * object context the slot supplies, so it is excluded from this generic
+		 * fallback.
+		 *
+		 * @param {object} item Layout item
+		 * @return {object|null} The renderer component, or null.
+		 */
+		registryRendererFor(item) {
+			const def = this.findWidget(item)
+			if (!def || !def.type || def.type === 'integration' || def.type === 'data') return null
+			const entry = getWidgetTypeEntry(def.type)
+			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * The stored content/config blob for a grid item's catalog widget
+		 * (passed to its renderer).
+		 *
+		 * @param {object} item Layout item
+		 * @return {object} The widget def's `content`, or an empty object.
+		 */
+		widgetContentFor(item) {
+			const def = this.findWidget(item)
+			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+		},
+
+		/**
+		 * Open the per-widget style/config editor for a grid item (cog click).
+		 *
+		 * @param {object} item Layout item to configure.
+		 */
+		configureWidget(item) {
+			this.configWidgetId = item.widgetId
+			this.showWidgetConfig = true
+		},
+
+		/**
+		 * Persist the editor's changes onto the matching widget definition IN
+		 * PLACE (so an injected in-place manifest editor picks them up), close
+		 * the modal, and emit `widget-config-change` for consumers that persist
+		 * the page config themselves.
+		 *
+		 * @param {object} edited The widget object mutated by the editor.
+		 *
+		 * @event widget-config-change Emitted after a widget's config is saved.
+		 * @type {object}
+		 */
+		onWidgetConfigSave(edited) {
+			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			if (def) {
+				if (edited.title !== undefined) this.$set(def, 'title', edited.title)
+				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
+				this.$set(def, 'styleConfig', edited.styleConfig || {})
+			}
+			this.showWidgetConfig = false
+			/**
+			 * @event widget-config-change Emitted after a grid widget's config is
+			 * saved via the cog editor, or after the widget is removed (payload
+			 * null). Consumers persist the updated page/widget config.
+			 * @type {object|null}
+			 */
+			this.$emit('widget-config-change', def || null)
+		},
+
+		/**
+		 * Delete from inside the editor — drop the widget def + its layout
+		 * placement and close.
+		 *
+		 * @param {object} _w The widget the editor wants deleted (unused; routed
+		 *   by `configWidgetId`).
+		 *
+		 * @event widget-config-change Emitted after the widget is removed.
+		 * @type {null}
+		 */
+		onWidgetConfigDelete(_w) {
+			const id = this.configWidgetId
+			const wIdx = this.widgets.findIndex((w) => w.id === id)
+			if (wIdx !== -1) this.widgets.splice(wIdx, 1)
+			const lIdx = this.layout.findIndex((l) => l.widgetId === id)
+			if (lIdx !== -1) this.layout.splice(lIdx, 1)
+			this.showWidgetConfig = false
+			this.$emit('widget-config-change', null)
+		},
+
+		/**
 		 * Push pageKind + objectUuid + register/schema context into the
 		 * reactive cnAiContext holder so the AI Chat Companion knows
 		 * what object the user is viewing.
@@ -1255,6 +1542,23 @@ export default {
 			this.cnAiContext.objectUuid = this.objectId ? String(this.objectId) : undefined
 			this.cnAiContext.registerSlug = resolved.register || this.register || this.sidebarProps?.register || undefined
 			this.cnAiContext.schemaSlug = resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || undefined
+		},
+
+		/**
+		 * Refresh the provided `cnObjectContext` ref so detail-page abstract
+		 * widgets can resolve `@objectId` / `@object.<field>` filter tokens
+		 * against the current object. No-op when setup() didn't expose the ref
+		 * (standalone / read-only mounts).
+		 */
+		syncObjectContext() {
+			if (!this.cnObjectContextRef) return
+			const resolved = this.resolvedSidebar || {}
+			this.cnObjectContextRef.value = {
+				objectId: this.objectId !== undefined && this.objectId !== null ? String(this.objectId) : null,
+				object: this.currentObject || null,
+				register: resolved.register || this.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+			}
 		},
 
 		/**
@@ -1277,7 +1581,14 @@ export default {
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
 				this.objectSidebarState.active = true
-				this.objectSidebarState.open = this.sidebarOpen
+				// Seed `open` only on the inactive→active edge (first activation
+				// of this object). Subsequent syncs must NOT clobber it, otherwise
+				// the user's close/toggle would be undone on the next reactive
+				// change. The shared channel owns `open` after seeding.
+				if (!this.sidebarSeeded) {
+					this.objectSidebarState.open = this.sidebarOpen
+					this.sidebarSeeded = true
+				}
 				this.objectSidebarState.objectType = this.resolvedObjectType
 				this.objectSidebarState.objectId = this.objectId
 				this.objectSidebarState.title = merged.title || this.title || ''
@@ -1298,6 +1609,8 @@ export default {
 			} else {
 				this.objectSidebarState.active = false
 				this.objectSidebarState.tabs = undefined
+				// Re-arm the seed so the next activation re-applies `sidebarOpen`.
+				this.sidebarSeeded = false
 			}
 		},
 

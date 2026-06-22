@@ -56,6 +56,11 @@ describe('CnAppRoot', () => {
 	beforeEach(() => {
 		getCapabilities.mockReset()
 		__resetAppStatusCacheForTests()
+		// Define a clean appswebroots each test. CnAppRoot's in-app edit shell
+		// (ADR-041) calls useAppStatus('openbuild'); without OpenBuild present it
+		// is inert (availability false, no edit toolbar).
+		global.OC = global.OC || {}
+		global.OC.appswebroots = {}
 	})
 
 	describe('phase orchestration (REQ-JMR-013)', () => {
@@ -375,6 +380,10 @@ describe('CnAppRoot', () => {
 
 		// REQ-OR-5: empty array short-circuits the entire guard (no capabilities call).
 		it('skips the guard when :requires-apps="[]" and renders immediately (REQ-OR-5)', async () => {
+			// Mark OpenBuild reachable so the edit-shell availability probe
+			// short-circuits via appswebroots and does not call getCapabilities;
+			// this keeps the assertion below about the GUARD not running.
+			global.OC.appswebroots = { openbuild: true }
 			const wrapper = mountWithGuard({ requiresApps: [] })
 			await wrapper.vm.$nextTick()
 			expect(getCapabilities).not.toHaveBeenCalled()
