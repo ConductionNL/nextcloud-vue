@@ -350,22 +350,33 @@ export default {
 	overflow: hidden;
 }
 
+/*
+ * Header + content match the native Nextcloud Dashboard panel (apps/dashboard)
+ * exactly — this component's whole job is rendering NC dashboard widgets, so it
+ * should look native by default: 16px header, 32px leading icon with a 16px
+ * gap, a 20px/700 title, and the native panel content inset (16px sides +
+ * bottom, flush to the header on top). Same design tokens as core; overridable
+ * via the host's CnWidgetWrapper styleConfig / nldesign.
+ */
 .cn-nc-widget-widget__header {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 12px;
-	font-weight: bold;
+	gap: 16px;
+	padding: 16px;
+	font-weight: 700;
 }
 
 .cn-nc-widget-widget__header-icon {
-	width: 20px;
-	height: 20px;
+	width: 32px;
+	height: 32px;
 	flex: 0 0 auto;
 }
 
 .cn-nc-widget-widget__header-title {
 	flex: 1;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -374,12 +385,13 @@ export default {
 .cn-nc-widget-widget__native {
 	flex: 1;
 	overflow: auto;
+	padding: 0 16px 16px;
 }
 
 .cn-nc-widget-widget__body {
 	flex: 1;
 	overflow: auto;
-	padding: 8px;
+	padding: 0 16px 16px;
 }
 
 .cn-nc-widget-widget__body--vertical {
