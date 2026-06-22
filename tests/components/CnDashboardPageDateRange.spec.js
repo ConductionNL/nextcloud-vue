@@ -396,4 +396,90 @@ describe('CnDashboardPage — dateRange prop', () => {
 			expect(wrapper.vm.currentRange.preset).toBe('custom')
 		})
 	})
+
+	describe('pills control mode (control: "pills")', () => {
+		const pillsPresets = [
+			{ id: 'week', label: 'Last 7 days', days: 7 },
+			{ id: 'month', label: 'Last 30 days', days: 30 },
+			{ id: 'quarter', label: 'Last 90 days', days: 90 },
+			{ id: 'custom', label: 'Custom range', days: null },
+		]
+		// Stub NcActions / NcActionInput so the custom-range popover pill mounts.
+		const pillStubs = {
+			...stubs,
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+		}
+
+		it('renders the pill row instead of CnDateRangePicker', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pills"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-date-range-picker-stub').exists()).toBe(false)
+			// One pill per non-custom preset.
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-week"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-month"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').exists()).toBe(true)
+		})
+
+		it('control omitted keeps the default picker (backwards compat)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('.cn-date-range-picker-stub').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pills"]').exists()).toBe(false)
+		})
+
+		it('marks the active preset pill with aria-pressed="true"', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-month"]').attributes('aria-pressed')).toBe('true')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-week"]').attributes('aria-pressed')).toBe('false')
+		})
+
+		it('clicking a pill resolves the window, emits date-range-change, and updates active state', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			await wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').trigger('click')
+			expect(wrapper.vm.currentRange.preset).toBe('quarter')
+			expect(wrapper.vm.currentRange.from).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			expect(wrapper.vm.currentRange.to).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			const events = wrapper.emitted('date-range-change')
+			expect(events[events.length - 1][0].preset).toBe('quarter')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').attributes('aria-pressed')).toBe('true')
+		})
+
+		it('exposes a Custom range popover pill when a custom preset exists', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-custom"]').exists()).toBe(true)
+			expect(wrapper.vm.hasCustomPreset).toBe(true)
+			// pillPresets excludes the custom entry (it surfaces as the popover).
+			expect(wrapper.vm.pillPresets.map((p) => p.id)).toEqual(['week', 'month', 'quarter'])
+		})
+	})
 })

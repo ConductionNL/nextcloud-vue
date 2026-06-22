@@ -85,8 +85,60 @@
 		<div
 			v-if="showHeaderDateRange"
 			class="cn-dashboard-page__date-range"
+			:class="{ 'cn-dashboard-page__date-range--pills': dateRangeControl === 'pills' }"
 			data-testid="cn-dashboard-page-date-range">
+			<!-- Pills mode (`dateRange.control: 'pills'`): a compact segmented
+			     toggle-button row replaces the bulky select + two date inputs.
+			     Each preset is a pill; the active one drives the dashboard window
+			     exactly like the picker does (same `onDateRangeChange`). A
+			     de-emphasised "Custom range" pill opens a small from/to popover
+			     so the arbitrary-window affordance is kept without two bare
+			     date inputs being always visible. -->
+			<div
+				v-if="dateRangeControl === 'pills'"
+				class="cn-dashboard-page__date-pills"
+				role="group"
+				:aria-label="datePillsGroupLabel"
+				data-testid="cn-dashboard-page-date-pills">
+				<button
+					v-for="preset in pillPresets"
+					:key="preset.id"
+					type="button"
+					class="cn-dashboard-page__date-pill"
+					:class="{ 'cn-dashboard-page__date-pill--active': currentRange && currentRange.preset === preset.id }"
+					:aria-pressed="String(Boolean(currentRange && currentRange.preset === preset.id))"
+					:data-testid="`cn-dashboard-page-date-pill-${preset.id}`"
+					@click="onPillPick(preset)">
+					{{ preset.label }}
+				</button>
+				<NcActions
+					v-if="hasCustomPreset"
+					:force-menu="true"
+					container="body"
+					class="cn-dashboard-page__date-pill-custom"
+					data-testid="cn-dashboard-page-date-pill-custom">
+					<template #icon>
+						<span
+							class="cn-dashboard-page__date-pill cn-dashboard-page__date-pill--custom"
+							:class="{ 'cn-dashboard-page__date-pill--active': currentRange && currentRange.preset === 'custom' }">
+							{{ customRangeLabel }}
+						</span>
+					</template>
+					<NcActionInput
+						type="datetime-local"
+						:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+						:label="t('nextcloud-vue', 'From')"
+						@input="onChipDateInput('from', $event)" />
+					<NcActionInput
+						type="datetime-local"
+						:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+						:label="t('nextcloud-vue', 'To')"
+						@input="onChipDateInput('to', $event)" />
+				</NcActions>
+			</div>
+			<!-- Default (picker) mode: the original select + two date inputs. -->
 			<CnDateRangePicker
+				v-else
 				:value="currentRange"
 				:presets="effectivePresets"
 				@input="onDateRangeChange" />
@@ -394,6 +446,8 @@
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
 						:show-title="item.showTitle !== false"
+						:flush="isCardWidget(item)"
+						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						@refresh="onWidgetRefresh(item)"
@@ -768,11 +822,18 @@ export default {
 		 * ```ts
 		 * {
 		 *   enabled: boolean,
+		 *   control?: 'picker' | 'pills',
 		 *   default?: { from: string, to: string, preset?: string },
 		 *   persistKey?: string,
 		 *   presets?: Array<{ id: string, label: string, days: number|null }>,
 		 * }
 		 * ```
+		 *
+		 * `control` selects the header control style: the default `'picker'`
+		 * renders the `CnDateRangePicker` (a preset select + two date
+		 * inputs); `'pills'` renders a compact segmented toggle-button row
+		 * (one pill per preset, plus a de-emphasised "Custom range" popover
+		 * pill). Both drive the same shared range.
 		 *
 		 * Default preset when no explicit `default` and no persisted
 		 * state is found: `last-7` (`now − 7d → now`).
@@ -1024,6 +1085,58 @@ export default {
 			return Array.isArray(this.dateRange?.presets) && this.dateRange.presets.length > 0
 				? this.dateRange.presets
 				: DEFAULT_DATE_RANGE_PRESETS.map((p) => ({ ...p }))
+		},
+
+		/**
+		 * Which header date-range control to render. `'pills'` swaps the
+		 * select + two date inputs for a compact segmented pill row; any
+		 * other value (or none) keeps the default `CnDateRangePicker`.
+		 *
+		 * @return {string}
+		 */
+		dateRangeControl() {
+			return this.dateRange?.control === 'pills' ? 'pills' : 'picker'
+		},
+
+		/**
+		 * Preset list rendered as pills — `effectivePresets` minus the
+		 * manual `custom` entry (which surfaces as a separate de-emphasised
+		 * popover pill instead of a bare toggle).
+		 *
+		 * @return {Array<{ id: string, label: string }>}
+		 */
+		pillPresets() {
+			return this.effectivePresets.filter((p) => p && p.id !== 'custom')
+		},
+
+		/**
+		 * Whether a `custom` preset exists in the list — drives the optional
+		 * "Custom range" popover pill in pills mode.
+		 *
+		 * @return {boolean}
+		 */
+		hasCustomPreset() {
+			return this.effectivePresets.some((p) => p && p.id === 'custom')
+		},
+
+		/**
+		 * Accessible label for the pill toggle group.
+		 *
+		 * @return {string}
+		 */
+		datePillsGroupLabel() {
+			return t('nextcloud-vue', 'Date range')
+		},
+
+		/**
+		 * Label for the custom-range pill: the `custom` preset's own label
+		 * when set, else a sensible default.
+		 *
+		 * @return {string}
+		 */
+		customRangeLabel() {
+			const c = this.effectivePresets.find((p) => p && p.id === 'custom')
+			return (c && c.label) || t('nextcloud-vue', 'Custom range')
 		},
 
 		/**
@@ -1349,6 +1462,23 @@ export default {
 		},
 
 		/**
+		 * Handle a header date-range pill click (pills mode). Resolves the
+		 * preset to a from/to window and forwards to `onDateRangeChange` —
+		 * the same handler the select picker uses — so the active range
+		 * drives every widget identically. Re-clicking the active pill
+		 * re-resolves (cheap no-op for fixed presets).
+		 *
+		 * @param {{ id: string, label: string }} preset The picked preset.
+		 * @return {void}
+		 */
+		onPillPick(preset) {
+			if (!preset || !preset.id) return
+			const win = resolvePresetWindow(preset.id, this.effectivePresets)
+			if (!win) return
+			this.onDateRangeChange({ ...win, preset: preset.id })
+		},
+
+		/**
 		 * Handle a manual datetime-input change inside the in-chip popover.
 		 * The `<input type="datetime-local">` emits a local "YYYY-MM-DDTHH:mm"
 		 * string (or a DOM Event in some NcActionInput versions); we
@@ -1660,6 +1790,26 @@ export default {
 			if (!def || !def.type) return null
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * Whether a registry widget renders a self-contained "card" surface
+		 * (a single KPI / gauge / delta tile) that must size to its tile
+		 * without an inner scrollbar. Driven by the registry entry's
+		 * `card: true` hint (stat / gauge / delta). Card widgets are
+		 * rendered `flush` (no wrapper padding) and the wrapper content area
+		 * is switched to centred, non-scrolling layout via the
+		 * `cn-dashboard-page__card-fit` class — fixing the stray vertical /
+		 * horizontal scrollbars on short KPI / gauge tiles.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the matching registry entry is a card.
+		 */
+		isCardWidget(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) return false
+			const entry = getWidgetTypeEntry(def.type)
+			return Boolean(entry && entry.card === true)
 		},
 
 		/**
@@ -2062,6 +2212,81 @@ export default {
 	flex-shrink: 0;
 }
 
+/* Date-range header band. Kept compact so it doesn't open a tall gap
+   above the grid; the pills variant is a single tidy toggle row. */
+.cn-dashboard-page__date-range {
+	margin-bottom: 12px;
+}
+
+.cn-dashboard-page__date-range--pills {
+	margin-bottom: 8px;
+}
+
+.cn-dashboard-page__date-pills {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.cn-dashboard-page__date-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 5px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background-color 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+.cn-dashboard-page__date-pill:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-dashboard-page__date-pill:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-dashboard-page__date-pill--active {
+	background: var(--color-primary-element);
+	border-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+.cn-dashboard-page__date-pill--active:hover {
+	background: var(--color-primary-element-hover, var(--color-primary-element));
+}
+
+/* The custom-range pill is de-emphasised — dashed outline, muted text —
+   so it reads as an escape hatch rather than a primary option. */
+.cn-dashboard-page__date-pill--custom {
+	border-style: dashed;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-dashboard-page__date-pill-custom :deep(.action-item__menutoggle) {
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	border: none;
+}
+
+.cn-dashboard-page__date-pill-custom :deep(.button-vue),
+.cn-dashboard-page__date-pill-custom :deep(.button-vue__wrapper),
+.cn-dashboard-page__date-pill-custom :deep(.button-vue__icon) {
+	width: auto !important;
+	min-width: 0 !important;
+	overflow: visible !important;
+}
+
 .cn-dashboard-page__empty {
 	padding: 60px 20px;
 }
@@ -2095,6 +2320,32 @@ export default {
 	background: var(--color-main-background);
 	border-radius: var(--border-radius);
 	box-shadow: 0 1px 4px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
+}
+
+/* Card-fit registry widgets (stat / gauge / delta): the tile content is a
+   self-contained card that should size to the tile and centre vertically,
+   never scroll. CnWidgetWrapper's content area defaults to overflow:auto +
+   16px padding, which produced stray scrollbars on short KPI / gauge tiles
+   and a horizontal scrollbar when a long currency value met the icon. Here
+   we drop the inner scroll, add comfortable padding back (flush removed it),
+   and centre the card. */
+.cn-dashboard-page__card-fit :deep(.cn-widget-wrapper__content),
+.cn-dashboard-page__card-fit.cn-widget-wrapper--flush :deep(.cn-widget-wrapper__content) {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 8px 14px;
+}
+
+/* Card content (stat / gauge / delta) must fit the tile width: let the
+   widget shrink and its value/label truncate instead of pushing past the
+   tile edge (the horizontal clip on long currency values). */
+.cn-dashboard-page__card-fit :deep(.cn-stat-widget),
+.cn-dashboard-page__card-fit :deep(.cn-gauge-widget),
+.cn-dashboard-page__card-fit :deep(.cn-delta-widget) {
+	min-width: 0;
+	max-width: 100%;
 }
 
 .cn-dashboard-page__unknown {

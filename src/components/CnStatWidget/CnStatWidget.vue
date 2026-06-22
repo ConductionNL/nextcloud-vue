@@ -424,9 +424,11 @@ export default {
 .cn-stat-widget {
 	display: flex;
 	align-items: center;
-	gap: 16px;
+	gap: 12px;
 	padding: 8px 4px;
 	min-height: 64px;
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* Whole-tile click target when the widget declares a `route`/`link`. */
@@ -451,8 +453,8 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44px;
-	height: 44px;
+	width: 40px;
+	height: 40px;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
@@ -474,13 +476,18 @@ export default {
 	display: flex;
 	align-items: baseline;
 	gap: 8px;
+	min-width: 0;
 }
 
 .cn-stat-widget__value {
-	font-size: 1.8em;
+	font-size: 1.6em;
 	font-weight: 700;
-	line-height: 1.1;
+	line-height: 1.15;
 	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-stat-widget__caption {

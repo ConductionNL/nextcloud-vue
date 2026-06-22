@@ -25,6 +25,9 @@ registerDashboardWidget('gauge', {
 	},
 	displayName: 'Gauge / utilization',
 	icon: 'Gauge',
+	// Self-contained card surface — rendered flush and centred (no inner
+	// scrollbar). See CnDashboardPage.isCardWidget.
+	card: true,
 })
 
 export { CnGaugeWidget }

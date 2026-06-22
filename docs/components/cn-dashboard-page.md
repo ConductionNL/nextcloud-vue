@@ -197,11 +197,37 @@ When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [
 | Field        | Type           | Description                                                                |
 | ------------ | -------------- | -------------------------------------------------------------------------- |
 | `enabled`    | Boolean        | When `true`, renders the picker row. When `false` / omitted, no row appears. |
+| `control`    | String (opt.)  | Header control style: `'picker'` (default — `CnDateRangePicker`: a preset select + two date inputs) or `'pills'` (a compact segmented toggle-button row). |
 | `default`    | Object (opt.)  | Initial `{ from, to, preset? }` when no persisted state is found.          |
 | `persistKey` | String (opt.)  | When set, the chosen range is persisted to `localStorage[persistKey]`.     |
 | `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). |
 
 The resolution order is: explicit `default` → rehydrated `localStorage` (when `persistKey` set) → `last-7` preset (`now − 7d → now`).
+
+### Pills control (`control: 'pills'`)
+
+`control: 'pills'` replaces the bulky select + two date inputs with a compact
+segmented toggle row — one pill per preset, rendered as `role="group"` with
+`aria-pressed` on the active pill (WCAG-friendly toggle group). A
+de-emphasised "Custom range" pill (dashed outline) opens a small from/to
+popover, so the arbitrary-window affordance stays without two bare date inputs
+sitting in the header. The active pill drives the same shared dashboard range
+as the default picker — no other wiring changes.
+
+```vue
+<CnDashboardPage
+  :date-range="{
+    enabled: true,
+    control: 'pills',
+    default: { preset: 'last-30' },
+    presets: [
+      { id: 'last-7', label: 'Last 7 days', days: 7 },
+      { id: 'last-30', label: 'Last 30 days', days: 30 },
+      { id: 'last-90', label: 'Last 90 days', days: 90 },
+      { id: 'custom', label: 'Custom range', days: null },
+    ],
+  }" />
+```
 
 ### `cnDashboardDateRange` provide / inject
 
