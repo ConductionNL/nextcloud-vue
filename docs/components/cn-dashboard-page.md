@@ -121,6 +121,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `emptyLabel` | String | `'No widgets configured'` | Empty state message |
 | `unavailableLabel` | String | `'Widget not available'` | Fallback for unknown widget IDs |
 | `dateRange` | Object | `null` | Optional date-range header descriptor — see [Date-range header](#date-range-header) |
+| `pageFilters` | Array | `[]` | Optional page-level filter controls rendered in the header — see [Page filters](#page-filters). Each entry `\{ key, label?, type?: 'select', options: [\{ value, label \}], default? \}`. The selection is written into the reactive workspace context, so widgets can read it via a `@page.<key>` / `@workspace.<key>` token. |
 
 #### Widget definition
 
@@ -158,6 +159,7 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `layout-change` | `layout[]` | Emitted when the user drags or resizes a widget; payload is the full updated layout array |
 | `edit-toggle` | `boolean` | Emitted when the Edit/Done button is clicked; payload is the new editing state |
 | `date-range-change` | `{ from, to, preset }` | Emitted on every range change AND on mount when the date-range feature is enabled. Tracks the picker's current value. |
+| `page-filter-change` | `{ key, value }` | Emitted when a [page filter](#page-filters) selection changes. The value is also written into the reactive workspace context. |
 
 ### Slots
 
@@ -219,6 +221,44 @@ export default {
 ```
 
 `CnChartWidget` consumes this injection automatically — see its [bucket data-source documentation](./cn-chart-widget.md#bucket-shorthand-time-series).
+
+## Page filters
+
+The `pageFilters` prop renders page-level select controls in the dashboard header. Each selection is written into the **reactive workspace context** (the same `cnWorkspaceContext` provide widgets read), so any widget can react to it through a `@page.<key>` / `@workspace.<key>` token. This is how a single period selector drives every endpoint-bound KPI on the page.
+
+```vue
+<CnDashboardPage
+  title="Analytics"
+  :widgets="WIDGETS"
+  :layout="layout"
+  :page-filters="[
+    {
+      key: 'period',
+      label: 'Period',
+      type: 'select',
+      default: 'last-30',
+      options: [
+        { value: 'last-7', label: 'Last 7 days' },
+        { value: 'last-30', label: 'Last 30 days' },
+      ],
+    },
+  ]"
+  @page-filter-change="onPeriodChange" />
+```
+
+A widget then binds its data to the selected value. With an endpoint-bound [`stat` widget](#widget-types):
+
+```jsonc
+{
+  "id": "leads", "type": "stat",
+  "content": {
+    "label": "Leads",
+    "source": { "kind": "endpoint", "url": "/api/analytics/summary", "path": "totalLeads", "params": { "period": "@page.period" } }
+  }
+}
+```
+
+Each entry: `key` (the context key written on change), optional `label`, `type` (only `'select'` today), `options` (`[{ value, label }]`), and an optional `default` (else the first option seeds the context on mount). Omitting `pageFilters` renders nothing and leaves the context untouched (backwards-compatible).
 
 ## Built-in page-level Actions menu
 

@@ -317,6 +317,34 @@
 							"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
 							"items": { "$ref": "#/$defs/layoutItem" }
 						},
+						"pageFilters": {
+							"type": "array",
+							"description": "Page-level filter controls (for type='dashboard') rendered in the dashboard header by CnDashboardPage. Each selection is written into the reactive page-level workspace context, so any widget can read it via a `@page.<key>` / `@workspace.<key>` token — e.g. a period selector every endpoint-bound `stat` KPI's URL interpolates. Maps to the CnDashboardPage `pageFilters` prop.",
+							"items": {
+								"type": "object",
+								"required": ["key", "options"],
+								"additionalProperties": false,
+								"properties": {
+									"key": { "type": "string", "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
+									"label": { "type": "string", "description": "Optional control label (i18n key or plain text)." },
+									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type. Closed enum — \"select\" only for now." },
+									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount. Defaults to the first option's value when omitted." },
+									"options": {
+										"type": "array",
+										"description": "Selectable options.",
+										"items": {
+											"type": "object",
+											"required": ["value", "label"],
+											"additionalProperties": false,
+											"properties": {
+												"value": { "type": ["string", "number"], "description": "Value written into the context when picked." },
+												"label": { "type": "string", "description": "Display text (i18n key or plain text)." }
+											}
+										}
+									}
+								}
+							}
+						},
 						"fields": {
 							"type": "array",
 							"description": "Form fields consumed by CnFormPage (for type='form'). Each item references the `formField` $def — the same shape `pages[].config.sections[].fields[]` uses for type='settings'.",

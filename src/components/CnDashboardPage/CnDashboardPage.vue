@@ -92,6 +92,30 @@
 				@input="onDateRangeChange" />
 		</div>
 
+		<!-- Page-level filter controls (optional). Each selection is written
+		     into the reactive workspace context so any widget can read it via a
+		     `@page.<key>` / `@workspace.<key>` token (e.g. an endpoint KPI's URL
+		     interpolating a chosen period). -->
+		<div
+			v-if="pageFilters && pageFilters.length"
+			class="cn-dashboard-page__page-filters"
+			data-testid="cn-dashboard-page-page-filters">
+			<label
+				v-for="pf in pageFilters"
+				:key="pf.key"
+				class="cn-dashboard-page__page-filter">
+				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
+				<NcSelect
+					:value="selectedPageFilterOption(pf)"
+					:options="pf.options || []"
+					:clearable="false"
+					:input-label="pf.label || pf.key"
+					label="label"
+					:data-testid="'cn-page-filter-' + pf.key"
+					@input="onPageFilterChange(pf, $event)" />
+			</label>
+		</div>
+
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
@@ -418,6 +442,7 @@ import {
 	NcButton,
 	NcEmptyContent,
 	NcLoadingIcon,
+	NcSelect,
 } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
@@ -543,6 +568,7 @@ export default {
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
+		NcSelect,
 		Pencil,
 		Check,
 		Cog,
@@ -764,6 +790,25 @@ export default {
 			default: null,
 		},
 		/**
+		 * Optional page-level filter controls rendered in the dashboard header.
+		 * Each selection is written into the reactive page-level workspace
+		 * context (the same bag `cnWorkspaceContext` provides), so any widget can
+		 * read it via a `@page.<key>` / `@workspace.<key>` token — e.g. a period
+		 * selector that every endpoint-bound KPI's URL interpolates.
+		 *
+		 * Each entry: `{ key, label?, type?: 'select', options: [{ value, label }],
+		 * default? }`. `key` is the workspace-context key written on change;
+		 * `default` (or the first option) seeds it on mount. Only `'select'` is
+		 * supported today. Empty (the default) renders no controls and leaves the
+		 * context untouched.
+		 *
+		 * @type {Array<{key: string, label?: string, type?: string, options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
+		 */
+		pageFilters: {
+			type: Array,
+			default: () => [],
+		},
+		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
 		 * menu (distinct from the per-widget menus). On by default. The
 		 * default handler emits `@refresh` and, unless suppressed, fires
@@ -841,7 +886,7 @@ export default {
 		},
 	},
 
-	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'refresh', 'request-feature'],
+	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'page-filter-change', 'refresh', 'request-feature'],
 
 	setup() {
 		// Wire the pluggable integration registry so widgets of type
@@ -1064,6 +1109,7 @@ export default {
 	created() {
 		this.pushAiContext()
 		this.initDateRange()
+		this.initPageFilters()
 	},
 
 	beforeDestroy() {
@@ -1075,6 +1121,55 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Seed the reactive workspace context with each page filter's default
+		 * (its `default`, else the first option's value) so endpoint-bound
+		 * widgets have a value to interpolate on first render. Only writes keys
+		 * that aren't already present, so a value another widget set survives.
+		 *
+		 * @return {void}
+		 */
+		initPageFilters() {
+			for (const pf of this.pageFilters || []) {
+				if (!pf || !pf.key) continue
+				if (this.workspaceContext[pf.key] !== undefined) continue
+				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
+				const value = pf.default !== undefined ? pf.default : fallback
+				if (value !== undefined) {
+					this.$set(this.workspaceContext, pf.key, value)
+				}
+			}
+		},
+		/**
+		 * The currently-selected option object for a page filter's NcSelect
+		 * (matched by `value` against the workspace context), or null.
+		 *
+		 * @param {object} pf The page-filter descriptor.
+		 * @return {object|null}
+		 */
+		selectedPageFilterOption(pf) {
+			if (!pf || !pf.key) return null
+			const current = this.workspaceContext[pf.key]
+			return (pf.options || []).find((o) => o.value === current) || null
+		},
+		/**
+		 * Write a page filter's new selection into the reactive workspace
+		 * context so every `@page.<key>` / `@workspace.<key>` token re-resolves.
+		 *
+		 * @param {object} pf The page-filter descriptor.
+		 * @param {object|null} option The chosen NcSelect option (`{ value, label }`).
+		 * @return {void}
+		 */
+		onPageFilterChange(pf, option) {
+			if (!pf || !pf.key) return
+			const value = option && typeof option === 'object' ? option.value : option
+			this.$set(this.workspaceContext, pf.key, value)
+			/**
+			 * @event page-filter-change Emitted when a page-level filter selection changes.
+			 * @type {{ key: string, value: (string|number|null) }}
+			 */
+			this.$emit('page-filter-change', { key: pf.key, value })
+		},
 		/**
 		 * Re-emit the page-level CnActionsMenu `@refresh` to the host,
 		 * passing the synthetic event through so a host listener can
@@ -1969,6 +2064,27 @@ export default {
 
 .cn-dashboard-page__empty {
 	padding: 60px 20px;
+}
+
+.cn-dashboard-page__page-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: flex-end;
+	margin-bottom: 12px;
+}
+
+.cn-dashboard-page__page-filter {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 200px;
+}
+
+.cn-dashboard-page__page-filter-label {
+	font-size: 0.85em;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-dashboard-page__widget-edit {
