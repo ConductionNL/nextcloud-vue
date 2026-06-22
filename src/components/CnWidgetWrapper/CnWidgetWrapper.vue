@@ -13,6 +13,7 @@
 		:class="{
 			'cn-widget-wrapper--borderless': borderless,
 			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
@@ -160,6 +161,25 @@ export default {
 		showTitle: {
 			type: Boolean,
 			default: true,
+		},
+		/**
+		 * Chrome variant for the wrapper card.
+		 * - `'default'` — the library's own card chrome (opaque background,
+		 *   1px border, compact header).
+		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
+		 *   exactly using the same design tokens: translucent blurred
+		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
+		 *   header with a 20px/700 title and 32px leading icon, and content
+		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
+		 *   layer on top so a user can customise any token.
+		 *
+		 * @type {'default'|'nc-dashboard'}
+		 */
+		chrome: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'nc-dashboard'].includes(v),
 		},
 		/**
 		 * Remove border and background — makes the wrapper transparent.
@@ -535,6 +555,47 @@ export default {
 
 .cn-widget-wrapper--flush .cn-widget-wrapper__content {
 	padding: 0;
+}
+
+/*
+ * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
+ * (apps/dashboard) exactly, using the same design tokens so an un-customised
+ * widget is pixel-identical to a core dashboard panel. `styleConfig` inline
+ * overrides (wrapperStyles / headerStyles) still win over these class rules,
+ * so users can override any token. Combined selector raises specificity above
+ * the base `.cn-widget-wrapper` rules it supersedes.
+ */
+.cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
+	background: var(--color-main-background-blur, var(--color-main-background));
+	-webkit-backdrop-filter: var(--filter-background-blur, none);
+	backdrop-filter: var(--filter-background-blur, none);
+	border: none;
+	border-radius: var(--border-radius-container-large, 16px);
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header {
+	padding: 16px;
+	border-bottom: none;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header-left {
+	gap: 16px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__icon {
+	width: 32px;
+	height: 32px;
+	background-size: 32px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
+	padding: 0 16px 16px;
 }
 
 .cn-widget-wrapper__header {

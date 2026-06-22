@@ -49,6 +49,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 |------|------|---------|-------------|
 | `title` | String | `'Widget'` | Widget title shown in the header |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
+| `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
 | `borderless` | Boolean | `false` | Remove border and background — makes the wrapper transparent |
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
 | `iconUrl` | String | `null` | Image URL for the header icon |

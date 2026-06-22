@@ -64,6 +64,18 @@ const mountWrapper = (propsData = {}, opts = {}) => mount(CnWidgetWrapper, {
 	...opts,
 })
 
+describe('CnWidgetWrapper — chrome variant', () => {
+	it('defaults to the library chrome (no nc-dashboard class)', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.classes()).not.toContain('cn-widget-wrapper--nc-dashboard')
+	})
+
+	it('applies the nc-dashboard chrome class when chrome="nc-dashboard"', () => {
+		const wrapper = mountWrapper({ chrome: 'nc-dashboard' })
+		expect(wrapper.classes()).toContain('cn-widget-wrapper--nc-dashboard')
+	})
+})
+
 describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
