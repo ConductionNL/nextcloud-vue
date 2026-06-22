@@ -230,6 +230,15 @@ The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) ove
 
 Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
 
+`:show-refresh="false"` (or `config.showRefresh: false` in a manifest) **also** drops the Refresh item from every **widget's** own overflow menu — handy for a read-only dashboard whose widgets have no refetch wired (Request-a-feature stays). A widget can override this individually with `showRefresh` / `hideRefresh` on its `widgets[]` definition or `layout[]` entry:
+
+```js
+// page Refresh off, but this one widget keeps it
+widgets: [{ id: 'live-feed', type: 'custom', showRefresh: true }]
+// page Refresh on, but drop it from a static section
+widgets: [{ id: 'revenue-over-time', type: 'custom', hideRefresh: true }]
+```
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDashboardPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDashboardPage/CnDashboardPage.vue) and update automatically whenever the component changes.

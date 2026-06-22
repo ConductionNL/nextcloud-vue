@@ -190,6 +190,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -261,6 +262,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
@@ -334,6 +336,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<component
@@ -355,6 +358,7 @@
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
+						:show-refresh="getWidgetShowRefresh(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -765,9 +769,15 @@ export default {
 		},
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
-		 * menu (distinct from the per-widget menus). On by default. The
-		 * default handler emits `@refresh` and, unless suppressed, fires
-		 * the `cn:page:refresh` event-bus channel.
+		 * menu. On by default. The default handler emits `@refresh` and,
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 *
+		 * This is ALSO the default for each widget's own overflow menu: when
+		 * `false`, the Refresh item is dropped from every widget too (handy
+		 * for a read-only dashboard whose widgets have no refetch wired —
+		 * Request-a-feature stays). A widget can still opt back in (or out)
+		 * individually via `showRefresh` / `hideRefresh` on its definition or
+		 * layout entry.
 		 *
 		 * @type {boolean}
 		 */
@@ -1656,6 +1666,27 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		/**
+		 * Whether a widget's overflow Actions menu shows the Refresh item.
+		 * An explicit per-widget flag wins — on the widget definition or
+		 * the layout item, as either `hideRefresh: true` or
+		 * `showRefresh: false`. Otherwise the widget inherits the page-level
+		 * `showRefresh` prop, so a dashboard that turns Refresh off (e.g. a
+		 * read-only overview whose widgets have no refetch wired) drops the
+		 * dead Refresh item from every widget menu while keeping
+		 * Request-a-feature.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {boolean}
+		 */
+		getWidgetShowRefresh(item) {
+			const def = this.getWidgetDef(item.widgetId) || {}
+			if (def.hideRefresh === true || item.hideRefresh === true) return false
+			if (typeof def.showRefresh === 'boolean') return def.showRefresh
+			if (typeof item.showRefresh === 'boolean') return item.showRefresh
+			return this.showRefresh
 		},
 
 		getWidgetTitleIconPosition(item) {
