@@ -105,6 +105,7 @@
 								:formatter="col.formatter || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
+								:format="col.format || null"
 								:row="row"
 								:row-key="rowKey" />
 						</slot>

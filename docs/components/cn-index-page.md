@@ -39,6 +39,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
+| `defaultSort` | Array | `[]` | Default multi-key **client-side** sort applied to the already-loaded rows whenever no explicit column sort is active (no `sortKey`). Each entry is `\{ field, order? \}` with `order` one of `'asc'` / `'desc'` (default `'asc'`); rows compare by the first field, ties broken by the next, etc. (type-aware: numbers numerically, dates by timestamp, else `localeCompare`; empties sort last). Clicking a sortable header takes over and suppresses this default. Fed from `pages[].config.defaultSort`. Useful for a fixed presentation order such as group-by-type-then-name. |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
@@ -509,7 +510,7 @@ When the user clicks "Process queue" on a row, CnIndexPage looks up `queueProces
 
 Three keywords short-circuit the registry lookup:
 
-- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. The `route` field is required when this keyword is set.
+- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey], ...action.params } })`. The `route` field is required when this keyword is set. An optional `params` object holds **literal** route params merged over the default `{ id: row[rowKey] }` — so `params: { "id": "new" }` makes a "New X" action land on the detail route in create mode, and `params: { "mode": "edit" }` keeps the row id while adding an extra param. The same `params` works on `config.headerActions[]` (page-level — no row, so the literals are the whole param map).
 - `"emit"` — explicit no-op handler that just bubbles `@action`. Identical to leaving `handler` unset, but makes intent visible in the manifest.
 - `"none"` — disables the action click entirely (no handler call, no `@action` emit).
 
@@ -521,6 +522,9 @@ Example:
     { "id": "view", "label": "Open", "handler": "navigate", "route": "QueueDetail" },
     { "id": "z",    "label": "Z",    "handler": "emit" },
     { "id": "x",    "label": "X",    "handler": "none" }
+  ],
+  "headerActions": [
+    { "id": "new", "label": "New resource", "handler": "navigate", "route": "ResourceDetail", "params": { "id": "new" } }
   ]
 }
 ```

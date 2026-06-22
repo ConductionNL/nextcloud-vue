@@ -221,7 +221,7 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:row-icon="rowIcon"
-					:rows="effectiveObjects"
+					:rows="displayObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
@@ -301,7 +301,7 @@
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
-					:objects="effectiveObjects"
+					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
@@ -404,6 +404,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -697,6 +698,23 @@ export default {
 		sortOrder: {
 			type: String,
 			default: 'asc',
+		},
+
+		/**
+		 * Optional declarative DEFAULT multi-key client-side sort, applied to the
+		 * already-loaded rows whenever no explicit column sort is active (no
+		 * `sortKey` selected by the user / passed in). Each entry is
+		 * `{ field, order }` with `order` one of `'asc'` / `'desc'` (default
+		 * `'asc'`); rows are compared by the first field, ties broken by the
+		 * next, and so on. Comparison is type-aware (numbers numerically, dates
+		 * by timestamp, strings via `localeCompare`). Clicking a sortable header
+		 * takes over and suppresses this default. Useful for a fixed presentation
+		 * order such as "group by type, then name".
+		 * @type {Array<{field: string, order?: 'asc'|'desc'}>}
+		 */
+		defaultSort: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Unique row identifier property */
@@ -1268,6 +1286,20 @@ export default {
 		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		/**
+		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
+		 * the declarative `defaultSort` spec whenever no explicit user column
+		 * sort is active. A live `sortKey` (user clicked a header, or one was
+		 * passed in) takes over and this falls through to the unsorted rows so
+		 * the server / prop order wins. No-op when `defaultSort` is empty.
+		 *
+		 * @return {object[]}
+		 */
+		displayObjects() {
+			if (!this.defaultSort || this.defaultSort.length === 0) return this.effectiveObjects
+			if (this.effectiveSortKey) return this.effectiveObjects
+			return multiKeySort(this.effectiveObjects, this.defaultSort)
+		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
 		/**
@@ -1702,7 +1734,8 @@ export default {
 		 * @return {object} Possibly-mutated copy: function-typed
 		 *   handlers untouched; `'emit'` and unknown registry names
 		 *   strip the `handler` (emit-only fall-through); `'navigate'`
-		 *   becomes a `$router.push` thunk; `'none'` becomes a no-op +
+		 *   becomes a `$router.push` thunk (with the entry's literal
+		 *   `params` map when present); `'none'` becomes a no-op +
 		 *   `_dispatchSuppress: true`; a registry name resolves to a
 		 *   `fn({ actionId })` thunk.
 		 */
@@ -1725,10 +1758,13 @@ export default {
 				}
 				const route = entry.route
 				const router = this.$router
+				// Literal params let a header action navigate to a detail route
+				// with fixed params, e.g. a "New X" button → `{ id: "new" }`.
+				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
 				const out = { ...entry }
 				out.handler = () => {
 					if (router && typeof router.push === 'function') {
-						router.push({ name: route })
+						router.push(params ? { name: route, params } : { name: route })
 					}
 				}
 				return out
