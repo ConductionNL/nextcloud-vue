@@ -38,6 +38,8 @@ import '../CnDeltaWidget/index.js'
 import '../CnGaugeWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
+import '../CnKbSearchWidget/index.js'
+import '../CnInteractionFormWidget/index.js'
 
 // The `chart` type renders through CnDashboardPage's dedicated isChart() branch
 // (CnChartWidget), NOT the registry renderer — but registering it here gives the

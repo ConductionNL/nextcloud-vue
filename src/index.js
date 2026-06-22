@@ -86,6 +86,7 @@ export {
 	CnContactsTab,
 	CnContactPicker,
 	CnContactCreate,
+	CnResourceSelect,
 	CnIntegrationTab,
 	CnIntegrationCard,
 	CnIntegrationWidgetGrid,

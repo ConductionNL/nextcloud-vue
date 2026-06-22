@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  */
-import { resolveFilterValue, resolveFilterTokens } from '../../src/utils/resolveFilterTokens.js'
+import { resolveFilterValue, resolveFilterTokens, hasUnresolvedTokens } from '../../src/utils/resolveFilterTokens.js'
 
 describe('resolveFilterTokens', () => {
 	it('passes through non-token values', () => {
@@ -52,6 +52,45 @@ describe('resolveFilterTokens', () => {
 			const out = resolveFilterTokens({ lead: '@objectId', client: '@object.client' }, { objectId: 42, object: { client: 'Acme' } })
 			expect(out.lead).toBe('42')
 			expect(out.client).toBe('Acme')
+		})
+	})
+
+	describe('workspace-context tokens', () => {
+		it('resolves @workspace.<key> from ctx.workspace', () => {
+			const ctx = { workspace: { selectedClient: 'c-1', activeSummary: 'broken router' } }
+			expect(resolveFilterValue('@workspace.selectedClient', ctx)).toBe('c-1')
+			expect(resolveFilterValue('@workspace.activeSummary', ctx)).toBe('broken router')
+		})
+
+		it('passes through an unresolved @workspace token (no value / no ctx)', () => {
+			expect(resolveFilterValue('@workspace.selectedClient')).toBe('@workspace.selectedClient')
+			expect(resolveFilterValue('@workspace.selectedClient', { workspace: {} })).toBe('@workspace.selectedClient')
+			expect(resolveFilterValue('@workspace.selectedClient', { workspace: { selectedClient: '' } })).toBe('@workspace.selectedClient')
+		})
+
+		it('threads workspace ctx through resolveFilterTokens', () => {
+			const out = resolveFilterTokens({ client: '@workspace.selectedClient' }, { workspace: { selectedClient: 'c-9' } })
+			expect(out.client).toBe('c-9')
+		})
+	})
+
+	describe('hasUnresolvedTokens', () => {
+		it('detects an unresolved token in equality and operator shapes', () => {
+			expect(hasUnresolvedTokens({ client: '@workspace.selectedClient' })).toBe(true)
+			expect(hasUnresolvedTokens({ date: { gt: '@today' } })).toBe(true)
+		})
+
+		it('returns false once every token resolved', () => {
+			expect(hasUnresolvedTokens({ client: 'c-1', status: 'open' })).toBe(false)
+			expect(hasUnresolvedTokens({})).toBe(false)
+			expect(hasUnresolvedTokens(null)).toBe(false)
+		})
+
+		it('pairs with resolveFilterTokens — unresolved workspace token stays flagged', () => {
+			const out = resolveFilterTokens({ client: '@workspace.selectedClient' }, { workspace: {} })
+			expect(hasUnresolvedTokens(out)).toBe(true)
+			const out2 = resolveFilterTokens({ client: '@workspace.selectedClient' }, { workspace: { selectedClient: 'c-1' } })
+			expect(hasUnresolvedTokens(out2)).toBe(false)
 		})
 	})
 })

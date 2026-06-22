@@ -4,20 +4,26 @@
 -->
 <template>
 	<div class="cn-object-list-widget">
+		<p v-if="waitingForContext" class="cn-object-list-widget__prompt">
+			{{ promptText }}
+		</p>
 		<CnDataTable
+			v-else
 			:columns="resolvedColumns"
 			:rows="rows"
 			:loading="loading"
 			:empty-text="emptyText"
 			@row-click="onRowClick" />
-		<p v-if="error" class="cn-object-list-widget__error">{{ error }}</p>
+		<p v-if="error" class="cn-object-list-widget__error">
+			{{ error }}
+		</p>
 	</div>
 </template>
 
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import { translate as t } from '@nextcloud/l10n'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -54,12 +60,21 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * Page-level workspace context (reactive `ref({})`) provided by
+		 * CnDashboardPage. Lets `@workspace.<key>` filter tokens resolve so a
+		 * list can react to state another widget on the page wrote (e.g. a
+		 * client-overview list scoped to the selected client). Null on pages
+		 * that don't provide it (tokens then stay unresolved and the list shows
+		 * its `promptText`).
+		 */
+		cnWorkspaceContext: { default: null },
 	},
 
 	props: {
 		/**
 		 * The widget's persisted configuration blob.
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string}}
 		 */
 		content: {
 			type: Object,
@@ -87,6 +102,55 @@ export default {
 			if (!c) return null
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+		/**
+		 * The unwrapped workspace context bag (or null). Vue 2.7 `setup`/inject
+		 * may hand back a raw ref; unwrap `.value` so token resolution reads the
+		 * plain object.
+		 *
+		 * @return {object|null}
+		 */
+		workspaceCtx() {
+			const c = this.cnWorkspaceContext
+			if (!c) return null
+			return (typeof c === 'object' && 'value' in c) ? c.value : c
+		},
+		/**
+		 * Token-resolution context merged from the detail-page object context
+		 * and the page-level workspace bag (`@workspace.<key>`).
+		 *
+		 * @return {object}
+		 */
+		tokenCtx() {
+			const base = this.objectCtx ? { ...this.objectCtx } : {}
+			base.workspace = this.workspaceCtx || {}
+			return base
+		},
+		/**
+		 * The filter with every `@`-token resolved against `tokenCtx`, then with
+		 * any UNRESOLVED OPTIONAL token (`@workspace.<key>?`) dropped — so an
+		 * optional queue filter simply shows all rows until a queue is picked,
+		 * while a REQUIRED token (`@workspace.selectedClient`) stays to trigger the
+		 * prompt.
+		 *
+		 * @return {object}
+		 */
+		resolvedFilter() {
+			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
+		},
+		/**
+		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
+		 * is still unresolved — the page state this list depends on isn't set yet,
+		 * so the list renders a prompt instead of fetching the whole register.
+		 *
+		 * @return {boolean}
+		 */
+		waitingForContext() {
+			return hasUnresolvedTokens(this.resolvedFilter)
+		},
+		/** Prompt shown while a `@workspace.*`-bound list has no selection. */
+		promptText() {
+			return this.content.prompt || t('nextcloud-vue', 'Select an item to see related records')
+		},
 		/** Column definitions normalised to `{ key, label }` for CnDataTable. */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
@@ -104,7 +168,9 @@ export default {
 			return JSON.stringify({
 				register: c.register || '',
 				schema: c.schema || '',
-				filter: c.filter || {},
+				// The RESOLVED filter (workspace + object tokens applied) so the
+				// watcher refetches when page-level state a token reads changes.
+				filter: this.resolvedFilter,
 				sort: c.sort || {},
 				limit: c.limit || 5,
 				objectId: this.objectCtx ? this.objectCtx.objectId : null,
@@ -137,6 +203,13 @@ export default {
 				this.error = ''
 				return
 			}
+			// A context token this list depends on (e.g. @workspace.selectedClient)
+			// isn't set yet — don't fetch the whole register; the prompt shows.
+			if (this.waitingForContext) {
+				this.rows = []
+				this.error = ''
+				return
+			}
 			this.loading = true
 			this.error = ''
 			try {
@@ -155,7 +228,7 @@ export default {
 				// The OpenRegister OBJECT-SEARCH endpoint filters on DIRECT field
 				// params (`status=open`, `value[gt]=30000`) — unlike the
 				// aggregation endpoints which use the nested `filter[...]` shape.
-				const filter = resolveFilterTokens(c.filter || {}, this.objectCtx)
+				const filter = this.resolvedFilter
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
 						if (v && typeof v === 'object') {
@@ -219,5 +292,13 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.85em;
 	margin: 4px 0 0;
+}
+
+.cn-object-list-widget__prompt {
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
+	padding: 16px 4px;
+	margin: 0;
+	text-align: center;
 }
 </style>

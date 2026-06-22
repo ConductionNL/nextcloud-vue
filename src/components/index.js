@@ -71,6 +71,7 @@ export { default as CnContactsCard } from '../integrations/builtin/contacts/CnCo
 export { default as CnContactsTab } from '../integrations/builtin/contacts/CnContactsTab.vue'
 export { CnContactPicker } from './CnContactPicker/index.js'
 export { CnContactCreate } from './CnContactCreate/index.js'
+export { CnResourceSelect } from './CnResourceSelect/index.js'
 export { CnIntegrationTab } from './CnIntegrationTab/index.js'
 export { CnIntegrationCard } from './CnIntegrationCard/index.js'
 export { CnIntegrationWidgetGrid } from './CnIntegrationWidgetGrid/index.js'

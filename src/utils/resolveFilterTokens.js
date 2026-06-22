@@ -18,10 +18,16 @@
  *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
  *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
+ *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *
- * The last two are OBJECT-CONTEXT tokens: they resolve only when a `ctx`
- * `{ objectId, object }` is supplied (a detail page provides it via the
- * `cnObjectContext` inject). Without `ctx` they pass through unchanged.
+ * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
+ * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
+ * the `cnObjectContext` inject). `@workspace.<key>` is a WORKSPACE-CONTEXT token:
+ * it resolves a key off `ctx.workspace` (the reactive `cnWorkspaceContext` a
+ * dashboard/workspace page provides) so a list widget can react to page-level
+ * state another widget writes (e.g. a selected client). Without the matching
+ * context the tokens pass through unchanged — and an UNRESOLVED `@workspace.*`
+ * token signals "no selection yet" to the caller (see {@link hasUnresolvedTokens}).
  *
  * @module utils/resolveFilterTokens
  */
@@ -42,8 +48,9 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {*} v The candidate value.
- * @param {{objectId?: (string|number), object?: object}} [ctx] Optional
- *   detail-page object context for `@objectId` / `@object.<field>` tokens.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object}} [ctx] Optional
+ *   context for `@objectId` / `@object.<field>` (detail page) and
+ *   `@workspace.<key>` (page-level workspace state) tokens.
  * @return {*} The resolved value.
  */
 export function resolveFilterValue(v, ctx) {
@@ -55,6 +62,18 @@ export function resolveFilterValue(v, ctx) {
 	if (v.startsWith('@object.')) {
 		const field = v.slice('@object.'.length)
 		if (ctx && ctx.object && field && ctx.object[field] !== undefined) return ctx.object[field]
+		return v
+	}
+	if (v.startsWith('@workspace.')) {
+		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the
+		// filter key (show all) instead of waiting (see hasUnresolvedTokens /
+		// CnObjectListWidget). The `?` is stripped from the key lookup.
+		const raw = v.slice('@workspace.'.length)
+		const key = raw.endsWith('?') ? raw.slice(0, -1) : raw
+		if (ctx && ctx.workspace && key && ctx.workspace[key] !== undefined
+			&& ctx.workspace[key] !== null && ctx.workspace[key] !== '') {
+			return ctx.workspace[key]
+		}
 		return v
 	}
 	if (v === '@me') {
@@ -86,6 +105,72 @@ export function resolveFilterValue(v, ctx) {
 		return ymd(d)
 	}
 	return v
+}
+
+/**
+ * Whether a value is an UNRESOLVED OPTIONAL workspace token — a string still
+ * shaped like `@workspace.<key>?` after token resolution (the `?` marks it as
+ * "drop me when unset"). Callers strip such keys from the filter so the list
+ * shows all rows rather than waiting for a selection.
+ *
+ * @param {*} v A (possibly resolved) filter value.
+ * @return {boolean}
+ */
+export function isOptionalUnresolved(v) {
+	return typeof v === 'string' && v.startsWith('@workspace.') && v.endsWith('?')
+}
+
+/**
+ * Return a copy of a resolved filter map with every UNRESOLVED OPTIONAL
+ * workspace token (`@workspace.<key>?` left as-is) removed. Required tokens and
+ * concrete values are kept untouched.
+ *
+ * @param {object} filter A filter map already passed through {@link resolveFilterTokens}.
+ * @return {object} The filter without optional-unresolved keys.
+ */
+export function dropOptionalUnresolved(filter) {
+	if (!filter || typeof filter !== 'object') return filter
+	const out = {}
+	for (const [k, v] of Object.entries(filter)) {
+		if (isOptionalUnresolved(v)) continue
+		if (v && typeof v === 'object' && !Array.isArray(v)) {
+			const inner = {}
+			for (const [op, ov] of Object.entries(v)) {
+				if (!isOptionalUnresolved(ov)) inner[op] = ov
+			}
+			if (Object.keys(inner).length > 0) out[k] = inner
+		} else {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+/**
+ * Whether a resolved filter map still carries an unresolved `@`-token. Used by
+ * context-bound widgets to detect "the page state this widget depends on isn't
+ * set yet" (e.g. a client-overview list whose `client` filter is still the raw
+ * `@workspace.selectedClient` because no client is selected) and skip the query
+ * / render a prompt instead of fetching the whole register.
+ *
+ * OPTIONAL tokens (`@workspace.<key>?`) are NOT counted — they are meant to be
+ * dropped, not waited on (see {@link dropOptionalUnresolved}).
+ *
+ * @param {object} filter A filter map already passed through {@link resolveFilterTokens}.
+ * @return {boolean} True when any value is still a (non-optional) string beginning with `@`.
+ */
+export function hasUnresolvedTokens(filter) {
+	if (!filter || typeof filter !== 'object') return false
+	const blocking = (x) => typeof x === 'string' && x.charAt(0) === '@' && !isOptionalUnresolved(x)
+	for (const v of Object.values(filter)) {
+		if (blocking(v)) return true
+		if (v && typeof v === 'object' && !Array.isArray(v)) {
+			for (const ov of Object.values(v)) {
+				if (blocking(ov)) return true
+			}
+		}
+	}
+	return false
 }
 
 /**

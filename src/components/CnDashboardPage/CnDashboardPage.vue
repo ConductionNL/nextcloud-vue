@@ -858,10 +858,21 @@ export default {
 		const dashboardDateRange = ref(null)
 		provide('cnDashboardDateRange', dashboardDateRange)
 
+		// Page-level WORKSPACE CONTEXT — a reactive bag of shared keys that
+		// widgets on this page both write (e.g. an interaction form sets
+		// `selectedClient` / `activeSummary`) and read (a client-overview list
+		// filters on `@workspace.selectedClient`; a knowledge-base widget reacts
+		// to `activeSummary`). Provided ALWAYS — like cnDashboardDateRange — so
+		// descendants can `inject('cnWorkspaceContext')` without a fallback dance;
+		// the bag starts empty and stays inert for dashboards that don't use it.
+		const workspaceContext = ref({})
+		provide('cnWorkspaceContext', workspaceContext)
+
 		return {
 			registryIntegrations,
 			resolveRegistryWidget: resolveWidget,
 			dashboardDateRange,
+			workspaceContext,
 		}
 	},
 
