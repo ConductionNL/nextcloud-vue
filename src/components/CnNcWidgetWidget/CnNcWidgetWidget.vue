@@ -267,12 +267,25 @@ export default {
 			this.$nextTick(() => {
 				const container = this.$refs.nativeContainer
 				if (container) {
-					try {
-						callback(container, this.widgetMeta || {})
-					} catch (e) {
-						// Native callback threw — fall back to the API list.
+					const fallback = () => {
+						// Native callback failed — fall back to the API list.
 						this.mode = 'api'
 						this.loadApiItems()
+					}
+					try {
+						// NC dashboard widgets are registered as
+						// `register(id, (el, { widget }) => …)` — the second
+						// argument MUST be the `{ widget }` envelope, not the bare
+						// metadata, or the widget destructures `widget` as
+						// undefined and throws on first use (e.g. `widget.title`).
+						const result = callback(container, { widget: this.widgetMeta || {} })
+						// Most widget callbacks are async; a synchronous try/catch
+						// can't see a rejected promise, so wire the fallback to it.
+						if (result && typeof result.then === 'function') {
+							result.catch(fallback)
+						}
+					} catch (e) {
+						fallback()
 					}
 				}
 			})

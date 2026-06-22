@@ -33,7 +33,28 @@ describe('CnNcWidgetWidget renderer', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.mode).toBe('native')
 		expect(callback).toHaveBeenCalled()
+		// NC dashboard widgets destructure `{ widget }` from the second arg
+		// (`register(id, (el, { widget }) => …)`); the envelope must be passed,
+		// not the bare metadata, or real widgets throw on `widget.title`.
+		const [el, arg] = callback.mock.calls[0]
+		expect(el).toBeInstanceOf(global.window.HTMLElement)
+		expect(arg).toMatchObject({ widget: { title: 'Calls' } })
 		expect(wrapper.text()).toContain('Calls')
+	})
+
+	it('falls back to the API list when an async native callback rejects', async () => {
+		const callback = jest.fn(() => Promise.reject(new Error('boom')))
+		global.window.OCA = {
+			Dashboard: {
+				getWidget: () => ({ title: 'Calls', callback }),
+			},
+		}
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
+		await wrapper.vm.$nextTick()
+		// let the rejected promise settle
+		await Promise.resolve()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.mode).toBe('api')
 	})
 })
 
