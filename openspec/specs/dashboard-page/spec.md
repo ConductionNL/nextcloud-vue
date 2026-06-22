@@ -9,9 +9,7 @@ status: reviewed
 `CnDashboardPage` is a top-level dashboard page component that assembles a header, a `CnDashboardGrid`, and widget rendering with automatic widget type detection. It is the dashboard equivalent of `CnIndexPage` — a single component that handles the full dashboard page lifecycle.
 
 ---
-
 ## Requirements
-
 ### Requirement: page header rendering
 
 CnDashboardPage SHALL render a page header containing a title, an optional description, optional header action slots, and an optional edit toggle button.
@@ -44,7 +42,7 @@ CnDashboardPage SHALL render a page header containing a title, an optional descr
 
 ### Requirement: widget type resolution
 
-CnDashboardPage SHALL resolve the widget type for each layout item in the following priority order: (1) tile widget, (2) custom scoped slot, (3) NC Dashboard API widget, (4) unknown fallback. The widget definition is looked up from the `widgets` array using the layout item's `widgetId` field.
+CnDashboardPage SHALL resolve the widget type for each layout item in the following priority order: (1) tile widget, (2) custom scoped slot, (3) NC Dashboard API widget, (4) registered dashboard-widget-registry kind, (5) unknown fallback. The widget definition is looked up from the `widgets` array using the layout item's `widgetId` field. In addition, CnDashboardPage SHALL provide a reactive `cnWorkspaceContext` bag (a `ref({})`) to all widget descendants — provided unconditionally and starting empty — so widgets can share page-level state (one widget writes a key, sibling widgets read it).
 
 #### Scenario: tile widget detection
 
@@ -64,13 +62,24 @@ CnDashboardPage SHALL resolve the widget type for each layout item in the follow
 - WHEN the grid renders that item
 - THEN `CnWidgetRenderer` is rendered inside a `CnWidgetWrapper`, auto-fetching items from the NC Dashboard API
 
+#### Scenario: registered widget kind
+
+- GIVEN a layout item whose widget definition has a `type` registered in the dashboard widget registry (e.g. `object-list`, `interaction-form`, `kb-search`) and no `#widget-<id>` slot exists and type is not `'tile'`
+- WHEN the grid renders that item
+- THEN the registry renderer for that `type` is rendered inside a `CnWidgetWrapper` with the widget definition's `content` passed as props
+
 #### Scenario: unknown widget fallback
 
-- GIVEN a layout item with `widgetId: 'mystery'` and no matching slot, no `itemApiVersions`, and type is not `'tile'`
+- GIVEN a layout item with `widgetId: 'mystery'` and no matching slot, no registered kind, no `itemApiVersions`, and type is not `'tile'`
 - WHEN the grid renders that item
 - THEN a `CnWidgetWrapper` is rendered containing the `unavailableLabel` text
 
----
+#### Scenario: workspace context provided to widgets
+
+- GIVEN any dashboard page
+- WHEN it renders
+- THEN a reactive `cnWorkspaceContext` bag MUST be provided to descendants so a widget can `inject('cnWorkspaceContext')` and read/write shared page state
+- AND a page whose widgets never touch the bag MUST behave identically to before (the bag stays empty and inert)
 
 ### Requirement: widget wrapper metadata pass-through
 
