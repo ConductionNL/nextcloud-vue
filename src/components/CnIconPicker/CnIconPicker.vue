@@ -9,21 +9,25 @@
 			<CnDashboardIcon :name="value" :size="24" :alt="t('nextcloud-vue', 'Icon preview')" />
 		</div>
 
-		<select
-			:value="builtInValue"
-			class="cn-icon-picker__select"
-			:disabled="uploading"
-			@change="selectIcon">
-			<option value="" disabled>
-				{{ t('nextcloud-vue', 'Select icon…') }}
-			</option>
-			<option
+		<div
+			class="cn-icon-picker__grid"
+			role="listbox"
+			:aria-label="t('nextcloud-vue', 'Icon')">
+			<button
 				v-for="(_, name) in icons"
 				:key="name"
-				:value="name">
-				{{ name }}
-			</option>
-		</select>
+				type="button"
+				class="cn-icon-picker__icon"
+				:class="{ 'cn-icon-picker__icon--selected': name === builtInValue }"
+				:title="name"
+				:aria-label="name"
+				role="option"
+				:aria-selected="name === builtInValue"
+				:disabled="uploading"
+				@click="selectIconName(name)">
+				<CnDashboardIcon :name="name" :size="20" :alt="name" />
+			</button>
+		</div>
 
 		<label v-if="canUpload" class="cn-icon-picker__upload-label">
 			<input
@@ -156,6 +160,17 @@ export default {
 		},
 
 		/**
+		 * Emit the registry key of a clicked icon tile (grid selection).
+		 *
+		 * @param {string} name the icon registry key.
+		 * @return {void}
+		 */
+		selectIconName(name) {
+			this.uploadError = ''
+			this.$emit('input', name || null)
+		},
+
+		/**
 		 * Read the selected file as a data URL and hand it to `uploadFn`,
 		 * emitting the returned URL on success.
 		 *
@@ -227,12 +242,38 @@ export default {
 	background-color: var(--color-background-hover);
 }
 
-.cn-icon-picker__select {
-	width: 100%;
-	padding: 6px 8px;
+.cn-icon-picker__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+	gap: 6px;
+	max-height: 200px;
+	overflow-y: auto;
+	padding: 4px;
 	border: 1px solid var(--color-border);
-	border-radius: 4px;
-	font-size: 14px;
+	border-radius: var(--border-radius, 4px);
+}
+
+.cn-icon-picker__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 2px solid transparent;
+	border-radius: var(--border-radius, 4px);
+	background: transparent;
+	cursor: pointer;
+	color: var(--color-main-text);
+}
+
+.cn-icon-picker__icon:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-icon-picker__icon--selected {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element-light, var(--color-background-hover));
 }
 
 .cn-icon-picker__upload-label {

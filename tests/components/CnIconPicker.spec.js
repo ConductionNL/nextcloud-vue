@@ -44,12 +44,18 @@ describe('CnDashboardIcon', () => {
 })
 
 describe('CnIconPicker', () => {
-	it('emits input with the selected registry key', async () => {
+	it('emits input with the clicked icon registry key', async () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
-		const select = w.find('select')
-		select.element.value = 'Star'
-		await select.trigger('change')
+		const star = w.findAll('.cn-icon-picker__icon').wrappers.find(b => b.attributes('aria-label') === 'Star')
+		expect(star).toBeTruthy()
+		await star.trigger('click')
 		expect(w.emitted('input')[0]).toEqual(['Star'])
+	})
+
+	it('marks the current icon tile as selected', () => {
+		const w = mount(CnIconPicker, { propsData: { value: 'Star' }, mocks })
+		const star = w.findAll('.cn-icon-picker__icon').wrappers.find(b => b.attributes('aria-label') === 'Star')
+		expect(star.classes()).toContain('cn-icon-picker__icon--selected')
 	})
 	it('hides the upload control when no uploadFn is given', () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
