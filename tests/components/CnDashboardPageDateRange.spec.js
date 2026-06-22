@@ -482,4 +482,80 @@ describe('CnDashboardPage — dateRange prop', () => {
 			expect(wrapper.vm.pillPresets.map((p) => p.id)).toEqual(['week', 'month', 'quarter'])
 		})
 	})
+
+	describe('workspace-context publishing + All/clear preset', () => {
+		// `days: null` non-custom preset = an "All" / clear option.
+		const presetsWithAll = [
+			{ id: 'last-7', label: '7d', days: 7 },
+			{ id: 'last-30', label: '30d', days: 30 },
+			{ id: 'all', label: 'All', days: null },
+			{ id: 'custom', label: 'Custom range', days: null },
+		]
+		const pillStubs = {
+			...stubs,
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+		}
+
+		it('publishes dateFrom / dateTo / datePreset into cnWorkspaceContext on init', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			const ctx = wrapper.vm.workspaceContext
+			expect(ctx.datePreset).toBe('last-7')
+			expect(ctx.dateFrom).toBe(wrapper.vm.currentRange.from)
+			expect(ctx.dateTo).toBe(wrapper.vm.currentRange.to)
+		})
+
+		it('updates cnWorkspaceContext when the range changes', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			wrapper.vm.onChipPresetPick({ id: 'last-30', label: '30d', days: 30 })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.workspaceContext.datePreset).toBe('last-30')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe(wrapper.vm.currentRange.from)
+		})
+
+		it('isClearPreset flags a non-custom days:null preset (not custom)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			expect(wrapper.vm.isClearPreset({ id: 'all', days: null })).toBe(true)
+			expect(wrapper.vm.isClearPreset({ id: 'custom', days: null })).toBe(false)
+			expect(wrapper.vm.isClearPreset({ id: 'last-7', days: 7 })).toBe(false)
+			expect(wrapper.vm.isClearPreset({ id: 'x', clear: true, days: 7 })).toBe(true)
+		})
+
+		it('clicking the All pill clears the window and the workspace bounds', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'last-30' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			// Starts with a bounded window.
+			expect(wrapper.vm.workspaceContext.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			await wrapper.find('[data-testid="cn-dashboard-page-date-pill-all"]').trigger('click')
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+			expect(wrapper.vm.workspaceContext.dateTo).toBe('')
+		})
+
+		it('default preset "all" starts unbounded (empty workspace bounds)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'all' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+		})
+	})
 })

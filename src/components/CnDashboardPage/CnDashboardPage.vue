@@ -835,6 +835,18 @@ export default {
 		 * (one pill per preset, plus a de-emphasised "Custom range" popover
 		 * pill). Both drive the same shared range.
 		 *
+		 * A preset with no numeric `days` / `hours` (other than the manual
+		 * `custom` entry) — e.g. `{ id: 'all', label: 'All', days: null }` —
+		 * is an "All" / CLEAR preset: picking it removes the window so
+		 * date-bound widgets show their unfiltered count. An explicit
+		 * `clear: true` forces the same behaviour.
+		 *
+		 * The active window is published into the page-level workspace
+		 * context as `dateFrom` / `dateTo` / `datePreset`, so any declarative
+		 * widget can scope itself to it via the optional filter tokens
+		 * `@workspace.dateFrom?` / `@workspace.dateTo?` (an empty bound, i.e.
+		 * the "All" range, drops the token so the filter is omitted).
+		 *
 		 * Default preset when no explicit `default` and no persisted
 		 * state is found: `last-7` (`now − 7d → now`).
 		 *
@@ -1456,6 +1468,10 @@ export default {
 		onChipPresetPick(preset, _item) {
 			if (!preset || !preset.id) return
 			if (preset.id === 'custom') return
+			if (this.isClearPreset(preset)) {
+				this.onDateRangeChange({ from: '', to: '', preset: preset.id })
+				return
+			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
 			if (!win) return
 			this.onDateRangeChange({ ...win, preset: preset.id })
@@ -1473,6 +1489,12 @@ export default {
 		 */
 		onPillPick(preset) {
 			if (!preset || !preset.id) return
+			// An "All" / clear preset removes the window (empty from/to) so
+			// optional date tokens drop and widgets show the unfiltered count.
+			if (this.isClearPreset(preset)) {
+				this.onDateRangeChange({ from: '', to: '', preset: preset.id })
+				return
+			}
 			const win = resolvePresetWindow(preset.id, this.effectivePresets)
 			if (!win) return
 			this.onDateRangeChange({ ...win, preset: preset.id })
@@ -1594,6 +1616,7 @@ export default {
 			if (initial) {
 				this.currentRange = initial
 				this.dashboardDateRange = initial
+				this.syncRangeToWorkspace(initial)
 				/**
 				 * @event date-range-change Fired whenever the dashboard's effective date range changes (initial resolve, picker change, or persisted-range restore). Payload: `{ from, to, preset }`.
 				 */
@@ -1611,6 +1634,7 @@ export default {
 		onDateRangeChange(value) {
 			this.currentRange = value
 			this.dashboardDateRange = value
+			this.syncRangeToWorkspace(value)
 			if (this.dateRange?.persistKey) {
 				this.persistRange(this.dateRange.persistKey, value)
 			}
@@ -1618,6 +1642,44 @@ export default {
 			 * @event date-range-change Fired whenever the dashboard's effective date range changes. Payload: `{ from, to, preset }`.
 			 */
 			this.$emit('date-range-change', { ...value })
+		},
+
+		/**
+		 * Publish the active window into the shared `cnWorkspaceContext` as
+		 * `dateFrom` / `dateTo` / `datePreset` so every declarative widget can
+		 * read it via the existing `@workspace.dateFrom?` / `@workspace.dateTo?`
+		 * filter tokens (e.g. a stat tile that scopes its count to the picked
+		 * window). An empty / null half writes `''`, which leaves an optional
+		 * token unresolved so `dropOptionalUnresolved` omits it — i.e. an "All"
+		 * range removes the date filter rather than sending a bound.
+		 *
+		 * @param {{ from?: string, to?: string, preset?: string }|null} value The range.
+		 * @return {void}
+		 */
+		syncRangeToWorkspace(value) {
+			const v = value || {}
+			this.$set(this.workspaceContext, 'dateFrom', v.from || '')
+			this.$set(this.workspaceContext, 'dateTo', v.to || '')
+			this.$set(this.workspaceContext, 'datePreset', v.preset || '')
+		},
+
+		/**
+		 * Whether a preset clears the window (an "All" / unbounded option) rather
+		 * than resolving to a from/to span. True for an explicit `clear: true`,
+		 * or any non-`custom` preset that carries no numeric `days` / `hours`
+		 * (so a manifest can declare `{ id: 'all', label: 'All', days: null }`
+		 * without an extra flag). The `custom` preset is excluded — it opens the
+		 * manual from/to popover instead.
+		 *
+		 * @param {object} preset The preset descriptor.
+		 * @return {boolean}
+		 */
+		isClearPreset(preset) {
+			if (!preset) return false
+			if (preset.clear === true) return true
+			return preset.id !== 'custom'
+				&& typeof preset.days !== 'number'
+				&& typeof preset.hours !== 'number'
 		},
 
 		/**

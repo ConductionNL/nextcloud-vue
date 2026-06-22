@@ -177,7 +177,8 @@ When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [
 
 - emitted on every change via `@date-range-change`,
 - optionally persisted to `localStorage` (when `persistKey` is set),
-- provided to every descendant widget through the `cnDashboardDateRange` injection key as a reactive Vue ref.
+- provided to every descendant widget through the `cnDashboardDateRange` injection key as a reactive Vue ref,
+- published into the page-level workspace context as `dateFrom` / `dateTo` / `datePreset`, so any declarative widget can scope itself to the active window via the optional filter tokens `@workspace.dateFrom?` / `@workspace.dateTo?` (see [Re-scoping KPI counts](#re-scoping-kpi-counts-by-the-active-window)).
 
 ```vue
 <CnDashboardPage
@@ -200,9 +201,36 @@ When the `dateRange` prop is set with `enabled: true`, the dashboard renders a [
 | `control`    | String (opt.)  | Header control style: `'picker'` (default — `CnDateRangePicker`: a preset select + two date inputs) or `'pills'` (a compact segmented toggle-button row). |
 | `default`    | Object (opt.)  | Initial `{ from, to, preset? }` when no persisted state is found.          |
 | `persistKey` | String (opt.)  | When set, the chosen range is persisted to `localStorage[persistKey]`.     |
-| `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). |
+| `presets`    | Array (opt.)   | Override the preset list. See [`DEFAULT_DATE_RANGE_PRESETS`](../utilities/default-date-range-presets.md). A preset with no numeric `days` / `hours` (other than the manual `custom` entry) — e.g. `{ id: 'all', label: 'All', days: null }` — or one with `clear: true` is an "All" / clear option that removes the window. |
 
 The resolution order is: explicit `default` → rehydrated `localStorage` (when `persistKey` set) → `last-7` preset (`now − 7d → now`).
+
+### Re-scoping KPI counts by the active window
+
+The chosen range is published into the page-level workspace context as
+`dateFrom` / `dateTo` / `datePreset`. A declarative widget (e.g. a `stat`
+KPI tile) scopes its query to the window by referencing the OPTIONAL tokens in
+its `source.filter` on whichever date field it tracks:
+
+```jsonc
+{
+  "type": "stat",
+  "content": {
+    "label": "Decisions",
+    "route": { "name": "Decisions" },
+    "source": {
+      "register": "decidesk", "schema": "decision", "metric": "count",
+      "filter": {
+        "decisionDate": { "gte": "@workspace.dateFrom?", "lte": "@workspace.dateTo?" }
+      }
+    }
+  }
+}
+```
+
+The trailing `?` marks each token OPTIONAL: when the "All" preset clears the
+window (empty bounds) the token stays unresolved and is dropped, so the date
+filter is omitted and the tile shows its unfiltered count.
 
 ### Pills control (`control: 'pills'`)
 

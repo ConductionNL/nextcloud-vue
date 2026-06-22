@@ -37,7 +37,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -231,7 +231,13 @@ export default {
 		 */
 		flattenFilter(target, filter) {
 			if (!filter || typeof filter !== 'object') return
-			filter = resolveFilterTokens(filter, this.objectCtx)
+			// Resolve `@objectId` / `@object.*` (detail page) AND `@workspace.*`
+			// (page-level context — e.g. the dashboard date-range pills publish
+			// `dateFrom` / `dateTo`), then drop any optional `@workspace.<key>?`
+			// that stayed unresolved so an unset window omits the filter (show all)
+			// instead of sending a literal token.
+			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx }
+			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov
