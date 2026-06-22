@@ -40,12 +40,12 @@ describe('CnDependencyMissing', () => {
 		expect(link.attributes('href')).toBe('/index.php/settings/apps/app-details/openregister')
 	})
 
-	it('falls back to /index.php/settings/apps when no installUrl provided', () => {
+	it('falls back to the featured-app store deep link when no installUrl provided', () => {
 		const wrapper = mount(CnDependencyMissing, {
 			propsData: { dependencies: [{ id: 'openregister', name: 'OpenRegister' }] },
 		})
 		expect(wrapper.find('.cn-dependency-missing__item-link').attributes('href')).toBe(
-			'/index.php/settings/apps',
+			'/index.php/settings/apps/featured/openregister',
 		)
 	})
 

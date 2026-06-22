@@ -348,3 +348,103 @@ describe('CnDashboardPage — custom-widget date chip (layout dateChip opt-in)',
 		wrapper.destroy()
 	})
 })
+
+describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
+	// A configure-cog overlay renders per widget in edit mode and opens the
+	// style/config editor. The editor itself is stubbed so we can assert the
+	// open/save/delete wiring without booting the real modal.
+	const editStubs = {
+		...stubs,
+		// Identify each overlay control so we can target the cog vs the trash.
+		NcButton: {
+			template: '<button class="nc-button-stub" :aria-label="ariaLabel" @click="$emit(\'click\')"><slot /></button>',
+			props: ['type', 'ariaLabel'],
+		},
+		CnWidgetStyleEditorModal: {
+			template: '<div class="cn-widget-style-editor-modal-stub" :data-show="show" :data-widget-id="widget && widget.id" :data-deletable="deletable" />',
+			props: ['show', 'widget', 'deletable'],
+		},
+	}
+
+	const widgets = [{ id: 'w1', title: 'Widget One', type: 'custom' }]
+	const layout = [{ id: '1', widgetId: 'w1', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3 }]
+
+	const mountEditing = (extraWidgets = []) => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: { widgets: [...widgets, ...extraWidgets], layout, allowEdit: true },
+			scopedSlots: { 'widget-w1': '<div class="custom-body">body</div>' },
+			stubs: editStubs,
+		})
+		// Enter edit mode so the per-widget overlay renders.
+		wrapper.vm.toggleEdit()
+		return wrapper
+	}
+
+	it('renders a configure cog per widget in edit mode', async () => {
+		const wrapper = mountEditing()
+		await wrapper.vm.$nextTick()
+		const cog = wrapper.find('[aria-label="Configure widget"]')
+		expect(cog.exists()).toBe(true)
+		wrapper.destroy()
+	})
+
+	it('does NOT render the overlay when not editing', () => {
+		const wrapper = mount(CnDashboardPage, {
+			propsData: { widgets, layout, allowEdit: true },
+			scopedSlots: { 'widget-w1': '<div class="custom-body">body</div>' },
+			stubs: editStubs,
+		})
+		expect(wrapper.find('.cn-dashboard-page__widget-edit').exists()).toBe(false)
+		expect(wrapper.find('.cn-widget-style-editor-modal-stub').exists()).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('clicking the cog opens the config modal for that widget', async () => {
+		const wrapper = mountEditing()
+		await wrapper.vm.$nextTick()
+		await wrapper.find('[aria-label="Configure widget"]').trigger('click')
+		expect(wrapper.vm.showWidgetConfig).toBe(true)
+		expect(wrapper.vm.configWidgetId).toBe('w1')
+		const modal = wrapper.find('.cn-widget-style-editor-modal-stub')
+		expect(modal.exists()).toBe(true)
+		expect(modal.attributes('data-widget-id')).toBe('w1')
+		expect(modal.attributes('data-deletable')).toBe('true')
+		wrapper.destroy()
+	})
+
+	it('save updates the widget definition in place and closes the modal', async () => {
+		const wrapper = mountEditing()
+		wrapper.vm.configureWidget({ widgetId: 'w1' })
+		await wrapper.vm.$nextTick()
+		wrapper.vm.onWidgetConfigSave({
+			id: 'w1',
+			title: 'Renamed',
+			styleConfig: { backgroundColor: '#abcdef' },
+			showTitle: false,
+			customTitle: 'Custom',
+			customIcon: 'M1,1',
+			content: { foo: 'bar' },
+		})
+		const def = wrapper.props('widgets').find((w) => w.id === 'w1')
+		expect(def.title).toBe('Renamed')
+		expect(def.styleConfig).toEqual({ backgroundColor: '#abcdef' })
+		expect(def.showTitle).toBe(false)
+		expect(def.customTitle).toBe('Custom')
+		expect(def.customIcon).toBe('M1,1')
+		expect(def.content).toEqual({ foo: 'bar' })
+		expect(wrapper.vm.showWidgetConfig).toBe(false)
+		expect(wrapper.emitted('layout-change')).toBeTruthy()
+		wrapper.destroy()
+	})
+
+	it('delete from the editor removes the widget and closes the modal', async () => {
+		const wrapper = mountEditing()
+		wrapper.vm.configureWidget({ widgetId: 'w1' })
+		await wrapper.vm.$nextTick()
+		wrapper.vm.onWidgetConfigDelete({ id: 'w1' })
+		expect(wrapper.props('layout').some((l) => l.widgetId === 'w1')).toBe(false)
+		expect(wrapper.props('widgets').some((w) => w.id === 'w1')).toBe(false)
+		expect(wrapper.vm.showWidgetConfig).toBe(false)
+		wrapper.destroy()
+	})
+})

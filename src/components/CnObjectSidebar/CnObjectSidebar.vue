@@ -10,6 +10,7 @@
 		:name="sidebarTitle"
 		:title="sidebarTitle"
 		:subtitle="sidebarSubtitle"
+		:open="open"
 		:active.sync="activeTab"
 		data-testid="cn-object-sidebar"
 		@update:open="$emit('update:open', $event)"

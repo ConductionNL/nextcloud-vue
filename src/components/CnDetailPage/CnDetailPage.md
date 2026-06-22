@@ -249,3 +249,9 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 ## Action handlers (manifest-actions-dispatch)
 
 CnDetailPage consumes the same `actions[].handler` contract as CnIndexPage. When a CnIndexPage is nested INSIDE a detail page, the `cnCustomComponents` registry inject continues to come from the surrounding `CnAppRoot` — no extra wiring is needed at the detail-page level. See [CnIndexPage.md → Action handlers](../CnIndexPage/CnIndexPage.md#action-handlers-manifest-actions-dispatch) for the reserved-keyword table, the registry resolution semantics, and the manifest declaration example.
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |

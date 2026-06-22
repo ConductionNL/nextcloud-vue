@@ -61,6 +61,24 @@
 				</button>
 			</div>
 
+			<!-- Search / Columns sidebar toggle (opt-in). Icon-only; reflects the
+			     open state via aria-pressed so the index sidebar can default
+			     closed and be opened on demand. -->
+			<!--
+				@event toggle-sidebar
+				@description User clicked the Search/Columns sidebar toggle. No payload — the host flips the sidebar open state.
+			-->
+			<NcButton v-if="showSidebarToggle"
+				variant="tertiary"
+				:aria-label="t('nextcloud-vue', 'Search and columns')"
+				:title="t('nextcloud-vue', 'Search and columns')"
+				:pressed="sidebarOpen"
+				@click="$emit('toggle-sidebar')">
+				<template #icon>
+					<Tune :size="20" />
+				</template>
+			</NcButton>
+
 			<!-- Add button (primary) -->
 			<!--
 				@event add
@@ -83,6 +101,9 @@
 				@description Custom buttons rendered between the Add button and the overflow Actions menu.
 			-->
 			<slot name="actions" />
+
+			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
+			<CnOpenBuildEditButton />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -206,6 +227,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
@@ -215,6 +237,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
@@ -235,6 +258,7 @@ export default {
 	name: 'CnActionsBar',
 
 	components: {
+		CnOpenBuildEditButton,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
@@ -250,6 +274,7 @@ export default {
 		Import,
 		Export,
 		Magnify,
+		Tune,
 		ViewGridOutline,
 		FormatListBulletedSquare,
 	},
@@ -401,6 +426,21 @@ export default {
 		},
 
 		/**
+		 * Whether to show the Search/Columns sidebar toggle button. Lets the
+		 * index sidebar default to closed and be opened on demand.
+		 */
+		showSidebarToggle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Current open state of the sidebar (controls the toggle's pressed state). */
+		sidebarOpen: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Manifest-declared page-level actions rendered in the overflow
 		 * dropdown between Refresh and the `#action-items` slot. Each
 		 * entry is `{ id, label, icon?, disabled? }`. The bar emits
@@ -540,6 +580,10 @@ export default {
 			 * @event header-action User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.
 			 */
 			this.$emit('header-action')
+			/**
+			 * @event toggle-sidebar User clicked the Search/Columns sidebar toggle. No payload.
+			 */
+			this.$emit('toggle-sidebar')
 		},
 	},
 }

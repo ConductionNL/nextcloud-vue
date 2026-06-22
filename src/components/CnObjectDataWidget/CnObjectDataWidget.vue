@@ -574,8 +574,28 @@ export default {
 			if (override && typeof override.editable === 'boolean') {
 				return override.editable
 			}
+			// Conditional immutability: a field declares it becomes read-only when
+			// another field on this object holds a given value (schema
+			// `x-openregister-readonly-when`). Evaluated against the live object —
+			// e.g. a hybrid app's identity fields lock when appType === 'hybrid'.
+			if (this.isReadOnlyByCondition(field)) return false
 			// Schema readOnly
 			return !field.readOnly
+		},
+
+		/**
+		 * Evaluate a field's conditional read-only rule against the object data.
+		 *
+		 * @param {object} field - Resolved field definition (may carry `readOnlyWhen`).
+		 * @return {boolean} True when the condition holds and the field is locked.
+		 */
+		isReadOnlyByCondition(field) {
+			const rule = field.readOnlyWhen
+			if (!rule || !rule.field) return false
+			const current = this.objectData ? this.objectData[rule.field] : undefined
+			if (Array.isArray(rule.in)) return rule.in.includes(current)
+			if ('equals' in rule) return current === rule.equals
+			return false
 		},
 
 		/**

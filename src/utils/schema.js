@@ -304,7 +304,7 @@ function resolveWidget(prop) {
  * @param {object} [options] Configuration options
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
- * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`
+ * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. A `readOnly: false` override on a key that is `readOnly` in the schema also un-skips it (so a single schema-readOnly field — e.g. a denormalised name editable only on create — can be surfaced without `includeReadOnly`).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, validation: object, order: number}>}
  */
@@ -321,8 +321,12 @@ export function fieldsFromSchema(schema, options = {}) {
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
 			if (prop.visible === false) return false
-			// Skip readOnly properties by default
-			if (prop.readOnly === true && !includeReadOnly) return false
+			// Skip readOnly properties by default — UNLESS a per-key override
+			// explicitly re-enables the field (`overrides[key].readOnly === false`).
+			// This lets a consumer surface a schema-readOnly field (e.g. a
+			// denormalised name that's read-only on edit but must be collected
+			// on create) without flipping the whole form to includeReadOnly.
+			if (prop.readOnly === true && !includeReadOnly && overrides[key]?.readOnly !== false) return false
 			// Apply exclude list
 			if (exclude.includes(key)) return false
 			// Apply include whitelist
@@ -358,6 +362,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// surfaces (CnFormDialog, CnDetailGrid) render that
 			// integration's single-entity widget instead of a plain input.
 			referenceType: prop.referenceType || null,
+			// Conditional immutability (AD: x-openregister-readonly-when): a
+			// property can declare it becomes read-only when another field on the
+			// same object holds a given value — e.g. a hybrid app's identity
+			// fields. Consumers (CnObjectDataWidget) evaluate this against the
+			// object's current data. Shape: `{ field, equals }` or `{ field, in: [] }`.
+			readOnlyWhen: prop['x-openregister-readonly-when'] || prop.readOnlyWhen || null,
 			validation: {
 				minLength: prop.minLength,
 				maxLength: prop.maxLength,

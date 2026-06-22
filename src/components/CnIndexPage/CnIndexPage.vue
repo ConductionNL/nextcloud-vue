@@ -46,10 +46,13 @@
 			:refresh-disabled="refreshDisabled"
 			:add-disabled="addDisabled"
 			:show-add="showAdd"
+			:show-sidebar-toggle="hasSidebar"
+			:sidebar-open="sidebarOpen"
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
 			@add="onAddClick"
+			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
 			@header-action="onHeaderAction"
 			@show-import="showImportDialog = true"
@@ -109,7 +112,9 @@
 			</template>
 		</CnMassImportDialog>
 
-		<!-- Single delete dialog (overridable via slot) -->
+		<!-- @slot delete-dialog Replace the single-item delete dialog. -->
+		<!-- @binding {object} item The item targeted for deletion. -->
+		<!-- @binding {Function} close Closes the delete dialog. -->
 		<slot
 			name="delete-dialog"
 			:item="actionTargetItem"
@@ -124,7 +129,9 @@
 				@close="closeSingleDelete" />
 		</slot>
 
-		<!-- Single copy dialog (overridable via slot) -->
+		<!-- @slot copy-dialog Replace the single-item copy dialog. -->
+		<!-- @binding {object} item The item targeted for copy. -->
+		<!-- @binding {Function} close Closes the copy dialog. -->
 		<slot
 			name="copy-dialog"
 			:item="actionTargetItem"
@@ -139,7 +146,11 @@
 				@close="closeSingleCopy" />
 		</slot>
 
-		<!-- Form dialog for create/edit (overridable via slot) -->
+		<!-- @slot form-dialog Replace the create/edit form dialog (use CnFormDialog or CnAdvancedFormDialog). -->
+		<!-- @binding {boolean} show Whether the form dialog is currently visible. -->
+		<!-- @binding {?object} item The item being edited, or null in create mode. -->
+		<!-- @binding {object} schema The effective JSON schema driving the form. -->
+		<!-- @binding {Function} close Closes the form dialog. -->
 		<slot
 			name="form-dialog"
 			:show="showFormDialogVisible"
@@ -365,6 +376,7 @@
 		     here so the legacy contract still works. -->
 		<CnIndexSidebar
 			v-if="shouldRenderInlineSidebar"
+			:open="sidebarOpen"
 			:schema="effectiveSchema"
 			:title="title"
 			:icon="resolvedIcon"
@@ -375,6 +387,7 @@
 			:facet-data="resolvedSidebar.facets || {}"
 			:show-metadata="resolvedSidebar.showMetadata !== false"
 			v-bind="sidebarSearchProps"
+			@update:open="sidebarOpen = $event"
 			@search="onSearchEvent"
 			@columns-change="onColumnsEvent"
 			@filter-change="onFilterEvent" />
@@ -821,6 +834,30 @@ export default {
 		},
 
 		/**
+		 * Opt-in async create hook. When provided, a **create** (not edit)
+		 * confirmed from the built-in form dialog calls
+		 * `await createOverride(formData, ctx)` INSTEAD of persisting via the
+		 * store / self-store `saveObject`. The override owns persistence
+		 * (e.g. an app posting through a contact-aware endpoint that fills a
+		 * required FK before saving to OpenRegister) and MUST return the
+		 * created object (a truthy value) on success; return a falsy value to
+		 * signal failure. The returned object is used as the created result
+		 * (`@create` payload + dialog success). Throwing rejects with the
+		 * error surfaced in the form dialog. Edits are never routed here.
+		 *
+		 * `ctx` carries `{ register, schema, objectType, effectiveSchema }`
+		 * so a single handler can branch per schema.
+		 *
+		 * When absent, create behaviour is unchanged (store / self-store save).
+		 *
+		 * @type {?(formData: object, ctx: { register: string, schema: (object|string), objectType: string, effectiveSchema: object }) => Promise<object>}
+		 */
+		createOverride: {
+			type: Function,
+			default: null,
+		},
+
+		/**
 		 * Whether to add a View action to row actions. The action emits a
 		 * dedicated `view` event — independent of `row-click`. Bind `@view`
 		 * to handle "open detail" and `@row-click` to handle row click
@@ -1181,6 +1218,10 @@ export default {
 			// Drives the Actions-menu Refresh spinner during a self-fetch
 			// refresh, where the host has no promise to bind `:refreshing` to.
 			internalRefreshing: false,
+			// Search/Columns sidebar open state. Defaults closed so the page
+			// content (table / cards) starts at the top and fills the width;
+			// opened on demand via the actions-bar toggle.
+			sidebarOpen: false,
 		}
 	},
 
@@ -1465,6 +1506,17 @@ export default {
 			return { enabled: false }
 		},
 
+		/**
+		 * Whether a Search/Columns sidebar is configured for this page (mirrors
+		 * the mount gate used by `shouldRenderInlineSidebar` /
+		 * `publishHoistedSidebar`). Drives the actions-bar toggle visibility.
+		 *
+		 * @return {boolean}
+		 */
+		hasSidebar() {
+			return !!this.resolvedSidebar.enabled && this.resolvedSidebar.show !== false
+		},
+
 		/** Search props forwarded to the embedded CnIndexSidebar (defaults applied per CnIndexSidebar). */
 		sidebarSearchProps() {
 			return (this.sidebar && this.sidebar.search) || {}
@@ -1494,6 +1546,7 @@ export default {
 		 */
 		hoistedSidebarProps() {
 			return {
+				open: this.sidebarOpen,
 				schema: this.effectiveSchema,
 				title: this.title,
 				icon: this.resolvedIcon,
@@ -1877,6 +1930,7 @@ export default {
 				component: CnIndexSidebar,
 				props: this.hoistedSidebarProps,
 				listeners: {
+					'update:open': (val) => { this.sidebarOpen = val },
 					search: (event) => this.onSearchEvent(event),
 					'columns-change': (event) => this.onColumnsEvent(event),
 					'filter-change': (event) => this.onFilterEvent(event),
@@ -2030,6 +2084,36 @@ export default {
 		},
 
 		async onFormConfirm(formData) {
+			// Opt-in create-override hook: an app supplies a custom async create
+			// handler (e.g. a contact-aware endpoint that fills a required FK)
+			// that owns persistence instead of saveObject. Create-only; edits
+			// always fall through to the normal store / self-store path.
+			if (!this.editItem && typeof this.createOverride === 'function') {
+				try {
+					const created = await this.createOverride(formData, {
+						register: this.register,
+						schema: this.schema,
+						objectType: this.objectType || this.selfObjectType,
+						effectiveSchema: this.effectiveSchema,
+					})
+					if (created) {
+						this.setFormResult({ success: true })
+						/**
+						 * @event create Emitted after a create is confirmed (store, self-store, or createOverride).
+						 * @type {object} The created object.
+						 */
+						this.$emit('create', created)
+						if (this.list && typeof this.list.refresh === 'function') {
+							this.list.refresh()
+						}
+					} else {
+						this.setFormResult({ error: 'Save failed' })
+					}
+				} catch (err) {
+					this.setFormResult({ error: (err && err.message) || 'Save failed' })
+				}
+				return
+			}
 			if (this.store) {
 				if (!this.objectType) {
 					console.warn('[CnIndexPage] store prop is set but objectType is missing. Cannot save to store.')

@@ -121,6 +121,13 @@
 				<CnAppNav :permissions="permissions" />
 			</slot>
 			<NcAppContent>
+				<!--
+				  In-app edit shell (ADR-041). The Conduction-orange OpenBuild edit
+				  button is rendered INSIDE each page's action row (CnDashboardPage /
+				  CnDetailPage / CnIndexPage) — it self-wires from the `cnManifestEditor`
+				  and `cnOpenBuildAvailable` this component provides, so it sits inline
+				  with the page's normal buttons rather than as a floating overlay.
+				-->
 				<router-view />
 				<!--
 				  @slot tenant-badge
@@ -219,6 +226,7 @@
 			-->
 			<CnObjectSidebar
 				v-if="shouldAutoMountObjectSidebar"
+				:open="effectiveObjectSidebarState.open === true"
 				:tabs="effectiveObjectSidebarState.tabs"
 				:object-type="effectiveObjectSidebarState.objectType"
 				:object-id="effectiveObjectSidebarState.objectId"
@@ -227,7 +235,8 @@
 				:title="effectiveObjectSidebarState.title"
 				:subtitle="effectiveObjectSidebarState.subtitle"
 				:hidden-tabs="effectiveObjectSidebarState.hiddenTabs"
-				:requested-tab="effectiveObjectSidebarState.requestedTab" />
+				:requested-tab="effectiveObjectSidebarState.requestedTab"
+				@update:open="effectiveObjectSidebarState.open = $event" />
 
 			<!--
 			  AI Chat Companion — auto-mounted at the END of NcContent's
@@ -302,13 +311,15 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
+import Vue, { ref, watch } from 'vue'
+import { useManifestEditor } from '../../composables/useManifestEditor.js'
+import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
-import Vue from 'vue'
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -320,6 +331,15 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	page: [],
 	'form-field': ['appliesTo'],
 	'cell-renderer': ['appliesTo'],
+	// Slot-component kinds: a registered component mounted into a named page
+	// slot (CnPageRenderer resolves these by registry name, independent of
+	// `kind`). `header`/`actions` back the `headerComponent`/`actionsComponent`
+	// manifest sugar; `tab` backs `config.sidebarTabs[].component`. They carry
+	// no required metadata (like `page`) — listing them here keeps the mount-time
+	// registry validator from rejecting a valid slot registration.
+	header: [],
+	actions: [],
+	tab: [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
@@ -354,8 +374,22 @@ export default {
 	},
 
 	provide() {
+		const self = this
 		return {
-			cnManifest: this.manifest,
+			// In-app editing (ADR-041): descendants read the editor's `source`
+			// — the working copy while editing, the live manifest otherwise. A
+			// getter so it stays reactive despite provide() running once; when
+			// not editing it returns the live manifest, identical to before.
+			get cnManifest() {
+				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
+			},
+			cnManifestEditor: this.manifestEditor,
+			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
+			// provided properties at any depth, but getter-defined provide
+			// properties don't reliably reach deep descendants (e.g. the edit
+			// button under a page component). Descendants unwrap with `.value`.
+			cnOpenBuildAvailable: this.openBuildAvailable,
+			cnEditingBody: this.manifestEditor ? this.manifestEditor.editing : false,
 			cnCustomComponents: this.customComponents,
 			cnTranslate: this.translate,
 			cnPageTypes: this.pageTypes,
@@ -547,6 +581,18 @@ export default {
 			required: true,
 		},
 		/**
+		 * Optional persistence hook for in-app editing (ADR-041). Called with the
+		 * minimal manifest delta when the user saves an edit. When omitted, Save
+		 * still updates the rendered manifest in memory but persists nothing —
+		 * wire this to the OpenBuild app-override endpoint to make edits durable.
+		 *
+		 * @type {Function|null}
+		 */
+		persistManifestDelta: {
+			type: Function,
+			default: null,
+		},
+		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
 		 *
@@ -679,7 +725,8 @@ export default {
 		 * kind-metadata emits `console.warn`.
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
-		 * `cell-renderer`. See spec REQ-MVR-002.
+		 * `cell-renderer`, and the slot-component kinds `header`, `actions`,
+		 * `tab` (mounted into named page slots). See spec REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */
@@ -803,9 +850,27 @@ export default {
 				return { cnSupportVisible: visible, cnSupportHide: hide }
 			})()
 
+		// In-app editing (ADR-041). `baseRef` tracks the live manifest prop while
+		// NOT editing; on Save the editor adopts the working copy so the saved
+		// state keeps rendering until the host reloads the prop. `source` is what
+		// descendants render (working while editing, the live manifest otherwise),
+		// so the edit shell is behaviour-neutral until the user enters edit mode.
+		const baseRef = ref(props.manifest)
+		const manifestEditor = useManifestEditor(baseRef, {
+			persist: (delta) => (typeof props.persistManifestDelta === 'function'
+				? props.persistManifestDelta(delta)
+				: undefined),
+		})
+		watch(() => props.manifest, (m) => {
+			if (!manifestEditor.editing.value) baseRef.value = m
+		})
+		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
+
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
+			manifestEditor,
+			openBuildAvailable,
 		}
 	},
 

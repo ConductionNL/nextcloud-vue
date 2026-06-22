@@ -3,6 +3,7 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { validateManifest } from '../utils/validateManifest.js'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
+import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
 
 /**
  * Composable that loads, resolves, and validates a Conduction app manifest.
@@ -143,6 +144,7 @@ function loadInMemory(input) {
 	const isLoading = ref(false)
 	const validationErrors = ref(null)
 	const unresolvedSentinels = ref([])
+	const orphanedDeltaPaths = ref([])
 
 	if (input.validate === true) {
 		const result = validateManifest(input.manifest)
@@ -156,7 +158,7 @@ function loadInMemory(input) {
 		}
 	}
 
-	return { manifest, isLoading, validationErrors, unresolvedSentinels }
+	return { manifest, isLoading, validationErrors, unresolvedSentinels, orphanedDeltaPaths }
 }
 
 /**
@@ -178,6 +180,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 	const isLoading = ref(true)
 	const validationErrors = ref(null)
 	const unresolvedSentinels = ref([])
+	const orphanedDeltaPaths = ref([])
 
 	const endpoint = options.endpoint ?? generateUrl(`/apps/${appId}/api/manifest`)
 	const fetcher = options.fetcher ?? ((url) => axios.get(url))
@@ -196,7 +199,16 @@ function loadFromBackend(appId, bundledManifest, options) {
 				// response. An HTML string (SPA fallback), a non-200, or a
 				// missing body all mean "no backend manifest" → keep bundled.
 				if (response && response.status === 200 && isPlainObject(response.data)) {
-					base = deepMerge(bundledManifest, response.data)
+					// `delta` mode applies a keyed structural delta to the
+					// bundled manifest (ADR-036 Amendment); default mode
+					// deep-merges as before.
+					if (options.mergeStrategy === 'delta') {
+						const deltaResult = mergeManifestDelta(bundledManifest, response.data)
+						base = deltaResult.manifest
+						orphanedDeltaPaths.value = deltaResult.orphanedDeltaPaths
+					} else {
+						base = deepMerge(bundledManifest, response.data)
+					}
 				}
 			} catch (fetchErr) {
 				// Network / 404 / unauthenticated — keep the bundled manifest.
@@ -243,7 +255,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 		}
 	})()
 
-	return { manifest, isLoading, validationErrors, unresolvedSentinels }
+	return { manifest, isLoading, validationErrors, unresolvedSentinels, orphanedDeltaPaths }
 }
 
 /**

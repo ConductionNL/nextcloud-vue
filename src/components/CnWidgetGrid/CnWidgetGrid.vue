@@ -20,7 +20,33 @@
                           for standalone use; normally injected via cnRegistry).
 -->
 <template>
+	<!-- Editable body slot: a GridStack drag/resize grid (ADR-041 edit mode). -->
 	<div
+		v-if="editableBody"
+		ref="gridContainer"
+		class="cn-widget-grid cn-widget-grid--editing"
+		:data-slot="slotName">
+		<div class="grid-stack">
+			<div
+				v-for="(widget, index) in resolvedWidgets"
+				:key="gsId(widget, index)"
+				class="grid-stack-item"
+				:gs-id="gsId(widget, index)"
+				:gs-x="widget.gridX"
+				:gs-y="widget.gridY"
+				:gs-w="widget.gridWidth"
+				:gs-h="widget.gridHeight">
+				<div class="grid-stack-item-content">
+					<component
+						:is="widget.component"
+						v-bind="widget.props" />
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Default read-only CSS grid. -->
+	<div
+		v-else
 		class="cn-widget-grid cn-grid"
 		:class="{ 'cn-grid--responsive': isResponsive }"
 		:style="gridVars"
@@ -41,42 +67,26 @@
 
 <script>
 import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
+import { getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
+import { initGridStack, readGridGeometry } from '../../utils/gridStack.js'
 
-/**
- * Per-slot column counts per ADR-036 Decision 2.
- */
-const SLOT_COLUMNS = {
-	body: 12,
-	sidebar: 1,
-	'header-actions': 12,
-	footer: 12,
-	modal: 12,
-}
-
-/**
- * Determine the number of grid columns for a given slot name.
- *
- * @param {string} slotName
- * @return {number}
- */
-function getGridColumns(slotName) {
-	if (!slotName) return 12
-	if (Object.prototype.hasOwnProperty.call(SLOT_COLUMNS, slotName)) {
-		return SLOT_COLUMNS[slotName]
-	}
-	// Dynamic slot patterns: tab:<id> and section:<id>
-	if (/^tab:/.test(slotName) || /^section:/.test(slotName)) {
-		return 12
-	}
-	return 12
-}
+// Per-slot column counts and slot→columns resolution now live in
+// src/utils/resolveSlotColumns.js (shared with validateManifest so the grid
+// bound the validator enforces matches what this component renders).
 
 export default {
 	name: 'CnWidgetGrid',
 
 	inject: {
 		cnRegistry: { default: () => ({}) },
+		/**
+		 * Per-page slot→columns override map, published by `CnPageRenderer`
+		 * from `page.config.slotColumns`. Merged UNDER the `columns` prop in
+		 * column resolution. `null` when the page declares no override.
+		 */
+		cnSlotColumns: { default: null },
 		/**
 		 * Object context for a `type:"detail"` page, published by
 		 * `CnPageRenderer` (reactive holder `{ value: { objectData, schema,
@@ -118,11 +128,52 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Explicit column-count override for this slot. When `null` (default),
+		 * columns resolve from the injected per-page `slotColumns` map and then
+		 * the library default for the slot — preserving the fixed ADR-036
+		 * Decision 2 behaviour (body=12, sidebar=1). Set a number to force a
+		 * specific column count.
+		 *
+		 * @type {number|null}
+		 */
+		columns: {
+			type: Number,
+			default: null,
+		},
+		/**
+		 * When `true`, the `body` slot renders a GridStack drag/resize grid
+		 * (ADR-041 in-app edit mode) instead of the read-only CSS grid; geometry
+		 * changes are written back to the widget entries and emitted via
+		 * `@layout-change`. Other slots are unaffected. Default `false` keeps the
+		 * existing read-only rendering for every consumer.
+		 *
+		 * @type {boolean}
+		 */
+		editable: {
+			type: Boolean,
+			default: false,
+		},
+	},
+
+	emits: ['layout-change'],
+
+	data() {
+		return {
+			grid: null,
+		}
 	},
 
 	computed: {
+		/** Whether this grid should render the editable GridStack body. */
+		editableBody() {
+			return this.editable && this.slotName === 'body'
+		},
 		gridColumns() {
-			return getGridColumns(this.slotName)
+			// Three-layer resolution: `columns` prop → injected per-page
+			// slotColumns → the library default for the slot (getGridColumns
+			// is preserved as the default tier inside resolveSlotColumns).
+			return resolveSlotColumns(this.slotName, this.cnSlotColumns, this.columns)
 		},
 		effectiveRegistry() {
 			return this.registry ?? this.cnRegistry ?? {}
@@ -191,6 +242,14 @@ export default {
 				}
 
 				if (!component) {
+					// Dashboard widget catalog (cn-widget-library): the 21 migrated
+					// widgets self-register here. Resolved after cnRegistry + built-ins
+					// so a consumer override still wins.
+					const entry = getWidgetTypeEntry(key)
+					component = (entry && entry.renderer) ?? null
+				}
+
+				if (!component) {
 					// eslint-disable-next-line no-console
 					console.warn(
 						`[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
@@ -222,6 +281,7 @@ export default {
 					: {}
 
 				result.push({
+					id: widget.id,
 					widgetKey: key,
 					component,
 					// Detail-page object context first, then the top-level
@@ -247,10 +307,76 @@ export default {
 		},
 	},
 
+	watch: {
+		editableBody(active) {
+			if (active) {
+				this.$nextTick(() => this.initGrid())
+			} else {
+				this.destroyGrid()
+			}
+		},
+	},
+
+	mounted() {
+		if (this.editableBody) this.initGrid()
+	},
+
+	beforeDestroy() {
+		this.destroyGrid()
+	},
+
 	methods: {
 		// Expose the shared grid helpers to the template.
 		cnGridCellStyle,
 		hasGridRow,
+		/** Stable GridStack id for a widget entry (its id, else its index). */
+		gsId(widget, index) {
+			return widget.id != null ? widget.id : `idx-${index}`
+		},
+		/** Initialise the GridStack engine on the editable body container. */
+		initGrid() {
+			const container = this.$refs.gridContainer
+			if (!container) return
+			const el = container.querySelector('.grid-stack')
+			if (!el) return
+			this.grid = initGridStack(el, { columns: this.gridColumns, editable: true })
+			this.grid.on('change', (_event, items) => this.handleGridChange(items))
+		},
+		/** Tear down the GridStack engine. */
+		destroyGrid() {
+			if (this.grid) {
+				this.grid.destroy(false)
+				this.grid = null
+			}
+		},
+		/**
+		 * Write GridStack geometry back into the widget entries (matched by id,
+		 * index fallback), clamped within the resolved column bound, and emit the
+		 * updated list. Mutating the entries keeps the working manifest in sync.
+		 *
+		 * @param {Array} items The changed items from GridStack.
+		 */
+		handleGridChange(items) {
+			const geom = readGridGeometry(items)
+			const cols = this.gridColumns
+			this.resolvedWidgets.forEach((resolved, index) => {
+				const key = String(this.gsId(resolved, index))
+				const g = geom.get(key)
+				const target = this.widgets[index]
+				if (!g || !target) return
+				const width = Math.min(g.gridWidth, cols)
+				const x = Math.min(g.gridX, Math.max(0, cols - width))
+				target.gridX = x
+				target.gridY = g.gridY
+				target.gridWidth = width
+				target.gridHeight = g.gridHeight
+			})
+			/**
+			 * @event layout-change Emitted after a drag/resize with the updated widget entries.
+			 * @type {Array}
+			 */
+			this.$emit('layout-change', this.widgets)
+		},
 	},
 }
 </script>
@@ -258,5 +384,24 @@ export default {
 <style>
 .cn-widget-grid {
 	width: 100%;
+}
+
+.cn-widget-grid--editing {
+	min-height: 120px;
+}
+
+.cn-widget-grid--editing .grid-stack {
+	background: transparent;
+}
+
+.cn-widget-grid--editing .grid-stack-item-content {
+	overflow: hidden;
+	background: var(--color-main-background);
+}
+
+.cn-widget-grid--editing .grid-stack-placeholder > .placeholder-content {
+	background: var(--color-primary-element-light);
+	border: 2px dashed var(--color-primary-element);
+	border-radius: var(--border-radius-large);
 }
 </style>
