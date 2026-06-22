@@ -340,6 +340,12 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	header: [],
 	actions: [],
 	tab: [],
+	// In-body section component (CnDetailPage `config.bodyWidgets[].component`,
+	// reusable by dashboard/index). Resolved by registry name and rendered as a
+	// titled card IN THE PAGE BODY with the object/page context injected. Unlike
+	// an integration `widget`, a `section` requires NO sidebar tab and carries no
+	// grid metadata — it sits wherever the page's `placement` puts it.
+	section: [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)

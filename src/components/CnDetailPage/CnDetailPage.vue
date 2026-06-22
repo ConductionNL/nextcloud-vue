@@ -215,6 +215,15 @@
 					:store="effectiveObjectStore" />
 			</div>
 
+			<!-- Declarative in-body sections, `placement: "before-body"` —
+			     above the grid / stats / auto-body. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="before-body"
+				data-testid="cn-detail-body-sections-before-body" />
+
 			<!-- Grid layout mode -->
 			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
 				<section
@@ -376,6 +385,15 @@
 				</div>
 			</div>
 
+			<!-- Declarative in-body sections, `placement: "after-data"` —
+			     below the data/auto-body, above the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-data"
+				data-testid="cn-detail-body-sections-after-data" />
+
 			<!-- Declarative related-object list sections (manifest
 			     `config.relatedCollections`). Rendered below the detail body;
 			     each section's filter is scoped to this object via @objectId.
@@ -401,6 +419,24 @@
 					:collections="relatedCollections"
 					@row-click="onRelatedRowClick" />
 			</div>
+
+			<!-- Declarative in-body sections, `placement: "after-related"` —
+			     below the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-related"
+				data-testid="cn-detail-body-sections-after-related" />
+
+			<!-- Declarative in-body sections, `placement: "end"` (the default
+			     placement) — the last body content, above the footer. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="endPlacementSections"
+				:context="sectionContext"
+				:placement="null"
+				data-testid="cn-detail-body-sections-end" />
 
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
@@ -460,6 +496,7 @@ import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWi
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
 import CnRelationLinkModal from '../../modals/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
@@ -566,6 +603,7 @@ export default {
 		CnLifecycleActions,
 		CnSummaryAggregates,
 		CnRelatedCollections,
+		CnBodySections,
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
 		CnRelationLinkModal,
@@ -998,6 +1036,36 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Declarative IN-BODY sections (manifest `config.bodyWidgets`). Each
+		 * entry renders a REGISTERED host-app component as a titled section in
+		 * the page BODY (not the sidebar), with the object/page context injected.
+		 * This is the primitive that lets a rich bespoke detail page (BRP panels,
+		 * activity timelines, comms history, relationship graphs, bookings, …)
+		 * become declarative while keeping its sections in the body. Shape per
+		 * entry:
+		 * `{ id?, component, title?, props?, placement?, colSpan? }`.
+		 *   - `component` — registry name resolved from the app's v2 `registry`
+		 *     (any `kind` exposing a `.component`, e.g. `kind:"section"` or
+		 *     `kind:"widget"`) or the legacy `customComponents` map. NO sidebar
+		 *     tab is required (unlike integration widgets).
+		 *   - `props` — values are token-resolved: `@objectId` → this object's id,
+		 *     `@object.<field>` → a field off it, `@workspace.<key>` → page
+		 *     context; unset `@…?` optional / unresolved tokens are dropped.
+		 *   - `placement` — `before-body` | `after-data` | `after-related` | `end`
+		 *     (default `end`). Controls where in the body the section lands.
+		 *   - `colSpan` — 1–12 grid span when sections share a placement.
+		 * The loaded object + objectId are also `provide`d on `cnSectionContext`
+		 * so a host component can inject them instead of taking explicit props.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnBodySections`.
+		 *
+		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 */
+		bodyWidgets: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	setup(props) {
@@ -1317,6 +1385,43 @@ export default {
 
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
+		},
+
+		/** Whether any declarative in-body sections are configured. */
+		hasBodyWidgets() {
+			return Array.isArray(this.bodyWidgets) && this.bodyWidgets.length > 0
+		},
+
+		/**
+		 * Sections that land at the END placement: those with no `placement`
+		 * (the default) or an explicit `placement: "end"`. The three named
+		 * placement mounts (before-body / after-data / after-related) filter by
+		 * exact value; this catches the rest so nothing is silently dropped.
+		 *
+		 * @return {Array}
+		 */
+		endPlacementSections() {
+			if (!this.hasBodyWidgets) return []
+			const named = ['before-body', 'after-data', 'after-related']
+			return this.bodyWidgets.filter((s) => !s || !s.placement || !named.includes(s.placement))
+		},
+
+		/**
+		 * Page/object context forwarded to CnBodySections for token resolution
+		 * (`@objectId` / `@object.<field>` / `@workspace.<key>`) AND provided on
+		 * `cnSectionContext` for host section components that inject. Mirrors the
+		 * `cnObjectContext` ref the abstract list/stat widgets already read.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null), register: string, schema: string}}
+		 */
+		sectionContext() {
+			const resolved = this.resolvedSidebar || {}
+			return {
+				objectId: (this.objectId !== undefined && this.objectId !== null) ? String(this.objectId) : null,
+				object: this.resolvedObject || null,
+				register: resolved.register || this.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+			}
 		},
 	},
 

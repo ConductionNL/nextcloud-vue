@@ -96,6 +96,7 @@ export {
 	CnLifecycleActions,
 	CnSummaryAggregates,
 	CnRelatedCollections,
+	CnBodySections,
 	CnCard,
 	CnStatsPanel,
 	CnJsonViewer,
