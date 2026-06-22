@@ -28,7 +28,8 @@ For each of the three values handed to `CnFeaturesAndRoadmapView`
 1. Explicit `pages[].config.<key>` from the manifest entry.
 2. `loadState(appId, 'features_roadmap_<key>', <fallback>)` —
    backed by Nextcloud `IInitialState` populated server-side.
-3. Hardcoded fallback (`repo` defaults to `ConductionNL/<appId>`,
+3. Hardcoded fallback (`repo` defaults to `Conduction/<appId>` on Codeberg,
+   `forge` to the `cnFeatureRequestForge` inject (else Codeberg),
    `features` to `[]`, `disabled` to `false`).
 
 `appId` comes from the `cnAiContext` inject populated by `CnAppRoot`.
@@ -68,7 +69,7 @@ import { CnFeaturesAndRoadmapView } from '@conduction/nextcloud-vue'
 export default {
   data() {
     return {
-      repo: loadState('myapp', 'features_roadmap_repo', 'ConductionNL/myapp'),
+      repo: loadState('myapp', 'features_roadmap_repo', 'Conduction/myapp'),
       features: loadState('myapp', 'features_roadmap_features', []),
       disabled: loadState('myapp', 'features_roadmap_disabled', false),
     }
