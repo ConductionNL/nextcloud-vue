@@ -26,7 +26,17 @@
 
 			<label class="cn-text-widget-form__field">
 				{{ t('nextcloud-vue', 'Text') }}
+				<!-- Markdown mode gets the full editor (toolbar + live preview);
+				     raw-HTML mode keeps a plain textarea. -->
+				<CnMarkdownEditor
+					v-if="contentMode === 'markdown'"
+					:value="text"
+					mode="edit"
+					:rows="6"
+					:placeholder="modePlaceholder"
+					@input="updateField('text', $event)" />
 				<textarea
+					v-else
 					:value="text"
 					:placeholder="modePlaceholder"
 					class="cn-text-widget-form__textarea"
@@ -79,6 +89,7 @@
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnTextTableEditor from '../CnTextTableEditor/CnTextTableEditor.vue'
+import CnMarkdownEditor from '../CnMarkdownEditor/CnMarkdownEditor.vue'
 import { emptyTable, validateTable } from '../../utils/textTable.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -114,6 +125,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		CnTextTableEditor,
+		CnMarkdownEditor,
 	},
 
 	props: {
