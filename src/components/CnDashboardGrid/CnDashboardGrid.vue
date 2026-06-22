@@ -9,7 +9,7 @@
 		<div class="grid-stack">
 			<div
 				v-for="item in layout"
-				:key="item.id"
+				:key="resolveItemKey(item)"
 				class="grid-stack-item"
 				:gs-id="item.id"
 				:gs-x="item.gridX"
@@ -89,6 +89,41 @@ export default {
 			type: Number,
 			default: 2,
 		},
+		/**
+		 * GridStack v12 responsive `columnOpts` bag (breakpoints + reflow
+		 * layout). When set, the grid reflows column count across screen sizes.
+		 * Build it with `getDashboardColumnOpts()`. Default `null` = fixed
+		 * `columns`, no responsive reflow (backwards-compatible).
+		 *
+		 * @type {object|null}
+		 */
+		columnOpts: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * When set, `cellHeight` is mirrored into this CSS custom property on
+		 * the document root at init (e.g. `'--app-cell-height'`), so app CSS can
+		 * align to the grid geometry. Default `null` = no CSS var written.
+		 *
+		 * @type {string|null}
+		 */
+		cellHeightCssVar: {
+			type: String,
+			default: null,
+		},
+		/**
+		 * Optional `(item) => string|number` to derive each item's render key.
+		 * Use it to force a re-render when an item changes in a way its `id`
+		 * doesn't capture (e.g. style edits — return `${item.id}:${item.updatedAt}`).
+		 * Default `null` = key on `item.id`.
+		 *
+		 * @type {Function|null}
+		 */
+		itemKey: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: ['layout-change'],
@@ -130,7 +165,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Derive the v-for render key for a layout item, honouring the optional
+		 * `itemKey` prop and falling back to `item.id`.
+		 *
+		 * @param {object} item the layout item.
+		 * @return {string|number} the render key.
+		 */
+		resolveItemKey(item) {
+			return this.itemKey ? this.itemKey(item) : item.id
+		},
+
 		initGrid() {
+			if (this.cellHeightCssVar && typeof document !== 'undefined' && document.documentElement) {
+				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
+			}
 			const el = this.$refs.gridContainer.querySelector('.grid-stack')
 			this.grid = GridStack.init({
 				column: this.columns,
@@ -141,6 +190,7 @@ export default {
 				disableDrag: !this.editable,
 				disableResize: !this.editable,
 				removable: false,
+				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
 
 			this.grid.on('change', (_event, items) => {

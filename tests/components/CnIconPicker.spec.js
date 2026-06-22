@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: 2026 Conduction B.V.
+
+import { mount } from '@vue/test-utils'
+import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
+import CnDashboardIcon from '../../src/components/CnIconPicker/CnDashboardIcon.vue'
+import {
+	getIconComponent,
+	isCustomIconUrl,
+	DEFAULT_ICON,
+	DASHBOARD_ICONS,
+} from '../../src/components/CnIconPicker/dashboardIcons.js'
+
+const mocks = { t: (_app, s) => s }
+
+describe('dashboardIcons helpers', () => {
+	it('resolves unknown/empty names to the default icon component', () => {
+		expect(getIconComponent('nope')).toBe(DASHBOARD_ICONS[DEFAULT_ICON])
+		expect(getIconComponent('')).toBe(DASHBOARD_ICONS[DEFAULT_ICON])
+		expect(getIconComponent(null)).toBe(DASHBOARD_ICONS[DEFAULT_ICON])
+	})
+	it('returns null for URL names (render as img)', () => {
+		expect(getIconComponent('/path/x.svg')).toBeNull()
+		expect(getIconComponent('http://x/y.png')).toBeNull()
+	})
+	it('isCustomIconUrl discriminates URLs', () => {
+		expect(isCustomIconUrl('/a.svg')).toBe(true)
+		expect(isCustomIconUrl('http://a')).toBe(true)
+		expect(isCustomIconUrl('Star')).toBe(false)
+		expect(isCustomIconUrl('')).toBe(false)
+	})
+})
+
+describe('CnDashboardIcon', () => {
+	it('renders an <img> for URL names', () => {
+		const w = mount(CnDashboardIcon, { propsData: { name: '/custom.svg', alt: 'x' } })
+		expect(w.find('img').exists()).toBe(true)
+		expect(w.find('img').attributes('src')).toBe('/custom.svg')
+	})
+	it('renders a component for registry names', () => {
+		const w = mount(CnDashboardIcon, { propsData: { name: 'Star' } })
+		expect(w.find('img').exists()).toBe(false)
+	})
+})
+
+describe('CnIconPicker', () => {
+	it('emits input with the selected registry key', async () => {
+		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
+		const select = w.find('select')
+		select.element.value = 'Star'
+		await select.trigger('change')
+		expect(w.emitted('input')[0]).toEqual(['Star'])
+	})
+	it('hides the upload control when no uploadFn is given', () => {
+		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
+		expect(w.find('.cn-icon-picker__upload-label').exists()).toBe(false)
+	})
+	it('shows the upload control when uploadFn is provided', () => {
+		const w = mount(CnIconPicker, { propsData: { value: null, uploadFn: async () => ({ url: '/x' }) }, mocks })
+		expect(w.find('.cn-icon-picker__upload-label').exists()).toBe(true)
+	})
+})

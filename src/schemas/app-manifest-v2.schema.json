@@ -347,6 +347,11 @@
 			"additionalProperties": false,
 			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
 			"properties": {
+				"id": {
+					"type": "string",
+					"pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+					"description": "Optional stable, kebab-case identity for this widget entry. Used as the merge key under the `delta` merge mode (mergeManifestDelta keys widgets[] by id) so a stored delta can patch a single widget without resending the array. Omitting it keeps the entry valid; a delta simply cannot target it by key. Must be unique within a page's widgets[]."
+				},
 				"widgetKey": {
 					"type": "string",
 					"description": "Registry key identifying the widget component. Resolved against the customComponents map passed to CnAppRoot at boot."
@@ -368,8 +373,8 @@
 				"gridWidth": {
 					"type": "integer",
 					"minimum": 1,
-					"maximum": 12,
-					"description": "Column span (1-12). For sidebar slot, MUST be exactly 1 (enforced by allOf/if-then). gridX + gridWidth MUST be <= 12 (enforced by post-schema check)."
+					"maximum": 24,
+					"description": "Column span. For the default 12-column slots, 1-12. A page MAY widen a slot via config.slotColumns (up to the schema cap of 24); the real per-slot bound gridX + gridWidth <= resolvedColumns is enforced by the post-schema check, not JSON Schema. For sidebar slot, MUST be exactly 1 (enforced by allOf/if-then)."
 				},
 				"gridHeight": {
 					"type": "integer",

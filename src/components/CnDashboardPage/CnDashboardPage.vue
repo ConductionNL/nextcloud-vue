@@ -36,6 +36,10 @@
 					</template>
 					{{ isEditing ? doneLabel : editLabel }}
 				</NcButton>
+				<!-- In-app edit button (ADR-041). Renders only when OpenBuild is
+				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
+				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
+				<CnOpenBuildEditButton />
 				<!-- Page-level overflow Actions menu (Refresh / Documentation /
 				     Request a feature). Separate from the per-widget menus.
 				     On by default; opt out per item, supply documentation-url
@@ -124,15 +128,53 @@
 		<CnDashboardGrid
 			v-else
 			:layout="layout"
-			:editable="isEditing"
+			:editable="gridEditable"
 			:columns="columns"
 			:cell-height="cellHeight"
 			:margin="gridMargin"
 			@layout-change="onLayoutChange">
 			<template #widget="{ item }">
+				<!-- In-app edit overlay (ADR-041): a single launchpad-style
+				     configure cog opens the per-widget style/config editor,
+				     which itself carries the delete affordance — so no separate
+				     remove button here. Shown only while the page is in edit
+				     mode. -->
+				<div v-if="gridEditable" class="cn-dashboard-page__widget-edit">
+					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+						<template #icon><Cog :size="18" /></template>
+					</NcButton>
+				</div>
+				<!-- requiresApp gate — when a widget declares `requiresApp`
+				     (any widget type) and the owning app is not installed,
+				     replace its body with an "Install …" CTA. Because all
+				     fleet data lives in OpenRegister, an app can surface
+				     another app's data; this keeps the tile honest when the
+				     owning app is absent instead of showing an empty value. -->
+				<CnWidgetWrapper
+					v-if="missingRequiredApp(item)"
+					:title="getWidgetTitle(item)"
+					:show-title="item.showTitle !== false">
+					<NcEmptyContent
+						:name="installAppLabel(missingRequiredApp(item))"
+						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
+						class="cn-dashboard-page__requires-app">
+						<template #icon>
+							<Download :size="32" />
+						</template>
+						<template #action>
+							<NcButton
+								variant="primary"
+								:href="appInstallUrl(missingRequiredApp(item))">
+								<template #icon><Download :size="18" /></template>
+								{{ installAppLabel(missingRequiredApp(item)) }}
+							</NcButton>
+						</template>
+					</NcEmptyContent>
+				</CnWidgetWrapper>
+
 				<!-- Tile widget -->
 				<CnTileWidget
-					v-if="isTile(item)"
+					v-else-if="isTile(item)"
 					:tile="getTileConfig(item)" />
 
 				<!-- Custom slot widget — apps provide their own rendering -->
@@ -325,6 +367,24 @@
 					</CnWidgetWrapper>
 				</template>
 
+				<!-- Dashboard widget library (cn-widget-library): a widget whose
+				     `type` is registered in dashboardWidgetRegistry renders here —
+				     this is how catalog widgets added via "Add widget…" appear. -->
+				<template v-else-if="registryRenderer(item)">
+					<CnWidgetWrapper
+						:title="getWidgetTitle(item)"
+						:show-title="item.showTitle !== false"
+						:buttons="getWidgetButtons(item)"
+						:style-config="item.styleConfig || {}"
+						@refresh="onWidgetRefresh(item)"
+						@request-feature="onWidgetRequestFeature(item)">
+						<component
+							:is="registryRenderer(item)"
+							:content="getWidgetContent(item)"
+							v-bind="getWidgetContent(item)" />
+					</CnWidgetWrapper>
+				</template>
+
 				<!-- Unknown widget fallback -->
 				<CnWidgetWrapper
 					v-else
@@ -337,6 +397,18 @@
 				</CnWidgetWrapper>
 			</template>
 		</CnDashboardGrid>
+
+		<!-- Per-widget style/config editor (ADR-041). Opened by the
+		     per-widget configure cog while editing; the modal's own Delete
+		     button removes the widget. -->
+		<CnWidgetStyleEditorModal
+			v-if="showWidgetConfig"
+			:show="showWidgetConfig"
+			:widget="configWidget"
+			:deletable="true"
+			@save="onWidgetConfigSave"
+			@delete="onWidgetConfigDelete"
+			@close="showWidgetConfig = false" />
 	</div>
 </template>
 
@@ -354,9 +426,13 @@ import {
 } from '@nextcloud/vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import Download from 'vue-material-design-icons/Download.vue'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
@@ -365,6 +441,8 @@ import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
+import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
@@ -472,8 +550,10 @@ export default {
 		NcLoadingIcon,
 		Pencil,
 		Check,
+		Cog,
 		CalendarRange,
 		ViewDashboardOutline,
+		Download,
 		CnDashboardGrid,
 		CnWidgetWrapper,
 		CnWidgetRenderer,
@@ -483,9 +563,15 @@ export default {
 		CnWidgetRefItem,
 		CnDateRangePicker,
 		CnActionsMenu,
+		CnOpenBuildEditButton,
+		CnWidgetStyleEditorModal,
 	},
 
 	inject: {
+		/** OpenBuild in-app edit state (ADR-041), provided by CnAppRoot as a ref.
+		 * When true the dashboard grid becomes drag/resize/remove-able even
+		 * without the consumer's own `allowEdit` toggle. */
+		cnEditingBody: { default: false },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. Overwritten
 		 * on created() and watched for prop changes. Reset on beforeDestroy().
@@ -619,6 +705,24 @@ export default {
 		 * @type {object|null}
 		 */
 		integrationContext: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Optional per-app install/enable status map used by the
+		 * `requiresApp` widget gate. Shape: `{ [appId]: { installed:
+		 * boolean, enabled: boolean, category?: string } }` — typically
+		 * the `dependency_statuses` initial state a consuming app injects.
+		 * When a widget definition carries `requiresApp` (a string or
+		 * array of app ids) and a required app is not enabled here, that
+		 * widget renders an "Install …" call-to-action instead of its
+		 * normal content. When this prop is `null` the gate falls back to
+		 * the `isAppInstalled()` runtime check (`OC.appswebroots` →
+		 * capabilities), so the gate works with or without injected data.
+		 *
+		 * @type {object|null}
+		 */
+		appStatuses: {
 			type: Object,
 			default: null,
 		},
@@ -788,6 +892,10 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/** Whether the per-widget style/config editor modal is open. */
+			showWidgetConfig: false,
+			/** widgetId of the widget currently being configured (drives `configWidget`). */
+			configWidgetId: null,
 			/**
 			 * Local mirror of the picker's current value. Initialised
 			 * in `created()` from `dateRange.default` → persisted
@@ -818,6 +926,18 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the widget grid should be drag/resize/remove-able — the
+		 * consumer's own edit toggle OR the OpenBuild in-app editor (ADR-041).
+		 * Unwraps the injected `cnEditingBody` ref.
+		 *
+		 * @return {boolean}
+		 */
+		gridEditable() {
+			const e = this.cnEditingBody
+			const openBuildEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+			return this.isEditing || openBuildEditing
+		},
 		/**
 		 * Effective Refresh visibility for custom-slot widgets. An explicit
 		 * `widgetShowRefresh` prop wins; when unset (`null`), show Refresh
@@ -894,6 +1014,45 @@ export default {
 		 */
 		hasWidgets() {
 			return this.layout.length > 0 || this.widgetRefItems.length > 0
+		},
+
+		/**
+		 * The widget settings object handed to CnWidgetStyleEditorModal,
+		 * built from the widget definition currently being configured
+		 * (`configWidgetId`). Carries the chrome fields the editor reads /
+		 * mutates (`title`, `styleConfig`, `showTitle`, `customTitle`,
+		 * `customIcon`, `content`) plus the widget `id`. Returns an empty
+		 * shell when nothing is selected so the modal's `required` widget
+		 * prop never sees null.
+		 *
+		 * @return {object}
+		 */
+		configWidget() {
+			const def = this.getWidgetDef(this.configWidgetId) || {}
+			// Bridge legacy data-driven widgets (chart / stats-block / table that
+			// carry top-level `props` + `dataSource` instead of `content`) into a
+			// `content` shape so their config form pre-fills. Once saved, the
+			// content-aware getters take over.
+			let content = def.content || {}
+			if ((!content || Object.keys(content).length === 0) && (def.props || def.dataSource)) {
+				content = {}
+				if (def.title) content.title = def.title
+				if (def.props) {
+					content.props = def.props
+					if (def.props.chartKind) content.chartKind = def.props.chartKind
+				}
+				if (def.dataSource) content.dataSource = def.dataSource
+			}
+			return {
+				id: def.id || this.configWidgetId,
+				type: def.type || '',
+				title: def.title || '',
+				styleConfig: def.styleConfig || {},
+				showTitle: def.showTitle !== false,
+				customTitle: def.customTitle || '',
+				customIcon: def.customIcon || '',
+				content,
+			}
 		},
 
 		widgetMap() {
@@ -1318,19 +1477,208 @@ export default {
 		},
 
 		onLayoutChange(updated) {
+			// Write the new geometry back into the layout items IN PLACE so the
+			// in-place manifest editor's diff (ADR-041) captures drag/resize —
+			// CnDashboardGrid emits a freshly-mapped array, which on its own
+			// never reaches the diffed manifest, so a resize would survive the
+			// session (GridStack DOM) but vanish on reload.
+			if (Array.isArray(updated) && Array.isArray(this.layout)) {
+				for (const u of updated) {
+					const item = this.layout.find((l) => String(l.id) === String(u.id))
+						|| this.layout.find((l) => l.widgetId === u.widgetId)
+					if (!item) continue
+					if (u.gridX !== undefined) this.$set(item, 'gridX', u.gridX)
+					if (u.gridY !== undefined) this.$set(item, 'gridY', u.gridY)
+					if (u.gridWidth !== undefined) this.$set(item, 'gridWidth', u.gridWidth)
+					if (u.gridHeight !== undefined) this.$set(item, 'gridHeight', u.gridHeight)
+				}
+			}
 			/**
 			 * @event layout-change Emitted when the user finishes dragging/resizing a widget. Payload: the updated layout array `[{ widgetId, x, y, w, h }, ...]`.
 			 */
-			this.$emit('layout-change', updated)
+			this.$emit('layout-change', this.layout)
 		},
 
 		getWidgetDef(widgetId) {
 			return this.widgetMap[widgetId] || null
 		},
 
+		/**
+		 * The app id(s) a widget depends on, declared via `requiresApp`
+		 * (a single id string or an array of ids). Empty array when the
+		 * widget has no cross-app dependency.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string[]} Required app ids (possibly empty).
+		 */
+		requiredAppsFor(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const req = def && def.requiresApp
+			if (!req) return []
+			return Array.isArray(req) ? req.filter(Boolean) : [req]
+		},
+
+		/**
+		 * Whether a given app counts as available. Prefers the injected
+		 * `appStatuses` map (an app is available when `enabled`, or when
+		 * only `installed` is known); falls back to the `isAppInstalled()`
+		 * runtime check when no status was injected for that app.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {boolean} True when the app is present/usable.
+		 */
+		isAppAvailable(appId) {
+			const status = this.appStatuses && this.appStatuses[appId]
+			if (status) {
+				if (typeof status.enabled === 'boolean') return status.enabled
+				if (typeof status.installed === 'boolean') return status.installed
+			}
+			return isAppInstalled(appId)
+		},
+
+		/**
+		 * The first required app that is missing for a widget, or null when
+		 * all its `requiresApp` dependencies are available. Drives the
+		 * install-CTA gate that replaces the widget body for any widget
+		 * type (stat, chart, object-list, …) surfacing another app's data.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {(string|null)} Missing app id, or null.
+		 */
+		missingRequiredApp(item) {
+			for (const appId of this.requiredAppsFor(item)) {
+				if (!this.isAppAvailable(appId)) return appId
+			}
+			return null
+		},
+
+		/**
+		 * App-store deep link used by the install CTA. Prefers the
+		 * injected per-app `category` (when present) so the user lands on
+		 * the right App Store section; otherwise links to the app's own
+		 * App Store entry.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {string} Settings/apps URL.
+		 */
+		appInstallUrl(appId) {
+			const category = this.appStatuses && this.appStatuses[appId] && this.appStatuses[appId].category
+			return category
+				? `/index.php/settings/apps/${encodeURIComponent(category)}/${encodeURIComponent(appId)}`
+				: `/index.php/settings/apps/${encodeURIComponent(appId)}`
+		},
+
+		/**
+		 * Human-readable "Install {app}" heading for the gate CTA.
+		 *
+		 * @param {string} appId Nextcloud app id.
+		 * @return {string} Localized install label.
+		 */
+		installAppLabel(appId) {
+			return t('nextcloud-vue', 'Install {app}', { app: appId })
+		},
+
+		/**
+		 * The dashboardWidgetRegistry renderer for a layout item, when its widget
+		 * definition's `type` is a registered catalog widget and no consumer
+		 * `#widget-{id}` slot handles it. This is how widgets added via the
+		 * in-app "Add widget…" flow (ADR-041) render on a dashboard.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {(object|null)} The widget renderer component, or null.
+		 */
+		registryRenderer(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) return null
+			const entry = getWidgetTypeEntry(def.type)
+			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * The stored content/config for a catalog widget (passed to its renderer).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {object}
+		 */
+		getWidgetContent(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return (def && def.content && typeof def.content === 'object') ? def.content : {}
+		},
+
+		/**
+		 * Remove a widget from the dashboard while editing (ADR-041): drops it from
+		 * `config.widgets` + `config.layout` (the working manifest, by reference)
+		 * and emits the updated layout so consumers persist.
+		 *
+		 * @param {object} item Layout item to remove.
+		 */
+		removeWidget(item) {
+			const id = item.widgetId
+			const layoutIdx = this.layout.findIndex((l) => l.widgetId === id)
+			if (layoutIdx !== -1) this.layout.splice(layoutIdx, 1)
+			if (Array.isArray(this.widgets)) {
+				const wIdx = this.widgets.findIndex((w) => w.id === id)
+				if (wIdx !== -1) this.widgets.splice(wIdx, 1)
+			}
+			this.$emit('layout-change', this.layout)
+		},
+
+		/**
+		 * Open the per-widget style/config editor for a layout item.
+		 * Launchpad-style cog: selects the widget and shows the modal.
+		 *
+		 * @param {object} item Layout item to configure.
+		 */
+		configureWidget(item) {
+			this.configWidgetId = item.widgetId
+			this.showWidgetConfig = true
+		},
+
+		/**
+		 * Persist the editor's changes onto the matching widget definition
+		 * IN PLACE (so the in-place manifest editor picks them up) and close
+		 * the modal. Mirrors the relevant chrome fields onto the layout
+		 * entry's `styleConfig` too, since the grid reads styleConfig from
+		 * the layout item.
+		 *
+		 * @param {object} edited The widget object mutated by the editor.
+		 */
+		onWidgetConfigSave(edited) {
+			const def = Array.isArray(this.widgets)
+				? this.widgets.find((w) => w.id === this.configWidgetId)
+				: null
+			if (def) {
+				this.$set(def, 'title', edited.title !== undefined ? edited.title : def.title)
+				this.$set(def, 'styleConfig', edited.styleConfig || {})
+				this.$set(def, 'showTitle', edited.showTitle !== false)
+				this.$set(def, 'customTitle', edited.customTitle || null)
+				this.$set(def, 'customIcon', edited.customIcon || null)
+				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
+			}
+			const layoutItem = this.layout.find((l) => l.widgetId === this.configWidgetId)
+			if (layoutItem) {
+				this.$set(layoutItem, 'styleConfig', edited.styleConfig || {})
+			}
+			this.showWidgetConfig = false
+			this.$emit('layout-change', this.layout)
+		},
+
+		/**
+		 * Delete from inside the editor — drop the widget and close.
+		 *
+		 * @param {object} _w The widget the editor wants deleted (unused; we
+		 *   route by `configWidgetId`).
+		 */
+		onWidgetConfigDelete(_w) {
+			this.removeWidget({ widgetId: this.configWidgetId })
+			this.showWidgetConfig = false
+		},
+
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			return item.customTitle || def?.title || item.widgetId
+			// Prefer a per-placement override, then the widget def's customTitle
+			// (set by the in-place style editor cog), then the def's base title.
+			return item.customTitle || def?.customTitle || def?.title || item.widgetId
 		},
 
 		getWidgetIconUrl(item) {
@@ -1465,7 +1813,9 @@ export default {
 		 */
 		getWidgetDataSource(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			return def?.dataSource || null
+			// Prefer the in-app-editable `content.dataSource` (ADR-041), else the
+			// legacy top-level manifest `dataSource`.
+			return (def?.content && def.content.dataSource) || def?.dataSource || null
 		},
 
 		/**
@@ -1487,8 +1837,11 @@ export default {
 		 */
 		getStatsBlockProps(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const props = def?.props || {}
-			const out = { title: def?.title || item.widgetId }
+			// In-app-editable cards carry config in `content` (set by
+			// CnStatsBlockWidgetForm); legacy manifests use top-level props.
+			const content = def?.content || {}
+			const props = content.props || def?.props || {}
+			const out = { title: content.title || def?.title || item.widgetId }
 			for (const key of ['countLabel', 'variant', 'showZeroCount', 'horizontal', 'route', 'iconClass']) {
 				if (props[key] !== undefined) out[key] = props[key]
 			}
@@ -1513,11 +1866,16 @@ export default {
 		 */
 		getChartProps(item) {
 			const def = this.getWidgetDef(item.widgetId)
-			const props = def?.props || {}
+			// In-app-editable charts (ADR-041) carry their config in `content`
+			// (set by CnChartWidgetForm); legacy manifest charts use `props`.
+			const content = def?.content || {}
+			const props = content.props || def?.props || {}
 			const out = {}
-			if (props.chartKind) out.type = props.chartKind
+			const chartKind = content.chartKind || props.chartKind
+			if (chartKind) out.type = chartKind
 			for (const key of CHART_PROP_KEYS) {
-				if (props[key] !== undefined) out[key] = props[key]
+				const v = content[key] !== undefined ? content[key] : props[key]
+				if (v !== undefined) out[key] = v
 			}
 			return out
 		},
@@ -1533,6 +1891,12 @@ export default {
 .cn-dashboard-page {
 	padding: 20px;
 	max-width: 1400px;
+	/* Scroll the dashboard itself when its widgets are taller than the host
+	   region (height:100% is a no-op when the host height is content-sized, so
+	   this only kicks in when an ancestor constrains the height). */
+	height: 100%;
+	overflow-y: auto;
+	box-sizing: border-box;
 }
 
 .cn-dashboard-page__header {
@@ -1632,6 +1996,16 @@ export default {
 
 .cn-dashboard-page__empty {
 	padding: 60px 20px;
+}
+
+.cn-dashboard-page__widget-edit {
+	position: absolute;
+	top: 4px;
+	inset-inline-end: 4px;
+	z-index: 5;
+	background: var(--color-main-background);
+	border-radius: var(--border-radius);
+	box-shadow: 0 1px 4px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
 }
 
 .cn-dashboard-page__unknown {

@@ -131,6 +131,13 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `refreshDisabled` | `Boolean` | `false` | Disable the Refresh action (e.g. while a required selection is missing) |
 | `addDisabled` | `Boolean` | `false` | Disable the Add button (e.g. while a required selection is missing) |
 | `showAdd` | `Boolean` | `true` | Whether to render the Add button at all |
+| `cardsLabel` | `String` | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
+| `tableLabel` | `String` | `''` | Label for the table/list view-toggle option (defaults to "Table") |
+| `cardsIcon` | `String` | `''` | MDI icon name for the cards option (defaults to the built-in grid icon). Resolved via `CnIcon` |
+| `tableIcon` | `String` | `''` | MDI icon name for the table option (defaults to the built-in list icon). Resolved via `CnIcon` |
+| `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar |
+| `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
+| `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |
 | `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. |
 
 ## Manifest header actions example
@@ -165,3 +172,10 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 |------|------|---------|-------------|
 | `documentationUrl` | String | `''` | When set, adds a **Documentation** entry to the overflow (before Request a feature) that opens the link in a new tab. Empty hides it. |
 | `documentationLabel` | String | `t('Documentation')` | Pre-translated Documentation entry label. |
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSidebarToggle` | Boolean | `false` | Whether to show the Search/Columns sidebar toggle button (lets the index sidebar default to closed and open on demand). |
+| `sidebarOpen` | Boolean | `false` | Current open state of the sidebar (controls the toggle button's pressed state). |

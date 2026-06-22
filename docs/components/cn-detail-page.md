@@ -316,3 +316,9 @@ Set `:page-id` for a stable id/surface (it otherwise falls back to a slugified `
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDetailPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDetailPage/CnDetailPage.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+### Additional props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |

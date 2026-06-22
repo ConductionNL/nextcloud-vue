@@ -25,6 +25,7 @@ export {
 	CnStructuredDocReview,
 	CnConfigurationCard,
 	CnVersionInfoCard,
+	CnAdminSettingsShell,
 	CnCellRenderer,
 	CnObjectCard,
 	CnCardGrid,
@@ -60,6 +61,9 @@ export {
 	CnDashboardPage,
 	CnDashboardGrid,
 	CnWidgetWrapper,
+	CnWidgetEditCog,
+	CnIconPicker,
+	CnDashboardIcon,
 	CnWidgetRenderer,
 	CnTileWidget,
 	CnTimelineView,
@@ -105,6 +109,16 @@ export {
 	CnTableWidget,
 	CnActionsBar,
 	CnActionsMenu,
+	CnOpenBuildEditButton,
+	CnEditMenuModal,
+	CnEditSidebarModal,
+	CnEditActionsModal,
+	CnAddWidgetModal,
+	CnWidgetStyleEditorModal,
+	CnWidgetVisibilityRulesModal,
+	CnMenuItemEditor,
+	CnTextTableEditor,
+	CnNcWidgetGridPicker,
 	CnIcon,
 	CnPageHeader,
 	CnNoteCard,
@@ -142,6 +156,42 @@ export {
 	CnWidgetFormRenderer,
 	CnWidgetMapViewer,
 	CnWidgetCardGrid,
+	CnLabelWidget,
+	CnLabelWidgetForm,
+	CnTextWidget,
+	CnTextWidgetForm,
+	CnImageWidget,
+	CnImageWidgetForm,
+	CnLinkButtonWidget,
+	CnLinkButtonWidgetForm,
+	CnHeaderWidget,
+	CnHeaderWidgetForm,
+	CnDividerWidget,
+	CnDividerWidgetForm,
+	CnFilesWidget,
+	CnFilesWidgetForm,
+	CnPeopleWidget,
+	CnPeopleWidgetForm,
+	CnNewsWidget,
+	CnNewsWidgetForm,
+	CnQuicklinksWidget,
+	CnQuicklinksWidgetForm,
+	CnLinksWidget,
+	CnLinksWidgetForm,
+	CnMenuWidget,
+	CnMenuWidgetForm,
+	CnContainerWidget,
+	CnContainerWidgetForm,
+	CnVideoWidget,
+	CnVideoWidgetForm,
+	CnCalendarWidget,
+	CnCalendarWidgetForm,
+	CnSpendAnalyticsWidget,
+	CnSpendAnalyticsWidgetForm,
+	CnNcWidgetWidget,
+	CnNcDashboardWidgetForm,
+	CnDashTileWidget,
+	CnDashTileWidgetForm,
 } from './components/index.js'
 
 // AI Chat Companion component family
@@ -171,7 +221,7 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
@@ -196,6 +246,15 @@ export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resol
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
+export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
+export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
+export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
+export { diffManifest } from './utils/diffManifest.js'
+export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
+// Dashboard widget library (cn-widget-library) — registry helpers + form composable.
+export { dashboardWidgetRegistry, registerDashboardWidget, listWidgetTypes, getWidgetTypeEntry, getDefaultContent } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
+export { useWidgetForm } from './composables/useWidgetForm.js'
 
 // Errors
 export { RegistryKindError } from './errors/RegistryKindError.js'

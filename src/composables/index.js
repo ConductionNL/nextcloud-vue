@@ -1,3 +1,5 @@
+export { useManifestEditor } from './useManifestEditor.js'
+export { useOpenBuildEditAvailability } from './useOpenBuildEditAvailability.js'
 export { useAiContext, CN_AI_CONTEXT_KEY } from './useAiContext.js'
 export { useAiChatStream } from './useAiChatStream.js'
 export { useListView } from './useListView.js'

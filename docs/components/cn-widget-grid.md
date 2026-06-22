@@ -45,6 +45,14 @@ the number of columns is determined by the slot name:
 | `widgets` | `Array` | Widget entries for this slot (from `page.widgets[]` filtered by `slot`). |
 | `slotName` | `String` | Slot key (e.g. `"body"`, `"sidebar"`, `"tab:general"`). |
 | `registry` | `Object` | Consumer registry from `CnAppRoot`. Normally injected via `cnRegistry`; passed as prop only for standalone use. |
+| `columns` | `Number` | Explicit column-count override for this slot. `null` (default) resolves from the injected per-page `slotColumns` then the library default. |
+| `editable` | `Boolean` | When `true`, the `body` slot renders a GridStack drag/resize grid (ADR-041 in-app edit mode) instead of the read-only CSS grid; geometry changes are written back to the widget entries and emitted via `@layout-change`. Other slots are unaffected. Default `false` keeps the read-only rendering for every consumer. |
+
+## Events
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `layout-change` | `Array` | Emitted in editable body mode after a drag/resize, with the updated widget entries. |
 
 ## Widget key resolution
 

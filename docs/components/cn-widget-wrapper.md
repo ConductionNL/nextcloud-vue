@@ -56,7 +56,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `titleIconPosition` | String | `'right'` | Position of the `title-icon` slot in the header: `'left'` places it before the title group; `'right'` places it after the actions |
 | `titleIconColor` | String | `null` | CSS color value applied to the `title-icon` slot container (e.g. `'#e74c3c'`) |
 | `buttons` | Array | `[]` | Footer button links: `[{ text, link }]` |
-| `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left } }` |
+| `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left }, headerStyle?: { backgroundColor?, textColor? } }`. The optional `headerStyle` colours the header bar per-widget. |
 | `refreshing` | Boolean | `false` | When bound (e.g. `:refreshing="loading"` around the host's refetch), the Refresh item is disabled and shows a loading spinner for exactly as long as this stays `true` — so the spinner reflects the real refresh time. |
 
 ### Slots

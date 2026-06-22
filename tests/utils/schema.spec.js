@@ -536,6 +536,19 @@ describe('fieldsFromSchema', () => {
 		expect(createdField.readOnly).toBe(true)
 	})
 
+	it('un-skips a single readOnly field when a per-key override sets readOnly:false', () => {
+		// A consumer can surface ONE schema-readOnly field (e.g. a denormalised
+		// name editable only on create) without flipping the whole form to
+		// includeReadOnly. The override also wins on the resulting field.
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { createdAt: { readOnly: false } },
+		})
+		const keys = fields.map((f) => f.key)
+		expect(keys).toContain('createdAt')
+		expect(keys).not.toContain('uuid') // other readOnly fields still skipped
+		expect(fields.find((f) => f.key === 'createdAt').readOnly).toBe(false)
+	})
+
 	it('excludes visible: false properties', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const keys = fields.map((f) => f.key)

@@ -9,7 +9,7 @@
   Used in dashboard and detail page grid layouts for displaying related data tables.
 -->
 <template>
-	<div class="cn-table-widget">
+	<div class="cn-table-widget" :class="{ 'cn-table-widget--borderless': borderless }">
 		<!-- Header -->
 		<div v-if="title" class="cn-table-widget__header">
 			<h3 class="cn-table-widget__title">
@@ -89,6 +89,17 @@ export default {
 		title: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Drop the widget's own card chrome (border, background, radius) so the
+		 * table sits flush inside a container that already provides a card — e.g.
+		 * a `CnWidgetWrapper` dashboard slot. Avoids the double-card / nested-border
+		 * look when a table widget is embedded in another card. Defaults to false
+		 * (back-compat: standalone usage keeps its card).
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * External row data. When provided, no API calls are made.
@@ -279,6 +290,26 @@ export default {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 16px);
 	overflow: hidden;
+}
+
+/* Embedded in a container that already provides the card (e.g. a dashboard
+   widget slot) — drop the chrome so there is no double-card / nested border. */
+.cn-table-widget--borderless {
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	overflow: visible;
+}
+
+/* The wrapped CnDataTable renders its own `.cn-table-container` card (border +
+   radius + shadow). When the widget is borderless that inner card is the very
+   double-card we are avoiding, so flatten it too — the surrounding container
+   (dashboard widget) owns the single card. */
+.cn-table-widget--borderless :deep(.cn-table-container) {
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
 }
 
 .cn-table-widget__header {
