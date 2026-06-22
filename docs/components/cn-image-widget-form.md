@@ -14,6 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | --------------- | ----------------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode. Pre-fills every control from `editingWidget.content`. |
 | `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults.                   |
+| `uploadFn`      | `Function`                    |          | `null`                         | Optional async uploader `(file) => url`; when set, an upload control supplements the image-URL field.       |
 
 ### Events
 

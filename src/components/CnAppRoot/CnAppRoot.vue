@@ -108,6 +108,26 @@
 			</slot>
 		</template>
 
+		<!--
+		  Phase 2b: setup — a REQUIRED first-time-setup step (ADR-042) is unmet,
+		  so the shell is gated to CnSetupWizard until it clears.
+		-->
+		<template v-else-if="phase === 'setup'">
+			<!--
+			  @slot setup
+			  @description Override the gating setup surface. Scope: the manifest
+			  setup steps + the useSetupStatus state.
+			-->
+			<slot name="setup" :steps="manifest.setup.steps" :status="setupState">
+				<div class="cn-app-root__setup">
+					<CnSetupWizard
+						:app-id="appId"
+						:steps="manifest.setup.steps"
+						@complete="onSetupComplete" />
+				</div>
+			</slot>
+		</template>
+
 		<!-- Phase 3: shell -->
 		<template v-else>
 			<!--
@@ -305,6 +325,7 @@ import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutli
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
@@ -316,6 +337,7 @@ import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -372,6 +394,7 @@ export default {
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnSetupWizard,
 		CnAiCompanion,
 		CnObjectSidebar,
 		CnSupportDialog,
@@ -1160,9 +1183,31 @@ export default {
 					return { id, name: id, category: 'featured', enabled: false }
 				})
 		},
+		/**
+		 * First-time-setup status for this app (ADR-042), or null when the
+		 * manifest declares no `setup` block. Calls useSetupStatus inside the
+		 * computed so the returned refs stay reactive (same pattern as
+		 * unresolvedDependencies → useAppStatus).
+		 */
+		setupState() {
+			if (!this.appId || !this.manifest || !this.manifest.setup || this.manifest.setup.enabled === false) {
+				return null
+			}
+			return useSetupStatus(this.appId, this.manifest)
+		},
+		/**
+		 * Whether a REQUIRED setup step is unmet — the app shell is gated to
+		 * the setup wizard until this clears. Never gates while the status is
+		 * still loading (avoids a flash before the answer is known).
+		 */
+		setupGating() {
+			const s = this.setupState
+			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
+		},
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
+			if (this.setupGating) return 'setup'
 			return 'shell'
 		},
 		/**
@@ -1245,6 +1290,22 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Re-fetch setup status after the wizard reports completion so the
+		 * phase flips from `setup` to `shell` without a page reload.
+		 *
+		 * @return {void}
+		 */
+		onSetupComplete() {
+			if (this.setupState && typeof this.setupState.refresh === 'function') {
+				this.setupState.refresh()
+			}
+			/**
+			 * @event setup-complete Emitted after the gating setup wizard reports
+			 * completion and the status has been re-fetched.
+			 */
+			this.$emit('setup-complete')
+		},
 		/**
 		 * Validate every entry in the `registry` prop at mount time.
 		 *
