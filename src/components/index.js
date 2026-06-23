@@ -239,6 +239,8 @@ export { CnTimeTrackerCreate } from './CnTimeTrackerCreate/index.js'
 // OpenBuild in-app edit shell (ADR-041)
 export { CnOpenBuildEditButton } from './CnOpenBuildEditButton/index.js'
 export { default as CnEditMenuModal } from '../modals/CnEditMenuModal.vue'
+export { default as CnEditPagesModal } from '../modals/CnEditPagesModal.vue'
+export { default as CnEditSettingsModal } from '../modals/CnEditSettingsModal.vue'
 export { default as CnEditSidebarModal } from '../modals/CnEditSidebarModal.vue'
 export { default as CnEditActionsModal } from '../modals/CnEditActionsModal.vue'
 

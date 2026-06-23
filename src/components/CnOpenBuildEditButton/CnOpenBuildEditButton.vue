@@ -18,7 +18,12 @@
 			:aria-label="t('nextcloud-vue', 'Edit with OpenBuild')"
 			:class="['cn-openbuild-edit__actions', { 'cn-openbuild-edit__actions--editing': isEditing }]">
 			<template #icon>
-				<svg class="cn-openbuild-edit__glyph" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+				<svg class="cn-openbuild-edit__glyph"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="currentColor"
+					aria-hidden="true">
 					<path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9M12 4.15 6.04 7.5 12 10.85 17.96 7.5 12 4.15M5 15.91l6 3.38v-6.71L5 9.21v6.7m14 0v-6.7l-6 3.37v6.71l6-3.38Z" />
 				</svg>
 			</template>
@@ -42,9 +47,16 @@
 				{{ t('nextcloud-vue', 'Add widget…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditPages">
+				<template #icon>
+					<FileMultiple :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit pages…') }}
+			</NcActionButton>
+
 			<NcActionButton :close-after-click="true" @click="onEditMenu">
 				<template #icon>
-					<Menu :size="20" />
+					<MenuIcon :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit menu…') }}
 			</NcActionButton>
@@ -63,6 +75,13 @@
 				{{ t('nextcloud-vue', 'Edit actions…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditSettings">
+				<template #icon>
+					<Cog :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit settings…') }}
+			</NcActionButton>
+
 			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
@@ -71,10 +90,18 @@
 			</NcActionButton>
 		</NcActions>
 
+		<CnEditPagesModal
+			v-if="showPagesModal"
+			:working="workingManifest"
+			@close="showPagesModal = false" />
 		<CnEditMenuModal
 			v-if="showMenuModal"
 			:working="workingManifest"
 			@close="showMenuModal = false" />
+		<CnEditSettingsModal
+			v-if="showSettingsModal"
+			:working="workingManifest"
+			@close="showSettingsModal = false" />
 		<CnEditSidebarModal
 			v-if="showSidebarModal"
 			:working="workingManifest"
@@ -99,11 +126,15 @@ import { translate as t } from '@nextcloud/l10n'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import Menu from 'vue-material-design-icons/Menu.vue'
+import MenuIcon from 'vue-material-design-icons/Menu.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
 import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
+import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
+import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
 import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
@@ -119,11 +150,15 @@ export default {
 		Pencil,
 		ContentSave,
 		Plus,
-		Menu,
+		MenuIcon,
 		Close,
+		Cog,
+		FileMultiple,
 		PageLayoutSidebarRight,
 		GestureTapButton,
 		CnEditMenuModal,
+		CnEditPagesModal,
+		CnEditSettingsModal,
 		CnEditSidebarModal,
 		CnEditActionsModal,
 		CnAddWidgetModal,
@@ -172,6 +207,8 @@ export default {
 	data() {
 		return {
 			showMenuModal: false,
+			showPagesModal: false,
+			showSettingsModal: false,
 			showSidebarModal: false,
 			showAddWidgetModal: false,
 			showActionsModal: false,
@@ -310,6 +347,15 @@ export default {
 				this.$emit('edit')
 			}
 		},
+		/** Enter edit mode (if needed) and open the pages editor modal. */
+		onEditPages() {
+			this.ensureEditing()
+			this.showPagesModal = true
+			/**
+			 * @event edit-pages Emitted when the pages editor modal opens.
+			 */
+			this.$emit('edit-pages')
+		},
 		/** Enter edit mode (if needed) and open the menu editor modal. */
 		onEditMenu() {
 			this.ensureEditing()
@@ -318,6 +364,15 @@ export default {
 			 * @event edit-menu Emitted when the menu editor modal opens.
 			 */
 			this.$emit('edit-menu')
+		},
+		/** Enter edit mode (if needed) and open the settings editor modal. */
+		onEditSettings() {
+			this.ensureEditing()
+			this.showSettingsModal = true
+			/**
+			 * @event edit-settings Emitted when the settings editor modal opens.
+			 */
+			this.$emit('edit-settings')
 		},
 		/** Enter edit mode (if needed) and open the sidebar editor modal. */
 		onEditSidebar() {

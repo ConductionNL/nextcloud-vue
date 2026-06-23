@@ -107,17 +107,17 @@ describe('CnOpenBuildEditButton', () => {
 	it('opens the menu and sidebar editor modals', async () => {
 		const wrapper = mountButton({ editor: makeEditor(true) })
 		const buttons = wrapper.findAllComponents(NcActionButtonStub)
-		// order: [toggle, add-widget, edit-menu, edit-sidebar, edit-actions, cancel]
-		await buttons.at(2).trigger('click')
-		expect(wrapper.emitted('edit-menu')).toBeTruthy()
+		// order: [toggle, add-widget, edit-pages, edit-menu, edit-sidebar, edit-actions, edit-settings, cancel]
 		await buttons.at(3).trigger('click')
+		expect(wrapper.emitted('edit-menu')).toBeTruthy()
+		await buttons.at(4).trigger('click')
 		expect(wrapper.emitted('edit-sidebar')).toBeTruthy()
 	})
 
 	it('auto-enters edit mode when opening the menu modal while not editing', async () => {
 		const editor = makeEditor(false) // not editing → working is null
 		const wrapper = mountButton({ editor })
-		await wrapper.findAllComponents(NcActionButtonStub).at(2).trigger('click') // Edit menu…
+		await wrapper.findAllComponents(NcActionButtonStub).at(3).trigger('click') // Edit menu…
 		expect(editor.enter).toHaveBeenCalled() // working copy now populated for the modal
 		expect(wrapper.emitted('edit-menu')).toBeTruthy()
 	})
@@ -125,9 +125,25 @@ describe('CnOpenBuildEditButton', () => {
 	it('exposes an Edit actions… item that opens the actions modal', async () => {
 		const editor = makeEditor(false)
 		const wrapper = mountButton({ editor })
-		// [toggle, add-widget, edit-menu, edit-sidebar, edit-actions]
-		await wrapper.findAllComponents(NcActionButtonStub).at(4).trigger('click')
+		// [toggle, add-widget, edit-pages, edit-menu, edit-sidebar, edit-actions, edit-settings]
+		await wrapper.findAllComponents(NcActionButtonStub).at(5).trigger('click')
 		expect(editor.enter).toHaveBeenCalled()
 		expect(wrapper.emitted('edit-actions')).toBeTruthy()
+	})
+
+	it('exposes an Edit pages… item that auto-enters edit mode', async () => {
+		const editor = makeEditor(false)
+		const wrapper = mountButton({ editor })
+		await wrapper.findAllComponents(NcActionButtonStub).at(2).trigger('click')
+		expect(editor.enter).toHaveBeenCalled()
+		expect(wrapper.emitted('edit-pages')).toBeTruthy()
+	})
+
+	it('exposes an Edit settings… item that auto-enters edit mode', async () => {
+		const editor = makeEditor(false)
+		const wrapper = mountButton({ editor })
+		await wrapper.findAllComponents(NcActionButtonStub).at(6).trigger('click')
+		expect(editor.enter).toHaveBeenCalled()
+		expect(wrapper.emitted('edit-settings')).toBeTruthy()
 	})
 })
