@@ -14,11 +14,16 @@
 				{{ t('nextcloud-vue', 'Edit menu') }}
 			</h2>
 
-			<CnMenuTreeNode :list="menu" :depth="0" :max-depth="1" />
+			<CnMenuTreeNode :list="menu"
+				:depth="0"
+				:max-depth="1"
+				:pages="pageOptions" />
 
 			<div class="cn-edit-menu__footer">
 				<NcButton type="secondary" @click="add">
-					<template #icon><Plus :size="20" /></template>
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Add menu item') }}
 				</NcButton>
 				<NcButton type="primary" @click="$emit('close')">
@@ -56,8 +61,26 @@ export default {
 	computed: {
 		/** The working manifest's menu array (always an array). */
 		menu() {
+			// Lazily normalise the working copy's `menu` to an array so the tree
+			// editor always has a mutable list to edit in place (the working
+			// manifest is ours to mutate by design — never the base).
+			// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
 			if (this.working && !Array.isArray(this.working.menu)) this.working.menu = []
 			return this.working ? this.working.menu : []
+		},
+
+		/**
+		 * The manifest's pages as Route-dropdown options. A menu item's `route`
+		 * holds the target page's id (the vue-router route name), so the option
+		 * `value` is `page.id` and the label is its title (falling back to id).
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		pageOptions() {
+			const pages = (this.working && Array.isArray(this.working.pages)) ? this.working.pages : []
+			return pages
+				.filter((p) => p && typeof p.id === 'string' && p.id !== '')
+				.map((p) => ({ value: p.id, label: (typeof p.title === 'string' && p.title) ? p.title : p.id }))
 		},
 	},
 

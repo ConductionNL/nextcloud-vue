@@ -14,6 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | --------------- | ----------------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
 | `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode.                                     |
 | `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults. |
+| `uploadFn`      | `Function&#124;null`          |          | `null`                         | Optional upload transport `async (dataUrl) => ({ url })`. When given, an uploaded background image is sent through it and the returned URL is stored; otherwise the file is embedded as a data URL (same-origin, so it isn't blocked by CSP the way external URLs are). |
 
 ### Events
 
