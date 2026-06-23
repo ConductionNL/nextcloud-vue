@@ -61,6 +61,22 @@ describe('useWalkthrough', () => {
 		expect(wt.activeTour.value.steps.map((s) => s.id)).toEqual(['new'])
 	})
 
+	it('restart replays the FULL tour for a returning user (ignores seenVersion)', () => {
+		// A returning user whose seenVersion already covers every step's
+		// sinceVersion: a normal start() composes an empty step set, but the
+		// "Restart tutorial" entry (restart()) must show the whole tour.
+		const wt = useWalkthrough('pq-replay', manifest(baseSteps), { seenVersion: '1.0.0' })
+		wt.start('getting-started')
+		expect(wt.activeTour.value.steps).toEqual([]) // filtered out by seenVersion
+		wt.restart('getting-started')
+		expect(wt.running.value).toBe(true)
+		expect(wt.replaying.value).toBe(true)
+		expect(wt.activeTour.value.steps.map((s) => s.id)).toEqual(['welcome', 'make-product', 'open-lead'])
+		// dismissing clears replay mode so the version filter applies again
+		wt.dismiss()
+		expect(wt.replaying.value).toBe(false)
+	})
+
 	it('does not auto-start a version-bump tour with an empty delta', () => {
 		const steps = [{ id: 'old', sinceVersion: '1.0.0', target: { kind: 'page', ref: 'A' }, advanceOn: { type: 'manual' } }]
 		const wt = useWalkthrough('pq3', manifest(steps, { version: '1.0.0', trigger: 'version-bump' }), { seenVersion: '1.0.0' })
