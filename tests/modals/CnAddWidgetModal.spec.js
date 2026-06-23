@@ -122,7 +122,46 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.vm.isValid).toBe(true)
 		wrapper.find('[data-testid="add-widget-save"]').trigger('click')
 		expect(wrapper.emitted('submit')).toBeTruthy()
-		expect(wrapper.emitted('submit')[0][0]).toEqual({ type: 'label', content: { text: 'hi' } })
+		expect(wrapper.emitted('submit')[0][0]).toEqual({
+			type: 'label',
+			content: { text: 'hi' },
+			chrome: { showTitle: true, customTitle: '', customIcon: '', backgroundColor: '' },
+		})
+	})
+
+	it('carries the edited Appearance chrome in the submit payload', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		// edit the chrome as the user would via the Appearance controls
+		wrapper.vm.chrome.showTitle = true
+		wrapper.vm.chrome.customTitle = 'My widget'
+		wrapper.vm.chrome.customIcon = 'icon-star'
+		wrapper.vm.chrome.backgroundColor = '#ff0000'
+		wrapper.find('[data-testid="add-widget-save"]').trigger('click')
+		expect(wrapper.emitted('submit')[0][0].chrome).toEqual({
+			showTitle: true,
+			customTitle: 'My widget',
+			customIcon: 'icon-star',
+			backgroundColor: '#ff0000',
+		})
+	})
+
+	it('seeds the chrome from an edited placement (round-trip)', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const editingWidget = { type: 'label', content: { text: 'hi' }, showTitle: 0, customTitle: 'Seeded', customIcon: 'icon-files', styleConfig: { backgroundColor: '#00ff00' } }
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true, editingWidget } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.chrome).toEqual({
+			showTitle: false,
+			customTitle: 'Seeded',
+			customIcon: 'icon-files',
+			backgroundColor: '#00ff00',
+		})
 	})
 
 	it('preselectedType hides the picker and opens directly on that type', () => {
