@@ -1365,6 +1365,13 @@ export default {
 	},
 
 	mounted() {
+		// Guard against silently losing unsaved in-app edits. The manifest
+		// editor stays `dirty` for the whole Save (the persist PUT can take a
+		// few seconds), so a refresh mid-save would drop the edit before the
+		// write lands; this warns the user while there are unsaved/in-flight
+		// changes. Registered before the early-return so it always installs.
+		window.addEventListener('beforeunload', this.onBeforeUnload)
+
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
@@ -1401,7 +1408,29 @@ export default {
 		this._hydrateMenuCounts()
 	},
 
+	beforeDestroy() {
+		window.removeEventListener('beforeunload', this.onBeforeUnload)
+	},
+
 	methods: {
+		/**
+		 * Warn before unload when the manifest editor has unsaved (or still-
+		 * persisting) changes, so a refresh can't silently discard an in-app
+		 * edit. No-op when not editing / nothing dirty.
+		 *
+		 * @param {BeforeUnloadEvent} event The browser beforeunload event.
+		 * @return {string|undefined} A non-empty string triggers the native prompt.
+		 */
+		onBeforeUnload(event) {
+			const editor = this.manifestEditor
+			const dirtyRef = editor && editor.dirty
+			const dirty = dirtyRef && typeof dirtyRef === 'object' && 'value' in dirtyRef ? dirtyRef.value : dirtyRef
+			if (!dirty) return undefined
+			// The standard cross-browser incantation to trigger the prompt.
+			event.preventDefault()
+			event.returnValue = ''
+			return ''
+		},
 		/**
 		 * Re-fetch setup status after the wizard reports completion so the
 		 * phase flips from `setup` to `shell` without a page reload.
