@@ -72,6 +72,9 @@
 						{{ t('nextcloud-vue', 'Add action') }}
 					</NcButton>
 					<NcButton type="primary" :disabled="saving" @click="onDone">
+						<template v-if="saving" #icon>
+							<NcLoadingIcon :size="20" />
+						</template>
 						{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 					</NcButton>
 				</div>
@@ -81,7 +84,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -94,7 +97,7 @@ const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
 export default {
 	name: 'CnEditActionsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, Plus, Delete, ArrowUp, ArrowDown },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, NcLoadingIcon, Plus, Delete, ArrowUp, ArrowDown },
 
 	mixins: [manifestModalDoneMixin],
 

@@ -47,6 +47,9 @@
 
 			<div class="cn-edit-sidebar__footer">
 				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
 					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
@@ -55,7 +58,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField } from '@nextcloud/vue'
+import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -64,7 +67,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSidebarModal',
 
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, Plus, Delete },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, Plus, Delete },
 
 	mixins: [manifestModalDoneMixin],
 

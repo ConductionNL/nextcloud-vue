@@ -36,6 +36,9 @@
 					{{ t('nextcloud-vue', 'Add page') }}
 				</NcButton>
 				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
 					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
@@ -44,7 +47,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcModal, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
@@ -53,7 +56,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditPagesModal',
 
-	components: { NcModal, NcButton, NcEmptyContent, Plus, CnPageTreeNode },
+	components: { NcModal, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 

@@ -58,6 +58,9 @@
 					{{ t('nextcloud-vue', 'Add settings item') }}
 				</NcButton>
 				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
 					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
@@ -66,7 +69,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
@@ -75,7 +78,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSettingsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, Plus, CnMenuTreeNode },
+	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, CnMenuTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
