@@ -18,6 +18,11 @@
 			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
 			"description": "Semver of the manifest content. Bump when the manifest changes meaningfully. Used for cache busting and app-builder migration tracking. Distinct from the schema's own version."
 		},
+		"openbuildEditable": {
+			"type": "boolean",
+			"default": true,
+			"description": "Whether the OpenBuild in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. OpenBuild's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`."
+		},
 		"dependencies": {
 			"type": "array",
 			"default": [],
@@ -60,6 +65,10 @@
 								}
 							},
 							"optionsSource": { "type": "string", "description": "choice: endpoint/registry to load options from (alternative to static options)." },
+							"dependsOn": { "type": "string", "description": "choice: the configKey of a previous choice step this one cascades from. Disabled until the parent is set; its option list is taken from optionsByParent[parentValue] (e.g. organisation-type depends on country)." },
+							"optionsByParent": { "type": "object", "description": "choice: map of parent-choice value → options[] for a dependent (dependsOn) choice. Same option item shape as `options`.", "additionalProperties": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["value", "label"], "properties": { "value": {}, "label": { "type": "string" } } } } },
+							"suggestFrom": { "type": "string", "description": "choice: the configKey of an earlier choice this step pre-fills a suggestion from. When that value is set and the user has not yet picked here, the option matching suggestMap[parentValue] is auto-selected (still user-overridable)." },
+							"suggestMap": { "type": "object", "description": "choice: map of suggestFrom value → suggested option value. Used to auto-suggest a default (e.g. RGS template suggested from organisation type).", "additionalProperties": { "type": "string" } },
 							"multiple": { "type": "boolean", "default": false, "description": "choice: allow multi-select." },
 							"action": { "type": "string", "description": "run-action: actionId POSTed to /api/setup/action/{action}." },
 							"healthCheck": { "type": "boolean", "default": false, "description": "summary: render a health recap." },
@@ -177,6 +186,7 @@
 							"name": { "type": "string", "description": "Metric name (without the {app}_ prefix the engine adds)." },
 							"type": { "type": "string", "enum": ["gauge", "counter"], "description": "Prometheus metric type." },
 							"help": { "type": "string", "description": "HELP text for the metric family." },
+							"cacheTtl": { "type": "integer", "minimum": 0, "description": "ADR-040: optional per-metric cache TTL in seconds." },
 							"source": {
 								"type": "object",
 								"additionalProperties": false,
@@ -185,12 +195,13 @@
 								"properties": {
 									"kind": {
 										"type": "string",
-										"enum": ["tableCount", "objectCount", "appConfig", "provider"],
+										"enum": ["tableCount", "objectCount", "objectSum", "appConfig", "provider"],
 										"description": "Source kind. tableCount = COUNT over an allowlisted own-table; objectCount = OR objects by register/schema; appConfig = a numeric app-config value; provider = an IMetricsProvider implementation."
 									},
 									"table": { "type": "string", "description": "tableCount: allowlisted [a-z0-9_] table name." },
 									"register": { "type": "string", "description": "objectCount: OR register slug." },
-									"schema": { "type": "string", "description": "objectCount: OR schema slug." },
+									"schema": { "type": "string", "description": "objectCount / objectSum: OR schema slug." },
+										"field": { "type": "string", "description": "objectSum: the numeric object property to SUM." },
 									"groupBy": { "type": "array", "items": { "type": "string" }, "description": "Columns to GROUP BY (one label per column)." },
 									"labelMap": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Rename a groupBy column to a different Prometheus label name." },
 									"labelDefaults": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] }, "description": "Default label value for NULL/empty group columns." },
@@ -592,7 +603,11 @@
 				},
 				"handler": {
 					"type": "string",
-					"description": "Registry key for type: 'handler'. Resolved against the customComponents map passed to CnAppRoot."
+					"description": "Registry key for type: 'handler'. Resolved against the customComponents map passed to CnAppRoot. Also the built-in dispatch verb when paired with `route` (handler: 'navigate' → $router.push to `route`)."
+				},
+				"route": {
+					"type": "string",
+					"description": "Destination route name for handler: 'navigate'. The dispatcher (manifestActionDispatch) calls $router.push({ name: route, params }). For row-level actions params include { id: row[rowKey] }; page-level header actions navigate without row context (e.g. a 'New X' action to a detail route)."
 				},
 				"icon": {
 					"type": "string",
