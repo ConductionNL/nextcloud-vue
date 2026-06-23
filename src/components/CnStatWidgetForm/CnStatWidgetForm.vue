@@ -9,16 +9,11 @@
 		<h4 class="cn-stat-widget-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
 
 		<div class="cn-stat-widget-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<NcSelect
@@ -153,6 +148,7 @@ import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
@@ -182,7 +178,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
 
 	props: {
 		/**

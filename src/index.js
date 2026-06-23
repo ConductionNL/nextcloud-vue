@@ -58,6 +58,7 @@ export {
 	CnSignatureCapture,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnRegisterSchemaSelect,
 	CnThemePreview,
 	CnRelationshipGraph,
 	CnDashboardPage,
