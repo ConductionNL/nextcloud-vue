@@ -387,6 +387,14 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	// an integration `widget`, a `section` requires NO sidebar tab and carries no
 	// grid metadata — it sits wherever the page's `placement` puts it.
 	section: [],
+	// Create-override handler: a plain async function (exposed as `.handler` /
+	// `.fn`) that CnPageRenderer resolves for CnIndexPage's `createOverride`
+	// prop so a declarative `type:"index"` page can route its generic Add
+	// through an app-specific create flow. Carries no component/metadata — it is
+	// resolved by name, not mounted — so it lists no required fields (like
+	// `page`); listing it here keeps the mount-time validator from rejecting a
+	// valid handler registration.
+	'create-override': [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
