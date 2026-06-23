@@ -335,12 +335,18 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	// Slot-component kinds: a registered component mounted into a named page
 	// slot (CnPageRenderer resolves these by registry name, independent of
 	// `kind`). `header`/`actions` back the `headerComponent`/`actionsComponent`
-	// manifest sugar; `tab` backs `config.sidebarTabs[].component`. They carry
-	// no required metadata (like `page`) — listing them here keeps the mount-time
-	// registry validator from rejecting a valid slot registration.
+	// manifest sugar; `tab` backs `config.sidebarTabs[].component`; `section`
+	// backs `config.bodyWidgets[].component` (rendered into a `section:*` slot).
+	// They carry no required metadata (like `page`) — listing them here keeps the
+	// mount-time registry validator from rejecting a valid slot registration.
 	header: [],
 	actions: [],
 	tab: [],
+	section: [],
+	// Handler kind: not a component but a named async function resolved by
+	// CnPageRenderer.resolveCreateOverride (via `.handler`/`.fn`) for
+	// CnIndexPage's `config.createOverride` sugar. No required metadata.
+	'create-override': [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
@@ -734,8 +740,9 @@ export default {
 		 * kind-metadata emits `console.warn`.
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
-		 * `cell-renderer`, and the slot-component kinds `header`, `actions`,
-		 * `tab` (mounted into named page slots). See spec REQ-MVR-002.
+		 * `cell-renderer`, the slot-component kinds `header`, `actions`,
+		 * `tab`, `section` (mounted into named page slots), and the handler
+		 * kind `create-override`. See spec REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */
