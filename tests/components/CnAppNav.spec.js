@@ -192,6 +192,40 @@ describe('CnAppNav', () => {
 		})
 	})
 
+	describe('icon-* → MDI monochrome bridge', () => {
+		// Nextcloud bakes some `icon-*` classes as multi-tone background-images
+		// (e.g. the blue `icon-folder`); bridging them to an MDI component makes
+		// every menu glyph render in the current text colour. The bridged name
+		// must take the `#icon` (MDI) slot path, NOT the CSS-class path.
+		it('renders a bridged icon-* as an MDI component (not a CSS class)', () => {
+			const wrapper = mountNav({ useProps: true })
+			const folder = { icon: 'icon-folder' }
+			expect(wrapper.vm.mdiIconComponent(folder)).toBeTruthy()
+			expect(wrapper.vm.cssIconClass(folder)).toBe('')
+		})
+
+		it('tolerates a -dark / -white theme-variant suffix', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.vm.mdiIconComponent({ icon: 'icon-calendar-dark' })).toBeTruthy()
+			expect(wrapper.vm.cssIconClass({ icon: 'icon-calendar-dark' })).toBe('')
+		})
+
+		it('leaves an unbridged icon-* on the CSS-class path', () => {
+			const wrapper = mountNav({ useProps: true })
+			const exotic = { icon: 'icon-some-unmapped-thing' }
+			expect(wrapper.vm.mdiIconComponent(exotic)).toBeNull()
+			expect(wrapper.vm.cssIconClass(exotic)).toBe('icon-some-unmapped-thing')
+		})
+
+		it('still resolves registered MDI names and ignores empty icons', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.vm.mdiIconComponent({ icon: '' })).toBeNull()
+			expect(wrapper.vm.cssIconClass({ icon: '' })).toBe('')
+			// A non-icon- name that isn't registered falls back to null (CSS path = '')
+			expect(wrapper.vm.cssIconClass({ icon: 'AccountGroup' })).toBe('')
+		})
+	})
+
 	describe('visibleIf.appInstalled filter', () => {
 		const crossAppManifest = {
 			version: '1.0.0',
