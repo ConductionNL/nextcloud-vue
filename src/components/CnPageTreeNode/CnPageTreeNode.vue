@@ -88,6 +88,64 @@
 				<span class="cn-page-tree__id" :title="t('nextcloud-vue', 'Route name (used by menu links)')">
 					{{ page.id }}
 				</span>
+
+				<!-- Data source — index/detail pages render an OpenRegister
+				     register + schema, so without these the page has nothing to
+				     show. When the app's registers/schemas are provided (via the
+				     injected `cnDataSources`) these are dropdowns; otherwise they
+				     fall back to free-text slug inputs. -->
+				<template v-if="isDataPage(page)">
+					<NcSelect v-if="hasDataSources"
+						class="cn-page-tree__field cn-page-tree__field--break"
+						:value="selectedRegister(page)"
+						:options="registerOptions"
+						:input-label="t('nextcloud-vue', 'Register')"
+						label="label"
+						:clearable="true"
+						:placeholder="t('nextcloud-vue', 'Choose a register')"
+						@input="setRegister(page, $event)" />
+					<NcTextField v-else
+						class="cn-page-tree__field--break"
+						:value="configValue(page, 'register')"
+						:label="t('nextcloud-vue', 'Register')"
+						:label-visible="true"
+						:placeholder="'my-register'"
+						@update:value="setConfig(page, 'register', $event)" />
+
+					<NcSelect v-if="hasDataSources"
+						class="cn-page-tree__field"
+						:value="selectedSchema(page)"
+						:options="schemaOptions(page)"
+						:input-label="t('nextcloud-vue', 'Schema')"
+						label="label"
+						:clearable="true"
+						:disabled="!configValue(page, 'register')"
+						:placeholder="t('nextcloud-vue', 'Choose a schema')"
+						@input="setSchema(page, $event)" />
+					<NcTextField v-else
+						:value="configValue(page, 'schema')"
+						:label="t('nextcloud-vue', 'Schema')"
+						:label-visible="true"
+						:placeholder="'my-schema'"
+						@update:value="setConfig(page, 'schema', $event)" />
+
+					<NcSelect v-if="page.type === 'index' && columnOptions(page).length"
+						class="cn-page-tree__field"
+						:value="selectedColumns(page)"
+						:options="columnOptions(page)"
+						:input-label="t('nextcloud-vue', 'Columns')"
+						label="label"
+						:multiple="true"
+						:close-on-select="false"
+						:placeholder="t('nextcloud-vue', 'All properties')"
+						@input="setColumns(page, $event)" />
+					<NcTextField v-else-if="page.type === 'index'"
+						:value="columnsText(page)"
+						:label="t('nextcloud-vue', 'Columns (comma separated)')"
+						:label-visible="true"
+						:placeholder="'name, status'"
+						@update:value="setColumnsText(page, $event)" />
+				</template>
 			</div>
 
 			<!-- Child pages (those whose parent is this page). -->
@@ -129,8 +187,11 @@ const TYPE_ICONS = {
  * CnPageTreeNode — recursive tree row for the pages editor (ADR-041).
  *
  * Renders the manifest's `pages[]` as compact rows (icon + title + type) with a
- * per-page **edit cog** that reveals Title / Type / Parent / Route, plus
- * reorder, delete and add-sub-page. The hierarchy is derived from each page's
+ * per-page **edit cog** that reveals Title / Type / Parent / Route — and, for
+ * `index`/`detail` pages, the OpenRegister **Register / Schema / Columns** data
+ * source so the page actually renders a table (dropdowns when the app's
+ * registers/schemas are injected via `cnDataSources`, free-text slugs
+ * otherwise) — plus reorder, delete and add-sub-page. The hierarchy is derived from each page's
  * `parent` field (the parent page's id) — top-level pages render first, and a
  * page's children (`parent === page.id`) render nested one level deeper, so an
  * index and its detail visually correlate and the route can build up from the
@@ -141,6 +202,16 @@ export default {
 	name: 'CnPageTreeNode',
 
 	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, ArrowUp, ArrowDown },
+
+	inject: {
+		/**
+		 * App data sources for index/detail page config, published by CnAppRoot.
+		 * Shape: `{ registers: [{ value, label, schemas: [{ value, label,
+		 * columns: string[] }] }] }`. When absent, the register/schema fields
+		 * fall back to free-text slug inputs.
+		 */
+		cnDataSources: { default: null },
+	},
 
 	props: {
 		/**
@@ -185,6 +256,15 @@ export default {
 		/** The pages at this level — those whose parent matches `parentId`, in array order. */
 		siblings() {
 			return this.list.filter((p) => p && (p.parent || '') === this.parentId)
+		},
+		/** Whether app data sources (registers/schemas) were provided. */
+		hasDataSources() {
+			return !!(this.cnDataSources && Array.isArray(this.cnDataSources.registers) && this.cnDataSources.registers.length)
+		},
+		/** Register dropdown options (`{ value, label }`) from the data sources. */
+		registerOptions() {
+			if (!this.hasDataSources) return []
+			return this.cnDataSources.registers.map((r) => ({ value: r.value, label: r.label || r.value }))
 		},
 	},
 
@@ -322,6 +402,149 @@ export default {
 			return parts.length ? parts[parts.length - 1] : ''
 		},
 		/**
+		 * Whether a page renders OpenRegister data (needs register/schema config).
+		 * @param {object} page The page.
+		 * @return {boolean}
+		 */
+		isDataPage(page) {
+			return page && (page.type === 'index' || page.type === 'detail')
+		},
+		/**
+		 * Ensure a page has a `config` object and return it.
+		 * @param {object} page The page.
+		 * @return {object} The page's config (created if missing).
+		 */
+		ensureConfig(page) {
+			if (!page.config || typeof page.config !== 'object') this.$set(page, 'config', {})
+			return page.config
+		},
+		/**
+		 * Read a `config` field (empty string when unset).
+		 * @param {object} page The page.
+		 * @param {string} key The config key.
+		 * @return {string}
+		 */
+		configValue(page, key) {
+			return (page && page.config && page.config[key]) || ''
+		},
+		/**
+		 * Write a `config` field in place (deletes the key when cleared).
+		 * @param {object} page The page.
+		 * @param {string} key The config key.
+		 * @param {string} value The value (falsy removes the key).
+		 * @return {void}
+		 */
+		setConfig(page, key, value) {
+			const config = this.ensureConfig(page)
+			if (value) this.$set(config, key, value)
+			else this.$delete(config, key)
+		},
+		/**
+		 * The schema option list for a page's currently-chosen register.
+		 * @param {object} page The page.
+		 * @return {Array<{value: string, label: string, columns: Array}>}
+		 */
+		schemaOptions(page) {
+			if (!this.hasDataSources) return []
+			const reg = this.cnDataSources.registers.find((r) => r.value === this.configValue(page, 'register'))
+			const schemas = (reg && Array.isArray(reg.schemas)) ? reg.schemas : []
+			return schemas.map((s) => ({ value: s.value, label: s.label || s.value, columns: s.columns || [] }))
+		},
+		/**
+		 * Resolve a page's register to its dropdown option.
+		 * @param {object} page The page.
+		 * @return {{value: string, label: string}|null}
+		 */
+		selectedRegister(page) {
+			const slug = this.configValue(page, 'register')
+			if (!slug) return null
+			return this.registerOptions.find((o) => o.value === slug) || { value: slug, label: slug }
+		},
+		/**
+		 * Set a page's register; clears the schema + columns (schemas are
+		 * register-scoped, so the old picks no longer apply).
+		 * @param {object} page The page.
+		 * @param {{value: string}|null} option The selected register option.
+		 * @return {void}
+		 */
+		setRegister(page, option) {
+			this.setConfig(page, 'register', option ? option.value : '')
+			this.setConfig(page, 'schema', '')
+			this.setConfig(page, 'columns', '')
+		},
+		/**
+		 * Resolve a page's schema to its dropdown option.
+		 * @param {object} page The page.
+		 * @return {{value: string, label: string}|null}
+		 */
+		selectedSchema(page) {
+			const slug = this.configValue(page, 'schema')
+			if (!slug) return null
+			return this.schemaOptions(page).find((o) => o.value === slug) || { value: slug, label: slug }
+		},
+		/**
+		 * Set a page's schema; clears columns (column keys are schema-specific).
+		 * @param {object} page The page.
+		 * @param {{value: string}|null} option The selected schema option.
+		 * @return {void}
+		 */
+		setSchema(page, option) {
+			this.setConfig(page, 'schema', option ? option.value : '')
+			this.setConfig(page, 'columns', '')
+		},
+		/**
+		 * The selectable column options (the chosen schema's property keys).
+		 * @param {object} page The page.
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		columnOptions(page) {
+			const schema = this.schemaOptions(page).find((o) => o.value === this.configValue(page, 'schema'))
+			const cols = (schema && Array.isArray(schema.columns)) ? schema.columns : []
+			return cols.map((c) => ({ value: c, label: c }))
+		},
+		/**
+		 * Resolve a page's columns array to dropdown options.
+		 * @param {object} page The page.
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		selectedColumns(page) {
+			const cols = (page && page.config && Array.isArray(page.config.columns)) ? page.config.columns : []
+			return cols.map((c) => ({ value: c, label: c }))
+		},
+		/**
+		 * Set a page's columns from the selected dropdown options.
+		 * @param {object} page The page.
+		 * @param {Array<{value: string}>} options The selected column options.
+		 * @return {void}
+		 */
+		setColumns(page, options) {
+			const config = this.ensureConfig(page)
+			const cols = (options || []).map((o) => o.value)
+			if (cols.length) this.$set(config, 'columns', cols)
+			else this.$delete(config, 'columns')
+		},
+		/**
+		 * The columns as a comma-separated string (free-text fallback).
+		 * @param {object} page The page.
+		 * @return {string}
+		 */
+		columnsText(page) {
+			const cols = (page && page.config && Array.isArray(page.config.columns)) ? page.config.columns : []
+			return cols.join(', ')
+		},
+		/**
+		 * Set a page's columns from a comma-separated string (free-text fallback).
+		 * @param {object} page The page.
+		 * @param {string} text The comma-separated column keys.
+		 * @return {void}
+		 */
+		setColumnsText(page, text) {
+			const config = this.ensureConfig(page)
+			const cols = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
+			if (cols.length) this.$set(config, 'columns', cols)
+			else this.$delete(config, 'columns')
+		},
+		/**
 		 * Reorder a page among its siblings by swapping positions in the flat list.
 		 * @param {object} page The page.
 		 * @param {number} delta -1 to move up, +1 to move down.
@@ -451,6 +674,11 @@ export default {
 
 .cn-page-tree__field {
 	min-width: 160px;
+}
+
+/* Force the data-source fields onto a fresh row below Title/Type/Parent/Route. */
+.cn-page-tree__field--break {
+	flex-basis: 100%;
 }
 
 .cn-page-tree__id {

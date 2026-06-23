@@ -291,7 +291,10 @@
 			  per-app wiring; declare a `walkthrough` block to opt in.
 			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled" name="walkthrough" :manifest="manifest" :seen-version="walkthroughSeenVersion">
+			<slot v-if="walkthroughEnabled"
+				name="walkthrough"
+				:manifest="manifest"
+				:seen-version="walkthroughSeenVersion">
 				<CnWalkthrough
 					:app-id="appId"
 					:manifest="manifest"
@@ -441,6 +444,10 @@ export default {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
 			cnManifestEditor: this.manifestEditor,
+			// App registers/schemas for the in-app pages editor (index/detail
+			// data source). Plain value (not a getter) so deep descendants —
+			// the page-tree rows under the edit button — resolve it reliably.
+			cnDataSources: this.dataSources,
 			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
@@ -662,6 +669,21 @@ export default {
 		 */
 		persistManifestDelta: {
 			type: Function,
+			default: null,
+		},
+		/**
+		 * App data sources for the in-app pages editor (ADR-041). Lets the
+		 * Edit-pages modal offer Register / Schema / Columns dropdowns for
+		 * `index`/`detail` pages instead of free-text slug inputs, so a
+		 * created page actually renders a table. Shape: `{ registers:
+		 * [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`.
+		 * Provided to descendants as `cnDataSources`; when omitted the editor
+		 * falls back to free-text register/schema fields.
+		 *
+		 * @type {object|null}
+		 */
+		dataSources: {
+			type: Object,
 			default: null,
 		},
 		/**
