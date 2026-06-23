@@ -50,6 +50,7 @@
 					:key="state.type"
 					:editing-widget="state.editingWidget"
 					:value="state.content"
+					:calendars-fetcher="calendarsFetcher"
 					@update:content="onContentUpdate" />
 			</div>
 			<div v-else class="cn-add-widget-modal__empty">
@@ -186,6 +187,18 @@ export default {
 		 * @type {Function|null}
 		 */
 		uploadFn: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * Optional async fetcher returning the user's calendars
+		 * (`[{key, name, color}]`) for the calendar widget's picker. Provided
+		 * by the consuming app (which owns the calendar backend); when null the
+		 * calendar form falls back to free-text principal entry.
+		 *
+		 * @type {Function|null}
+		 */
+		calendarsFetcher: {
 			type: Function,
 			default: null,
 		},
