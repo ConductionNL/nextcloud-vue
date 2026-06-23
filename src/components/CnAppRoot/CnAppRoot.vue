@@ -285,6 +285,23 @@
 				v-bind="cnSupportOverrides"
 				@close="cnSupportHide" />
 			<!--
+			  Product walkthrough (ADR-043) — a non-gating spotlight tour
+			  auto-mounted over the live shell. Reads `manifest.walkthrough` and
+			  auto-starts a tour that qualifies for the user's app version. No
+			  per-app wiring; declare a `walkthrough` block to opt in.
+			-->
+			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
+			<slot v-if="walkthroughEnabled" name="walkthrough" :manifest="manifest" :seen-version="walkthroughSeenVersion">
+				<CnWalkthrough
+					:app-id="appId"
+					:manifest="manifest"
+					:seen-version="walkthroughSeenVersion"
+					:resume="walkthroughResume"
+					:translate="translate"
+					@complete="onWalkthroughComplete"
+					@dismiss="onWalkthroughComplete" />
+			</slot>
+			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
 			  wires this to manifest entries with
@@ -326,6 +343,7 @@ import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
@@ -338,6 +356,7 @@ import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEdit
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
+import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -395,6 +414,7 @@ export default {
 		CnAppLoading,
 		CnDependencyMissing,
 		CnSetupWizard,
+		CnWalkthrough,
 		CnAiCompanion,
 		CnObjectSidebar,
 		CnSupportDialog,
@@ -462,6 +482,21 @@ export default {
 			 */
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
+			},
+			/**
+			 * Restart entry for the product walkthrough (ADR-043). Descendants
+			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
+			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
+			 * `tourId` the first declared tour is used.
+			 *
+			 * @param {string} [tourId] The tour to restart.
+			 * @return {void}
+			 */
+			cnReplayWalkthrough: (tourId) => {
+				if (!this.walkthroughEnabled) return
+				const wt = useWalkthrough(this.appId, this.manifest)
+				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
+				if (id) wt.restart(id)
 			},
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
@@ -1211,6 +1246,46 @@ export default {
 			const s = this.setupState
 			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
 		},
+		/**
+		 * Whether the manifest declares an enabled walkthrough with at least one
+		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
+		 *
+		 * @return {boolean} True when a walkthrough should mount.
+		 */
+		walkthroughEnabled() {
+			const w = this.manifest && this.manifest.walkthrough
+			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
+		},
+		/**
+		 * The user's last-seen app version for walkthrough composition. Read from
+		 * a per-user/browser key; CnAppRoot writes it on completion. Apps wanting
+		 * cross-device persistence can override the `#walkthrough` slot.
+		 *
+		 * @return {string} The last-seen version, or '' for a fresh user.
+		 */
+		walkthroughSeenVersion() {
+			try {
+				return window.localStorage.getItem('cn-walkthrough-seen:' + this.appId) || ''
+			} catch (e) {
+				return ''
+			}
+		},
+		/**
+		 * Cross-app / refresh resume token parsed from the URL query
+		 * (`cn_resume_tour` / `cn_resume_step`), or null.
+		 *
+		 * @return {object|null} `{ tourId, stepId }` or null.
+		 */
+		walkthroughResume() {
+			try {
+				const p = new URLSearchParams(window.location.search)
+				const tourId = p.get('cn_resume_tour')
+				if (!tourId) return null
+				return { tourId, stepId: p.get('cn_resume_step') || '' }
+			} catch (e) {
+				return null
+			}
+		},
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
@@ -1312,6 +1387,24 @@ export default {
 			 * completion and the status has been re-fetched.
 			 */
 			this.$emit('setup-complete')
+		},
+		/**
+		 * Persist the current app version as the user's last-seen walkthrough
+		 * version (so an upgrade later surfaces only newer steps) and notify.
+		 *
+		 * @return {void}
+		 */
+		onWalkthroughComplete() {
+			try {
+				const v = (this.manifest && this.manifest.version) || '1.0.0'
+				window.localStorage.setItem('cn-walkthrough-seen:' + this.appId, String(v))
+			} catch (e) {
+				// Non-fatal: persistence is best-effort (private mode / no storage).
+			}
+			/**
+			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
+			 */
+			this.$emit('walkthrough-complete')
 		},
 		/**
 		 * Validate every entry in the `registry` prop at mount time.

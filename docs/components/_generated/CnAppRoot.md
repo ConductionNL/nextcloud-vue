@@ -23,9 +23,10 @@
 
 ### Events
 
-| Name             | Payload | Description                                                                                  |
-| ---------------- | ------- | -------------------------------------------------------------------------------------------- |
-| `setup-complete` | —       | Emitted after the gating setup wizard reports completion and the status has been re-fetched. |
+| Name                   | Payload | Description                                                                                  |
+| ---------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `setup-complete`       | —       | Emitted after the gating setup wizard reports completion and the status has been re-fetched. |
+| `walkthrough-complete` | —       | Emitted when the walkthrough finishes or is dismissed.                                       |
 
 ### Slots
 

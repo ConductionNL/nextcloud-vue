@@ -18,12 +18,12 @@
 
 ### Events
 
-| Name          | Payload | Description                           |
-| ------------- | ------- | ------------------------------------- |
-| `complete`    | —       | Emitted when the last step is passed. |
-| `dismiss`     | —       |                                       |
-| `step-change` | —       |                                       |
-| `advance`     | —       |                                       |
+| Name          | Payload | Description                                                |
+| ------------- | ------- | ---------------------------------------------------------- |
+| `complete`    | —       | Emitted when the last step is passed.                      |
+| `dismiss`     | —       | Emitted when the user dismisses the tour (backdrop / ESC). |
+| `step-change` | —       | Emitted when the active step changes.                      |
+| `advance`     | —       | Emitted when the user advances the tour.                   |
 
 ### Slots
 

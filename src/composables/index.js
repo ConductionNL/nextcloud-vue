@@ -16,6 +16,7 @@ export {
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
 export { useSetupStatus } from './useSetupStatus.js'
+export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrough.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'
 export { useDataSource, buildCountQuery, buildBucketQuery } from './useDataSource.js'
 export { useObjectSubscription } from './useObjectSubscription.js'
