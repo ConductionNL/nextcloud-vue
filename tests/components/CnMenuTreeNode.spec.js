@@ -40,6 +40,17 @@ describe('CnMenuTreeNode', () => {
 		expect(labels).toEqual(['A', 'B'])
 	})
 
+	it('scopes top-level rows by section (settings vs the rest)', () => {
+		const list = [
+			{ id: 'home', label: 'Home', order: 10 },
+			{ id: 'prefs', label: 'Prefs', order: 20, section: 'settings' },
+		]
+		// default (no section) shows non-settings items
+		expect(mountNode(list).findAll('.cn-menu-tree__label').wrappers.map((w) => w.text())).toEqual(['Home'])
+		// section="settings" shows only the settings item
+		expect(mountNode(list, { section: 'settings' }).findAll('.cn-menu-tree__label').wrappers.map((w) => w.text())).toEqual(['Prefs'])
+	})
+
 	it('toggles a per-item editor with the cog', async () => {
 		const list = [{ id: 'a', label: 'A', icon: '', route: '', order: 10 }]
 		const wrapper = mountNode(list)

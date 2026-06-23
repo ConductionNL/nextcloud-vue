@@ -105,7 +105,8 @@
 				:list="item.children"
 				:depth="depth + 1"
 				:max-depth="maxDepth"
-				:pages="pages" />
+				:pages="pages"
+				:section="section" />
 		</li>
 	</ul>
 </template>
@@ -167,6 +168,21 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Which nav section this editor scopes to at the TOP level. CnAppNav
+		 * splits `menu[]` by `item.section` (`main` | `footer` | `settings`):
+		 * `"settings"` shows only the gear-foldout items; anything else (the
+		 * default) shows the non-settings items. Lets the main menu editor and
+		 * the settings-menu editor share this component over one `menu[]` array
+		 * without showing each other's items. Only filters depth 0 — children
+		 * (nested via `children[]`) always render.
+		 *
+		 * @type {string|null}
+		 */
+		section: {
+			type: String,
+			default: null,
+		},
 	},
 
 	data() {
@@ -177,10 +193,12 @@ export default {
 	},
 
 	computed: {
-		/** Siblings in nav order: `order` ascending, array index as tiebreak. */
+		/** Siblings in nav order: `order` ascending, array index as tiebreak. Top level is section-scoped. */
 		sortedSiblings() {
+			const wantSettings = this.section === 'settings'
 			return this.list
 				.map((item, index) => ({ item, index }))
+				.filter(({ item }) => this.depth > 0 || (item.section === 'settings') === wantSettings)
 				.sort((a, b) => {
 					const oa = typeof a.item.order === 'number' ? a.item.order : a.index
 					const ob = typeof b.item.order === 'number' ? b.item.order : b.index
