@@ -18,6 +18,25 @@
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
 			@update:value="updateField('subtitle', $event)" />
 
+		<!-- Upload is the reliable path: external image URLs are often blocked
+		     by the Nextcloud Content-Security-Policy, so only the background
+		     colour would show. Uploads are same-origin / data URLs. -->
+		<label class="cn-header-widget-form__upload-label">
+			<input
+				ref="fileInput"
+				type="file"
+				accept="image/*"
+				class="cn-header-widget-form__file-input"
+				:disabled="uploading"
+				@change="handleFileSelect">
+			<span class="cn-header-widget-form__upload-button">
+				{{ uploading ? t('nextcloud-vue', 'Uploading…') : t('nextcloud-vue', 'Upload background image') }}
+			</span>
+		</label>
+		<p v-if="uploadError" class="cn-header-widget-form__error" role="alert">
+			{{ uploadError }}
+		</p>
+
 		<NcTextField
 			:value="backgroundImageUrl"
 			:label="t('nextcloud-vue', 'Background image URL')"
@@ -195,6 +214,18 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+		/**
+		 * Optional upload transport: `async (dataUrl) => ({ url })`. When given,
+		 * an uploaded background image is sent through it and the returned URL is
+		 * stored; otherwise the file is embedded as a data URL (same-origin, so
+		 * it isn't blocked by the CSP the way external http(s) URLs are).
+		 *
+		 * @type {Function|null}
+		 */
+		uploadFn: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -246,6 +277,8 @@ export default {
 			ctaLabel: cta && typeof cta.label === 'string' ? cta.label : '',
 			ctaUrl: cta && typeof cta.url === 'string' ? cta.url : '',
 			ctaStyle: (cta && ALLOWED_CTA_STYLES.includes(cta.style)) ? cta.style : 'primary',
+			uploading: false,
+			uploadError: '',
 		}
 	},
 
@@ -346,6 +379,61 @@ export default {
 		},
 
 		/**
+		 * Read the selected image file and set backgroundImageUrl — via the
+		 * injected uploadFn when present (→ hosted URL), else embedded as a data
+		 * URL (same-origin, so the CSP doesn't block it like external URLs).
+		 *
+		 * @param {Event} event the file-input change event.
+		 * @return {void}
+		 */
+		handleFileSelect(event) {
+			const file = event.target.files && event.target.files[0]
+			if (!file) {
+				return
+			}
+			this.uploadError = ''
+			this.uploading = true
+			const reader = new FileReader()
+			reader.onload = async (e) => {
+				try {
+					const dataUrl = e.target.result
+					if (typeof dataUrl !== 'string') {
+						throw new Error('FileReader did not return a data URL')
+					}
+					if (typeof this.uploadFn === 'function') {
+						const response = await this.uploadFn(dataUrl)
+						this.updateField('backgroundImageUrl', response.url)
+					} else {
+						this.updateField('backgroundImageUrl', dataUrl)
+					}
+				} catch (err) {
+					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+					console.error('Header image upload failed:', err)
+				} finally {
+					this.uploading = false
+					this.resetFileInput()
+				}
+			}
+			reader.onerror = () => {
+				this.uploadError = t('nextcloud-vue', 'Failed to upload image')
+				this.uploading = false
+				this.resetFileInput()
+			}
+			reader.readAsDataURL(file)
+		},
+
+		/**
+		 * Clear the native file input so re-selecting the same file re-fires.
+		 *
+		 * @return {void}
+		 */
+		resetFileInput() {
+			if (this.$refs.fileInput) {
+				this.$refs.fileInput.value = ''
+			}
+		},
+
+		/**
 		 * Set a CTA sub-field (label, url, style) and re-emit.
 		 *
 		 * @param {string} field one of: label, url, style.
@@ -377,8 +465,8 @@ export default {
 			}
 			if (typeof this.backgroundImageUrl === 'string'
 				&& this.backgroundImageUrl.trim() !== ''
-				&& /^https?:\/\//i.test(this.backgroundImageUrl.trim()) === false) {
-				errors.push(t('nextcloud-vue', 'Background image URL must be HTTP or HTTPS'))
+				&& /^(https?:\/\/|data:|blob:|\/)/i.test(this.backgroundImageUrl.trim()) === false) {
+				errors.push(t('nextcloud-vue', 'Background image must be a URL or an uploaded image'))
 			}
 			const labelEmpty = typeof this.ctaLabel !== 'string' || this.ctaLabel.trim() === ''
 			const urlEmpty = typeof this.ctaUrl !== 'string' || this.ctaUrl.trim() === ''
@@ -415,6 +503,33 @@ export default {
 	justify-content: space-between;
 	gap: 12px;
 	font-size: 14px;
+}
+
+.cn-header-widget-form__upload-label {
+	display: inline-flex;
+	cursor: pointer;
+}
+
+.cn-header-widget-form__file-input {
+	display: none;
+}
+
+.cn-header-widget-form__upload-button {
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background-color: var(--color-background-hover);
+	font-size: 14px;
+}
+
+.cn-header-widget-form__upload-label:hover .cn-header-widget-form__upload-button {
+	background-color: var(--color-background-dark);
+}
+
+.cn-header-widget-form__error {
+	margin: 0;
+	font-size: 12px;
+	color: var(--color-error);
 }
 
 .cn-header-widget-form__color {
