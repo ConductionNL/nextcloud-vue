@@ -18,34 +18,44 @@
 						:aria-label="t('nextcloud-vue', 'Edit menu item')"
 						:pressed="isOpen(item, index)"
 						@click="toggle(item, index)">
-						<template #icon><Cog :size="18" /></template>
+						<template #icon>
+							<Cog :size="18" />
+						</template>
 					</NcButton>
 					<NcButton
 						v-if="depth < maxDepth"
 						type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Add sub-item')"
 						@click="addChild(item)">
-						<template #icon><Plus :size="18" /></template>
+						<template #icon>
+							<Plus :size="18" />
+						</template>
 					</NcButton>
 					<NcButton
 						type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Move up')"
 						:disabled="index === 0"
 						@click="move(item, -1)">
-						<template #icon><ArrowUp :size="18" /></template>
+						<template #icon>
+							<ArrowUp :size="18" />
+						</template>
 					</NcButton>
 					<NcButton
 						type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Move down')"
 						:disabled="index === sortedSiblings.length - 1"
 						@click="move(item, 1)">
-						<template #icon><ArrowDown :size="18" /></template>
+						<template #icon>
+							<ArrowDown :size="18" />
+						</template>
 					</NcButton>
 					<NcButton
 						type="tertiary"
 						:aria-label="t('nextcloud-vue', 'Remove')"
 						@click="remove(item)">
-						<template #icon><Delete :size="18" /></template>
+						<template #icon>
+							<Delete :size="18" />
+						</template>
 					</NcButton>
 				</div>
 			</div>
@@ -56,14 +66,37 @@
 					:value.sync="item.label"
 					:label="t('nextcloud-vue', 'Label')"
 					:label-visible="true" />
-				<NcTextField
-					:value.sync="item.icon"
-					:label="t('nextcloud-vue', 'Icon')"
-					:label-visible="true" />
-				<NcTextField
-					:value.sync="item.route"
-					:label="t('nextcloud-vue', 'Route')"
-					:label-visible="true" />
+				<NcSelect
+					class="cn-menu-tree__select"
+					:value="selectedIcon(item)"
+					:options="iconOptions"
+					:input-label="t('nextcloud-vue', 'Icon')"
+					label="label"
+					:clearable="true"
+					:placeholder="t('nextcloud-vue', 'Pick an icon')"
+					@input="setField(item, 'icon', $event)">
+					<template #option="opt">
+						<span class="cn-menu-tree__icon-opt">
+							<span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />
+							{{ opt.label }}
+						</span>
+					</template>
+					<template #selected-option="opt">
+						<span class="cn-menu-tree__icon-opt">
+							<span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />
+							{{ opt.label }}
+						</span>
+					</template>
+				</NcSelect>
+				<NcSelect
+					class="cn-menu-tree__select"
+					:value="selectedPage(item)"
+					:options="pages"
+					:input-label="t('nextcloud-vue', 'Page')"
+					label="label"
+					:clearable="true"
+					:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
+					@input="setField(item, 'route', $event)" />
 			</div>
 
 			<!-- Nested children (recursive). -->
@@ -71,14 +104,16 @@
 				v-if="Array.isArray(item.children) && item.children.length"
 				:list="item.children"
 				:depth="depth + 1"
-				:max-depth="maxDepth" />
+				:max-depth="maxDepth"
+				:pages="pages" />
 		</li>
 	</ul>
 </template>
 
 <script>
-import { NcButton, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import { NEXTCLOUD_ICONS } from './nextcloudIcons.js'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -98,7 +133,7 @@ import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
 export default {
 	name: 'CnMenuTreeNode',
 
-	components: { NcButton, NcTextField, Cog, Plus, Delete, ArrowUp, ArrowDown },
+	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, ArrowUp, ArrowDown },
 
 	props: {
 		/**
@@ -121,6 +156,17 @@ export default {
 			type: Number,
 			default: 1,
 		},
+		/**
+		 * Selectable target pages for the Route field, as `{ value: route,
+		 * label }` options (derived from the manifest's `pages[]`). Passed down
+		 * recursively so child rows offer the same pages.
+		 *
+		 * @type {Array<{value: string, label: string}>}
+		 */
+		pages: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	data() {
@@ -142,22 +188,39 @@ export default {
 				})
 				.map((e) => e.item)
 		},
+
+		/** Nextcloud icon options for the icon dropdown. */
+		iconOptions() {
+			return NEXTCLOUD_ICONS
+		},
 	},
 
 	methods: {
 		t,
 
-		/** Stable-ish key for v-for + open tracking. */
+		/**
+		 * Stable-ish key for v-for + open tracking.
+		 * @param item
+		 * @param index
+		 */
 		keyOf(item, index) {
 			return item.id || `idx-${index}`
 		},
 
-		/** Whether this row's editor is open. */
+		/**
+		 * Whether this row's editor is open.
+		 * @param item
+		 * @param index
+		 */
 		isOpen(item, index) {
 			return this.openKeys.includes(this.keyOf(item, index))
 		},
 
-		/** Toggle this row's editor. */
+		/**
+		 * Toggle this row's editor.
+		 * @param item
+		 * @param index
+		 */
 		toggle(item, index) {
 			const key = this.keyOf(item, index)
 			const at = this.openKeys.indexOf(key)
@@ -165,14 +228,66 @@ export default {
 			else this.openKeys.splice(at, 1)
 		},
 
-		/** Render an `icon-*` NC class as a glyph; non-class icons get a generic dot. */
+		/**
+		 * Resolve the selected icon option for an item — a known option when the
+		 * stored class is in the list, else a synthetic option so a pre-existing
+		 * or custom `icon-*` value still displays.
+		 *
+		 * @param {{icon?: string}} item The menu item.
+		 * @return {{value: string, label: string}|null}
+		 */
+		selectedIcon(item) {
+			const icon = item && item.icon
+			if (!icon) return null
+			return this.iconOptions.find((o) => o.value === icon) || { value: icon, label: icon }
+		},
+
+		/**
+		 * Resolve the selected page option for an item's route — a known page
+		 * when the route matches, else a synthetic option so an existing/custom
+		 * route still displays.
+		 *
+		 * @param {{route?: string}} item The menu item.
+		 * @return {{value: string, label: string}|null}
+		 */
+		selectedPage(item) {
+			const route = item && item.route
+			if (!route) return null
+			return this.pages.find((o) => o.value === route) || { value: route, label: route }
+		},
+
+		/**
+		 * Write a dropdown selection back onto the item in place. NcSelect emits
+		 * the option object (or null when cleared); store its `value`.
+		 *
+		 * @param {object} item The menu item (mutated in place).
+		 * @param {string} field The field to set (`icon` | `route`).
+		 * @param {{value: string}|null} option The selected option.
+		 * @return {void}
+		 */
+		setField(item, field, option) {
+			// In-place edit by design (see component docblock + move/remove/addChild);
+			// `item` is an element of the `list` prop, edited by reference so
+			// diffManifest captures it.
+			// eslint-disable-next-line vue/no-mutating-props
+			this.$set(item, field, option ? option.value : '')
+		},
+
+		/**
+		 * Render an `icon-*` NC class as a glyph; non-class icons get a generic dot.
+		 * @param item
+		 */
 		iconClass(item) {
 			return typeof item.icon === 'string' && item.icon.startsWith('icon-')
 				? item.icon
 				: 'cn-menu-tree__icon--generic'
 		},
 
-		/** Reorder within this sibling list by renumbering `order` sequentially. */
+		/**
+		 * Reorder within this sibling list by renumbering `order` sequentially.
+		 * @param item
+		 * @param delta
+		 */
 		move(item, delta) {
 			const sorted = this.sortedSiblings
 			const idx = sorted.indexOf(item)
@@ -184,13 +299,22 @@ export default {
 			reordered.forEach((it, i) => { this.$set(it, 'order', (i + 1) * 10) })
 		},
 
-		/** Remove an item from this sibling list. */
+		/**
+		 * Remove an item from this sibling list.
+		 * @param item
+		 */
 		remove(item) {
 			const i = this.list.indexOf(item)
+			// In-place edit by design (see component docblock); `list` is the
+			// working manifest's array, mutated by reference so diffManifest sees it.
+			// eslint-disable-next-line vue/no-mutating-props
 			if (i !== -1) this.list.splice(i, 1)
 		},
 
-		/** Append a blank child under an item (creating `children` if needed). */
+		/**
+		 * Append a blank child under an item (creating `children` if needed).
+		 * @param item
+		 */
 		addChild(item) {
 			if (!Array.isArray(item.children)) this.$set(item, 'children', [])
 			const maxOrder = item.children.reduce((m, c) => Math.max(m, typeof c.order === 'number' ? c.order : 0), 0)
@@ -274,5 +398,25 @@ export default {
 
 .cn-menu-tree__editor > * {
 	flex: 1 1 160px;
+}
+
+.cn-menu-tree__select {
+	min-width: 160px;
+}
+
+.cn-menu-tree__icon-opt {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-menu-tree__icon-glyph {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background-size: 16px;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.8;
 }
 </style>

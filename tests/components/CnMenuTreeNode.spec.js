@@ -16,10 +16,16 @@ const NcTextFieldStub = {
 	template: '<input :value="value" @input="$emit(\'update:value\', $event.target.value)">',
 }
 
-function mountNode(list) {
+const NcSelectStub = {
+	name: 'NcSelect',
+	props: ['value', 'options', 'inputLabel', 'label', 'clearable', 'placeholder'],
+	template: '<div class="nc-select-stub" />',
+}
+
+function mountNode(list, extra = {}) {
 	return mount(CnMenuTreeNode, {
-		propsData: { list, depth: 0, maxDepth: 1 },
-		stubs: { NcButton: NcButtonStub, NcTextField: NcTextFieldStub },
+		propsData: { list, depth: 0, maxDepth: 1, ...extra },
+		stubs: { NcButton: NcButtonStub, NcTextField: NcTextFieldStub, NcSelect: NcSelectStub },
 	})
 }
 
@@ -71,5 +77,48 @@ describe('CnMenuTreeNode', () => {
 		await firstRowButtons.at(1).trigger('click') // add sub-item
 		expect(Array.isArray(list[0].children)).toBe(true)
 		expect(list[0].children.length).toBe(1)
+	})
+
+	it('icon dropdown offers Nextcloud icon-* classes', () => {
+		const wrapper = mountNode([{ id: 'a', label: 'A', icon: '', route: '', order: 10 }])
+		expect(wrapper.vm.iconOptions.length).toBeGreaterThan(10)
+		expect(wrapper.vm.iconOptions.every((o) => o.value.startsWith('icon-'))).toBe(true)
+	})
+
+	it('selectedIcon resolves a known option and falls back for custom values', () => {
+		const wrapper = mountNode([{ id: 'a', label: 'A', icon: 'icon-files', route: '', order: 10 }])
+		expect(wrapper.vm.selectedIcon({ icon: 'icon-files' }).value).toBe('icon-files')
+		expect(wrapper.vm.selectedIcon({ icon: 'icon-unknown-xyz' })).toEqual({ value: 'icon-unknown-xyz', label: 'icon-unknown-xyz' })
+		expect(wrapper.vm.selectedIcon({ icon: '' })).toBe(null)
+	})
+
+	it('selectedPage resolves against the passed pages', () => {
+		const pages = [{ value: 'Dashboard', label: 'Dashboard' }, { value: 'Leads', label: 'Leads' }]
+		const wrapper = mountNode([{ id: 'a', label: 'A', icon: '', route: 'Leads', order: 10 }], { pages })
+		expect(wrapper.vm.selectedPage({ route: 'Leads' })).toEqual({ value: 'Leads', label: 'Leads' })
+		expect(wrapper.vm.selectedPage({ route: '' })).toBe(null)
+	})
+
+	it('setField writes the option value (or clears) onto the item in place', () => {
+		const item = { id: 'a', label: 'A', icon: '', route: '', order: 10 }
+		const wrapper = mountNode([item])
+		wrapper.vm.setField(item, 'icon', { value: 'icon-files', label: 'Files' })
+		expect(item.icon).toBe('icon-files')
+		wrapper.vm.setField(item, 'route', { value: 'Dashboard', label: 'Dashboard' })
+		expect(item.route).toBe('Dashboard')
+		wrapper.vm.setField(item, 'icon', null)
+		expect(item.icon).toBe('')
+	})
+
+	it('passes pages down to nested child rows', () => {
+		const pages = [{ value: 'Dashboard', label: 'Dashboard' }]
+		const list = [{ id: 'a', label: 'A', order: 10, children: [{ id: 'c', label: 'C', order: 10 }] }]
+		const wrapper = mountNode(list, { pages })
+		const child = wrapper.findComponent({ name: 'CnMenuTreeNode' })
+		// the recursive child instance receives the same pages
+		const nested = wrapper.findAllComponents({ name: 'CnMenuTreeNode' })
+		expect(nested.length).toBeGreaterThan(1)
+		expect(nested.at(1).props('pages')).toEqual(pages)
+		expect(child).toBeTruthy()
 	})
 })
