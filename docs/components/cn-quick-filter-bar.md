@@ -46,6 +46,7 @@ In manifests:
 |------|------|---------|-------------|
 | `tabs` | Array | *(required)* | Tab definitions. Each entry is `{ label, filter, default?, icon? }`. `filter` is consumed by the *parent* (CnIndexPage merges it into the fetch), not by this component. |
 | `activeIndex` | Number | `null` | Zero-based index of the currently active tab, or `null` for none active. Usable as `v-model:active-index` (default Vue 2.6+ model). |
+| `inline` | Boolean | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
 
 ## Events
 

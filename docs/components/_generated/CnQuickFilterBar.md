@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name      | Type     | Required | Default | Description                                                                                                                              |
-| --------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `tabs`    | `array`  | ✓        | —       | Tab definitions — same shape `pages[].config.quickFilters[]` uses. `filter` is consumed by the parent (CnIndexPage), not this component. |
-| `v-model` | `number` |          | `null`  | Index of the currently active tab, or `null` for none active.                                                                            |
+| Name      | Type      | Required | Default | Description                                                                                                                                                                                                      |
+| --------- | --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tabs`    | `array`   | ✓        | —       | Tab definitions — same shape `pages[].config.quickFilters[]` uses. `filter` is consumed by the parent (CnIndexPage), not this component.                                                                         |
+| `inline`  | `boolean` |          | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
+| `v-model` | `number`  |          | `null`  | Index of the currently active tab, or `null` for none active.                                                                                                                                                    |
 
 ### Events
 
