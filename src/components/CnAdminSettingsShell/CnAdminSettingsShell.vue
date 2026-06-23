@@ -33,6 +33,20 @@
 					</template>
 					{{ reimporting ? importingLabel : reimportLabel }}
 				</NcButton>
+				<!-- Run the first-time setup wizard on demand (ADR-042). -->
+				<NcButton v-if="showSetup" @click="setupWizardOpen = true">
+					<template #icon>
+						<AutoFix :size="20" />
+					</template>
+					{{ setupLabel }}
+				</NcButton>
+				<!-- Open the "help us / suggest a feature" modal. -->
+				<NcButton v-if="showHelp" @click="helpModalOpen = true">
+					<template #icon>
+						<HelpCircleOutline :size="20" />
+					</template>
+					{{ helpLabel }}
+				</NcButton>
 				<!-- @slot actions Extra action buttons rendered next to the built-in update / re-import buttons in the version card header. -->
 				<slot name="actions" />
 			</template>
@@ -62,6 +76,21 @@
 
 		<!-- @slot default The app's own settings sections, rendered below the version card. -->
 		<slot />
+
+		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
+		<CnSetupWizard
+			v-if="showSetup && setupWizardOpen"
+			:app-id="appId"
+			:steps="setupSteps"
+			@complete="setupWizardOpen = false"
+			@close="setupWizardOpen = false" />
+
+		<!-- "Help us / suggest a feature" modal, opened from the admin page. -->
+		<CnSuggestFeatureModal
+			v-if="showHelp && helpModalOpen"
+			:repo="helpRepo"
+			:app="appId"
+			@close="helpModalOpen = false" />
 	</div>
 </template>
 
@@ -73,7 +102,11 @@ import axios from '@nextcloud/axios'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import AutoFix from 'vue-material-design-icons/AutoFix.vue'
+import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
+import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import CnSuggestFeatureModal from '../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -114,9 +147,13 @@ export default {
 	components: {
 		NcSettingsSection,
 		CnVersionInfoCard,
+		CnSetupWizard,
+		CnSuggestFeatureModal,
 		NcButton,
 		NcLoadingIcon,
 		Refresh,
+		AutoFix,
+		HelpCircleOutline,
 	},
 
 	props: {
@@ -227,6 +264,26 @@ export default {
 			type: String,
 			default: 'sales@conduction.nl',
 		},
+		/** Show a "Run setup wizard" action that opens CnSetupWizard (ADR-042). */
+		showSetup: {
+			type: Boolean,
+			default: false,
+		},
+		/** The `manifest.setup.steps` array passed to CnSetupWizard. */
+		setupSteps: {
+			type: Array,
+			default: () => [],
+		},
+		/** Show a "Help us / suggest a feature" action that opens CnSuggestFeatureModal. */
+		showHelp: {
+			type: Boolean,
+			default: false,
+		},
+		/** `<owner>/<repo>` GitHub slug for the feature-request modal. */
+		helpRepo: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['update', 'reimported', 'reimport-error'],
@@ -234,6 +291,8 @@ export default {
 	data() {
 		return {
 			reimporting: false,
+			setupWizardOpen: false,
+			helpModalOpen: false,
 		}
 	},
 
@@ -291,6 +350,14 @@ export default {
 		/** @return {string} SLA footer line. */
 		slaLine() {
 			return t('nextcloud-vue', 'For a Service Level Agreement (SLA), contact')
+		},
+		/** @return {string} Setup-wizard button label. */
+		setupLabel() {
+			return t('nextcloud-vue', 'Run setup wizard')
+		},
+		/** @return {string} Help / suggest-feature button label. */
+		helpLabel() {
+			return t('nextcloud-vue', 'Help us')
 		},
 	},
 

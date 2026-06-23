@@ -74,10 +74,27 @@
 						<p v-if="description" class="cn-detail-page__description">
 							{{ description }}
 						</p>
+						<!-- Declarative cross-schema summary chips (manifest
+						     `config.summaryAggregates`). Count/sum/avg over a
+						     related schema scoped to this object via @objectId. -->
+						<CnSummaryAggregates
+							v-if="summaryAggregates && summaryAggregates.length > 0"
+							:aggregates="summaryAggregates" />
 					</div>
 				</div>
 			</slot>
 			<div class="cn-detail-page__header-actions">
+				<!-- Declarative lifecycle/transition buttons (manifest
+				     `config.lifecycleActions`). Status-gated; driven by the
+				     object's x-openregister-lifecycle. Renders nothing when no
+				     transitions apply. -->
+				<CnLifecycleActions
+					v-if="lifecycleActions && (objectId || currentObject)"
+					:object-id="objectId"
+					:object="currentObject"
+					:config="lifecycleActions"
+					@transitioned="onTransitioned"
+					@reload="onLifecycleReload" />
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
@@ -210,6 +227,15 @@
 					:object-id="objectId"
 					:store="effectiveObjectStore" />
 			</div>
+
+			<!-- Declarative in-body sections, `placement: "before-body"` —
+			     above the grid / stats / auto-body. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="before-body"
+				data-testid="cn-detail-body-sections-before-body" />
 
 			<!-- Grid layout mode -->
 			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
@@ -372,6 +398,59 @@
 				</div>
 			</div>
 
+			<!-- Declarative in-body sections, `placement: "after-data"` —
+			     below the data/auto-body, above the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-data"
+				data-testid="cn-detail-body-sections-after-data" />
+
+			<!-- Declarative related-object list sections (manifest
+			     `config.relatedCollections`). Rendered below the detail body;
+			     each section's filter is scoped to this object via @objectId.
+			     An optional relation-link button opens CnRelationLinkModal. -->
+			<div
+				v-if="(relatedCollections && relatedCollections.length > 0) || (relationLinks && relationLinks.length > 0)"
+				class="cn-detail-page__related-collections">
+				<div v-if="relationLinks && relationLinks.length > 0" class="cn-detail-page__relation-links">
+					<NcButton
+						v-for="(link, li) in relationLinks"
+						:key="li"
+						class="cn-detail-page__relation-link-button"
+						:data-testid="`cn-detail-relation-link-${li}`"
+						@click="openRelationLink(link)">
+						<template #icon>
+							<Plus :size="18" />
+						</template>
+						{{ link.label || t('nextcloud-vue', 'Link related object') }}
+					</NcButton>
+				</div>
+				<CnRelatedCollections
+					v-if="relatedCollections && relatedCollections.length > 0"
+					:collections="relatedCollections"
+					@row-click="onRelatedRowClick" />
+			</div>
+
+			<!-- Declarative in-body sections, `placement: "after-related"` —
+			     below the related-object lists. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="bodyWidgets"
+				:context="sectionContext"
+				placement="after-related"
+				data-testid="cn-detail-body-sections-after-related" />
+
+			<!-- Declarative in-body sections, `placement: "end"` (the default
+			     placement) — the last body content, above the footer. -->
+			<CnBodySections
+				v-if="hasBodyWidgets"
+				:sections="endPlacementSections"
+				:context="sectionContext"
+				:placement="null"
+				data-testid="cn-detail-body-sections-end" />
+
 			<!-- Footer -->
 			<div v-if="$slots.footer" class="cn-detail-page__footer">
 				<!--
@@ -394,23 +473,45 @@
 			@save="onWidgetConfigSave"
 			@delete="onWidgetConfigDelete"
 			@close="showWidgetConfig = false" />
+
+		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
+		     target schema and patch a FK on the current object. -->
+		<CnRelationLinkModal
+			v-if="activeRelationLink"
+			:title="activeRelationLink.title || undefined"
+			:select-label="activeRelationLink.selectLabel || undefined"
+			:register="activeRelationLink.register"
+			:schema="activeRelationLink.schema"
+			:label-field="activeRelationLink.labelField || 'name'"
+			:allow-create="activeRelationLink.allowCreate === true"
+			:current-type="resolvedObjectType"
+			:current-object="currentObject || {}"
+			:fk-field="activeRelationLink.fkField"
+			@linked="onRelationLinked"
+			@close="activeRelationLink = null" />
 	</div>
 </template>
 
 <script>
-import { provide, ref } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
+import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
+import CnRelationLinkModal from '../../modals/CnRelationLinkModal.vue'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -512,9 +613,15 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
+		CnLifecycleActions,
+		CnSummaryAggregates,
+		CnRelatedCollections,
+		CnBodySections,
 		CnTranslatedBadge,
 		CnWidgetStyleEditorModal,
+		CnRelationLinkModal,
 		Cog,
+		Plus,
 	},
 
 	mixins: [gridLayout],
@@ -879,6 +986,115 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * Declarative lifecycle/transition actions (manifest `config.lifecycleActions`).
+		 * When set, renders status-gated transition buttons in the page header driven
+		 * by the object's `x-openregister-lifecycle`. Shape:
+		 * `{ field?: 'status', transitions?: [{ from, to, action, label, confirm?, variant? }], autoFetch?: boolean }`.
+		 * With just `{ field: 'status' }` the allowed transitions are fetched live from
+		 * OpenRegister's `/available-actions` endpoint (server-authoritative). An
+		 * explicit `transitions` array is filtered client-side by the object's current
+		 * state. Omit (default `null`) to keep the current behaviour (no transition
+		 * buttons). See `CnLifecycleActions`.
+		 *
+		 * @type {object|null}
+		 */
+		lifecycleActions: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Declarative related-object list sections (manifest
+		 * `config.relatedCollections`). Each entry renders a titled
+		 * `CnObjectListWidget` below the detail body, filtered to this object via
+		 * `@objectId` / `@object.<field>` tokens. Shape per entry:
+		 * `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnRelatedCollections`.
+		 *
+		 * @type {Array<object>}
+		 */
+		relatedCollections: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative cross-schema summary chips (manifest
+		 * `config.summaryAggregates`). Each entry runs ONE count/sum/avg over a
+		 * related schema scoped to this object and shows it as a stat chip in the
+		 * header. Shape per entry:
+		 * `{ label, register, schema, metric?, field?, filter?, format? }`.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnSummaryAggregates`.
+		 *
+		 * @type {Array<object>}
+		 */
+		summaryAggregates: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative relation-link actions (manifest `config.relationLinks`).
+		 * Each entry renders a button that opens a search-and-link modal which
+		 * patches a foreign-key field on THIS object with the chosen object's id.
+		 * Shape per entry:
+		 * `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }`.
+		 * Empty / omitted (default `[]`) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		relationLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Declarative IN-BODY sections (manifest `config.bodyWidgets`). Each
+		 * entry renders a REGISTERED host-app component as a titled section in
+		 * the page BODY (not the sidebar), with the object/page context injected.
+		 * This is the primitive that lets a rich bespoke detail page (BRP panels,
+		 * activity timelines, comms history, relationship graphs, bookings, …)
+		 * become declarative while keeping its sections in the body. Shape per
+		 * entry:
+		 * `{ id?, component, title?, props?, placement?, colSpan? }`.
+		 *   - `component` — registry name resolved from the app's v2 `registry`
+		 *     (any `kind` exposing a `.component`, e.g. `kind:"section"` or
+		 *     `kind:"widget"`) or the legacy `customComponents` map. NO sidebar
+		 *     tab is required (unlike integration widgets).
+		 *   - `props` — values are token-resolved: `@objectId` → this object's id,
+		 *     `@object.<field>` → a field off it, `@workspace.<key>` → page
+		 *     context; unset `@…?` optional / unresolved tokens are dropped.
+		 *   - `placement` — `before-body` | `after-data` | `after-related` | `end`
+		 *     (default `end`). Controls where in the body the section lands.
+		 *   - `colSpan` — 1–12 grid span when sections share a placement.
+		 * The loaded object + objectId are also `provide`d on `cnSectionContext`
+		 * so a host component can inject them instead of taking explicit props.
+		 * Empty / omitted (default `[]`) renders nothing. See `CnBodySections`.
+		 *
+		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 */
+		bodyWidgets: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Page-level app config map exposed to declarative widget / section
+		 * config via the `@config.<key>` token (e.g. the reporting `currency`
+		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
+		 * so a stat widget's `format: { style: 'currency', currency:
+		 * '@config.currency' }` formats with the configured value (falling back
+		 * to the literal default when unset). A manifest renderer typically seeds
+		 * this from `loadState(appId, 'config', {})`. Empty (default) leaves every
+		 * `@config.<key>` token to fall back to its literal default.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	setup(props) {
@@ -897,6 +1113,19 @@ export default {
 		const cnObjectContext = ref({ objectId: props.objectId || null, object: null, register: props.register || '', schema: props.schema || '' })
 		provide('cnObjectContext', cnObjectContext)
 		registryExposed.cnObjectContextRef = cnObjectContext
+
+		// Page-level APP CONFIG exposed to declarative widget / section config via
+		// the `@config.<key>` token (e.g. the reporting currency the setup wizard
+		// captures). Provided so CnStatWidget / CnBodySections can format with the
+		// configured value. Kept in sync with the `appConfig` prop.
+		const cnAppConfig = ref({ ...(props.appConfig || {}) })
+		provide('cnAppConfig', cnAppConfig)
+		registryExposed.cnAppConfigRef = cnAppConfig
+		watch(
+			() => props.appConfig,
+			(next) => { cnAppConfig.value = { ...(next || {}) } },
+			{ deep: true },
+		)
 
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
@@ -945,6 +1174,8 @@ export default {
 			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
 			 */
 			sidebarSeeded: false,
+			/** The relation-link descriptor whose modal is currently open (or null). */
+			activeRelationLink: null,
 		}
 	},
 
@@ -1197,6 +1428,44 @@ export default {
 		hasStats() {
 			return this.statsColumns.length > 0 && (this.statsRows.length > 0 || !!this.$slots['stats-rows'])
 		},
+
+		/** Whether any declarative in-body sections are configured. */
+		hasBodyWidgets() {
+			return Array.isArray(this.bodyWidgets) && this.bodyWidgets.length > 0
+		},
+
+		/**
+		 * Sections that land at the END placement: those with no `placement`
+		 * (the default) or an explicit `placement: "end"`. The three named
+		 * placement mounts (before-body / after-data / after-related) filter by
+		 * exact value; this catches the rest so nothing is silently dropped.
+		 *
+		 * @return {Array}
+		 */
+		endPlacementSections() {
+			if (!this.hasBodyWidgets) return []
+			const named = ['before-body', 'after-data', 'after-related']
+			return this.bodyWidgets.filter((s) => !s || !s.placement || !named.includes(s.placement))
+		},
+
+		/**
+		 * Page/object context forwarded to CnBodySections for token resolution
+		 * (`@objectId` / `@object.<field>` / `@workspace.<key>`) AND provided on
+		 * `cnSectionContext` for host section components that inject. Mirrors the
+		 * `cnObjectContext` ref the abstract list/stat widgets already read.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null), register: string, schema: string}}
+		 */
+		sectionContext() {
+			const resolved = this.resolvedSidebar || {}
+			return {
+				objectId: (this.objectId !== undefined && this.objectId !== null) ? String(this.objectId) : null,
+				object: this.resolvedObject || null,
+				register: resolved.register || this.register || this.sidebarProps?.register || '',
+				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				config: this.cnAppConfigRef,
+			}
+		},
 	},
 
 	watch: {
@@ -1328,6 +1597,67 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
+		},
+
+		/**
+		 * Re-emit a successful lifecycle transition to the host.
+		 *
+		 * @param {{ action: string, to: string, object: object }} payload The transition result.
+		 */
+		onTransitioned(payload) {
+			/**
+			 * @event transitioned A declarative lifecycle transition succeeded on this
+			 * page's object. Payload is `{ action, to, object }`.
+			 * @type {{ action: string, to: string, object: object }}
+			 */
+			this.$emit('transitioned', payload)
+		},
+
+		/**
+		 * Re-fetch the page's object after a lifecycle transition so the new state
+		 * (and any other server-side mutations the guard applied) render.
+		 */
+		onLifecycleReload() {
+			this.fetchObjectIfNeeded()
+		},
+
+		/**
+		 * Open the relation-link modal for a configured `relationLinks` entry.
+		 *
+		 * @param {object} link The relation-link descriptor.
+		 */
+		openRelationLink(link) {
+			this.activeRelationLink = link
+		},
+
+		/**
+		 * A relation-link modal saved a patched FK — re-fetch the object and
+		 * re-emit so the host can react.
+		 *
+		 * @param {object} saved The updated object.
+		 */
+		onRelationLinked(saved) {
+			this.fetchObjectIfNeeded()
+			/**
+			 * @event relation-linked A relation-link action patched a foreign key on
+			 * this page's object. Payload is the updated object.
+			 * @type {object}
+			 */
+			this.$emit('relation-linked', saved)
+		},
+
+		/**
+		 * Re-emit a related-collection row click to the host.
+		 *
+		 * @param {{ collection: object, row: object, index: number }} payload The click payload.
+		 */
+		onRelatedRowClick(payload) {
+			/**
+			 * @event related-row-click A row in a `relatedCollections` section was
+			 * clicked. Payload is `{ collection, row, index }`.
+			 * @type {{ collection: object, row: object, index: number }}
+			 */
+			this.$emit('related-row-click', payload)
 		},
 
 		/**

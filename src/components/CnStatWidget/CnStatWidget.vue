@@ -37,7 +37,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, resolveFilterValue, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -90,6 +90,14 @@ export default {
 		 * dashboard ancestor provides one.
 		 */
 		cnWorkspaceContext: { default: () => ({}) },
+		/**
+		 * Page-level app config (a reactive `{ <key>: value }` map) provided by
+		 * CnDashboardPage / CnDetailPage. Drives `@config.<key>` tokens in an
+		 * `endpoint` source's URL / params AND in the `format.currency` /
+		 * `format.suffix` / `format.prefix` strings (e.g. the reporting currency
+		 * the setup wizard captures). Empty `{}` when no ancestor provides one.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -144,6 +152,17 @@ export default {
 			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
 		},
+		/**
+		 * The unwrapped page-level app config map for `@config.*` token
+		 * resolution. Always an object (defaults to `{}`).
+		 *
+		 * @return {object}
+		 */
+		configCtx() {
+			const c = this.cnAppConfig
+			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+		},
 		/** Resolved icon component from the shared widget-icon catalog. */
 		iconComponent() {
 			return this.content.icon ? getIconComponent(this.content.icon) : null
@@ -157,10 +176,35 @@ export default {
 		valueStyle() {
 			return this.content.valueColor ? { color: this.content.valueColor } : {}
 		},
+		/**
+		 * The `content.format` spec with its string fields token-resolved. Each
+		 * of `currency` / `prefix` / `suffix` may be a `@config.<key>` token
+		 * (e.g. `currency: '@config.currency'`) — resolved against the page-level
+		 * app config so the setup-wizard-captured currency formats the value. A
+		 * required `@config.<key>` that is unset falls back to its default (EUR
+		 * for currency, empty for prefix/suffix) rather than rendering the raw
+		 * token; an optional `@config.<key>?` resolves to empty when unset.
+		 *
+		 * @return {object} The resolved format spec.
+		 */
+		resolvedFormat() {
+			const fmt = this.content.format || {}
+			const ctx = { config: this.configCtx }
+			const out = { ...fmt }
+			for (const key of ['currency', 'prefix', 'suffix']) {
+				const raw = fmt[key]
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+				const resolved = resolveFilterValue(raw, ctx)
+				// Token stayed unresolved (config key unset) → drop it so the
+				// downstream default applies instead of a literal `@config.…`.
+				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
+			}
+			return out
+		},
 		/** The formatted value string per the content.format spec. */
 		formattedValue() {
 			if (this.value === null || this.value === undefined) return '—'
-			const fmt = this.content.format || {}
+			const fmt = this.resolvedFormat
 			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
 			const num = Number(this.value)
 			if (!Number.isFinite(num)) return String(this.value)
@@ -193,6 +237,7 @@ export default {
 				s: this.content.source || {},
 				o: this.objectCtx ? this.objectCtx.objectId : null,
 				p: this.pageCtx,
+				c: this.configCtx,
 			})
 		},
 	},
@@ -231,7 +276,14 @@ export default {
 		 */
 		flattenFilter(target, filter) {
 			if (!filter || typeof filter !== 'object') return
-			filter = resolveFilterTokens(filter, this.objectCtx)
+			// Resolve `@objectId` / `@object.*` (detail page), `@workspace.*`
+			// (page-level context — e.g. the dashboard date-range pills publish
+			// `dateFrom` / `dateTo`) AND `@config.*` (page-level app config), then
+			// drop any optional `@workspace.<key>?` / `@config.<key>?` that stayed
+			// unresolved so an unset value omits the filter (show all) instead of
+			// sending a literal token.
+			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
+			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov
@@ -351,11 +403,12 @@ export default {
 			return sum
 		},
 		/**
-		 * Resolve `@page.<key>` / `@workspace.<key>` / `@objectId` / `@object.<field>`
-		 * tokens inside a string against the page + object contexts. `@page.*` is
-		 * an alias for `@workspace.*` (both read the page-level context).
-		 * Unresolved tokens collapse to an empty string so a half-built URL never
-		 * sends a literal `@page.period`.
+		 * Resolve `@page.<key>` / `@workspace.<key>` / `@config.<key>` /
+		 * `@objectId` / `@object.<field>` tokens inside a string against the page
+		 * + config + object contexts. `@page.*` is an alias for `@workspace.*`
+		 * (both read the page-level context); `@config.*` reads the page-level app
+		 * config. Unresolved tokens collapse to an empty string so a half-built
+		 * URL never sends a literal `@page.period`.
 		 *
 		 * @param {string} str The raw string (URL or param value).
 		 * @return {string} The interpolated string.
@@ -364,6 +417,9 @@ export default {
 			if (typeof str !== 'string') return str
 			return str.replace(/@(page|workspace)\.([A-Za-z0-9_]+)/g, (_, _ns, key) => {
 				const v = this.pageCtx[key]
+				return (v === undefined || v === null) ? '' : String(v)
+			}).replace(/@config\.([A-Za-z0-9_]+)/g, (_, key) => {
+				const v = this.configCtx[key]
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/@objectId/g, () => {
 				const id = this.objectCtx && this.objectCtx.objectId
@@ -424,9 +480,11 @@ export default {
 .cn-stat-widget {
 	display: flex;
 	align-items: center;
-	gap: 16px;
+	gap: 12px;
 	padding: 8px 4px;
 	min-height: 64px;
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* Whole-tile click target when the widget declares a `route`/`link`. */
@@ -451,8 +509,8 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44px;
-	height: 44px;
+	width: 40px;
+	height: 40px;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
@@ -474,13 +532,18 @@ export default {
 	display: flex;
 	align-items: baseline;
 	gap: 8px;
+	min-width: 0;
 }
 
 .cn-stat-widget__value {
-	font-size: 1.8em;
+	font-size: 1.6em;
 	font-weight: 700;
-	line-height: 1.1;
+	line-height: 1.15;
 	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-stat-widget__caption {

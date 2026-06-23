@@ -118,8 +118,18 @@ Controlling the inline action button count — `inlineActionCount` sets how many
   <template #action-items>
     <!-- NcActionButton items placed here respect inlineActionCount -->
   </template>
+  <template #filters>
+    <!-- Inline filter controls (e.g. CnQuickFilterBar) rendered in the bar,
+         between the view toggle and the add/actions. -->
+  </template>
 </CnActionsBar>
 ```
+
+### Slots
+
+- `filters` — Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle).
+- `action-items` — Extra `NcActionButton` items injected into the overflow menu (respects `inlineActionCount`).
+- `header-actions`, `mass-actions` — see the props/events above.
 
 ## Additional props
 

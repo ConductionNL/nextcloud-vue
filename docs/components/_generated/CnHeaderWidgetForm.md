@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name            | Type                          | Required | Default                        | Description                                                                               |
-| --------------- | ----------------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
-| `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode.                                     |
-| `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults. |
+| Name            | Type                          | Required | Default                        | Description                                                                                                                                                                                                                                                                             |
+| --------------- | ----------------------------- | -------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode.                                                                                                                                                                                                                                   |
+| `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults.                                                                                                                                                                                               |
+| `uploadFn`      | `union`                       |          | `null`                         | Optional upload transport: `async (dataUrl) =&gt; ({ url })`. When given, an uploaded background image is sent through it and the returned URL is stored; otherwise the file is embedded as a data URL (same-origin, so it isn't blocked by the CSP the way external http(s) URLs are). |
 
 ### Events
 

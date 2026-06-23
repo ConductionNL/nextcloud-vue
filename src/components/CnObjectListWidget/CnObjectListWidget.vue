@@ -151,12 +151,27 @@ export default {
 		promptText() {
 			return this.content.prompt || t('nextcloud-vue', 'Select an item to see related records')
 		},
-		/** Column definitions normalised to `{ key, label }` for CnDataTable. */
+		/**
+		 * Column definitions normalised for CnDataTable. A string column becomes
+		 * `{ key, label }`; an object column keeps its key/label AND carries the
+		 * presentation hints CnDataTable forwards to CnCellRenderer — `format`
+		 * (currency / duration / number / percent / date / date-time), `widget`
+		 * (badge / link / swatch), `widgetProps`, `formatter`, `align`, and
+		 * `width`. Without this pass-through a `relatedCollections` column's
+		 * `format: 'currency'` / `'date'` would silently render as plain text.
+		 */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			return cols.map((c) => (typeof c === 'string'
-				? { key: c, label: c }
-				: { key: c.key, label: c.label || c.key }))
+			return cols.map((c) => {
+				if (typeof c === 'string') {
+					return { key: c, label: c }
+				}
+				const out = { key: c.key, label: c.label || c.key }
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
+					if (c[k] !== undefined) out[k] = c[k]
+				}
+				return out
+			})
 		},
 		/** Empty-state text. */
 		emptyText() {

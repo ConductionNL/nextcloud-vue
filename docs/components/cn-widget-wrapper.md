@@ -50,6 +50,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `title` | String | `'Widget'` | Widget title shown in the header |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
 | `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
+| `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
 | `borderless` | Boolean | `false` | Remove border and background — makes the wrapper transparent |
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
 | `iconUrl` | String | `null` | Image URL for the header icon |
@@ -77,7 +78,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 - **Documentation** — rendered only when a `documentationUrl` is supplied. Opens the host-provided link in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); no JS handler. Apps pass the URL from the widget configuration (`:documentation-url="widget.documentationUrl"`); customise the wording with `documentationLabel`.
 - **Request a feature** — emits `@request-feature`, then (unless suppressed) auto-mounts `CnSuggestFeatureModal` with `app + page + surface=widget:<id>` context auto-filled from `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
 
-Opt out per-instance with `:show-refresh="false"` and/or `:show-request-feature="false"` (the legacy `hide-refresh` / `hide-request-feature` aliases also still work for back-compat). When everything is hidden — both built-ins opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely.
+Opt out per-instance with `:show-refresh="false"` and/or `:show-request-feature="false"` (the legacy `hide-refresh` / `hide-request-feature` aliases also still work for back-compat). When everything is hidden — both built-ins opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely. To drop the entire actions area in one go — e.g. on a compact KPI tile whose only header affordance is a date chip — set `:show-actions="false"`.
 
 Set `:widget-id` so the event-bus payload + modal surface tag are stable across renames; otherwise the wrapper falls back to a slugified `title`.
 

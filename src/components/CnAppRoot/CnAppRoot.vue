@@ -108,6 +108,26 @@
 			</slot>
 		</template>
 
+		<!--
+		  Phase 2b: setup — a REQUIRED first-time-setup step (ADR-042) is unmet,
+		  so the shell is gated to CnSetupWizard until it clears.
+		-->
+		<template v-else-if="phase === 'setup'">
+			<!--
+			  @slot setup
+			  @description Override the gating setup surface. Scope: the manifest
+			  setup steps + the useSetupStatus state.
+			-->
+			<slot name="setup" :steps="manifest.setup.steps" :status="setupState">
+				<div class="cn-app-root__setup">
+					<CnSetupWizard
+						:app-id="appId"
+						:steps="manifest.setup.steps"
+						@complete="onSetupComplete" />
+				</div>
+			</slot>
+		</template>
+
 		<!-- Phase 3: shell -->
 		<template v-else>
 			<!--
@@ -265,6 +285,23 @@
 				v-bind="cnSupportOverrides"
 				@close="cnSupportHide" />
 			<!--
+			  Product walkthrough (ADR-043) — a non-gating spotlight tour
+			  auto-mounted over the live shell. Reads `manifest.walkthrough` and
+			  auto-starts a tour that qualifies for the user's app version. No
+			  per-app wiring; declare a `walkthrough` block to opt in.
+			-->
+			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
+			<slot v-if="walkthroughEnabled" name="walkthrough" :manifest="manifest" :seen-version="walkthroughSeenVersion">
+				<CnWalkthrough
+					:app-id="appId"
+					:manifest="manifest"
+					:seen-version="walkthroughSeenVersion"
+					:resume="walkthroughResume"
+					:translate="translate"
+					@complete="onWalkthroughComplete"
+					@dismiss="onWalkthroughComplete" />
+			</slot>
+			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
 			  wires this to manifest entries with
@@ -305,6 +342,8 @@ import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutli
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
@@ -316,6 +355,8 @@ import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useSetupStatus } from '../../composables/useSetupStatus.js'
+import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -340,6 +381,20 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	header: [],
 	actions: [],
 	tab: [],
+	// In-body section component (CnDetailPage `config.bodyWidgets[].component`,
+	// reusable by dashboard/index). Resolved by registry name and rendered as a
+	// titled card IN THE PAGE BODY with the object/page context injected. Unlike
+	// an integration `widget`, a `section` requires NO sidebar tab and carries no
+	// grid metadata — it sits wherever the page's `placement` puts it.
+	section: [],
+	// Create-override handler: a plain async function (exposed as `.handler` /
+	// `.fn`) that CnPageRenderer resolves for CnIndexPage's `createOverride`
+	// prop so a declarative `type:"index"` page can route its generic Add
+	// through an app-specific create flow. Carries no component/metadata — it is
+	// resolved by name, not mounted — so it lists no required fields (like
+	// `page`); listing it here keeps the mount-time validator from rejecting a
+	// valid handler registration.
+	'create-override': [],
 }
 
 const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
@@ -366,6 +421,8 @@ export default {
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnSetupWizard,
+		CnWalkthrough,
 		CnAiCompanion,
 		CnObjectSidebar,
 		CnSupportDialog,
@@ -433,6 +490,21 @@ export default {
 			 */
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
+			},
+			/**
+			 * Restart entry for the product walkthrough (ADR-043). Descendants
+			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
+			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
+			 * `tourId` the first declared tour is used.
+			 *
+			 * @param {string} [tourId] The tour to restart.
+			 * @return {void}
+			 */
+			cnReplayWalkthrough: (tourId) => {
+				if (!this.walkthroughEnabled) return
+				const wt = useWalkthrough(this.appId, this.manifest)
+				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
+				if (id) wt.restart(id)
 			},
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
@@ -1161,9 +1233,71 @@ export default {
 					return { id, name: id, category: 'featured', enabled: false }
 				})
 		},
+		/**
+		 * First-time-setup status for this app (ADR-042), or null when the
+		 * manifest declares no `setup` block. Calls useSetupStatus inside the
+		 * computed so the returned refs stay reactive (same pattern as
+		 * unresolvedDependencies → useAppStatus).
+		 */
+		setupState() {
+			if (!this.appId || !this.manifest || !this.manifest.setup || this.manifest.setup.enabled === false) {
+				return null
+			}
+			return useSetupStatus(this.appId, this.manifest)
+		},
+		/**
+		 * Whether a REQUIRED setup step is unmet — the app shell is gated to
+		 * the setup wizard until this clears. Never gates while the status is
+		 * still loading (avoids a flash before the answer is known).
+		 */
+		setupGating() {
+			const s = this.setupState
+			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
+		},
+		/**
+		 * Whether the manifest declares an enabled walkthrough with at least one
+		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
+		 *
+		 * @return {boolean} True when a walkthrough should mount.
+		 */
+		walkthroughEnabled() {
+			const w = this.manifest && this.manifest.walkthrough
+			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
+		},
+		/**
+		 * The user's last-seen app version for walkthrough composition. Read from
+		 * a per-user/browser key; CnAppRoot writes it on completion. Apps wanting
+		 * cross-device persistence can override the `#walkthrough` slot.
+		 *
+		 * @return {string} The last-seen version, or '' for a fresh user.
+		 */
+		walkthroughSeenVersion() {
+			try {
+				return window.localStorage.getItem('cn-walkthrough-seen:' + this.appId) || ''
+			} catch (e) {
+				return ''
+			}
+		},
+		/**
+		 * Cross-app / refresh resume token parsed from the URL query
+		 * (`cn_resume_tour` / `cn_resume_step`), or null.
+		 *
+		 * @return {object|null} `{ tourId, stepId }` or null.
+		 */
+		walkthroughResume() {
+			try {
+				const p = new URLSearchParams(window.location.search)
+				const tourId = p.get('cn_resume_tour')
+				if (!tourId) return null
+				return { tourId, stepId: p.get('cn_resume_step') || '' }
+			} catch (e) {
+				return null
+			}
+		},
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
+			if (this.setupGating) return 'setup'
 			return 'shell'
 		},
 		/**
@@ -1246,6 +1380,40 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Re-fetch setup status after the wizard reports completion so the
+		 * phase flips from `setup` to `shell` without a page reload.
+		 *
+		 * @return {void}
+		 */
+		onSetupComplete() {
+			if (this.setupState && typeof this.setupState.refresh === 'function') {
+				this.setupState.refresh()
+			}
+			/**
+			 * @event setup-complete Emitted after the gating setup wizard reports
+			 * completion and the status has been re-fetched.
+			 */
+			this.$emit('setup-complete')
+		},
+		/**
+		 * Persist the current app version as the user's last-seen walkthrough
+		 * version (so an upgrade later surfaces only newer steps) and notify.
+		 *
+		 * @return {void}
+		 */
+		onWalkthroughComplete() {
+			try {
+				const v = (this.manifest && this.manifest.version) || '1.0.0'
+				window.localStorage.setItem('cn-walkthrough-seen:' + this.appId, String(v))
+			} catch (e) {
+				// Non-fatal: persistence is best-effort (private mode / no storage).
+			}
+			/**
+			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
+			 */
+			this.$emit('walkthrough-complete')
+		},
 		/**
 		 * Validate every entry in the `registry` prop at mount time.
 		 *

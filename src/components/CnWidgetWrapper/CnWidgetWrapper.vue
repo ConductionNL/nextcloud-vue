@@ -47,7 +47,7 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div class="cn-widget-wrapper__actions">
+			<div v-if="showActions" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -83,6 +83,17 @@
 				:style="titleIconColor ? { color: titleIconColor } : {}">
 				<slot name="title-icon" />
 			</div>
+		</div>
+
+		<!-- Headerless meta (e.g. a KPI date chip on a flush card). When the
+		     header is hidden but a `title-meta` chip is provided, float it in the
+		     top-right corner over the content instead of dropping it — so a
+		     compact flush KPI tile can carry a date-range chip without growing a
+		     full header bar. -->
+		<div
+			v-if="!showTitle && $slots['title-meta']"
+			class="cn-widget-wrapper__floating-meta">
+			<slot name="title-meta" />
 		</div>
 
 		<!-- Content -->
@@ -225,6 +236,16 @@ export default {
 		buttons: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Whether the header's overflow action menu (Refresh / Documentation /
+		 * Request-a-feature + any `#action-items`) renders. Shown by default;
+		 * set `false` for compact surfaces — e.g. a KPI tile whose only header
+		 * affordance is a date chip — to drop the menu and free header width.
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 		/**
 		 * Style configuration for the wrapper.
@@ -523,12 +544,21 @@ export default {
 
 <style scoped>
 .cn-widget-wrapper {
+	position: relative;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	overflow: hidden;
+}
+
+/* Headerless date chip — floated over the top-right of a flush card. */
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
 }
 
 .cn-widget-wrapper__content {

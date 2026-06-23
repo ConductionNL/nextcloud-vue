@@ -27,6 +27,9 @@ registerDashboardWidget('stat', {
 	},
 	displayName: 'Statistic / KPI',
 	icon: 'TrendingUp',
+	// Self-contained card surface — CnDashboardPage renders it flush and
+	// centred (no inner scrollbar). See CnDashboardPage.isCardWidget.
+	card: true,
 })
 
 export { CnStatWidget }

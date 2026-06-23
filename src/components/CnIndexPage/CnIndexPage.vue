@@ -70,6 +70,17 @@
 			<template v-if="$scopedSlots['actions']" #actions>
 				<slot name="actions" />
 			</template>
+			<!-- Quick-filter tabs (REQ-MIPFU-1) rendered INSIDE the action bar
+			     (between the view toggle and the actions) when the manifest
+			     declares `config.quickFilters`. Switching tabs re-fetches with
+			     the merged filter; @event quick-filter-change. -->
+			<template v-if="quickFilters && quickFilters.length > 0" #filters>
+				<CnQuickFilterBar
+					inline
+					:tabs="quickFilters"
+					:active-index="activeQuickFilterIndex"
+					@update:active-index="onQuickFilterChange" />
+			</template>
 		</CnActionsBar>
 
 		<!-- Mass delete dialog -->
@@ -184,15 +195,6 @@
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
-
-		<!-- Quick-filter tabs (REQ-MIPFU-1) — rendered above the body when
-		     the manifest declares `config.quickFilters`. Switching tabs
-		     re-fetches with the merged filter; @event quick-filter-change. -->
-		<CnQuickFilterBar
-			v-if="quickFilters && quickFilters.length > 0"
-			:tabs="quickFilters"
-			:active-index="activeQuickFilterIndex"
-			@update:active-index="onQuickFilterChange" />
 
 		<!-- Body -->
 		<div class="cn-index-page__body">

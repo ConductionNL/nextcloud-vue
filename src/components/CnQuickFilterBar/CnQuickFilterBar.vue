@@ -4,7 +4,7 @@
   -->
 
 <template>
-	<div class="cn-quick-filter-bar" role="tablist">
+	<div class="cn-quick-filter-bar" :class="{ 'cn-quick-filter-bar--inline': inline }" role="tablist">
 		<button
 			v-for="(tab, i) in tabs"
 			:key="tab.label + ':' + i"
@@ -59,6 +59,16 @@ export default {
 			required: true,
 			validator: (arr) => Array.isArray(arr) && arr.every((t) => t && typeof t.label === 'string'),
 		},
+
+		/**
+		 * Render bare (no padding / bottom border / background) for embedding
+		 * inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`,
+		 * so the tabs sit beside the view toggle instead of as a separate row.
+		 */
+		inline: {
+			type: Boolean,
+			default: false,
+		},
 		/** Index of the currently active tab, or `null` for none active. */
 		activeIndex: {
 			type: Number,
@@ -89,6 +99,15 @@ export default {
 	padding: 8px 12px;
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-main-background);
+}
+
+/* Inline variant — bare strip for embedding inside another bar (e.g. the
+   CnActionsBar #filters slot), so it reads as a control beside the view toggle
+   rather than a separate bordered row. */
+.cn-quick-filter-bar--inline {
+	padding: 0;
+	border-bottom: none;
+	background: transparent;
 }
 
 .cn-quick-filter-bar__tab {
