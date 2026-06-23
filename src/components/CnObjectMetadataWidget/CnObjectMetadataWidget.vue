@@ -181,8 +181,12 @@ export default {
 		 * @self fields take priority over top-level for shared keys.
 		 */
 		metadataSource() {
-			const selfBlock = this.objectData['@self'] || {}
-			return { ...this.objectData, ...selfBlock }
+			// objectData is `required` but can be momentarily undefined/null during
+			// async loads (and when a parent binds a not-yet-resolved object), so
+			// guard before reading `@self` to avoid a render-time TypeError.
+			const data = this.objectData || {}
+			const selfBlock = data['@self'] || {}
+			return { ...data, ...selfBlock }
 		},
 
 		/**
