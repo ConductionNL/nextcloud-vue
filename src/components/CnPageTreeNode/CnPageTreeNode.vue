@@ -364,10 +364,14 @@ export default {
 			const ids = new Set(this.list.map((p) => p && p.id))
 			while (ids.has(`page-${n}`)) n++
 			const id = `page-${n}`
+			// A detail sub-page defaults to the parent's route + the `:id` route
+			// param (a vue-router dynamic segment), e.g. /dogs → /dogs/:id, so the
+			// detail opens for a specific record. Edit the Route to rename the
+			// param (e.g. /dogs/:dogId) if needed.
 			const base = String(page.route || '').replace(/\/+$/, '')
 			// In-place edit by design (see component docblock).
 			// eslint-disable-next-line vue/no-mutating-props
-			this.list.push({ id, parent: page.id, type: 'detail', route: `${base}/${id}`, title: '', config: {} })
+			this.list.push({ id, parent: page.id, type: 'detail', route: `${base}/:id`, title: '', config: {} })
 		},
 	},
 }

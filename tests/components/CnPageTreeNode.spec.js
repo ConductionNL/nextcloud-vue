@@ -96,13 +96,13 @@ describe('CnPageTreeNode', () => {
 		expect(list[0].parent).toBe('') // reparented to top level
 	})
 
-	it('addChild appends a detail page parented under the page with a built-up route', () => {
+	it('addChild appends a detail page parented under the page, route defaults to parent + /:id', () => {
 		const list = [{ id: 'leads', route: '/leads' }]
 		const wrapper = mountNode(list)
 		wrapper.vm.addChild(list[0])
 		expect(list.length).toBe(2)
 		expect(list[1].parent).toBe('leads')
 		expect(list[1].type).toBe('detail')
-		expect(list[1].route).toBe('/leads/page-2')
+		expect(list[1].route).toBe('/leads/:id')
 	})
 })
