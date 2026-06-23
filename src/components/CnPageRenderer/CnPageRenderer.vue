@@ -508,7 +508,10 @@ export default {
 		 */
 		resolvedProps() {
 			const page = this.currentPage
-			const rawConfig = page?.config ?? {}
+			// Normalise to a plain object: an empty `config: {}` round-trips
+			// through PHP/JSON as `[]`, and spreading an array would silently
+			// contribute no config keys (register/schema/columns) to the page.
+			const rawConfig = (page?.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
 			// Clone params — `resolvedProps` MAY add normalised aliases
 			// (e.g. `objectId` for type='detail') and we must not mutate
 			// the live `$route.params` object.

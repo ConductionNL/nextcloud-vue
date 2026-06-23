@@ -415,7 +415,14 @@ export default {
 		 * @return {object} The page's config (created if missing).
 		 */
 		ensureConfig(page) {
-			if (!page.config || typeof page.config !== 'object') this.$set(page, 'config', {})
+			// Reset to a plain object when missing, non-object, OR an array. An
+			// empty `config: {}` round-trips through PHP/JSON as `[]` (PHP can't
+			// tell an empty object from an empty list); without the Array check
+			// `typeof [] === 'object'` would keep the array, and subsequent
+			// register/schema writes would land on array-named properties that
+			// JSON.stringify silently drops — persisting `[]` and losing the
+			// data source. See CnPageRenderer's matching normalisation.
+			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) this.$set(page, 'config', {})
 			return page.config
 		},
 		/**

@@ -24,9 +24,13 @@ function mountNode(list, extra = {}, provide = {}) {
 // An app's data sources: one register with one schema (two columns).
 const DATA_SOURCES = {
 	registers: [
-		{ value: 'app-prod', label: 'App (production)', schemas: [
-			{ value: 'dog', label: 'Dog', columns: ['name', 'breed'] },
-		] },
+		{
+			value: 'app-prod',
+			label: 'App (production)',
+			schemas: [
+				{ value: 'dog', label: 'Dog', columns: ['name', 'breed'] },
+			],
+		},
 	],
 }
 
@@ -163,6 +167,19 @@ describe('CnPageTreeNode', () => {
 		// clearing all columns removes the key (→ show all properties)
 		wrapper.vm.setColumns(page, [])
 		expect(page.config.columns).toBeUndefined()
+	})
+
+	it('recovers a config corrupted to an array (PHP empty-object round-trip)', () => {
+		// An empty `config: {}` comes back from PHP as `[]`; setting a data source
+		// must reset it to a plain object so the values are not written onto an
+		// array (and dropped by JSON.stringify) — they must persist.
+		const page = { id: 'dogs', type: 'index', config: [] }
+		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
+		wrapper.vm.setRegister(page, { value: 'app-prod' })
+		expect(Array.isArray(page.config)).toBe(false)
+		expect(page.config.register).toBe('app-prod')
+		// survives a JSON round-trip (the array form would serialise to [])
+		expect(JSON.parse(JSON.stringify(page.config))).toEqual({ register: 'app-prod' })
 	})
 
 	it('free-text fallbacks: setConfig and setColumnsText create config and parse a CSV', () => {
