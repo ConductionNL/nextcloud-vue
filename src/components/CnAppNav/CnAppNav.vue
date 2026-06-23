@@ -39,11 +39,13 @@
   win over inject when both are present.
 
   Items can opt out of routing in favour of a built-in action by
-  setting `action: "user-settings"` on the manifest entry: clicking
-  the item invokes the `cnOpenUserSettings` provide-injected by
-  CnAppRoot, which opens the host app's NcAppSettingsDialog modal
-  instead of navigating. Both `route` and `href` are ignored when
-  `action` is set. The inject defaults to a no-op so CnAppNav stays
+  setting `action` on the manifest entry. Supported keywords:
+  `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
+  by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
+  `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
+  with the item's `tourId`) to re-run the product walkthrough from
+  the first step (ADR-043). Both `route` and `href` are ignored when
+  `action` is set. The injects default to a no-op so CnAppNav stays
   usable standalone (without a CnAppRoot ancestor).
 
   See REQ-JMR-004 of the json-manifest-renderer specification.
@@ -261,6 +263,7 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
 import MapMarker from 'vue-material-design-icons/MapMarker.vue'
 import OfficeBuilding from 'vue-material-design-icons/OfficeBuilding.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import PlayCircleOutline from 'vue-material-design-icons/PlayCircleOutline.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import ShareVariant from 'vue-material-design-icons/ShareVariant.vue'
 import Star from 'vue-material-design-icons/Star.vue'
@@ -304,6 +307,7 @@ const CSS_ICON_TO_MDI = {
 	'icon-mail': Email,
 	'icon-more': DotsHorizontal,
 	'icon-picture': Image,
+	'icon-play': PlayCircleOutline,
 	'icon-search': Magnify,
 	'icon-settings': Cog,
 	'icon-shared': ShareVariant,
@@ -351,6 +355,13 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
+		 * from the first step. Bound to menu entries declaring
+		 * `action: "replay-walkthrough"` (optionally with a `tourId`).
+		 * Defaults to a no-op so CnAppNav stays usable standalone.
+		 */
+		cnReplayWalkthrough: { default: () => () => {} },
 		/**
 		 * Provided by CnAppRoot — reactive `{ [register]: { [schema]: number } }`
 		 * map populated from `useObjectStore().totals` for every
@@ -811,7 +822,8 @@ export default {
 		 * Click handler. Dispatch order: action keyword → external href
 		 * → group toggle → route. For `action: "user-settings"` invokes
 		 * the injected `cnOpenUserSettings` (provided by CnAppRoot) and
-		 * prevents default. For `href` items, opens the URL in a new tab
+		 * prevents default; for `action: "replay-walkthrough"` invokes
+		 * the injected `cnReplayWalkthrough(item.tourId)`. For `href` items, opens the URL in a new tab
 		 * with safe rel attributes. Route-less items with visible
 		 * children are pure group headers: their anchor is a dead `#`
 		 * link, so clicking the title toggles the children open/closed
@@ -828,6 +840,13 @@ export default {
 					event.preventDefault()
 				}
 				this.cnOpenUserSettings()
+				return
+			}
+			if (item.action === 'replay-walkthrough') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnReplayWalkthrough(item.tourId)
 				return
 			}
 			if (item.href) {
