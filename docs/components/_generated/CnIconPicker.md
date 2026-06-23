@@ -2,11 +2,12 @@
 
 ### Props
 
-| Name       | Type     | Required | Default                    | Description                                                                                                                                     |
-| ---------- | -------- | -------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`    | `union`  |          | `null`                     | Current icon value — a registry key, a URL, or null (v-model).                                                                                  |
-| `icons`    | `object` |          | `() =&gt; DASHBOARD_ICONS` | Icon registry to enumerate in the select (name → component). Defaults to the built-in DASHBOARD_ICONS set.                                      |
-| `uploadFn` | `union`  |          | `null`                     | Injected upload transport: `async (dataUrl) =&gt; ({ url })`. When null, the upload control is hidden (no transport dependency in the library). |
+| Name       | Type      | Required | Default                    | Description                                                                                                                                                         |
+| ---------- | --------- | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`    | `union`   |          | `null`                     | Current icon value — a registry key, a URL, or null (v-model).                                                                                                      |
+| `icons`    | `object`  |          | `() =&gt; DASHBOARD_ICONS` | Icon registry to enumerate in the select (name → component). Defaults to the built-in DASHBOARD_ICONS set.                                                          |
+| `compact`  | `boolean` |          | `false`                    | Compact mode: render a small trigger button that opens the icon grid as a popover, instead of the always-visible grid. Suited to table rows / tight inline layouts. |
+| `uploadFn` | `union`   |          | `null`                     | Injected upload transport: `async (dataUrl) =&gt; ({ url })`. When null, the upload control is hidden (no transport dependency in the library).                     |
 
 ### Events
 

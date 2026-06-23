@@ -70,6 +70,7 @@ the manifest declares an enabled `walkthrough`; you can also mount it standalone
 | `dismiss` | — | The user dismissed the tour (backdrop / ESC). |
 | `step-change` | `{ stepId, index }` | The active step changed. |
 | `advance` | `{ stepId }` | The user advanced the tour. |
+| `handoff` | `{ app, url }` | A cross-app hand-off step (`handoff.url`) navigated to another app with a `cn_resume_tour`/`cn_resume_step` token. |
 
 ## Slots
 

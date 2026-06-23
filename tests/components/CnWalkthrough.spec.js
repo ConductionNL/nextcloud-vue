@@ -93,6 +93,23 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.rect).toEqual({ top: 50, left: 60, width: 120, height: 30 })
 	})
 
+	it('a handoff step shows "Continue in {app}" and navigates with a resume token', () => {
+		const manifestH = {
+			version: '1.0.0',
+			walkthrough: { enabled: true, version: 1, tours: [{ id: 'pq:lead-to-bill', trigger: 'first-visit', steps: [
+				{ id: 'bill', sinceVersion: '1.0.0', placement: 'center', title: 'Bill it', target: { kind: 'page', ref: 'X' }, advanceOn: { type: 'manual' }, handoff: { app: 'Shillinq', url: '/index.php/apps/shillinq/', tour: 'shillinq:bill' } },
+			] }] },
+		}
+		const w = mount(CnWalkthrough, { propsData: { appId: 'pq', manifest: manifestH } })
+		expect(w.vm.isHandoff).toBe(true)
+		const built = []
+		// stub navigation by spying on the emitted handoff payload (engine also sets window.location)
+		w.vm.$on('handoff', (p) => built.push(p))
+		w.vm.doHandoff()
+		expect(built[0].app).toBe('Shillinq')
+		expect(built[0].url).toContain('cn_resume_tour=shillinq%3Abill')
+	})
+
 	it('does not render when the manifest has no walkthrough', () => {
 		const w = mount(CnWalkthrough, { propsData: { appId: 'empty', manifest: { version: '1.0.0' } } })
 		expect(w.vm.active).toBe(false)

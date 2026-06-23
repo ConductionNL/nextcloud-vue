@@ -32,7 +32,8 @@
 					<NcButton ref="skipBtn" type="tertiary" @click="skip">{{ skipLabel }}</NcButton>
 					<span class="cn-walkthrough__spacer" />
 					<NcButton v-if="!isFirst" type="secondary" @click="back">{{ backLabel }}</NcButton>
-					<NcButton v-if="showNext" type="primary" @click="advance">{{ isLast ? finishLabel : nextLabel }}</NcButton>
+					<NcButton v-if="isHandoff" type="primary" @click="doHandoff">{{ handoffLabel }}</NcButton>
+					<NcButton v-else-if="showNext" type="primary" @click="advance">{{ isLast ? finishLabel : nextLabel }}</NcButton>
 				</div>
 			</slot>
 		</div>
@@ -95,7 +96,7 @@ export default {
 		translate: { type: Function, default: null },
 	},
 
-	emits: ['complete', 'dismiss', 'step-change', 'advance'],
+	emits: ['complete', 'dismiss', 'step-change', 'advance', 'handoff'],
 
 	setup(props) {
 		const wt = useWalkthrough(props.appId, props.manifest, {
@@ -154,6 +155,18 @@ export default {
 			if (!this.step) return false
 			const enforced = !!this.step.task && this.step.advanceOn && this.step.advanceOn.type !== 'manual'
 			return !enforced || this.step.allowManualNext === true
+		},
+		/**
+		 * Whether the active step is a cross-app hand-off (declares `handoff.url`).
+		 *
+		 * @return {boolean} True when the coachmark offers "Continue in {app}".
+		 */
+		isHandoff() {
+			return !!(this.step && this.step.handoff && this.step.handoff.url)
+		},
+		handoffLabel() {
+			const app = this.step && this.step.handoff && this.step.handoff.app
+			return app ? t('nextcloud-vue', 'Continue in {app}', { app }) : t('nextcloud-vue', 'Continue')
 		},
 		stepTitle() {
 			return this.tr(this.step && this.step.title)
@@ -479,6 +492,28 @@ export default {
 			const wasLast = this.isLast
 			this.wt.skip()
 			if (wasLast) this.$emit('complete')
+		},
+		/**
+		 * Execute a cross-app hand-off: complete this tour locally, then navigate
+		 * the browser to the destination URL carrying a `cn_resume_tour` /
+		 * `cn_resume_step` token so the destination app's useWalkthrough resumes.
+		 *
+		 * @return {void}
+		 */
+		doHandoff() {
+			const h = (this.step && this.step.handoff) || {}
+			if (!h.url) return
+			const tour = h.tour || (this.wt.activeTour.value && this.wt.activeTour.value.id) || ''
+			let url = h.url + (h.url.indexOf('?') === -1 ? '?' : '&') + 'cn_resume_tour=' + encodeURIComponent(tour)
+			if (h.step) url += '&cn_resume_step=' + encodeURIComponent(h.step)
+			/**
+			 * @event handoff Emitted just before navigating to a cross-app destination.
+			 * @type {{ app: string, url: string }}
+			 */
+			this.$emit('handoff', { app: h.app, url })
+			this.$emit('complete')
+			this.wt.complete()
+			try { window.location.href = url } catch (e) { /* jsdom */ }
 		},
 		/**
 		 * Dismiss the tour from a backdrop click or ESC.
