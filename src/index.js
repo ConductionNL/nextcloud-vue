@@ -112,6 +112,8 @@ export {
 	CnActionsMenu,
 	CnOpenBuildEditButton,
 	CnEditMenuModal,
+	CnEditPagesModal,
+	CnEditSettingsModal,
 	CnEditSidebarModal,
 	CnEditActionsModal,
 	CnAddWidgetModal,
