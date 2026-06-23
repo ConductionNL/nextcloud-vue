@@ -19,6 +19,7 @@
  *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
+ *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -28,6 +29,13 @@
  * state another widget writes (e.g. a selected client). Without the matching
  * context the tokens pass through unchanged — and an UNRESOLVED `@workspace.*`
  * token signals "no selection yet" to the caller (see {@link hasUnresolvedTokens}).
+ *
+ * `@config.<key>` is an APP-CONFIG token: it resolves a key off `ctx.config` (the
+ * page-level app config a dashboard/detail page provides via `cnAppConfig` — e.g.
+ * a reporting `currency` captured by the setup wizard). Like `@workspace.<key>`, a
+ * trailing `?` marks it optional. An UNRESOLVED required `@config.<key>` passes
+ * through unchanged; this lets `format: { currency: '@config.currency' }` fall
+ * back to a literal default when the config is unset.
  *
  * @module utils/resolveFilterTokens
  */
@@ -48,9 +56,10 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {*} v The candidate value.
- * @param {{objectId?: (string|number), object?: object, workspace?: object}} [ctx] Optional
- *   context for `@objectId` / `@object.<field>` (detail page) and
- *   `@workspace.<key>` (page-level workspace state) tokens.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ *   context for `@objectId` / `@object.<field>` (detail page),
+ *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
+ *   (page-level app config) tokens.
  * @return {*} The resolved value.
  */
 export function resolveFilterValue(v, ctx) {
@@ -73,6 +82,20 @@ export function resolveFilterValue(v, ctx) {
 		if (ctx && ctx.workspace && key && ctx.workspace[key] !== undefined
 			&& ctx.workspace[key] !== null && ctx.workspace[key] !== '') {
 			return ctx.workspace[key]
+		}
+		return v
+	}
+	if (v.startsWith('@config.')) {
+		// A trailing `?` marks the token OPTIONAL (same convention as
+		// `@workspace.<key>?`): an unset value lets the caller drop the key. A
+		// required `@config.<key>` that is unset passes through unchanged so a
+		// downstream consumer can fall back to a literal default (e.g.
+		// `format.currency` → `'EUR'`).
+		const raw = v.slice('@config.'.length)
+		const key = raw.endsWith('?') ? raw.slice(0, -1) : raw
+		if (ctx && ctx.config && key && ctx.config[key] !== undefined
+			&& ctx.config[key] !== null && ctx.config[key] !== '') {
+			return ctx.config[key]
 		}
 		return v
 	}
@@ -108,16 +131,18 @@ export function resolveFilterValue(v, ctx) {
 }
 
 /**
- * Whether a value is an UNRESOLVED OPTIONAL workspace token — a string still
- * shaped like `@workspace.<key>?` after token resolution (the `?` marks it as
- * "drop me when unset"). Callers strip such keys from the filter so the list
- * shows all rows rather than waiting for a selection.
+ * Whether a value is an UNRESOLVED OPTIONAL token — a string still shaped like
+ * `@workspace.<key>?` or `@config.<key>?` after token resolution (the `?` marks
+ * it as "drop me when unset"). Callers strip such keys from the filter so the
+ * list shows all rows rather than waiting for a selection / a config value.
  *
  * @param {*} v A (possibly resolved) filter value.
  * @return {boolean}
  */
 export function isOptionalUnresolved(v) {
-	return typeof v === 'string' && v.startsWith('@workspace.') && v.endsWith('?')
+	return typeof v === 'string'
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.'))
+		&& v.endsWith('?')
 }
 
 /**
@@ -177,9 +202,9 @@ export function hasUnresolvedTokens(filter) {
  * Resolve every dynamic `@`-token in a filter map (equality + operator shapes).
  *
  * @param {object} filter The filter map (`{ field: value | { op: value } }`).
- * @param {{objectId?: (string|number), object?: object}} [ctx] Optional
- *   detail-page object context forwarded to {@link resolveFilterValue} for
- *   `@objectId` / `@object.<field>` tokens.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ *   context forwarded to {@link resolveFilterValue} for `@objectId` /
+ *   `@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens.
  * @return {object} A new filter map with tokens resolved.
  */
 export function resolveFilterTokens(filter, ctx) {

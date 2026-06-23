@@ -52,7 +52,9 @@
 				v-else-if="resolvedComponent"
 				:key="currentPage.id"
 				v-bind="{ ...$attrs, ...resolvedProps }"
-				v-on="$listeners">
+				v-on="$listeners"
+				@view="onRowOpen"
+				@row-click="onRowOpen">
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -817,6 +819,39 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open a row's detail page. Bound to an index page's `@view` (the
+		 * built-in eye action) and `@row-click`, this is what makes "View"
+		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
+		 * the event, so without this the action is a no-op. Resolves the
+		 * matching `type: 'detail'` page (same `register` + `schema` as the
+		 * current index page) and pushes to it with the row's id as the `:id`
+		 * route param (CnPageRenderer maps `params.id` → `objectId`). No-ops
+		 * when there is no detail page, no router, or no resolvable id.
+		 *
+		 * @param {object} row The clicked / viewed row object.
+		 * @return {void}
+		 */
+		onRowOpen(row) {
+			const page = this.currentPage
+			const router = this.$router
+			if (!page || page.type !== 'index' || !router || !row || typeof row !== 'object') {
+				return
+			}
+			const cfg = page.config || {}
+			const pages = this.effectiveManifest?.pages
+			if (!Array.isArray(pages)) return
+			const detail = pages.find((p) => p
+				&& p.type === 'detail'
+				&& (p.config || {}).register === cfg.register
+				&& (p.config || {}).schema === cfg.schema)
+			if (!detail) return
+			const self = row['@self'] || {}
+			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
+			if (id === undefined || id === null || id === '') return
+			router.push({ name: detail.id, params: { id: String(id) } }).catch(() => {})
+		},
+
 		/**
 		 * Resolve a custom-component reference (page.component,
 		 * page.headerComponent, page.actionsComponent, page.sidebarComponent,

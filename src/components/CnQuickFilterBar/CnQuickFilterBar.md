@@ -46,6 +46,12 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 | `default` | Boolean | no | Pre-selected on mount; first tab with `default:true` (else index 0) is active |
 | `icon` | String | no | Optional MDI icon name shown next to the label |
 
+## Props
+
+- `tabs` (Array, required) — the tab definitions above.
+- `activeIndex` (Number) — zero-based active tab; usable as `v-model:active-index`.
+- `inline` (Boolean, default `false`) — render bare (no padding / border / background) for embedding inside another bar, e.g. the `#filters` slot of `CnActionsBar`.
+
 ## Composition order
 
 CnIndexPage composes the active fetch's filters as:

@@ -97,6 +97,8 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `flush` | Boolean | `false` | Remove content padding so content goes edge-to-edge |
+| `chrome` | String | `'default'` | Card chrome variant — `'default'` (library card) or `'nc-dashboard'` (native Nextcloud Dashboard panel look) |
+| `showActions` | Boolean | `true` | Whether the header's overflow action menu renders; set `false` on compact surfaces to free header width |
 | `iconUrl` | String | `null` | URL of an image icon shown left of the title |
 | `iconClass` | String | `null` | CSS class for a Nextcloud icon shown left of the title |
 | `titleIconPosition` | String | `'right'` | Where to render the `title-icon` slot: `'left'` (before title) or `'right'` (after actions) |
