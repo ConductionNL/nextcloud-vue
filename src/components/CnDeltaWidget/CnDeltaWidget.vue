@@ -49,6 +49,7 @@ import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
 import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -91,6 +92,21 @@ export default {
 	},
 
 	mixins: [widgetLink],
+
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, object }`) for `@objectId` /
+		 * `@object.<field>` filter tokens. Null off a detail page.
+		 */
+		cnObjectContext: { default: null },
+		/**
+		 * Page-level workspace context (a reactive `{ <key>: value }` map)
+		 * provided by CnDashboardPage. Drives `@workspace.<param>` token
+		 * resolution — e.g. the date-range pills publish `dateFrom` / `dateTo`,
+		 * so a leg filter can scope to the picked window.
+		 */
+		cnWorkspaceContext: { default: () => ({}) },
+	},
 
 	props: {
 		/**
@@ -158,10 +174,28 @@ export default {
 		sourceKey() {
 			return JSON.stringify(this.content.source || {})
 		},
+		/** Unwrapped detail-page object context (`{ objectId, object }`) or null. */
+		objectCtx() {
+			const c = this.cnObjectContext
+			return (c && typeof c === 'object' && 'value' in c) ? c.value : c
+		},
+		/** Unwrapped page-level workspace context map (always an object). */
+		pageCtx() {
+			const c = this.cnWorkspaceContext
+			const v = (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return v || {}
+		},
+		/** Workspace signature so the widget refetches when the date window changes. */
+		workspaceKey() {
+			return JSON.stringify(this.pageCtx || {})
+		},
 	},
 
 	watch: {
 		sourceKey() {
+			this.fetchValues()
+		},
+		workspaceKey() {
 			this.fetchValues()
 		},
 	},
@@ -220,9 +254,17 @@ export default {
 			this.error = ''
 			try {
 				const base = { register: s.register, schema: s.schema, metric: s.metric, field: s.field }
+				// Resolve `@workspace.*` (date-range pills) / `@objectId` / `@object.*`
+				// per leg, then drop any optional `@workspace.<key>?` that stayed
+				// unresolved (an unset window) so the leg falls back to its base
+				// scope instead of sending a literal token. fetchAggregateValue does
+				// NOT drop optional tokens itself, so we pre-resolve here.
+				const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx }
+				const curFilter = dropOptionalUnresolved(resolveFilterTokens((s.current && s.current.filter) || {}, ctx))
+				const prevFilter = dropOptionalUnresolved(resolveFilterTokens((s.previous && s.previous.filter) || {}, ctx))
 				const [cur, prev] = await Promise.all([
-					fetchAggregateValue({ ...base, filter: (s.current && s.current.filter) || {} }),
-					fetchAggregateValue({ ...base, filter: (s.previous && s.previous.filter) || {} }),
+					fetchAggregateValue({ ...base, filter: curFilter }, ctx),
+					fetchAggregateValue({ ...base, filter: prevFilter }, ctx),
 				])
 				this.current = cur
 				this.previous = prev
