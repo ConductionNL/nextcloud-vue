@@ -14,7 +14,9 @@ registerDashboardWidget('files', {
 	renderer: CnFilesWidget,
 	form: CnFilesWidgetForm,
 	defaultContent: {
-		folderPath: '',
+		// Default to root so a new Files widget shows content + passes validation
+		// out of the box (an empty path renders "Folder no longer exists").
+		folderPath: '/',
 		fileId: null,
 		viewMode: 'list',
 		showThumbnails: true,
