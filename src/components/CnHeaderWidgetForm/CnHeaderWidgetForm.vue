@@ -111,14 +111,10 @@
 			:clearable="false"
 			@input="updateField('verticalAlign', $event)" />
 
-		<NcSelect
-			:value="height"
-			:options="heightOptions"
-			:input-label="t('nextcloud-vue', 'Height')"
-			:reduce="(option) => option.value"
-			label="label"
-			:clearable="false"
-			@input="updateField('height', $event)" />
+		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
+		     no longer changes anything — resize the widget on the grid instead.
+		     (The `height` field is kept in the saved content for back-compat
+		     but is no longer surfaced as a control.) -->
 
 		<fieldset class="cn-header-widget-form__fieldset">
 			<legend class="cn-header-widget-form__legend">

@@ -4,52 +4,63 @@
 -->
 
 <template>
-	<div class="cn-icon-picker">
-		<div class="cn-icon-picker__preview">
+	<component
+		:is="compact ? 'details' : 'div'"
+		ref="root"
+		class="cn-icon-picker"
+		:class="{ 'cn-icon-picker--compact': compact }">
+		<!-- Compact mode: a small trigger that opens the grid as a popover
+		     (for table rows / tight layouts). Full mode: a static preview. -->
+		<summary v-if="compact" class="cn-icon-picker__trigger" :title="value || t('nextcloud-vue', 'Select icon')">
+			<CnDashboardIcon :name="value" :size="20" :alt="value || t('nextcloud-vue', 'Icon')" />
+		</summary>
+		<div v-else class="cn-icon-picker__preview">
 			<CnDashboardIcon :name="value" :size="24" :alt="t('nextcloud-vue', 'Icon preview')" />
 		</div>
 
-		<div
-			class="cn-icon-picker__grid"
-			role="listbox"
-			:aria-label="t('nextcloud-vue', 'Icon')">
-			<button
-				v-for="(_, name) in icons"
-				:key="name"
-				type="button"
-				class="cn-icon-picker__icon"
-				:class="{ 'cn-icon-picker__icon--selected': name === builtInValue }"
-				:title="name"
-				:aria-label="name"
-				role="option"
-				:aria-selected="name === builtInValue"
-				:disabled="uploading"
-				@click="selectIconName(name)">
-				<CnDashboardIcon :name="name" :size="20" :alt="name" />
-			</button>
+		<div :class="compact ? 'cn-icon-picker__panel' : ''">
+			<div
+				class="cn-icon-picker__grid"
+				role="listbox"
+				:aria-label="t('nextcloud-vue', 'Icon')">
+				<button
+					v-for="(_, name) in icons"
+					:key="name"
+					type="button"
+					class="cn-icon-picker__icon"
+					:class="{ 'cn-icon-picker__icon--selected': name === builtInValue }"
+					:title="name"
+					:aria-label="name"
+					role="option"
+					:aria-selected="name === builtInValue"
+					:disabled="uploading"
+					@click="selectIconName(name)">
+					<CnDashboardIcon :name="name" :size="20" :alt="name" />
+				</button>
+			</div>
+
+			<label v-if="canUpload" class="cn-icon-picker__upload-label">
+				<input
+					ref="fileInput"
+					type="file"
+					accept="image/*"
+					class="cn-icon-picker__file-input"
+					:disabled="uploading"
+					@change="handleFileSelect">
+				<span class="cn-icon-picker__upload-button">
+					<span v-if="uploading">{{ t('nextcloud-vue', 'Uploading…') }}</span>
+					<span v-else>{{ t('nextcloud-vue', 'Upload icon') }}</span>
+				</span>
+			</label>
+
+			<p
+				v-if="uploadError"
+				class="cn-icon-picker__error"
+				role="alert">
+				{{ uploadError }}
+			</p>
 		</div>
-
-		<label v-if="canUpload" class="cn-icon-picker__upload-label">
-			<input
-				ref="fileInput"
-				type="file"
-				accept="image/*"
-				class="cn-icon-picker__file-input"
-				:disabled="uploading"
-				@change="handleFileSelect">
-			<span class="cn-icon-picker__upload-button">
-				<span v-if="uploading">{{ t('nextcloud-vue', 'Uploading…') }}</span>
-				<span v-else>{{ t('nextcloud-vue', 'Upload icon') }}</span>
-			</span>
-		</label>
-
-		<p
-			v-if="uploadError"
-			class="cn-icon-picker__error"
-			role="alert">
-			{{ uploadError }}
-		</p>
-	</div>
+	</component>
 </template>
 
 <script>
@@ -96,6 +107,15 @@ export default {
 		icons: {
 			type: Object,
 			default: () => DASHBOARD_ICONS,
+		},
+		/**
+		 * Compact mode: render a small trigger button that opens the icon grid
+		 * as a popover, instead of the always-visible grid. Suited to table
+		 * rows / tight inline layouts.
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
@@ -168,6 +188,10 @@ export default {
 		selectIconName(name) {
 			this.uploadError = ''
 			this.$emit('input', name || null)
+			// In compact mode, close the popover after a pick.
+			if (this.compact && this.$refs.root) {
+				this.$refs.root.open = false
+			}
 		},
 
 		/**
@@ -229,6 +253,45 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+/* Compact (popover) mode for inline / table use. */
+.cn-icon-picker--compact {
+	display: inline-block;
+	position: relative;
+}
+
+.cn-icon-picker--compact > .cn-icon-picker__trigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	cursor: pointer;
+	list-style: none;
+}
+
+.cn-icon-picker--compact > .cn-icon-picker__trigger::-webkit-details-marker {
+	display: none;
+}
+
+.cn-icon-picker--compact .cn-icon-picker__panel {
+	position: absolute;
+	z-index: 50;
+	top: calc(100% + 4px);
+	inset-inline-start: 0;
+	min-width: 240px;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	box-shadow: 0 2px 8px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
 }
 
 .cn-icon-picker__preview {
