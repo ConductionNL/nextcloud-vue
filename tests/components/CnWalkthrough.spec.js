@@ -82,6 +82,17 @@ describe('CnWalkthrough', () => {
 		expect(w.find('.cn-walkthrough__live').text()).toContain('Welcome')
 	})
 
+	it('falls back to a centered coachmark when the target is present but zero-size (collapsed nav)', () => {
+		const w = factory()
+		w.vm.wt.next() // → click-it (anchored)
+		w.vm.targetEl = { getBoundingClientRect: () => ({ top: 0, left: 0, width: 0, height: 0 }) }
+		w.vm.computeRect()
+		expect(w.vm.rect).toBeNull() // no point-sized cutout
+		w.vm.targetEl = { getBoundingClientRect: () => ({ top: 50, left: 60, width: 120, height: 30 }) }
+		w.vm.computeRect()
+		expect(w.vm.rect).toEqual({ top: 50, left: 60, width: 120, height: 30 })
+	})
+
 	it('does not render when the manifest has no walkthrough', () => {
 		const w = mount(CnWalkthrough, { propsData: { appId: 'empty', manifest: { version: '1.0.0' } } })
 		expect(w.vm.active).toBe(false)

@@ -113,6 +113,7 @@ export default {
 			cardPlacement: 'bottom',
 			targetEl: null,
 			_observer: null,
+			_resizeObs: null,
 			_delayTimer: null,
 			_onScroll: null,
 			_onKey: null,
@@ -331,6 +332,14 @@ export default {
 		computeRect() {
 			if (!this.targetEl) return
 			const r = this.targetEl.getBoundingClientRect()
+			// Target present but not laid out (e.g. a nav item inside a collapsed
+			// group, or a hidden element): fall back to an anchorless centered
+			// coachmark — no point-sized cutout — until it becomes visible. The
+			// ResizeObserver armed in armStep() recomputes when it gains size.
+			if (r.width === 0 || r.height === 0) {
+				this.rect = null
+				return
+			}
 			this.rect = { top: r.top, left: r.left, width: r.width, height: r.height }
 			this.$nextTick(() => this.placeCard())
 		},
@@ -388,6 +397,13 @@ export default {
 				this._clickHandler = () => this.wt.notify({ kind: 'click' })
 				el.addEventListener('click', this._clickHandler, { once: true })
 			}
+			// Recompute the cutout when the target's size changes — covers a target
+			// that starts hidden/zero-size (e.g. inside a collapsed nav group) and
+			// becomes visible while the step is active.
+			if (el && window.ResizeObserver) {
+				this._resizeObs = new ResizeObserver(() => this.computeRect())
+				this._resizeObs.observe(el)
+			}
 			this.armDelay()
 		},
 		/**
@@ -429,6 +445,7 @@ export default {
 		 */
 		teardownStep() {
 			if (this._observer) { this._observer.disconnect(); this._observer = null }
+			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
 			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
 			if (this.targetEl && this._clickHandler) {
 				this.targetEl.removeEventListener('click', this._clickHandler)
