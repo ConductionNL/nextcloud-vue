@@ -56,6 +56,46 @@
 				{{ t('nextcloud-vue', 'No widget types available') }}
 			</div>
 
+			<!-- Widget appearance (chrome): title, background, icon. Shared with
+			     every consumer so the add/edit experience is identical across apps
+			     (the chrome rides alongside `content` in the submit payload). -->
+			<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
+				<h3 class="cn-add-widget-modal__chrome-title">
+					{{ t('nextcloud-vue', 'Appearance') }}
+				</h3>
+				<NcCheckboxRadioSwitch
+					:checked="chrome.showTitle"
+					@update:checked="chrome.showTitle = $event">
+					{{ t('nextcloud-vue', 'Show title') }}
+				</NcCheckboxRadioSwitch>
+				<NcTextField
+					v-if="chrome.showTitle"
+					:value="chrome.customTitle"
+					:label="t('nextcloud-vue', 'Custom title')"
+					@update:value="chrome.customTitle = $event" />
+				<div class="cn-add-widget-modal__chrome-row">
+					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
+					<NcColorPicker v-model="chrome.backgroundColor">
+						<NcButton type="tertiary">
+							<template #icon>
+								<span
+									class="cn-add-widget-modal__swatch"
+									:style="{ backgroundColor: chrome.backgroundColor || 'transparent' }" />
+							</template>
+							{{ chrome.backgroundColor || t('nextcloud-vue', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+				<div class="cn-add-widget-modal__chrome-row">
+					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Icon') }}</span>
+					<CnIconPicker
+						:value="chrome.customIcon"
+						:upload-fn="uploadFn"
+						compact
+						@input="chrome.customIcon = $event" />
+				</div>
+			</div>
+
 			<!-- Action buttons. Cancel emits close, never submit. Submit is
 			     disabled while the active sub-form's validate() returns errors. -->
 			<div class="cn-add-widget-modal__actions">
@@ -76,9 +116,10 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
+import { CnIconPicker } from '../components/CnIconPicker/index.js'
 import {
 	listWidgetTypes,
 	getWidgetTypeEntry,
@@ -103,6 +144,10 @@ export default {
 	components: {
 		NcModal,
 		NcButton,
+		NcTextField,
+		NcColorPicker,
+		NcCheckboxRadioSwitch,
+		CnIconPicker,
 	},
 
 	props: {
@@ -133,6 +178,17 @@ export default {
 			type: Object,
 			default: null,
 		},
+		/**
+		 * Optional upload transport for the Appearance icon picker:
+		 * `async (file) => dataUrlOrUrl`. When null, CnIconPicker embeds the
+		 * uploaded image as a data URL (same-origin, CSP-safe).
+		 *
+		 * @type {Function|null}
+		 */
+		uploadFn: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -158,6 +214,9 @@ export default {
 			validationTick: 0,
 			titleId: `cn-add-widget-modal-title-${++titleIdCounter}`,
 			typeSelectId: `cn-add-widget-modal-type-${++selectIdCounter}`,
+			// Widget chrome (title / background / icon) edited in the same modal
+			// as the per-type content and emitted back under `payload.chrome`.
+			chrome: { showTitle: true, customTitle: '', backgroundColor: '', customIcon: '' },
 		}
 	},
 
@@ -331,13 +390,38 @@ export default {
 		openLifecycle() {
 			if (this.editingWidget) {
 				this.form.loadEditingWidget(this.editingWidget)
+				this.seedChrome(this.editingWidget)
 				return
 			}
 			const initialType = this.preselectedType
 				|| this.availableTypes[0]
 				|| ''
 			this.form.resetForm(initialType)
+			this.seedChrome(null)
 			this.validationTick++
+		},
+
+		/**
+		 * Seed the Appearance controls (title / background / icon) from a
+		 * placement being edited, or to defaults in create mode. Reads chrome
+		 * fields from the placement's top level with a fallback to its `content`
+		 * (and `styleConfig.backgroundColor`), so it round-trips whatever shape
+		 * the consumer persists.
+		 *
+		 * @param {object|null} widget The placement being edited, or null.
+		 * @return {void}
+		 */
+		seedChrome(widget) {
+			const w = widget || {}
+			const c = (w.content && typeof w.content === 'object') ? w.content : {}
+			const pick = (...vals) => vals.find((v) => v !== undefined && v !== null)
+			const showRaw = pick(w.showTitle, c.showTitle)
+			this.chrome = {
+				showTitle: showRaw === undefined ? true : Boolean(Number(showRaw) || showRaw === true),
+				customTitle: pick(w.customTitle, c.customTitle, c.title) || '',
+				backgroundColor: pick(w.backgroundColor, w.styleConfig?.backgroundColor, c.styleConfig?.backgroundColor) || '',
+				customIcon: pick(w.customIcon, c.customIcon, c.icon) || '',
+			}
 		},
 
 		/**
@@ -405,6 +489,14 @@ export default {
 				return
 			}
 			const payload = this.form.assembleContent(this.$refs.activeSubForm)
+			// Carry the chrome (title / background / icon) alongside the content
+			// so the parent persists both from this single modal.
+			payload.chrome = {
+				showTitle: this.chrome.showTitle,
+				customTitle: this.chrome.customTitle,
+				customIcon: this.chrome.customIcon,
+				backgroundColor: this.chrome.backgroundColor,
+			}
 			this.$emit('submit', payload)
 		},
 
@@ -468,6 +560,40 @@ export default {
 	padding: 16px;
 	text-align: center;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__chrome {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border-top: 1px solid var(--color-border);
+	padding-top: 12px;
+}
+
+.cn-add-widget-modal__chrome-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__chrome-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.cn-add-widget-modal__chrome-label {
+	min-width: 96px;
+	font-size: 14px;
+}
+
+.cn-add-widget-modal__swatch {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border-radius: 3px;
+	border: 1px solid var(--color-border);
 }
 
 .cn-add-widget-modal__actions {

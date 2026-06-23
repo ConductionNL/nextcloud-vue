@@ -306,6 +306,16 @@ export default {
 			const content = payload.content && typeof payload.content === 'object' ? { ...payload.content } : (getDefaultContent(payload.type) || {})
 			const wid = `w-${payload.type}-${Date.now()}`
 
+			// Appearance (chrome) chosen in the modal — title visibility/label,
+			// icon and background — applied to the widget entry the renderer reads.
+			const chrome = payload.chrome && typeof payload.chrome === 'object' ? payload.chrome : {}
+			const chromeFields = {
+				title: chrome.customTitle || content.title || payload.type,
+				showTitle: chrome.showTitle !== false,
+				...(chrome.customIcon ? { icon: chrome.customIcon } : {}),
+				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
+			}
+
 			// A v1 dashboard page keeps widgets in config.widgets + config.layout;
 			// a v2 page keeps them in pages[].widgets[] (slot-based). Append to
 			// whichever this page uses so the new widget lands where the renderer reads.
@@ -313,7 +323,7 @@ export default {
 			if (page.type === 'dashboard' && cfg && Array.isArray(cfg.widgets)) {
 				if (!Array.isArray(cfg.layout)) this.$set(cfg, 'layout', [])
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
-				cfg.widgets.push({ id: wid, type: payload.type, title: content.title || payload.type, content })
+				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
 				if (!Array.isArray(page.widgets)) this.$set(page, 'widgets', [])
@@ -327,6 +337,7 @@ export default {
 					gridY: nextY,
 					gridWidth: 12,
 					gridHeight: 3,
+					...chromeFields,
 					props: content,
 				})
 			}
