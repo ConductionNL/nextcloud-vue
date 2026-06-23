@@ -125,6 +125,20 @@ export { CnDashTileWidget } from './CnDashTileWidget/index.js'
 export { CnDashTileWidgetForm } from './CnDashTileWidgetForm/index.js'
 export { CnDateRangePicker, DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from './CnDateRangePicker/index.js'
 export { CnStatsBlockWidget } from './CnStatsBlockWidget/index.js'
+// Analytics widget library — OpenRegister-data-driven renderers + their config
+// forms (KPI/delta/gauge/object-list/chart/stats-card/table). Each renderer
+// fetches its own OR aggregate at runtime via generateUrl; the forms self-fetch
+// schema properties. Consumed by MyDash/LaunchPad's widget registry.
+export { CnStatWidget } from './CnStatWidget/index.js'
+export { CnStatWidgetForm } from './CnStatWidgetForm/index.js'
+export { CnDeltaWidget } from './CnDeltaWidget/index.js'
+export { CnDeltaWidgetForm } from './CnDeltaWidgetForm/index.js'
+export { CnGaugeWidget } from './CnGaugeWidget/index.js'
+export { CnGaugeWidgetForm } from './CnGaugeWidgetForm/index.js'
+export { CnObjectListWidget } from './CnObjectListWidget/index.js'
+export { CnObjectListWidgetForm } from './CnObjectListWidgetForm/index.js'
+export { CnChartWidgetForm } from './CnChartWidgetForm/index.js'
+export { CnStatsBlockWidgetForm } from './CnStatsBlockWidgetForm/index.js'
 export { CnLockedBanner } from './CnLockedBanner/index.js'
 export { CnObjectSidebar } from './CnObjectSidebar/index.js'
 export { CnInfoWidget } from './CnInfoWidget/index.js'
