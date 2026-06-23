@@ -64,6 +64,16 @@ Every component page below embeds a live demo via `<Playground />` — that's th
 | [CnVersionInfoCard](./cn-version-info-card.md) | App version information card for admin settings |
 | [CnRegisterMapping](./cn-register-mapping.md) | OpenRegister register/schema configuration panel |
 
+## Dashboard Widgets
+
+The dashboard widget library — the catalog shared by OpenBuild and MyDash/LaunchPad.
+
+| Component | Description |
+|-----------|-------------|
+| [Dashboard Widget Catalog](./dashboard-widget-catalog.md) | **Start here** — all 25 dashboard widget types with screenshots, grouped by category |
+| [CnWidgetGrid](./cn-widget-grid.md) | The grid host and registry-resolution boundary for widget placements |
+| [CnAddWidgetModal](./cn-add-widget-modal.md) | Unified add/edit modal with the per-type widget sub-forms |
+
 ## Cards
 
 | Component | Description |
