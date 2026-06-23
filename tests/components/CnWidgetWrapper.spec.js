@@ -100,6 +100,47 @@ describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 		const wrapper = mountWrapper({ hideRefresh: true, hideRequestFeature: true })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
 	})
+
+	it('renders the actions menu by default (showActions defaults true)', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(true)
+	})
+
+	it('hides the whole actions area when :show-actions="false" (compact KPI tile)', () => {
+		const wrapper = mountWrapper({ showActions: false })
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
+		// Header + title still render — only the overflow menu is suppressed.
+		expect(wrapper.find('.cn-widget-wrapper__title').text()).toBe('Outgoing calls')
+	})
+})
+
+describe('CnWidgetWrapper — headerless floating title-meta (flush KPI date chip)', () => {
+	it('floats title-meta over the content when the header is hidden', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Turnover', showTitle: false },
+			stubs: baseStubs,
+			mocks: { $route: { name: 'Dashboard' } },
+			provide: { cnAppId: 'shillinq', cnFeatureRequestRepo: 'ConductionNL/shillinq' },
+			slots: { 'title-meta': '<span class="my-chip">12m</span>' },
+		})
+		const floating = wrapper.find('.cn-widget-wrapper__floating-meta')
+		expect(floating.exists()).toBe(true)
+		expect(floating.find('.my-chip').text()).toBe('12m')
+		// No header is rendered in headerless mode.
+		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(false)
+	})
+
+	it('keeps title-meta in the header (not floating) when the header is shown', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Turnover', showTitle: true },
+			stubs: baseStubs,
+			mocks: { $route: { name: 'Dashboard' } },
+			provide: { cnAppId: 'shillinq', cnFeatureRequestRepo: 'ConductionNL/shillinq' },
+			slots: { 'title-meta': '<span class="my-chip">12m</span>' },
+		})
+		expect(wrapper.find('.cn-widget-wrapper__floating-meta').exists()).toBe(false)
+		expect(wrapper.find('.cn-widget-wrapper__title-meta .my-chip').exists()).toBe(true)
+	})
 })
 
 describe('CnWidgetWrapper — default Refresh handler (widget-wrapper-actions)', () => {

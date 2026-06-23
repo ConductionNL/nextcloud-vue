@@ -150,6 +150,9 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `gridWidth` | Number | Width in grid columns |
 | `gridHeight` | Number | Height in grid rows |
 | `showTitle` | Boolean | Whether to show the wrapper header (default `true`) |
+| `flush` | Boolean | Whether the widget body renders flush — edge-to-edge with **no** wrapper content padding. **Default `true`** for dashboard content widgets (tables, KPIs, charts, custom/integration), so a borderless table or KPI meets the card edges. Set `flush: false` to restore the padded box for content that needs breathing room. |
+| `dateChip` | Boolean | Show the per-widget date-range chip (see [Per-card date chip](#per-card-date-chip-layoutdatechip)) |
+| `showActions` | Boolean | Forwarded to CnWidgetWrapper — set `false` to drop the header overflow menu on compact tiles |
 | `styleConfig` | Object | Style overrides passed to CnWidgetWrapper |
 
 ### Events
@@ -231,6 +234,43 @@ its `source.filter` on whichever date field it tracks:
 The trailing `?` marks each token OPTIONAL: when the "All" preset clears the
 window (empty bounds) the token stays unresolved and is dropped, so the date
 filter is omitted and the tile shows its unfiltered count.
+
+### Per-card date chip (`layout[].dateChip`)
+
+Instead of (or alongside) the page-level header control, a KPI card can carry
+its own period selector. Set `dateChip: true` on the widget's **layout** entry.
+When the card shows its header (`showTitle` not `false`) the chip sits in the
+header next to the title; on a **flush** card (`showTitle: false`) it floats in
+the top-right corner over the content — so a compact KPI tile keeps its clean
+look and still gets a date selector. This works for the registered card widgets
+(`stat` / `gauge` / `delta`) and any custom-slot widget. The chip opens the same preset popover and drives the same shared
+dashboard range, so every card stays in sync. Its label shows the active
+preset (e.g. `7d` / `30d` / `All`) and it stays clickable even on the
+unbounded "All" range. Pair with `dateRange.showHeaderPicker: false` to drop
+the page-level control and rely solely on the per-card chips:
+
+```jsonc
+{
+  "config": {
+    "dateRange": {
+      "enabled": true,
+      "showHeaderPicker": false,
+      "default": { "preset": "all" },
+      "presets": [
+        { "id": "last-7", "label": "7d", "days": 7 },
+        { "id": "last-30", "label": "30d", "days": 30 },
+        { "id": "all", "label": "All", "days": null }
+      ]
+    },
+    "layout": [
+      { "id": "1", "widgetId": "decisions-kpi", "gridX": 0, "gridY": 0, "gridWidth": 3, "gridHeight": 2, "showTitle": true, "dateChip": true }
+    ]
+  }
+}
+```
+
+A preset with no numeric `days` / `hours` (other than `custom`) — e.g.
+`{ id: "all", days: null }` — or one flagged `clear: true` clears the window.
 
 ### Pills control (`control: 'pills'`)
 

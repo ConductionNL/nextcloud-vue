@@ -558,4 +558,61 @@ describe('CnDashboardPage — dateRange prop', () => {
 			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
 		})
 	})
+
+	describe('per-widget date chip (layout[].dateChip) — abstract KPI card select', () => {
+		const presetsWithAll = [
+			{ id: 'last-7', label: '7d', days: 7 },
+			{ id: 'last-30', label: '30d', days: 30 },
+			{ id: 'all', label: 'All', days: null },
+		]
+		const chipStubs = {
+			...stubs,
+			// The default grid stub renders no slot — render it so widget bodies
+			// (and their in-header chips) actually mount.
+			CnDashboardGrid: { template: '<div class="cn-dashboard-grid-stub"><div v-for="it in layout" :key="it.id"><slot name="widget" :item="it" /></div></div>', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
+			// The default CnWidgetWrapper stub drops named slots — render title-meta
+			// so the in-header date chip is visible to the assertions.
+			CnWidgetWrapper: { template: '<div><slot name="title-meta" /><slot /></div>' },
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionButton: { template: '<button class="nc-action-button-stub"><slot name="icon" /><slot /></button>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+			NcActionSeparator: { template: '<div />' },
+		}
+		const mountWithChip = (defaultPreset) => mount(CnDashboardPage, {
+			propsData: {
+				dateRange: { enabled: true, showHeaderPicker: false, presets: presetsWithAll, default: { preset: defaultPreset } },
+				widgets: [{ id: 'kpi', type: 'custom', title: 'Decisions' }],
+				layout: [{ id: '1', widgetId: 'kpi', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, showTitle: true, dateChip: true }],
+			},
+			stubs: chipStubs,
+			scopedSlots: { 'widget-kpi': '<div class="kpi-body" />' },
+		})
+
+		it('dashboardRangeChipLabel prefers the active preset label', () => {
+			const wrapper = mountWithChip('last-30')
+			expect(wrapper.vm.dashboardRangeChipLabel).toBe('30d')
+		})
+
+		it('chip renders on a dateChip widget and shows the preset label', () => {
+			const wrapper = mountWithChip('last-7')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-kpi"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-dashboard-page__date-chip').text()).toBe('7d')
+		})
+
+		it('chip STILL renders (label "All") when the range is unbounded', () => {
+			const wrapper = mountWithChip('all')
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-kpi"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-dashboard-page__date-chip').text()).toBe('All')
+		})
+
+		it('picking the All entry in the chip clears the window', async () => {
+			const wrapper = mountWithChip('last-7')
+			expect(wrapper.vm.workspaceContext.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			wrapper.vm.onChipPresetPick({ id: 'all', label: 'All', days: null }, { widgetId: 'kpi' })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+		})
+	})
 })

@@ -261,12 +261,13 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
 						:borderless="item.showTitle === false"
-						:flush="item.flush === true"
+						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
 						@refresh="onWidgetRefresh(item)"
+						:show-actions="item.showActions !== false"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
@@ -283,7 +284,7 @@
 						     can surface the range in their own header instead
 						     of (or alongside) the page-level picker. Keep the
 						     two blocks in sync when editing either. -->
-						<template v-if="dateRangeEnabled && item.dateChip === true && formatDashboardDateRange()" #title-meta>
+						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
 							<NcActions
 								:force-menu="true"
 								:open.sync="openChipPicker[item.widgetId]"
@@ -292,7 +293,7 @@
 								class="cn-dashboard-page__date-chip-trigger">
 								<template #icon>
 									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
-										{{ formatDashboardDateRange() }}
+										{{ dashboardRangeChipLabel }}
 									</span>
 								</template>
 								<NcActionButton
@@ -332,7 +333,7 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
 						:borderless="item.showTitle === false"
-						:flush="item.flush === true"
+						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
@@ -405,7 +406,7 @@
 						:icon-class="getWidgetIconClass(item)"
 						:show-title="item.showTitle !== false"
 						:borderless="item.showTitle === false"
-						:flush="item.flush === true"
+						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
@@ -446,12 +447,55 @@
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
 						:show-title="item.showTitle !== false"
-						:flush="isCardWidget(item)"
+						:show-actions="item.showActions !== false"
+						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
+						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
+						     registered card widgets (stat / gauge / delta). Same popover
+						     and SHARED dashboard range as the custom-widget chip above; it
+						     lets an abstract KPI tile carry its own period selector. Requires
+						     the widget header (`showTitle !== false`). Keep in sync with the
+						     custom-slot chip block. -->
+						<template v-if="dateRangeEnabled && item.dateChip === true" #title-meta>
+							<NcActions
+								:force-menu="true"
+								:open.sync="openChipPicker[item.widgetId]"
+								container="body"
+								:data-testid="`cn-dashboard-page-date-chip-${item.widgetId}`"
+								class="cn-dashboard-page__date-chip-trigger">
+								<template #icon>
+									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
+										{{ dashboardRangeChipLabel }}
+									</span>
+								</template>
+								<NcActionButton
+									v-for="preset in effectivePresets"
+									:key="preset.id"
+									:close-after-click="true"
+									@click="onChipPresetPick(preset, item)">
+									<template #icon>
+										<CalendarRange v-if="currentRange && currentRange.preset === preset.id" :size="16" />
+										<span v-else class="cn-dashboard-page__date-chip-preset-spacer" />
+									</template>
+									{{ preset.label }}
+								</NcActionButton>
+								<NcActionSeparator />
+								<NcActionInput
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange && currentRange.from)"
+									:label="t('nextcloud-vue', 'From')"
+									@input="onChipDateInput('from', $event)" />
+								<NcActionInput
+									type="datetime-local"
+									:value="toLocalDateTimeInput(currentRange && currentRange.to)"
+									:label="t('nextcloud-vue', 'To')"
+									@input="onChipDateInput('to', $event)" />
+							</NcActions>
+						</template>
 						<component
 							:is="registryRenderer(item)"
 							:content="getWidgetContent(item)"
@@ -851,10 +895,14 @@ export default {
 		 * state is found: `last-7` (`now − 7d → now`).
 		 *
 		 * Per-widget surfacing: chart widgets with a `dataSource.bucket`
-		 * get an in-header date chip automatically; CUSTOM widgets opt in
-		 * via `layout[].dateChip: true` (same chip, same popover, writes
-		 * the same shared range). Set `showHeaderPicker: false` to rely
-		 * solely on the per-widget chips.
+		 * get an in-header date chip automatically; CUSTOM and registered
+		 * card widgets (`stat` / `gauge` / `delta` KPI tiles) opt in via
+		 * `layout[].dateChip: true` (same popover, writes the same shared
+		 * range — so an abstract KPI card carries its own period selector).
+		 * The chip needs the widget header (`showTitle !== false`) and shows
+		 * the active preset's label (e.g. `7d` / `All`), staying clickable
+		 * even on an unbounded ("All") range. Set `showHeaderPicker: false`
+		 * to rely solely on the per-widget chips.
 		 *
 		 * @type {object|null}
 		 */
@@ -1108,6 +1156,25 @@ export default {
 		 */
 		dateRangeControl() {
 			return this.dateRange?.control === 'pills' ? 'pills' : 'picker'
+		},
+
+		/**
+		 * Compact, always-present label for the per-widget date chip
+		 * (`layout[].dateChip`). Prefers the active preset's own label (e.g.
+		 * `7d` / `30d` / `All`) so a KPI card surfaces a tidy period token;
+		 * falls back to the concrete `from – to` span for a manual range, and
+		 * to a generic "Date range" when neither is known. NEVER empty, so the
+		 * chip stays clickable even on an unbounded ("All") range.
+		 *
+		 * @return {string} The chip label.
+		 */
+		dashboardRangeChipLabel() {
+			const rng = this.currentRange || this.dashboardDateRange
+			if (rng && rng.preset && rng.preset !== 'custom') {
+				const preset = this.effectivePresets.find((p) => p && p.id === rng.preset)
+				if (preset && preset.label) return preset.label
+			}
+			return this.formatDashboardDateRange() || t('nextcloud-vue', 'Date range')
 		},
 
 		/**

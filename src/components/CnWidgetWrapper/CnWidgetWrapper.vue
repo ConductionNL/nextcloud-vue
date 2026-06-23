@@ -13,6 +13,7 @@
 		:class="{
 			'cn-widget-wrapper--borderless': borderless,
 			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
@@ -46,7 +47,7 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div class="cn-widget-wrapper__actions">
+			<div v-if="showActions" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -82,6 +83,17 @@
 				:style="titleIconColor ? { color: titleIconColor } : {}">
 				<slot name="title-icon" />
 			</div>
+		</div>
+
+		<!-- Headerless meta (e.g. a KPI date chip on a flush card). When the
+		     header is hidden but a `title-meta` chip is provided, float it in the
+		     top-right corner over the content instead of dropping it — so a
+		     compact flush KPI tile can carry a date-range chip without growing a
+		     full header bar. -->
+		<div
+			v-if="!showTitle && $slots['title-meta']"
+			class="cn-widget-wrapper__floating-meta">
+			<slot name="title-meta" />
 		</div>
 
 		<!-- Content -->
@@ -162,6 +174,25 @@ export default {
 			default: true,
 		},
 		/**
+		 * Chrome variant for the wrapper card.
+		 * - `'default'` — the library's own card chrome (opaque background,
+		 *   1px border, compact header).
+		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
+		 *   exactly using the same design tokens: translucent blurred
+		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
+		 *   header with a 20px/700 title and 32px leading icon, and content
+		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
+		 *   layer on top so a user can customise any token.
+		 *
+		 * @type {'default'|'nc-dashboard'}
+		 */
+		chrome: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'nc-dashboard'].includes(v),
+		},
+		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
 		 */
@@ -205,6 +236,16 @@ export default {
 		buttons: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Whether the header's overflow action menu (Refresh / Documentation /
+		 * Request-a-feature + any `#action-items`) renders. Shown by default;
+		 * set `false` for compact surfaces — e.g. a KPI tile whose only header
+		 * affordance is a date chip — to drop the menu and free header width.
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 		/**
 		 * Style configuration for the wrapper.
@@ -503,12 +544,21 @@ export default {
 
 <style scoped>
 .cn-widget-wrapper {
+	position: relative;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	overflow: hidden;
+}
+
+/* Headerless date chip — floated over the top-right of a flush card. */
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
 }
 
 .cn-widget-wrapper__content {
@@ -535,6 +585,47 @@ export default {
 
 .cn-widget-wrapper--flush .cn-widget-wrapper__content {
 	padding: 0;
+}
+
+/*
+ * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
+ * (apps/dashboard) exactly, using the same design tokens so an un-customised
+ * widget is pixel-identical to a core dashboard panel. `styleConfig` inline
+ * overrides (wrapperStyles / headerStyles) still win over these class rules,
+ * so users can override any token. Combined selector raises specificity above
+ * the base `.cn-widget-wrapper` rules it supersedes.
+ */
+.cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
+	background: var(--color-main-background-blur, var(--color-main-background));
+	-webkit-backdrop-filter: var(--filter-background-blur, none);
+	backdrop-filter: var(--filter-background-blur, none);
+	border: none;
+	border-radius: var(--border-radius-container-large, 16px);
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header {
+	padding: 16px;
+	border-bottom: none;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header-left {
+	gap: 16px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__icon {
+	width: 32px;
+	height: 32px;
+	background-size: 32px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
+	padding: 0 16px 16px;
 }
 
 .cn-widget-wrapper__header {
