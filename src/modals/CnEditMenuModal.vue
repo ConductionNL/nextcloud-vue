@@ -74,12 +74,18 @@ export default {
 		 * holds the target page's id (the vue-router route name), so the option
 		 * `value` is `page.id` and the label is its title (falling back to id).
 		 *
+		 * Detail pages — those whose route carries a dynamic segment like
+		 * `/dogs/:id` — are EXCLUDED: they need a concrete record id to resolve,
+		 * so navigating to one straight from the menu yields a blank page. Detail
+		 * pages are reached from their index (clicking a row), never the menu.
+		 *
 		 * @return {Array<{value: string, label: string}>}
 		 */
 		pageOptions() {
 			const pages = (this.working && Array.isArray(this.working.pages)) ? this.working.pages : []
 			return pages
 				.filter((p) => p && typeof p.id === 'string' && p.id !== '')
+				.filter((p) => !String(p.route || '').includes(':'))
 				.map((p) => ({ value: p.id, label: (typeof p.title === 'string' && p.title) ? p.title : p.id }))
 		},
 	},
