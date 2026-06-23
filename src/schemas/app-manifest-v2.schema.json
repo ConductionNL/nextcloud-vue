@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.10.0",
+	"version": "2.11.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -17,6 +17,11 @@
 			"type": "string",
 			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
 			"description": "Semver of the manifest content. Bump when the manifest changes meaningfully. Used for cache busting and app-builder migration tracking. Distinct from the schema's own version."
+		},
+		"openbuildEditable": {
+			"type": "boolean",
+			"default": true,
+			"description": "Whether the OpenBuild in-app edit button (ADR-041) is offered on this app's pages. Default true. Set false to suppress it — e.g. OpenBuild's own UI, which does not edit itself with itself. Read by CnAppRoot to gate `cnOpenBuildAvailable`."
 		},
 		"dependencies": {
 			"type": "array",

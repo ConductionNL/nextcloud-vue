@@ -97,6 +97,22 @@ describe('CnAppRoot', () => {
 		})
 	})
 
+	describe('OpenBuild edit-button gating (openbuildEditable)', () => {
+		it('is available when OpenBuild is enabled and the manifest does not opt out', () => {
+			getCapabilities.mockReturnValue({})
+			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
+			const wrapper = mountRoot({ manifest: { ...baseManifest } })
+			expect(wrapper.vm.openBuildAvailable).toBe(true)
+		})
+
+		it('is suppressed when the manifest sets openbuildEditable:false', () => {
+			getCapabilities.mockReturnValue({})
+			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
+			const wrapper = mountRoot({ manifest: { ...baseManifest, openbuildEditable: false } })
+			expect(wrapper.vm.openBuildAvailable).toBe(false)
+		})
+	})
+
 	describe('slot overrides', () => {
 		it('renders the #loading slot when provided', () => {
 			const wrapper = mountRoot({

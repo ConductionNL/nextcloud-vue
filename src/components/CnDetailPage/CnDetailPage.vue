@@ -81,9 +81,22 @@
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
-					or buttons). Renders alongside (not inside) the `header` slot.
+					or buttons). Renders alongside (not inside) the `header` slot. Receives the
+					resolved object context so an actionsComponent (resolved by CnPageRenderer)
+					can act on the current record without re-fetching.
+					@binding {object} object The resolved record.
+					@binding {string} objectId The resolved object id.
+					@binding {object} schema The resolved schema.
+					@binding {string} objectType The resolved object type.
+					@binding {object} store The effective object store.
 				-->
-				<slot name="actions" />
+				<slot
+					name="actions"
+					:object="resolvedObject"
+					:object-id="objectId"
+					:schema="currentSchema"
+					:object-type="resolvedObjectType"
+					:store="effectiveObjectStore" />
 				<!-- NB: no sidebar-toggle here — NcObjectSidebar/NcAppSidebar
 				     renders its own open toggle (`.app-sidebar__toggle`) when
 				     closed and an X (`.app-sidebar__close`) when open, so a custom

@@ -311,7 +311,7 @@ import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { ref, watch } from 'vue'
+import Vue, { computed, ref, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
@@ -865,12 +865,19 @@ export default {
 			if (!manifestEditor.editing.value) baseRef.value = m
 		})
 		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
+		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
+		// `openbuildEditable: false` (e.g. OpenBuild's own pages — an app does not
+		// edit itself with itself). Default true: omitting the flag keeps the
+		// button wherever the OpenBuild app is enabled (ADR-041).
+		const openBuildEditable = computed(
+			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
+		)
 
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
 			manifestEditor,
-			openBuildAvailable,
+			openBuildAvailable: openBuildEditable,
 		}
 	},
 
