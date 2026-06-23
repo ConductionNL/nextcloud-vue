@@ -68,7 +68,7 @@
 | `header`                  | `title`, `description`, `icon`, `icon-size`             | header                     |
 | `icon`                    | —                                                       | icon                       |
 | `translation-badge`       | `object`                                                | translation-badge          |
-| `actions`                 | —                                                       | actions                    |
+| `actions`                 | `object`, `object-id`, `schema`, `object-type`, `store` | actions                    |
 | `error`                   | —                                                       | error                      |
 | `error-actions`           | —                                                       | error-actions              |
 | `empty`                   | —                                                       | empty                      |

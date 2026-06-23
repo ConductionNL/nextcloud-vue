@@ -10,6 +10,7 @@
 		:next-label="nextLabel"
 		:back-label="backLabel"
 		:success-text="successText"
+		:validate="validateStep"
 		@step-change="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
@@ -31,36 +32,22 @@
 					<NcNoteCard type="info" :heading="step.title">
 						{{ step.body || '' }}
 					</NcNoteCard>
-					<div class="cn-setup-step__nav">
-						<NcButton v-if="!scope.isFirst" @click="scope.back">{{ backLabel }}</NcButton>
-						<NcButton type="primary" @click="scope.isLast ? scope.submit() : scope.next()">
-							{{ scope.isLast ? submitLabel : nextLabel }}
-						</NcButton>
-					</div>
 				</template>
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
+					<NcNoteCard v-if="step.body" type="info">{{ step.body }}</NcNoteCard>
 					<NcSelect
 						:input-label="step.title || step.id"
-						:options="step.options || []"
+						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
+						:disabled="isChoiceDisabled(step)"
 						label="label"
 						:value="choiceModel[step.id]"
 						@input="(v) => onChoice(step, v)" />
-					<NcNoteCard v-if="stepError[step.id]" type="error">{{ stepError[step.id] }}</NcNoteCard>
-					<div class="cn-setup-step__nav">
-						<NcButton v-if="!scope.isFirst" @click="scope.back">{{ backLabel }}</NcButton>
-						<NcButton
-							type="primary"
-							:disabled="saving[step.id] || !hasChoice(step)"
-							@click="saveChoiceAndAdvance(step, scope)">
-							<template v-if="saving[step.id]" #icon>
-								<NcLoadingIcon :size="20" />
-							</template>
-							{{ scope.isLast ? submitLabel : nextLabel }}
-						</NcButton>
-					</div>
+					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
+						{{ dependsOnHint(step) }}
+					</NcNoteCard>
 				</template>
 
 				<!-- config-fields -->
@@ -88,19 +75,6 @@
 							:value="configModel[field.key] != null ? String(configModel[field.key]) : ''"
 							@update:value="(v) => $set(configModel, field.key, v)" />
 					</div>
-					<NcNoteCard v-if="stepError[step.id]" type="error">{{ stepError[step.id] }}</NcNoteCard>
-					<div class="cn-setup-step__nav">
-						<NcButton v-if="!scope.isFirst" @click="scope.back">{{ backLabel }}</NcButton>
-						<NcButton
-							type="primary"
-							:disabled="saving[step.id]"
-							@click="saveFieldsAndAdvance(step, scope)">
-							<template v-if="saving[step.id]" #icon>
-								<NcLoadingIcon :size="20" />
-							</template>
-							{{ scope.isLast ? submitLabel : nextLabel }}
-						</NcButton>
-					</div>
 				</template>
 
 				<!-- run-action -->
@@ -112,35 +86,29 @@
 						{{ actionResult[step.id].message }}
 					</NcNoteCard>
 					<div class="cn-setup-step__nav">
-						<NcButton v-if="!scope.isFirst" @click="scope.back">{{ backLabel }}</NcButton>
-						<NcButton :disabled="running[step.id]" @click="runAction(step)">
+						<NcButton type="primary" :disabled="running[step.id]" @click="runAction(step)">
 							<template v-if="running[step.id]" #icon>
 								<NcLoadingIcon :size="20" />
 							</template>
 							{{ runLabel }}
-						</NcButton>
-						<NcButton type="primary" @click="scope.isLast ? scope.submit() : scope.next()">
-							{{ scope.isLast ? submitLabel : nextLabel }}
 						</NcButton>
 					</div>
 				</template>
 
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
+					<NcNoteCard v-if="step.body" type="info">{{ step.body }}</NcNoteCard>
 					<ul class="cn-setup-summary">
 						<li
-							v-for="s in setupSteps.filter(x => x.type !== 'summary')"
-							:key="s.id"
+							v-for="item in summaryItems"
+							:key="item.id"
 							class="cn-setup-summary__item"
-							:class="{ 'cn-setup-summary__item--done': isStepDone(s.id) }">
-							<span class="cn-setup-summary__mark">{{ isStepDone(s.id) ? '✓' : '○' }}</span>
-							{{ s.title || s.id }}
+							:class="{ 'cn-setup-summary__item--done': item.done }">
+							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
+							<span class="cn-setup-summary__label">{{ item.title }}</span>
+							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
 						</li>
 					</ul>
-					<div class="cn-setup-step__nav">
-						<NcButton v-if="!scope.isFirst" @click="scope.back">{{ backLabel }}</NcButton>
-						<NcButton type="primary" @click="scope.submit()">{{ submitLabel }}</NcButton>
-					</div>
 				</template>
 			</div>
 		</template>
@@ -242,12 +210,12 @@ export default {
 	data() {
 		return {
 			choiceModel: {},
+			choiceValues: {},
 			configModel: {},
-			saving: {},
 			running: {},
 			actionResult: {},
-			stepError: {},
 			localDone: {},
+			userTouched: {},
 		}
 	},
 
@@ -261,6 +229,44 @@ export default {
 				label: s.title || s.id,
 				optional: s.required !== true,
 			}))
+		},
+		/**
+		 * Recap rows for the `summary` step — one per non-summary step, with
+		 * the value the user selected (choice label / config field values) and
+		 * a done marker (info steps always done; choice steps done when picked;
+		 * run-action steps done when the action succeeded).
+		 *
+		 * @return {Array<{ id: string, title: string, value: string, done: boolean }>}
+		 */
+		summaryItems() {
+			return this.setupSteps
+				.filter((s) => s.type !== 'summary')
+				.map((step) => {
+					let value = ''
+					if (step.type === 'choice') {
+						const raw = this.choiceModel[step.id]
+						if (Array.isArray(raw)) {
+							value = raw.map((o) => (o && o.label ? o.label : o)).join(', ')
+						} else if (raw && raw.label) {
+							value = raw.label
+						} else if (raw != null && raw !== '') {
+							value = String(raw)
+						}
+					} else if (step.type === 'config-fields') {
+						value = this.fieldsFor(step)
+							.map((f) => `${f.label}: ${this.configModel[f.key] != null ? this.configModel[f.key] : ''}`)
+							.join(', ')
+					}
+					let done
+					if (step.type === 'info') {
+						done = true
+					} else if (step.type === 'choice') {
+						done = this.hasChoice(step)
+					} else {
+						done = this.isStepDone(step.id)
+					}
+					return { id: step.id, title: step.title || step.id, value, done }
+				})
 		},
 	},
 
@@ -278,8 +284,33 @@ export default {
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
 		},
-		choiceValue(step) {
-			return this.choiceModel[step.id]
+		/**
+		 * Options for a `choice` step. When the step declares `dependsOn`
+		 * (a parent step's configKey) + `optionsByParent`, the option list
+		 * is the entry keyed by the parent's currently-selected value — this
+		 * is the country → organisation-type cascade. Otherwise the static
+		 * `options` array.
+		 *
+		 * @param {object} step The choice step definition.
+		 * @return {Array} The option list to render.
+		 */
+		optionsFor(step) {
+			if (step.dependsOn && step.optionsByParent) {
+				const parentValue = this.choiceValues[step.dependsOn]
+				if (parentValue == null || parentValue === '') return []
+				return step.optionsByParent[parentValue] || []
+			}
+			return step.options || []
+		},
+		isChoiceDisabled(step) {
+			if (!step.dependsOn) return false
+			const parentValue = this.choiceValues[step.dependsOn]
+			return parentValue == null || parentValue === ''
+		},
+		dependsOnHint(step) {
+			const parent = this.setupSteps.find((s) => s.configKey === step.dependsOn)
+			const label = parent ? (parent.title || parent.id) : step.dependsOn
+			return t('nextcloud-vue', 'Select "{step}" first.', { step: label })
 		},
 		hasChoice(step) {
 			const v = this.choiceModel[step.id]
@@ -288,8 +319,98 @@ export default {
 			}
 			return v != null && v !== ''
 		},
+		scalarChoice(step) {
+			const raw = this.choiceModel[step.id]
+			if (step.multiple === true) {
+				return (raw || []).map((o) => (o && o.value !== undefined ? o.value : o))
+			}
+			return raw && raw.value !== undefined ? raw.value : raw
+		},
 		onChoice(step, value) {
+			this.$set(this.userTouched, step.id, true)
 			this.$set(this.choiceModel, step.id, value)
+			if (step.configKey) {
+				this.$set(this.choiceValues, step.configKey, this.scalarChoice(step))
+			}
+			// Reset any dependent child choices when the parent changes.
+			for (const child of this.setupSteps) {
+				if (child.dependsOn && child.dependsOn === step.configKey) {
+					this.$set(this.choiceModel, child.id, child.multiple === true ? [] : null)
+					this.$set(this.userTouched, child.id, false)
+					if (child.configKey) this.$set(this.choiceValues, child.configKey, '')
+				}
+			}
+			// Re-apply auto-suggestions for steps that derive a default from this one.
+			for (const dep of this.setupSteps) {
+				if (dep.suggestFrom && dep.suggestFrom === step.configKey) {
+					this.applySuggestion(dep)
+				}
+			}
+		},
+		/**
+		 * Auto-fill a `choice` step's suggested default from an earlier choice
+		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
+		 * the user has manually picked here, so a suggestion never clobbers an
+		 * explicit choice.
+		 *
+		 * @param {object} step The dependent choice step.
+		 * @return {void}
+		 */
+		applySuggestion(step) {
+			if (this.userTouched[step.id] === true) return
+			const parentValue = this.choiceValues[step.suggestFrom]
+			if (parentValue == null || parentValue === '') return
+			const wanted = (step.suggestMap || {})[parentValue]
+			if (wanted == null) return
+			const opt = this.optionsFor(step).find((o) => o.value === wanted) || { value: wanted, label: String(wanted) }
+			this.$set(this.choiceModel, step.id, opt)
+			if (step.configKey) this.$set(this.choiceValues, step.configKey, wanted)
+		},
+		/**
+		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
+		 * the active step before advancing. `choice`/`config-fields` steps
+		 * POST their value via the setup contract; required `choice` steps
+		 * block advance until a value is picked; required `run-action` steps
+		 * block until the action has succeeded. Returns `true` to advance or
+		 * an error string to surface above the step and block navigation.
+		 *
+		 * @param {string} stepId The active step id.
+		 * @return {Promise<boolean|string>} True to advance, or an error message.
+		 */
+		async validateStep(stepId) {
+			const step = this.setupSteps.find((s) => s.id === stepId)
+			if (!step) return true
+			if (step.type === 'choice') {
+				if (!this.hasChoice(step)) {
+					return step.required === true
+						? t('nextcloud-vue', 'Please make a selection to continue.')
+						: true
+				}
+				try {
+					await this.saveConfig({ [step.configKey]: this.scalarChoice(step) })
+					this.$set(this.localDone, step.id, true)
+					return true
+				} catch (err) {
+					return this.errorMessage(err)
+				}
+			}
+			if (step.type === 'config-fields') {
+				try {
+					const patch = {}
+					for (const field of this.fieldsFor(step)) {
+						patch[field.key] = this.configModel[field.key]
+					}
+					await this.saveConfig(patch)
+					this.$set(this.localDone, step.id, true)
+					return true
+				} catch (err) {
+					return this.errorMessage(err)
+				}
+			}
+			if (step.type === 'run-action' && step.required === true && !this.isStepDone(step.id)) {
+				return t('nextcloud-vue', 'Please run this step before continuing.')
+			}
+			return true
 		},
 		/**
 		 * Persist one or more app-config values via the setup contract.
@@ -303,40 +424,6 @@ export default {
 				import('@nextcloud/router'),
 			])
 			await axios.post(generateUrl(`/apps/${this.appId}/api/setup/config`), patch)
-		},
-		async saveChoiceAndAdvance(step, scope) {
-			this.$set(this.stepError, step.id, '')
-			this.$set(this.saving, step.id, true)
-			try {
-				const raw = this.choiceModel[step.id]
-				const value = step.multiple === true
-					? (raw || []).map((o) => (o && o.value !== undefined ? o.value : o))
-					: (raw && raw.value !== undefined ? raw.value : raw)
-				await this.saveConfig({ [step.configKey]: value })
-				this.$set(this.localDone, step.id, true)
-				scope.isLast ? scope.submit() : scope.next()
-			} catch (err) {
-				this.$set(this.stepError, step.id, this.errorMessage(err))
-			} finally {
-				this.$set(this.saving, step.id, false)
-			}
-		},
-		async saveFieldsAndAdvance(step, scope) {
-			this.$set(this.stepError, step.id, '')
-			this.$set(this.saving, step.id, true)
-			try {
-				const patch = {}
-				for (const field of this.fieldsFor(step)) {
-					patch[field.key] = this.configModel[field.key]
-				}
-				await this.saveConfig(patch)
-				this.$set(this.localDone, step.id, true)
-				scope.isLast ? scope.submit() : scope.next()
-			} catch (err) {
-				this.$set(this.stepError, step.id, this.errorMessage(err))
-			} finally {
-				this.$set(this.saving, step.id, false)
-			}
 		},
 		async runAction(step) {
 			this.$set(this.running, step.id, true)
@@ -382,6 +469,11 @@ export default {
 			this.$emit('complete')
 		},
 		onStepChange(payload) {
+			// Pre-fill a suggested default when entering a step that derives one.
+			const step = this.setupSteps.find((s) => s.id === payload.stepId)
+			if (step && step.suggestFrom) {
+				this.applySuggestion(step)
+			}
 			/**
 			 * @event step-change Emitted when the active step changes.
 			 * @type {{ stepId: string, stepIndex: number, direction: string }}
@@ -445,5 +537,15 @@ export default {
 .cn-setup-summary__mark {
 	font-weight: bold;
 	color: var(--color-success);
+}
+
+.cn-setup-summary__label {
+	flex: 0 0 auto;
+}
+
+.cn-setup-summary__value {
+	margin-inline-start: auto;
+	font-weight: 600;
+	color: var(--color-main-text);
 }
 </style>
