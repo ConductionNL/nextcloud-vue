@@ -301,7 +301,14 @@ export default {
 		async loadApiItems() {
 			this.loading = true
 			try {
-				const url = generateOcsUrl('/apps/dashboard/api/v1/widget-items')
+				// The v2 widget-items API returns the per-widget `{items}`
+				// envelope for modern `IAPIWidgetV2` providers (files-favorites,
+				// recommendations, etc.). The legacy v1 endpoint returns an
+				// empty list for those providers, so a v1 fetch makes every
+				// modern widget render "No items available" even when the
+				// dashboard has data. extractItems() already tolerates both the
+				// flat-array (older providers) and `{items}` (v2) shapes.
+				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
 					params: { widgets: [this.widgetId], limit: API_ITEM_LIMIT },
 				})
