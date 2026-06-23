@@ -9,67 +9,81 @@
   surfaces stay in lockstep.
 -->
 <template>
-	<NcActions
-		v-if="hasOverflowMenu"
-		:force-name="true"
-		:menu-name="actionsMenuLabel"
-		:data-testid="`${testidBase}-actions`">
-		<template #icon>
-			<DotsHorizontal :size="20" />
-		</template>
-		<NcActionButton
-			v-if="showRefresh"
-			:data-testid="`${testidBase}-action-refresh`"
-			:disabled="refreshing"
-			@click="onRefreshClick">
+	<!-- Fragment (renders no DOM node) so NcActions stays in its host's
+	     flex/grid flow while the modal mounts as a SIBLING of NcActions,
+	     not inside it. The NcActions default slot is the floating-vue
+	     popover, which unmounts the instant the menu closes on an
+	     action-item click — mounting the modal there would destroy the
+	     dialog the moment it opens. -->
+	<Fragment v-if="hasOverflowMenu">
+		<NcActions
+			:force-name="true"
+			:menu-name="actionsMenuLabel"
+			:data-testid="`${testidBase}-actions`">
 			<template #icon>
-				<NcLoadingIcon v-if="refreshing" :size="20" />
-				<Refresh v-else :size="20" />
+				<DotsHorizontal :size="20" />
 			</template>
-			{{ refreshLabel }}
-		</NcActionButton>
-		<NcActionLink
-			v-if="documentationUrl"
-			:href="documentationUrl"
-			target="_blank"
-			rel="noopener noreferrer"
-			:data-testid="`${testidBase}-action-documentation`">
-			<template #icon>
-				<BookOpenVariant :size="20" />
-			</template>
-			{{ documentationLabel }}
-		</NcActionLink>
-		<NcActionButton
-			v-if="showRequestFeature"
-			:data-testid="`${testidBase}-action-request-feature`"
-			@click="onRequestFeatureClick">
-			<template #icon>
-				<LightbulbOutline :size="20" />
-			</template>
-			{{ requestFeatureLabel }}
-		</NcActionButton>
-		<!-- @slot action-items Additional NcActionButton-family items
-		     rendered inside the overflow menu, after the built-in
-		     Refresh / Documentation / Request-a-feature group. -->
-		<slot name="action-items" />
+			<NcActionButton
+				v-if="showRefresh"
+				:data-testid="`${testidBase}-action-refresh`"
+				:disabled="refreshing"
+				:close-after-click="true"
+				@click="onRefreshClick">
+				<template #icon>
+					<NcLoadingIcon v-if="refreshing" :size="20" />
+					<Refresh v-else :size="20" />
+				</template>
+				{{ refreshLabel }}
+			</NcActionButton>
+			<NcActionLink
+				v-if="documentationUrl"
+				:href="documentationUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				:data-testid="`${testidBase}-action-documentation`"
+				:close-after-click="true">
+				<template #icon>
+					<BookOpenVariant :size="20" />
+				</template>
+				{{ documentationLabel }}
+			</NcActionLink>
+			<NcActionButton
+				v-if="showRequestFeature"
+				:data-testid="`${testidBase}-action-request-feature`"
+				:close-after-click="true"
+				@click="onRequestFeatureClick">
+				<template #icon>
+					<LightbulbOutline :size="20" />
+				</template>
+				{{ requestFeatureLabel }}
+			</NcActionButton>
+			<!-- @slot action-items Additional NcActionButton-family items
+			     rendered inside the overflow menu, after the built-in
+			     Refresh / Documentation / Request-a-feature group. -->
+			<slot name="action-items" />
+		</NcActions>
 
 		<!-- Auto-mounted feature-request modal. Lazy-loaded so the modal
 		     bundle only ships when a surface renders the menu. Suppressed
-		     when the host calls preventDefault on @request-feature. -->
+		     when the host calls preventDefault on @request-feature.
+		     Mounted as a sibling of NcActions (NOT inside its popover slot)
+		     so closing the overflow menu doesn't tear the dialog down. -->
 		<CnSuggestFeatureModal
 			v-if="featureRequestModalOpen"
 			:repo="cnFeatureRequestRepo"
+			:forge="cnFeatureRequestForge"
 			:spec-ref="specRef"
 			:app="cnAppId"
 			:page="$route ? ($route.name || '') : ''"
 			:surface="surface"
 			:conduction-submit-enabled="false"
 			@close="onFeatureRequestModalClose" />
-	</NcActions>
+	</Fragment>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { Fragment } from 'vue-frag'
 import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
@@ -119,6 +133,7 @@ export default {
 	name: 'CnActionsMenu',
 
 	components: {
+		Fragment,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
@@ -139,14 +154,21 @@ export default {
 		 */
 		cnAppId: { default: () => '' },
 		/**
-		 * Repo slug used as the GitHub deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`). Provided by
+		 * Repo slug used as the forge deep-link target on the auto-mounted
+		 * CnSuggestFeatureModal (e.g. `Conduction/pipelinq`). Provided by
 		 * CnAppRoot from the manifest's `nav.featureRequestRepo` field (with
-		 * fallback to `ConductionNL/<appId>`). Empty when no ancestor — the
+		 * fallback to `Conduction/<appId>`). Empty when no ancestor — the
 		 * default handler warns and skips opening rather than open a broken
 		 * link.
 		 */
 		cnFeatureRequestRepo: { default: () => '' },
+		/**
+		 * Forge config (`{type, baseUrl}`) forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so its "Continue on …" deep-link targets the
+		 * right forge. Provided by CnAppRoot from `manifest.nav.forge`.
+		 * Defaults to Codeberg when no CnAppRoot ancestor exists.
+		 */
+		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
 	},
 
 	props: {

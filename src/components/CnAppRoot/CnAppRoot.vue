@@ -319,6 +319,7 @@ import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { DEFAULT_FORGE } from '../../utils/forge.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
 /**
@@ -468,12 +469,20 @@ export default {
 			cnAppId: this.appId,
 			/**
 			 * Target repo slug for the in-product feature-request deep
-			 * link (e.g. `ConductionNL/pipelinq`). Read from the
+			 * link (e.g. `Conduction/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
-			 * to `ConductionNL/<appId>` which is the convention for
-			 * every Conduction app.
+			 * to `Conduction/<appId>` which is the convention for
+			 * every Conduction app on Codeberg.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
+			/**
+			 * Forge config (`{type, baseUrl}`) for the in-product
+			 * feature-request deep link. Read from the manifest's
+			 * `nav.forge` (merged over the Codeberg default). Switching
+			 * the fleet's forge — back to GitHub, or onto a self-hosted
+			 * Forgejo/Gitea — is just this one manifest field.
+			 */
+			cnFeatureRequestForge: this.resolvedFeatureRequestForge,
 			/**
 			 * Object-sidebar channel — reactive holder that
 			 * `CnDetailPage` writes to publish its schema-driven
@@ -1172,10 +1181,11 @@ export default {
 		 * Repo target for the built-in feature-request deep link.
 		 * Provided to descendants under the `cnFeatureRequestRepo`
 		 * inject key. Reads `manifest.nav.featureRequestRepo` when set;
-		 * falls back to `ConductionNL/<appId>` which is the convention
-		 * for every Conduction app. Returns empty string when no
-		 * `appId` is available (defensive — should never happen since
-		 * `appId` is a required prop).
+		 * falls back to `Conduction/<appId>` — the convention for every
+		 * Conduction app on Codeberg (the org slug is `Conduction`, vs
+		 * `ConductionNL` on the old GitHub org). Returns empty string
+		 * when no `appId` is available (defensive — should never happen
+		 * since `appId` is a required prop).
 		 *
 		 * @return {string}
 		 */
@@ -1183,7 +1193,20 @@ export default {
 			const explicit = this.manifest?.nav?.featureRequestRepo
 			if (typeof explicit === 'string' && explicit.length > 0) return explicit
 			if (!this.appId) return ''
-			return `ConductionNL/${this.appId}`
+			return `Conduction/${this.appId}`
+		},
+		/**
+		 * Forge config for the built-in feature-request deep link,
+		 * provided under the `cnFeatureRequestForge` inject key. Reads
+		 * `manifest.nav.forge` and merges it over the Codeberg default,
+		 * so a manifest may set just `type` (e.g. back to `github`) or
+		 * also `baseUrl` (self-hosted Forgejo/Gitea).
+		 *
+		 * @return {{type: string, baseUrl: string}}
+		 */
+		resolvedFeatureRequestForge() {
+			const cfg = this.manifest?.nav?.forge
+			return { ...DEFAULT_FORGE, ...(cfg && typeof cfg === 'object' ? cfg : {}) }
 		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')

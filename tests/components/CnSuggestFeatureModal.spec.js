@@ -7,7 +7,8 @@
  * proposed-solution, who-benefits, priority-to-you) plus one optional
  * context field (anythingElse) plus the auto-captured context fields
  * (app, page, surface, object, spec-ref). Two submission paths:
- * GitHub deep-link (primary) and Conduction emit (secondary).
+ * forge deep-link (primary; Codeberg by default, GitHub when the `forge`
+ * prop selects it) and Conduction emit (secondary).
  *
  * @spec openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md
  *       (requirement "CnSuggestFeatureModal")
@@ -69,7 +70,7 @@ describe('CnSuggestFeatureModal', () => {
 		const notes = wrapper.findAllComponents({ name: 'NcNoteCard' })
 		expect(notes).toHaveLength(2)
 		expect(notes.at(0).text()).toContain('Help us land this faster.')
-		expect(notes.at(1).text()).toContain('Why continue on GitHub?')
+		expect(notes.at(1).text()).toContain('Why continue on Codeberg?')
 		expect(wrapper.find('[data-label="Title"]').exists()).toBe(true)
 		expect(wrapper.find('[data-label="Problem"]').exists()).toBe(true)
 		expect(wrapper.find('[data-label="Proposed solution"]').exists()).toBe(true)
@@ -79,17 +80,17 @@ describe('CnSuggestFeatureModal', () => {
 		expect(wrapper.findAll('.dialog-actions button.btn')).toHaveLength(3)
 	})
 
-	it('GitHub button stays disabled until every required field is satisfied', async () => {
-		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
-		const githubBtn = () => wrapper.findAll('.dialog-actions button.btn').at(2)
-		expect(githubBtn().attributes('disabled')).toBeDefined()
+	it('forge submit button stays disabled until every required field is satisfied', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'Conduction/pipelinq' } })
+		const forgeBtn = () => wrapper.findAll('.dialog-actions button.btn').at(2)
+		expect(forgeBtn().attributes('disabled')).toBeDefined()
 		await wrapper.find('[data-label="Title"] input').setValue('Add timeline filter')
 		await wrapper.find('[data-label="Problem"] textarea').setValue('Short problem statement.')
-		expect(githubBtn().attributes('disabled')).toBeDefined()
+		expect(forgeBtn().attributes('disabled')).toBeDefined()
 		await wrapper.find('[data-label="Proposed solution"] textarea').setValue('A date-range filter in the sidebar.')
 		await wrapper.find('[data-label="Who benefits"] textarea').setValue('Account managers.')
 		await wrapper.find('select.select').setValue('Nice to have')
-		expect(githubBtn().attributes('disabled')).toBeUndefined()
+		expect(forgeBtn().attributes('disabled')).toBeUndefined()
 	})
 
 	it('Conduction button stays disabled when conduction-submit-enabled is false', async () => {
@@ -100,11 +101,62 @@ describe('CnSuggestFeatureModal', () => {
 		expect(conductionBtn.attributes('title')).toContain('Coming soon')
 	})
 
-	it('GitHub submit opens deep-link with every structured field + context param pre-filled', async () => {
+	it('default (Codeberg) submit opens a title + body deep-link with the fields + context in the Markdown body', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, {
+			stubs,
+			propsData: {
+				repo: 'Conduction/pipelinq',
+				specRef: 'client-management',
+				app: 'pipelinq',
+				page: 'clients-index (/clients)',
+				surface: 'contacts-list-sidebar',
+				object: 'pipelinq · Client',
+			},
+		})
+		await fillValid(wrapper)
+		await wrapper.find('[data-label="Anything else?"] textarea').setValue('Avoid: hiding the filter behind a settings page.')
+		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
+
+		expect(window.open).toHaveBeenCalledTimes(1)
+		const url = window.open.mock.calls[0][0]
+		expect(url).toMatch(/^https:\/\/codeberg\.org\/Conduction\/pipelinq\/issues\/new\?/)
+		// Codeberg/Forgejo only supports title + body — no per-field params.
+		expect(url).toContain('title=%5BFEATURE%5D+Add+timeline+filter')
+		expect(url).not.toContain('template=')
+		const body = decodeURIComponent(new URL(url).searchParams.get('body'))
+		expect(body).toContain('## Problem')
+		expect(body).toContain('I want to filter contacts by last interaction date')
+		expect(body).toContain('## Proposed solution')
+		expect(body).toContain('## Who benefits')
+		expect(body).toContain('## How important is this to you?')
+		expect(body).toContain('Would use weekly')
+		expect(body).toContain('Avoid: hiding the filter behind a settings page.')
+		// Context block.
+		expect(body).toContain('**App:** pipelinq')
+		expect(body).toContain('**Page:** clients-index (/clients)')
+		expect(body).toContain('**Surface:** contacts-list-sidebar')
+		expect(body).toContain('**Object:** pipelinq · Client')
+		expect(body).toContain('**Spec ref:** client-management')
+
+		expect(wrapper.emitted('close')).toBeTruthy()
+	})
+
+	it('Codeberg submit omits the context block + empty optional sections when no context given', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'Conduction/pipelinq' } })
+		await fillValid(wrapper)
+		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
+		const body = decodeURIComponent(new URL(window.open.mock.calls[0][0]).searchParams.get('body'))
+		expect(body).not.toContain('---')
+		expect(body).not.toContain('**App:**')
+		expect(body).not.toContain('## Anything else?')
+	})
+
+	it('GitHub forge submit opens the Issue-Form deep-link with every structured field + context param pre-filled', async () => {
 		const wrapper = mount(CnSuggestFeatureModal, {
 			stubs,
 			propsData: {
 				repo: 'ConductionNL/pipelinq',
+				forge: { type: 'github', baseUrl: 'https://github.com' },
 				specRef: 'client-management',
 				app: 'pipelinq',
 				page: 'clients-index (/clients)',
@@ -135,8 +187,8 @@ describe('CnSuggestFeatureModal', () => {
 		expect(wrapper.emitted('close')).toBeTruthy()
 	})
 
-	it('GitHub submit omits empty optional params from the URL', async () => {
-		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq' } })
+	it('GitHub forge submit omits empty optional params from the URL', async () => {
+		const wrapper = mount(CnSuggestFeatureModal, { stubs, propsData: { repo: 'ConductionNL/pipelinq', forge: { type: 'github' } } })
 		await fillValid(wrapper)
 		await wrapper.findAll('.dialog-actions button.btn').at(2).trigger('click')
 		const url = window.open.mock.calls[0][0]
