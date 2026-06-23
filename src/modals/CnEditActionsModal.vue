@@ -39,14 +39,26 @@
 								:label-visible="true" />
 						</div>
 						<div class="cn-edit-actions__row-actions">
-							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Move up')" :disabled="index === 0" @click="move(index, -1)">
-								<template #icon><ArrowUp :size="20" /></template>
+							<NcButton type="tertiary"
+								:aria-label="t('nextcloud-vue', 'Move up')"
+								:disabled="index === 0"
+								@click="move(index, -1)">
+								<template #icon>
+									<ArrowUp :size="20" />
+								</template>
 							</NcButton>
-							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Move down')" :disabled="index === actions.length - 1" @click="move(index, 1)">
-								<template #icon><ArrowDown :size="20" /></template>
+							<NcButton type="tertiary"
+								:aria-label="t('nextcloud-vue', 'Move down')"
+								:disabled="index === actions.length - 1"
+								@click="move(index, 1)">
+								<template #icon>
+									<ArrowDown :size="20" />
+								</template>
 							</NcButton>
 							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="remove(index)">
-								<template #icon><Delete :size="20" /></template>
+								<template #icon>
+									<Delete :size="20" />
+								</template>
 							</NcButton>
 						</div>
 					</li>
@@ -54,11 +66,13 @@
 
 				<div class="cn-edit-actions__footer">
 					<NcButton type="secondary" @click="add">
-						<template #icon><Plus :size="20" /></template>
+						<template #icon>
+							<Plus :size="20" />
+						</template>
 						{{ t('nextcloud-vue', 'Add action') }}
 					</NcButton>
-					<NcButton type="primary" @click="$emit('close')">
-						{{ t('nextcloud-vue', 'Done') }}
+					<NcButton type="primary" :disabled="saving" @click="onDone">
+						{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 					</NcButton>
 				</div>
 			</template>
@@ -73,6 +87,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
 import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 const ACTION_TYPES = ['open-page', 'navigate', 'open-modal', 'handler']
 
@@ -80,6 +95,8 @@ export default {
 	name: 'CnEditActionsModal',
 
 	components: { NcModal, NcButton, NcTextField, NcSelect, NcEmptyContent, Plus, Delete, ArrowUp, ArrowDown },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -115,7 +132,11 @@ export default {
 		/** The page's `config.actions[]` array (ensured to exist). */
 		actions() {
 			if (!this.page) return []
+			// Normalise the working page in place so the editor can bind to it —
+			// the working manifest is ours to mutate by design (see CnEditPagesModal).
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!this.page.config || typeof this.page.config !== 'object') this.$set(this.page, 'config', {})
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(this.page.config.actions)) this.$set(this.page.config, 'actions', [])
 			return this.page.config.actions
 		},
@@ -123,7 +144,10 @@ export default {
 
 	methods: {
 		t,
-		/** Human label for the target field, hinting what each type targets. */
+		/**
+		 * Human label for the target field, hinting what each type targets.
+		 * @param action
+		 */
 		targetLabel(action) {
 			switch (action.type) {
 			case 'open-page': return t('nextcloud-vue', 'Target page id')
@@ -136,11 +160,18 @@ export default {
 		add() {
 			this.actions.push({ id: `action-${this.actions.length + 1}`, label: '', icon: '', type: 'open-page', target: '' })
 		},
-		/** Remove the action at `index`. */
+		/**
+		 * Remove the action at `index`.
+		 * @param index
+		 */
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
-		/** Move the action at `index` by `delta` positions (reorder). */
+		/**
+		 * Move the action at `index` by `delta` positions (reorder).
+		 * @param index
+		 * @param delta
+		 */
 		move(index, delta) {
 			const to = index + delta
 			if (to < 0 || to >= this.actions.length) return

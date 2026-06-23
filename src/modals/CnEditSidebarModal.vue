@@ -30,20 +30,24 @@
 						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
 						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
 						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
-							<template #icon><Delete :size="20" /></template>
+							<template #icon>
+								<Delete :size="20" />
+							</template>
 						</NcButton>
 					</li>
 				</ul>
 				<NcButton type="secondary" @click="addTab">
-					<template #icon><Plus :size="20" /></template>
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Add tab') }}
 				</NcButton>
 			</template>
 			<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
 			<div class="cn-edit-sidebar__footer">
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -55,11 +59,14 @@ import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField }
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditSidebarModal',
 
 	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, Plus, Delete },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -91,9 +98,13 @@ export default {
 		/** The page's normalised sidebar config object (ensured to exist). */
 		sidebar() {
 			if (!this.page) return null
+			// Normalise the working page in place so the editor can bind to it —
+			// the working manifest is ours to mutate by design (see CnEditPagesModal).
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!this.page.config || typeof this.page.config !== 'object') this.$set(this.page, 'config', {})
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				this.$set(cfg, 'sidebar', typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {})
 			}
 			return cfg.sidebar
@@ -116,6 +127,7 @@ export default {
 		editableTabs() {
 			const s = this.sidebar
 			if (!s) return []
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.tabs)) this.$set(s, 'tabs', [])
 			return s.tabs
 		},
@@ -123,6 +135,7 @@ export default {
 		hiddenTabs() {
 			const s = this.sidebar
 			if (!s) return []
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.hiddenTabs)) this.$set(s, 'hiddenTabs', [])
 			return s.hiddenTabs
 		},
@@ -130,11 +143,18 @@ export default {
 
 	methods: {
 		t,
-		/** Whether a tab id is currently hidden. */
+		/**
+		 * Whether a tab id is currently hidden.
+		 * @param id
+		 */
 		isHidden(id) {
 			return this.hiddenTabs.includes(id)
 		},
-		/** Show or hide a tab by id, mutating the working copy's hiddenTabs. */
+		/**
+		 * Show or hide a tab by id, mutating the working copy's hiddenTabs.
+		 * @param id
+		 * @param visible
+		 */
 		setTabVisible(id, visible) {
 			const idx = this.hiddenTabs.indexOf(id)
 			if (visible && idx !== -1) this.hiddenTabs.splice(idx, 1)
@@ -145,7 +165,10 @@ export default {
 			if (this.sidebar) this.$set(this.sidebar, 'show', true)
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},
-		/** Remove the tab at `index`. */
+		/**
+		 * Remove the tab at `index`.
+		 * @param index
+		 */
 		removeTab(index) {
 			this.editableTabs.splice(index, 1)
 		},

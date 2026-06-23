@@ -26,8 +26,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Add menu item') }}
 				</NcButton>
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -39,11 +39,14 @@ import { NcModal, NcButton } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditMenuModal',
 
 	components: { NcModal, NcButton, Plus, CnMenuTreeNode },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
