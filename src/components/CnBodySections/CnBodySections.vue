@@ -99,12 +99,12 @@ export default {
 
 		/**
 		 * Page/object context used to resolve `@objectId` / `@object.<field>`
-		 * / `@workspace.<key>` tokens in each section's `props`, and `provide`d
-		 * on `cnSectionContext` for host components that inject instead of
-		 * taking props. Shape:
-		 * `{ objectId?, object?, workspace?, register?, schema? }`.
+		 * / `@workspace.<key>` / `@config.<key>` tokens in each section's `props`,
+		 * and `provide`d on `cnSectionContext` for host components that inject
+		 * instead of taking props. Shape:
+		 * `{ objectId?, object?, workspace?, config?, register?, schema? }`.
 		 *
-		 * @type {{objectId?: (string|number), object?: object, workspace?: object, register?: string, schema?: string}}
+		 * @type {{objectId?: (string|number), object?: object, workspace?: object, config?: object, register?: string, schema?: string}}
 		 */
 		context: {
 			type: Object,

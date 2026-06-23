@@ -168,6 +168,18 @@
 			</label>
 		</div>
 
+		<!-- Declarative in-body sections, `placement: "before-grid"` — host-app
+		     section components (e.g. a bespoke funnel / time-series chart reading
+		     a custom REST endpoint) rendered ABOVE the widget grid. Independent of
+		     the grid's loading / empty state so an analytics dashboard can be all
+		     sections and no grid widgets. -->
+		<CnBodySections
+			v-if="hasBodyWidgets"
+			:sections="bodyWidgets"
+			:context="sectionContext"
+			placement="before-grid"
+			data-testid="cn-dashboard-body-sections-before-grid" />
+
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
@@ -515,6 +527,26 @@
 			</template>
 		</CnDashboardGrid>
 
+		<!-- Declarative in-body sections, `placement: "after-grid"` — host-app
+		     section components rendered BELOW the widget grid. -->
+		<CnBodySections
+			v-if="hasBodyWidgets"
+			:sections="bodyWidgets"
+			:context="sectionContext"
+			placement="after-grid"
+			data-testid="cn-dashboard-body-sections-after-grid" />
+
+		<!-- Declarative in-body sections, `placement: "end"` (the default
+		     placement) — the last body content. Sections with no `placement`
+		     (or an explicit `end`) land here; `before-grid` / `after-grid` are
+		     filtered out so each section renders exactly once. -->
+		<CnBodySections
+			v-if="hasBodyWidgets"
+			:sections="endPlacementSections"
+			:context="sectionContext"
+			:placement="null"
+			data-testid="cn-dashboard-body-sections-end" />
+
 		<!-- Per-widget style/config editor (ADR-041). Opened by the
 		     per-widget configure cog while editing; the modal's own Delete
 		     button removes the widget. -->
@@ -530,7 +562,7 @@
 </template>
 
 <script>
-import { provide, ref } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcActions,
@@ -557,6 +589,7 @@ import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
+import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
@@ -680,6 +713,7 @@ export default {
 		CnChartWidget,
 		CnStatsBlockWidget,
 		CnWidgetRefItem,
+		CnBodySections,
 		CnDateRangePicker,
 		CnActionsMenu,
 		CnOpenBuildEditButton,
@@ -756,6 +790,55 @@ export default {
 		content: {
 			type: Array,
 			default: () => [],
+		},
+		/**
+		 * Declarative IN-BODY sections (host-app section components) rendered
+		 * ALONGSIDE the widget grid — the dashboard equivalent of CnDetailPage's
+		 * `bodyWidgets`. Each entry:
+		 *
+		 *   `{ id?, component, title?, props?, placement?, colSpan? }`
+		 *
+		 *   - `component` — registry name resolved from the v2 `cnRegistry` first,
+		 *     then the legacy `cnCustomComponents` map (the SAME resolver
+		 *     `type:"custom"` pages use). A bespoke funnel / time-series / channel
+		 *     chart that reads a custom REST endpoint stays a registered component
+		 *     and surfaces here without a rewrite.
+		 *   - `props` — token-resolved against the page context: `@workspace.<key>`
+		 *     / `@page.<key>` (page-level workspace state), `@config.<key>` (app
+		 *     config), and the time / `@me` tokens. An unresolved optional token is
+		 *     dropped so the child sees `undefined`.
+		 *   - `placement` — `before-grid` (above the widget grid) | `after-grid`
+		 *     (below it) | `end` (the default; same as `after-grid`). `before-grid`
+		 *     renders even when the dashboard has no grid widgets.
+		 *   - `colSpan` — 1–12 grid span when sections at one placement share a row.
+		 *
+		 * Empty / omitted (default `[]`) renders nothing — the current behaviour.
+		 * The section context (`{ register, schema, objectId, workspace, config }`)
+		 * is also `provide`d on `cnSectionContext` so a section component can
+		 * inject it instead of taking explicit props. See `CnBodySections`.
+		 *
+		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 */
+		bodyWidgets: {
+			type: Array,
+			default: () => [],
+		},
+		/**
+		 * Page-level app config map exposed to declarative widget / section
+		 * config via the `@config.<key>` token (e.g. the reporting `currency`
+		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
+		 * so a stat widget's `format: { style: 'currency', currency:
+		 * '@config.currency' }` formats with the configured value (falling back
+		 * to the literal default — `EUR` — when unset) and an endpoint KPI's URL
+		 * can interpolate `@config.<key>`. A manifest renderer typically seeds
+		 * this from `loadState(appId, 'config', {})`. Empty (default) leaves
+		 * every `@config.<key>` token to fall back to its literal default.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
 		},
 		/** Whether the dashboard is loading */
 		loading: {
@@ -1009,7 +1092,7 @@ export default {
 
 	emits: ['layout-change', 'edit-toggle', 'date-range-change', 'page-filter-change', 'refresh', 'request-feature'],
 
-	setup() {
+	setup(props) {
 		// Wire the pluggable integration registry so widgets of type
 		// `integration` resolve their component reactively. No-op cost
 		// when no integration widgets are configured.
@@ -1034,11 +1117,25 @@ export default {
 		const workspaceContext = ref({})
 		provide('cnWorkspaceContext', workspaceContext)
 
+		// Page-level APP CONFIG — exposed to declarative widget / section config
+		// via the `@config.<key>` token (e.g. the reporting currency the setup
+		// wizard captures). Provided ALWAYS (like cnWorkspaceContext) and kept in
+		// sync with the `appConfig` prop so a late-loaded config re-resolves
+		// downstream tokens. Descendants `inject('cnAppConfig', ref({}))`.
+		const appConfigRef = ref({ ...(props.appConfig || {}) })
+		provide('cnAppConfig', appConfigRef)
+		watch(
+			() => props.appConfig,
+			(next) => { appConfigRef.value = { ...(next || {}) } },
+			{ deep: true },
+		)
+
 		return {
 			registryIntegrations,
 			resolveRegistryWidget: resolveWidget,
 			dashboardDateRange,
 			workspaceContext,
+			appConfigRef,
 		}
 	},
 
@@ -1295,6 +1392,51 @@ export default {
 				}
 			}
 			return out
+		},
+
+		/**
+		 * Whether any in-body sections are configured (drives the three
+		 * placement mounts of CnBodySections).
+		 *
+		 * @return {boolean}
+		 */
+		hasBodyWidgets() {
+			return Array.isArray(this.bodyWidgets) && this.bodyWidgets.length > 0
+		},
+
+		/**
+		 * Sections that land at the END placement: those with no `placement` (the
+		 * default) or an explicit `placement: "end"`. The two named placement
+		 * mounts (`before-grid` / `after-grid`) filter by their own value, so this
+		 * computed excludes them to avoid double-rendering.
+		 *
+		 * @return {Array}
+		 */
+		endPlacementSections() {
+			const named = ['before-grid', 'after-grid']
+			return (Array.isArray(this.bodyWidgets) ? this.bodyWidgets : [])
+				.filter((s) => !s || !s.placement || !named.includes(s.placement))
+		},
+
+		/**
+		 * Page context forwarded to CnBodySections for token resolution
+		 * (`@workspace.<key>` / `@page.<key>` / `@config.<key>` + time tokens) AND
+		 * provided on `cnSectionContext` for host section components that inject.
+		 * The optional object scoping (`objectId` / `register` / `schema`) is read
+		 * from `integrationContext` so an object-scoped dashboard can resolve
+		 * `@objectId` / `@object.<field>` too.
+		 *
+		 * @return {{objectId: (string|null), register: string, schema: string, workspace: object, config: object}}
+		 */
+		sectionContext() {
+			const ic = this.integrationContext || {}
+			return {
+				objectId: (ic.objectId !== undefined && ic.objectId !== null) ? String(ic.objectId) : null,
+				register: ic.register || '',
+				schema: ic.schema || '',
+				workspace: this.workspaceContext,
+				config: this.appConfigRef,
+			}
 		},
 	},
 

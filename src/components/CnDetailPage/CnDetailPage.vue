@@ -493,7 +493,7 @@
 </template>
 
 <script>
-import { provide, ref } from 'vue'
+import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1079,6 +1079,22 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Page-level app config map exposed to declarative widget / section
+		 * config via the `@config.<key>` token (e.g. the reporting `currency`
+		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
+		 * so a stat widget's `format: { style: 'currency', currency:
+		 * '@config.currency' }` formats with the configured value (falling back
+		 * to the literal default when unset). A manifest renderer typically seeds
+		 * this from `loadState(appId, 'config', {})`. Empty (default) leaves every
+		 * `@config.<key>` token to fall back to its literal default.
+		 *
+		 * @type {object}
+		 */
+		appConfig: {
+			type: Object,
+			default: () => ({}),
+		},
 	},
 
 	setup(props) {
@@ -1097,6 +1113,19 @@ export default {
 		const cnObjectContext = ref({ objectId: props.objectId || null, object: null, register: props.register || '', schema: props.schema || '' })
 		provide('cnObjectContext', cnObjectContext)
 		registryExposed.cnObjectContextRef = cnObjectContext
+
+		// Page-level APP CONFIG exposed to declarative widget / section config via
+		// the `@config.<key>` token (e.g. the reporting currency the setup wizard
+		// captures). Provided so CnStatWidget / CnBodySections can format with the
+		// configured value. Kept in sync with the `appConfig` prop.
+		const cnAppConfig = ref({ ...(props.appConfig || {}) })
+		provide('cnAppConfig', cnAppConfig)
+		registryExposed.cnAppConfigRef = cnAppConfig
+		watch(
+			() => props.appConfig,
+			(next) => { cnAppConfig.value = { ...(next || {}) } },
+			{ deep: true },
+		)
 
 		// Auto-subscribe + reactive lock state for the current object.
 		// Both are no-ops when objectStore is null (no Pinia active),
@@ -1434,6 +1463,7 @@ export default {
 				object: this.resolvedObject || null,
 				register: resolved.register || this.register || this.sidebarProps?.register || '',
 				schema: resolved.schema || this.schema || this.resolvedObjectType || this.sidebarProps?.schema || '',
+				config: this.cnAppConfigRef,
 			}
 		},
 	},

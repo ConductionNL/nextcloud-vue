@@ -29,15 +29,16 @@
 
 ### Slots
 
-| Name                 | Bindings          | Description                                                                                                                                                          |
-| -------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `or-missing`         | `missing-apps`    |                                                                                                                                                                      |
-| `loading`            | —                 |                                                                                                                                                                      |
-| `dependency-missing` | `dependencies`    |                                                                                                                                                                      |
-| `setup`              | `steps`, `status` | setup                                                                                                                                                                |
-| `menu`               | —                 | menu                                                                                                                                                                 |
-| `tenant-badge`       | —                 | tenant-badge                                                                                                                                                         |
-| `header-actions`     | —                 | header-actions                                                                                                                                                       |
-| `footer`             | —                 | footer                                                                                                                                                               |
-| `sidebar`            | —                 | sidebar                                                                                                                                                              |
-| `user-settings`      | —                 | user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. |
+| Name                 | Bindings                   | Description                                                                                                                                                          |
+| -------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `or-missing`         | `missing-apps`             |                                                                                                                                                                      |
+| `loading`            | —                          |                                                                                                                                                                      |
+| `dependency-missing` | `dependencies`             |                                                                                                                                                                      |
+| `setup`              | `steps`, `status`          | setup                                                                                                                                                                |
+| `menu`               | —                          | menu                                                                                                                                                                 |
+| `tenant-badge`       | —                          | tenant-badge                                                                                                                                                         |
+| `header-actions`     | —                          | header-actions                                                                                                                                                       |
+| `footer`             | —                          | footer                                                                                                                                                               |
+| `sidebar`            | —                          | sidebar                                                                                                                                                              |
+| `walkthrough`        | `manifest`, `seen-version` | walkthrough Override the gating-free walkthrough overlay. Scope: \{ manifest, seenVersion \}.                                                                        |
+| `user-settings`      | —                          | user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. |
