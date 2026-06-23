@@ -95,6 +95,7 @@
 					:allow-collapse="visibleChildren(item).length > 0"
 					:open="isItemOpen(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
+					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
 					<template v-if="mdiIconComponent(item)" #icon>
@@ -126,6 +127,7 @@
 						:active="isActive(child)"
 						:pinned="Boolean(child.pinned)"
 						:data-testid="`cn-nav-entry-${child.id}`"
+						:data-cn-route="child.route"
 						@click="onItemClick(child, $event)">
 						<template v-if="mdiIconComponent(child)" #icon>
 							<component :is="mdiIconComponent(child)" :size="20" />
@@ -156,6 +158,7 @@
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
+					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
 					<template v-if="mdiIconComponent(item)" #icon>
 						<component :is="mdiIconComponent(item)" :size="20" />

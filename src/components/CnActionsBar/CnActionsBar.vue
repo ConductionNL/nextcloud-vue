@@ -91,6 +91,7 @@
 				variant="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
+				data-walkthrough-id="index-add"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
