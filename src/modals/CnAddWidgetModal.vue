@@ -521,7 +521,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	max-height: 80vh;
+	max-height: 88vh;
 	min-width: 320px;
 }
 
@@ -553,7 +553,11 @@ export default {
 
 .cn-add-widget-modal__form {
 	overflow-y: auto;
-	flex: 1;
+	/* Prefer a roomy ~340px for the type-specific fields (data-driven widgets
+	   carry tall forms — columns, thresholds, data source); still shrinks with
+	   its own scroll on short viewports so the Appearance + actions stay visible. */
+	flex: 1 1 340px;
+	min-height: 0;
 }
 
 .cn-add-widget-modal__empty {
