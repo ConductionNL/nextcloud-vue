@@ -24,8 +24,6 @@
 
 			<CnPageTreeNode v-else
 				:list="pages"
-				:parent-id="''"
-				:depth="0"
 				:max-depth="1" />
 
 			<div class="cn-edit-pages__footer">

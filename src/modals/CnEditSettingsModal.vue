@@ -22,7 +22,6 @@
 			</p>
 
 			<CnMenuTreeNode :list="menu"
-				:depth="0"
 				:max-depth="1"
 				:pages="pageOptions"
 				section="settings" />
@@ -149,11 +148,17 @@ export default {
 			if (!this.working.nav || typeof this.working.nav !== 'object') this.$set(this.working, 'nav', {})
 			return this.working.nav
 		},
-		/** Toggle the auto personal-settings entry. */
+		/**
+		 * Toggle the auto personal-settings entry.
+		 * @param checked
+		 */
 		setIncludePersonalSettings(checked) {
 			this.$set(this.ensureNav(), 'includePersonalSettings', Boolean(checked))
 		},
-		/** Set the settings foldout label. */
+		/**
+		 * Set the settings foldout label.
+		 * @param value
+		 */
 		setSettingsLabel(value) {
 			this.$set(this.ensureNav(), 'settingsLabel', value)
 		},

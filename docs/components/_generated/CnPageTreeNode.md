@@ -5,6 +5,4 @@
 | Name       | Type     | Required | Default | Description                                                                                                              |
 | ---------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `list`     | `Array`  | ✓        | —       | The full, flat `pages[]` array (the working manifest's). Edited in place; the tree is derived from each page's `parent`. |
-| `parentId` | `string` |          | `''`    | Render the pages whose parent is this id (`''` = top level).                                                             |
-| `depth`    | `number` |          | `0`     | Nesting depth (0 = top-level).                                                                                           |
 | `maxDepth` | `number` |          | `1`     | Maximum nesting depth that may gain children (one level: index → detail).                                                |

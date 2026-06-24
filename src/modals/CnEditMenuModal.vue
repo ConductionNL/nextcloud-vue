@@ -15,7 +15,6 @@
 			</h2>
 
 			<CnMenuTreeNode :list="menu"
-				:depth="0"
 				:max-depth="1"
 				:pages="pageOptions" />
 

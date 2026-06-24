@@ -2,192 +2,116 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
- * Tests for CnPageTreeNode — the compact pages tree: sibling grouping by
- * `parent`, type selection, parent re-parenting with route build-up, reorder,
- * delete-with-reparent, and add-sub-page.
+ * Tests for CnPageTreeNode — the drag-and-drop pages tree: building the nested
+ * mirror from the flat `pages[]`, flattening it back (parent assignment + order),
+ * the depth-1 drag guard, and add/remove with child reparenting.
  */
 import { mount } from '@vue/test-utils'
 import CnPageTreeNode from '../../src/components/CnPageTreeNode/CnPageTreeNode.vue'
 
-const NcButtonStub = { name: 'NcButton', props: ['disabled', 'pressed'], template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot name="icon" /><slot /></button>' }
-const NcTextFieldStub = { name: 'NcTextField', props: ['value', 'label'], template: '<input :value="value">' }
-const NcSelectStub = { name: 'NcSelect', props: ['value', 'options', 'inputLabel', 'label', 'clearable', 'placeholder'], template: '<div class="nc-select-stub" />' }
+// Stub vuedraggable + the row so the node mounts without Sortable / child deps.
+const DraggableStub = { name: 'draggable', props: ['value', 'list', 'group', 'move'], template: '<ul><slot /></ul>' }
+const RowStub = { name: 'CnPageTreeRow', props: ['page', 'canAddChild'], template: '<div class="row-stub" />' }
 
-function mountNode(list, extra = {}, provide = {}) {
+function mountNode(list) {
 	return mount(CnPageTreeNode, {
-		propsData: { list, parentId: '', depth: 0, maxDepth: 1, ...extra },
-		provide,
-		stubs: { NcButton: NcButtonStub, NcTextField: NcTextFieldStub, NcSelect: NcSelectStub },
+		propsData: { list, maxDepth: 1 },
+		stubs: { draggable: DraggableStub, CnPageTreeRow: RowStub },
 	})
-}
-
-// An app's data sources: one register with one schema (two columns).
-const DATA_SOURCES = {
-	registers: [
-		{
-			value: 'app-prod',
-			label: 'App (production)',
-			schemas: [
-				{ value: 'dog', label: 'Dog', columns: ['name', 'breed'] },
-			],
-		},
-	],
 }
 
 describe('CnPageTreeNode', () => {
-	it('siblings are the pages matching the parentId', () => {
+	it('buildTree groups children under their top-level parent', () => {
 		const list = [
-			{ id: 'leads', type: 'index', route: '/leads' },
-			{ id: 'lead', type: 'detail', route: '/leads/:id', parent: 'leads' },
 			{ id: 'dash', type: 'dashboard', route: '/' },
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' },
 		]
-		const top = mountNode(list)
-		expect(top.vm.siblings.map((p) => p.id)).toEqual(['leads', 'dash'])
-		const child = mountNode(list, { parentId: 'leads', depth: 1 })
-		expect(child.vm.siblings.map((p) => p.id)).toEqual(['lead'])
-	})
-
-	it('childrenOf returns pages whose parent is the page', () => {
-		const list = [{ id: 'leads' }, { id: 'lead', parent: 'leads' }]
 		const wrapper = mountNode(list)
-		expect(wrapper.vm.childrenOf({ id: 'leads' }).map((p) => p.id)).toEqual(['lead'])
+		const tree = wrapper.vm.tree
+		expect(tree.map((n) => n.ref.id)).toEqual(['dash', 'dogs'])
+		expect(tree[1].children.map((c) => c.ref.id)).toEqual(['dog'])
 	})
 
-	it('parentOptions offers only top-level pages other than self', () => {
+	it('buildTree surfaces an orphan (parent not a top page) as top-level', () => {
 		const list = [
-			{ id: 'leads', title: 'Leads' },
-			{ id: 'dash', title: 'Dashboard' },
-			{ id: 'lead', title: 'Lead', parent: 'leads' },
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'ghost', type: 'detail', route: '/x', parent: 'does-not-exist' },
 		]
 		const wrapper = mountNode(list)
-		// for the detail page, eligible parents are the two top-level pages
-		expect(wrapper.vm.parentOptions({ id: 'lead' }).map((o) => o.value).sort()).toEqual(['dash', 'leads'])
-		// a page can't parent itself
-		expect(wrapper.vm.parentOptions({ id: 'leads' }).map((o) => o.value)).toEqual(['dash'])
+		expect(wrapper.vm.tree.map((n) => n.ref.id).sort()).toEqual(['dogs', 'ghost'])
 	})
 
-	it('setType writes the chosen type in place', () => {
-		const page = { id: 'a', type: 'index' }
-		const wrapper = mountNode([page])
-		wrapper.vm.setType(page, { value: 'dashboard' })
-		expect(page.type).toBe('dashboard')
-	})
-
-	it('setParent nests the page and builds the route up from the parent', () => {
+	it('flatten writes parent for nested nodes and drops it for top nodes (in place)', () => {
 		const list = [
-			{ id: 'leads', title: 'Leads', route: '/leads' },
-			{ id: 'lead', title: 'Lead', route: '/lead', type: 'detail' },
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' },
 		]
 		const wrapper = mountNode(list)
-		wrapper.vm.setParent(list[1], { value: 'leads' })
-		expect(list[1].parent).toBe('leads')
-		expect(list[1].route).toBe('/leads/lead')
-		// clearing the parent flattens the route back to its own segment
-		wrapper.vm.setParent(list[1], null)
-		expect(list[1].parent).toBe('')
-		expect(list[1].route).toBe('/lead')
-	})
-
-	it('move reorders within the sibling group in the flat list', () => {
-		const list = [
-			{ id: 'a' },
-			{ id: 'lead', parent: 'a' },
-			{ id: 'b' },
+		// Simulate a drag that lifted the detail to top level.
+		wrapper.vm.tree = [
+			{ ref: list.find((p) => p.id === 'dogs'), children: [] },
+			{ ref: list.find((p) => p.id === 'dog'), children: [] },
 		]
-		const wrapper = mountNode(list)
-		wrapper.vm.move(list.find((p) => p.id === 'a'), 1) // a (top sibling) down past b
-		expect(wrapper.vm.siblings.map((p) => p.id)).toEqual(['b', 'a'])
+		wrapper.vm.flatten()
+		expect(list.map((p) => p.id)).toEqual(['dogs', 'dog'])
+		expect(list[0].parent).toBeUndefined()
+		expect(list[1].parent).toBeUndefined() // lifted out → parent dropped
 	})
 
-	it('remove reparents children to the removed page parent', () => {
-		const list = [
-			{ id: 'leads', route: '/leads' },
-			{ id: 'lead', parent: 'leads' },
-		]
+	it('flatten nests a node, assigning parent = top id', () => {
+		const dogs = { id: 'dogs', type: 'index', route: '/dogs' }
+		const dog = { id: 'dog', type: 'detail', route: '/dogs/:id' }
+		const list = [dogs, dog]
 		const wrapper = mountNode(list)
-		wrapper.vm.remove(list.find((p) => p.id === 'leads'))
-		expect(list.map((p) => p.id)).toEqual(['lead'])
-		expect(list[0].parent).toBe('') // reparented to top level
+		wrapper.vm.tree = [{ ref: dogs, children: [{ ref: dog, children: [] }] }]
+		wrapper.vm.flatten()
+		expect(list.map((p) => p.id)).toEqual(['dogs', 'dog'])
+		expect(dog.parent).toBe('dogs')
 	})
 
-	it('addChild appends a detail page parented under the page, route defaults to parent + /:id', () => {
-		const list = [{ id: 'leads', route: '/leads' }]
-		const wrapper = mountNode(list)
-		wrapper.vm.addChild(list[0])
-		expect(list.length).toBe(2)
-		expect(list[1].parent).toBe('leads')
-		expect(list[1].type).toBe('detail')
-		expect(list[1].route).toBe('/leads/:id')
-	})
-
-	it('isDataPage is true only for index/detail', () => {
+	it('onMove forbids dropping a node WITH children into a child list (depth cap)', () => {
 		const wrapper = mountNode([{ id: 'a' }])
-		expect(wrapper.vm.isDataPage({ type: 'index' })).toBe(true)
-		expect(wrapper.vm.isDataPage({ type: 'detail' })).toBe(true)
-		expect(wrapper.vm.isDataPage({ type: 'dashboard' })).toBe(false)
-		expect(wrapper.vm.isDataPage({ type: 'custom' })).toBe(false)
+		const childList = [] // any array that is not the top tree
+		const withChildren = { ref: { id: 'p' }, children: [{ ref: { id: 'c' } }] }
+		const leaf = { ref: { id: 'q' }, children: [] }
+		expect(wrapper.vm.onMove({ draggedContext: { element: withChildren }, relatedContext: { list: childList } })).toBe(false)
+		// a leaf may nest
+		expect(wrapper.vm.onMove({ draggedContext: { element: leaf }, relatedContext: { list: childList } })).toBe(true)
+		// any move onto the top tree is allowed
+		expect(wrapper.vm.onMove({ draggedContext: { element: withChildren }, relatedContext: { list: wrapper.vm.tree } })).toBe(true)
 	})
 
-	it('hasDataSources reflects the injected cnDataSources', () => {
-		expect(mountNode([{ id: 'a' }]).vm.hasDataSources).toBe(false)
-		expect(mountNode([{ id: 'a' }], {}, { cnDataSources: DATA_SOURCES }).vm.hasDataSources).toBe(true)
+	it('addChild appends a detail sub-page with a unique id and built-up route', () => {
+		const list = [{ id: 'dogs', type: 'index', route: '/dogs' }]
+		const wrapper = mountNode(list)
+		wrapper.vm.addChild(wrapper.vm.tree[0])
+		expect(list.length).toBe(2)
+		const child = list[1]
+		expect(child.parent).toBe('dogs')
+		expect(child.type).toBe('detail')
+		expect(child.route).toBe('/dogs/:id')
 	})
 
-	it('setRegister writes config.register and clears schema + columns', () => {
-		const page = { id: 'dogs', type: 'index', config: { register: 'old', schema: 'old-s', columns: ['x'] } }
-		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
-		wrapper.vm.setRegister(page, { value: 'app-prod' })
-		expect(page.config.register).toBe('app-prod')
-		expect(page.config.schema).toBeUndefined()
-		expect(page.config.columns).toBeUndefined()
+	it('removeNode lifts a removed top page\'s children to top level', () => {
+		const list = [
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' },
+		]
+		const wrapper = mountNode(list)
+		wrapper.vm.removeNode(wrapper.vm.tree[0], null)
+		expect(list.map((p) => p.id)).toEqual(['dog'])
+		expect(list[0].parent).toBeUndefined() // reparented to top
 	})
 
-	it('schemaOptions are scoped to the chosen register', () => {
-		const page = { id: 'dogs', type: 'index', config: { register: 'app-prod' } }
-		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
-		expect(wrapper.vm.schemaOptions(page).map((o) => o.value)).toEqual(['dog'])
-		// no register chosen → no schema options
-		expect(wrapper.vm.schemaOptions({ config: {} })).toEqual([])
-	})
-
-	it('setSchema writes config.schema and clears columns', () => {
-		const page = { id: 'dogs', type: 'index', config: { register: 'app-prod', columns: ['name'] } }
-		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
-		wrapper.vm.setSchema(page, { value: 'dog' })
-		expect(page.config.schema).toBe('dog')
-		expect(page.config.columns).toBeUndefined()
-	})
-
-	it('columnOptions come from the chosen schema; setColumns writes the keys', () => {
-		const page = { id: 'dogs', type: 'index', config: { register: 'app-prod', schema: 'dog' } }
-		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
-		expect(wrapper.vm.columnOptions(page).map((o) => o.value)).toEqual(['name', 'breed'])
-		wrapper.vm.setColumns(page, [{ value: 'name' }, { value: 'breed' }])
-		expect(page.config.columns).toEqual(['name', 'breed'])
-		// clearing all columns removes the key (→ show all properties)
-		wrapper.vm.setColumns(page, [])
-		expect(page.config.columns).toBeUndefined()
-	})
-
-	it('recovers a config corrupted to an array (PHP empty-object round-trip)', () => {
-		// An empty `config: {}` comes back from PHP as `[]`; setting a data source
-		// must reset it to a plain object so the values are not written onto an
-		// array (and dropped by JSON.stringify) — they must persist.
-		const page = { id: 'dogs', type: 'index', config: [] }
-		const wrapper = mountNode([page], {}, { cnDataSources: DATA_SOURCES })
-		wrapper.vm.setRegister(page, { value: 'app-prod' })
-		expect(Array.isArray(page.config)).toBe(false)
-		expect(page.config.register).toBe('app-prod')
-		// survives a JSON round-trip (the array form would serialise to [])
-		expect(JSON.parse(JSON.stringify(page.config))).toEqual({ register: 'app-prod' })
-	})
-
-	it('free-text fallbacks: setConfig and setColumnsText create config and parse a CSV', () => {
-		const page = { id: 'dogs', type: 'index' } // no config, no data sources
-		const wrapper = mountNode([page])
-		wrapper.vm.setConfig(page, 'register', 'my-reg')
-		expect(page.config.register).toBe('my-reg')
-		wrapper.vm.setColumnsText(page, ' name , breed ,, ')
-		expect(page.config.columns).toEqual(['name', 'breed'])
+	it('removeNode removes a child from its parent', () => {
+		const list = [
+			{ id: 'dogs', type: 'index', route: '/dogs' },
+			{ id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' },
+		]
+		const wrapper = mountNode(list)
+		const top = wrapper.vm.tree[0]
+		wrapper.vm.removeNode(top.children[0], top)
+		expect(list.map((p) => p.id)).toEqual(['dogs'])
 	})
 })
