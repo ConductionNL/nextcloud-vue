@@ -61,13 +61,12 @@
 					</p>
 				</div>
 				<div class="cn-field">
-					<NcTextField :value="configValue('icon')"
-						:label="t('nextcloud-vue', 'Icon (MDI name)')"
-						:label-visible="true"
-						:placeholder="'FormatListBulleted'"
-						@update:value="(v) => setConfig('icon', v)" />
+					<label class="cn-field__label">{{ t('nextcloud-vue', 'Icon') }}</label>
+					<CnIconPicker :value="configValue('icon') || null"
+						:clearable="true"
+						@input="(v) => setConfig('icon', v)" />
 					<p class="cn-field__hint">
-						{{ t('nextcloud-vue', 'Material Design Icon name shown next to the title (e.g. FormatListBulleted).') }}
+						{{ t('nextcloud-vue', 'Icon shown next to the title. Pick None to show no icon.') }}
 					</p>
 				</div>
 				<div class="cn-field">
@@ -459,6 +458,7 @@
 <script>
 import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnIconPicker from '../components/CnIconPicker/CnIconPicker.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 const PAGE_TYPES = [
@@ -551,7 +551,7 @@ const JSON_FIELDS = [
 export default {
 	name: 'CnPageConfigModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon },
+	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, CnIconPicker },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -1030,6 +1030,10 @@ export default {
 
 .cn-field--section {
 	gap: 2px;
+}
+
+.cn-field__label {
+	font-weight: 500;
 }
 
 .cn-field__hint {
