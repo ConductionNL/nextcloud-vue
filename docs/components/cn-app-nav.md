@@ -137,7 +137,7 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 ```json
 {
   "id": "view-in-launchpad",
-  "label": "scholiq.nav.viewInMydash",
+  "label": "scholiq.nav.viewInLaunchpad",
   "href": "/index.php/apps/launchpad#scholiq",
   "visibleIf": { "appInstalled": "launchpad" }
 }
