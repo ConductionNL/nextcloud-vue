@@ -1709,6 +1709,15 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+		// A same-path `$route.query` change (e.g. a dashboard deep-link
+		// `/cases?caseType=X`) must also re-fetch — `fixedFilters` merges the
+		// query into the fetch (see useSelfFetchList.resolveQueryFilters).
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
 	},
 
 	mounted() {
