@@ -86,6 +86,73 @@ describe('CnPageConfigModal', () => {
 		expect(wrapper.vm.columnOptions.map((o) => o.value)).toEqual(['name', 'breed'])
 	})
 
+	it('setConfig writes plain text fields and drops them when blank', () => {
+		const page = { id: 'p', type: 'index', config: {} }
+		const wrapper = mountModal(page)
+		wrapper.vm.setConfig('description', 'Hello')
+		expect(page.config.description).toBe('Hello')
+		wrapper.vm.setConfig('description', '')
+		expect('description' in page.config).toBe(false)
+	})
+
+	it('setNumber coerces to a number and drops blank/NaN', () => {
+		const page = { id: 'p', type: 'index', config: {} }
+		const wrapper = mountModal(page)
+		wrapper.vm.setNumber('inlineActionCount', '3')
+		expect(page.config.inlineActionCount).toBe(3)
+		wrapper.vm.setNumber('inlineActionCount', '')
+		expect('inlineActionCount' in page.config).toBe(false)
+	})
+
+	it('setColFormat maps presets to the right transform channel', () => {
+		const page = { id: 'p', type: 'index', config: { register: 'app-prod', schema: 'dog' } }
+		const wrapper = mountModal(page, { cnDataSources: DATA_SOURCES })
+		wrapper.vm.setColFormat('name', { value: 'date', channel: 'formatter' })
+		expect(page.config.columnOverrides.name).toEqual({ formatter: 'date' })
+		wrapper.vm.setColFormat('name', { value: 'currency', channel: 'format' })
+		expect(page.config.columnOverrides.name).toEqual({ format: { style: 'currency' } })
+		wrapper.vm.setColFormat('name', { value: 'badge', channel: 'widget' })
+		expect(page.config.columnOverrides.name).toEqual({ widget: 'badge' })
+		// Default clears the override entirely (and prunes the empty map).
+		wrapper.vm.setColFormat('name', { value: '', channel: null })
+		expect('columnOverrides' in page.config).toBe(false)
+	})
+
+	it('setColLabel keeps the format channel and is reflected by selectedFormat', () => {
+		const page = { id: 'p', type: 'index', config: { register: 'app-prod', schema: 'dog' } }
+		const wrapper = mountModal(page, { cnDataSources: DATA_SOURCES })
+		wrapper.vm.setColFormat('breed', { value: 'badge', channel: 'widget' })
+		wrapper.vm.setColLabel('breed', 'Breed')
+		expect(page.config.columnOverrides.breed).toEqual({ widget: 'badge', label: 'Breed' })
+		expect(wrapper.vm.selectedFormat('breed').value).toBe('badge')
+		expect(wrapper.vm.colLabel('breed')).toBe('Breed')
+	})
+
+	it('setSortField / setSortOrder write a single-key defaultSort', () => {
+		const page = { id: 'p', type: 'index', config: { register: 'app-prod', schema: 'dog' } }
+		const wrapper = mountModal(page, { cnDataSources: DATA_SOURCES })
+		wrapper.vm.setSortField({ value: 'name' })
+		expect(page.config.defaultSort).toEqual([{ field: 'name', order: 'asc' }])
+		wrapper.vm.setSortOrder({ value: 'desc' })
+		expect(page.config.defaultSort).toEqual([{ field: 'name', order: 'desc' }])
+		wrapper.vm.setSortField(null)
+		expect('defaultSort' in page.config).toBe(false)
+	})
+
+	it('setJson parses valid JSON, flags errors, and clears on blank', () => {
+		const page = { id: 'p', type: 'index', config: {} }
+		const wrapper = mountModal(page)
+		wrapper.vm.setJson('filter', '{ "status": "open" }')
+		expect(page.config.filter).toEqual({ status: 'open' })
+		expect(wrapper.vm.hasJsonError).toBe(false)
+		wrapper.vm.setJson('filter', '{ bad')
+		expect(wrapper.vm.jsonErrors.filter).toBe(true)
+		expect(wrapper.vm.hasJsonError).toBe(true)
+		wrapper.vm.setJson('filter', '')
+		expect('filter' in page.config).toBe(false)
+		expect(wrapper.vm.hasJsonError).toBe(false)
+	})
+
 	it('Done persists via the injected editor then closes', async () => {
 		const save = jest.fn(() => Promise.resolve())
 		const wrapper = mountModal({ id: 'p', type: 'index', config: {} }, { cnManifestEditor: { save } })

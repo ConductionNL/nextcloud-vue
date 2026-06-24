@@ -2,13 +2,26 @@
   CnPageConfigModal — edit ONE page's full config in place (ADR-041 / ADR-004).
 
   Opened from an index page's edit-mode config cog (CnPageRenderer wires it to
-  the current page). Edits the working manifest's `page` + `page.config` directly
-  — Display (title/type/route/show-title/default view/view toggle), Data source
-  (register/schema/columns) and the index Actions toggles (add, per-row + mass
-  actions, selection) — across three tabs, then persists on Done via the shared
-  manifest editor. Isolated NcModal file per ADR-004; every NcSelect carries an
-  inputLabel. Booleans default true in CnIndexPage, so a toggle stores `false`
-  when switched off and removes the key when on (keeps config minimal).
+  the current page). Edits the working manifest's `page` + `page.config` directly,
+  then persists on Done via the shared manifest editor. It aims to expose the
+  WHOLE CnIndexPage config surface across five tabs:
+
+    • Display  — title/description/icon, type, route, show-title, view toggle +
+                 labels, default view, empty/loading text, inline search +
+                 placeholder, table filter/column menus, documentation link.
+    • Data     — register, schema, row-key (unique id field).
+    • Columns  — which columns to show, per-column transforms (label +
+                 formatter/widget/number-format), and the default sort.
+    • Actions  — Add (+ label), per-row + mass actions, selection, the built-in
+                 vs advanced create/edit form, mass name-field, inline action count.
+    • Advanced — JSON escape-hatch for the richer array/object options that have
+                 no simple control yet (quick filters, base filter, form-field
+                 include/exclude + overrides, export formats, import options).
+
+  Isolated NcModal file per ADR-004; every NcSelect carries an inputLabel.
+  CnIndexPage booleans default true EXCEPT showTitle/filterMenu/columnMenu — a
+  toggle stores a value only when it DIFFERS from that per-key default and drops
+  the key otherwise, keeping the persisted config minimal.
 -->
 <template>
 	<NcModal size="normal" @close="$emit('close')">
@@ -32,6 +45,16 @@
 					:label="t('nextcloud-vue', 'Title')"
 					:label-visible="true"
 					@update:value="(v) => $set(page, 'title', v)" />
+				<NcTextField :value="configValue('description')"
+					:label="t('nextcloud-vue', 'Description')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'Optional subtitle under the title')"
+					@update:value="(v) => setConfig('description', v)" />
+				<NcTextField :value="configValue('icon')"
+					:label="t('nextcloud-vue', 'Icon (MDI name)')"
+					:label-visible="true"
+					:placeholder="'FormatListBulleted'"
+					@update:value="(v) => setConfig('icon', v)" />
 				<NcSelect class="cn-page-config__field"
 					:value="selectedType"
 					:options="pageTypeOptions"
@@ -57,34 +80,54 @@
 					label="label"
 					:clearable="false"
 					@input="setViewMode" />
+				<div class="cn-page-config__row">
+					<NcTextField :value="configValue('tableLabel')"
+						:label="t('nextcloud-vue', 'Table toggle label')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'Table')"
+						@update:value="(v) => setConfig('tableLabel', v)" />
+					<NcTextField :value="configValue('cardsLabel')"
+						:label="t('nextcloud-vue', 'Cards toggle label')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'Cards')"
+						@update:value="(v) => setConfig('cardsLabel', v)" />
+				</div>
+				<NcCheckboxRadioSwitch :checked="boolVal('inlineSearch')" type="switch" @update:checked="(c) => setBool('inlineSearch', c)">
+					{{ t('nextcloud-vue', 'Inline search box') }}
+				</NcCheckboxRadioSwitch>
+				<NcTextField :value="configValue('searchPlaceholder')"
+					:label="t('nextcloud-vue', 'Search placeholder')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'Search…')"
+					@update:value="(v) => setConfig('searchPlaceholder', v)" />
+				<NcTextField :value="configValue('emptyText')"
+					:label="t('nextcloud-vue', 'Empty-state text')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'No items found')"
+					@update:value="(v) => setConfig('emptyText', v)" />
+				<NcTextField :value="configValue('loadingText')"
+					:label="t('nextcloud-vue', 'Loading text')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'Loading…')"
+					@update:value="(v) => setConfig('loadingText', v)" />
 				<NcCheckboxRadioSwitch :checked="boolVal('filterMenu')" type="switch" @update:checked="(c) => setBool('filterMenu', c)">
 					{{ t('nextcloud-vue', 'Show table filter menu') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch :checked="boolVal('columnMenu')" type="switch" @update:checked="(c) => setBool('columnMenu', c)">
 					{{ t('nextcloud-vue', 'Show column (show/hide) menu') }}
 				</NcCheckboxRadioSwitch>
-
-				<!-- Columns to show (index data pages). Each entry can later carry a
-				     formatter/widget transform; today this picks which schema
-				     properties become columns. Requires a schema (Data source tab). -->
-				<template v-if="isDataPage">
-					<NcSelect v-if="columnOptions.length"
-						class="cn-page-config__field"
-						:value="selectedColumns"
-						:options="columnOptions"
-						:input-label="t('nextcloud-vue', 'Columns shown')"
-						label="label"
-						:multiple="true"
-						:close-on-select="false"
-						:placeholder="t('nextcloud-vue', 'All properties')"
-						@input="setColumns" />
-					<NcTextField v-else
-						:value="columnsText"
-						:label="t('nextcloud-vue', 'Columns (comma separated)')"
+				<div class="cn-page-config__row">
+					<NcTextField :value="configValue('documentationUrl')"
+						:label="t('nextcloud-vue', 'Documentation URL')"
 						:label-visible="true"
-						:placeholder="'name, status'"
-						@update:value="setColumnsText" />
-				</template>
+						:placeholder="'https://…'"
+						@update:value="(v) => setConfig('documentationUrl', v)" />
+					<NcTextField :value="configValue('documentationLabel')"
+						:label="t('nextcloud-vue', 'Documentation label')"
+						:label-visible="true"
+						:placeholder="t('nextcloud-vue', 'Documentation')"
+						@update:value="(v) => setConfig('documentationLabel', v)" />
+				</div>
 			</div>
 
 			<!-- Data source -->
@@ -120,9 +163,84 @@
 						:label="t('nextcloud-vue', 'Schema')"
 						:label-visible="true"
 						@update:value="(v) => setConfig('schema', v)" />
+
+					<NcTextField :value="configValue('rowKey')"
+						:label="t('nextcloud-vue', 'Row identifier field')"
+						:label-visible="true"
+						:placeholder="'id'"
+						@update:value="(v) => setConfig('rowKey', v)" />
 				</template>
 				<p v-else class="cn-page-config__hint">
 					{{ t('nextcloud-vue', 'Set the type to Index or Detail to configure a data source.') }}
+				</p>
+			</div>
+
+			<!-- Columns -->
+			<div v-show="activeTab === 'columns'" class="cn-page-config__section">
+				<template v-if="isDataPage">
+					<NcSelect v-if="columnOptions.length"
+						class="cn-page-config__field"
+						:value="selectedColumns"
+						:options="columnOptions"
+						:input-label="t('nextcloud-vue', 'Columns shown')"
+						label="label"
+						:multiple="true"
+						:close-on-select="false"
+						:placeholder="t('nextcloud-vue', 'All properties')"
+						@input="setColumns" />
+					<NcTextField v-else
+						:value="columnsText"
+						:label="t('nextcloud-vue', 'Columns (comma separated)')"
+						:label-visible="true"
+						:placeholder="'name, status'"
+						@update:value="setColumnsText" />
+
+					<!-- Per-column transforms: a friendly label + a formatter/widget. -->
+					<template v-if="transformColumns.length">
+						<h3 class="cn-page-config__subtitle">
+							{{ t('nextcloud-vue', 'Column transforms') }}
+						</h3>
+						<div v-for="col in transformColumns" :key="col" class="cn-page-config__col-transform">
+							<span class="cn-page-config__col-name">{{ col }}</span>
+							<NcTextField :value="colLabel(col)"
+								:label="t('nextcloud-vue', 'Label')"
+								:placeholder="col"
+								@update:value="(v) => setColLabel(col, v)" />
+							<NcSelect class="cn-page-config__field"
+								:value="selectedFormat(col)"
+								:options="formatOptions"
+								:input-label="t('nextcloud-vue', 'Format')"
+								label="label"
+								:clearable="false"
+								@input="(o) => setColFormat(col, o)" />
+						</div>
+					</template>
+
+					<!-- Default sort. -->
+					<h3 class="cn-page-config__subtitle">
+						{{ t('nextcloud-vue', 'Default sort') }}
+					</h3>
+					<div class="cn-page-config__row">
+						<NcSelect class="cn-page-config__field"
+							:value="selectedSortField"
+							:options="sortFieldOptions"
+							:input-label="t('nextcloud-vue', 'Sort by')"
+							label="label"
+							:clearable="true"
+							:placeholder="t('nextcloud-vue', 'None')"
+							@input="setSortField" />
+						<NcSelect class="cn-page-config__field"
+							:value="selectedSortOrder"
+							:options="sortOrderOptions"
+							:input-label="t('nextcloud-vue', 'Direction')"
+							label="label"
+							:clearable="false"
+							:disabled="!selectedSortField"
+							@input="setSortOrder" />
+					</div>
+				</template>
+				<p v-else class="cn-page-config__hint">
+					{{ t('nextcloud-vue', 'Columns apply to Index pages with a data source.') }}
 				</p>
 			</div>
 
@@ -135,11 +253,49 @@
 					@update:checked="(c) => setBool(toggle.key, c)">
 					{{ toggle.label }}
 				</NcCheckboxRadioSwitch>
+				<NcTextField :value="configValue('addLabel')"
+					:label="t('nextcloud-vue', 'Add button label')"
+					:label-visible="true"
+					:placeholder="t('nextcloud-vue', 'Add')"
+					@update:value="(v) => setConfig('addLabel', v)" />
+				<NcCheckboxRadioSwitch :checked="boolVal('useAdvancedFormDialog')" type="switch" @update:checked="(c) => setBool('useAdvancedFormDialog', c)">
+					{{ t('nextcloud-vue', 'Use the advanced create/edit dialog') }}
+				</NcCheckboxRadioSwitch>
+				<NcTextField :value="configValue('massActionNameField')"
+					:label="t('nextcloud-vue', 'Mass-action name field')"
+					:label-visible="true"
+					:placeholder="'title'"
+					@update:value="(v) => setConfig('massActionNameField', v)" />
+				<NcTextField :value="configValue('inlineActionCount')"
+					type="number"
+					:label="t('nextcloud-vue', 'Inline row actions before overflow')"
+					:label-visible="true"
+					:placeholder="'1'"
+					@update:value="(v) => setNumber('inlineActionCount', v)" />
+			</div>
+
+			<!-- Advanced (JSON escape-hatch for the richer options) -->
+			<div v-show="activeTab === 'advanced'" class="cn-page-config__section">
+				<p class="cn-page-config__hint">
+					{{ t('nextcloud-vue', 'These options take JSON. Leave a field blank to unset it.') }}
+				</p>
+				<div v-for="field in jsonFields" :key="field.key" class="cn-page-config__json">
+					<label class="cn-page-config__json-label">{{ field.label }}</label>
+					<textarea class="cn-page-config__json-input"
+						:class="{ 'cn-page-config__json-input--error': jsonErrors[field.key] }"
+						rows="3"
+						:placeholder="field.placeholder"
+						:value="jsonText[field.key]"
+						@input="(e) => setJson(field.key, e.target.value)" />
+					<span v-if="jsonErrors[field.key]" class="cn-page-config__json-error">
+						{{ t('nextcloud-vue', 'Invalid JSON') }}
+					</span>
+				</div>
 			</div>
 
 			<div class="cn-page-config__footer">
 				<span class="cn-page-config__id">{{ page.id }}</span>
-				<NcButton type="primary" :disabled="saving" @click="onDone">
+				<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
 					<template v-if="saving" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
@@ -167,14 +323,38 @@ const VIEW_MODES = [
 	{ value: 'cards', label: 'Cards' },
 ]
 
+// Per-column transform presets. A friendly label maps to ONE of CnCellRenderer's
+// three transform channels: a registry `formatter` (date/datetime/relative-time),
+// a numeric `format.style` (currency/number/percent), or a built-in `widget`
+// (badge/link). `selectedFormat`/`setColFormat` translate between them.
+const FORMAT_OPTIONS = [
+	{ value: '', label: 'Default', channel: null },
+	{ value: 'date', label: 'Date', channel: 'formatter' },
+	{ value: 'datetime', label: 'Date & time', channel: 'formatter' },
+	{ value: 'relative-time', label: 'Relative time', channel: 'formatter' },
+	{ value: 'currency', label: 'Currency (€)', channel: 'format' },
+	{ value: 'number', label: 'Number', channel: 'format' },
+	{ value: 'percent', label: 'Percent', channel: 'format' },
+	{ value: 'badge', label: 'Status badge', channel: 'widget' },
+	{ value: 'link', label: 'Link', channel: 'widget' },
+]
+
+const SORT_ORDERS = [
+	{ value: 'asc', label: 'Ascending' },
+	{ value: 'desc', label: 'Descending' },
+]
+
 // Per-key CnIndexPage boolean defaults, so a toggle reflects the true effective
 // state and only stores a value that DIFFERS from the default (minimal config).
-// showTitle / filterMenu / columnMenu default false; the rest default true.
+// showTitle / filterMenu / columnMenu / inlineSearch / useAdvancedFormDialog
+// default false; the rest default true.
 const BOOL_DEFAULTS = {
 	showTitle: false,
 	showViewToggle: true,
 	filterMenu: false,
 	columnMenu: false,
+	inlineSearch: false,
+	useAdvancedFormDialog: false,
 	showAdd: true,
 	showViewAction: true,
 	showEditAction: true,
@@ -201,6 +381,18 @@ const ACTION_TOGGLES = [
 	{ key: 'showMassExport', label: 'Mass export' },
 	{ key: 'showMassImport', label: 'Mass import' },
 	{ key: 'showFormDialog', label: 'Built-in create/edit form' },
+]
+
+// Richer array/object config options that have no dedicated control yet — edited
+// as JSON on the Advanced tab. Each maps straight onto a CnIndexPage prop.
+const JSON_FIELDS = [
+	{ key: 'quickFilters', label: 'Quick filters', placeholder: '[{ "label": "Open", "filter": { "status": "open" } }]' },
+	{ key: 'filter', label: 'Base filter', placeholder: '{ "status": "active" }' },
+	{ key: 'includeFields', label: 'Form fields — include', placeholder: '["title", "status"]' },
+	{ key: 'excludeFields', label: 'Form fields — exclude', placeholder: '["createdAt"]' },
+	{ key: 'fieldOverrides', label: 'Form field overrides', placeholder: '{ "status": { "label": "State" } }' },
+	{ key: 'exportFormats', label: 'Export formats', placeholder: '["csv", "json"]' },
+	{ key: 'importOptions', label: 'Import options', placeholder: '{ "formats": ["csv"] }' },
 ]
 
 /**
@@ -232,18 +424,24 @@ export default {
 
 	data() {
 		return {
-			// Active config tab: 'display' | 'data' | 'actions'.
+			// Active config tab: 'display' | 'data' | 'columns' | 'actions' | 'advanced'.
 			activeTab: 'display',
+			// Editing buffer for the Advanced JSON fields (string per key).
+			jsonText: this.buildJsonText(),
+			// Per-key parse-error flag for the Advanced JSON fields.
+			jsonErrors: {},
 		}
 	},
 
 	computed: {
-		/** The three config tabs. */
+		/** The config tabs. */
 		tabs() {
 			return [
 				{ id: 'display', label: t('nextcloud-vue', 'Display') },
 				{ id: 'data', label: t('nextcloud-vue', 'Data source') },
+				{ id: 'columns', label: t('nextcloud-vue', 'Columns') },
 				{ id: 'actions', label: t('nextcloud-vue', 'Actions') },
+				{ id: 'advanced', label: t('nextcloud-vue', 'Advanced') },
 			]
 		},
 		/** Closed page-type options. */
@@ -254,9 +452,25 @@ export default {
 		viewModeOptions() {
 			return VIEW_MODES
 		},
+		/** Per-column transform format options. */
+		formatOptions() {
+			return FORMAT_OPTIONS.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label), channel: o.channel }))
+		},
+		/** Sort-direction options. */
+		sortOrderOptions() {
+			return SORT_ORDERS.map((o) => ({ value: o.value, label: t('nextcloud-vue', o.label) }))
+		},
 		/** Index action toggles. */
 		actionToggles() {
 			return ACTION_TOGGLES.map((a) => ({ key: a.key, label: t('nextcloud-vue', a.label) }))
+		},
+		/** Advanced JSON fields. */
+		jsonFields() {
+			return JSON_FIELDS.map((f) => ({ key: f.key, label: t('nextcloud-vue', f.label), placeholder: f.placeholder }))
+		},
+		/** True while any Advanced JSON field holds invalid JSON (blocks Done). */
+		hasJsonError() {
+			return Object.values(this.jsonErrors).some(Boolean)
 		},
 		/** The page's type as an option. */
 		selectedType() {
@@ -308,18 +522,62 @@ export default {
 		},
 		/** Page columns as options. */
 		selectedColumns() {
-			const cols = (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
-			return cols.map((c) => ({ value: c, label: c }))
+			return this.columnsArray.map((c) => ({ value: c, label: c }))
 		},
 		/** Page columns as comma string. */
 		columnsText() {
-			const cols = (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
-			return cols.join(', ')
+			return this.columnsArray.join(', ')
+		},
+		/** Configured columns (array form). */
+		columnsArray() {
+			return (this.page && this.page.config && Array.isArray(this.page.config.columns)) ? this.page.config.columns : []
+		},
+		/**
+		 * Columns offered the per-column transform rows: the configured columns,
+		 * else the schema's columns. Empty when neither is known (free-text page).
+		 * @return {string[]}
+		 */
+		transformColumns() {
+			if (this.columnsArray.length) return this.columnsArray
+			return this.columnOptions.map((o) => o.value)
+		},
+		/** Columns offered as default-sort fields (same source as transforms). */
+		sortFieldOptions() {
+			return this.transformColumns.map((c) => ({ value: c, label: c }))
+		},
+		/** The default-sort field as an option (single-key). */
+		selectedSortField() {
+			const sort = this.defaultSortArray
+			if (!sort.length || !sort[0].field) return null
+			return { value: sort[0].field, label: sort[0].field }
+		},
+		/** The default-sort direction as an option. */
+		selectedSortOrder() {
+			const sort = this.defaultSortArray
+			const order = (sort[0] && sort[0].order) || 'asc'
+			return SORT_ORDERS.find((o) => o.value === order) || SORT_ORDERS[0]
+		},
+		/** The configured default sort (array form). */
+		defaultSortArray() {
+			return (this.page && this.page.config && Array.isArray(this.page.config.defaultSort)) ? this.page.config.defaultSort : []
 		},
 	},
 
 	methods: {
 		t,
+		/**
+		 * Build the Advanced-tab editing buffer from the page's current config —
+		 * each JSON field pretty-printed, or '' when unset.
+		 * @return {object}
+		 */
+		buildJsonText() {
+			const cfg = (this.page && this.page.config && !Array.isArray(this.page.config)) ? this.page.config : {}
+			const out = {}
+			for (const f of JSON_FIELDS) {
+				out[f.key] = (cfg[f.key] === undefined) ? '' : JSON.stringify(cfg[f.key], null, 2)
+			}
+			return out
+		},
 		/**
 		 * Ensure the page has a plain-object config (resets a PHP-corrupted array).
 		 * @return {object}
@@ -336,7 +594,8 @@ export default {
 		 * @return {*}
 		 */
 		configValue(key) {
-			return (this.page && this.page.config && this.page.config[key]) || ''
+			const v = (this.page && this.page.config && this.page.config[key])
+			return (v === undefined || v === null) ? '' : v
 		},
 		/**
 		 * Write a config field in place (deletes when falsy/empty).
@@ -348,6 +607,18 @@ export default {
 			const config = this.ensureConfig()
 			if (value) this.$set(config, key, value)
 			else this.$delete(config, key)
+		},
+		/**
+		 * Write a numeric config field (deletes when blank/NaN).
+		 * @param {string} key The config key.
+		 * @param {string} value The raw input value.
+		 * @return {void}
+		 */
+		setNumber(key, value) {
+			const config = this.ensureConfig()
+			const n = Number(value)
+			if (value === '' || value === null || Number.isNaN(n)) this.$delete(config, key)
+			else this.$set(config, key, n)
 		},
 		/**
 		 * Effective value of a boolean toggle: the stored value when set, else the
@@ -433,6 +704,130 @@ export default {
 			if (cols.length) this.$set(config, 'columns', cols)
 			else this.$delete(config, 'columns')
 		},
+		/**
+		 * The override object for a column (empty object when none).
+		 * @param {string} col The column key.
+		 * @return {object}
+		 */
+		colOverride(col) {
+			const ov = this.page && this.page.config && this.page.config.columnOverrides
+			return (ov && typeof ov === 'object' && ov[col]) ? ov[col] : {}
+		},
+		/**
+		 * A column's custom label (empty string when none).
+		 * @param {string} col The column key.
+		 * @return {string}
+		 */
+		colLabel(col) {
+			return this.colOverride(col).label || ''
+		},
+		/**
+		 * Persist (or remove) a column override, pruning empty objects/maps so the
+		 * config stays minimal.
+		 * @param {string} col The column key.
+		 * @param {object} override The next override object.
+		 * @return {void}
+		 */
+		writeOverride(col, override) {
+			const config = this.ensureConfig()
+			let map = config.columnOverrides
+			if (!map || typeof map !== 'object' || Array.isArray(map)) {
+				map = {}
+				this.$set(config, 'columnOverrides', map)
+			}
+			if (override && Object.keys(override).length) this.$set(map, col, override)
+			else this.$delete(map, col)
+			if (!Object.keys(config.columnOverrides).length) this.$delete(config, 'columnOverrides')
+		},
+		/**
+		 * Set a column's custom label.
+		 * @param {string} col The column key.
+		 * @param {string} label The label.
+		 * @return {void}
+		 */
+		setColLabel(col, label) {
+			const next = { ...this.colOverride(col) }
+			if (label) next.label = label
+			else delete next.label
+			this.writeOverride(col, next)
+		},
+		/**
+		 * The selected format option for a column (reverse-mapped from its override).
+		 * @param {string} col The column key.
+		 * @return {object}
+		 */
+		selectedFormat(col) {
+			const ov = this.colOverride(col)
+			let value = ''
+			if (ov.formatter) value = ov.formatter
+			else if (ov.widget) value = ov.widget
+			else if (ov.format && ov.format.style) value = ov.format.style
+			return this.formatOptions.find((o) => o.value === value) || this.formatOptions[0]
+		},
+		/**
+		 * Apply a format preset to a column — clears the other transform channels,
+		 * keeps any custom label.
+		 * @param {string} col The column key.
+		 * @param {object} option The chosen format option ({value, channel}).
+		 * @return {void}
+		 */
+		setColFormat(col, option) {
+			const next = { ...this.colOverride(col) }
+			delete next.formatter
+			delete next.widget
+			delete next.format
+			const preset = FORMAT_OPTIONS.find((o) => o.value === (option && option.value))
+			if (preset && preset.channel === 'formatter') next.formatter = preset.value
+			else if (preset && preset.channel === 'widget') next.widget = preset.value
+			else if (preset && preset.channel === 'format') next.format = { style: preset.value }
+			this.writeOverride(col, next)
+		},
+		/**
+		 * Set the default-sort field (single-key); preserves the current direction.
+		 * @param {{value: string}|null} option The field option.
+		 * @return {void}
+		 */
+		setSortField(option) {
+			const config = this.ensureConfig()
+			if (!option) { this.$delete(config, 'defaultSort'); return }
+			const order = (this.defaultSortArray[0] && this.defaultSortArray[0].order) || 'asc'
+			this.$set(config, 'defaultSort', [{ field: option.value, order }])
+		},
+		/**
+		 * Set the default-sort direction (no-op until a field is chosen).
+		 * @param {{value: string}|null} option The direction option.
+		 * @return {void}
+		 */
+		setSortOrder(option) {
+			const sort = this.defaultSortArray
+			if (!sort.length || !sort[0].field) return
+			const config = this.ensureConfig()
+			this.$set(config, 'defaultSort', [{ field: sort[0].field, order: option ? option.value : 'asc' }])
+		},
+		/**
+		 * Edit an Advanced JSON field: parse, flag errors, and persist on success
+		 * (blank clears the key).
+		 * @param {string} key The config key.
+		 * @param {string} text The raw textarea value.
+		 * @return {void}
+		 */
+		setJson(key, text) {
+			this.$set(this.jsonText, key, text)
+			const config = this.ensureConfig()
+			const trimmed = String(text || '').trim()
+			if (!trimmed) {
+				this.$delete(this.jsonErrors, key)
+				this.$delete(config, key)
+				return
+			}
+			try {
+				const parsed = JSON.parse(trimmed)
+				this.$delete(this.jsonErrors, key)
+				this.$set(config, key, parsed)
+			} catch (e) {
+				this.$set(this.jsonErrors, key, true)
+			}
+		},
 	},
 }
 </script>
@@ -449,9 +844,16 @@ export default {
 	margin: 0;
 }
 
+.cn-page-config__subtitle {
+	margin: 8px 0 0;
+	font-size: 1em;
+	font-weight: 600;
+}
+
 .cn-page-config__tabs {
 	display: flex;
 	gap: 4px;
+	flex-wrap: wrap;
 	border-bottom: 1px solid var(--color-border);
 	padding-bottom: 8px;
 }
@@ -461,14 +863,69 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	min-height: 220px;
+	max-height: 55vh;
+	overflow-y: auto;
+}
+
+.cn-page-config__row {
+	display: flex;
+	gap: 12px;
+}
+
+.cn-page-config__row > * {
+	flex: 1;
 }
 
 .cn-page-config__field {
 	min-width: 200px;
 }
 
+.cn-page-config__col-transform {
+	display: grid;
+	grid-template-columns: 120px 1fr 1fr;
+	gap: 8px;
+	align-items: center;
+}
+
+.cn-page-config__col-name {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .cn-page-config__hint {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-page-config__json {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-page-config__json-label {
+	font-weight: 600;
+}
+
+.cn-page-config__json-input {
+	width: 100%;
+	font-family: monospace;
+	font-size: 0.85em;
+	border-radius: var(--border-radius);
+	border: 2px solid var(--color-border-dark);
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+	padding: 6px 8px;
+}
+
+.cn-page-config__json-input--error {
+	border-color: var(--color-error);
+}
+
+.cn-page-config__json-error {
+	color: var(--color-error);
+	font-size: 0.85em;
 }
 
 .cn-page-config__footer {
