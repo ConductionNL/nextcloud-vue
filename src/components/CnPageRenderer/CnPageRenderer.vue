@@ -50,7 +50,7 @@
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
-				:key="currentPage.id"
+				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners"
 				@view="onRowOpen"
@@ -97,7 +97,7 @@
 		<component
 			:is="resolvedComponent"
 			v-else-if="resolvedComponent"
-			:key="currentPage.id"
+			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners"
 			@view="onRowOpen"
@@ -453,6 +453,21 @@ export default {
 				return null
 			}
 			return manifest.pages.find((page) => page.id === routeName) ?? null
+		},
+		/**
+		 * Remount key for the dispatched page component. Includes the data source
+		 * (register + schema) so changing it in the page-config modal remounts the
+		 * page: the self-fetch composable binds its object type + schema once at
+		 * setup, so without a remount a data-source change would leave the old
+		 * columns, create/edit form, and "Add" label in place.
+		 *
+		 * @return {string} A key of `id:register:schema`.
+		 */
+		pageRenderKey() {
+			const page = this.currentPage
+			if (!page) return 'none'
+			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
 		},
 		/**
 		 * Component to render for the current page. Looked up in
