@@ -15,6 +15,7 @@
 			<CnPageTreeRow :page="node.ref"
 				:can-add-child="maxDepth > 0"
 				@add-child="addChild(node)"
+				@rename="(id) => renamePage(node.ref, id)"
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top page so a row
@@ -31,6 +32,7 @@
 				<li v-for="child in node.children" :key="child.ref.id" class="cn-page-tree__node">
 					<CnPageTreeRow :page="child.ref"
 						:can-add-child="false"
+						@rename="(id) => renamePage(child.ref, id)"
 						@remove="removeNode(child, node)" />
 				</li>
 			</draggable>
@@ -76,6 +78,17 @@ export default {
 		maxDepth: {
 			type: Number,
 			default: 1,
+		},
+		/**
+		 * The working manifest's `menu[]`, used to re-point menu links (whose
+		 * `route` is a page id) when a page's slug is renamed. Optional — when
+		 * absent, only child `parent` references are cascaded.
+		 *
+		 * @type {Array}
+		 */
+		menu: {
+			type: Array,
+			default: null,
 		},
 	},
 
@@ -182,6 +195,35 @@ export default {
 			let n = this.list.length + 1
 			while (ids.has(`page-${n}`)) n++
 			return `page-${n}`
+		},
+
+		/**
+		 * Rename a page's slug (its id). Cascades the new id to child pages'
+		 * `parent` and to any `menu[]` links whose `route` targets the old id, so
+		 * nesting and navigation keep working. No-op when the new id collides with
+		 * another page. The page id is the vue-router route name.
+		 * @param {object} ref The page being renamed (mutated in place).
+		 * @param {string} newId The sanitised new id.
+		 * @return {void}
+		 */
+		renamePage(ref, newId) {
+			const oldId = ref.id
+			if (!newId || newId === oldId) return
+			if (this.list.some((p) => p && p.id === newId)) return
+			for (const p of this.list) {
+				if (p && p.parent === oldId) this.$set(p, 'parent', newId)
+			}
+			if (Array.isArray(this.menu)) {
+				const walk = (items) => (items || []).forEach((it) => {
+					if (!it) return
+					if (it.route === oldId) this.$set(it, 'route', newId)
+					walk(it.children)
+				})
+				walk(this.menu)
+			}
+			this.$set(ref, 'id', newId)
+			this.flatten()
+			this.tree = this.buildTree()
 		},
 
 		/**

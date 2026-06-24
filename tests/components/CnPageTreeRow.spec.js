@@ -54,6 +54,24 @@ describe('CnPageTreeRow', () => {
 		expect(wrapper.vm.editing).toBe(null) // onType closes the inline editor
 	})
 
+	it('typeIconComponent maps the page type to an MDI glyph', () => {
+		expect(mountRow({ id: 'a', type: 'dashboard' }).vm.typeIconComponent).toBe('ViewDashboardOutline')
+		expect(mountRow({ id: 'a', type: 'index' }).vm.typeIconComponent).toBe('FormatListBulletedSquare')
+		expect(mountRow({ id: 'a', type: 'detail' }).vm.typeIconComponent).toBe('TextBoxOutline')
+		expect(mountRow({ id: 'a', type: 'custom' }).vm.typeIconComponent).toBe('ShapeOutline')
+	})
+
+	it('commitSlug emits a sanitised rename and no-ops when unchanged', () => {
+		const wrapper = mountRow({ id: 'page-3', type: 'index' })
+		wrapper.vm.slugDraft = 'Dogs Page!'
+		wrapper.vm.commitSlug()
+		expect(wrapper.emitted('rename')[0]).toEqual(['dogs-page'])
+		// unchanged → no further emit + draft reset to current id
+		wrapper.vm.slugDraft = 'page-3'
+		wrapper.vm.commitSlug()
+		expect(wrapper.emitted('rename').length).toBe(1)
+	})
+
 	it('setRegister writes config.register and clears schema + columns', () => {
 		const page = { id: 'dogs', type: 'index', config: { register: 'old', schema: 's', columns: ['x'] } }
 		const wrapper = mountRow(page, { cnDataSources: DATA_SOURCES })

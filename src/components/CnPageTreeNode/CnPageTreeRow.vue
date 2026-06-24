@@ -4,157 +4,178 @@
 -->
 
 <template>
-	<div class="cn-page-tree__row">
-		<span class="cn-page-tree__handle" :aria-label="t('nextcloud-vue', 'Drag to reorder or nest')" title="">
-			<DragVertical :size="18" />
-		</span>
+	<div class="cn-page-tree__item">
+		<div class="cn-page-tree__row">
+			<span class="cn-page-tree__handle" :aria-label="t('nextcloud-vue', 'Drag to reorder or nest')">
+				<DragVertical :size="18" />
+			</span>
 
-		<!-- Icon doubles as the type switcher (a page's glyph is type-derived). -->
-		<button class="cn-page-tree__icon-btn"
-			type="button"
-			:aria-label="t('nextcloud-vue', 'Change type')"
-			@click="startEdit('type')">
-			<span class="cn-page-tree__icon" :class="typeIcon" aria-hidden="true" />
-		</button>
+			<!-- Type icon (visual). -->
+			<span class="cn-page-tree__icon" aria-hidden="true">
+				<component :is="typeIconComponent" :size="20" />
+			</span>
 
-		<!-- Name: click to edit inline. -->
-		<NcTextField v-if="editing === 'name'"
-			ref="nameField"
-			class="cn-page-tree__inline-field"
-			:value="page.title || ''"
-			:label="t('nextcloud-vue', 'Title')"
-			:label-outside="true"
-			@update:value="setTitle"
-			@keydown.enter="stopEdit"
-			@blur="stopEdit" />
-		<button v-else
-			type="button"
-			class="cn-page-tree__label cn-page-tree__label--btn"
-			:title="page.route || ''"
-			@click="startEdit('name')">
-			{{ page.title || page.id || t('nextcloud-vue', '(untitled)') }}
-		</button>
+			<!-- Name: click to edit inline. -->
+			<NcTextField v-if="editing === 'name'"
+				ref="nameField"
+				class="cn-page-tree__inline-field"
+				:value="page.title || ''"
+				:label="t('nextcloud-vue', 'Title')"
+				:label-outside="true"
+				@update:value="setTitle"
+				@keydown.enter="stopEdit"
+				@blur="stopEdit" />
+			<button v-else
+				type="button"
+				class="cn-page-tree__label cn-page-tree__label--btn"
+				:title="page.route || ''"
+				@click="startEdit('name')">
+				{{ page.title || page.id || t('nextcloud-vue', '(untitled)') }}
+			</button>
 
-		<!-- Type: click to change inline. -->
-		<NcSelect v-if="editing === 'type'"
-			class="cn-page-tree__inline-select"
-			:value="selectedType"
-			:options="pageTypeOptions"
-			:input-label="t('nextcloud-vue', 'Type')"
-			label="label"
-			:clearable="false"
-			@input="onType"
-			@close="stopEdit" />
-		<button v-else
-			type="button"
-			class="cn-page-tree__type cn-page-tree__type--btn"
-			@click="startEdit('type')">
-			{{ typeLabel }}
-		</button>
+			<!-- Type: click to change inline. -->
+			<NcSelect v-if="editing === 'type'"
+				class="cn-page-tree__inline-select"
+				:value="selectedType"
+				:options="pageTypeOptions"
+				:input-label="t('nextcloud-vue', 'Type')"
+				label="label"
+				:clearable="false"
+				@input="onType"
+				@close="stopEdit" />
+			<button v-else
+				type="button"
+				class="cn-page-tree__type cn-page-tree__type--btn"
+				@click="startEdit('type')">
+				{{ typeLabel }}
+			</button>
 
-		<!-- Cog → config popover (route + data source + add-sub-page + delete). -->
-		<NcPopover :shown.sync="popoverOpen" :focus-trap="false">
-			<template #trigger="{ attrs }">
-				<NcButton v-bind="attrs"
-					type="tertiary"
-					:aria-label="t('nextcloud-vue', 'Page settings')">
-					<template #icon>
-						<Cog :size="18" />
-					</template>
-				</NcButton>
-			</template>
-			<div class="cn-page-tree__config">
-				<NcTextField class="cn-page-tree__config-field"
-					:value="page.route || ''"
-					:label="t('nextcloud-vue', 'Route')"
-					:label-visible="true"
-					:placeholder="'/example'"
-					@update:value="(v) => setRoute(v)" />
-
-				<template v-if="isDataPage">
-					<NcSelect v-if="hasDataSources"
-						class="cn-page-tree__config-field"
-						:value="selectedRegister"
-						:options="registerOptions"
-						:input-label="t('nextcloud-vue', 'Register')"
-						label="label"
-						:clearable="true"
-						:placeholder="t('nextcloud-vue', 'Choose a register')"
-						@input="setRegister" />
-					<NcTextField v-else
-						class="cn-page-tree__config-field"
-						:value="configValue('register')"
-						:label="t('nextcloud-vue', 'Register')"
-						:label-visible="true"
-						@update:value="(v) => setConfig('register', v)" />
-
-					<NcSelect v-if="hasDataSources"
-						class="cn-page-tree__config-field"
-						:value="selectedSchema"
-						:options="schemaOptions"
-						:input-label="t('nextcloud-vue', 'Schema')"
-						label="label"
-						:clearable="true"
-						:disabled="!configValue('register')"
-						:placeholder="t('nextcloud-vue', 'Choose a schema')"
-						@input="setSchema" />
-					<NcTextField v-else
-						class="cn-page-tree__config-field"
-						:value="configValue('schema')"
-						:label="t('nextcloud-vue', 'Schema')"
-						:label-visible="true"
-						@update:value="(v) => setConfig('schema', v)" />
-
-					<NcSelect v-if="page.type === 'index' && columnOptions.length"
-						class="cn-page-tree__config-field"
-						:value="selectedColumns"
-						:options="columnOptions"
-						:input-label="t('nextcloud-vue', 'Columns')"
-						label="label"
-						:multiple="true"
-						:close-on-select="false"
-						:placeholder="t('nextcloud-vue', 'All properties')"
-						@input="setColumns" />
-					<NcTextField v-else-if="page.type === 'index'"
-						class="cn-page-tree__config-field"
-						:value="columnsText"
-						:label="t('nextcloud-vue', 'Columns (comma separated)')"
-						:label-visible="true"
-						:placeholder="'name, status'"
-						@update:value="setColumnsText" />
+			<!-- Cog → inline settings panel (toggled, in-DOM so the dropdowns work). -->
+			<NcButton type="tertiary"
+				:aria-label="t('nextcloud-vue', 'Page settings')"
+				:pressed="expanded"
+				@click="expanded = !expanded">
+				<template #icon>
+					<Cog :size="18" />
 				</template>
+			</NcButton>
+		</div>
 
-				<span class="cn-page-tree__config-id">{{ page.id }}</span>
+		<!-- Settings panel. Inline (not a popover) so NcSelect's body-appended
+		     dropdown clicks don't dismiss it. -->
+		<div v-if="expanded" class="cn-page-tree__panel">
+			<NcTextField class="cn-page-tree__panel-field"
+				:value="page.title || ''"
+				:label="t('nextcloud-vue', 'Title')"
+				:label-visible="true"
+				@update:value="setTitle" />
 
-				<div class="cn-page-tree__config-actions">
-					<NcButton v-if="canAddChild"
-						type="tertiary"
-						@click="$emit('add-child')">
-						<template #icon>
-							<Plus :size="18" />
-						</template>
-						{{ t('nextcloud-vue', 'Add sub-page') }}
-					</NcButton>
-					<NcButton type="tertiary"
-						@click="$emit('remove')">
-						<template #icon>
-							<Delete :size="18" />
-						</template>
-						{{ t('nextcloud-vue', 'Delete page') }}
-					</NcButton>
-				</div>
+			<NcSelect class="cn-page-tree__panel-field"
+				:value="selectedType"
+				:options="pageTypeOptions"
+				:input-label="t('nextcloud-vue', 'Type')"
+				label="label"
+				:clearable="false"
+				@input="onType" />
+
+			<NcTextField class="cn-page-tree__panel-field"
+				:value="slugDraft"
+				:label="t('nextcloud-vue', 'Slug (page id)')"
+				:label-visible="true"
+				:placeholder="page.id"
+				@update:value="(v) => slugDraft = v"
+				@keydown.enter="commitSlug"
+				@blur="commitSlug" />
+
+			<NcTextField class="cn-page-tree__panel-field"
+				:value="page.route || ''"
+				:label="t('nextcloud-vue', 'Route')"
+				:label-visible="true"
+				:placeholder="'/example'"
+				@update:value="setRoute" />
+
+			<template v-if="isDataPage">
+				<NcSelect v-if="hasDataSources"
+					class="cn-page-tree__panel-field"
+					:value="selectedRegister"
+					:options="registerOptions"
+					:input-label="t('nextcloud-vue', 'Register')"
+					label="label"
+					:clearable="true"
+					:placeholder="t('nextcloud-vue', 'Choose a register')"
+					@input="setRegister" />
+				<NcTextField v-else
+					class="cn-page-tree__panel-field"
+					:value="configValue('register')"
+					:label="t('nextcloud-vue', 'Register')"
+					:label-visible="true"
+					@update:value="(v) => setConfig('register', v)" />
+
+				<NcSelect v-if="hasDataSources"
+					class="cn-page-tree__panel-field"
+					:value="selectedSchema"
+					:options="schemaOptions"
+					:input-label="t('nextcloud-vue', 'Schema')"
+					label="label"
+					:clearable="true"
+					:disabled="!configValue('register')"
+					:placeholder="t('nextcloud-vue', 'Choose a schema')"
+					@input="setSchema" />
+				<NcTextField v-else
+					class="cn-page-tree__panel-field"
+					:value="configValue('schema')"
+					:label="t('nextcloud-vue', 'Schema')"
+					:label-visible="true"
+					@update:value="(v) => setConfig('schema', v)" />
+
+				<NcSelect v-if="page.type === 'index' && columnOptions.length"
+					class="cn-page-tree__panel-field"
+					:value="selectedColumns"
+					:options="columnOptions"
+					:input-label="t('nextcloud-vue', 'Columns')"
+					label="label"
+					:multiple="true"
+					:close-on-select="false"
+					:placeholder="t('nextcloud-vue', 'All properties')"
+					@input="setColumns" />
+				<NcTextField v-else-if="page.type === 'index'"
+					class="cn-page-tree__panel-field"
+					:value="columnsText"
+					:label="t('nextcloud-vue', 'Columns (comma separated)')"
+					:label-visible="true"
+					:placeholder="'name, status'"
+					@update:value="setColumnsText" />
+			</template>
+
+			<div class="cn-page-tree__panel-actions">
+				<NcButton v-if="canAddChild" type="tertiary" @click="$emit('add-child')">
+					<template #icon>
+						<Plus :size="18" />
+					</template>
+					{{ t('nextcloud-vue', 'Add sub-page') }}
+				</NcButton>
+				<NcButton type="tertiary" @click="$emit('remove')">
+					<template #icon>
+						<Delete :size="18" />
+					</template>
+					{{ t('nextcloud-vue', 'Delete page') }}
+				</NcButton>
 			</div>
-		</NcPopover>
+		</div>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect, NcPopover } from '@nextcloud/vue'
+import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
+import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
+import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
+import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
 
 // The renderer's closed page-type enum (CnPageRenderer dispatches on these).
 const PAGE_TYPES = [
@@ -164,29 +185,31 @@ const PAGE_TYPES = [
 	{ value: 'custom', label: 'Custom' },
 ]
 
-const TYPE_ICONS = {
-	dashboard: 'icon-dashboard',
-	index: 'icon-toggle-filelist',
-	detail: 'icon-details',
-	custom: 'icon-settings',
+// Per-type MDI glyph (NC `icon-*` CSS classes don't all resolve in the runtime).
+const TYPE_ICON_COMPONENTS = {
+	dashboard: 'ViewDashboardOutline',
+	index: 'FormatListBulletedSquare',
+	detail: 'TextBoxOutline',
+	custom: 'ShapeOutline',
 }
 
 /**
  * CnPageTreeRow — one editable page row for CnPageTreeNode (ADR-041).
  *
- * Renders a single page as a compact row with INLINE editing — click the name
- * to rename, click the type (or icon) to re-type — and a cog that opens a
- * settings popover carrying the page's Route plus, for `index`/`detail` pages,
- * the OpenRegister Register / Schema / Columns data source, an Add-sub-page
- * affordance and Delete. Nesting/ordering is done by dragging the row (handled
- * by the parent CnPageTreeNode), so there is no Parent dropdown. The page object
- * is mutated IN PLACE (it is the working manifest's, by reference) so
- * `diffManifest` captures every field change; structural actions are emitted.
+ * Renders a page as a compact row with a visible type icon and INLINE editing
+ * (click the name to rename, click the type to re-type), plus a cog that toggles
+ * an in-row settings panel carrying — for discoverability — Title and Type again,
+ * the editable Slug (page id), Route and, for `index`/`detail` pages, the
+ * OpenRegister Register / Schema / Columns data source, an Add-sub-page
+ * affordance and Delete. The panel is rendered inline (not a floating popover) so
+ * NcSelect's body-appended dropdown clicks don't dismiss it. Field edits mutate
+ * the page object in place; slug renames and structural actions are emitted so
+ * the parent can cascade references (menu links, child parents).
  */
 export default {
 	name: 'CnPageTreeRow',
 
-	components: { NcButton, NcTextField, NcSelect, NcPopover, Cog, Plus, Delete, DragVertical },
+	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, DragVertical, ViewDashboardOutline, FormatListBulletedSquare, TextBoxOutline, ShapeOutline },
 
 	inject: {
 		/** App registers/schemas for the data-source pickers; null → free text. */
@@ -215,8 +238,10 @@ export default {
 		return {
 			// Which field is in inline-edit mode: null | 'name' | 'type'.
 			editing: null,
-			// Whether the settings popover is open.
-			popoverOpen: false,
+			// Whether the settings panel is open.
+			expanded: false,
+			// Pending slug edit, committed on blur/enter (renaming the id cascades).
+			slugDraft: this.page.id,
 		}
 	},
 
@@ -225,9 +250,9 @@ export default {
 		pageTypeOptions() {
 			return PAGE_TYPES
 		},
-		/** The `icon-*` glyph class for the page's type. */
-		typeIcon() {
-			return TYPE_ICONS[this.page && this.page.type] || TYPE_ICONS.custom
+		/** The MDI component name for the page's type glyph. */
+		typeIconComponent() {
+			return TYPE_ICON_COMPONENTS[this.page && this.page.type] || TYPE_ICON_COMPONENTS.custom
 		},
 		/** Human label for the page's type. */
 		typeLabel() {
@@ -289,6 +314,14 @@ export default {
 		},
 	},
 
+	watch: {
+		// Keep the slug draft in sync if the id changes externally (e.g. a rename
+		// elsewhere or the panel re-opening on a different page).
+		'page.id'(id) {
+			this.slugDraft = id
+		},
+	},
+
 	methods: {
 		t,
 		/**
@@ -318,8 +351,7 @@ export default {
 			this.$set(this.page, 'title', value)
 		},
 		/**
-		 * Set the page route in place (deletes when cleared is not desired — a
-		 * page always needs a route, so empty is allowed but unusual).
+		 * Set the page route in place.
 		 * @param {string} value The new route path.
 		 * @return {void}
 		 */
@@ -327,7 +359,20 @@ export default {
 			this.$set(this.page, 'route', value)
 		},
 		/**
-		 * Write the chosen type onto the page and leave edit mode.
+		 * Commit a slug (page id) rename. Emits `rename` so the parent can cascade
+		 * references (menu links, child `parent`); a no-op when unchanged/empty.
+		 * @return {void}
+		 */
+		commitSlug() {
+			const next = String(this.slugDraft || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+			if (!next || next === this.page.id) {
+				this.slugDraft = this.page.id
+				return
+			}
+			this.$emit('rename', next)
+		},
+		/**
+		 * Write the chosen type onto the page and leave inline edit mode.
 		 * @param {{value: string}|null} option The selected type option.
 		 * @return {void}
 		 */
@@ -337,8 +382,7 @@ export default {
 		},
 		/**
 		 * Ensure the page has a plain-object `config` and return it. An empty
-		 * `config: {}` round-trips through PHP as `[]`; reset arrays too so data
-		 * writes are not silently dropped by JSON.stringify.
+		 * `config: {}` round-trips through PHP as `[]`; reset arrays too.
 		 * @return {object}
 		 */
 		ensureConfig() {
@@ -412,6 +456,11 @@ export default {
 </script>
 
 <style scoped>
+.cn-page-tree__item {
+	display: flex;
+	flex-direction: column;
+}
+
 .cn-page-tree__row {
 	display: flex;
 	align-items: center;
@@ -432,22 +481,11 @@ export default {
 	flex-shrink: 0;
 }
 
-.cn-page-tree__icon-btn {
-	background: none;
-	border: none;
-	padding: 0;
-	cursor: pointer;
-	flex-shrink: 0;
-}
-
 .cn-page-tree__icon {
-	display: inline-block;
-	width: 20px;
-	height: 20px;
-	background-size: 16px;
-	background-position: center;
-	background-repeat: no-repeat;
-	opacity: 0.7;
+	display: inline-flex;
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+	flex-shrink: 0;
 }
 
 .cn-page-tree__label {
@@ -501,20 +539,18 @@ export default {
 	flex-shrink: 0;
 }
 
-.cn-page-tree__config {
+.cn-page-tree__panel {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	padding: 14px;
-	min-width: 260px;
+	margin: 4px 0 8px 34px;
+	padding: 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-background-hover);
 }
 
-.cn-page-tree__config-id {
-	font-size: 0.85em;
-	color: var(--color-text-maxcontrast);
-}
-
-.cn-page-tree__config-actions {
+.cn-page-tree__panel-actions {
 	display: flex;
 	justify-content: space-between;
 	gap: 8px;

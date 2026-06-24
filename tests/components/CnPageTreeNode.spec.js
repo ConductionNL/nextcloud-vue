@@ -104,6 +104,29 @@ describe('CnPageTreeNode', () => {
 		expect(list[0].parent).toBeUndefined() // reparented to top
 	})
 
+	it('renamePage cascades the new id to child parents and menu links', () => {
+		const dogs = { id: 'dogs', type: 'index', route: '/dogs' }
+		const dog = { id: 'dog', type: 'detail', route: '/dogs/:id', parent: 'dogs' }
+		const list = [dogs, dog]
+		const menu = [{ id: 'm1', label: 'Dogs', route: 'dogs' }]
+		const wrapper = mount(CnPageTreeNode, {
+			propsData: { list, menu, maxDepth: 1 },
+			stubs: { draggable: DraggableStub, CnPageTreeRow: RowStub },
+		})
+		wrapper.vm.renamePage(dogs, 'hounds')
+		expect(dogs.id).toBe('hounds')
+		expect(dog.parent).toBe('hounds') // child reparented
+		expect(menu[0].route).toBe('hounds') // menu link re-pointed
+	})
+
+	it('renamePage is a no-op when the new id collides', () => {
+		const a = { id: 'a', type: 'index' }
+		const b = { id: 'b', type: 'index' }
+		const wrapper = mountNode([a, b])
+		wrapper.vm.renamePage(a, 'b')
+		expect(a.id).toBe('a') // unchanged — collision
+	})
+
 	it('removeNode removes a child from its parent', () => {
 		const list = [
 			{ id: 'dogs', type: 'index', route: '/dogs' },

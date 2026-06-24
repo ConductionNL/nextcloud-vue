@@ -24,6 +24,7 @@
 
 			<CnPageTreeNode v-else
 				:list="pages"
+				:menu="working && Array.isArray(working.menu) ? working.menu : null"
 				:max-depth="1" />
 
 			<div class="cn-edit-pages__footer">
