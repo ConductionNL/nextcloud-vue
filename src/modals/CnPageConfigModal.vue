@@ -57,6 +57,34 @@
 					label="label"
 					:clearable="false"
 					@input="setViewMode" />
+				<NcCheckboxRadioSwitch :checked="boolVal('filterMenu')" type="switch" @update:checked="(c) => setBool('filterMenu', c)">
+					{{ t('nextcloud-vue', 'Show table filter menu') }}
+				</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch :checked="boolVal('columnMenu')" type="switch" @update:checked="(c) => setBool('columnMenu', c)">
+					{{ t('nextcloud-vue', 'Show column (show/hide) menu') }}
+				</NcCheckboxRadioSwitch>
+
+				<!-- Columns to show (index data pages). Each entry can later carry a
+				     formatter/widget transform; today this picks which schema
+				     properties become columns. Requires a schema (Data source tab). -->
+				<template v-if="isDataPage">
+					<NcSelect v-if="columnOptions.length"
+						class="cn-page-config__field"
+						:value="selectedColumns"
+						:options="columnOptions"
+						:input-label="t('nextcloud-vue', 'Columns shown')"
+						label="label"
+						:multiple="true"
+						:close-on-select="false"
+						:placeholder="t('nextcloud-vue', 'All properties')"
+						@input="setColumns" />
+					<NcTextField v-else
+						:value="columnsText"
+						:label="t('nextcloud-vue', 'Columns (comma separated)')"
+						:label-visible="true"
+						:placeholder="'name, status'"
+						@update:value="setColumnsText" />
+				</template>
 			</div>
 
 			<!-- Data source -->
@@ -92,23 +120,6 @@
 						:label="t('nextcloud-vue', 'Schema')"
 						:label-visible="true"
 						@update:value="(v) => setConfig('schema', v)" />
-
-					<NcSelect v-if="columnOptions.length"
-						class="cn-page-config__field"
-						:value="selectedColumns"
-						:options="columnOptions"
-						:input-label="t('nextcloud-vue', 'Columns')"
-						label="label"
-						:multiple="true"
-						:close-on-select="false"
-						:placeholder="t('nextcloud-vue', 'All properties')"
-						@input="setColumns" />
-					<NcTextField v-else
-						:value="columnsText"
-						:label="t('nextcloud-vue', 'Columns (comma separated)')"
-						:label-visible="true"
-						:placeholder="'name, status'"
-						@update:value="setColumnsText" />
 				</template>
 				<p v-else class="cn-page-config__hint">
 					{{ t('nextcloud-vue', 'Set the type to Index or Detail to configure a data source.') }}
@@ -155,6 +166,27 @@ const VIEW_MODES = [
 	{ value: 'table', label: 'Table' },
 	{ value: 'cards', label: 'Cards' },
 ]
+
+// Per-key CnIndexPage boolean defaults, so a toggle reflects the true effective
+// state and only stores a value that DIFFERS from the default (minimal config).
+// showTitle / filterMenu / columnMenu default false; the rest default true.
+const BOOL_DEFAULTS = {
+	showTitle: false,
+	showViewToggle: true,
+	filterMenu: false,
+	columnMenu: false,
+	showAdd: true,
+	showViewAction: true,
+	showEditAction: true,
+	showCopyAction: true,
+	showDeleteAction: true,
+	selectable: true,
+	showMassDelete: true,
+	showMassCopy: true,
+	showMassExport: true,
+	showMassImport: true,
+	showFormDialog: true,
+}
 
 // CnIndexPage action toggles (all default true) — stored as `false` when off.
 const ACTION_TOGGLES = [
@@ -318,25 +350,28 @@ export default {
 			else this.$delete(config, key)
 		},
 		/**
-		 * Effective value of a default-true boolean toggle (`config[key] !== false`).
+		 * Effective value of a boolean toggle: the stored value when set, else the
+		 * key's CnIndexPage default (NOT all default-true — e.g. showTitle is false).
 		 * @param {string} key The config key.
 		 * @return {boolean}
 		 */
 		boolVal(key) {
-			const cfg = this.page && this.page.config
-			return !(cfg && cfg[key] === false)
+			const cfg = (this.page && this.page.config) || {}
+			if (Object.prototype.hasOwnProperty.call(cfg, key)) return !!cfg[key]
+			return BOOL_DEFAULTS[key] === true
 		},
 		/**
-		 * Set a default-true boolean toggle: store `false` when off, drop the key
-		 * (back to the default) when on, keeping config minimal.
+		 * Set a boolean toggle: store the value when it differs from the key's
+		 * default, drop the key when it equals the default (keeps config minimal,
+		 * and correct for keys that default false like showTitle).
 		 * @param {string} key The config key.
 		 * @param {boolean} checked The new state.
 		 * @return {void}
 		 */
 		setBool(key, checked) {
 			const config = this.ensureConfig()
-			if (checked) this.$delete(config, key)
-			else this.$set(config, key, false)
+			if (checked === (BOOL_DEFAULTS[key] === true)) this.$delete(config, key)
+			else this.$set(config, key, checked)
 		},
 		/**
 		 * Set the page type in place.

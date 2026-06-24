@@ -32,19 +32,32 @@ function mountModal(page, provide = {}) {
 }
 
 describe('CnPageConfigModal', () => {
-	it('boolVal treats unset/true as on and explicit false as off', () => {
+	it('boolVal honours per-key defaults (showTitle default false, others true)', () => {
 		const wrapper = mountModal({ id: 'p', type: 'index', config: { showAdd: false } })
 		expect(wrapper.vm.boolVal('showViewToggle')).toBe(true) // unset → default on
+		expect(wrapper.vm.boolVal('showTitle')).toBe(false) // unset → default OFF
+		expect(wrapper.vm.boolVal('filterMenu')).toBe(false) // unset → default OFF
 		expect(wrapper.vm.boolVal('showAdd')).toBe(false) // explicit false
 	})
 
-	it('setBool stores false when off and drops the key when on', () => {
+	it('setBool round-trips a default-true toggle (selectable)', () => {
 		const page = { id: 'p', type: 'index', config: {} }
 		const wrapper = mountModal(page)
 		wrapper.vm.setBool('selectable', false)
 		expect(page.config.selectable).toBe(false)
 		wrapper.vm.setBool('selectable', true)
-		expect('selectable' in page.config).toBe(false) // back to default → key removed
+		expect('selectable' in page.config).toBe(false) // equals default → key removed
+	})
+
+	it('setBool round-trips a default-FALSE toggle (showTitle) — the reappear bug', () => {
+		const page = { id: 'p', type: 'index', config: { showTitle: true } }
+		const wrapper = mountModal(page)
+		wrapper.vm.setBool('showTitle', false) // off → equals default false → drop key
+		expect('showTitle' in page.config).toBe(false)
+		expect(wrapper.vm.boolVal('showTitle')).toBe(false)
+		wrapper.vm.setBool('showTitle', true) // on → differs from default → store true (title reappears)
+		expect(page.config.showTitle).toBe(true)
+		expect(wrapper.vm.boolVal('showTitle')).toBe(true)
 	})
 
 	it('setType / setViewMode write the page + config', () => {
