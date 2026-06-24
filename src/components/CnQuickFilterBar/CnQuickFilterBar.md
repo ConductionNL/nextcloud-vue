@@ -49,8 +49,18 @@ In `manifest.json` (the usual entry-point — CnIndexPage mounts the bar for you
 ## Props
 
 - `tabs` (Array, required) — the tab definitions above.
-- `activeIndex` (Number) — zero-based active tab; usable as `v-model:active-index`.
+- `activeIndex` (Number) — zero-based active tab; usable as `v-model:active-index` (single-select).
 - `inline` (Boolean, default `false`) — render bare (no padding / border / background) for embedding inside another bar, e.g. the `#filters` slot of `CnActionsBar`.
+- `mode` (String, default `'chips'`) — `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped — an empty selection means all).
+- `multiple` (Boolean, default `false`) — allow several tabs active at once. Selection is exposed via the `selectedIndices` array prop + `update:selected-indices` event; the host ORs the selected tabs' filters together.
+- `selectedIndices` (Array, default `[]`) — active tab indices when `multiple` is set (the array v-model).
+- `selectLabel` (String, default `'Filter'`) — accessible label / placeholder for the dropdown control.
+- `placeholder` (String) — placeholder text for the dropdown (falls back to `selectLabel`).
+
+### Events
+
+- `update:active-index` — single-select active index changed.
+- `update:selected-indices` — multi-select index array changed (`multiple` mode).
 
 ## Composition order
 

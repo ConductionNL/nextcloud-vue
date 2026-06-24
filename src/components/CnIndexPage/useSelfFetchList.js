@@ -21,6 +21,34 @@ function resolveInitialQuickFilterIndex(quickFilters) {
 }
 
 /**
+ * OR-merge several quick-filter maps into one fetch filter. Values for the
+ * same key collapse to an array (deduped) when more than one tab contributes
+ * it — `buildQueryString` serialises an array as `key[]=a&key[]=b`, which the
+ * OpenRegister API interprets as an IN / OR match.
+ *
+ * @param {Array<object>} filterMaps Already route-resolved filter maps.
+ * @return {object} The merged filter (scalar when a key has one value, array when many).
+ */
+function unionFilterMaps(filterMaps) {
+	const grouped = {}
+	for (const map of filterMaps) {
+		if (!map || typeof map !== 'object') continue
+		for (const [k, v] of Object.entries(map)) {
+			if (v === undefined || v === null || v === '') continue
+			if (!grouped[k]) grouped[k] = []
+			for (const item of (Array.isArray(v) ? v : [v])) {
+				if (!grouped[k].includes(item)) grouped[k].push(item)
+			}
+		}
+	}
+	const out = {}
+	for (const [k, arr] of Object.entries(grouped)) {
+		out[k] = arr.length === 1 ? arr[0] : arr
+	}
+	return out
+}
+
+/**
  * Self-fetch mode for CnIndexPage: when register+schema are set but no
  * `objects` prop was passed (manifest-driven pages), drive the list ourselves.
  *
@@ -37,6 +65,8 @@ export function useSelfFetchList(props, instance, inject) {
 	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided
 
 	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
+	const selectedQuickFilterIndices = ref([])
+	const isMultiQuickFilter = props.quickFilterMultiple === true
 
 	if (!isSelfFetch) {
 		return {
@@ -45,6 +75,7 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectStore: null,
 			selfObjectType: '',
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		}
 	}
 
@@ -80,15 +111,25 @@ export function useSelfFetchList(props, instance, inject) {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}
 			const base = resolveFilterMap(props.filter, params)
-			// Tab filter spread last so it wins over a colliding props.filter entry.
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			if (!tabs) return { ...base }
+
+			// Multiple mode: OR the selected tabs' filters together (union).
+			if (isMultiQuickFilter) {
+				const maps = selectedQuickFilterIndices.value
+					.map((i) => resolveFilterMap(tabs[i]?.filter, params))
+				return { ...base, ...unionFilterMaps(maps) }
+			}
+
+			// Single mode: the active tab's filter spread last so it wins
+			// over a colliding props.filter entry.
 			const activeIdx = activeQuickFilterIndex.value
-			const tabFilter = (tabs && activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
+			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
 			return { ...base, ...resolveFilterMap(tabFilter, params) }
 		},
 	})
 
-	watch(activeQuickFilterIndex, () => {
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices], () => {
 		if (list && typeof list.refresh === 'function') list.refresh(1)
 	})
 
@@ -98,5 +139,6 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectStore: objectStore,
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
+		selectedQuickFilterIndices,
 	}
 }

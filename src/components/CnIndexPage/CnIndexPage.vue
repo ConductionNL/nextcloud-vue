@@ -78,8 +78,12 @@
 				<CnQuickFilterBar
 					inline
 					:tabs="quickFilters"
+					:mode="quickFilterMode"
+					:multiple="quickFilterMultiple"
 					:active-index="activeQuickFilterIndex"
-					@update:active-index="onQuickFilterChange" />
+					:selected-indices="selectedQuickFilterIndices"
+					@update:active-index="onQuickFilterChange"
+					@update:selected-indices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -647,6 +651,28 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * How the quick filters render: `'chips'` (pill strip, default) or
+		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
+		 * `pages[].config.quickFilterMode`.
+		 * @type {'chips'|'dropdown'}
+		 */
+		quickFilterMode: {
+			type: String,
+			default: 'chips',
+			validator: (v) => ['chips', 'dropdown'].includes(v),
+		},
+
+		/**
+		 * Allow several quick filters active at once. Selected tabs' filters
+		 * are OR-ed together into the fetch (same field → array value →
+		 * `field[]=` IN query). Sourced from `pages[].config.quickFilterMultiple`.
+		 */
+		quickFilterMultiple: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -1204,6 +1230,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
@@ -1216,6 +1243,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		}
 	},
 
@@ -1847,6 +1875,19 @@ export default {
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
+		},
+
+		/**
+		 * Multi-select quick-filter change (`quickFilterMultiple`). Updates the
+		 * selected-index array; the `setup()` watcher re-fetches with the
+		 * OR-ed union of the selected tabs' filters.
+		 *
+		 * @param {number[]} indices Selected tab indices (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterMultiChange(indices) {
+			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
+			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
 
 		/**
