@@ -13,6 +13,7 @@
 			:rows="rows"
 			:loading="loading"
 			:empty-text="emptyText"
+			borderless
 			@row-click="onRowClick" />
 		<p v-if="error" class="cn-object-list-widget__error">
 			{{ error }}
@@ -288,19 +289,15 @@ export default {
 </script>
 
 <style scoped>
+/* The widget already lives inside CnWidgetWrapper's padded card chrome. The
+   table is rendered `borderless` so CnDataTable drops its own border/shadow/
+   background AND its bottom margin (the `.cn-table-container--borderless`
+   modifier) — otherwise it reads as a card-in-a-card with dead space below.
+   Horizontal overflow is owned by `.cn-table-container` (overflow-x: auto); a
+   second scroll container here would produce a nested scrollbar, so this host
+   stays plain. */
 .cn-object-list-widget {
 	width: 100%;
-	overflow: auto;
-}
-
-/* The widget already lives inside CnWidgetWrapper's card chrome, so strip the
-   CnDataTable container's own border/shadow/background — otherwise it reads as
-   a card-in-a-card ("widget in widget"). */
-.cn-object-list-widget :deep(.cn-table-container) {
-	border: none;
-	box-shadow: none;
-	border-radius: 0;
-	background: transparent;
 }
 
 .cn-object-list-widget__error {
