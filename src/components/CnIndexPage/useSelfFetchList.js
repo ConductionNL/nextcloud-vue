@@ -13,6 +13,28 @@ function resolveFilterMap(filterMap, params) {
 	return out
 }
 
+/**
+ * Extract deep-link filters from `$route.query`. Lets a widget/link navigate to
+ * `/cases?caseType=X&status=Y` and land the index pre-filtered. Reserved
+ * underscore-prefixed list params (`_search`, `_page`, `_limit`, `_order`) are
+ * skipped; everything else is passed through to the fetch (scalars + arrays, so
+ * `?status[]=a&status[]=b` becomes an IN match). Merged BELOW the page's
+ * `config.filter` so a page's own scoping still wins on a key collision.
+ *
+ * @param {object} query The `$route.query` object.
+ * @return {object} The query-derived filter map.
+ */
+function resolveQueryFilters(query) {
+	if (!query || typeof query !== 'object') return {}
+	const out = {}
+	for (const [k, v] of Object.entries(query)) {
+		if (k.startsWith('_')) continue
+		if (v === undefined || v === null || v === '') continue
+		out[k] = v
+	}
+	return out
+}
+
 function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
 	if (!tabs || tabs.length === 0) return null
@@ -110,22 +132,23 @@ export function useSelfFetchList(props, instance, inject) {
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}
+			const queryFilters = resolveQueryFilters(route && route.query)
 			const base = resolveFilterMap(props.filter, params)
 			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
-			if (!tabs) return { ...base }
+			if (!tabs) return { ...queryFilters, ...base }
 
 			// Multiple mode: OR the selected tabs' filters together (union).
 			if (isMultiQuickFilter) {
 				const maps = selectedQuickFilterIndices.value
 					.map((i) => resolveFilterMap(tabs[i]?.filter, params))
-				return { ...base, ...unionFilterMaps(maps) }
+				return { ...queryFilters, ...base, ...unionFilterMaps(maps) }
 			}
 
 			// Single mode: the active tab's filter spread last so it wins
 			// over a colliding props.filter entry.
 			const activeIdx = activeQuickFilterIndex.value
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
-			return { ...base, ...resolveFilterMap(tabFilter, params) }
+			return { ...queryFilters, ...base, ...resolveFilterMap(tabFilter, params) }
 		},
 	})
 
