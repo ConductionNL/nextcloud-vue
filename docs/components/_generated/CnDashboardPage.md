@@ -51,7 +51,7 @@
 
 | Name                                        | Bindings                 | Description                                                                                                                                                                  |
 | ------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `header-actions`                            | —                        | header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). |
+| `header-actions`                            | —                        | header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). |
 | `actions`                                   | —                        | actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code.                                                                                       |
 | `action-items`                              | —                        |                                                                                                                                                                              |
 | `empty`                                     | —                        | empty Replaces the default empty state shown when the dashboard has no widgets. Defaults to an `NcEmptyContent` block.                                                       |

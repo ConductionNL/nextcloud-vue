@@ -174,7 +174,7 @@ import { translate as t } from '@nextcloud/l10n'
  *
  * NC-INTEGRATION DEPENDENCY: this widget reads folder contents from a host
  * application's `/api/widgets/files/{placementId}/...` endpoints (the same
- * contract the launchpad/mydash backend served) and deep-links file rows into
+ * contract the launchpad backend served) and deep-links file rows into
  * the Nextcloud **Files** app (`/apps/files/?fileid=...`). The
  * `@nextcloud/axios` + `@nextcloud/router` helpers are imported LAZILY at call
  * time so the widget code never hard-couples to a network stack at module load
@@ -221,7 +221,7 @@ export default {
 		/**
 		 * App base for the host's files-widget endpoints
 		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
-		 * app point the widget at its own backend (e.g. `/apps/mydash`).
+		 * app point the widget at its own backend (e.g. `/apps/launchpad`).
 		 * Defaults to `/apps/files`.
 		 *
 		 * @type {string}

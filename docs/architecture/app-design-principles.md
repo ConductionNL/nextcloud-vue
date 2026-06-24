@@ -7,7 +7,7 @@ import { AppMock, AtomZones } from '@conduction/docusaurus-preset/components'
 
 # App design principles
 
-Every Conduction app — OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash, the dozen others — looks and works the same way on first sight. Same five structural pieces, same place, same behaviour. That recognisability isn't an accident: it's what `@conduction/nextcloud-vue` enforces, and what makes a user who's learnt one app productive in any of the others within minutes.
+Every Conduction app — OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad, the dozen others — looks and works the same way on first sight. Same five structural pieces, same place, same behaviour. That recognisability isn't an accident: it's what `@conduction/nextcloud-vue` enforces, and what makes a user who's learnt one app productive in any of the others within minutes.
 
 This page explains the **chassis** — the abstract layout shared by every app — the **five atoms** that make up the chassis, and the **stacked views** the library composes on top so you don't have to lay each atom out by hand.
 
@@ -18,7 +18,7 @@ Every Conduction product surface is built on the same three-region chassis: a **
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', margin: '2rem 0' }}>
   <AppMock app="openregister" caption />
   <AppMock app="procest" caption />
-  <AppMock app="mydash" caption />
+  <AppMock app="launchpad" caption />
 </div>
 
 Three different apps. Same shape: topbar with the user menu, left nav with the app sections, main column with whatever the page is doing. That's the chassis. `@conduction/nextcloud-vue` is what gives you that shape with one component (`CnAppRoot`) plus a JSON [manifest](./manifest.md).

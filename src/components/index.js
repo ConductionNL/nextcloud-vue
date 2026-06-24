@@ -85,7 +85,7 @@ export { CnDetailGrid } from './CnDetailGrid/index.js'
 export { CnProgressBar } from './CnProgressBar/index.js'
 export { CnChartWidget } from './CnChartWidget/index.js'
 // Dashboard widget library (v2) — renderers + their config forms. Consumed by
-// MyDash/LaunchPad's widget registry; data-driven widgets take a dataSource /
+// LaunchPad's widget registry; data-driven widgets take a dataSource /
 // cn*Source injection or *Endpoint builder so they stay app-agnostic.
 export { CnLabelWidget } from './CnLabelWidget/index.js'
 export { CnLabelWidgetForm } from './CnLabelWidgetForm/index.js'
@@ -128,7 +128,7 @@ export { CnStatsBlockWidget } from './CnStatsBlockWidget/index.js'
 // Analytics widget library — OpenRegister-data-driven renderers + their config
 // forms (KPI/delta/gauge/object-list/chart/stats-card/table). Each renderer
 // fetches its own OR aggregate at runtime via generateUrl; the forms self-fetch
-// schema properties. Consumed by MyDash/LaunchPad's widget registry.
+// schema properties. Consumed by LaunchPad's widget registry.
 export { CnStatWidget } from './CnStatWidget/index.js'
 export { CnStatWidgetForm } from './CnStatWidgetForm/index.js'
 export { CnDeltaWidget } from './CnDeltaWidget/index.js'

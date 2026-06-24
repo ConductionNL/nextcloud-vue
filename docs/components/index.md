@@ -66,7 +66,7 @@ Every component page below embeds a live demo via `<Playground />` — that's th
 
 ## Dashboard Widgets
 
-The dashboard widget library — the catalog shared by OpenBuild and MyDash/LaunchPad.
+The dashboard widget library — the catalog shared by OpenBuild and LaunchPad.
 
 | Component | Description |
 |-----------|-------------|
