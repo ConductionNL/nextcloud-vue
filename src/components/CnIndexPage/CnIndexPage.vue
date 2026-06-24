@@ -67,8 +67,18 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions']" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode" #actions>
 				<slot name="actions" />
+				<!-- Edit-mode config cog: opens the page's full config editor
+				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
+				<NcButton v-if="isEditMode"
+					type="tertiary"
+					:aria-label="t('nextcloud-vue', 'Configure page')"
+					@click="$emit('configure')">
+					<template #icon>
+						<Cog :size="20" />
+					</template>
+				</NcButton>
 			</template>
 			<!-- Quick-filter tabs (REQ-MIPFU-1) rendered INSIDE the action bar
 			     (between the view toggle and the actions) when the manifest
@@ -402,7 +412,8 @@
 </template>
 
 <script>
-import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
@@ -518,6 +529,8 @@ export default {
 		NcActions,
 		NcActionCaption,
 		NcActionCheckbox,
+		NcButton,
+		Cog,
 		DatabaseSearch,
 		FilterOutline,
 		ViewColumnOutline,
@@ -556,6 +569,11 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
+		 * the page shows a config cog in its actions bar (emits `configure`).
+		 */
+		cnEditingBody: { default: false },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -1288,6 +1306,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the host manifest editor is in edit mode (unwraps the injected
+		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
+		 * in-header config cog.
+		 *
+		 * @return {boolean}
+		 */
+		isEditMode() {
+			const e = this.cnEditingBody
+			return !!(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
 		/**
 		 * Effective customComponents registry — the explicit prop wins
 		 * over the injected `cnCustomComponents`. Mirrors the priority

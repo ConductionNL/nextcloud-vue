@@ -54,7 +54,8 @@
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				v-on="$listeners"
 				@view="onRowOpen"
-				@row-click="onRowOpen">
+				@row-click="onRowOpen"
+				@configure="showConfigModal = true">
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -100,7 +101,8 @@
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			v-on="$listeners"
 			@view="onRowOpen"
-			@row-click="onRowOpen">
+			@row-click="onRowOpen"
+			@configure="showConfigModal = true">
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -110,12 +112,18 @@
 					v-bind="slotProps" />
 			</template>
 		</component>
+
+		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
+		<CnPageConfigModal v-if="showConfigModal && currentPage"
+			:page="currentPage"
+			@close="showConfigModal = false" />
 	</div>
 </template>
 
 <script>
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -160,6 +168,7 @@ export default {
 
 	components: {
 		CnWidgetGrid,
+		CnPageConfigModal,
 	},
 
 	inject: {
@@ -306,6 +315,8 @@ export default {
 		return {
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
+			// Whether the per-page config modal (edit-mode cog) is open.
+			showConfigModal: false,
 			// Reactive holder for the loaded object of a `type:"detail"`
 			// page. `null` until the async load resolves (and on non-detail
 			// pages). Shape when populated:
