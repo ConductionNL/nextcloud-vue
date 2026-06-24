@@ -1389,10 +1389,10 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 	it('accepts a menu item with a valid visibleIf.appInstalled string', () => {
 		const result = validateManifest(baseWithMenu([
 			{
-				id: 'view-in-mydash',
-				label: 'scholiq.nav.viewInMydash',
-				href: '/index.php/apps/mydash#scholiq',
-				visibleIf: { appInstalled: 'mydash' },
+				id: 'view-in-launchpad',
+				label: 'scholiq.nav.viewInLaunchpad',
+				href: '/index.php/apps/launchpad#scholiq',
+				visibleIf: { appInstalled: 'launchpad' },
 			},
 		]))
 		expect(result.valid).toBe(true)
@@ -1406,10 +1406,10 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 				label: 'app.parent',
 				children: [
 					{
-						id: 'child-mydash',
-						label: 'app.child-mydash',
-						href: '/index.php/apps/mydash',
-						visibleIf: { appInstalled: 'mydash' },
+						id: 'child-launchpad',
+						label: 'app.child-launchpad',
+						href: '/index.php/apps/launchpad',
+						visibleIf: { appInstalled: 'launchpad' },
 					},
 				],
 			},
@@ -1420,7 +1420,7 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 
 	it('rejects visibleIf that is not an object', () => {
 		const result = validateManifest(baseWithMenu([
-			{ id: 'x', label: 'x', visibleIf: 'mydash' },
+			{ id: 'x', label: 'x', visibleIf: 'launchpad' },
 		]))
 		expect(result.valid).toBe(false)
 		expect(result.errors.some((e) => e.includes('/menu/0/visibleIf') && e.includes('must be an object'))).toBe(true)
@@ -1447,7 +1447,7 @@ describe('validateManifest — visibleIf.appInstalled nav filter', () => {
 		// "appIsInstalled" (likely a typo for "appInstalled") is silently treated
 		// as a runtime path. Typo detection is now a consumer responsibility.
 		const result = validateManifest(baseWithMenu([
-			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'mydash' } },
+			{ id: 'x', label: 'x', visibleIf: { appIsInstalled: 'launchpad' } },
 		]))
 		// Single non-empty segment is a valid path → no error.
 		expect(result.valid).toBe(true)
