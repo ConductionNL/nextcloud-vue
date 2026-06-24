@@ -164,6 +164,16 @@ export default {
 
 	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete },
 
+	inject: {
+		/**
+		 * Shared app data-source map (`{ registers: [{ value, label, schemas }] }`)
+		 * provided by CnAppRoot and consumed by the page-config Data-source/Schema
+		 * pickers. Kept in sync here so a schema added/removed via this modal
+		 * appears in those pickers without an app reload. Null when not provided.
+		 */
+		cnDataSources: { default: null },
+	},
+
 	props: {
 		/**
 		 * The app manifest (working or live). Its `pages[].config.register`
@@ -272,6 +282,25 @@ export default {
 				}
 			}))
 			this.schemas = resolved.filter(Boolean)
+			this.syncDataSources()
+		},
+		/**
+		 * Mirror the selected register's current schemas into the shared
+		 * `cnDataSources` map (same object the page-config pickers read), so a
+		 * schema added/removed here shows up there without an app reload.
+		 * @return {void}
+		 */
+		syncDataSources() {
+			const ds = this.cnDataSources
+			const reg = this.selectedRegister
+			if (!ds || !Array.isArray(ds.registers) || !reg) return
+			const dsReg = ds.registers.find((r) => r.value === reg.slug)
+			if (!dsReg) return
+			this.$set(dsReg, 'schemas', this.schemas.map((s) => ({
+				value: s.slug,
+				label: s.title || s.slug,
+				columns: (s.properties && typeof s.properties === 'object') ? Object.keys(s.properties) : [],
+			})))
 		},
 		/**
 		 * Switch the selected register and reload its schemas.
@@ -416,6 +445,12 @@ export default {
 					this.registers = [created]
 					this.selectedRegisterId = created.id
 					this.schemas = []
+					// Surface the new register in the shared data-source map so the
+					// page-config Register picker can select it without a reload.
+					const ds = this.cnDataSources
+					if (ds && Array.isArray(ds.registers) && created.slug && !ds.registers.some((r) => r.value === created.slug)) {
+						ds.registers.push({ value: created.slug, label: created.title || created.slug, schemas: [] })
+					}
 				}
 			} catch (e) {
 				this.error = (e && e.message) || t('nextcloud-vue', 'Failed to create the register.')

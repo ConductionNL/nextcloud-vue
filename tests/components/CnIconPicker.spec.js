@@ -4,6 +4,8 @@
 import { mount } from '@vue/test-utils'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnDashboardIcon from '../../src/components/CnIconPicker/CnDashboardIcon.vue'
+import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
+import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import {
 	getIconComponent,
 	isCustomIconUrl,
@@ -12,6 +14,17 @@ import {
 } from '../../src/components/CnIconPicker/dashboardIcons.js'
 
 const mocks = { t: (_app, s) => s }
+
+describe('CnIcon dashboard-icon fallback', () => {
+	it('resolves a DASHBOARD_ICONS name (what the picker offers) without registering', () => {
+		const w = mount(CnIcon, { propsData: { name: 'RocketLaunch' } })
+		expect(w.vm.resolvedComponent).toBe(DASHBOARD_ICONS.RocketLaunch)
+	})
+	it('still falls back to the help icon for a genuinely unknown name', () => {
+		const w = mount(CnIcon, { propsData: { name: 'TotallyNotAnIcon' } })
+		expect(w.vm.resolvedComponent).toBe(HelpCircleOutline)
+	})
+})
 
 describe('dashboardIcons helpers', () => {
 	it('resolves unknown/empty names to the default icon component', () => {

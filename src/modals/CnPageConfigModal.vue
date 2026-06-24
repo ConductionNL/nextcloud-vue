@@ -184,7 +184,7 @@
 						{{ t('nextcloud-vue', 'Show table filter menu') }}
 					</NcCheckboxRadioSwitch>
 					<p class="cn-field__hint">
-						{{ t('nextcloud-vue', 'Show the funnel menu for filtering the table by column.') }}
+						{{ t('nextcloud-vue', 'Show the funnel menu for filtering the table. The funnel appears only when a column has set values to filter by (e.g. a status with options or a badge column).') }}
 					</p>
 				</div>
 				<div class="cn-field">
