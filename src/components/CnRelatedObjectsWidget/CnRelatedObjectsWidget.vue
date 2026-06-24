@@ -1,12 +1,21 @@
 <!--
   CnRelatedObjectsWidget — Everything linked to an object, in one widget.
 
-  Aggregates what the object relates to through OpenRegister relations and
-  leaf integrations, grouped into clickable sections:
-    • Objects — outgoing (uses), incoming (used) and contractual relations
-    • Files   — files attached to the object
-    • Linked apps — entry points into the leaf integrations that carry
-      related content (mails, calendar events, …) for this object
+  Two rendering modes share the CnWidgetWrapper chrome:
+
+  • Tabbed self-fetch (default, `layout="tabs"`) — when an object's
+    register/schema/id can be resolved (from props or `objectData['@self']`),
+    the widget calls OpenRegister directly:
+      /relations (notes, tasks, mails, events, contacts, deck), /uses + /used
+      (merged into Objects), /files — and renders one TAB per non-empty group
+    with a count badge, showing the items inline. Each leaf tab carries an
+    "open in sidebar" affordance that emits `open-integration` without
+    replacing the inline content.
+
+  • Legacy list (`layout="list"`, or when register/schema can't be resolved) —
+    the original flat sections driven by the object store's
+    fetchUses/fetchUsed/fetchContracts/fetchFiles actions plus the static
+    leaf-integration "Linked apps" list. This path is deprecated; it warns once.
 
   Sits on the CnWidgetWrapper chrome, so it carries the shared overflow
   Actions menu (Refresh / Documentation / Request a feature). Refresh
@@ -20,103 +29,151 @@
 		:refreshing="loading"
 		flush>
 		<div class="cn-related-objects-widget">
-			<!-- Objects -->
-			<section v-if="showObjects && objectItems.length" class="cn-related-objects-widget__group">
-				<h4 class="cn-related-objects-widget__group-title">
-					{{ objectsLabel }} <span class="cn-related-objects-widget__count">{{ objectItems.length }}</span>
-				</h4>
-				<ul class="cn-related-objects-widget__list">
-					<li v-for="item in objectItems"
-						:key="`obj-${item.id}`"
-						class="cn-related-objects-widget__row"
-						tabindex="0"
-						role="button"
-						@click="onSelectObject(item.raw)"
-						@keydown.enter="onSelectObject(item.raw)">
-						<FileTreeOutline class="cn-related-objects-widget__icon" :size="20" />
-						<span class="cn-related-objects-widget__label">{{ item.label }}</span>
-						<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
-					</li>
-				</ul>
-			</section>
+			<!-- Tabbed self-fetch mode -->
+			<template v-if="useTabs">
+				<div v-if="visibleGroups.length" class="cn-related-objects-widget__tabs" role="tablist">
+					<button v-for="group in visibleGroups"
+						:key="`tab-${group.key}`"
+						type="button"
+						role="tab"
+						:aria-selected="String(group.key === activeKey)"
+						:class="['cn-related-objects-widget__tab', { 'cn-related-objects-widget__tab--active': group.key === activeKey }]"
+						@click="activeKey = group.key">
+						<CnIcon :name="group.icon" :size="18" class="cn-related-objects-widget__tab-icon" />
+						<span class="cn-related-objects-widget__tab-label">{{ group.label }}</span>
+						<span class="cn-related-objects-widget__count">{{ group.total }}</span>
+					</button>
+				</div>
 
-			<!-- Files -->
-			<section v-if="showFiles && fileItems.length" class="cn-related-objects-widget__group">
-				<h4 class="cn-related-objects-widget__group-title">
-					{{ filesLabel }} <span class="cn-related-objects-widget__count">{{ fileItems.length }}</span>
-				</h4>
-				<ul class="cn-related-objects-widget__list">
-					<li v-for="item in fileItems"
-						:key="`file-${item.id}`"
-						class="cn-related-objects-widget__row"
-						tabindex="0"
-						role="button"
-						@click="onSelectFile(item.raw)"
-						@keydown.enter="onSelectFile(item.raw)">
-						<Paperclip class="cn-related-objects-widget__icon" :size="20" />
-						<span class="cn-related-objects-widget__label">{{ item.label }}</span>
-						<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
-					</li>
-				</ul>
-			</section>
+				<section v-if="activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
+					<ul class="cn-related-objects-widget__list">
+						<li v-for="(item, i) in activeGroup.items"
+							:key="`item-${activeGroup.key}-${item.id || i}`"
+							class="cn-related-objects-widget__row"
+							tabindex="0"
+							role="button"
+							@click="onSelectGroupItem(activeGroup, item)"
+							@keydown.enter="onSelectGroupItem(activeGroup, item)">
+							<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+						</li>
+					</ul>
+				</section>
 
-			<!-- Host-supplied extra sections (e.g. mails resolved by a leaf) -->
-			<section v-for="section in extraSections"
-				:key="`extra-${section.key}`"
-				class="cn-related-objects-widget__group">
-				<h4 v-if="(section.items || []).length" class="cn-related-objects-widget__group-title">
-					{{ section.label }} <span class="cn-related-objects-widget__count">{{ section.items.length }}</span>
-				</h4>
-				<ul v-if="(section.items || []).length" class="cn-related-objects-widget__list">
-					<li v-for="(item, i) in section.items"
-						:key="`extra-${section.key}-${i}`"
-						class="cn-related-objects-widget__row"
-						tabindex="0"
-						role="button"
-						@click="onSelectExtra(section.key, item)"
-						@keydown.enter="onSelectExtra(section.key, item)">
-						<CnIcon v-if="section.icon"
-							:name="section.icon"
-							:size="20"
-							class="cn-related-objects-widget__icon" />
-						<span class="cn-related-objects-widget__label">{{ item.label || item.title || item.name }}</span>
-					</li>
-				</ul>
-			</section>
+				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
+					{{ loadingLabel }}
+				</div>
+				<div v-else-if="hasLoaded && !visibleGroups.length" class="cn-related-objects-widget__empty">
+					{{ emptyLabel }}
+				</div>
+			</template>
 
-			<!-- Linked apps — leaf integrations carrying related content -->
-			<section v-if="showIntegrations && linkedApps.length" class="cn-related-objects-widget__group">
-				<h4 class="cn-related-objects-widget__group-title">
-					{{ linkedAppsLabel }}
-				</h4>
-				<ul class="cn-related-objects-widget__list cn-related-objects-widget__list--apps">
-					<li v-for="app in linkedApps"
-						:key="`app-${app.id}`"
-						class="cn-related-objects-widget__row cn-related-objects-widget__row--app"
-						tabindex="0"
-						role="button"
-						@click="onOpenIntegration(app.id)"
-						@keydown.enter="onOpenIntegration(app.id)">
-						<CnIcon :name="app.icon || 'PuzzleOutline'" :size="20" class="cn-related-objects-widget__icon" />
-						<span class="cn-related-objects-widget__label">{{ app.label }}</span>
-						<ChevronRight class="cn-related-objects-widget__chevron" :size="20" />
-					</li>
-				</ul>
-			</section>
+			<!-- Legacy list mode (deprecated) -->
+			<template v-else>
+				<!-- Objects -->
+				<section v-if="showObjects && objectItems.length" class="cn-related-objects-widget__group">
+					<h4 class="cn-related-objects-widget__group-title">
+						{{ objectsLabel }} <span class="cn-related-objects-widget__count">{{ objectItems.length }}</span>
+					</h4>
+					<ul class="cn-related-objects-widget__list">
+						<li v-for="item in objectItems"
+							:key="`obj-${item.id}`"
+							class="cn-related-objects-widget__row"
+							tabindex="0"
+							role="button"
+							@click="onSelectObject(item.raw)"
+							@keydown.enter="onSelectObject(item.raw)">
+							<FileTreeOutline class="cn-related-objects-widget__icon" :size="20" />
+							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+						</li>
+					</ul>
+				</section>
 
-			<!-- Empty -->
-			<div v-if="isEmpty" class="cn-related-objects-widget__empty">
-				{{ emptyLabel }}
-			</div>
+				<!-- Files -->
+				<section v-if="showFiles && fileItems.length" class="cn-related-objects-widget__group">
+					<h4 class="cn-related-objects-widget__group-title">
+						{{ filesLabel }} <span class="cn-related-objects-widget__count">{{ fileItems.length }}</span>
+					</h4>
+					<ul class="cn-related-objects-widget__list">
+						<li v-for="item in fileItems"
+							:key="`file-${item.id}`"
+							class="cn-related-objects-widget__row"
+							tabindex="0"
+							role="button"
+							@click="onSelectFile(item.raw)"
+							@keydown.enter="onSelectFile(item.raw)">
+							<Paperclip class="cn-related-objects-widget__icon" :size="20" />
+							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+						</li>
+					</ul>
+				</section>
+
+				<!-- Host-supplied extra sections (e.g. mails resolved by a leaf) -->
+				<section v-for="section in extraSections"
+					:key="`extra-${section.key}`"
+					class="cn-related-objects-widget__group">
+					<h4 v-if="(section.items || []).length" class="cn-related-objects-widget__group-title">
+						{{ section.label }} <span class="cn-related-objects-widget__count">{{ section.items.length }}</span>
+					</h4>
+					<ul v-if="(section.items || []).length" class="cn-related-objects-widget__list">
+						<li v-for="(item, i) in section.items"
+							:key="`extra-${section.key}-${i}`"
+							class="cn-related-objects-widget__row"
+							tabindex="0"
+							role="button"
+							@click="onSelectExtra(section.key, item)"
+							@keydown.enter="onSelectExtra(section.key, item)">
+							<CnIcon v-if="section.icon"
+								:name="section.icon"
+								:size="20"
+								class="cn-related-objects-widget__icon" />
+							<span class="cn-related-objects-widget__label">{{ item.label || item.title || item.name }}</span>
+						</li>
+					</ul>
+				</section>
+
+				<!-- Linked apps — leaf integrations carrying related content -->
+				<section v-if="showIntegrations && linkedApps.length" class="cn-related-objects-widget__group">
+					<h4 class="cn-related-objects-widget__group-title">
+						{{ linkedAppsLabel }}
+					</h4>
+					<ul class="cn-related-objects-widget__list cn-related-objects-widget__list--apps">
+						<li v-for="app in linkedApps"
+							:key="`app-${app.id}`"
+							class="cn-related-objects-widget__row cn-related-objects-widget__row--app"
+							tabindex="0"
+							role="button"
+							@click="onOpenIntegration(app.id)"
+							@keydown.enter="onOpenIntegration(app.id)">
+							<CnIcon :name="app.icon || 'PuzzleOutline'" :size="20" class="cn-related-objects-widget__icon" />
+							<span class="cn-related-objects-widget__label">{{ app.label }}</span>
+							<ChevronRight class="cn-related-objects-widget__chevron" :size="20" />
+						</li>
+					</ul>
+				</section>
+
+				<!-- Empty -->
+				<div v-if="loading && isEmpty" class="cn-related-objects-widget__empty">
+					{{ loadingLabel }}
+				</div>
+				<div v-else-if="hasLoaded && isEmpty" class="cn-related-objects-widget__empty">
+					{{ emptyLabel }}
+				</div>
+			</template>
 		</div>
 	</CnWidgetWrapper>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { buildHeaders } from '../../utils/headers.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/index.js'
 import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
@@ -129,27 +186,44 @@ const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 /** Core sidebar tabs that are not "related content" leaves. */
 const CORE_TABS = ['files', 'notes', 'tags', 'tasks', 'auditTrail', 'shares']
 
+/** One-time guard so the legacy-path deprecation warning logs only once. */
+let legacyWarned = false
+
+/**
+ * Leaf groups surfaced by the aggregated `/relations` endpoint, in tab order.
+ * `responseKey` is the key in the `/relations` payload; `integrationId` is the
+ * sidebar tab the "open in sidebar" affordance deep-links to.
+ */
+const LEAF_GROUPS = [
+	{ key: 'mails', responseKey: 'emails', icon: 'Email', integrationId: 'email', requiredApp: 'mail' },
+	{ key: 'events', responseKey: 'events', icon: 'Calendar', integrationId: 'calendar', requiredApp: 'calendar' },
+	{ key: 'contacts', responseKey: 'contacts', icon: 'AccountBox', integrationId: 'contacts', requiredApp: 'contacts' },
+	{ key: 'notes', responseKey: 'notes', icon: 'CommentTextOutline', integrationId: 'notes', requiredApp: '' },
+	{ key: 'tasks', responseKey: 'tasks', icon: 'CheckboxMarkedOutline', integrationId: 'tasks', requiredApp: 'tasks' },
+	{ key: 'deck', responseKey: 'deck', icon: 'ViewColumnOutline', integrationId: 'deck', requiredApp: 'deck' },
+]
+
 /**
  * CnRelatedObjectsWidget — Everything linked to an object, in one widget.
  *
- * Resolves an object's relations (uses / used / contracts) and files from
- * the object store, plus leaf-integration entry points from the pluggable
- * registry, and renders them as grouped, clickable sections. Emits a
- * `select-*` / `open-integration` event per row so the host routes the
- * navigation.
+ * In the default tabbed mode the widget resolves an object's
+ * register/schema/id (from props or `objectData['@self']`) and fetches its
+ * relations directly from OpenRegister — the aggregated `/relations` groups
+ * (mails, meetings, contacts, notes, tasks, deck), `/uses` + `/used` (merged
+ * into Objects) and `/files` — rendering one tab per non-empty group with a
+ * count badge and the items inline. Each leaf tab offers an "open in sidebar"
+ * affordance that emits `open-integration`.
+ *
+ * Passing `layout="list"` (or mounting without a resolvable register/schema)
+ * falls back to the deprecated store-action path that renders flat sections
+ * plus the static leaf-integration "Linked apps" list.
  *
  * ```vue
  * <CnRelatedObjectsWidget
- *   object-type="lead"
- *   :object-id="lead.id"
  *   :object-data="lead"
- *   :store="objectStore"
  *   @select-object="openObject"
  *   @open-integration="openSidebarTab" />
  * ```
- *
- * Mails and other leaf-specific collections that the store can't resolve
- * generically can be passed in via `extraSections`.
  */
 export default {
 	name: 'CnRelatedObjectsWidget',
@@ -168,7 +242,7 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Related'),
 		},
-		/** The registered object type slug (used for store fetches). */
+		/** The registered object type slug (used for legacy store fetches). */
 		objectType: {
 			type: String,
 			default: '',
@@ -178,31 +252,65 @@ export default {
 			type: [String, Number],
 			default: '',
 		},
-		/** The object data — used to derive id/type when not passed explicitly. */
+		/** The object data — used to derive id/register/schema when not passed explicitly. */
 		objectData: {
 			type: Object,
 			default: () => ({}),
 		},
 		/**
-		 * Object store instance. When omitted, the widget tries Pinia
-		 * auto-detection. Relation/file sections only render when the store
-		 * exposes the matching `fetch*` actions (relationsPlugin / filesPlugin).
+		 * OpenRegister register slug. When omitted, derived from
+		 * `objectData['@self'].register`. Required (with `schema`) for the
+		 * tabbed self-fetch path.
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * OpenRegister schema slug. When omitted, derived from
+		 * `objectData['@self'].schema`. Required (with `register`) for the
+		 * tabbed self-fetch path.
+		 */
+		schema: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Render mode. `'tabs'` (default) self-fetches from OpenRegister and
+		 * renders a tab per non-empty group. `'list'` forces the deprecated
+		 * store-action list path.
+		 * @type {'tabs'|'list'}
+		 */
+		layout: {
+			type: String,
+			default: 'tabs',
+			validator: (value) => ['tabs', 'list'].includes(value),
+		},
+		/** Include `/contracts` relations in the Objects group (opt-in). */
+		showContracts: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Object store instance (legacy list path only). When omitted, the
+		 * widget tries Pinia auto-detection. Relation/file sections only render
+		 * when the store exposes the matching `fetch*` actions.
 		 */
 		store: {
 			type: Object,
 			default: null,
 		},
-		/** Show the related-objects (uses/used/contracts) section. */
+		/** Show the related-objects (uses/used/contracts) section/tab. */
 		showObjects: {
 			type: Boolean,
 			default: true,
 		},
-		/** Show the files section. */
+		/** Show the files section/tab. */
 		showFiles: {
 			type: Boolean,
 			default: true,
 		},
-		/** Show the leaf-integration entry-point section. */
+		/** Show the leaf-integration entry-point section (legacy list path). */
 		showIntegrations: {
 			type: Boolean,
 			default: true,
@@ -217,8 +325,8 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Extra related sections the store can't resolve generically (e.g.
-		 * mails surfaced by a leaf). Each: `{ key, label, icon?, items: [] }`.
+		 * Extra related sections the store can't resolve generically (legacy
+		 * list path). Each: `{ key, label, icon?, items: [] }`.
 		 * @type {Array<{ key: string, label: string, icon?: string, items: object[] }>}
 		 */
 		extraSections: {
@@ -235,20 +343,29 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** Section heading for related objects. */
+		/** Section/tab heading for related objects. */
 		objectsLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Objects'),
 		},
-		/** Section heading for files. */
+		/** Section/tab heading for files. */
 		filesLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Files'),
 		},
-		/** Section heading for the leaf-integration entry points. */
+		/** Section heading for the leaf-integration entry points (legacy list path). */
 		linkedAppsLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Linked apps'),
+		},
+		/**
+		 * Deprecated no-op label, kept for backward compatibility.
+		 * @deprecated No longer rendered — tabbed mode deep-links each item to its
+		 * owning Nextcloud app instead of offering an open-in-sidebar action.
+		 */
+		openInSidebarLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Open in sidebar'),
 		},
 		/** Empty-state label shown when nothing is related. */
 		emptyLabel: {
@@ -258,18 +375,24 @@ export default {
 	},
 
 	setup() {
-		const { integrations } = useIntegrationRegistry()
-		return { integrations }
+		const { integrations, getById } = useIntegrationRegistry()
+		return { integrations, getById }
 	},
 
 	data() {
 		return {
-			/** Whether any section is currently fetching. */
+			/** Whether any section/tab is currently fetching. */
 			loading: false,
-			/** Merged related-object rows. */
+			/** True once the first fetch has completed (gates the empty state). */
+			hasLoaded: false,
+			/** Merged related-object rows (legacy list path). */
 			objectItems: [],
-			/** File rows. */
+			/** File rows (legacy list path). */
 			fileItems: [],
+			/** Tab groups (tabbed self-fetch path): `{ key, label, icon, integrationId, items, total }`. */
+			groups: [],
+			/** Active tab key. */
+			activeKey: '',
 		}
 	},
 
@@ -279,13 +402,45 @@ export default {
 			return this.objectId || this.objectData.id || (this.objectData['@self'] && this.objectData['@self'].id) || ''
 		},
 
-		/** Leaf integrations that can carry related content for the object. */
+		/** Resolved register slug — explicit prop wins, else from `@self`. */
+		resolvedRegister() {
+			return this.register || (this.objectData['@self'] && this.objectData['@self'].register) || ''
+		},
+
+		/** Resolved schema slug — explicit prop wins, else from `@self`. */
+		resolvedSchema() {
+			return this.schema || (this.objectData['@self'] && this.objectData['@self'].schema) || ''
+		},
+
+		/** True when the tabbed self-fetch path is usable. */
+		useTabs() {
+			return this.layout === 'tabs'
+				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
+		},
+
+		/** Tab groups that have at least one item (tabbed path). */
+		visibleGroups() {
+			return this.groups.filter((group) => group.total > 0 || group.items.length > 0)
+		},
+
+		/** Placeholder shown in the body while the first fetch is in flight. */
+		loadingLabel() {
+			return t('nextcloud-vue', 'Loading …')
+		},
+
+		/** The currently active group, defaulting to the first visible one. */
+		activeGroup() {
+			if (!this.visibleGroups.length) return null
+			return this.visibleGroups.find((group) => group.key === this.activeKey) || this.visibleGroups[0]
+		},
+
+		/** Leaf integrations that can carry related content (legacy list path). */
 		linkedApps() {
 			const omit = new Set([...CORE_TABS, ...this.excludeIntegrations])
 			return (this.integrations || []).filter((entry) => !omit.has(entry.id))
 		},
 
-		/** True when every section is empty. */
+		/** True when every legacy section is empty. */
 		isEmpty() {
 			if (this.objectItems.length || this.fileItems.length) return false
 			if (this.extraSections.some((s) => (s.items || []).length)) return false
@@ -335,7 +490,94 @@ export default {
 		},
 
 		/**
-		 * Emit a click in a host-supplied extra section.
+		 * Handle a click in the tabbed path: deep-link to the item's owning
+		 * Nextcloud app when a link can be resolved, otherwise emit a
+		 * host-routed event. Related objects always route through the host
+		 * (their owning app's detail page).
+		 * @param {object} group - The active group descriptor.
+		 * @param {object} item - The clicked, normalised row (`item.raw` is the record).
+		 */
+		onSelectGroupItem(group, item) {
+			if (group.key === 'objects') {
+				this.onSelectObject(item.raw)
+				return
+			}
+			const href = this.resolveItemHref(group.key, item.raw)
+			if (href) {
+				window.open(href, '_blank', 'noopener,noreferrer')
+				return
+			}
+			if (group.key === 'files') {
+				this.onSelectFile(item.raw)
+			} else {
+				/**
+				 * @event select-related A leaf-group row (mails, events, …) was clicked
+				 * and no owning-app deep link could be resolved.
+				 * @type {{ group: string, item: object }}
+				 */
+				this.$emit('select-related', { group: group.key, item: item.raw })
+			}
+		},
+
+		/**
+		 * Resolve the owning-app deep link for a related item, or '' when none
+		 * can be built (the caller then falls back to a host-routed event).
+		 * @param {string} groupKey - The group key (files, contacts, deck, …).
+		 * @param {object} raw - The leaf/file record.
+		 * @return {string} A Nextcloud URL, or '' when unresolved.
+		 */
+		resolveItemHref(groupKey, raw) {
+			// Files → canonical Nextcloud file permalink (Files is a core app, always present).
+			if (groupKey === 'files') {
+				const fileid = raw.id || raw.fileid
+				return fileid ? generateUrl('/f/{fileid}', { fileid: String(fileid) }) : ''
+			}
+			// A record may carry its own absolute owning-app link.
+			if (raw.url || raw.link || raw.accessUrl) {
+				return raw.url || raw.link || raw.accessUrl
+			}
+			// Leaf routes resolve ONLY when the owning app is installed — otherwise
+			// the caller falls back to a host event rather than opening a dead 404.
+			const def = LEAF_GROUPS.find((g) => g.key === groupKey)
+			if (def && def.requiredApp && this.isAppAvailable(def.requiredApp) === false) {
+				return ''
+			}
+			if (groupKey === 'contacts' && raw.contactUid) {
+				const key = raw.addressbookId != null ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
+				return generateUrl('/apps/contacts/All contacts/{key}', { key })
+			}
+			if (groupKey === 'deck' && raw.boardId && (raw.cardId || raw.id)) {
+				return generateUrl('/apps/deck/board/{board}/card/{card}', { board: String(raw.boardId), card: String(raw.cardId || raw.id) })
+			}
+			return ''
+		},
+
+		/**
+		 * The registered integration's icon name, or '' when not registered.
+		 * @param {string} integrationId - The integration id.
+		 * @return {string}
+		 */
+		integrationIcon(integrationId) {
+			if (!integrationId || typeof this.getById !== 'function') return ''
+			const entry = this.getById(integrationId)
+			return (entry && entry.icon) || ''
+		},
+
+		/**
+		 * Whether a Nextcloud app is installed/enabled on this instance.
+		 * @param {string} appId - The app id (e.g. 'contacts', 'deck').
+		 * @return {boolean}
+		 */
+		isAppAvailable(appId) {
+			try {
+				return typeof OC !== 'undefined' && !!OC.appswebroots && !!OC.appswebroots[appId]
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * Emit a click in a host-supplied extra section (legacy list path).
 		 * @param {string} sectionKey - The section's key.
 		 * @param {object} item - The clicked item.
 		 */
@@ -355,14 +597,46 @@ export default {
 		 */
 		onOpenIntegration(integrationId) {
 			/**
-			 * @event open-integration A "Linked apps" row was clicked.
+			 * @event open-integration A "Linked apps" row or a tab's
+			 * "open in sidebar" affordance was activated.
 			 * @type {string}
 			 */
 			this.$emit('open-integration', integrationId)
 		},
 
 		/**
-		 * Resolve the object store: explicit prop first, then Pinia.
+		 * Build an OpenRegister object sub-resource URL.
+		 * @param {string} suffix - The sub-resource (e.g. 'relations', 'uses', 'files').
+		 * @return {string} The fully-qualified API URL.
+		 */
+		relatedUrl(suffix) {
+			return generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}/{suffix}', {
+				register: this.resolvedRegister,
+				schema: this.resolvedSchema,
+				id: this.resolvedId,
+				suffix,
+			})
+		},
+
+		/**
+		 * GET an OpenRegister sub-resource, returning the parsed JSON or null.
+		 * @param {string} suffix - The sub-resource suffix.
+		 * @return {Promise<object|null>}
+		 */
+		async fetchSubResource(suffix) {
+			try {
+				// `no-store`: relations change as the user links content; a stale
+				// cached empty response would wrongly show the empty state on load.
+				const response = await fetch(this.relatedUrl(suffix), { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
+				if (!response.ok) return null
+				return await response.json()
+			} catch {
+				return null
+			}
+		},
+
+		/**
+		 * Resolve the object store: explicit prop first, then Pinia (legacy path).
 		 * @return {object|null}
 		 */
 		getStore() {
@@ -401,6 +675,22 @@ export default {
 		},
 
 		/**
+		 * Normalise a leaf-relation record (mail, event, contact, …) into a row.
+		 * @param {object} raw - The leaf record.
+		 * @param {number} index - Position fallback for the id.
+		 * @return {{ id: string, label: string, meta: string, raw: object }}
+		 */
+		toLeafRow(raw, index) {
+			const id = raw.id || raw.uuid || raw.uri || `leaf-${index}`
+			// Leaf shapes vary by type: contacts use displayName, events/tasks use
+			// summary, mails use subject, deck/notes use title.
+			const label = raw.title || raw.displayName || raw.summary || raw.subject
+				|| raw.name || raw.fullName || raw.label || String(id)
+			const meta = raw.date || raw.linkedAt || raw.createdAt || ''
+			return { id: String(id), label, meta: typeof meta === 'string' ? meta : '', raw }
+		},
+
+		/**
 		 * Human-readable byte size.
 		 * @param {number} bytes - Raw byte count.
 		 * @return {string}
@@ -415,10 +705,122 @@ export default {
 		},
 
 		/**
-		 * Fetch and merge every section's data, guarding on store capability.
+		 * Dispatch to the tabbed self-fetch or the legacy store path.
 		 * @return {Promise<void>}
 		 */
 		async loadAll() {
+			this.loading = true
+			try {
+				if (this.useTabs) {
+					await this.loadTabs()
+				} else {
+					await this.loadViaStore()
+				}
+			} finally {
+				this.loading = false
+				this.hasLoaded = true
+			}
+		},
+
+		/**
+		 * Fetch every group directly from OpenRegister and build the tabs.
+		 * @return {Promise<void>}
+		 */
+		async loadTabs() {
+			this.loading = true
+			try {
+				const [relations, uses, used, contracts, files] = await Promise.all([
+					this.fetchSubResource('relations'),
+					this.showObjects ? this.fetchSubResource('uses') : null,
+					this.showObjects ? this.fetchSubResource('used') : null,
+					(this.showObjects && this.showContracts) ? this.fetchSubResource('contracts') : null,
+					this.showFiles ? this.fetchSubResource('files') : null,
+				])
+
+				const groups = []
+
+				if (this.showObjects) {
+					const objectItems = this.mergeObjectResults([uses, used, contracts])
+					groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: objectItems, total: objectItems.length })
+				}
+
+				if (this.showFiles) {
+					const fileResults = (files && files.results) || []
+					groups.push({ key: 'files', label: this.filesLabel, icon: 'Paperclip', integrationId: 'files', items: fileResults.map((f) => this.toFileRow(f)), total: files ? (files.total ?? fileResults.length) : 0 })
+				}
+
+				for (const def of LEAF_GROUPS) {
+					const block = relations && relations[def.responseKey]
+					const results = (block && block.results) || []
+					groups.push({
+						key: def.key,
+						label: this.leafLabel(def.key),
+						// Prefer the registered integration's icon so it matches the
+						// sidebar/linked-apps; fall back to the known-good default.
+						icon: this.integrationIcon(def.integrationId) || def.icon,
+						integrationId: def.integrationId,
+						requiredApp: def.requiredApp,
+						items: results.map((r, i) => this.toLeafRow(r, i)),
+						total: block ? (block.total ?? results.length) : 0,
+					})
+				}
+
+				this.groups = groups
+				if (!this.activeGroup && this.visibleGroups.length) {
+					this.activeKey = this.visibleGroups[0].key
+				}
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * Merge uses/used/contracts result envelopes into deduped object rows.
+		 * @param {Array<object|null>} envelopes - The `{ results }` payloads.
+		 * @return {Array<{ id: string, label: string, meta: string, raw: object }>}
+		 */
+		mergeObjectResults(envelopes) {
+			const seen = new Set()
+			const merged = []
+			for (const envelope of envelopes) {
+				for (const raw of ((envelope && envelope.results) || [])) {
+					const row = this.toObjectRow(raw)
+					const key = String(row.id)
+					if (key && seen.has(key)) continue
+					if (key) seen.add(key)
+					merged.push(row)
+				}
+			}
+			return merged
+		},
+
+		/**
+		 * Translated label for a leaf group key.
+		 * @param {string} key - The group key.
+		 * @return {string}
+		 */
+		leafLabel(key) {
+			const labels = {
+				mails: t('nextcloud-vue', 'Mails'),
+				events: t('nextcloud-vue', 'Meetings'),
+				contacts: t('nextcloud-vue', 'Contacts'),
+				notes: t('nextcloud-vue', 'Notes'),
+				tasks: t('nextcloud-vue', 'Tasks'),
+				deck: t('nextcloud-vue', 'Deck'),
+			}
+			return labels[key] || key
+		},
+
+		/**
+		 * Legacy store-action path: fetch relations/files from the object store.
+		 * @return {Promise<void>}
+		 */
+		async loadViaStore() {
+			if (!legacyWarned) {
+				legacyWarned = true
+				console.warn('[CnRelatedObjectsWidget] The store-action list path is deprecated; pass an object with `@self` (or register/schema props) to use the tabbed self-fetch path.')
+			}
+
 			const store = this.getStore()
 			const type = this.objectType
 			const id = this.resolvedId
@@ -493,6 +895,67 @@ export default {
 	text-transform: uppercase;
 	letter-spacing: 0.02em;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-related-objects-widget__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: calc(1.5 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-related-objects-widget__tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border: none;
+	border-radius: var(--border-radius-pill, 16px);
+	background: transparent;
+	color: var(--color-main-text);
+	cursor: pointer;
+	font-size: 0.9em;
+}
+
+.cn-related-objects-widget__tab:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-related-objects-widget__tab--active {
+	background: var(--color-primary-element-light, var(--color-background-dark));
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+}
+
+.cn-related-objects-widget__tab:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+
+.cn-related-objects-widget__tab-icon {
+	flex: 0 0 auto;
+}
+
+.cn-related-objects-widget__panel-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding: 4px calc(2 * var(--default-grid-baseline, 4px)) 0;
+}
+
+.cn-related-objects-widget__open-sidebar {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border: none;
+	background: transparent;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font-size: 0.85em;
+}
+
+.cn-related-objects-widget__open-sidebar:hover {
+	text-decoration: underline;
 }
 
 .cn-related-objects-widget__count {
