@@ -80,11 +80,18 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		const currentIndex = ref(0)
 		const context = ref({})
 		const running = ref(false)
+		// True while a user-initiated replay is active (the "Restart tutorial"
+		// entry). A replay shows the FULL tour regardless of the persisted
+		// seen-version — otherwise a returning user, whose seenVersion already
+		// covers every step's sinceVersion, would replay an empty tour.
+		const replaying = ref(false)
 
 		/**
 		 * Compose the step set for a tour, filtered by version: a fresh user
 		 * (no seenVersion) gets all steps `<= appVersion`; an upgraded user gets
-		 * only steps newer than seenVersion and `<= appVersion`.
+		 * only steps newer than seenVersion and `<= appVersion`. A user-initiated
+		 * replay (`replaying`) ignores seenVersion and shows every step
+		 * `<= appVersion`.
 		 *
 		 * @param {object} tour The tour definition.
 		 * @return {Array} The visible steps for this user.
@@ -94,7 +101,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 			return all.filter((s) => {
 				const since = s.sinceVersion || '0.0.0'
 				if (compareSemver(since, appVersion) > 0) return false
-				if (seenVersion && compareSemver(since, seenVersion) <= 0) return false
+				if (!replaying.value && seenVersion && compareSemver(since, seenVersion) <= 0) return false
 				return true
 			})
 		}
@@ -230,19 +237,23 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		 * @return {void}
 		 */
 		function start(tourId, startIndex = 0) {
+			replaying.value = false
 			activeTourId.value = tourId
 			currentIndex.value = startIndex
 			context.value = {}
 			running.value = true
 		}
 		/**
-		 * Restart a tour from the beginning (used by the "Replay" entry).
+		 * Restart a tour from the beginning (used by the "Restart tutorial" /
+		 * "Replay" entry). Runs in replay mode so the FULL tour shows even for a
+		 * returning user whose persisted seen-version already covers every step.
 		 *
 		 * @param {string} tourId The tour id.
 		 * @return {void}
 		 */
 		function restart(tourId) {
 			start(tourId, 0)
+			replaying.value = true
 		}
 		/**
 		 * Dismiss the active tour without marking it complete.
@@ -252,6 +263,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		function dismiss() {
 			running.value = false
 			activeTourId.value = null
+			replaying.value = false
 		}
 		/**
 		 * Mark the active tour complete: stop running and invoke the
@@ -263,6 +275,7 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		function complete() {
 			running.value = false
 			activeTourId.value = null
+			replaying.value = false
 			if (typeof options.onComplete === 'function') options.onComplete(appVersion)
 		}
 
@@ -299,10 +312,28 @@ export function useWalkthrough(appId, manifest, options = {}) {
 		}
 
 		entry = {
-			enabled, appVersion, seenVersion, tours,
-			activeTour, autoStartTour, currentStep, totalSteps, isFirst, isLast,
-			context, running,
-			start, restart, next, back, skip, jumpTo, dismiss, complete, notify,
+			enabled,
+			appVersion,
+			seenVersion,
+			tours,
+			activeTour,
+			autoStartTour,
+			currentStep,
+			totalSteps,
+			isFirst,
+			isLast,
+			context,
+			running,
+			replaying,
+			start,
+			restart,
+			next,
+			back,
+			skip,
+			jumpTo,
+			dismiss,
+			complete,
+			notify,
 			interpolate: (s) => interpolateTokens(s, context.value),
 		}
 		cache.set(appId, entry)
