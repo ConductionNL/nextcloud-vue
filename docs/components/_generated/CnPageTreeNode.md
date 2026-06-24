@@ -7,3 +7,9 @@
 | `list`     | `Array`  | ✓        | —       | The full, flat `pages[]` array (the working manifest's). Edited in place; the tree is derived from each page's `parent`.                                                                      |
 | `maxDepth` | `number` |          | `1`     | Maximum nesting depth that may gain children (one level: index → detail).                                                                                                                     |
 | `menu`     | `Array`  |          | `null`  | The working manifest's `menu[]`, used to re-point menu links (whose `route` is a page id) when a page's slug is renamed. Optional — when absent, only child `parent` references are cascaded. |
+
+### Events
+
+| Name       | Payload | Description                                       |
+| ---------- | ------- | ------------------------------------------------- |
+| `navigate` | —       | Emitted when a row's "Go to page" button is used. |

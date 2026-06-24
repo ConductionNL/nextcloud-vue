@@ -412,6 +412,17 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * When true, a row-body click emits `row-click` (for navigation) even
+		 * while `selectable` — selection then happens only via the checkbox
+		 * column. Lets "click row = open, tick box = select" coexist. Default
+		 * false keeps the legacy behaviour (selectable rows select on body click).
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	setup() {
@@ -753,13 +764,13 @@ export default {
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
-			if (this.selectable) {
-				if (this.wasDrag(event)) return
+			if (this.wasDrag(event)) return
+			if (this.selectable && !this.rowClickToView) {
 				this.toggleSelect(row)
 				return
 			}
 			/**
-			 * @event row-click Emitted when a non-selectable row is clicked. Only fires when `selectable` is false; selectable rows toggle selection instead.
+			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)

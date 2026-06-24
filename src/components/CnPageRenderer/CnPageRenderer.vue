@@ -98,7 +98,9 @@
 			v-else-if="resolvedComponent"
 			:key="currentPage.id"
 			v-bind="{ ...$attrs, ...resolvedProps }"
-			v-on="$listeners">
+			v-on="$listeners"
+			@view="onRowOpen"
+			@row-click="onRowOpen">
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -543,6 +545,19 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
+			// When an index page has a matching detail page (same register +
+			// schema), make a row click open it: set `rowClickToView` so the
+			// row body emits `row-click` (→ onRowOpen navigates) even though the
+			// page is selectable. Selection stays available via the checkbox.
+			// An explicit `config.rowClickToView` still wins (merged below).
+			if (isIndex) {
+				const allPages = this.effectiveManifest?.pages
+				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
+					&& p.type === 'detail'
+					&& (p.config || {}).register === config.register
+					&& (p.config || {}).schema === config.schema)
+				if (hasDetail) topLevel.rowClickToView = true
+			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
 				const { actionToggles, ...rest } = config

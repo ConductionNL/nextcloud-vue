@@ -11,6 +11,7 @@
 
 | Name        | Payload | Description |
 | ----------- | ------- | ----------- |
+| `navigate`  | —       |             |
 | `add-child` | —       |             |
 | `remove`    | —       |             |
 | `rename`    | —       |             |

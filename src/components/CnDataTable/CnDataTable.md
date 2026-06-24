@@ -188,6 +188,7 @@ export default {
 | `sortOrder` | String | `'asc'` | Current sort direction: `'asc'` or `'desc'` |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |

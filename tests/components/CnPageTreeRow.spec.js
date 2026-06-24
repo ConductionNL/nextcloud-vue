@@ -61,6 +61,12 @@ describe('CnPageTreeRow', () => {
 		expect(mountRow({ id: 'a', type: 'custom' }).vm.typeIconComponent).toBe('ShapeOutline')
 	})
 
+	it('canNavigate is true only for concrete (non-param) routes', () => {
+		expect(mountRow({ id: 'a', type: 'index', route: '/dogs' }).vm.canNavigate).toBe(true)
+		expect(mountRow({ id: 'a', type: 'detail', route: '/dogs/:id' }).vm.canNavigate).toBe(false)
+		expect(mountRow({ id: 'a', type: 'custom', route: '' }).vm.canNavigate).toBe(false)
+	})
+
 	it('commitSlug emits a sanitised rename and no-ops when unchanged', () => {
 		const wrapper = mountRow({ id: 'page-3', type: 'index' })
 		wrapper.vm.slugDraft = 'Dogs Page!'

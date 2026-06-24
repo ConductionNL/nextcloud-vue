@@ -16,6 +16,7 @@
 				:can-add-child="maxDepth > 0"
 				@add-child="addChild(node)"
 				@rename="(id) => renamePage(node.ref, id)"
+				@navigate="bubbleNavigate"
 				@remove="removeNode(node, null)" />
 
 			<!-- One level of children: a drop target on every top page so a row
@@ -33,6 +34,7 @@
 					<CnPageTreeRow :page="child.ref"
 						:can-add-child="false"
 						@rename="(id) => renamePage(child.ref, id)"
+						@navigate="bubbleNavigate"
 						@remove="removeNode(child, node)" />
 				</li>
 			</draggable>
@@ -117,6 +119,19 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Bubble a row's "Go to page" request up to the modal, which navigates.
+		 *
+		 * @param {string} route The route path to open.
+		 * @return {void}
+		 */
+		bubbleNavigate(route) {
+			/**
+			 * @event navigate Emitted when a row's "Go to page" button is used.
+			 * @type {string} The route path to open.
+			 */
+			this.$emit('navigate', route)
+		},
 		/**
 		 * Build the nested mirror from the flat `list`: top-level pages (no
 		 * `parent`) each carry their children (`parent === id`). Pages whose

@@ -50,6 +50,17 @@
 				{{ typeLabel }}
 			</button>
 
+			<!-- Go to the page (only for a concrete route — a detail page's
+			     :id route can't be opened without a record). -->
+			<NcButton v-if="canNavigate"
+				type="tertiary"
+				:aria-label="t('nextcloud-vue', 'Go to page')"
+				@click="$emit('navigate', page.route)">
+				<template #icon>
+					<OpenInNew :size="18" />
+				</template>
+			</NcButton>
+
 			<!-- Cog → inline settings panel (toggled, in-DOM so the dropdowns work). -->
 			<NcButton type="tertiary"
 				:aria-label="t('nextcloud-vue', 'Page settings')"
@@ -172,6 +183,7 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import DragVertical from 'vue-material-design-icons/DragVertical.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import TextBoxOutline from 'vue-material-design-icons/TextBoxOutline.vue'
@@ -209,7 +221,7 @@ const TYPE_ICON_COMPONENTS = {
 export default {
 	name: 'CnPageTreeRow',
 
-	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, DragVertical, ViewDashboardOutline, FormatListBulletedSquare, TextBoxOutline, ShapeOutline },
+	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, DragVertical, OpenInNew, ViewDashboardOutline, FormatListBulletedSquare, TextBoxOutline, ShapeOutline },
 
 	inject: {
 		/** App registers/schemas for the data-source pickers; null → free text. */
@@ -263,6 +275,11 @@ export default {
 		selectedType() {
 			const type = (this.page && this.page.type) || 'custom'
 			return PAGE_TYPES.find((o) => o.value === type) || { value: type, label: type }
+		},
+		/** Whether the page has a concrete (non-param) route that can be opened. */
+		canNavigate() {
+			const route = this.page && this.page.route
+			return typeof route === 'string' && route.length > 0 && !route.includes(':')
 		},
 		/** Whether this page renders OpenRegister data (needs register/schema). */
 		isDataPage() {

@@ -78,8 +78,12 @@
 				<CnQuickFilterBar
 					inline
 					:tabs="quickFilters"
+					:mode="quickFilterMode"
+					:multiple="quickFilterMultiple"
 					:active-index="activeQuickFilterIndex"
-					@update:active-index="onQuickFilterChange" />
+					:selected-indices="selectedQuickFilterIndices"
+					@update:active-index="onQuickFilterChange"
+					@update:selected-indices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -227,6 +231,7 @@
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
+					:row-click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
@@ -647,6 +652,28 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * How the quick filters render: `'chips'` (pill strip, default) or
+		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
+		 * `pages[].config.quickFilterMode`.
+		 * @type {'chips'|'dropdown'}
+		 */
+		quickFilterMode: {
+			type: String,
+			default: 'chips',
+			validator: (v) => ['chips', 'dropdown'].includes(v),
+		},
+
+		/**
+		 * Allow several quick filters active at once. Selected tabs' filters
+		 * are OR-ed together into the fetch (same field → array value →
+		 * `field[]=` IN query). Sourced from `pages[].config.quickFilterMultiple`.
+		 */
+		quickFilterMultiple: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -675,6 +702,19 @@ export default {
 		selectable: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * When true, a row/card click emits `row-click` (to open/navigate) even
+		 * while `selectable` — selection then happens via the checkbox only.
+		 * Manifest-driven index pages set this when a matching detail page
+		 * exists, so clicking a row opens its detail. Default false preserves
+		 * the legacy select-on-click behaviour.
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Currently selected IDs */
@@ -1204,6 +1244,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
@@ -1216,6 +1257,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		}
 	},
 
@@ -1681,6 +1723,15 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+		// A same-path `$route.query` change (e.g. a dashboard deep-link
+		// `/cases?caseType=X`) must also re-fetch — `fixedFilters` merges the
+		// query into the fetch (see useSelfFetchList.resolveQueryFilters).
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
 	},
 
 	mounted() {
@@ -1850,6 +1901,19 @@ export default {
 		},
 
 		/**
+		 * Multi-select quick-filter change (`quickFilterMultiple`). Updates the
+		 * selected-index array; the `setup()` watcher re-fetches with the
+		 * OR-ed union of the selected tabs' filters.
+		 *
+		 * @param {number[]} indices Selected tab indices (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterMultiChange(indices) {
+			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
+			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
+		},
+
+		/**
 		 * @param {{key: string, order: string}} payload Sort change from CnDataTable.
 		 * @return {void}
 		 */
@@ -1995,12 +2059,12 @@ export default {
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
-			if (this.selectable) {
+			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
 			/**
-			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
