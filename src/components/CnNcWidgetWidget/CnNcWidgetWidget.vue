@@ -266,14 +266,26 @@ export default {
 			this.mode = 'native'
 			this.$nextTick(() => {
 				const container = this.$refs.nativeContainer
-				if (container) {
-					try {
-						callback(container, this.widgetMeta || {})
-					} catch (e) {
-						// Native callback threw — fall back to the API list.
-						this.mode = 'api'
-						this.loadApiItems()
+				if (!container) {
+					return
+				}
+				// Native callback threw — fall back to the API list.
+				const fallback = () => {
+					this.mode = 'api'
+					this.loadApiItems()
+				}
+				try {
+					// Nextcloud's OCA.Dashboard render callback signature is
+					// `(el, { widget })` — the metadata is wrapped in an
+					// object, not passed bare. Many callbacks are async, so
+					// route a rejected promise to the fallback too (a sync
+					// try/catch alone misses async throws).
+					const result = callback(container, { widget: this.widgetMeta || {} })
+					if (result && typeof result.then === 'function') {
+						result.catch(fallback)
 					}
+				} catch (e) {
+					fallback()
 				}
 			})
 		},
