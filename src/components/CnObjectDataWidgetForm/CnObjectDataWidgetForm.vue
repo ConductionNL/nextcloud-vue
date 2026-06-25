@@ -340,7 +340,14 @@ export default {
 		 */
 		validate() {
 			const errors = []
-			if (!this.source.register || !this.source.schema) {
+			// register/schema may be inherited from the page (injected
+			// cnObjectContext) on a detail page — the widget renders against the
+			// page's object regardless. Only require them when neither the form
+			// fields NOR the context supply them (e.g. a dashboard data widget).
+			const ctx = this.unwrapContext()
+			const register = this.source.register || ctx.register
+			const schema = this.source.schema || ctx.schema
+			if (!register || !schema) {
 				errors.push(t('nextcloud-vue', 'A register and schema are required'))
 			}
 			return errors

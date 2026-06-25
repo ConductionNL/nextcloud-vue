@@ -64,16 +64,21 @@
 				<h3 class="cn-add-widget-modal__chrome-title">
 					{{ t('nextcloud-vue', 'Appearance') }}
 				</h3>
-				<NcCheckboxRadioSwitch
-					:checked="chrome.showTitle"
-					@update:checked="chrome.showTitle = $event">
-					{{ t('nextcloud-vue', 'Show title') }}
-				</NcCheckboxRadioSwitch>
-				<NcTextField
-					v-if="chrome.showTitle"
-					:value="chrome.customTitle"
-					:label="t('nextcloud-vue', 'Custom title')"
-					@update:value="chrome.customTitle = $event" />
+				<!-- Title chrome is hidden for types whose sub-form owns the title
+				     (e.g. the data widget's own Title field) so there aren't two
+				     title inputs. -->
+				<template v-if="!activeTypeOwnsTitle">
+					<NcCheckboxRadioSwitch
+						:checked="chrome.showTitle"
+						@update:checked="chrome.showTitle = $event">
+						{{ t('nextcloud-vue', 'Show title') }}
+					</NcCheckboxRadioSwitch>
+					<NcTextField
+						v-if="chrome.showTitle"
+						:value="chrome.customTitle"
+						:label="t('nextcloud-vue', 'Custom title')"
+						@update:value="chrome.customTitle = $event" />
+				</template>
 				<div class="cn-add-widget-modal__chrome-row">
 					<span class="cn-add-widget-modal__chrome-label">{{ t('nextcloud-vue', 'Background') }}</span>
 					<NcColorPicker v-model="chrome.backgroundColor">
@@ -117,6 +122,7 @@
 </template>
 
 <script>
+import { computed, provide } from 'vue'
 import { NcModal, NcButton, NcTextField, NcColorPicker, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 
@@ -214,6 +220,20 @@ export default {
 			type: String,
 			default: 'app-dashboard',
 		},
+		/**
+		 * Authoritative object context `{ register, schema }` for the page hosting
+		 * the picker (supplied by the OpenBuild edit button from the ACTIVE page's
+		 * config). Provided down as `cnObjectContext` so the data sub-form resolves
+		 * the right schema even though the modal teleports out of the page's
+		 * ambient provide tree. Null on surfaces without a single object (e.g.
+		 * dashboards).
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		dataContext: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -223,10 +243,14 @@ export default {
 		'submit',
 	],
 
-	setup() {
+	setup(props) {
 		// One composable instance per modal mount. The composable owns the
 		// type/content/editingWidget reactive state shared with sub-forms.
 		const form = useWidgetForm()
+		// Publish the page's object context to the (teleported) sub-forms so the
+		// data widget's property editor loads the ACTIVE page's schema, not
+		// whatever ambient context the modal lands next to in the DOM.
+		provide('cnObjectContext', computed(() => props.dataContext || null))
 		return { form }
 	},
 
@@ -262,6 +286,18 @@ export default {
 		 */
 		availableTypes() {
 			return listWidgetTypes(this.surface)
+		},
+
+		/**
+		 * Whether the active type's sub-form owns the widget title (declares
+		 * `ownsTitle` in its registry entry). When true the modal hides its
+		 * generic Title chrome so there aren't two title inputs.
+		 *
+		 * @return {boolean} true when the sub-form provides its own title field.
+		 */
+		activeTypeOwnsTitle() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return !!(entry && entry.ownsTitle)
 		},
 
 		/**

@@ -125,6 +125,7 @@
 			v-if="showAddWidgetModal"
 			:show="showAddWidgetModal"
 			:surface="addWidgetSurface"
+			:data-context="addWidgetDataContext"
 			@submit="onAddWidgetSubmit"
 			@close="showAddWidgetModal = false" />
 		<CnEditActionsModal
@@ -297,6 +298,19 @@ export default {
 		 */
 		addWidgetSurface() {
 			return this.isDetailPage ? 'detail-page' : 'app-dashboard'
+		},
+		/**
+		 * The active detail page's `{ register, schema }` (from its config),
+		 * forwarded to the Add-widget modal so the data sub-form resolves the
+		 * right schema regardless of the modal's DOM position. Null for non-detail
+		 * pages.
+		 *
+		 * @return {{register: string, schema: string}|null} the page context.
+		 */
+		addWidgetDataContext() {
+			if (!this.isDetailPage) return null
+			const cfg = (this.currentPage && this.currentPage.config) || {}
+			return { register: cfg.register || '', schema: cfg.schema || '' }
 		},
 	},
 
