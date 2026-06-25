@@ -493,6 +493,59 @@ describe('CnAppRoot', () => {
 		})
 	})
 
+	describe('restart-walkthrough section in user settings (ADR-043)', () => {
+		const { useWalkthrough, __resetWalkthroughCacheForTests } = require('../../src/composables/useWalkthrough.js')
+		const walkthroughManifest = {
+			...baseManifest,
+			walkthrough: {
+				enabled: true,
+				tours: [{ id: 'getting-started', steps: [{ id: 's1', title: 'Hi' }] }],
+			},
+		}
+
+		beforeEach(() => {
+			__resetWalkthroughCacheForTests()
+		})
+
+		it('renders the gated section only when walkthroughEnabled', () => {
+			const noWt = mountRoot()
+			expect(noWt.find('#cn-walkthrough').exists()).toBe(false)
+
+			const withWt = mountRoot({ manifest: walkthroughManifest })
+			withWt.vm.userSettingsOpen = true
+			expect(withWt.vm.walkthroughEnabled).toBe(true)
+			expect(withWt.find('#cn-walkthrough').exists()).toBe(true)
+		})
+
+		it('closes the dialog and restarts the first tour when the button handler runs', () => {
+			jest.useFakeTimers()
+			const wrapper = mountRoot({ manifest: walkthroughManifest })
+			wrapper.vm.userSettingsOpen = true
+
+			// Same per-appId cached entry the component resolves at click time.
+			const entry = useWalkthrough('myapp', walkthroughManifest)
+			const restartSpy = jest.spyOn(entry, 'restart').mockImplementation(() => {})
+
+			wrapper.vm.restartWalkthroughFromSettings()
+			expect(wrapper.vm.userSettingsOpen).toBe(false)
+
+			jest.runOnlyPendingTimers()
+			expect(restartSpy).toHaveBeenCalledWith('getting-started')
+			jest.useRealTimers()
+		})
+
+		it('does not restart when no walkthrough is enabled', () => {
+			jest.useFakeTimers()
+			const wrapper = mountRoot()
+			wrapper.vm.userSettingsOpen = true
+			wrapper.vm.restartWalkthroughFromSettings()
+			expect(wrapper.vm.userSettingsOpen).toBe(false)
+			// No tour to fire; simply advancing timers must not throw.
+			expect(() => jest.runOnlyPendingTimers()).not.toThrow()
+			jest.useRealTimers()
+		})
+	})
+
 	describe('cnMenuCounts hydration (count:"auto")', () => {
 		it('provides an empty cnMenuCounts map by default', () => {
 			const wrapper = mountRoot()

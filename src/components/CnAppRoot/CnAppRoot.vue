@@ -320,6 +320,24 @@
 				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
 				<slot name="user-settings">
 					<CnNotificationPreferences v-if="userSettingsOpen" />
+					<!--
+						Self-service walkthrough replay (ADR-043). Only mounts
+						when the manifest declares an enabled tour, so apps
+						without a walkthrough never show an empty section.
+					-->
+					<NcAppSettingsSection v-if="walkthroughEnabled"
+						id="cn-walkthrough"
+						:name="restartWalkthroughSectionName">
+						<p class="cn-app-root__walkthrough-hint">
+							{{ restartWalkthroughHint }}
+						</p>
+						<NcButton type="secondary" @click="restartWalkthroughFromSettings">
+							<template #icon>
+								<Restart :size="20" />
+							</template>
+							{{ restartWalkthroughLabel }}
+						</NcButton>
+					</NcAppSettingsSection>
 				</slot>
 			</NcAppSettingsDialog>
 
@@ -340,8 +358,9 @@
 </template>
 
 <script>
-import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
@@ -417,10 +436,12 @@ export default {
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
+		NcButton,
 		NcContent,
 		NcEmptyContent,
 		NcLoadingIcon,
 		DatabaseSearchOutline,
+		Restart,
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
@@ -1352,6 +1373,30 @@ export default {
 			return this.userSettingsTitle || this.translate('User settings')
 		},
 		/**
+		 * Section heading for the walkthrough-replay block in user settings.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughSectionName() {
+			return this.translate('Walkthrough')
+		},
+		/**
+		 * Explanatory line above the restart-walkthrough button.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughHint() {
+			return this.translate('Take the guided tour of this app again.')
+		},
+		/**
+		 * Label for the restart-walkthrough button in user settings.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughLabel() {
+			return this.translate('Restart walkthrough')
+		},
+		/**
 		 * Resolve the active modal's Vue component from the registry.
 		 * Returns null when no modal is open or the key no longer resolves.
 		 *
@@ -1464,6 +1509,26 @@ export default {
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
 			this.$emit('walkthrough-complete')
+		},
+		/**
+		 * Replay the product tour from the user-settings dialog. Closes the
+		 * dialog first, then restarts the first declared tour on the next tick
+		 * — the modal must finish unmounting before the tour overlay paints, or
+		 * the spotlight anchors against the closing modal. Mirrors the
+		 * `cnReplayWalkthrough` provide method (same useWalkthrough cache, so
+		 * the rendered CnWalkthrough genuinely re-fires).
+		 *
+		 * @return {void}
+		 */
+		restartWalkthroughFromSettings() {
+			this.userSettingsOpen = false
+			if (!this.walkthroughEnabled) return
+			// 50ms lets the dialog's close animation settle so the tour
+			// re-appears cleanly over the app shell, not the closing modal.
+			setTimeout(() => {
+				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
+				if (id) useWalkthrough(this.appId, this.manifest).restart(id)
+			}, 50)
 		},
 		/**
 		 * Validate every entry in the `registry` prop at mount time.
@@ -1669,5 +1734,10 @@ export default {
 .cn-app-root__or-missing-action:focus {
 	background: var(--color-primary-element-hover);
 	text-decoration: underline;
+}
+
+.cn-app-root__walkthrough-hint {
+	margin-bottom: 12px;
+	color: var(--color-text-maxcontrast);
 }
 </style>
