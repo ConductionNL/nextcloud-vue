@@ -40,9 +40,11 @@
 				{{ saving ? t('nextcloud-vue', 'Saving…') : (isEditing ? t('nextcloud-vue', 'Save page') : t('nextcloud-vue', 'Edit page')) }}
 			</NcActionButton>
 
-			<!-- Widgets only exist on dashboard pages; index/detail/custom pages
-			     have no widget slots, so hide Add widget there. -->
-			<NcActionButton v-if="isDashboardPage"
+			<!-- Widget grids live on dashboard pages and (since the detail-grid
+			     change) detail pages, whose body is an adjustable grid seeded with
+			     Data + Related. Index/custom pages have no widget slots, so hide
+			     Add widget there. -->
+			<NcActionButton v-if="pageSupportsWidgets"
 				:disabled="!isEditing"
 				:close-after-click="true"
 				@click="onAddWidget">
@@ -157,6 +159,7 @@ import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../modals/CnEditDataModal.vue'
 import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
 	name: 'CnOpenBuildEditButton',
@@ -275,6 +278,14 @@ export default {
 		isDashboardPage() {
 			return !!(this.currentPage && this.currentPage.type === 'dashboard')
 		},
+		/** Whether the active page is a detail page (its body is an adjustable grid). */
+		isDetailPage() {
+			return !!(this.currentPage && this.currentPage.type === 'detail')
+		},
+		/** Whether the active page hosts a widget grid that "Add widget" can target. */
+		pageSupportsWidgets() {
+			return this.isDashboardPage || this.isDetailPage
+		},
 	},
 
 	methods: {
@@ -307,6 +318,7 @@ export default {
 				}
 			} else {
 				this.activeEditor.enter()
+				this.ejectDetailGridIfNeeded()
 				/**
 				 * @event edit Emitted when edit mode is entered.
 				 */
@@ -357,11 +369,14 @@ export default {
 				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
 			}
 
-			// A v1 dashboard page keeps widgets in config.widgets + config.layout;
-			// a v2 page keeps them in pages[].widgets[] (slot-based). Append to
-			// whichever this page uses so the new widget lands where the renderer reads.
-			const cfg = page.config && typeof page.config === 'object' ? page.config : null
-			if (page.type === 'dashboard' && cfg && Array.isArray(cfg.widgets)) {
+			// Dashboard AND detail pages keep widgets in config.widgets +
+			// config.layout (a detail page's grid is ejected there on edit — see
+			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
+			// (slot-based). Append to whichever this page uses so the new widget
+			// lands where the renderer reads.
+			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
+			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
+				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
 				if (!Array.isArray(cfg.layout)) this.$set(cfg, 'layout', [])
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
 				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
@@ -396,8 +411,41 @@ export default {
 		ensureEditing() {
 			if (this.activeEditor && !this.isEditing) {
 				this.activeEditor.enter()
+				this.ejectDetailGridIfNeeded()
 				this.$emit('edit')
 			}
+		},
+		/**
+		 * "Eject" the default detail-page body grid into the working manifest on
+		 * first edit: when the active page is a `type:"detail"` whose config has no
+		 * explicit `widgets`, seed `config.widgets`/`config.layout` with the same
+		 * Data + Related defaults CnDetailPage renders in memory. From then on the
+		 * grid is manifest-backed, so resize, per-property config and Add widget
+		 * all mutate the working manifest in place and persist on Save. Identical
+		 * defaults mean ejecting never visually changes the page. No-op for
+		 * non-detail pages or pages already carrying a widget grid.
+		 *
+		 * @return {void}
+		 */
+		ejectDetailGridIfNeeded() {
+			const manifest = this.workingManifest
+			if (!manifest) return
+			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
+			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
+			if (!page || page.type !== 'detail') return
+			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
+				this.$set(page, 'config', {})
+			}
+			const cfg = page.config
+			// Already customised (ejected before, or a hand-authored grid page).
+			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) return
+			const grid = defaultDetailGrid({
+				register: cfg.register || '',
+				schema: cfg.schema || '',
+				showRelated: cfg.showRelatedObjects !== false,
+			})
+			this.$set(cfg, 'widgets', grid.widgets)
+			this.$set(cfg, 'layout', grid.layout)
 		},
 		/** Enter edit mode (if needed) and open the pages editor modal. */
 		onEditPages() {

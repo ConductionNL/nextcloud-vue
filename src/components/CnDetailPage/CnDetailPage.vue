@@ -518,6 +518,7 @@ import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
+import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { useObjectStore } from '../../store/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
@@ -1868,32 +1869,25 @@ export default {
 		 * render their own card chrome.
 		 */
 		materializeAutoBody() {
-			const widgets = []
-			const layout = []
-			if (this.currentSchema) {
-				// Seed the data widget's `content` with the page's register/schema
-				// (and an empty overrides map). This lets the per-property editor
-				// (CnObjectDataWidgetForm) load the schema's properties and persist
-				// the user's visibility/order/span/editor config back onto
-				// `content.overrides` — which `widgetContentFor` then forwards to the
-				// rendered CnObjectDataWidget. `register`/`schema` come from the
-				// schema-driven props (empty on legacy objectType-only mounts, where
-				// the editor falls back to the injected `cnObjectContext`).
-				widgets.push({
-					id: 'data',
-					widgetId: 'data',
-					type: 'data',
-					title: t('nextcloud-vue', 'Data'),
-					content: { register: this.register || '', schema: this.schema || '', columns: 3, overrides: {} },
-				})
-				layout.push({ id: 'data', widgetId: 'data', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6, showTitle: false })
+			// One source of truth (shared with the OpenBuild edit button's
+			// "eject" on edit) so the in-memory default and the manifest-ejected
+			// default are identical. The data widget's content carries the page's
+			// register/schema so its per-property editor can resolve the schema
+			// (empty on legacy objectType-only mounts → the editor falls back to
+			// the injected `cnObjectContext`).
+			const grid = defaultDetailGrid({
+				register: this.register || '',
+				schema: this.schema || '',
+				showRelated: this.showRelatedObjects,
+			})
+			// Drop the Data widget when there's no schema to render (the helper
+			// always includes it; the auto-body only shows it with a schema).
+			if (!this.currentSchema) {
+				grid.widgets = grid.widgets.filter((w) => w.widgetId !== 'data')
+				grid.layout = grid.layout.filter((l) => l.widgetId !== 'data')
 			}
-			if (this.showRelatedObjects) {
-				widgets.push({ id: 'related', widgetId: 'related', type: 'related', title: t('nextcloud-vue', 'Related') })
-				layout.push({ id: 'related', widgetId: 'related', gridX: 0, gridY: 6, gridWidth: 12, gridHeight: 5, showTitle: false })
-			}
-			this.autoBodyWidgets = widgets
-			this.autoBodyLayout = layout
+			this.autoBodyWidgets = grid.widgets
+			this.autoBodyLayout = grid.layout
 		},
 
 		/**
@@ -1909,7 +1903,23 @@ export default {
 		 *   consumers stay in sync.
 		 */
 		onBodyLayoutChange(updated) {
-			if (!this.hasGridLayout) {
+			if (this.hasGridLayout) {
+				// Config-backed grid (manifest editor, ADR-041): the `layout` prop is
+				// the SAME array the working manifest holds (the route-sentinel
+				// resolver is reference-preserving), so write the new geometry back
+				// onto its items in place — Save page then persists the resize.
+				for (const u of updated) {
+					const item = this.layout.find((l) => String(l.id) === String(u.id))
+					if (item) {
+						item.gridX = u.gridX
+						item.gridY = u.gridY
+						item.gridWidth = u.gridWidth
+						item.gridHeight = u.gridHeight
+					}
+				}
+			} else {
+				// In-memory default grid — keep the new geometry locally so the move
+				// sticks for the session (un-customised page, nothing to persist).
 				this.autoBodyLayout = updated
 			}
 			this.$emit('layout-change', updated)
