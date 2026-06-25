@@ -93,6 +93,45 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.rect).toEqual({ top: 50, left: 60, width: 120, height: 30 })
 	})
 
+	it('reveals a target hidden in a collapsed nav group by clicking its expand toggle', async () => {
+		// Build a minimal collapsed NcAppNavigation group: the child link the step
+		// targets is present in the DOM but inside a collapsed (display:none) group.
+		const nav = document.createElement('div')
+		nav.className = 'app-navigation'
+		nav.innerHTML = `
+			<ul>
+				<li class="app-navigation-entry--collapsible">
+					<a class="app-navigation-entry-link" aria-expanded="false" href="#">Bookkeeping</a>
+					<button class="icon-collapse" aria-label="Open menu"></button>
+					<ul class="app-navigation-entry__children" style="display:none">
+						<!-- child for 'accounts-receivable' is NOT rendered while collapsed -->
+					</ul>
+				</li>
+			</ul>`
+		document.body.appendChild(nav)
+		const toggle = nav.querySelector('button.icon-collapse')
+		let clicks = 0
+		toggle.addEventListener('click', () => { clicks++ })
+
+		const navSteps = [
+			{ id: 'open-ar', sinceVersion: '1.0.0', title: 'Open it', task: 'Click Accounts Receivable', target: { kind: 'nav-item', ref: 'accounts-receivable' }, advanceOn: { type: 'click-target' } },
+		]
+		const w = mount(CnWalkthrough, { propsData: { appId: 'pq-collapsed', manifest: manifest(navSteps) } })
+		await w.vm.$nextTick()
+		// Each fresh locate of an absent nav target gets one reveal attempt; assert
+		// the guard within a single attempt cycle. Reset the per-step flag + counter.
+		w.vm._revealAttempted = false
+		clicks = 0
+		w.vm.revealTarget()
+		expect(clicks).toBe(1) // expand toggle clicked exactly once
+		// Guarded once per attempt: a redundant reveal before teardown is a no-op.
+		w.vm.revealTarget()
+		expect(clicks).toBe(1)
+
+		w.destroy()
+		document.body.removeChild(nav)
+	})
+
 	it('a handoff step shows "Continue in {app}" and navigates with a resume token', () => {
 		const manifestH = {
 			version: '1.0.0',
