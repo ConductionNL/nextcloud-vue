@@ -5,7 +5,9 @@
 
 <template>
 	<div class="cn-data-form">
-		<h4 class="cn-data-form__section">{{ t('nextcloud-vue', 'Data widget') }}</h4>
+		<h4 class="cn-data-form__section">
+			{{ t('nextcloud-vue', 'Data widget') }}
+		</h4>
 
 		<NcTextField
 			:value="title"
@@ -17,33 +19,60 @@
 			<NcTextField
 				:value="source.register"
 				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
+				:placeholder="contextSource.register || 'pipelinq'"
 				@update:value="updateSource('register', $event)" />
 			<NcTextField
 				:value="source.schema"
 				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
+				:placeholder="contextSource.schema || 'lead'"
 				@update:value="updateSource('schema', $event)" />
 		</div>
 
-		<NcTextField
-			type="number"
-			:value="String(columns)"
-			:label="t('nextcloud-vue', 'Grid columns')"
-			@update:value="updateField('columns', Number($event))" />
+		<div class="cn-data-form__layout">
+			<span class="cn-data-form__layout-label">{{ t('nextcloud-vue', 'Layout') }}</span>
+			<div class="cn-data-form__presets" role="group" :aria-label="t('nextcloud-vue', 'Column layout')">
+				<button
+					v-for="preset in layoutPresets"
+					:key="preset.value"
+					type="button"
+					class="cn-data-form__preset"
+					:class="{ 'cn-data-form__preset--active': columns === preset.value }"
+					:aria-pressed="columns === preset.value"
+					@click="setColumns(preset.value)">
+					{{ preset.label }}
+				</button>
+			</div>
+			<NcTextField
+				type="number"
+				:value="String(columns)"
+				:label="t('nextcloud-vue', 'Columns')"
+				class="cn-data-form__columns"
+				@update:value="updateField('columns', Number($event))" />
+		</div>
 
-		<h4 class="cn-data-form__section">{{ t('nextcloud-vue', 'Properties') }}</h4>
+		<h4 class="cn-data-form__section">
+			{{ t('nextcloud-vue', 'Properties') }}
+		</h4>
 
 		<p v-if="!rows.length" class="cn-data-form__hint">
 			{{ t('nextcloud-vue', 'Enter a register and schema to configure properties.') }}
 		</p>
+		<p v-else class="cn-data-form__hint">
+			{{ t('nextcloud-vue', 'Drag a property by its handle to reorder. The order applies to both the widget and the edit form.') }}
+		</p>
 
 		<div
-			v-for="row in rows"
+			v-for="(row, index) in rows"
 			:key="row.key"
 			class="cn-data-form__prop"
-			:class="{ 'cn-data-form__prop--hidden': row.hidden }">
+			:class="{ 'cn-data-form__prop--hidden': row.hidden, 'cn-data-form__prop--dragging': dragIndex === index }"
+			draggable="true"
+			@dragstart="onDragStart(index)"
+			@dragover.prevent
+			@drop="onDrop(index)"
+			@dragend="dragIndex = null">
 			<div class="cn-data-form__prop-head">
+				<span class="cn-data-form__grip" :title="t('nextcloud-vue', 'Drag to reorder')" aria-hidden="true">⋮⋮</span>
 				<NcCheckboxRadioSwitch
 					:checked="!row.hidden"
 					type="switch"
@@ -58,11 +87,6 @@
 					:label="t('nextcloud-vue', 'Label')"
 					:placeholder="row.key"
 					@update:value="setRow(row.key, 'label', $event)" />
-				<NcTextField
-					type="number"
-					:value="row.order === null ? '' : String(row.order)"
-					:label="t('nextcloud-vue', 'Order')"
-					@update:value="setRow(row.key, 'order', $event === '' ? null : Number($event))" />
 				<NcTextField
 					type="number"
 					:value="String(row.gridColumn)"
@@ -115,6 +139,18 @@ export default {
 
 	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch },
 
+	/**
+	 * Fallback object context (provided by CnDetailPage as a reactive
+	 * `{ objectId, object, register, schema }` ref). Used to resolve the
+	 * register/schema when the widget being edited is the page's default Data
+	 * widget, which inherits them from the page rather than storing them — so the
+	 * property list still loads even though the form's own Register/Schema fields
+	 * start empty.
+	 */
+	inject: {
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
 		editingWidget: { type: Object, default: null },
@@ -139,21 +175,24 @@ export default {
 			source: { register: initial.register ?? '', schema: initial.schema ?? '' },
 			overrides: { ...(initial.overrides || {}) },
 			rows: [],
+			/** Index of the property row currently being dragged, or null. */
+			dragIndex: null,
 		}
-	},
-
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
 	},
 
 	computed: {
 		/** Edit-widget type options ('auto' = derive from schema). */
 		widgetOptions() { return WIDGET_OPTIONS },
+		/** The inherited register/schema (shown as placeholders when not overridden). */
+		contextSource() { return this.unwrapContext() },
+		/** Quick column-layout presets (1 = stacked beneath each other). */
+		layoutPresets() {
+			return [
+				{ value: 1, label: t('nextcloud-vue', 'Stacked') },
+				{ value: 2, label: t('nextcloud-vue', '2 columns') },
+				{ value: 3, label: t('nextcloud-vue', '3 columns') },
+			]
+		},
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -166,8 +205,29 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
+		/**
+		 * Unwrap the injected object context (a Vue ref or plain object) to a
+		 * plain `{ register, schema }`. Returns empties when no context is
+		 * provided (e.g. a dashboard surface).
+		 *
+		 * @return {{register: string, schema: string}} the resolved context.
+		 */
+		unwrapContext() {
+			const c = this.cnObjectContext
+			const v = c && typeof c === 'object' && 'value' in c ? c.value : c
+			return { register: (v && v.register) || '', schema: (v && v.schema) || '' }
+		},
 		/**
 		 * Resolve the schema's property names and build editable rows, merging
 		 * any persisted overrides onto each.
@@ -175,7 +235,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadFields() {
-			const fields = await fetchSchemaProperties(this.source.register, this.source.schema)
+			const ctx = this.unwrapContext()
+			const register = this.source.register || ctx.register
+			const schema = this.source.schema || ctx.schema
+			const fields = await fetchSchemaProperties(register, schema)
 			this.rows = fields.map((key) => {
 				const o = this.overrides[key] || {}
 				return {
@@ -189,9 +252,49 @@ export default {
 				}
 			})
 		},
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
-		/** Set a source sub-field and emit. */
+		/**
+		 * Apply a column-layout preset (1 = stacked) and emit.
+		 *
+		 * @param {number} value The column count to set.
+		 * @return {void}
+		 */
+		setColumns(value) { this.columns = value; this.emitChange() },
+		/**
+		 * Remember which row a drag started on.
+		 *
+		 * @param {number} index The row index being dragged.
+		 * @return {void}
+		 */
+		onDragStart(index) { this.dragIndex = index },
+		/**
+		 * Reorder the property rows on drop: move the dragged row to the drop
+		 * target, then stamp every row with a sequential `order` so the new order
+		 * persists into the overrides map (applied to both the widget and the edit
+		 * form). No-op when dropping a row onto itself.
+		 *
+		 * @param {number} index The drop-target row index.
+		 * @return {void}
+		 */
+		onDrop(index) {
+			const from = this.dragIndex
+			this.dragIndex = null
+			if (from === null || from === index) return
+			const moved = this.rows.splice(from, 1)[0]
+			this.rows.splice(index, 0, moved)
+			this.rows.forEach((row, i) => { row.order = i })
+			this.emitChange()
+		},
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
 		/**
 		 * Mutate one property row and re-emit.
@@ -275,6 +378,49 @@ export default {
 	min-width: 0;
 }
 
+.cn-data-form__layout {
+	display: flex;
+	align-items: flex-end;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.cn-data-form__layout-label {
+	align-self: center;
+	font-weight: 600;
+}
+
+.cn-data-form__presets {
+	display: inline-flex;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	overflow: hidden;
+}
+
+.cn-data-form__preset {
+	border: none;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	padding: 6px 12px;
+	cursor: pointer;
+	border-inline-start: 1px solid var(--color-border);
+}
+
+.cn-data-form__preset:first-child {
+	border-inline-start: none;
+}
+
+.cn-data-form__preset--active {
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-weight: 600;
+}
+
+.cn-data-form__columns {
+	width: 90px;
+	flex: 0 0 auto;
+}
+
 .cn-data-form__prop {
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 8px);
@@ -283,6 +429,24 @@ export default {
 
 .cn-data-form__prop--hidden {
 	opacity: 0.6;
+}
+
+.cn-data-form__prop--dragging {
+	opacity: 0.4;
+	border-style: dashed;
+}
+
+.cn-data-form__prop-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-data-form__grip {
+	cursor: grab;
+	color: var(--color-text-maxcontrast);
+	letter-spacing: -2px;
+	user-select: none;
 }
 
 .cn-data-form__prop-name {

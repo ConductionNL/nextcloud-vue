@@ -1871,7 +1871,21 @@ export default {
 			const widgets = []
 			const layout = []
 			if (this.currentSchema) {
-				widgets.push({ id: 'data', widgetId: 'data', type: 'data', title: t('nextcloud-vue', 'Data') })
+				// Seed the data widget's `content` with the page's register/schema
+				// (and an empty overrides map). This lets the per-property editor
+				// (CnObjectDataWidgetForm) load the schema's properties and persist
+				// the user's visibility/order/span/editor config back onto
+				// `content.overrides` — which `widgetContentFor` then forwards to the
+				// rendered CnObjectDataWidget. `register`/`schema` come from the
+				// schema-driven props (empty on legacy objectType-only mounts, where
+				// the editor falls back to the injected `cnObjectContext`).
+				widgets.push({
+					id: 'data',
+					widgetId: 'data',
+					type: 'data',
+					title: t('nextcloud-vue', 'Data'),
+					content: { register: this.register || '', schema: this.schema || '', columns: 3, overrides: {} },
+				})
 				layout.push({ id: 'data', widgetId: 'data', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6, showTitle: false })
 			}
 			if (this.showRelatedObjects) {

@@ -260,6 +260,9 @@
 			:schema="schema"
 			:item="objectData"
 			:dialog-title="editLabel"
+			:overrides="overrides"
+			:exclude-fields="exclude"
+			:include-fields="include"
 			@confirm="onEditConfirm"
 			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
@@ -494,51 +497,25 @@ export default {
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
 		resolvedFields() {
-			// Build override map for fieldsFromSchema
-			const fieldOverrides = {}
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				const override = {}
-				if (cfg.label) override.label = cfg.label
-				if (cfg.widget) override.widget = cfg.widget
-				if (typeof cfg.order === 'number') override.order = cfg.order
-				if (cfg.enum) override.enum = cfg.enum
-				if (Object.keys(override).length > 0) {
-					fieldOverrides[key] = override
-				}
-			}
-
-			// Build exclude list: merge prop exclude + hidden overrides
-			const excludeList = [...this.exclude]
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				if (cfg.hidden === true && !excludeList.includes(key)) {
-					excludeList.push(key)
-				}
-			}
-
+			// The shared pipeline now honours per-key `hidden` (filter) and
+			// `order` (sort) directly, so the overrides map is passed through
+			// verbatim — no bespoke hidden→exclude merge or post-sort needed.
+			// This keeps the data widget and the edit modal (CnFormDialog)
+			// identical-by-construction from one config map.
 			const fields = fieldsFromSchema(this.schema, {
-				exclude: excludeList,
+				exclude: this.exclude,
 				include: this.include,
-				overrides: fieldOverrides,
+				overrides: this.overrides,
 				includeReadOnly: true,
 			})
 
-			// Attach grid span info from overrides
-			const result = fields.map(field => ({
+			// Attach grid span info (a display-only concern, not part of the
+			// shared field pipeline) from the same overrides map.
+			return fields.map(field => ({
 				...field,
 				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
 				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
 			}))
-
-			// Re-sort by order after overrides are applied
-			// (fieldsFromSchema sorts before applying overrides, so order may have changed)
-			result.sort(function(a, b) {
-				const orderA = typeof a.order === 'number' ? a.order : Infinity
-				const orderB = typeof b.order === 'number' ? b.order : Infinity
-				if (orderA !== orderB) return orderA - orderB
-				return a.key.localeCompare(b.key)
-			})
-
-			return result
 		},
 
 		/**
