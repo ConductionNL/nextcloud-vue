@@ -52,7 +52,10 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
  * around one real, interactive element, plus an auto-positioned coachmark card.
  * It never promotes the target's `z-index` — the dimmer is four strips framing
  * the target rect, so the element stays clickable in place regardless of its
- * stacking context. Step advancement is declarative: the component sources
+ * stacking context. When a target is hidden inside a collapsed `NcAppNavigation`
+ * group (children rendered but `display:none`, so unmeasurable), the engine
+ * best-effort expands the group to reveal the item before spotlighting it, rather
+ * than falling back to a centered coachmark. Step advancement is declarative: the component sources
  * signals (route change via `$router`, a `cn-walkthrough:object-created` window
  * event, an appearing element via `MutationObserver`, a click on the target, or a
  * delay) and feeds them to {@link useWalkthrough}, which captures route params /
@@ -113,6 +116,7 @@ export default {
 			cardPos: { top: 0, left: 0 },
 			cardPlacement: 'bottom',
 			targetEl: null,
+			_revealAttempted: false,
 			_observer: null,
 			_resizeObs: null,
 			_delayTimer: null,
@@ -306,6 +310,12 @@ export default {
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
 				if (this.step.optional) { this.wt.skip(); return }
+				// A nav-item/page target may be absent because it lives in a
+				// collapsed nav group (children not rendered). Best-effort expand
+				// the group so the MutationObserver below catches the now-rendered
+				// target and re-locates it.
+				const tgtKind = (this.step.target && this.step.target.kind) || ''
+				if (tgtKind === 'nav-item' || tgtKind === 'page') this.revealTarget()
 				this.observeForTarget()
 				this.rect = null
 				return
@@ -338,6 +348,47 @@ export default {
 			return null
 		},
 		/**
+		 * Best-effort expand collapsed NcAppNavigation groups so a target nested
+		 * inside one renders (and becomes measurable). A collapsed group keeps its
+		 * children in the DOM but `display:none`, so the target can't be located or
+		 * measured and the engine would otherwise fall back to a centered coachmark.
+		 *
+		 * Scoped to the app navigation. Robust across @nextcloud/vue markup
+		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle, then
+		 * falls back to the collapse button of any collapsible group that is not in
+		 * the opened state. Attempted at most once per step (guarded by
+		 * `_revealAttempted`, reset in teardownStep) to avoid an expand/observe loop.
+		 *
+		 * @return {void}
+		 */
+		revealTarget() {
+			if (this._revealAttempted) return
+			this._revealAttempted = true
+			const nav = document.querySelector('.app-navigation') || document.querySelector('#app-navigation')
+			if (!nav) return
+			const clicked = new Set()
+			const click = (el) => {
+				if (!el || clicked.has(el) || typeof el.click !== 'function') return
+				clicked.add(el)
+				try { el.click() } catch (e) { /* jsdom / detached */ }
+			}
+			// Primary signal: any collapse toggle reporting a collapsed state.
+			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
+				// Prefer a real button toggle inside the same group over the link.
+				const group = el.closest('.app-navigation-entry--collapsible') || nav
+				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse, button[aria-expanded="false"]')
+				click(btn || el)
+			})
+			// Fallback: collapsible groups not yet opened (older markup without
+			// aria-expanded on the toggle — collapsed state is the absent
+			// `--opened` / `open` class on the wrapper).
+			nav.querySelectorAll('.app-navigation-entry--collapsible').forEach((group) => {
+				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) return
+				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
+				if (btn) click(btn)
+			})
+		},
+		/**
 		 * Measure the target into a viewport rect.
 		 *
 		 * @return {void}
@@ -350,6 +401,10 @@ export default {
 			// coachmark — no point-sized cutout — until it becomes visible. The
 			// ResizeObserver armed in armStep() recomputes when it gains size.
 			if (r.width === 0 || r.height === 0) {
+				// Resolved but not laid out — most often a nav item inside a
+				// collapsed group. Expand the group so the ResizeObserver armed in
+				// armStep() recomputes once it gains size; until then, anchorless.
+				this.revealTarget()
 				this.rect = null
 				return
 			}
@@ -457,6 +512,7 @@ export default {
 		 * @return {void}
 		 */
 		teardownStep() {
+			this._revealAttempted = false
 			if (this._observer) { this._observer.disconnect(); this._observer = null }
 			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
 			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
