@@ -105,7 +105,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
-| `user-settings` | — | Single placeholder section ("User preferences will appear here.") | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). |
+| `user-settings` | — | Notification preferences, plus a "Restart walkthrough" section when the manifest declares an enabled tour | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). Supplying this slot replaces the default content (including the walkthrough section). |
 
 ## User-settings modal
 
@@ -124,7 +124,7 @@ CnAppRoot always mounts a single `NcAppSettingsDialog` and exposes a `cnOpenUser
 </CnAppRoot>
 ```
 
-The slot defaults to a single placeholder section ("User preferences will appear here.") so the modal always has visible content while apps roll out their own preference UI.
+When no `#user-settings` slot is supplied, the modal renders the built-in notification-preferences pane. If the app's manifest declares an enabled `walkthrough` with at least one tour (ADR-043), a **Walkthrough** section is appended with a **Restart walkthrough** button — a self-service way to re-run the product tour. Clicking it closes the settings dialog and re-fires the tour from step 1. The section is strictly gated on `walkthroughEnabled`, so apps without a walkthrough never show it. Supplying your own `#user-settings` slot replaces this default content entirely.
 
 ## Hoisted index sidebar
 
