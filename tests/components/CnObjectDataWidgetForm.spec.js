@@ -53,14 +53,14 @@ describe('CnObjectDataWidgetForm', () => {
 			provide: { cnObjectContext: { register: 'ctxReg', schema: 'ctxSchema' } },
 		})
 		await w.vm.loadFields()
-		expect(fetchSchemaProperties).toHaveBeenLastCalledWith('ctxReg', 'ctxSchema')
+		expect(fetchSchemaProperties).toHaveBeenLastCalledWith('ctxReg', 'ctxSchema', { includeId: true })
 		// own content register/schema win over the context when set
 		const w2 = shallowMount(CnObjectDataWidgetForm, {
 			propsData: { editingWidget: { content: { register: 'ownReg', schema: 'ownSchema' } } },
 			provide: { cnObjectContext: { register: 'ctxReg', schema: 'ctxSchema' } },
 		})
 		await w2.vm.loadFields()
-		expect(fetchSchemaProperties).toHaveBeenLastCalledWith('ownReg', 'ownSchema')
+		expect(fetchSchemaProperties).toHaveBeenLastCalledWith('ownReg', 'ownSchema', { includeId: true })
 	})
 
 	it('setColumns applies a layout preset and emits', () => {

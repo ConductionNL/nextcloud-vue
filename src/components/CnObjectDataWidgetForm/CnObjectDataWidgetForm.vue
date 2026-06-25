@@ -238,7 +238,9 @@ export default {
 			const ctx = this.unwrapContext()
 			const register = this.source.register || ctx.register
 			const schema = this.source.schema || ctx.schema
-			const fields = await fetchSchemaProperties(register, schema)
+			// includeId: the data widget renders the `id` column, so list it here
+			// too — the user can then hide it like any other property.
+			const fields = await fetchSchemaProperties(register, schema, { includeId: true })
 			this.rows = fields.map((key) => {
 				const o = this.overrides[key] || {}
 				return {
