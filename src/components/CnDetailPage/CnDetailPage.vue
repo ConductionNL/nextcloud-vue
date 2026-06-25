@@ -91,8 +91,8 @@
 				<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
 				<CnOpenBuildEditButton />
 				<CnActionsMenu
-					:show-refresh="showRefresh"
-					:refreshing="refreshing"
+					:show-refresh="effectiveHeaderShowRefresh"
+					:refreshing="effectiveRefreshing"
 					:show-request-feature="showRequestFeature"
 					:documentation-url="documentationUrl"
 					:documentation-label="documentationLabel || undefined"
@@ -115,7 +115,7 @@
 			:expires-at="lockState.expiresAt.value" />
 
 		<!-- Loading state -->
-		<div v-if="loading" class="cn-detail-page__loading">
+		<div v-if="showLoadingState" class="cn-detail-page__loading">
 			<NcLoadingIcon :size="32" />
 			<span>{{ loadingLabel }}</span>
 		</div>
@@ -845,10 +845,21 @@ export default {
 			default: '',
 		},
 
-		/** Whether the Refresh entry renders in the page-header menu. */
+		/**
+		 * Whether the Refresh entry renders in the page-header menu.
+		 * Tri-state:
+		 * - `true` / `false` — force it on or off.
+		 * - `null` (the default) — **auto**: show Refresh only when it will
+		 *   do something, i.e. a consumer attached an `@refresh` listener OR
+		 *   the page is in schema-driven mode (`register` + `schema` +
+		 *   `objectId`) and can self-fetch. Legacy `objectType`-mode detail
+		 *   pages that never wire `@refresh` therefore show no dead button.
+		 *
+		 * @type {boolean|null}
+		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 
 		/**
@@ -932,9 +943,24 @@ export default {
 			 * seed in `syncSidebarState` so user close/toggle is not clobbered.
 			 */
 			sidebarSeeded: false,
+            /**
+			 * Drives the Actions-menu Refresh spinner during a schema-driven
+			 * self-fetch refresh, where the host has no promise to bind
+			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
+			 */
+			internalRefreshing: false,
+			/**
+			 * Whether a load has completed at least once. Gates the
+			 * full-page loading state to the FIRST load only: once content
+			 * has been shown, later loads (refresh, re-fetch) stay in place
+			 * and surface as the action-button spinner instead of blanking
+			 * the page. Set true the first time `loading` falls to false.
+			 */
+			hasLoadedOnce: false,
 		}
 	},
 
+			
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
@@ -972,6 +998,34 @@ export default {
 		},
 
 		/**
+		 * Whether to show the full-page loading state (spinner that replaces
+		 * the page content). Only on the FIRST load — when `loading` is true
+		 * and nothing has been shown yet. Once `hasLoadedOnce` is set, a
+		 * subsequent `loading` (refresh / re-fetch) keeps the existing
+		 * content in place; the action-button spinner signals the refresh
+		 * instead (see `effectiveRefreshing`).
+		 *
+		 * @return {boolean}
+		 */
+		showLoadingState() {
+			return this.loading && !this.hasLoadedOnce
+		},
+
+		/**
+		 * Refresh-spinner flag for the page-header Actions menu. True when:
+		 * an explicit `refreshing` prop is set; OR a schema-driven self-fetch
+		 * is in flight (`internalRefreshing`); OR a background load is running
+		 * after the first one completed (`loading && hasLoadedOnce`) — so
+		 * legacy `objectType` hosts get the spinner for free just by passing
+		 * `:loading`, without wiring `:refreshing` themselves.
+		 *
+		 * @return {boolean}
+		 */
+		effectiveRefreshing() {
+			return this.refreshing || this.internalRefreshing || (this.loading && this.hasLoadedOnce)
+		},
+
+		/**
 		 * Effective object-type slug, used for subscription, lock, store
 		 * registration, fetch, and sidebar state. Explicit `objectType`
 		 * prop wins (existing direct-mount call sites stay untouched);
@@ -1000,6 +1054,19 @@ export default {
 		 */
 		hasSchemaDrivenFetch() {
 			return Boolean(this.register && this.schema && this.objectId)
+		},
+
+		/**
+		 * Effective Refresh visibility for the page header. An explicit
+		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
+		 * it will do something — a consumer attached an `@refresh` listener,
+		 * or the page can self-fetch (`hasSchemaDrivenFetch`).
+		 *
+		 * @return {boolean}
+		 */
+		effectiveHeaderShowRefresh() {
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners.refresh) || this.hasSchemaDrivenFetch
 		},
 
 		/**
@@ -1187,6 +1254,19 @@ export default {
 	},
 
 	watch: {
+		// A load just settled (true → false) — remember it so later loads
+		// refresh in place (full-page spinner only on the first load). Not
+		// `immediate`: `loading` starts false before the first fetch begins,
+		// so reacting to that initial false would suppress the first spinner.
+		loading(val) {
+			if (!val) {
+				this.hasLoadedOnce = true
+				// Refresh settled — re-assert the sidebar state that
+				// syncSidebarState skipped while loading was in flight.
+				this.syncSidebarState()
+			}
+		},
+
 		sidebar: {
 			immediate: true,
 			handler() { this.syncSidebarState() },
@@ -1274,12 +1354,22 @@ export default {
 		 * @param {{ widgetId: string, title: string }} payload - Action payload.
 		 * @param {object} event - Synthetic event (host may preventDefault).
 		 */
-		onHeaderRefresh(payload, event) {
+		async onHeaderRefresh(payload, event) {
 			/**
 			 * @event refresh The page-header Refresh action was clicked.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', payload, event)
+			// Schema-driven (manifest) detail pages self-fetch — without this
+			// the Refresh action has no host listener to act on and does
+			// nothing. Re-fetch the object + schema and spin the action.
+			if (!this.hasSchemaDrivenFetch) return
+			this.internalRefreshing = true
+			try {
+				await this.fetchObjectIfNeeded()
+			} finally {
+				this.internalRefreshing = false
+			}
 		},
 
 		/**
@@ -1341,7 +1431,14 @@ export default {
 			// the positional id slots is intentional (OR's REST accepts
 			// either numeric ids or kebab slugs there), and the 4th-arg
 			// hints feed the live-updates transport.
-			if (typeof store.registerObjectType === 'function') {
+			// Register the type ONCE. `registerObjectType` resets the type's
+			// cache (`objects[type] = {}`, `schemas[type] = null`), so calling
+			// it on every refresh blanks the object + schema until the
+			// re-fetch lands — the content visibly disappears mid-refresh.
+			// Skip re-registration when the type is already registered so a
+			// refresh re-fetches and replaces the data in place.
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
 				store.registerObjectType(
 					type,
 					this.schema,
@@ -1577,25 +1674,26 @@ export default {
 		syncSidebarState() {
 			if (!this.hasExternalSidebar) return
 			this.warnIfDeprecatedSidebarShape()
+			// During a background refresh (content stays in place — see
+			// `hasLoadedOnce`), a transient loading-driven `enabled: false`
+			// must NOT tear down the sidebar. Hosts commonly bind
+			// `:sidebar="{ enabled: !loading }"`, so without this guard every
+			// refresh unmounts the host's CnObjectSidebar and re-fetches all
+			// its sub-resources (files/notes/tags/tasks/audit). Skip the sync
+			// while refreshing; the `loading` watcher re-syncs once it settles.
+			if (this.loading && this.hasLoadedOnce) return
 			const r = this.resolvedSidebar
 			if (this.sidebarActive && this.resolvedObjectType && this.objectId) {
 				const merged = this.mergeSidebarSources(r)
-				this.objectSidebarState.active = true
 				// Seed `open` only on the inactive→active edge (first activation
 				// of this object). Subsequent syncs must NOT clobber it, otherwise
 				// the user's close/toggle would be undone on the next reactive
 				// change. The shared channel owns `open` after seeding.
 				if (!this.sidebarSeeded) {
-					this.objectSidebarState.open = this.sidebarOpen
 					this.sidebarSeeded = true
 				}
-				this.objectSidebarState.objectType = this.resolvedObjectType
-				this.objectSidebarState.objectId = this.objectId
-				this.objectSidebarState.title = merged.title || this.title || ''
-				this.objectSidebarState.subtitle = merged.subtitle || this.subtitle || ''
-				this.objectSidebarState.register = merged.register || this.register || ''
-				this.objectSidebarState.schema = merged.schema || this.schema || ''
 				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
+                
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
@@ -1603,14 +1701,53 @@ export default {
 				// `sidebar.tabs` / `sidebarProps.tabs` legacy paths win.
 				// Falls back to `undefined` so the host's CnObjectSidebar
 				// renders its built-in tab set.
-				this.objectSidebarState.tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
+				const tabs = (this.sidebarTabs && this.sidebarTabs.length > 0)
 					? this.sidebarTabs
 					: merged.tabs
+				this.assignSidebarState({
+					active: true,
+					open: this.sidebarOpen,
+					objectType: this.resolvedObjectType,
+					objectId: this.objectId,
+					title: merged.title || this.title || '',
+					subtitle: merged.subtitle || this.subtitle || '',
+					register: merged.register || this.register || '',
+					schema: merged.schema || this.schema || '',
+					hiddenTabs: merged.hiddenTabs || [],
+					tabs,
+				})
 			} else {
-				this.objectSidebarState.active = false
-				this.objectSidebarState.tabs = undefined
+				this.assignSidebarState({ active: false, tabs: undefined })
 				// Re-arm the seed so the next activation re-applies `sidebarOpen`.
 				this.sidebarSeeded = false
+			}
+		},
+		/**
+		 * Apply fields onto the shared `objectSidebarState` only when they
+		 * actually change. Writing the same logical value — notably a fresh
+		 * `[]` for `hiddenTabs` when none is configured — would otherwise put
+		 * a new array reference on the reactive object every call and trigger
+		 * a host re-render. That churn fed an infinite render loop: the host
+		 * App re-renders on the new `hiddenTabs` ref → its `<router-view>`
+		 * re-renders the routed detail page → the page's inline `:sidebar`
+		 * prop re-fires this sync → repeat. Arrays are compared shallowly so
+		 * an equivalent array is treated as unchanged.
+		 *
+		 * @param {object} fields Partial `objectSidebarState` to apply.
+		 */
+		assignSidebarState(fields) {
+			const state = this.objectSidebarState
+			for (const key of Object.keys(fields)) {
+				const next = fields[key]
+				const cur = state[key]
+				if (Array.isArray(next) && Array.isArray(cur)
+					&& next.length === cur.length
+					&& next.every((v, i) => v === cur[i])) {
+					continue
+				}
+				if (cur !== next) {
+					state[key] = next
+				}
 			}
 		},
 

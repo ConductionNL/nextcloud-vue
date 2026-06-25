@@ -235,17 +235,23 @@ export default {
 			default: false,
 		},
 		/**
-		 * Inverse of `hideRefresh`. Defaults to `true` so the action
-		 * renders. Set `:show-refresh="false"` to hide. Either `hideRefresh`
-		 * OR `!showRefresh` hides the action — the spec scenario in
-		 * `widget-wrapper` declares the show-prefixed form as canonical;
-		 * the `hide-` flags remain for back-compat.
+		 * Whether to show the built-in Refresh item. Tri-state:
+		 * - `true` / `false` — force the action on or off.
+		 * - `null` (the default) — **auto**: show the action only when a
+		 *   parent has attached an `@refresh` listener (i.e. something will
+		 *   actually handle the refresh). This keeps widgets that can't
+		 *   refresh — e.g. a prop-driven `CnObjectDataWidget` — from showing
+		 *   a dead button. Widgets that refresh themselves via the
+		 *   `cn:widget:refresh` event bus (with no `@refresh` listener)
+		 *   should set `:show-refresh="true"` explicitly.
 		 *
-		 * @type {boolean}
+		 * `hideRefresh` (or `:show-refresh="false"`) always wins.
+		 *
+		 * @type {boolean|null}
 		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
@@ -361,15 +367,18 @@ export default {
 		},
 
 		/**
-		 * Effective Refresh visibility. Either `hideRefresh: true` OR
-		 * `showRefresh: false` hides the action. The show-prefixed prop
-		 * is the spec-canonical form (per `widget-wrapper` scenario);
-		 * `hideRefresh` remains as a back-compat alias.
+		 * Effective Refresh visibility. `hideRefresh: true` (or
+		 * `:show-refresh="false"`) always hides it. When `showRefresh` is
+		 * left unset (`null`), auto-detect: show the action only when a
+		 * parent attached an `@refresh` listener — otherwise the refresh
+		 * would do nothing. `hideRefresh` remains a back-compat alias.
 		 *
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			return this.showRefresh && !this.hideRefresh
+			if (this.hideRefresh) return false
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners && this.$listeners.refresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs

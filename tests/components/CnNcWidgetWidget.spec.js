@@ -23,16 +23,23 @@ describe('CnNcWidgetWidget renderer', () => {
 	})
 
 	it('mounts natively when OCA.Dashboard exposes a callback', async () => {
+		const meta = { title: 'Calls' }
 		const callback = jest.fn()
+		meta.callback = callback
 		global.window.OCA = {
 			Dashboard: {
-				getWidget: () => ({ title: 'Calls', callback }),
+				getWidget: () => meta,
 			},
 		}
 		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.mode).toBe('native')
 		expect(callback).toHaveBeenCalled()
+		// Nextcloud's OCA.Dashboard callback signature is `(el, { widget })`:
+		// the metadata MUST be wrapped, not passed bare, so consumers can
+		// destructure `{ widget }` and read e.g. `widget.title`.
+		const [, ctx] = callback.mock.calls[0]
+		expect(ctx).toEqual({ widget: meta })
 		expect(wrapper.text()).toContain('Calls')
 	})
 })

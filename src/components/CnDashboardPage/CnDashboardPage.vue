@@ -389,7 +389,8 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="item.showTitle !== false"
+					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>
@@ -786,6 +787,25 @@ export default {
 			default: true,
 		},
 		/**
+		 * Show the built-in Refresh item on each **custom-slot** widget
+		 * (distinct from the page-level `showRefresh`). Tri-state:
+		 * - `true` / `false` — force it on or off for all custom widgets.
+		 * - `null` (the default) — **auto**: show it only when the app using
+		 *   `CnDashboardPage` attached a `@widget-refresh` listener (i.e. it
+		 *   will actually handle the refresh). Apps that refresh widgets
+		 *   centrally by another route (e.g. a header button bumping a shared
+		 *   signal) leave it unset and get no dead per-widget buttons.
+		 *
+		 * Built-in chart / NC / integration widgets always show Refresh
+		 * (they refresh via the `cn:widget:refresh` bus or their renderer).
+		 *
+		 * @type {boolean|null}
+		 */
+		widgetShowRefresh: {
+			type: Boolean,
+			default: null,
+		},
+		/**
 		 * Show the built-in Request-a-feature item in the page-level
 		 * overflow Actions menu. On by default; opens the
 		 * CnSuggestFeatureModal when mounted under CnAppRoot.
@@ -923,6 +943,20 @@ export default {
 			const e = this.cnEditingBody
 			const openBuildEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 			return this.isEditing || openBuildEditing
+		},
+		/**
+		 * Effective Refresh visibility for custom-slot widgets. An explicit
+		 * `widgetShowRefresh` prop wins; when unset (`null`), show Refresh
+		 * only if the app attached a `@widget-refresh` listener that will
+		 * handle it. (The page always attaches its own `@refresh` re-emitter
+		 * to each wrapper, so wrapper-level auto-detection can't be relied on
+		 * here — we resolve it at the page instead.)
+		 *
+		 * @return {boolean}
+		 */
+		effectiveWidgetShowRefresh() {
+			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
+			return Boolean(this.$listeners['widget-refresh'])
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit

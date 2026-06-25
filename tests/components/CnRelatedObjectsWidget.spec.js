@@ -56,6 +56,21 @@ describe('CnRelatedObjectsWidget', () => {
 		jest.clearAllMocks()
 	})
 
+	it('does not force the Refresh action on — it follows the wrapper auto-detect default', () => {
+		const WrapperProbe = {
+			name: 'CnWidgetWrapper',
+			props: { showRefresh: { default: null } },
+			template: '<div><slot /></div>',
+		}
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: { objectType: 'lead', objectId: 'L1', store: makeStore() },
+			stubs: { ...stubs, CnWidgetWrapper: WrapperProbe },
+		})
+		// No explicit show-refresh passed → stays null (auto). With no @refresh
+		// listener on a detail page, the wrapper auto-hides Refresh.
+		expect(wrapper.findComponent(WrapperProbe).props('showRefresh')).toBe(null)
+	})
+
 	it('renders related-object rows from uses/used/contracts (deduped)', async () => {
 		const store = makeStore({
 			fetchUses: jest.fn().mockResolvedValue([{ id: 'a1', title: 'Alpha' }]),

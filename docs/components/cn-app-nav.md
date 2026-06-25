@@ -116,7 +116,7 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 | `label` | `string` | Translation key — passed through `translate(label)` |
 | `icon` | `string` | CSS class (e.g. `icon-checkmark`); the active-state filter only applies to `class*="icon-"` |
 | `route` | `string` | Vue Router named route. Resolved against `manifest.pages` for `exact` matching |
-| `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
+| `href` | `string` | Destination URL. Renders the entry as a real anchor (visible on hover, native link cursor) instead of a router link. External URLs (`scheme://`) open in a new tab (`NcAppNavigationItem` adds `target="_blank"`); internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
 | `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = flat entry in the navigation's `#footer` region (outside the scroll list, always visible above the settings foldout); `'settings'` = inside the gear-icon foldout |

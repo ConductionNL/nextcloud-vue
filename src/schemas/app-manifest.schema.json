@@ -181,7 +181,7 @@
 				},
 				"href": {
 					"type": "string",
-					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
+					"description": "Destination URL. When set, the entry renders as a real anchor pointing at this URL (visible on hover, native link cursor) instead of dispatching a vue-router navigation. External URLs (containing a `scheme://`) open in a new tab; internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. `route` is ignored when `href` is present. Useful for documentation / help links and cross-app links."
 				},
 				"action": {
 					"type": "string",
