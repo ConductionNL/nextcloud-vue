@@ -297,6 +297,17 @@
 								}
 							}
 						},
+						"quickFilterMode": {
+							"type": "string",
+							"enum": ["chips", "dropdown"],
+							"default": "chips",
+							"description": "How `quickFilters` render on a type='index' page: `chips` (pill button strip, default) or `dropdown` (a single NcSelect; the empty-filter \"All\" tab is dropped — an empty selection means all)."
+						},
+						"quickFilterMultiple": {
+							"type": "boolean",
+							"default": false,
+							"description": "Allow several `quickFilters` active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Default false (single-select)."
+						},
 						"readOnly": {
 							"type": "boolean",
 							"default": false,

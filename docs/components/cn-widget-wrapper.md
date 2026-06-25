@@ -49,7 +49,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 |------|------|---------|-------------|
 | `title` | String | `'Widget'` | Widget title shown in the header |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
-| `chrome` | String | `'default'` | Chrome variant for the card. `'default'` is the library's own card chrome; `'nc-dashboard'` matches the native Nextcloud Dashboard panel (translucent blurred background, container-large corners, no border, 16px header). `styleConfig` overrides still layer on top. |
+| `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
 | `borderless` | Boolean | `false` | Remove border and background — makes the wrapper transparent |
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |

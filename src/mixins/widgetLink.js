@@ -16,13 +16,27 @@
  *
  * Host usage: `<component :is="linkTag" v-bind="linkAttrs" :class="{ '…--linked': isLinked }">`.
  * Assumes the host component exposes a `content` object prop.
+ *
+ * A route object's `query` / `params` values may carry the same dynamic
+ * `@`-tokens the source filters use (`@me`, `@today`, `@monthStart`, `@today±Nd`,
+ * …) — they are resolved at render time via `resolveFilterValue` so a metric
+ * tile can deep-link to a list pre-filtered "relative to now / the current user"
+ * (e.g. `route: { name: 'Cases', query: { 'deadline[lt]': '@today' } }`) without
+ * baking a fixed value into the manifest. Object-context tokens (`@workspace.*`,
+ * `@config.*`, `@objectId`) are NOT resolved here — only the global tokens that
+ * need no context.
  */
+import { resolveFilterValue } from '../utils/resolveFilterTokens.js'
+
 export default {
 	computed: {
-		/** The tile's configured vue-router location, or null. */
+		/** The tile's configured vue-router location (query/params tokens resolved), or null. */
 		linkRoute() {
 			const r = this.content && this.content.route
-			return (r && (typeof r === 'object' || typeof r === 'string')) ? r : null
+			if (!r) return null
+			if (typeof r === 'string') return r
+			if (typeof r !== 'object') return null
+			return { ...r, ...this.resolveRouteTokens(r) }
 		},
 		/** An external href configured on the tile, or null. */
 		linkHref() {
@@ -44,6 +58,37 @@ export default {
 		/** True when the tile navigates on click (route or external link). */
 		isLinked() {
 			return !!(this.linkRoute || this.linkHref)
+		},
+	},
+	methods: {
+		/**
+		 * Resolve `@`-tokens inside a route's `query` / `params` maps. Only the
+		 * context-free global tokens (`@me`, `@today`, `@monthStart`, …) are
+		 * resolved; a value that stays a `@…` string (context-bound token) is
+		 * dropped so a half-resolved token never lands in the URL.
+		 *
+		 * @param {object} route The vue-router location object.
+		 * @return {object} A partial `{ query?, params? }` with resolved maps (only present when the source had them).
+		 */
+		resolveRouteTokens(route) {
+			const out = {}
+			for (const key of ['query', 'params']) {
+				const map = route[key]
+				if (!map || typeof map !== 'object') continue
+				const resolved = {}
+				for (const [k, v] of Object.entries(map)) {
+					if (Array.isArray(v)) {
+						resolved[k] = v.map((x) => resolveFilterValue(x))
+					} else {
+						const r = resolveFilterValue(v)
+						// Drop a still-unresolved context-bound token (e.g. `@workspace.*`).
+						if (typeof r === 'string' && r.charAt(0) === '@') continue
+						resolved[k] = r
+					}
+				}
+				out[key] = resolved
+			}
+			return out
 		},
 	},
 }

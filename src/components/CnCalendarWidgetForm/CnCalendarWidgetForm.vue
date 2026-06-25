@@ -12,14 +12,28 @@
 			:clearable="false"
 			@input="updateField('viewMode', $event)" />
 
-		<label class="cn-calendar-widget-form__field">
-			<span class="cn-calendar-widget-form__label">{{ t('nextcloud-vue', 'Internal calendars (one principal URI per line)') }}</span>
+		<!-- Calendar picker (when the consuming app provides a fetcher); falls
+		     back to free-text principal entry otherwise. -->
+		<div class="cn-calendar-widget-form__field">
+			<span class="cn-calendar-widget-form__label">{{ t('nextcloud-vue', 'Calendars') }}</span>
+			<NcSelect
+				v-if="hasCalendarPicker"
+				:value="selectedCalendarOptions"
+				:options="calendarOptions"
+				:multiple="true"
+				:close-on-select="false"
+				:loading="loadingCalendars"
+				:placeholder="t('nextcloud-vue', 'Select calendars…')"
+				label="label"
+				@input="onCalendarsChange" />
 			<textarea
+				v-else
 				class="cn-calendar-widget-form__textarea"
 				:value="internalCalendarsText"
 				rows="3"
+				:placeholder="t('nextcloud-vue', 'One calendar principal URI per line')"
 				@input="updateMulti('internalCalendars', $event.target.value)" />
-		</label>
+		</div>
 
 		<label class="cn-calendar-widget-form__field">
 			<span class="cn-calendar-widget-form__label">{{ t('nextcloud-vue', 'External ICS URLs (one per line)') }}</span>
@@ -86,6 +100,18 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+		/**
+		 * Optional async fetcher returning the user's calendars
+		 * (`[{key, name, color}]`). When provided, the internal-calendar
+		 * free-text box is replaced by a multiselect picker. Supplied by the
+		 * consuming app (which owns the calendar backend) via `CnAddWidgetModal`.
+		 *
+		 * @type {Function|null}
+		 */
+		calendarsFetcher: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -110,13 +136,38 @@ export default {
 			viewMode: VIEW_MODES.includes(initial.viewMode) ? initial.viewMode : DEFAULT_CONTENT.viewMode,
 			daysAhead: this.coerceNumber(initial.daysAhead, DEFAULT_CONTENT.daysAhead),
 			colorByCalendar: initial.colorByCalendar !== false,
+			/** @type {Array<{key: string, name: string, color: string}>} */
+			availableCalendars: [],
+			loadingCalendars: false,
 		}
+	},
+
+	mounted() {
+		this.fetchCalendars()
 	},
 
 	computed: {
 		/** Available view modes. */
 		viewModeOptions() {
 			return VIEW_MODES
+		},
+
+		/** Whether to show the multiselect picker (fetcher gave calendars). */
+		hasCalendarPicker() {
+			return this.availableCalendars.length > 0
+		},
+
+		/** Picker options ({ id: calendar key, label: display name }). */
+		calendarOptions() {
+			return this.availableCalendars.map((c) => ({ id: c.key, label: c.name || c.key }))
+		},
+
+		/** Option objects for the currently-selected calendar keys. */
+		selectedCalendarOptions() {
+			return this.internalCalendars.map((key) => {
+				const match = this.calendarOptions.find((o) => o.id === key)
+				return match || { id: key, label: key }
+			})
 		},
 
 		/** Newline-joined internal calendars for the textarea. */
@@ -193,6 +244,40 @@ export default {
 				.map((line) => line.trim())
 				.filter((line) => line !== '')
 			this[field] = lines
+			this.$emit('update:content', this.assembledContent)
+		},
+
+		/**
+		 * Fetch the user's calendars via the injected fetcher (silent on
+		 * failure — the form then keeps the free-text fallback).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchCalendars() {
+			if (typeof this.calendarsFetcher !== 'function') {
+				return
+			}
+			this.loadingCalendars = true
+			try {
+				const list = await this.calendarsFetcher()
+				this.availableCalendars = Array.isArray(list) ? list.filter((c) => c && c.key) : []
+			} catch (e) {
+				console.error('CnCalendarWidgetForm: failed to fetch calendars', e)
+			} finally {
+				this.loadingCalendars = false
+			}
+		},
+
+		/**
+		 * Store the selected calendar keys from the multiselect and notify.
+		 *
+		 * @param {Array<{id: string}>} options the selected option objects.
+		 * @return {void}
+		 */
+		onCalendarsChange(options) {
+			this.internalCalendars = (Array.isArray(options) ? options : [])
+				.map((o) => o && o.id)
+				.filter((id) => typeof id === 'string' && id !== '')
 			this.$emit('update:content', this.assembledContent)
 		},
 

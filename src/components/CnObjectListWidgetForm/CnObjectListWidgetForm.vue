@@ -9,16 +9,11 @@
 		<h4 class="cn-object-list-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
 
 		<div class="cn-object-list-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-object-list-form__row2">
@@ -82,6 +77,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
@@ -106,7 +102,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnObjectListWidgetForm',
 
-	components: { NcTextField, NcSelect, NcButton, Plus, Close, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, NcButton, Plus, Close, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
 
 	props: {
 		/**

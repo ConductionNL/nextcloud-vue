@@ -7,10 +7,20 @@
 	<div class="cn-nc-dashboard-widget-form">
 		<div class="cn-nc-dashboard-widget-form__field">
 			<span class="cn-nc-dashboard-widget-form__label">{{ t('nextcloud-vue', 'Pick a widget') }}</span>
-			<CnNcWidgetGridPicker
-				v-model="widgetId"
-				:widgets="widgetOptions"
-				@input="emitContent" />
+			<input
+				v-model="search"
+				type="search"
+				class="cn-nc-dashboard-widget-form__search"
+				:placeholder="t('nextcloud-vue', 'Search widgets…')">
+			<div class="cn-nc-dashboard-widget-form__picker">
+				<CnNcWidgetGridPicker
+					v-model="widgetId"
+					:widgets="filteredWidgetOptions"
+					@input="emitContent" />
+				<p v-if="filteredWidgetOptions.length === 0" class="cn-nc-dashboard-widget-form__empty">
+					{{ t('nextcloud-vue', 'No widgets match your search.') }}
+				</p>
+			</div>
 		</div>
 
 		<label class="cn-nc-dashboard-widget-form__field">
@@ -90,6 +100,7 @@ export default {
 		return {
 			widgetId: typeof initial.widgetId === 'string' ? initial.widgetId : DEFAULT_CONTENT.widgetId,
 			displayMode: initial.displayMode === 'horizontal' ? 'horizontal' : 'vertical',
+			search: '',
 		}
 	},
 
@@ -108,6 +119,17 @@ export default {
 					title: w.title || w.id,
 					iconUrl: typeof w.iconUrl === 'string' ? w.iconUrl : '',
 				}))
+		},
+
+		/** Widget options filtered by the search box (title or id). */
+		filteredWidgetOptions() {
+			const q = this.search.trim().toLowerCase()
+			if (q === '') {
+				return this.widgetOptions
+			}
+			return this.widgetOptions.filter((w) =>
+				w.title.toLowerCase().includes(q) || w.id.toLowerCase().includes(q),
+			)
 		},
 
 		/** The content blob assembled from the current field values. */
@@ -158,6 +180,31 @@ export default {
 .cn-nc-dashboard-widget-form__label {
 	font-size: 14px;
 	font-weight: 500;
+}
+
+.cn-nc-dashboard-widget-form__search {
+	width: 100%;
+	padding: 6px 8px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+/* Cap the picker height so the long widget catalog scrolls within the modal
+   instead of making it thousands of pixels tall. */
+.cn-nc-dashboard-widget-form__picker {
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	padding: 4px;
+}
+
+.cn-nc-dashboard-widget-form__empty {
+	margin: 8px;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-nc-dashboard-widget-form__select {

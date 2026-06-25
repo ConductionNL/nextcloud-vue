@@ -14,16 +14,11 @@
 			@update:value="updateField('label', $event)" />
 
 		<div class="cn-gauge-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-gauge-form__row2">
@@ -115,6 +110,7 @@ import { NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
@@ -138,7 +134,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnGaugeWidgetForm',
 
-	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, NcCheckboxRadioSwitch, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */

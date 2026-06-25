@@ -16,25 +16,9 @@
 			<label class="cn-dash-tile-form__icon-label">
 				{{ t('nextcloud-vue', 'Icon') }}
 			</label>
-			<div class="cn-dash-tile-form__icon-picker">
-				<span class="cn-dash-tile-form__icon-preview">
-					<CnWidgetIcon :name="icon" :size="24" :alt="t('nextcloud-vue', 'Icon preview')" />
-				</span>
-				<select
-					class="cn-dash-tile-form__icon-select"
-					:value="builtInIconValue"
-					@change="onIconChange($event.target.value)">
-					<option value="">
-						{{ t('nextcloud-vue', 'Select icon…') }}
-					</option>
-					<option
-						v-for="(_, name) in iconRegistry"
-						:key="name"
-						:value="name">
-						{{ name }}
-					</option>
-				</select>
-			</div>
+			<CnIconPicker
+				:value="builtInIconValue"
+				@input="onIconChange($event || '')" />
 			<NcTextField
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon (name or URL)')"
@@ -87,7 +71,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect } from '@nextcloud/vue'
-import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
+import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
 import { DASHBOARD_ICONS, isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -118,7 +102,7 @@ export default {
 	components: {
 		NcTextField,
 		NcSelect,
-		CnWidgetIcon,
+		CnIconPicker,
 	},
 
 	props: {

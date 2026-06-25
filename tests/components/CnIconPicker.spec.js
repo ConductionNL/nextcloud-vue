@@ -61,6 +61,7 @@ describe('CnIconPicker', () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
 		// Grid of icon tiles — click the one whose aria-label is the registry key.
 		const star = w.findAll('.cn-icon-picker__icon').wrappers.find((b) => b.attributes('aria-label') === 'Star')
+		expect(star).toBeTruthy()
 		await star.trigger('click')
 		expect(w.emitted('input')[0]).toEqual(['Star'])
 	})
@@ -76,6 +77,12 @@ describe('CnIconPicker', () => {
 	it('no None tile unless clearable', () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
 		expect(w.find('.cn-icon-picker__none').exists()).toBe(false)
+	})
+
+	it('marks the current icon tile as selected', () => {
+		const w = mount(CnIconPicker, { propsData: { value: 'Star' }, mocks })
+		const star = w.findAll('.cn-icon-picker__icon').wrappers.find((b) => b.attributes('aria-label') === 'Star')
+		expect(star.classes()).toContain('cn-icon-picker__icon--selected')
 	})
 	it('hides the upload control when no uploadFn is given', () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })

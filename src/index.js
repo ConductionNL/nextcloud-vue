@@ -58,6 +58,7 @@ export {
 	CnSignatureCapture,
 	CnIndexSidebar,
 	CnRegisterMapping,
+	CnRegisterSchemaSelect,
 	CnThemePreview,
 	CnRelationshipGraph,
 	CnDashboardPage,
@@ -110,6 +111,16 @@ export {
 	DEFAULT_DATE_RANGE_PRESETS,
 	resolvePresetWindow,
 	CnStatsBlockWidget,
+	CnStatWidget,
+	CnStatWidgetForm,
+	CnDeltaWidget,
+	CnDeltaWidgetForm,
+	CnGaugeWidget,
+	CnGaugeWidgetForm,
+	CnObjectListWidget,
+	CnObjectListWidgetForm,
+	CnChartWidgetForm,
+	CnStatsBlockWidgetForm,
 	CnLockedBanner,
 	CnObjectSidebar,
 	CnInfoWidget,
@@ -259,6 +270,7 @@ export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
+export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
