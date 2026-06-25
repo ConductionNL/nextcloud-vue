@@ -124,6 +124,7 @@
 		<CnAddWidgetModal
 			v-if="showAddWidgetModal"
 			:show="showAddWidgetModal"
+			:surface="addWidgetSurface"
 			@submit="onAddWidgetSubmit"
 			@close="showAddWidgetModal = false" />
 		<CnEditActionsModal
@@ -285,6 +286,17 @@ export default {
 		/** Whether the active page hosts a widget grid that "Add widget" can target. */
 		pageSupportsWidgets() {
 			return this.isDashboardPage || this.isDetailPage
+		},
+		/**
+		 * The widget-picker surface for "Add widget". Detail pages get
+		 * `'detail-page'` so detail-only types (notably a second `data` widget)
+		 * appear alongside the universal widgets; dashboards keep the default
+		 * dashboard surface.
+		 *
+		 * @return {string} the surface key.
+		 */
+		addWidgetSurface() {
+			return this.isDetailPage ? 'detail-page' : 'app-dashboard'
 		},
 	},
 

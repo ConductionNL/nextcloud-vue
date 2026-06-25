@@ -91,6 +91,22 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.vm.state.type).toBe('label')
 	})
 
+	it('offers a detail-only type only when surface="detail-page"', () => {
+		const { CnAddWidgetModal, registry } = loadModal({ label: { displayName: 'Label' } })
+		// A detail-only type (mirrors the real `data` widget).
+		registry.registerDashboardWidget('data', {
+			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Object data', icon: 'Star', surfaces: ['detail-page'],
+		})
+		// Default (dashboard) surface excludes it.
+		const dash = mount(CnAddWidgetModal, { propsData: { show: true } })
+		expect(dash.findAll('option').wrappers.map((o) => o.attributes('value'))).not.toContain('data')
+		// Detail surface includes it (alongside the universal type).
+		const detail = mount(CnAddWidgetModal, { propsData: { show: true, surface: 'detail-page' } })
+		const values = detail.findAll('option').wrappers.map((o) => o.attributes('value'))
+		expect(values).toContain('data')
+		expect(values).toContain('label')
+	})
+
 	it('disables submit while the sub-form is invalid and shows the first error', async () => {
 		const { CnAddWidgetModal } = loadModal({
 			label: { form: fakeForm({ errors: ['Label is required'] }) },

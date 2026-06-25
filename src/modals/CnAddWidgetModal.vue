@@ -202,6 +202,18 @@ export default {
 			type: Function,
 			default: null,
 		},
+		/**
+		 * The surface the picker offers types for. `'detail-page'` surfaces
+		 * detail-only types (e.g. a second `data` widget) alongside the universal
+		 * widgets; the default `'app-dashboard'` lists the dashboard set. Types
+		 * with no declared `surfaces` appear on every surface.
+		 *
+		 * @type {string}
+		 */
+		surface: {
+			type: String,
+			default: 'app-dashboard',
+		},
 	},
 
 	emits: [
@@ -249,7 +261,7 @@ export default {
 		 * @return {string[]} the form-bearing type keys.
 		 */
 		availableTypes() {
-			return listWidgetTypes()
+			return listWidgetTypes(this.surface)
 		},
 
 		/**
