@@ -179,11 +179,23 @@
 	gap: calc(4 * var(--default-grid-baseline));
 }
 
-/* Grid layout mode + schema-driven auto-body both render on the shared
-   responsive grid engine (`.cn-grid` / `.cn-grid__item`, see grid.css) —
-   no detail-page-specific grid CSS needed here. */
+/* Grid layout mode + schema-driven auto-body both render on the GridStack
+   engine (CnDashboardGrid). The default Data + Related body is seeded as a
+   real drag/resize grid so OpenBuild edit mode can rearrange it. */
+.cn-detail-page__grid {
+	width: 100%;
+}
+
+/* Each widget fills its grid cell; GridStack's `.grid-stack-item-content` is
+   `overflow: hidden`, so let a tall widget (e.g. a long data form) scroll
+   within its cell rather than clip. */
+.cn-detail-page__grid .grid-stack-item-content {
+	overflow: auto;
+}
+
 .cn-detail-page__grid-item {
 	min-width: 0;
+	height: 100%;
 	position: relative;
 }
 

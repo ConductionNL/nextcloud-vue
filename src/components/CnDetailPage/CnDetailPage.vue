@@ -237,78 +237,100 @@
 				placement="before-body"
 				data-testid="cn-detail-body-sections-before-body" />
 
-			<!-- Grid layout mode -->
-			<div v-if="hasGridLayout" class="cn-grid cn-grid--responsive cn-detail-page__grid">
-				<section
-					v-for="item in sortedLayout"
-					:key="item.id"
-					:style="cnGridCellStyle(item)"
-					class="cn-grid__item cn-detail-page__grid-item"
-					:class="{ 'cn-grid__item--row': hasGridRow(item) }"
-					:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
-					<!-- In-app edit overlay (ADR-041): a configure cog appears on
-					     widgets that have a registered config form while the page
-					     is in OpenBuild edit mode. The modal's own Delete affordance
-					     covers removal, so no separate remove button here. -->
-					<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
-							<template #icon><Cog :size="18" /></template>
-						</NcButton>
+			<!-- Adjustable widget grid (GridStack). The detail body is, at its
+			     core, a real drag/resize grid: by default it is seeded with the
+			     schema-driven Data + Related widgets (see `bodyGridLayout`), but in
+			     OpenBuild edit mode widgets can be moved, resized, configured and
+			     added. Explicit `layout` + `widgets` props (manifest grid pages)
+			     feed the same engine, so hand-authored grid pages also become
+			     draggable. -->
+			<CnDashboardGrid
+				v-if="hasBodyGrid"
+				:layout="bodyGridLayout"
+				:editable="editingBody"
+				:columns="12"
+				class="cn-detail-page__grid"
+				@layout-change="onBodyLayoutChange">
+				<template #widget="{ item }">
+					<div
+						class="cn-detail-page__grid-item"
+						:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+						<!-- In-app edit overlay (ADR-041): a configure cog appears on
+						     widgets that have a registered config form while the page
+						     is in OpenBuild edit mode. The modal's own Delete affordance
+						     covers removal, so no separate remove button here. -->
+						<div v-if="editingBody && registryFormFor(item)" class="cn-detail-page__widget-edit">
+							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
+								<template #icon>
+									<Cog :size="18" />
+								</template>
+							</NcButton>
+						</div>
+						<h3
+							v-if="item.showTitle !== false && findWidget(item)"
+							:id="`widget-title-${item.id}`"
+							class="cn-detail-page__widget-title">
+							{{ findWidget(item).title }}
+						</h3>
+						<!--
+							@slot `widget-${item.widgetId}`
+							@description Per-widget slot whose name is `widget-<widgetId>`. Use
+							it to inject custom widget content into a grid slot. Default
+							fallback renders a registry widget: `type: 'data'` renders the
+							schema-driven data widget; `type: 'related'` the related-objects
+							widget; `type: 'integration'` resolves from the integration
+							registry; any other content-driven catalog type (stat / chart /
+							delta / gauge / object-list / …) renders its registered renderer.
+							@binding {object} item Layout item descriptor.
+							@binding {object} widget Resolved widget definition.
+						-->
+						<slot
+							:name="`widget-${item.widgetId}`"
+							:item="item"
+							:widget="findWidget(item)">
+							<!-- `type: 'data'` widget: render the schema-driven data
+							     widget with the page's loaded object + the def's
+							     per-property overrides. This is the default body widget. -->
+							<CnObjectDataWidget
+								v-if="isDataWidget(item) && currentSchema"
+								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:schema="currentSchema"
+								:object-data="currentObject"
+								:object-type="resolvedObjectType"
+								:store="effectiveObjectStore"
+								:overrides="widgetContentFor(item).overrides || {}"
+								:columns="widgetContentFor(item).columns || 3" />
+							<!-- `type: 'related'` widget: the related-objects widget,
+							     the second default body widget. Resolves this object's
+							     relations and links into integrations. -->
+							<CnRelatedObjectsWidget
+								v-else-if="isRelatedWidget(item)"
+								:object-type="resolvedObjectType"
+								:object-id="objectId"
+								:object-data="currentObject"
+								:store="effectiveObjectStore"
+								@open-integration="onAutoBodyOpenIntegration" />
+							<!-- Fallback for `type: 'integration'` widget defs:
+							     render the registry widget on the detail-page
+							     surface. A consumer-supplied #widget-<id> slot
+							     still overrides this. -->
+							<component
+								:is="resolveIntegrationWidget(item)"
+								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
+								v-bind="getIntegrationProps(item)" />
+							<!-- Fallback for content-driven catalog widgets
+							     (stat / chart / delta / gauge / object-list / …):
+							     render the registered renderer with the def's
+							     `content`. These self-fetch from OpenRegister. -->
+							<component
+								:is="registryRendererFor(item)"
+								v-else-if="registryRendererFor(item)"
+								:content="widgetContentFor(item)"
+								v-bind="widgetContentFor(item)" />
+						</slot>
 					</div>
-					<h3
-						v-if="item.showTitle !== false && findWidget(item)"
-						:id="`widget-title-${item.id}`"
-						class="cn-detail-page__widget-title">
-						{{ findWidget(item).title }}
-					</h3>
-					<!--
-						@slot `widget-${item.widgetId}`
-						@description Per-widget slot whose name is `widget-<widgetId>`. Use
-						it to inject custom widget content into a grid slot. Default
-						fallback renders a registry widget: `type: 'integration'` resolves
-						from the integration registry; any other content-driven catalog
-						type (stat / chart / delta / gauge / object-list / …) renders its
-						registered renderer with the widget def's `content`.
-						@binding {object} item Layout item descriptor.
-						@binding {object} widget Resolved widget definition.
-					-->
-					<slot
-						:name="`widget-${item.widgetId}`"
-						:item="item"
-						:widget="findWidget(item)">
-						<!-- `type: 'data'` widget: render the schema-driven data
-						     widget with the page's loaded object + the def's
-						     per-property overrides. Lets a detail page compose the
-						     data widget into a grid (instead of the auto-body). -->
-						<CnObjectDataWidget
-							v-if="isDataWidget(item) && currentSchema"
-							:title="findWidget(item).title || widgetContentFor(item).title || undefined"
-							:schema="currentSchema"
-							:object-data="currentObject"
-							:object-type="resolvedObjectType"
-							:store="effectiveObjectStore"
-							:overrides="widgetContentFor(item).overrides || {}"
-							:columns="widgetContentFor(item).columns || 3" />
-						<!-- Fallback for `type: 'integration'` widget defs:
-						     render the registry widget on the detail-page
-						     surface. A consumer-supplied #widget-<id> slot
-						     still overrides this. -->
-						<component
-							:is="resolveIntegrationWidget(item)"
-							v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
-							v-bind="getIntegrationProps(item)" />
-						<!-- Fallback for content-driven catalog widgets
-						     (stat / chart / delta / gauge / object-list / …):
-						     render the registered renderer with the def's
-						     `content`. These self-fetch from OpenRegister. -->
-						<component
-							:is="registryRendererFor(item)"
-							v-else-if="registryRendererFor(item)"
-							:content="widgetContentFor(item)"
-							v-bind="widgetContentFor(item)" />
-					</slot>
-				</section>
-			</div>
+				</template>
+			</CnDashboardGrid>
 
 			<!-- Statistics table -->
 			<div v-if="hasStats" class="cn-detail-page__stats">
@@ -347,37 +369,13 @@
 				</table>
 			</div>
 
-			<!-- Default vertical stacking mode -->
+			<!-- Default vertical stacking mode. The schema-driven auto-body (Data +
+			     Related) is now rendered by the adjustable grid above (seeded by
+			     `bodyGridLayout`), so this branch only carries hand-authored
+			     default-slot content when no widget grid is active. -->
 			<div v-else class="cn-detail-page__content">
-				<!-- Schema-driven auto-body: fires when the manifest passed
-				     register+schema+objectId, the object resolved, and no
-				     consumer-supplied slot content is present. Renders the
-				     data widget with the related-objects widget beneath it
-				     so a `type: "detail"` manifest page is meaningful without
-				     per-app code. Object metadata is reachable from the data
-				     widget's "Metadata" action item rather than a permanent
-				     widget. The consumer's slot below short-circuits the
-				     auto-body when present. -->
-				<div v-if="shouldRenderAutoBody" class="cn-grid cn-grid--responsive cn-detail-page__auto-body">
-					<div v-if="currentSchema" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
-						<CnObjectDataWidget
-							:schema="currentSchema"
-							:object-data="currentObject"
-							:object-type="resolvedObjectType"
-							:store="effectiveObjectStore" />
-					</div>
-					<div v-if="showRelatedObjects" class="cn-grid__item" :style="cnGridCellStyle({ gridWidth: 12 })">
-						<CnRelatedObjectsWidget
-							:object-type="resolvedObjectType"
-							:object-id="objectId"
-							:object-data="currentObject"
-							:store="effectiveObjectStore"
-							@open-integration="onAutoBodyOpenIntegration" />
-					</div>
-				</div>
-
 				<!-- Default content -->
-				<div v-else class="cn-detail-page__content">
+				<div v-if="!hasBodyGrid" class="cn-detail-page__content">
 					<!--
 						@slot default
 						@description Main body content rendered when no grid layout, no
@@ -506,6 +504,7 @@ import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButto
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
@@ -613,6 +612,7 @@ export default {
 		CnLockedBanner,
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
+		CnDashboardGrid,
 		CnLifecycleActions,
 		CnSummaryAggregates,
 		CnRelatedCollections,
@@ -1176,6 +1176,16 @@ export default {
 			sidebarSeeded: false,
 			/** The relation-link descriptor whose modal is currently open (or null). */
 			activeRelationLink: null,
+			/**
+			 * Materialized default body grid for the schema-driven auto-body (Data +
+			 * Related). Lazily built by `materializeAutoBody()` the first time the
+			 * object resolves so the detail body is a real, mutable GridStack grid
+			 * (drag / resize / configure) rather than a static stack. `null` until
+			 * materialized; reset when the schema-driven context changes.
+			 */
+			autoBodyLayout: null,
+			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
+			autoBodyWidgets: null,
 		}
 	},
 
@@ -1206,7 +1216,7 @@ export default {
 		 */
 		configWidget() {
 			if (!this.configWidgetId) return null
-			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			return def || null
 		},
 
@@ -1361,6 +1371,43 @@ export default {
 		},
 
 		/**
+		 * Effective layout array driving the body grid. An explicit `layout` prop
+		 * (manifest grid page) wins; otherwise the materialized default auto-body
+		 * (Data + Related) is used when the schema-driven object has loaded.
+		 *
+		 * @return {Array} Layout items for CnDashboardGrid.
+		 */
+		bodyGridLayout() {
+			if (this.hasGridLayout) return this.layout
+			if (this.shouldRenderAutoBody) return this.autoBodyLayout || []
+			return []
+		},
+
+		/**
+		 * Effective widget-definition array paired with `bodyGridLayout`. Used by
+		 * the overridden `findWidget` so both the prop-driven and the default
+		 * auto-body grids resolve their widget defs from one place.
+		 *
+		 * @return {Array} Widget definitions.
+		 */
+		bodyGridWidgets() {
+			if (this.hasGridLayout) return this.widgets
+			if (this.shouldRenderAutoBody) return this.autoBodyWidgets || []
+			return []
+		},
+
+		/**
+		 * Whether the body renders as an adjustable widget grid (vs. the
+		 * hand-authored default slot). True for explicit grid pages and for the
+		 * schema-driven default Data + Related body.
+		 *
+		 * @return {boolean}
+		 */
+		hasBodyGrid() {
+			return this.bodyGridLayout.length > 0
+		},
+
+		/**
 		 * Whether the sidebar is rendered externally (via objectSidebarState inject)
 		 * rather than inline. When external, CnDetailPage only manages state —
 		 * the parent App renders the actual NcAppSidebar.
@@ -1480,6 +1527,22 @@ export default {
 		currentObject: {
 			immediate: true,
 			handler() { this.syncObjectContext() },
+		},
+
+		// Materialize the default body grid (Data + Related) the first time the
+		// schema-driven object resolves so the detail body is an adjustable grid.
+		shouldRenderAutoBody: {
+			immediate: true,
+			handler(active) {
+				if (active && !this.autoBodyLayout) this.materializeAutoBody()
+			},
+		},
+
+		// A different schema means a fresh default grid — drop the materialized
+		// one so it rebuilds for the new object type.
+		resolvedObjectType() {
+			this.autoBodyLayout = null
+			this.autoBodyWidgets = null
 		},
 
 		title() { this.syncSidebarState() },
@@ -1772,6 +1835,74 @@ export default {
 		},
 
 		/**
+		 * Whether a grid item is the schema-driven `related` widget — rendered via
+		 * CnRelatedObjectsWidget with the page's loaded object. One of the two
+		 * default body widgets.
+		 *
+		 * @param {object} item Layout item
+		 * @return {boolean} true when the matching widget def is `type: 'related'`.
+		 */
+		isRelatedWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Resolve the widget definition for a layout item. Overrides the
+		 * gridLayout mixin's `findWidget` (which only reads the `widgets` prop) so
+		 * the materialized default auto-body widgets resolve too. Searches the
+		 * effective `bodyGridWidgets`.
+		 *
+		 * @param {{ widgetId: string }} item Layout item.
+		 * @return {object|undefined} The matching widget definition.
+		 */
+		findWidget(item) {
+			return this.bodyGridWidgets.find((w) => w.id === item.widgetId)
+		},
+
+		/**
+		 * Build the default body grid for the schema-driven auto-body: a full-width
+		 * Data widget with the Related-objects widget beneath it. Materialized once
+		 * (lazily) so the geometry is a mutable, reactive array the user can drag /
+		 * resize in edit mode. Both widgets carry `showTitle: false` because they
+		 * render their own card chrome.
+		 */
+		materializeAutoBody() {
+			const widgets = []
+			const layout = []
+			if (this.currentSchema) {
+				widgets.push({ id: 'data', widgetId: 'data', type: 'data', title: t('nextcloud-vue', 'Data') })
+				layout.push({ id: 'data', widgetId: 'data', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6, showTitle: false })
+			}
+			if (this.showRelatedObjects) {
+				widgets.push({ id: 'related', widgetId: 'related', type: 'related', title: t('nextcloud-vue', 'Related') })
+				layout.push({ id: 'related', widgetId: 'related', gridX: 0, gridY: 6, gridWidth: 12, gridHeight: 5, showTitle: false })
+			}
+			this.autoBodyWidgets = widgets
+			this.autoBodyLayout = layout
+		},
+
+		/**
+		 * Persist a drag/resize from the body grid. For the default auto-body the
+		 * new geometry is kept locally so the move sticks; for an explicit `layout`
+		 * prop the change is emitted upward (`layout-change` + `update:layout`) for
+		 * the manifest renderer / host to persist.
+		 *
+		 * @param {Array} updated The new layout array from CnDashboardGrid.
+		 *
+		 * @event layout-change Emitted with the updated body-grid layout. The
+		 *   sibling `update:layout` event is also emitted so `:layout.sync`
+		 *   consumers stay in sync.
+		 */
+		onBodyLayoutChange(updated) {
+			if (!this.hasGridLayout) {
+				this.autoBodyLayout = updated
+			}
+			this.$emit('layout-change', updated)
+			this.$emit('update:layout', updated)
+		},
+
+		/**
 		 * The registered config FORM for a grid item's widget type, or null.
 		 * Used to gate the per-widget configure cog (only configurable widgets
 		 * show one) in OpenBuild edit mode.
@@ -1837,7 +1968,7 @@ export default {
 		 * @type {object}
 		 */
 		onWidgetConfigSave(edited) {
-			const def = this.widgets.find((w) => w.id === this.configWidgetId)
+			const def = this.bodyGridWidgets.find((w) => w.id === this.configWidgetId)
 			if (def) {
 				if (edited.title !== undefined) this.$set(def, 'title', edited.title)
 				if (edited.content !== undefined) this.$set(def, 'content', edited.content)
@@ -1865,10 +1996,19 @@ export default {
 		 */
 		onWidgetConfigDelete(_w) {
 			const id = this.configWidgetId
-			const wIdx = this.widgets.findIndex((w) => w.id === id)
-			if (wIdx !== -1) this.widgets.splice(wIdx, 1)
-			const lIdx = this.layout.findIndex((l) => l.widgetId === id)
-			if (lIdx !== -1) this.layout.splice(lIdx, 1)
+			// Drop from whichever pair backs the active grid: the explicit
+			// `layout`/`widgets` props (manifest grid page) or the materialized
+			// default auto-body arrays.
+			const widgetArr = this.hasGridLayout ? this.widgets : this.autoBodyWidgets
+			const layoutArr = this.hasGridLayout ? this.layout : this.autoBodyLayout
+			if (Array.isArray(widgetArr)) {
+				const wIdx = widgetArr.findIndex((w) => w.id === id)
+				if (wIdx !== -1) widgetArr.splice(wIdx, 1)
+			}
+			if (Array.isArray(layoutArr)) {
+				const lIdx = layoutArr.findIndex((l) => l.widgetId === id)
+				if (lIdx !== -1) layoutArr.splice(lIdx, 1)
+			}
 			this.showWidgetConfig = false
 			this.$emit('widget-config-change', null)
 		},
