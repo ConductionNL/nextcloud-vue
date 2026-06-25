@@ -1762,11 +1762,21 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+
+		// When `?action=create` is injected into the query via router navigation
+		// (e.g. a "New Case" button on another page), auto-open the create dialog
+		// so the user lands on the index page with the form already open.
+		'$route.query.action': {
+			handler(val) {
+				if (val === 'create') this.maybeOpenCreateFromQuery()
+			},
+		},
 	},
 
 	mounted() {
 		this.publishHoistedSidebar()
 		this.pushAiContext()
+		this.maybeOpenCreateFromQuery()
 	},
 
 	created() {
@@ -2122,6 +2132,33 @@ export default {
 			} else if (this.showFormDialog) {
 				this.editItem = null
 				this.showFormDialogVisible = true
+			}
+		},
+
+		/**
+		 * Open the built-in create dialog when the route carries `?action=create`.
+		 * Called on `mounted()` and whenever `$route.query.action` changes, so it
+		 * works both on initial navigation and on same-page deep-links (e.g. a
+		 * "New Case" button on a sibling page that routes here with the query).
+		 *
+		 * After opening the dialog the query param is cleared via
+		 * `$router.replace` so a page refresh does not re-open it and browser
+		 * history stays clean. No-op when there is no router, when `showFormDialog`
+		 * is false (consumer manages its own dialog), or when the query param is
+		 * absent / not `'create'`.
+		 */
+		maybeOpenCreateFromQuery() {
+			if (!this.$route || !this.$route.query || this.$route.query.action !== 'create') return
+			if (!this.showFormDialog) return
+			this.openFormDialog(null)
+			// Clear the query param; guard against redundant navigation errors.
+			if (this.$router) {
+				const query = { ...this.$route.query }
+				delete query.action
+				const nav = this.$router.replace({ query })
+				// $router.replace returns a Promise in Vue Router 3 but may
+				// return undefined in mocked / legacy environments — guard.
+				if (nav && typeof nav.catch === 'function') nav.catch(() => {})
 			}
 		},
 

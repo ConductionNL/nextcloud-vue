@@ -370,3 +370,81 @@ describe('createOverride hook', () => {
 		wrapper.destroy()
 	})
 })
+
+// ── ?action=create deep-link ───────────────────────────────────────────
+
+describe('?action=create deep-link', () => {
+	/**
+	 * Mount with a `?action=create` query param pre-set so mounted() fires it.
+	 *
+	 * @param {object} [extra] Extra props.
+	 * @return {object} wrapper
+	 */
+	function mountWithCreate(extra = {}) {
+		return mount(CnIndexPage, {
+			propsData: { title: 'Items', showFormDialog: true, ...extra },
+			stubs,
+			mocks: {
+				$route: { params: {}, query: { action: 'create' }, name: 'items' },
+				$router: { push: jest.fn(), replace: jest.fn().mockResolvedValue(undefined) },
+			},
+		})
+	}
+
+	it('opens the create dialog on mount when ?action=create is present', async () => {
+		const wrapper = mountWithCreate()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showFormDialogVisible).toBe(true)
+		expect(wrapper.vm.editItem).toBeNull()
+		wrapper.destroy()
+	})
+
+	it('clears the action query param after opening', async () => {
+		const replace = jest.fn().mockResolvedValue(undefined)
+		const wrapper = mount(CnIndexPage, {
+			propsData: { title: 'Items', showFormDialog: true },
+			stubs,
+			mocks: {
+				$route: { params: {}, query: { action: 'create' }, name: 'items' },
+				$router: { push: jest.fn(), replace },
+			},
+		})
+		await wrapper.vm.$nextTick()
+		expect(replace).toHaveBeenCalledWith({ query: {} })
+		wrapper.destroy()
+	})
+
+	it('does NOT open the dialog when showFormDialog is false (consumer manages its own dialog)', async () => {
+		const wrapper = mount(CnIndexPage, {
+			propsData: { title: 'Items', showFormDialog: false },
+			stubs,
+			mocks: {
+				$route: { params: {}, query: { action: 'create' }, name: 'items' },
+				$router: { push: jest.fn(), replace: jest.fn().mockResolvedValue(undefined) },
+			},
+		})
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showFormDialogVisible).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('does NOT open the dialog when ?action is absent', async () => {
+		const wrapper = mountPage({ title: 'Items', showFormDialog: true })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showFormDialogVisible).toBe(false)
+		wrapper.destroy()
+	})
+
+	it('opens the dialog when the watcher fires on same-page navigation', async () => {
+		const wrapper = mountPage({ title: 'Items', showFormDialog: true })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showFormDialogVisible).toBe(false)
+
+		// Simulate the watcher being triggered directly (same-page nav injects ?action=create)
+		wrapper.vm.$route.query.action = 'create'
+		wrapper.vm.maybeOpenCreateFromQuery()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.showFormDialogVisible).toBe(true)
+		wrapper.destroy()
+	})
+})
