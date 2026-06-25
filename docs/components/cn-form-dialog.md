@@ -50,6 +50,8 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `textarea` | Long text |
 | `select` | Single choice from options (static or async) |
 | `multiselect` | Multiple choices (static or async) |
+| `user-select` | Single Nextcloud user — searchable dropdown of real users (stores the UID). See [Nextcloud user references](#nextcloud-user-references) |
+| `user-multiselect` | Multiple Nextcloud users — searchable multi-select (stores an array of UIDs) |
 | `tags` | Tag input (with optional async suggestions) |
 | `checkbox` | Boolean toggle |
 | `date` | Date picker |
@@ -212,6 +214,34 @@ A schema property that is an OpenRegister object reference renders as a **search
 - When `register` is empty (or the fetch fails) the field falls back to a plain text input — no regression, no console spew.
 
 `CnIndexPage` threads its own `register` into the built-in `CnFormDialog` automatically, so reference fields resolve out of the box on manifest-driven and self-fetch pages.
+
+## Nextcloud user references
+
+A schema property that represents a Nextcloud user renders as a **searchable dropdown of real Nextcloud users** (label = display name, value = UID) instead of a free-text box. Mark the property with `referenceType: "nextcloud-user"` (preferred) — `format: "user"` / `format: "username"` work too:
+
+```js
+const schema = {
+  title: 'Case',
+  properties: {
+    // single user → searchable single-select (stores the UID string)
+    assignee: { type: 'string', referenceType: 'nextcloud-user', title: 'Assignee' },
+    // array of users → searchable multi-select (stores an array of UIDs)
+    watchers: { type: 'array', items: { referenceType: 'nextcloud-user' }, title: 'Watchers' },
+  },
+}
+```
+
+```vue
+<CnFormDialog :schema="schema" @confirm="onConfirm" />
+```
+
+**Behavior:**
+
+- `fieldsFromSchema` resolves a user-marked property to a `user-select` widget (or `user-multiselect` for an array) and tags it `field.userPicker = { multiple }`.
+- Users are loaded from the core **autocomplete OCS endpoint** (`GET /ocs/v2.php/core/autocomplete/get`), which is available to **every authenticated user** (not just admins). Each suggestion is mapped to `{ label: <display name>, value: <uid> }`. The search is debounced (300 ms).
+- The value stored in `formData` is the **UID string** (single) or **array of UIDs** (multiple) — never the display object. In edit mode the stored UID is resolved to its display name so the current selection shows (falling back to the UID itself when the name can't be resolved).
+- No `register` prop is needed. If the OCS call fails the picker fails soft (empty options, no console spew) and the stored UID still displays.
+- A `#field-<key>` slot still overrides the picker entirely.
 
 ## Field Overrides
 
