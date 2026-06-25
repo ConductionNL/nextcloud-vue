@@ -221,7 +221,7 @@ export default {
 		/**
 		 * App base for the host's files-widget endpoints
 		 * (`{apiBase}/api/widgets/files/{placementId}/...`). Lets a consuming
-		 * app point the widget at its own backend (e.g. `/apps/mydash`).
+		 * app point the widget at its own backend (e.g. `/apps/launchpad`).
 		 * Defaults to `/apps/files`.
 		 *
 		 * @type {string}

@@ -18,14 +18,14 @@ Constraints: Vue 2.7 Options API only; `cn-` CSS prefix; Nextcloud CSS variables
 - One shared, extensible registry that composes with `BUILT_IN_WIDGETS` so manifest `widgetKey`s and the dashboard catalog resolve through one ordered lookup.
 - All 21 widgets available to any app — renderer + form config schemas preserved byte-for-byte so existing persisted placements keep rendering.
 - App coupling broken at the library boundary: no library file may `import` a sibling app (financeq/procest/launchpad). NC-app coupling stays but degrades gracefully.
-- MyDash becomes a thin consumer; its observable behaviour is unchanged.
+- LaunchPad becomes a thin consumer; its observable behaviour is unchanged.
 - Full library hygiene: barrels, docs, 100% jsdoc, modal isolation, NC CSS vars, lib `t()`.
 
 **Non-Goals:**
 - No change to any existing v2 widget key or to `CnWidgetGrid`/`CnDashboardGrid` rendering semantics.
 - No server-side / PHP change (placements, visibility rules persistence stay app-owned APIs).
 - Not building new widget types — this is a move + decouple, not a feature add.
-- Not migrating MyDash's catalog browse view (`listCatalogEntries`) — that is MyDash-specific and stays in the app.
+- Not migrating LaunchPad's catalog browse view (`listCatalogEntries`) — that is LaunchPad-specific and stays in the app.
 
 ## Decisions
 
@@ -45,13 +45,13 @@ Each renderer becomes `Cn<Name>Widget` (e.g. `CnLabelWidget`, `CnSpendAnalyticsW
 
 ### D4 — spend-analytics decoupling via injected data source (the load-bearing decision)
 
-Today `SpendAnalyticsWidget.vue` imports `fetchFinanceSummary` / `fetchVendorCommitments` / `fetchSpendNarrative` from a local `services/spendAnalytics.js`. In the library it MUST NOT import any sibling app. The library component takes its data source from **either** a `dataSource` prop (an object exposing `fetchSummary` / `fetchVendorCommitments` / `fetchNarrative`) **or** a `provide`d injection key (`cnSpendAnalyticsSource`). When neither is supplied, the renderer shows its existing empty-state ("No spend data — financeq is not installed" / "No vendor data — procest is not installed") rather than throwing. The soft `requires.graphql` hint stays metadata-only and is NEVER promoted to `manifest.dependencies`. MyDash supplies the source via `provide` from its dashboard root, so its behaviour is preserved.
+Today `SpendAnalyticsWidget.vue` imports `fetchFinanceSummary` / `fetchVendorCommitments` / `fetchSpendNarrative` from a local `services/spendAnalytics.js`. In the library it MUST NOT import any sibling app. The library component takes its data source from **either** a `dataSource` prop (an object exposing `fetchSummary` / `fetchVendorCommitments` / `fetchNarrative`) **or** a `provide`d injection key (`cnSpendAnalyticsSource`). When neither is supplied, the renderer shows its existing empty-state ("No spend data — financeq is not installed" / "No vendor data — procest is not installed") rather than throwing. The soft `requires.graphql` hint stays metadata-only and is NEVER promoted to `manifest.dependencies`. LaunchPad supplies the source via `provide` from its dashboard root, so its behaviour is preserved.
 
 *Alternative considered:* an optional dynamic `import('financeq/...')`. Rejected — a library cannot resolve a sibling app's module path, and it reintroduces the coupling at build time.
 
 ### D5 — nc-widget bridge stays app-agnostic
 
-`NcDashboardWidget` uses MyDash-local `services/widgetBridge.js` + `services/api.js` to talk to `OCA.Dashboard.register` (native fast-path) and `GET /api/widgets/items` (API fallback). In the library, `CnNcWidgetWidget` reads `OCA.Dashboard` directly (a Nextcloud-global, not an app) for the native path and calls the Nextcloud OCS dashboard endpoint via `@nextcloud/axios` + `@nextcloud/router` for the API path — no MyDash service import. When `OCA.Dashboard` is absent and the OCS endpoint 404s, it degrades to an empty state. The bridge thus depends only on Nextcloud globals, never on MyDash.
+`NcDashboardWidget` uses LaunchPad-local `services/widgetBridge.js` + `services/api.js` to talk to `OCA.Dashboard.register` (native fast-path) and `GET /api/widgets/items` (API fallback). In the library, `CnNcWidgetWidget` reads `OCA.Dashboard` directly (a Nextcloud-global, not an app) for the native path and calls the Nextcloud OCS dashboard endpoint via `@nextcloud/axios` + `@nextcloud/router` for the API path — no LaunchPad service import. When `OCA.Dashboard` is absent and the OCS endpoint 404s, it degrades to an empty state. The bridge thus depends only on Nextcloud globals, never on LaunchPad.
 
 ### D6 — NC-app-coupled widgets keep lazy `@nextcloud/*` imports + graceful empty states
 
@@ -59,7 +59,7 @@ Today `SpendAnalyticsWidget.vue` imports `fetchFinanceSummary` / `fetchVendorCom
 
 ### D7 — Chrome: reuse `CnWidgetWrapper`, move the editors
 
-MyDash's `WidgetWrapper.vue` is NOT moved as a new component — its header/title/actions role is already covered by the library's `CnWidgetWrapper` (Cards-vs-Widgets: widgets render on `CnWidgetWrapper`). The catalog renderers mount inside `CnWidgetWrapper` in consuming contexts. The `WidgetStyleEditor` and `VisibilityRulesModal` surfaces, which have no library equivalent, move as `CnWidgetStyleEditorModal` and `CnWidgetVisibilityRulesModal` under `src/modals/`. `WidgetContextMenu` collapses into `CnWidgetWrapper`'s existing Actions menu where possible; any residual catalog-specific items become slot content, not a duplicate menu component.
+LaunchPad's `WidgetWrapper.vue` is NOT moved as a new component — its header/title/actions role is already covered by the library's `CnWidgetWrapper` (Cards-vs-Widgets: widgets render on `CnWidgetWrapper`). The catalog renderers mount inside `CnWidgetWrapper` in consuming contexts. The `WidgetStyleEditor` and `VisibilityRulesModal` surfaces, which have no library equivalent, move as `CnWidgetStyleEditorModal` and `CnWidgetVisibilityRulesModal` under `src/modals/`. `WidgetContextMenu` collapses into `CnWidgetWrapper`'s existing Actions menu where possible; any residual catalog-specific items become slot content, not a duplicate menu component.
 
 ### D8 — Modal isolation + i18n
 
@@ -72,7 +72,7 @@ The spec is complete (all 21 widgets), but implementation lands in dependency-or
 2. **Wave 1 — Portable/content (13)**: label, text, image, link, divider, header, quicklinks, video, news, container, tile, menu, links — pure, no coupling.
 3. **Wave 2 — NC-integration-coupled (4)**: files, people, calendar, nc-widget — with graceful-degradation contracts.
 4. **Wave 3 — Fleet-coupled (1)**: spend-analytics — with the injected data source.
-5. **Wave 4 — Chrome + barrel + docs + rewire**: style-editor + visibility-rules modals, barrel exports, docs pages, jsdoc baselines, then MyDash re-import + local-copy deletion.
+5. **Wave 4 — Chrome + barrel + docs + rewire**: style-editor + visibility-rules modals, barrel exports, docs pages, jsdoc baselines, then LaunchPad re-import + local-copy deletion.
 
 ## Risks / Trade-offs
 
@@ -81,16 +81,16 @@ The spec is complete (all 21 widgets), but implementation lands in dependency-or
 - **[App-coupled widget leaks]** A careless move could leave a `import 'financeq/...'` or a `services/widgetBridge.js` import in a library file. → A CI/lint check (or the modal-isolation/hydra-gate sweep) MUST fail on any library import of a sibling-app path; spend-analytics and nc-widget have explicit decoupling requirements + scenarios.
 - **[i18n domain switch]** Moving strings from `launchpad`/`mydash` domain to the library `t()` could drop translations. → English source strings are the keys; library l10n picks them up; MyDash loses no behaviour because the library renders the same English fallback.
 - **[Config-shape drift]** Any change to a `defaultContent` shape would break persisted placements. → Spec pins each widget's config schema as "unchanged"; scenarios assert an existing placement renders identically.
-- **[Container recursion + gridstack]** The container widget hosts a recursive sub-grid via gridstack (already a lib dep); depth cap (3) is server-enforced in MyDash. → Library container renders whatever depth it is handed; it does not re-implement the server cap.
+- **[Container recursion + gridstack]** The container widget hosts a recursive sub-grid via gridstack (already a lib dep); depth cap (3) is server-enforced in LaunchPad. → Library container renders whatever depth it is handed; it does not re-implement the server cap.
 
 ## Migration Plan
 
 1. Land Waves 0–4 in the library behind new barrel exports; no consumer is forced to adopt.
-2. Publish a library beta; MyDash bumps the dep, re-imports `CnAddWidgetModal` + registry + widgets + modals from `@conduction/nextcloud-vue`, wires its spend-analytics `provide`, then deletes its local `Widgets/` + `widgetRegistry.js` + `useWidgetForm.js` copies.
-3. Verify MyDash dashboards render and the Add-widget flow works unchanged (edit mode, validation gate, type switch).
+2. Publish a library beta; LaunchPad bumps the dep, re-imports `CnAddWidgetModal` + registry + widgets + modals from `@conduction/nextcloud-vue`, wires its spend-analytics `provide`, then deletes its local `Widgets/` + `widgetRegistry.js` + `useWidgetForm.js` copies.
+3. Verify LaunchPad dashboards render and the Add-widget flow works unchanged (edit mode, validation gate, type switch).
 4. Other apps adopt the catalog via the manifest renderer / `cn-openbuild-edit-shell` at their own pace.
 
-**Rollback:** the move is additive in the library; if MyDash regresses, MyDash reverts its dep bump and re-imports locally while the library exports remain. No existing v2 widget key changes, so non-MyDash consumers are unaffected either way.
+**Rollback:** the move is additive in the library; if LaunchPad regresses, LaunchPad reverts its dep bump and re-imports locally while the library exports remain. No existing v2 widget key changes, so non-LaunchPad consumers are unaffected either way.
 
 ## Open Questions
 

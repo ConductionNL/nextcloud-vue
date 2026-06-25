@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`@conduction/nextcloud-vue` SHALL ship a context-aware AI chat widget — a floating action button (FAB) anchored to the viewport plus a slide-out chat panel — that every consuming Conduction app (`opencatalogi`, `openconnector`, `docudesk`, `decidesk`, `mydash`, `softwarecatalog`, `larpingapp`, `zaakafhandelapp`, `procest`, `pipelinq`, `openregister`, and the ExApp sidecars) receives automatically by upgrading the library. The widget talks to OpenRegister's HTTP chat API at runtime, consumes a reactive `cnAiContext` provided by `CnAppRoot`, renders nothing when OpenRegister is unreachable, and progressively enhances from non-streaming `POST /api/chat/send` to SSE `POST /api/chat/stream` (delivered by the sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) change) without changing the contract presented to consuming apps.
+`@conduction/nextcloud-vue` SHALL ship a context-aware AI chat widget — a floating action button (FAB) anchored to the viewport plus a slide-out chat panel — that every consuming Conduction app (`opencatalogi`, `openconnector`, `docudesk`, `decidesk`, `launchpad`, `softwarecatalog`, `larpingapp`, `zaakafhandelapp`, `procest`, `pipelinq`, `openregister`, and the ExApp sidecars) receives automatically by upgrading the library. The widget talks to OpenRegister's HTTP chat API at runtime, consumes a reactive `cnAiContext` provided by `CnAppRoot`, renders nothing when OpenRegister is unreachable, and progressively enhances from non-streaming `POST /api/chat/send` to SSE `POST /api/chat/stream` (delivered by the sibling [openregister/ai-chat-companion-orchestrator](https://github.com/ConductionNL/openregister) change) without changing the contract presented to consuming apps.
 
 This spec implements the frontend half of [hydra ADR-034: AI Chat Companion — Cross-App Architecture](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-034-ai-chat-companion.md) and the widget-facing slice of [hydra/openspec/specs/ai-chat-companion/spec.md](https://github.com/ConductionNL/hydra/blob/development/openspec/specs/ai-chat-companion/spec.md).
 
@@ -44,10 +44,10 @@ Apps that consume only the widget MUST NOT acquire any install-time PHP or compo
 - **WHEN** `<CnAppRoot>` mounts
 - **THEN** no FAB or chat panel renders, the `CnAiCompanion` root element is either absent or has zero height/width, and no `console.warn` / `console.error` messages are emitted by the companion (only `console.info` or below is acceptable)
 
-#### Scenario: mydash mounts without an install-time OR dependency
+#### Scenario: launchpad mounts without an install-time OR dependency
 
-- **GIVEN** the `mydash` app installs `@conduction/nextcloud-vue` at the version shipping this change
-- **WHEN** `mydash`'s `composer.json` and `appinfo/info.xml` are inspected after the dependency bump
+- **GIVEN** the `launchpad` app installs `@conduction/nextcloud-vue` at the version shipping this change
+- **WHEN** `launchpad`'s `composer.json` and `appinfo/info.xml` are inspected after the dependency bump
 - **THEN** neither file declares `openregister` (or any OpenRegister-owned composer package) as a dependency
 
 ### Requirement: cnAiContext reactive provide on CnAppRoot

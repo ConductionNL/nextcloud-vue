@@ -36,8 +36,8 @@ Dependency-ordered, grouped by implementation wave (design D9). The spec covers 
 - [ ] `files` → `CnFilesWidget` + `CnFilesWidgetForm` (lazy `@nextcloud/axios`/`@nextcloud/router`; document Files dependency; empty/disabled state when unavailable)
 - [ ] `people` → `CnPeopleWidget` + `CnPeopleWidgetForm` (document Contacts/provisioning source; degrade to empty state)
 - [ ] `calendar` → `CnCalendarWidget` + `CnCalendarWidgetForm` (document NC Calendar dependency; empty agenda when no backend/events)
-- [ ] `nc-widget` → `CnNcWidgetWidget` + `CnNcWidgetWidgetForm` — rewire bridge to read `OCA.Dashboard` global (native) + NC dashboard OCS endpoint (api) directly; remove any MyDash `widgetBridge`/`api` service import; uses `CnNcWidgetGridPicker`
-- [ ] Self-register all 4; assert no library import of a MyDash service path
+- [ ] `nc-widget` → `CnNcWidgetWidget` + `CnNcWidgetWidgetForm` — rewire bridge to read `OCA.Dashboard` global (native) + NC dashboard OCS endpoint (api) directly; remove any LaunchPad `widgetBridge`/`api` service import; uses `CnNcWidgetGridPicker`
+- [ ] Self-register all 4; assert no library import of a LaunchPad service path
 - [ ] Unit tests: graceful empty-state when backing app/endpoint absent; nc-widget native fast-path + api fallback
 
 ## Wave 3 — Fleet-coupled widget (spend-analytics, decoupled)

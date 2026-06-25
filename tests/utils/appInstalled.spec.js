@@ -25,20 +25,20 @@ describe('isAppInstalled', () => {
 
 	describe('OC.appswebroots (primary path)', () => {
 		it('returns true when the appId key is present in OC.appswebroots', () => {
-			global.OC = { appswebroots: { mydash: '/apps/mydash' } }
-			expect(isAppInstalled('mydash')).toBe(true)
+			global.OC = { appswebroots: { launchpad: '/apps/launchpad' } }
+			expect(isAppInstalled('launchpad')).toBe(true)
 		})
 
 		it('returns false when OC.appswebroots exists but does not contain the appId', () => {
 			global.OC = { appswebroots: { files: '/apps/files' } }
-			expect(isAppInstalled('mydash')).toBe(false)
+			expect(isAppInstalled('launchpad')).toBe(false)
 		})
 
 		it('falls through to capabilities when OC.appswebroots does not contain the appId', () => {
 			global.OC = { appswebroots: {} }
-			// appswebroots exists but does not list mydash — fall through to capabilities.
-			getCapabilities.mockReturnValue({ mydash: {} })
-			expect(isAppInstalled('mydash')).toBe(true)
+			// appswebroots exists but does not list launchpad — fall through to capabilities.
+			getCapabilities.mockReturnValue({ launchpad: {} })
+			expect(isAppInstalled('launchpad')).toBe(true)
 		})
 	})
 
@@ -52,14 +52,14 @@ describe('isAppInstalled', () => {
 		it('returns false when the appId is absent from capabilities', () => {
 			delete global.OC
 			getCapabilities.mockReturnValue({ files: {} })
-			expect(isAppInstalled('mydash')).toBe(false)
+			expect(isAppInstalled('launchpad')).toBe(false)
 		})
 
 		it('returns false and warns when getCapabilities throws', () => {
 			delete global.OC
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			getCapabilities.mockImplementation(() => { throw new Error('boom') })
-			expect(isAppInstalled('mydash')).toBe(false)
+			expect(isAppInstalled('launchpad')).toBe(false)
 			expect(warnSpy).toHaveBeenCalledWith(
 				expect.stringContaining('[appInstalled]'),
 				expect.any(Error),
@@ -70,16 +70,16 @@ describe('isAppInstalled', () => {
 		it('handles getCapabilities returning null without crashing', () => {
 			delete global.OC
 			getCapabilities.mockReturnValue(null)
-			expect(isAppInstalled('mydash')).toBe(false)
+			expect(isAppInstalled('launchpad')).toBe(false)
 		})
 	})
 
 	describe('per-page-load cache', () => {
 		it('returns the same value on repeated calls without re-checking', () => {
 			delete global.OC
-			getCapabilities.mockReturnValue({ mydash: {} })
-			const first = isAppInstalled('mydash')
-			const second = isAppInstalled('mydash')
+			getCapabilities.mockReturnValue({ launchpad: {} })
+			const first = isAppInstalled('launchpad')
+			const second = isAppInstalled('launchpad')
 			expect(first).toBe(true)
 			expect(second).toBe(true)
 			// Only one getCapabilities call — second is served from cache.
@@ -88,8 +88,8 @@ describe('isAppInstalled', () => {
 
 		it('caches true and false results independently per appId', () => {
 			delete global.OC
-			getCapabilities.mockReturnValue({ mydash: {} })
-			expect(isAppInstalled('mydash')).toBe(true)
+			getCapabilities.mockReturnValue({ launchpad: {} })
+			expect(isAppInstalled('launchpad')).toBe(true)
 			expect(isAppInstalled('opencatalogi')).toBe(false)
 			expect(getCapabilities).toHaveBeenCalledTimes(2)
 		})

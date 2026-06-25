@@ -55,7 +55,7 @@ The docs site MUST include a `docs/integrations/ecosystem.md` page listing the a
 - **Pipelinq** — CRM with pipeline views, kanban board, settings dashboard
 - **Procest** — Case management with workflow states
 - **LarpingApp** — Character/event management with computed stats and PDF export
-- **MyDash** — Dashboard app with KPI widgets
+- **LaunchPad** — Dashboard app with KPI widgets
 - **Softwarecatalogus** — Software catalog built on OpenCatalogi
 
 Each app entry MUST note which Cn* components it uses most heavily and link to the app's repository.

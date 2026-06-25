@@ -136,10 +136,10 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 
 ```json
 {
-  "id": "view-in-mydash",
+  "id": "view-in-launchpad",
   "label": "scholiq.nav.viewInMydash",
-  "href": "/index.php/apps/mydash#scholiq",
-  "visibleIf": { "appInstalled": "mydash" }
+  "href": "/index.php/apps/launchpad#scholiq",
+  "visibleIf": { "appInstalled": "launchpad" }
 }
 ```
 
@@ -191,9 +191,9 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 {
   "id": "combined",
   "label": "scholiq.nav.combined",
-  "href": "/apps/mydash#scholiq",
+  "href": "/apps/launchpad#scholiq",
   "visibleIf": {
-    "appInstalled": "mydash",
+    "appInstalled": "launchpad",
     "user.primaryRole": { "in": ["compliance-officer"] }
   }
 }

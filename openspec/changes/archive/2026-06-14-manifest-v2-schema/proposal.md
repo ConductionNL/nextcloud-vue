@@ -48,5 +48,5 @@ The chain is split per ADR-032 (mixed config+code in one spec is an anti-pattern
 - **`src/index.js` / barrel** — `validateManifest` export updated or added
 - **`docs/architecture/manifest.md`** — docs stub only; no API changes
 - **`tests/`** — new test files; no changes to existing tests
-- **Consumers** (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) — zero impact; v1 manifests continue to validate unchanged. v2 opt-in via `$schema` field.
+- **Consumers** (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad) — zero impact; v1 manifests continue to validate unchanged. v2 opt-in via `$schema` field.
 - **Hydra gate** — the updated `validateManifest()` export is the only consumer today; gate picks up the change automatically once this lands on `beta`
