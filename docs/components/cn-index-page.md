@@ -37,6 +37,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
+| `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Manifest-driven pages set this automatically when a matching detail page exists. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |

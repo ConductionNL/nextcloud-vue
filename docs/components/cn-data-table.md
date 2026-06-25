@@ -78,6 +78,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
+| `rowClickToView` | Boolean | `false` | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column ("click row = open, tick box = select") |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `emptyText` | String | `'No items found'` | Message shown when `rows` is empty and no `#empty` slot is provided |

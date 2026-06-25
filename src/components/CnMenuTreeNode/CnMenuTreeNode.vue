@@ -4,142 +4,71 @@
 -->
 
 <template>
-	<ul class="cn-menu-tree" :class="{ 'cn-menu-tree--child': depth > 0 }">
-		<li v-for="(item, index) in sortedSiblings" :key="keyOf(item, index)" class="cn-menu-tree__node">
-			<div class="cn-menu-tree__row">
-				<span class="cn-menu-tree__icon" :class="iconClass(item)" aria-hidden="true" />
-				<span class="cn-menu-tree__label" :title="item.route || ''">
-					{{ item.label || t('nextcloud-vue', '(untitled)') }}
-				</span>
-
-				<div class="cn-menu-tree__actions">
-					<NcButton
-						type="tertiary"
-						:aria-label="t('nextcloud-vue', 'Edit menu item')"
-						:pressed="isOpen(item, index)"
-						@click="toggle(item, index)">
-						<template #icon>
-							<Cog :size="18" />
-						</template>
-					</NcButton>
-					<NcButton
-						v-if="depth < maxDepth"
-						type="tertiary"
-						:aria-label="t('nextcloud-vue', 'Add sub-item')"
-						@click="addChild(item)">
-						<template #icon>
-							<Plus :size="18" />
-						</template>
-					</NcButton>
-					<NcButton
-						type="tertiary"
-						:aria-label="t('nextcloud-vue', 'Move up')"
-						:disabled="index === 0"
-						@click="move(item, -1)">
-						<template #icon>
-							<ArrowUp :size="18" />
-						</template>
-					</NcButton>
-					<NcButton
-						type="tertiary"
-						:aria-label="t('nextcloud-vue', 'Move down')"
-						:disabled="index === sortedSiblings.length - 1"
-						@click="move(item, 1)">
-						<template #icon>
-							<ArrowDown :size="18" />
-						</template>
-					</NcButton>
-					<NcButton
-						type="tertiary"
-						:aria-label="t('nextcloud-vue', 'Remove')"
-						@click="remove(item)">
-						<template #icon>
-							<Delete :size="18" />
-						</template>
-					</NcButton>
-				</div>
-			</div>
-
-			<!-- Per-item editor, revealed by the cog. -->
-			<div v-if="isOpen(item, index)" class="cn-menu-tree__editor">
-				<NcTextField
-					:value.sync="item.label"
-					:label="t('nextcloud-vue', 'Label')"
-					:label-visible="true" />
-				<NcSelect
-					class="cn-menu-tree__select"
-					:value="selectedIcon(item)"
-					:options="iconOptions"
-					:input-label="t('nextcloud-vue', 'Icon')"
-					label="label"
-					:clearable="true"
-					:placeholder="t('nextcloud-vue', 'Pick an icon')"
-					@input="setField(item, 'icon', $event)">
-					<template #option="opt">
-						<span class="cn-menu-tree__icon-opt">
-							<span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />
-							{{ opt.label }}
-						</span>
-					</template>
-					<template #selected-option="opt">
-						<span class="cn-menu-tree__icon-opt">
-							<span class="cn-menu-tree__icon-glyph" :class="opt.value" aria-hidden="true" />
-							{{ opt.label }}
-						</span>
-					</template>
-				</NcSelect>
-				<NcSelect
-					class="cn-menu-tree__select"
-					:value="selectedPage(item)"
-					:options="pages"
-					:input-label="t('nextcloud-vue', 'Page')"
-					label="label"
-					:clearable="true"
-					:placeholder="pages.length ? t('nextcloud-vue', 'Pick a page') : t('nextcloud-vue', 'No pages')"
-					@input="setField(item, 'route', $event)" />
-			</div>
-
-			<!-- Nested children (recursive). -->
-			<CnMenuTreeNode
-				v-if="Array.isArray(item.children) && item.children.length"
-				:list="item.children"
-				:depth="depth + 1"
-				:max-depth="maxDepth"
+	<draggable v-model="tree"
+		tag="ul"
+		class="cn-menu-tree"
+		:group="group"
+		handle=".cn-menu-tree__handle"
+		:move="onMove"
+		@end="flatten">
+		<li v-for="node in tree" :key="keyOf(node)" class="cn-menu-tree__node">
+			<CnMenuTreeRow :item="node.ref"
 				:pages="pages"
-				:section="section" />
+				:can-add-child="maxDepth > 0"
+				@add-child="addChild(node)"
+				@remove="removeNode(node, null)" />
+
+			<!-- One level of children: a drop target on every top item. -->
+			<draggable v-if="maxDepth > 0"
+				v-model="node.children"
+				tag="ul"
+				class="cn-menu-tree__children"
+				:class="{ 'cn-menu-tree__children--empty': !node.children.length }"
+				:group="group"
+				handle=".cn-menu-tree__handle"
+				:move="onMove"
+				@end="flatten">
+				<li v-for="child in node.children" :key="keyOf(child)" class="cn-menu-tree__node">
+					<CnMenuTreeRow :item="child.ref"
+						:pages="pages"
+						:can-add-child="false"
+						@remove="removeNode(child, node)" />
+				</li>
+			</draggable>
 		</li>
-	</ul>
+	</draggable>
 </template>
 
 <script>
-import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
+import draggable from 'vuedraggable'
 import { translate as t } from '@nextcloud/l10n'
-import { NEXTCLOUD_ICONS } from './nextcloudIcons.js'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
-import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
+import CnMenuTreeRow from './CnMenuTreeRow.vue'
 
 /**
- * CnMenuTreeNode — recursive tree row for the menu editor (ADR-041).
+ * CnMenuTreeNode — the menu editor's drag-and-drop tree (ADR-041).
  *
- * Renders one sibling list of `menu[]` entries as compact rows (icon + label)
- * with a per-item **edit cog** that reveals the item's Label / Icon / Route
- * fields, plus reorder, delete, and add-sub-item. Children render via the same
- * component one level deeper. Mutates the passed `list` (and each item's
- * `children`) IN PLACE — the array is the working manifest's, by reference, so
- * `diffManifest` captures every change without any extra plumbing.
+ * Renders the working manifest's `menu[]` (nested via each item's `children[]`)
+ * as a two-level draggable tree: drag a row to reorder, or into / out of an item
+ * to nest (one level — CnAppNav supports one). Each row (CnMenuTreeRow) edits its
+ * icon / label / target page inline + Delete via a cog. Drag operates on a local
+ * mirror (`tree`) of real item refs; after each drop the mirror is FLATTENED back
+ * onto `menu[]` in place — `order` renumbered to match the visual order, the
+ * top-level `section` marker set/cleared, and each item's `children[]` rebuilt —
+ * so `diffManifest` sees the change. Field edits mutate the real refs directly.
+ *
+ * The top level is scoped by `section`: the main-menu editor shows non-settings
+ * items, the settings-menu editor shows `section: "settings"` items; flatten
+ * preserves the other section's items untouched.
  */
 export default {
 	name: 'CnMenuTreeNode',
 
-	components: { NcButton, NcTextField, NcSelect, Cog, Plus, Delete, ArrowUp, ArrowDown },
+	components: { draggable, CnMenuTreeRow },
 
 	props: {
 		/**
-		 * The sibling list to render (the working manifest's `menu[]` at the
-		 * root, or an item's `children[]` deeper down). Edited in place.
+		 * The working manifest's `menu[]` (top-level items; children live in each
+		 * item's `children[]`). Edited in place.
 		 *
 		 * @type {Array}
 		 */
@@ -147,20 +76,14 @@ export default {
 			type: Array,
 			required: true,
 		},
-		/** Nesting depth (0 = top-level). Controls indentation + add-sub-item. */
-		depth: {
-			type: Number,
-			default: 0,
-		},
 		/** Maximum nesting depth that may gain children (CnAppNav supports one level). */
 		maxDepth: {
 			type: Number,
 			default: 1,
 		},
 		/**
-		 * Selectable target pages for the Route field, as `{ value: route,
-		 * label }` options (derived from the manifest's `pages[]`). Passed down
-		 * recursively so child rows offer the same pages.
+		 * Selectable target pages as `{ value: routeName, label }` options,
+		 * forwarded to every row's Page picker.
 		 *
 		 * @type {Array<{value: string, label: string}>}
 		 */
@@ -169,13 +92,9 @@ export default {
 			default: () => [],
 		},
 		/**
-		 * Which nav section this editor scopes to at the TOP level. CnAppNav
-		 * splits `menu[]` by `item.section` (`main` | `footer` | `settings`):
-		 * `"settings"` shows only the gear-foldout items; anything else (the
-		 * default) shows the non-settings items. Lets the main menu editor and
-		 * the settings-menu editor share this component over one `menu[]` array
-		 * without showing each other's items. Only filters depth 0 — children
-		 * (nested via `children[]`) always render.
+		 * Which nav section this editor scopes to at the top level
+		 * (`"settings"` shows only the gear-foldout items; anything else shows
+		 * the non-settings items). Flatten preserves the other section.
 		 *
 		 * @type {string|null}
 		 */
@@ -187,162 +106,164 @@ export default {
 
 	data() {
 		return {
-			// Keys (id||index) of rows whose editor is currently open.
-			openKeys: [],
+			// Local nested mirror of the section's items (real refs); flattened
+			// back to `list` after each drop.
+			tree: this.buildTree(),
+			// Per-section drag group (main + settings editors never inter-drag).
+			group: 'cn-menu-' + (this.section || 'main'),
+			// Guard against the watcher rebuilding mid-flatten.
+			suppressRebuild: false,
 		}
 	},
 
-	computed: {
-		/** Siblings in nav order: `order` ascending, array index as tiebreak. Top level is section-scoped. */
-		sortedSiblings() {
-			const wantSettings = this.section === 'settings'
-			return this.list
-				.map((item, index) => ({ item, index }))
-				.filter(({ item }) => this.depth > 0 || (item.section === 'settings') === wantSettings)
-				.sort((a, b) => {
-					const oa = typeof a.item.order === 'number' ? a.item.order : a.index
-					const ob = typeof b.item.order === 'number' ? b.item.order : b.index
-					return oa === ob ? a.index - b.index : oa - ob
-				})
-				.map((e) => e.item)
+	watch: {
+		list: {
+			handler() {
+				if (this.suppressRebuild) return
+				this.tree = this.buildTree()
+			},
+			deep: false,
 		},
-
-		/** Nextcloud icon options for the icon dropdown. */
-		iconOptions() {
-			return NEXTCLOUD_ICONS
+		section() {
+			this.tree = this.buildTree()
 		},
 	},
 
 	methods: {
 		t,
-
 		/**
-		 * Stable-ish key for v-for + open tracking.
-		 * @param item
-		 * @param index
+		 * Stable-ish v-for key for a node.
+		 * @param {object} node The tree node.
+		 * @return {string}
 		 */
-		keyOf(item, index) {
-			return item.id || `idx-${index}`
+		keyOf(node) {
+			return (node.ref && node.ref.id) || String(node._k || (node._k = Math.random()))
+		},
+
+		/** Whether this editor scopes to the settings section. */
+		wantSettings() {
+			return this.section === 'settings'
 		},
 
 		/**
-		 * Whether this row's editor is open.
-		 * @param item
-		 * @param index
+		 * Order comparator: numeric `order` ascending, array index as tiebreak.
+		 * @param {Array} arr The array being sorted (for index tiebreak).
+		 * @return {Function}
 		 */
-		isOpen(item, index) {
-			return this.openKeys.includes(this.keyOf(item, index))
+		byOrder(arr) {
+			return (a, b) => {
+				const oa = typeof a.order === 'number' ? a.order : arr.indexOf(a)
+				const ob = typeof b.order === 'number' ? b.order : arr.indexOf(b)
+				return oa - ob
+			}
 		},
 
 		/**
-		 * Toggle this row's editor.
-		 * @param item
-		 * @param index
+		 * Build the nested mirror from `list`, scoped to this section and ordered.
+		 * @return {Array<{ref: object, children: Array}>}
 		 */
-		toggle(item, index) {
-			const key = this.keyOf(item, index)
-			const at = this.openKeys.indexOf(key)
-			if (at === -1) this.openKeys.push(key)
-			else this.openKeys.splice(at, 1)
+		buildTree() {
+			const list = Array.isArray(this.list) ? this.list : []
+			const wantSettings = this.section === 'settings'
+			const top = list
+				.filter((it) => it && (it.section === 'settings') === wantSettings)
+				.slice()
+				.sort(this.byOrder(list))
+			return top.map((ref) => {
+				const kids = Array.isArray(ref.children) ? ref.children.slice().sort(this.byOrder(ref.children)) : []
+				return { ref, children: kids.map((c) => ({ ref: c, children: [] })) }
+			})
 		},
 
 		/**
-		 * Resolve the selected icon option for an item — a known option when the
-		 * stored class is in the list, else a synthetic option so a pre-existing
-		 * or custom `icon-*` value still displays.
-		 *
-		 * @param {{icon?: string}} item The menu item.
-		 * @return {{value: string, label: string}|null}
-		 */
-		selectedIcon(item) {
-			const icon = item && item.icon
-			if (!icon) return null
-			return this.iconOptions.find((o) => o.value === icon) || { value: icon, label: icon }
-		},
-
-		/**
-		 * Resolve the selected page option for an item's route — a known page
-		 * when the route matches, else a synthetic option so an existing/custom
-		 * route still displays.
-		 *
-		 * @param {{route?: string}} item The menu item.
-		 * @return {{value: string, label: string}|null}
-		 */
-		selectedPage(item) {
-			const route = item && item.route
-			if (!route) return null
-			return this.pages.find((o) => o.value === route) || { value: route, label: route }
-		},
-
-		/**
-		 * Write a dropdown selection back onto the item in place. NcSelect emits
-		 * the option object (or null when cleared); store its `value`.
-		 *
-		 * @param {object} item The menu item (mutated in place).
-		 * @param {string} field The field to set (`icon` | `route`).
-		 * @param {{value: string}|null} option The selected option.
+		 * Flatten the mirror back onto `list` in place: renumber `order`, set/clear
+		 * the top-level `section` marker, rebuild each item's `children[]`, and
+		 * preserve the other section's items.
 		 * @return {void}
 		 */
-		setField(item, field, option) {
-			// In-place edit by design (see component docblock + move/remove/addChild);
-			// `item` is an element of the `list` prop, edited by reference so
-			// diffManifest captures it.
-			// eslint-disable-next-line vue/no-mutating-props
-			this.$set(item, field, option ? option.value : '')
-		},
-
-		/**
-		 * Render an `icon-*` NC class as a glyph; non-class icons get a generic dot.
-		 * @param item
-		 */
-		iconClass(item) {
-			return typeof item.icon === 'string' && item.icon.startsWith('icon-')
-				? item.icon
-				: 'cn-menu-tree__icon--generic'
-		},
-
-		/**
-		 * Reorder within this sibling list by renumbering `order` sequentially.
-		 * @param item
-		 * @param delta
-		 */
-		move(item, delta) {
-			const sorted = this.sortedSiblings
-			const idx = sorted.indexOf(item)
-			const to = idx + delta
-			if (to < 0 || to >= sorted.length) return
-			const reordered = [...sorted]
-			reordered.splice(idx, 1)
-			reordered.splice(to, 0, item)
-			reordered.forEach((it, i) => { this.$set(it, 'order', (i + 1) * 10) })
-		},
-
-		/**
-		 * Remove an item from this sibling list.
-		 * @param item
-		 */
-		remove(item) {
-			const i = this.list.indexOf(item)
-			// In-place edit by design (see component docblock); `list` is the
-			// working manifest's array, mutated by reference so diffManifest sees it.
-			// eslint-disable-next-line vue/no-mutating-props
-			if (i !== -1) this.list.splice(i, 1)
-		},
-
-		/**
-		 * Append a blank child under an item (creating `children` if needed).
-		 * @param item
-		 */
-		addChild(item) {
-			if (!Array.isArray(item.children)) this.$set(item, 'children', [])
-			const maxOrder = item.children.reduce((m, c) => Math.max(m, typeof c.order === 'number' ? c.order : 0), 0)
-			item.children.push({
-				id: `menu-${item.id || 'child'}-${item.children.length + 1}`,
-				label: '',
-				icon: '',
-				route: '',
-				order: maxOrder + 10,
+		flatten() {
+			const wantSettings = this.section === 'settings'
+			const others = this.list.filter((it) => it && (it.section === 'settings') !== wantSettings)
+			const mine = this.tree.map((node, i) => {
+				const ref = node.ref
+				this.$set(ref, 'order', (i + 1) * 10)
+				if (wantSettings) this.$set(ref, 'section', 'settings')
+				else this.$delete(ref, 'section')
+				if (node.children.length) {
+					this.$set(ref, 'children', node.children.map((cn, j) => {
+						this.$set(cn.ref, 'order', (j + 1) * 10)
+						this.$delete(cn.ref, 'section')
+						return cn.ref
+					}))
+				} else {
+					this.$delete(ref, 'children')
+				}
+				return ref
 			})
+			const next = wantSettings ? [...others, ...mine] : [...mine, ...others]
+			this.suppressRebuild = true
+			// In-place edit by design — `list` is the working manifest's menu[],
+			// mutated by reference so diffManifest captures the reorder/nesting.
+			// eslint-disable-next-line vue/no-mutating-props
+			this.list.splice(0, this.list.length, ...next)
+			this.$nextTick(() => { this.suppressRebuild = false })
+		},
+
+		/**
+		 * vuedraggable guard: forbid dropping a node that HAS children into a
+		 * child list (would nest two levels deep).
+		 * @param {object} evt The vuedraggable move event.
+		 * @return {boolean} False to veto.
+		 */
+		onMove(evt) {
+			const dragged = evt.draggedContext && evt.draggedContext.element
+			const target = evt.relatedContext && evt.relatedContext.list
+			const intoChild = target && target !== this.tree
+			if (intoChild && dragged && Array.isArray(dragged.children) && dragged.children.length) {
+				return false
+			}
+			return true
+		},
+
+		/**
+		 * Generate a unique `menu-N` id not already used at any level of `list`.
+		 * @return {string}
+		 */
+		nextId() {
+			const ids = new Set()
+			const walk = (arr) => (arr || []).forEach((it) => { if (it) { ids.add(it.id); walk(it.children) } })
+			walk(this.list)
+			let n = ids.size + 1
+			while (ids.has(`menu-${n}`)) n++
+			return `menu-${n}`
+		},
+
+		/**
+		 * Append a blank child under a top node.
+		 * @param {object} node The parent tree node.
+		 * @return {void}
+		 */
+		addChild(node) {
+			const ref = { id: this.nextId(), label: '', icon: '', route: '' }
+			node.children.push({ ref, children: [] })
+			this.flatten()
+		},
+
+		/**
+		 * Remove a node. A removed top node's children are lifted to top level.
+		 * @param {object} node The node to remove.
+		 * @param {object|null} parent The parent node, or null for a top node.
+		 * @return {void}
+		 */
+		removeNode(node, parent) {
+			if (parent) {
+				const i = parent.children.indexOf(node)
+				if (i !== -1) parent.children.splice(i, 1)
+			} else {
+				const i = this.tree.indexOf(node)
+				if (i !== -1) this.tree.splice(i, 1, ...node.children)
+			}
+			this.flatten()
 		},
 	},
 }
@@ -358,83 +279,23 @@ export default {
 	gap: 4px;
 }
 
-.cn-menu-tree--child {
-	margin-left: 28px;
-	margin-top: 4px;
+.cn-menu-tree__children {
+	list-style: none;
+	margin: 4px 0 0 28px;
+	padding: 0 0 0 8px;
 	border-left: 2px solid var(--color-border);
-	padding-left: 8px;
-}
-
-.cn-menu-tree__row {
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 4px 6px;
-	border-radius: var(--border-radius);
+	flex-direction: column;
+	gap: 4px;
 }
 
-.cn-menu-tree__row:hover {
-	background: var(--color-background-hover);
+.cn-menu-tree__children--empty {
+	min-height: 10px;
+	margin-top: 0;
+	border-left-color: transparent;
 }
 
-.cn-menu-tree__icon {
-	width: 20px;
-	height: 20px;
-	flex-shrink: 0;
-	background-size: 16px;
-	background-position: center;
-	background-repeat: no-repeat;
-	opacity: 0.7;
-}
-
-.cn-menu-tree__icon--generic {
-	border-radius: 50%;
-	background: var(--color-border-dark);
-}
-
-.cn-menu-tree__label {
-	flex: 1 1 auto;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-weight: 500;
-}
-
-.cn-menu-tree__actions {
-	display: flex;
-	gap: 0;
-	flex-shrink: 0;
-}
-
-.cn-menu-tree__editor {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-	padding: 8px 6px 12px 28px;
-}
-
-.cn-menu-tree__editor > * {
-	flex: 1 1 160px;
-}
-
-.cn-menu-tree__select {
-	min-width: 160px;
-}
-
-.cn-menu-tree__icon-opt {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.cn-menu-tree__icon-glyph {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	background-size: 16px;
-	background-position: center;
-	background-repeat: no-repeat;
-	opacity: 0.8;
+.cn-menu-tree__node {
+	list-style: none;
 }
 </style>

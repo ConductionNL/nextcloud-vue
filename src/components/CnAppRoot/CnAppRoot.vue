@@ -291,7 +291,10 @@
 			  per-app wiring; declare a `walkthrough` block to opt in.
 			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled" name="walkthrough" :manifest="manifest" :seen-version="walkthroughSeenVersion">
+			<slot v-if="walkthroughEnabled"
+				name="walkthrough"
+				:manifest="manifest"
+				:seen-version="walkthroughSeenVersion">
 				<CnWalkthrough
 					:app-id="appId"
 					:manifest="manifest"
@@ -441,6 +444,10 @@ export default {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
 			cnManifestEditor: this.manifestEditor,
+			// App registers/schemas for the in-app pages editor (index/detail
+			// data source). Plain value (not a getter) so deep descendants —
+			// the page-tree rows under the edit button — resolve it reliably.
+			cnDataSources: this.dataSources,
 			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
@@ -662,6 +669,21 @@ export default {
 		 */
 		persistManifestDelta: {
 			type: Function,
+			default: null,
+		},
+		/**
+		 * App data sources for the in-app pages editor (ADR-041). Lets the
+		 * Edit-pages modal offer Register / Schema / Columns dropdowns for
+		 * `index`/`detail` pages instead of free-text slug inputs, so a
+		 * created page actually renders a table. Shape: `{ registers:
+		 * [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`.
+		 * Provided to descendants as `cnDataSources`; when omitted the editor
+		 * falls back to free-text register/schema fields.
+		 *
+		 * @type {object|null}
+		 */
+		dataSources: {
+			type: Object,
 			default: null,
 		},
 		/**
@@ -1343,6 +1365,13 @@ export default {
 	},
 
 	mounted() {
+		// Guard against silently losing unsaved in-app edits. The manifest
+		// editor stays `dirty` for the whole Save (the persist PUT can take a
+		// few seconds), so a refresh mid-save would drop the edit before the
+		// write lands; this warns the user while there are unsaved/in-flight
+		// changes. Registered before the early-return so it always installs.
+		window.addEventListener('beforeunload', this.onBeforeUnload)
+
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
@@ -1379,7 +1408,29 @@ export default {
 		this._hydrateMenuCounts()
 	},
 
+	beforeDestroy() {
+		window.removeEventListener('beforeunload', this.onBeforeUnload)
+	},
+
 	methods: {
+		/**
+		 * Warn before unload when the manifest editor has unsaved (or still-
+		 * persisting) changes, so a refresh can't silently discard an in-app
+		 * edit. No-op when not editing / nothing dirty.
+		 *
+		 * @param {BeforeUnloadEvent} event The browser beforeunload event.
+		 * @return {string|undefined} A non-empty string triggers the native prompt.
+		 */
+		onBeforeUnload(event) {
+			const editor = this.manifestEditor
+			const dirtyRef = editor && editor.dirty
+			const dirty = dirtyRef && typeof dirtyRef === 'object' && 'value' in dirtyRef ? dirtyRef.value : dirtyRef
+			if (!dirty) return undefined
+			// The standard cross-browser incantation to trigger the prompt.
+			event.preventDefault()
+			event.returnValue = ''
+			return ''
+		},
 		/**
 		 * Re-fetch setup status after the wizard reports completion so the
 		 * phase flips from `setup` to `shell` without a page reload.

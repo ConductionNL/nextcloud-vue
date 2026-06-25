@@ -23,6 +23,20 @@
 				class="cn-icon-picker__grid"
 				role="listbox"
 				:aria-label="t('nextcloud-vue', 'Icon')">
+				<!-- Clearable: a leading "None" tile that unsets the icon. -->
+				<button
+					v-if="clearable"
+					type="button"
+					class="cn-icon-picker__icon cn-icon-picker__none"
+					:class="{ 'cn-icon-picker__icon--selected': !value }"
+					:title="t('nextcloud-vue', 'None')"
+					:aria-label="t('nextcloud-vue', 'No icon')"
+					role="option"
+					:aria-selected="!value"
+					:disabled="uploading"
+					@click="selectIconName(null)">
+					<Cancel :size="20" />
+				</button>
 				<button
 					v-for="(_, name) in icons"
 					:key="name"
@@ -65,6 +79,7 @@
 
 <script>
 import CnDashboardIcon from './CnDashboardIcon.vue'
+import Cancel from 'vue-material-design-icons/Cancel.vue'
 import { DASHBOARD_ICONS, isCustomIconUrl } from './dashboardIcons.js'
 
 /**
@@ -86,6 +101,7 @@ export default {
 
 	components: {
 		CnDashboardIcon,
+		Cancel,
 	},
 
 	props: {
@@ -114,6 +130,14 @@ export default {
 		 * rows / tight inline layouts.
 		 */
 		compact: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Show a leading "None" tile that clears the selection (emits null).
+		 * Off by default so existing pickers are unchanged.
+		 */
+		clearable: {
 			type: Boolean,
 			default: false,
 		},

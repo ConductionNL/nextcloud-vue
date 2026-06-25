@@ -40,7 +40,12 @@
 				{{ saving ? t('nextcloud-vue', 'Saving…') : (isEditing ? t('nextcloud-vue', 'Save page') : t('nextcloud-vue', 'Edit page')) }}
 			</NcActionButton>
 
-			<NcActionButton :disabled="!isEditing" :close-after-click="true" @click="onAddWidget">
+			<!-- Widgets only exist on dashboard pages; index/detail/custom pages
+			     have no widget slots, so hide Add widget there. -->
+			<NcActionButton v-if="isDashboardPage"
+				:disabled="!isEditing"
+				:close-after-click="true"
+				@click="onAddWidget">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
@@ -82,6 +87,13 @@
 				{{ t('nextcloud-vue', 'Edit settings…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditData">
+				<template #icon>
+					<Database :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit data…') }}
+			</NcActionButton>
+
 			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
@@ -117,6 +129,10 @@
 			:working="workingManifest"
 			:page-id="effectivePageId"
 			@close="showActionsModal = false" />
+		<CnEditDataModal
+			v-if="showDataModal"
+			:manifest="effectiveManifest"
+			@close="showDataModal = false" />
 	</div>
 </template>
 
@@ -132,12 +148,14 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
+import Database from 'vue-material-design-icons/Database.vue'
 import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
 import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
 import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
 import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
+import CnEditDataModal from '../../modals/CnEditDataModal.vue'
 import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 export default {
@@ -156,12 +174,14 @@ export default {
 		FileMultiple,
 		PageLayoutSidebarRight,
 		GestureTapButton,
+		Database,
 		CnEditMenuModal,
 		CnEditPagesModal,
 		CnEditSettingsModal,
 		CnEditSidebarModal,
 		CnEditActionsModal,
 		CnAddWidgetModal,
+		CnEditDataModal,
 	},
 
 	inject: {
@@ -169,6 +189,8 @@ export default {
 		cnManifestEditor: { default: null },
 		/** OpenBuild availability published by CnAppRoot; overridden by the `available` prop. */
 		cnOpenBuildAvailable: { default: false },
+		/** The live (published) manifest published by CnAppRoot — read when not editing. */
+		cnManifest: { default: null },
 	},
 
 	props: {
@@ -212,6 +234,7 @@ export default {
 			showSidebarModal: false,
 			showAddWidgetModal: false,
 			showActionsModal: false,
+			showDataModal: false,
 			menuOpen: false,
 			saving: false,
 		}
@@ -238,11 +261,29 @@ export default {
 		workingManifest() {
 			return this.activeEditor ? this.unref(this.activeEditor.working) : null
 		},
+		/** The manifest to read page metadata from: working copy, else the live one. */
+		effectiveManifest() {
+			return this.workingManifest || this.unref(this.cnManifest) || null
+		},
+		/** The active page object, resolved from the effective manifest. */
+		currentPage() {
+			const m = this.effectiveManifest
+			const pages = (m && Array.isArray(m.pages)) ? m.pages : []
+			return pages.find((p) => p && p.id === this.effectivePageId) || null
+		},
+		/** Whether the active page is a dashboard (the only page type with widget slots). */
+		isDashboardPage() {
+			return !!(this.currentPage && this.currentPage.type === 'dashboard')
+		},
 	},
 
 	methods: {
 		t,
-		/** Read a value that may be a Vue ref or a plain value. */
+		/**
+		 * Read a value that may be a Vue ref or a plain value.
+		 * @param {*} maybeRef A Vue ref or plain value.
+		 * @return {*} The unwrapped value.
+		 */
 		unref(maybeRef) {
 			return maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef ? maybeRef.value : maybeRef
 		},
@@ -402,6 +443,19 @@ export default {
 			 * @event edit-actions Emitted when the actions editor modal opens.
 			 */
 			this.$emit('edit-actions')
+		},
+		/**
+		 * Open the data (register + schemas) editor. Unlike the manifest editors
+		 * this does NOT enter manifest edit mode — it manages OpenRegister
+		 * registers/schemas directly via the API.
+		 */
+		onEditData() {
+			this.showDataModal = true
+			this.menuOpen = false
+			/**
+			 * @event edit-data Emitted when the data (register/schema) editor opens.
+			 */
+			this.$emit('edit-data')
 		},
 	},
 }

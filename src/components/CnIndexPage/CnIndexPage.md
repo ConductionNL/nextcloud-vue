@@ -346,6 +346,7 @@ export default {
 | `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
 | `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` (to open/navigate) on a row/card click even while `selectable` — selection then via the checkbox only. Set automatically by CnPageRenderer when a matching detail page exists |
 | `selectedIds` | Array | `[]` | Currently selected row IDs (controlled) |
 | `sortKey` | String | `null` | Current sort key |
 | `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |

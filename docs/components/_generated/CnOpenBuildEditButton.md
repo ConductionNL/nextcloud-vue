@@ -22,3 +22,4 @@
 | `edit-settings` | —       | Emitted when the settings editor modal opens.               |
 | `edit-sidebar`  | —       | Emitted when the sidebar editor modal opens.                |
 | `edit-actions`  | —       | Emitted when the actions editor modal opens.                |
+| `edit-data`     | —       | Emitted when the data (register/schema) editor opens.       |

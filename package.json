@@ -89,7 +89,8 @@
 		"vue-apexcharts": "^1.7.0",
 		"vue-codemirror6": "^1.4.3",
 		"vue-color": "^2.8.2",
-		"vue-template-compiler": "^2.7.16"
+		"vue-template-compiler": "^2.7.16",
+		"vuedraggable": "^2.24.3"
 	},
 	"peerDependencies": {
 		"@nextcloud/auth": "^2.0.0 || ^3.0.0",

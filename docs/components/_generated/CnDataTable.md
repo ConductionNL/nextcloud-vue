@@ -32,16 +32,17 @@
 | `register`        | `union`                                                                                                               |          | `null`                                           | Self-fetch mode (folded from CnTableWidget): the OpenRegister register id/slug. When `register` + `schemaId` are set and no `rows` are passed, the table fetches `/apps/openregister/api/objects/{register}/{schemaId}`.                                                                                       |
 | `schemaId`        | `union`                                                                                                               |          | `null`                                           | Self-fetch mode (folded from CnTableWidget): the OpenRegister schema id used together with `register`. (Distinct from the `schema` prop, which is a JSON Schema object for column generation.)                                                                                                                 |
 | `rowClickRoute`   | `union`                                                                                                               |          | `null`                                           | Convenience navigation (folded from CnTableWidget): a function that receives the clicked row and returns a vue-router route to push. When set, a row click navigates there (the `row-click` event still fires).                                                                                                |
+| `rowClickToView`  | `boolean`                                                                                                             |          | `false`                                          | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column. Lets "click row = open, tick box = select" coexist. Default false keeps the legacy behaviour (selectable rows select on body click).                             |
 
 ### Events
 
-| Name               | Payload | Description                                                                                                                    |
-| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `row-context-menu` | —       |                                                                                                                                |
-| `row-click`        | —       | Emitted when a non-selectable row is clicked. Only fires when `selectable` is false; selectable rows toggle selection instead. |
-| `sort`             | —       | Emitted when a sortable column header is clicked.                                                                              |
-| `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs.                                                            |
-| `select-all`       | —       | Emitted when select-all checkbox is toggled.                                                                                   |
+| Name               | Payload | Description                                                                                                                                                     |
+| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `row-context-menu` | —       |                                                                                                                                                                 |
+| `row-click`        | —       | Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column). |
+| `sort`             | —       | Emitted when a sortable column header is clicked.                                                                                                               |
+| `select`           | —       | Emitted when row selection changes. Payload: array of selected IDs.                                                                                             |
+| `select-all`       | —       | Emitted when select-all checkbox is toggled.                                                                                                                    |
 
 ### Slots
 
