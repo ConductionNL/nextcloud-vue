@@ -201,6 +201,22 @@ const LEAF_GROUPS = [
 	{ key: 'notes', responseKey: 'notes', icon: 'CommentTextOutline', integrationId: 'notes', requiredApp: '' },
 	{ key: 'tasks', responseKey: 'tasks', icon: 'CheckboxMarkedOutline', integrationId: 'tasks', requiredApp: 'tasks' },
 	{ key: 'deck', responseKey: 'deck', icon: 'ViewColumnOutline', integrationId: 'deck', requiredApp: 'deck' },
+	// Additional pluggable leaf integrations — surfaced automatically when the
+	// owning app is installed and the object has links (empty groups are hidden
+	// by `visibleGroups`). Server side is wired in RelationsController::LEAF_INTEGRATIONS.
+	{ key: 'talk', responseKey: 'talk', icon: 'Forum', integrationId: 'talk', requiredApp: 'spreed' },
+	{ key: 'forms', responseKey: 'forms', icon: 'FormatListChecks', integrationId: 'forms', requiredApp: 'forms' },
+	{ key: 'maps', responseKey: 'maps', icon: 'MapMarker', integrationId: 'maps', requiredApp: 'maps' },
+	{ key: 'polls', responseKey: 'polls', icon: 'Poll', integrationId: 'polls', requiredApp: 'polls' },
+	{ key: 'bookmarks', responseKey: 'bookmarks', icon: 'Bookmark', integrationId: 'bookmarks', requiredApp: 'bookmarks' },
+	{ key: 'collectives', responseKey: 'collectives', icon: 'NotebookOutline', integrationId: 'collectives', requiredApp: 'collectives' },
+	{ key: 'photos', responseKey: 'photos', icon: 'ImageMultiple', integrationId: 'photos', requiredApp: 'photos' },
+	{ key: 'cospend', responseKey: 'cospend', icon: 'Cash', integrationId: 'cospend', requiredApp: 'cospend' },
+	{ key: 'timetracker', responseKey: 'timetracker', icon: 'ClockOutline', integrationId: 'timetracker', requiredApp: 'timemanager' },
+	{ key: 'analytics', responseKey: 'analytics', icon: 'ChartLine', integrationId: 'analytics', requiredApp: 'analytics' },
+	{ key: 'flow', responseKey: 'flow', icon: 'Sitemap', integrationId: 'flow', requiredApp: '' },
+	{ key: 'openproject', responseKey: 'openproject', icon: 'Briefcase', integrationId: 'openproject', requiredApp: 'integration_openproject' },
+	{ key: 'xwiki', responseKey: 'xwiki', icon: 'BookOpenVariant', integrationId: 'xwiki', requiredApp: '' },
 ]
 
 /**
@@ -290,6 +306,19 @@ export default {
 		showContracts: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Whitelist of relation-group keys to display (tabbed path). When
+		 * non-empty, ONLY these groups render — e.g. `['objects', 'files',
+		 * 'mails']`. Empty (default) shows every non-empty group. Lets a detail
+		 * page carry several Related widgets each scoped to different relations.
+		 * Keys: `objects`, `files`, and the leaf groups (mails, events, contacts,
+		 * notes, tasks, deck, talk, forms, maps, polls, …).
+		 * @type {string[]}
+		 */
+		includeGroups: {
+			type: Array,
+			default: () => [],
 		},
 		/**
 		 * Object store instance (legacy list path only). When omitted, the
@@ -418,9 +447,14 @@ export default {
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
-		/** Tab groups that have at least one item (tabbed path). */
+		/** Tab groups that have at least one item (tabbed path), honouring the
+		 * `includeGroups` whitelist when set. */
 		visibleGroups() {
-			return this.groups.filter((group) => group.total > 0 || group.items.length > 0)
+			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
+			return this.groups.filter((group) =>
+				(group.total > 0 || group.items.length > 0)
+				&& (allow.length === 0 || allow.includes(group.key)),
+			)
 		},
 
 		/** Placeholder shown in the body while the first fetch is in flight. */
@@ -688,10 +722,10 @@ export default {
 			// summary, mails use subject, deck uses cardTitle, polls use question,
 			// talk uses roomName, notes/comments use message — fall back through the
 			// union of known title fields so no leaf renders its numeric link id.
-			const label = raw.title || raw.cardTitle || raw.displayName || raw.fullName
-				|| raw.summary || raw.subject || raw.question || raw.roomName
-				|| raw.name || raw.basename || raw.message || raw.content || raw.label
-				|| String(id)
+			const label = raw.title || raw.cardTitle || raw.albumName || raw.displayName
+				|| raw.fullName || raw.summary || raw.subject || raw.question || raw.roomName
+				|| raw.projectName || raw.reportName || raw.name || raw.basename
+				|| raw.message || raw.content || raw.label || String(id)
 			const meta = raw.date || raw.linkedAt || raw.createdAt || ''
 			return { id: String(id), label, meta: typeof meta === 'string' ? meta : '', raw }
 		},
@@ -813,6 +847,19 @@ export default {
 				notes: t('nextcloud-vue', 'Notes'),
 				tasks: t('nextcloud-vue', 'Tasks'),
 				deck: t('nextcloud-vue', 'Deck'),
+				talk: t('nextcloud-vue', 'Talk'),
+				forms: t('nextcloud-vue', 'Forms'),
+				maps: t('nextcloud-vue', 'Maps'),
+				polls: t('nextcloud-vue', 'Polls'),
+				bookmarks: t('nextcloud-vue', 'Bookmarks'),
+				collectives: t('nextcloud-vue', 'Collectives'),
+				photos: t('nextcloud-vue', 'Photos'),
+				cospend: t('nextcloud-vue', 'Cospend'),
+				timetracker: t('nextcloud-vue', 'Time tracking'),
+				analytics: t('nextcloud-vue', 'Analytics'),
+				flow: t('nextcloud-vue', 'Flows'),
+				openproject: t('nextcloud-vue', 'OpenProject'),
+				xwiki: t('nextcloud-vue', 'Wiki'),
 			}
 			return labels[key] || key
 		},

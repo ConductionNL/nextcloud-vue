@@ -41,12 +41,21 @@ import '../CnObjectListWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
 
-// The `chart` type renders through CnDashboardPage's dedicated isChart() branch
-// (CnChartWidget), NOT the registry renderer — but registering it here gives the
-// cog CnWidgetStyleEditorModal + CnAddWidgetModal a config FORM for chart widgets.
+// Typed widgets registered with an explicit renderer + config FORM. chart /
+// stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
+// branches and `related` through CnDetailPage's isRelatedWidget() branch — the
+// registry entry exists so the cog editor + Add-widget picker get a form (and,
+// for `related`, the detail-page surface). `table` aliases the object-list
+// renderer/form for legacy manifests using type:'table'.
+import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
-import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
+import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
+import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,
@@ -58,15 +67,6 @@ registerDashboardWidget('chart', {
 	displayName: 'Chart',
 	icon: 'ChartLine',
 })
-
-// `stats-block` (single-count KPI card) renders through CnDashboardPage's
-// isStatsBlock() branch (CnStatsBlockWidget) — registered here only so the cog
-// editor + Add-widget get a config FORM. `table` aliases the object-list
-// renderer/form for legacy manifests that use type:'table'.
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
-import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
-import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 
 registerDashboardWidget('stats-block', {
 	renderer: CnStatsBlockWidget,
@@ -84,11 +84,25 @@ registerDashboardWidget('table', {
 	renderer: CnObjectListWidget2,
 	form: CnObjectListWidgetForm2,
 	defaultContent: {
-		register: '', schema: '', filter: {}, sort: { field: '', dir: 'asc' }, limit: 10,
+		register: '',
+		schema: '',
+		filter: {},
+		sort: { field: '', dir: 'asc' },
+		limit: 10,
 		columns: [{ key: 'title', label: 'Title' }],
 	},
 	displayName: 'Table',
 	icon: 'ClipboardList',
+})
+
+registerDashboardWidget('related', {
+	renderer: CnRelatedObjectsWidget,
+	form: CnRelatedObjectsWidgetForm,
+	defaultContent: { title: '', groups: [] },
+	displayName: 'Object relations',
+	icon: 'FileTreeOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
 })
 
 /**

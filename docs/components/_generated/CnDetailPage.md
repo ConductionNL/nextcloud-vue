@@ -52,15 +52,19 @@
 
 ### Events
 
-| Name                   | Payload     | Description                                                                                                                                                        |
-| ---------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `refresh`              | `undefined` | The page-header Refresh action was clicked.                                                                                                                        |
-| `request-feature`      | `undefined` | The page-header Request-a-feature action was clicked.                                                                                                              |
-| `open-integration`     | —           | A related-objects "Linked apps" row was clicked on the auto-body. Payload is the leaf id.                                                                          |
-| `transitioned`         | —           | A declarative lifecycle transition succeeded on this page's object. Payload is `{ action, to, object }`.                                                           |
-| `relation-linked`      | —           | A relation-link action patched a foreign key on this page's object. Payload is the updated object.                                                                 |
-| `related-row-click`    | —           | A row in a `relatedCollections` section was clicked. Payload is `{ collection, row, index }`.                                                                      |
-| `widget-config-change` | —           | Emitted after a grid widget's config is saved via the cog editor, or after the widget is removed (payload null). Consumers persist the updated page/widget config. |
+| Name                | Payload     | Description                                                                                              |
+| ------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `refresh`           | `undefined` | The page-header Refresh action was clicked.                                                              |
+| `request-feature`   | `undefined` | The page-header Request-a-feature action was clicked.                                                    |
+| `open-integration`  | —           | A related-objects "Linked apps" row was clicked on the auto-body. Payload is the leaf id.                |
+| `transitioned`      | —           | A declarative lifecycle transition succeeded on this page's object. Payload is `{ action, to, object }`. |
+| `relation-linked`   | —           | A relation-link action patched a foreign key on this page's object. Payload is the updated object.       |
+| `related-row-click` | —           | A row in a `relatedCollections` section was clicked. Payload is `{ collection, row, index }`.            |
+| `layout-change`     | —           | Emitted when a body-grid widget is dragged or resized. Payload is the updated layout array.              |
+
+| `update:layout Sibling of `layout-change`so`:layout.sync`
+  consumers stay in sync.` | — | |
+| `widget-config-change` | — | Emitted after a grid widget's config is saved via the cog editor, or after the widget is removed (payload null). Consumers persist the updated page/widget config. |
 
 ### Slots
 

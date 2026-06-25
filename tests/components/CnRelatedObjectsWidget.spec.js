@@ -261,4 +261,25 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('deprecated'))
 		warn.mockRestore()
 	})
+
+	it('includeGroups whitelists which relation groups are visible', () => {
+		const wrapper = mountWidget({ includeGroups: ['objects', 'mails'] })
+		wrapper.setData({ groups: [
+			{ key: 'objects', items: [{ id: 1 }], total: 1 },
+			{ key: 'files', items: [{ id: 2 }], total: 1 },
+			{ key: 'mails', items: [{ id: 3 }], total: 1 },
+			{ key: 'events', items: [], total: 0 },
+		] })
+		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
+	})
+
+	it('shows every non-empty group when includeGroups is empty', () => {
+		const wrapper = mountWidget({ includeGroups: [] })
+		wrapper.setData({ groups: [
+			{ key: 'objects', items: [{ id: 1 }], total: 1 },
+			{ key: 'files', items: [], total: 0 },
+			{ key: 'mails', items: [{ id: 3 }], total: 1 },
+		] })
+		expect(wrapper.vm.visibleGroups.map((g) => g.key)).toEqual(['objects', 'mails'])
+	})
 })

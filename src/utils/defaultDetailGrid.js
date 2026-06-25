@@ -42,7 +42,7 @@ export function defaultDetailGrid(options = {}) {
 		{ id: 'data', widgetId: 'data', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 6, showTitle: false },
 	]
 	if (showRelated) {
-		widgets.push({ id: 'related', widgetId: 'related', type: 'related', title: t('nextcloud-vue', 'Related') })
+		widgets.push({ id: 'related', widgetId: 'related', type: 'related', title: t('nextcloud-vue', 'Related'), content: { title: '', groups: [] } })
 		layout.push({ id: 'related', widgetId: 'related', gridX: 0, gridY: 6, gridWidth: 12, gridHeight: 5, showTitle: false })
 	}
 	return { widgets, layout }

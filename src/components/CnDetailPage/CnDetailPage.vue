@@ -309,10 +309,14 @@
 							     relations and links into integrations. -->
 							<CnRelatedObjectsWidget
 								v-else-if="isRelatedWidget(item)"
+								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
 								:object-type="resolvedObjectType"
 								:object-id="objectId"
 								:object-data="currentObject"
+								:register="register"
+								:schema="schema"
 								:store="effectiveObjectStore"
+								:include-groups="widgetContentFor(item).groups || []"
 								@open-integration="onAutoBodyOpenIntegration" />
 							<!-- Fallback for `type: 'integration'` widget defs:
 							     render the registry widget on the detail-page
@@ -1941,7 +1945,17 @@ export default {
 				// sticks for the session (un-customised page, nothing to persist).
 				this.autoBodyLayout = updated
 			}
+			/**
+			 * @event layout-change Emitted when a body-grid widget is dragged or
+			 *   resized. Payload is the updated layout array.
+			 * @type {Array}
+			 */
 			this.$emit('layout-change', updated)
+			/**
+			 * @event update:layout Sibling of `layout-change` so `:layout.sync`
+			 *   consumers stay in sync.
+			 * @type {Array}
+			 */
 			this.$emit('update:layout', updated)
 		},
 
