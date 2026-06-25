@@ -527,27 +527,42 @@ export default {
 		 * @return {string} A Nextcloud URL, or '' when unresolved.
 		 */
 		resolveItemHref(groupKey, raw) {
-			// Files → canonical Nextcloud file permalink (Files is a core app, always present).
-			if (groupKey === 'files') {
-				const fileid = raw.id || raw.fileid
-				return fileid ? generateUrl('/f/{fileid}', { fileid: String(fileid) }) : ''
-			}
 			// A record may carry its own absolute owning-app link.
 			if (raw.url || raw.link || raw.accessUrl) {
 				return raw.url || raw.link || raw.accessUrl
 			}
-			// Leaf routes resolve ONLY when the owning app is installed — otherwise
-			// the caller falls back to a host event rather than opening a dead 404.
-			const def = LEAF_GROUPS.find((g) => g.key === groupKey)
-			if (def && def.requiredApp && this.isAppAvailable(def.requiredApp) === false) {
-				return ''
+			// Files → canonical Nextcloud file permalink (Files + Viewer).
+			if (groupKey === 'files') {
+				const fileid = raw.id || raw.fileid
+				return fileid ? generateUrl('/f/{fileid}', { fileid: String(fileid) }) : ''
 			}
+			// Contacts → open the contact card in the Contacts app.
 			if (groupKey === 'contacts' && raw.contactUid) {
 				const key = raw.addressbookId != null ? `${raw.contactUid}~${raw.addressbookId}` : String(raw.contactUid)
 				return generateUrl('/apps/contacts/All contacts/{key}', { key })
 			}
+			// Deck → open the card on its board.
 			if (groupKey === 'deck' && raw.boardId && (raw.cardId || raw.id)) {
 				return generateUrl('/apps/deck/board/{board}/card/{card}', { board: String(raw.boardId), card: String(raw.cardId || raw.id) })
+			}
+			// Tasks → open the task in the Tasks app.
+			if (groupKey === 'tasks') {
+				const cal = raw.calendarId || raw.calendarUri
+				const task = raw.uri || raw.uid || raw.id
+				if (cal && task) return generateUrl('/apps/tasks/#/calendars/{cal}/tasks/{task}', { cal: String(cal), task: String(task) })
+			}
+			// Meetings/events → open the event in the Calendar app (dav path, base64url).
+			if (groupKey === 'events') {
+				const cal = raw.calendarUri || raw.calendarId
+				const ev = raw.uri || (raw.uid ? `${raw.uid}.ics` : '')
+				if (cal && ev) {
+					const token = btoa(`${cal}/${ev}`).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+					return generateUrl('/apps/calendar/edit/{token}', { token })
+				}
+			}
+			// Mails → open the message in the Mail app.
+			if (groupKey === 'mails' && (raw.messageId || raw.id)) {
+				return generateUrl('/apps/mail/box/0/{id}', { id: String(raw.messageId || raw.id) })
 			}
 			return ''
 		},
@@ -561,19 +576,6 @@ export default {
 			if (!integrationId || typeof this.getById !== 'function') return ''
 			const entry = this.getById(integrationId)
 			return (entry && entry.icon) || ''
-		},
-
-		/**
-		 * Whether a Nextcloud app is installed/enabled on this instance.
-		 * @param {string} appId - The app id (e.g. 'contacts', 'deck').
-		 * @return {boolean}
-		 */
-		isAppAvailable(appId) {
-			try {
-				return typeof OC !== 'undefined' && !!OC.appswebroots && !!OC.appswebroots[appId]
-			} catch {
-				return false
-			}
 		},
 
 		/**

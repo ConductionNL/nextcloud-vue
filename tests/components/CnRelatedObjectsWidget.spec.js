@@ -209,9 +209,9 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		openSpy.mockRestore()
 	})
 
-	it('falls back to select-related when a leaf item has no resolvable link', async () => {
+	it('falls back to select-related for a leaf with no owning-app page (notes)', async () => {
 		global.fetch = mockFetchBySuffix({
-			relations: { emails: { results: [{ id: 'm1', subject: 'Hi' }], total: 1 } },
+			relations: { notes: { results: [{ id: 'n1', message: 'A note' }], total: 1 } },
 			uses: { results: [], total: 0 },
 			used: { results: [], total: 0 },
 			files: { results: [], total: 0 },
@@ -221,7 +221,22 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		await flush()
 		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
 		expect(openSpy).not.toHaveBeenCalled()
-		expect(wrapper.emitted('select-related')[0][0]).toMatchObject({ group: 'mails' })
+		expect(wrapper.emitted('select-related')[0][0]).toMatchObject({ group: 'notes' })
+		openSpy.mockRestore()
+	})
+
+	it('deep-links a deck card to its board/card route', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: { deck: { results: [{ id: 9, boardId: 3, cardId: 9, title: 'Card' }], total: 1 } },
+			uses: { results: [], total: 0 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+		})
+		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
+		const wrapper = mountTabbed()
+		await flush()
+		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
+		expect(openSpy).toHaveBeenCalledWith('/apps/deck/board/3/card/9', '_blank', 'noopener,noreferrer')
 		openSpy.mockRestore()
 	})
 
