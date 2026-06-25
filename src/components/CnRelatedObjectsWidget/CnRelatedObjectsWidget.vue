@@ -685,9 +685,13 @@ export default {
 		toLeafRow(raw, index) {
 			const id = raw.id || raw.uuid || raw.uri || `leaf-${index}`
 			// Leaf shapes vary by type: contacts use displayName, events/tasks use
-			// summary, mails use subject, deck uses title, notes/comments use message.
-			const label = raw.title || raw.displayName || raw.summary || raw.subject
-				|| raw.message || raw.content || raw.name || raw.fullName || raw.label || String(id)
+			// summary, mails use subject, deck uses cardTitle, polls use question,
+			// talk uses roomName, notes/comments use message — fall back through the
+			// union of known title fields so no leaf renders its numeric link id.
+			const label = raw.title || raw.cardTitle || raw.displayName || raw.fullName
+				|| raw.summary || raw.subject || raw.question || raw.roomName
+				|| raw.name || raw.basename || raw.message || raw.content || raw.label
+				|| String(id)
 			const meta = raw.date || raw.linkedAt || raw.createdAt || ''
 			return { id: String(id), label, meta: typeof meta === 'string' ? meta : '', raw }
 		},
