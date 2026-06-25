@@ -24,7 +24,8 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `store` | `Object` | `null` | Optional objectStore instance. When provided, used directly for saving instead of auto-detecting via Pinia. |
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
-| `editable` | `Boolean` | `true` | Whether inline editing is enabled globally |
+| `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
+| `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
 | `exclude` | `Array` | `[]` | Property keys to hide from display |
 | `include` | `Array` | `null` | Property keys to show (whitelist — all others hidden) |
 | `save-label` | `String` | `'Save'` | Label for the save button |

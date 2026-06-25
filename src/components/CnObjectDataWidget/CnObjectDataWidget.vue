@@ -40,6 +40,15 @@
 		     Refresh / Documentation / Request-a-feature trio. -->
 		<template #action-items>
 			<NcActionButton
+				v-if="editable"
+				:close-after-click="true"
+				@click="editModalOpen = true">
+				<template #icon>
+					<Pencil :size="20" />
+				</template>
+				{{ editLabel }}
+			</NcActionButton>
+			<NcActionButton
 				:close-after-click="true"
 				@click="metadataModalOpen = true">
 				<template #icon>
@@ -243,6 +252,16 @@
 			v-if="metadataModalOpen"
 			:object-data="objectData"
 			@close="metadataModalOpen = false" />
+
+		<!-- Full-form edit (alongside the per-field inline editing) — schema-driven
+		     dialog pre-filled with the current object; saves via the same path. -->
+		<CnFormDialog
+			v-if="editModalOpen"
+			:schema="schema"
+			:item="objectData"
+			:dialog-title="editLabel"
+			@confirm="onEditConfirm"
+			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
 </template>
 
@@ -251,6 +270,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -302,6 +322,7 @@ export default {
 		NcActionButton,
 		CnWidgetWrapper,
 		CnObjectMetadataModal,
+		CnFormDialog,
 		ContentSaveOutline,
 		InformationOutline,
 		Pencil,
@@ -439,12 +460,19 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+		/** Label for the Edit action item (opens the full-form edit dialog). */
+		editLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Edit'),
+		},
 	},
 
 	data() {
 		return {
 			/** Whether the read-only metadata modal is open. */
 			metadataModalOpen: false,
+			/** Whether the full-form edit dialog is open. */
+			editModalOpen: false,
 			/** Currently editing field key, or null */
 			editingField: null,
 			/** Working copy of changed field values */
@@ -716,6 +744,39 @@ export default {
 				}
 
 				// Fallback: emit for parent to handle
+				this.$emit('save', mergedData)
+			} finally {
+				this.saving = false
+			}
+		},
+
+		/**
+		 * Persist the full-form edit dialog result, merged onto the current
+		 * object, via the same store path as inline save. Closes on success.
+		 * @param {object} formData The submitted form payload.
+		 * @return {Promise<void>}
+		 */
+		async onEditConfirm(formData) {
+			const mergedData = { ...this.objectData, ...formData }
+			this.saving = true
+			try {
+				if (this.objectType) {
+					const store = this._getObjectStore()
+					if (store) {
+						const result = await store.saveObject(this.objectType, mergedData)
+						if (result) {
+							this.dirtyFields = {}
+							this.editData = {}
+							this.editModalOpen = false
+							this.$emit('saved', result)
+						} else {
+							this.$emit('save-error', store.getError(this.objectType))
+						}
+						return
+					}
+				}
+				// Fallback: emit for parent to persist.
+				this.editModalOpen = false
 				this.$emit('save', mergedData)
 			} finally {
 				this.saving = false
