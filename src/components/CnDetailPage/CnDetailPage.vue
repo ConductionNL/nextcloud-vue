@@ -254,7 +254,7 @@
 				<template #widget="{ item }">
 					<div
 						class="cn-detail-page__grid-item"
-						:aria-labelledby="item.showTitle !== false && findWidget(item) ? `widget-title-${item.id}` : undefined">
+						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     widgets that have a registered config form while the page
 						     is in OpenBuild edit mode. The modal's own Delete affordance
@@ -266,8 +266,12 @@
 								</template>
 							</NcButton>
 						</div>
+						<!-- Section heading ONLY for consumer-supplied bare-content slots.
+						     Built-in widgets (data / related / integration / catalog)
+						     render their own titled card header, so a grid <h3> here would
+						     duplicate the title above the widget. -->
 						<h3
-							v-if="item.showTitle !== false && findWidget(item)"
+							v-if="showGridTitle(item)"
 							:id="`widget-title-${item.id}`"
 							class="cn-detail-page__widget-title">
 							{{ findWidget(item).title }}
@@ -1846,6 +1850,21 @@ export default {
 		isRelatedWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether to render the grid section `<h3>` title above a widget. Only for
+		 * consumer-supplied `#widget-<id>` slots (whose content may be bare) — the
+		 * built-in widget renderers (data / related / integration / catalog) draw
+		 * their own titled card header, so a grid heading would show the title
+		 * twice. Honours `item.showTitle === false` to opt out entirely.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the grid heading should render.
+		 */
+		showGridTitle(item) {
+			if (item.showTitle === false || !this.findWidget(item)) return false
+			return Boolean(this.$scopedSlots[`widget-${item.widgetId}`] || this.$slots[`widget-${item.widgetId}`])
 		},
 
 		/**

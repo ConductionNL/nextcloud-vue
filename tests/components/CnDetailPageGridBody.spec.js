@@ -73,6 +73,30 @@ describe('CnDetailPage — adjustable body grid', () => {
 		})
 	})
 
+	describe('grid section title (no duplicate with the widget header)', () => {
+		it('does not render a grid <h3> for built-in widgets (they own their header)', async () => {
+			const wrapper = mountSchemaDriven()
+			await wrapper.vm.$nextTick()
+			const dataItem = wrapper.vm.bodyGridLayout.find((l) => l.widgetId === 'data')
+			// No consumer #widget-data slot → built-in dispatch → suppress the heading
+			expect(wrapper.vm.showGridTitle(dataItem)).toBe(false)
+			expect(wrapper.find('.cn-detail-page__widget-title').exists()).toBe(false)
+		})
+
+		it('renders a grid <h3> for a consumer-supplied widget slot', async () => {
+			const wrapper = mount(CnDetailPage, {
+				propsData: {
+					layout: [{ id: 1, widgetId: 'custom', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3 }],
+					widgets: [{ id: 'custom', type: 'stat', title: 'My section' }],
+				},
+				scopedSlots: { 'widget-custom': '<div>bare content</div>' },
+			})
+			await wrapper.vm.$nextTick()
+			const item = wrapper.vm.bodyGridLayout[0]
+			expect(wrapper.vm.showGridTitle(item)).toBe(true)
+		})
+	})
+
 	describe('isDataWidget / isRelatedWidget dispatch', () => {
 		it('classifies the seeded widgets by type', async () => {
 			const wrapper = mountSchemaDriven()
