@@ -187,6 +187,7 @@
 				ref="formDialog"
 				:schema="effectiveSchema"
 				:item="editItem"
+				:register="register"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
 				:field-overrides="fieldOverrides"

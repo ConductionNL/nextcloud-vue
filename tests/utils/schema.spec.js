@@ -663,6 +663,64 @@ describe('fieldsFromSchema', () => {
 		expect(catField.widget).toBe('multiselect')
 	})
 
+	// --- OpenRegister object references ($ref) ---
+
+	const refSchema = {
+		title: 'Case',
+		properties: {
+			caseType: { type: 'string', format: 'uuid', $ref: 'caseType', title: 'Case type', order: 1 },
+			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
+			plain: { type: 'string', title: 'Plain', order: 3 },
+			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+		},
+	}
+
+	it('resolves a string $ref property to a select widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+	})
+
+	it('resolves an array items.$ref property to a multiselect widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.widget).toBe('multiselect')
+	})
+
+	it('sets field.reference for a single $ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+	})
+
+	it('sets field.reference with multiple:true for an items.$ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.reference).toEqual({ schema: 'contact', multiple: true })
+	})
+
+	it('leaves reference null for non-reference and empty-$ref properties', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'plain').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
+	})
+
+	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
+		// OR authors `$ref` as a slug but persists/serves it as the numeric
+		// schema id (e.g. 85). The numeric form must still resolve to a select.
+		const numericRefSchema = {
+			title: 'Case',
+			properties: {
+				caseType: { type: 'string', format: 'uuid', $ref: 85, title: 'Case type' },
+			},
+		}
+		const fields = fieldsFromSchema(numericRefSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
+	})
+
 	it('resolves uri format to url widget', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const webField = fields.find((f) => f.key === 'website')
