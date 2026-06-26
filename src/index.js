@@ -12,6 +12,13 @@ import './css/index.css'
 // of truth is the upstream @nextcloud/vue documentation.
 export * from '@nextcloud/vue'
 
+// Override @nextcloud/vue's NcSelectTags with a fixed version. An explicit
+// named export shadows the same name coming from the `export *` above, so
+// every consumer importing `NcSelectTags` from this barrel transparently gets
+// the corrected component (tolerant systemtags fetch + consumer `:options`
+// honoured). See src/components/NcSelectTags/.
+export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.js'
+
 // Components
 export {
 	CnDataTable,
