@@ -59,7 +59,9 @@
 							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
 							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
 							<p v-if="item.detail && isExpanded(activeGroup.key, item)"
-								class="cn-related-objects-widget__detail">{{ item.detail }}</p>
+								class="cn-related-objects-widget__detail">
+								{{ item.detail }}
+							</p>
 						</li>
 					</ul>
 				</section>
@@ -452,8 +454,10 @@ export default {
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
-		/** Tab groups that have at least one item (tabbed path), honouring the
-		 * `includeGroups` whitelist when set. */
+		/**
+		 * Tab groups that have at least one item (tabbed path), honouring the
+		 * `includeGroups` whitelist when set.
+		 */
 		visibleGroups() {
 			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
 			return this.groups.filter((group) =>

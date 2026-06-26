@@ -442,8 +442,15 @@ describe('CnDashboardPage — per-widget configure cog (ADR-041)', () => {
 		wrapper.vm.configureWidget({ widgetId: 'w1' })
 		await wrapper.vm.$nextTick()
 		wrapper.vm.onWidgetConfigDelete({ id: 'w1' })
-		expect(wrapper.props('layout').some((l) => l.widgetId === 'w1')).toBe(false)
-		expect(wrapper.props('widgets').some((w) => w.id === 'w1')).toBe(false)
+		// removeWidget emits layout-change with w1 excluded, and widget-remove with the removed id.
+		// Props are not mutated (no vue/no-mutating-props violation).
+		const layoutChanges = wrapper.emitted('layout-change')
+		expect(layoutChanges).toBeTruthy()
+		const emittedLayout = layoutChanges[layoutChanges.length - 1][0]
+		expect(emittedLayout.some((l) => l.widgetId === 'w1')).toBe(false)
+		const widgetRemoves = wrapper.emitted('widget-remove')
+		expect(widgetRemoves).toBeTruthy()
+		expect(widgetRemoves[0][0]).toBe('w1')
 		expect(wrapper.vm.showWidgetConfig).toBe(false)
 		wrapper.destroy()
 	})

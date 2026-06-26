@@ -105,14 +105,20 @@ function restoreInPlace(target, snap) {
 	}
 }
 
-/** structuredClone with a JSON fallback (manifests are plain JSON, no cycles). */
+/**
+ * structuredClone with a JSON fallback (manifests are plain JSON, no cycles).
+ * @param value
+ */
 function deepClone(value) {
 	if (value == null) return value
 	if (typeof structuredClone === 'function') return structuredClone(value)
 	return JSON.parse(JSON.stringify(value))
 }
 
-/** Stable JSON for equality — manifests are plain JSON, so this is sufficient. */
+/**
+ * Stable JSON for equality — manifests are plain JSON, so this is sufficient.
+ * @param value
+ */
 function stableStringify(value) {
 	return JSON.stringify(value)
 }

@@ -90,7 +90,11 @@ export default {
 
 	methods: {
 		t,
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
 		/**
 		 * Map the selected options back to group keys and emit.

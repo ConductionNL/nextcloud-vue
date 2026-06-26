@@ -48,6 +48,7 @@
 | `request-feature`        | `undefined` | User clicked Request a feature in the page-level overflow Actions menu. Payload: `{ widgetId, title }`. Handlers may call the second arg's `preventDefault()` to suppress the built-in default (auto-opening CnSuggestFeatureModal). |
 | `widget-refresh`         | —           | User clicked Refresh in a widget's overflow action menu. Payload: the layout item descriptor.                                                                                                                                        |
 | `widget-request-feature` | —           | User clicked Request a feature in a widget's overflow action menu. Payload: the layout item descriptor.                                                                                                                              |
+| `widget-remove`          | `undefined` | Emitted when a widget is removed via the in-place editor.                                                                                                                                                                            |
 
 ### Slots
 

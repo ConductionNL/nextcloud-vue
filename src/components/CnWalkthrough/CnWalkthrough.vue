@@ -1,9 +1,16 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
 <!-- SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl> -->
 <template>
-	<div v-if="active" class="cn-walkthrough" :style="{ zIndex }" role="dialog" aria-modal="true" :aria-label="dialogLabel">
+	<div v-if="active"
+		class="cn-walkthrough"
+		:style="{ zIndex }"
+		role="dialog"
+		aria-modal="true"
+		:aria-label="dialogLabel">
 		<!-- aria-live announcement of the current step -->
-		<div class="cn-walkthrough__live" aria-live="polite">{{ liveText }}</div>
+		<div class="cn-walkthrough__live" aria-live="polite">
+			{{ liveText }}
+		</div>
 
 		<!-- Dimmer: a centered step uses one full overlay; an anchored step uses
 		     four strips that frame the target rect, leaving a real interactive hole. -->
@@ -19,21 +26,44 @@
 		</template>
 
 		<!-- Coachmark card -->
-		<div ref="card" class="cn-walkthrough__card" :class="`cn-walkthrough__card--${cardPlacement}`" :style="cardStyle">
+		<div ref="card"
+			class="cn-walkthrough__card"
+			:class="`cn-walkthrough__card--${cardPlacement}`"
+			:style="cardStyle">
 			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip }. -->
-			<slot name="coachmark" :step="step" :index="index" :total="total" :next="advance" :back="back" :skip="skip">
-				<div class="cn-walkthrough__counter">{{ index + 1 }} / {{ total }}</div>
-				<h3 v-if="stepTitle" class="cn-walkthrough__title">{{ stepTitle }}</h3>
-				<p v-if="stepBody" class="cn-walkthrough__body">{{ stepBody }}</p>
+			<slot name="coachmark"
+				:step="step"
+				:index="index"
+				:total="total"
+				:next="advance"
+				:back="back"
+				:skip="skip">
+				<div class="cn-walkthrough__counter">
+					{{ index + 1 }} / {{ total }}
+				</div>
+				<h3 v-if="stepTitle" class="cn-walkthrough__title">
+					{{ stepTitle }}
+				</h3>
+				<p v-if="stepBody" class="cn-walkthrough__body">
+					{{ stepBody }}
+				</p>
 				<p v-if="step && step.task" class="cn-walkthrough__task">
 					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ step.task }}
 				</p>
 				<div class="cn-walkthrough__actions">
-					<NcButton ref="skipBtn" type="tertiary" @click="skip">{{ skipLabel }}</NcButton>
+					<NcButton ref="skipBtn" type="tertiary" @click="skip">
+						{{ skipLabel }}
+					</NcButton>
 					<span class="cn-walkthrough__spacer" />
-					<NcButton v-if="!isFirst" type="secondary" @click="back">{{ backLabel }}</NcButton>
-					<NcButton v-if="isHandoff" type="primary" @click="doHandoff">{{ handoffLabel }}</NcButton>
-					<NcButton v-else-if="showNext" type="primary" @click="advance">{{ isLast ? finishLabel : nextLabel }}</NcButton>
+					<NcButton v-if="!isFirst" type="secondary" @click="back">
+						{{ backLabel }}
+					</NcButton>
+					<NcButton v-if="isHandoff" type="primary" @click="doHandoff">
+						{{ handoffLabel }}
+					</NcButton>
+					<NcButton v-else-if="showNext" type="primary" @click="advance">
+						{{ isLast ? finishLabel : nextLabel }}
+					</NcButton>
 				</div>
 			</slot>
 		</div>
@@ -112,19 +142,31 @@ export default {
 
 	data() {
 		return {
-			rect: null,        // target bounding rect (viewport coords)
+			rect: null, // target bounding rect (viewport coords)
 			cardPos: { top: 0, left: 0 },
 			cardPlacement: 'bottom',
 			targetEl: null,
-			_revealAttempted: false,
-			_observer: null,
-			_resizeObs: null,
-			_delayTimer: null,
-			_onScroll: null,
-			_onKey: null,
-			_onObjectCreated: null,
-			_routeUnhook: null,
 		}
+	},
+
+	/**
+	 * Initialise non-reactive instance state (event handler refs, DOM observer
+	 * handles). These use the `_` prefix convention and are set here rather than
+	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
+	 *
+	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
+	 */
+	created() {
+		// Non-reactive instance state: event handlers and DOM watchers.
+		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
+		this._revealAttempted = false
+		this._observer = null
+		this._resizeObs = null
+		this._delayTimer = null
+		this._onScroll = null
+		this._onKey = null
+		this._onObjectCreated = null
+		this._routeUnhook = null
 	},
 
 	computed: {
@@ -415,6 +457,7 @@ export default {
 		 * Position the coachmark near the target with a simple flip so it stays
 		 * on-screen.
 		 *
+		 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		placeCard() {
@@ -431,10 +474,7 @@ export default {
 			let left
 			if (placement === 'bottom' && r.top + r.height + gap + ch > vh) placement = 'top'
 			if (placement === 'top' && r.top - gap - ch < 0) placement = 'bottom'
-			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left }
-			else if (placement === 'top') { top = r.top - gap - ch; left = r.left }
-			else if (placement === 'left') { top = r.top; left = r.left - gap - cw }
-			else { top = r.top; left = r.left + r.width + gap }
+			if (placement === 'bottom') { top = r.top + r.height + gap; left = r.left } else if (placement === 'top') { top = r.top - gap - ch; left = r.left } else if (placement === 'left') { top = r.top; left = r.left - gap - cw } else { top = r.top; left = r.left + r.width + gap }
 			left = Math.max(gap, Math.min(left, vw - cw - gap))
 			top = Math.max(gap, Math.min(top, vh - ch - gap))
 			this.cardPlacement = placement

@@ -229,7 +229,9 @@
 				     mode. -->
 				<div v-if="gridEditable" class="cn-dashboard-page__widget-edit">
 					<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Configure widget')" @click="configureWidget(item)">
-						<template #icon><Cog :size="18" /></template>
+						<template #icon>
+							<Cog :size="18" />
+						</template>
 					</NcButton>
 				</div>
 				<!-- requiresApp gate — when a widget declares `requiresApp`
@@ -253,7 +255,9 @@
 							<NcButton
 								variant="primary"
 								:href="appInstallUrl(missingRequiredApp(item))">
-								<template #icon><Download :size="18" /></template>
+								<template #icon>
+									<Download :size="18" />
+								</template>
 								{{ installAppLabel(missingRequiredApp(item)) }}
 							</NcButton>
 						</template>
@@ -278,8 +282,8 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
-						@refresh="onWidgetRefresh(item)"
 						:show-actions="item.showActions !== false"
+						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
 						<template v-if="$slots['widget-' + item.widgetId + '-title-icon']" #title-icon>
@@ -721,9 +725,11 @@ export default {
 	},
 
 	inject: {
-		/** OpenBuild in-app edit state (ADR-041), provided by CnAppRoot as a ref.
+		/**
+		 * OpenBuild in-app edit state (ADR-041), provided by CnAppRoot as a ref.
 		 * When true the dashboard grid becomes drag/resize/remove-able even
-		 * without the consumer's own `allowEdit` toggle. */
+		 * without the consumer's own `allowEdit` toggle.
+		 */
 		cnEditingBody: { default: false },
 		/**
 		 * Reactive AI context holder provided by CnAppRoot. Overwritten
@@ -2099,17 +2105,19 @@ export default {
 		 * `config.widgets` + `config.layout` (the working manifest, by reference)
 		 * and emits the updated layout so consumers persist.
 		 *
+		 * @spec openspec/changes/dashboard-widget-system/specs/dashboard-page/spec.md
 		 * @param {object} item Layout item to remove.
 		 */
 		removeWidget(item) {
 			const id = item.widgetId
-			const layoutIdx = this.layout.findIndex((l) => l.widgetId === id)
-			if (layoutIdx !== -1) this.layout.splice(layoutIdx, 1)
-			if (Array.isArray(this.widgets)) {
-				const wIdx = this.widgets.findIndex((w) => w.id === id)
-				if (wIdx !== -1) this.widgets.splice(wIdx, 1)
-			}
-			this.$emit('layout-change', this.layout)
+			const newLayout = this.layout.filter((l) => l.widgetId !== id)
+			const newWidgets = Array.isArray(this.widgets) ? this.widgets.filter((w) => w.id !== id) : this.widgets
+			this.$emit('layout-change', newLayout)
+			/**
+			 * @event widget-remove Emitted when a widget is removed via the in-place editor.
+			 * @type {{ id: string, widgets: Array }}
+			 */
+			this.$emit('widget-remove', id, newWidgets)
 		},
 
 		/**
