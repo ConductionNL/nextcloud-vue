@@ -37,6 +37,7 @@ Relation and file sections only render when the store exposes the matching actio
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
 | `show-integrations` | `Boolean` | `true` | Show the leaf-integration entry-point section |
+| `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu |

@@ -333,7 +333,7 @@ function resolveWidget(prop) {
  * @param {object} [options] Configuration options
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
- * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. A `readOnly: false` override on a key that is `readOnly` in the schema also un-skips it (so a single schema-readOnly field — e.g. a denormalised name editable only on create — can be surfaced without `includeReadOnly`).
+ * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
  */
@@ -350,6 +350,10 @@ export function fieldsFromSchema(schema, options = {}) {
 		.filter(([key, prop]) => {
 			// Skip properties marked as not visible
 			if (prop.visible === false) return false
+			// Per-key override visibility: `overrides[key].hidden === true` hides
+			// the field on every surface that consumes this pipeline (data widget
+			// + form dialog), so a single config map controls both.
+			if (overrides[key]?.hidden === true) return false
 			// Skip readOnly properties by default — UNLESS a per-key override
 			// explicitly re-enables the field (`overrides[key].readOnly === false`).
 			// This lets a consumer surface a schema-readOnly field (e.g. a
@@ -366,9 +370,16 @@ export function fieldsFromSchema(schema, options = {}) {
 			return true
 		})
 		.sort(([keyA, propA], [keyB, propB]) => {
-			// Sort by order hint first, then alphabetically
-			const orderA = typeof propA.order === 'number' ? propA.order : Infinity
-			const orderB = typeof propB.order === 'number' ? propB.order : Infinity
+			// Sort by EFFECTIVE order: a per-key `overrides[key].order` wins over
+			// the schema property's own `order`, then alphabetically. Honouring the
+			// override here means every consumer (data widget + form dialog) gets
+			// the same ordering from one map — no per-component re-sort needed.
+			const orderA = typeof overrides[keyA]?.order === 'number'
+				? overrides[keyA].order
+				: (typeof propA.order === 'number' ? propA.order : Infinity)
+			const orderB = typeof overrides[keyB]?.order === 'number'
+				? overrides[keyB].order
+				: (typeof propB.order === 'number' ? propB.order : Infinity)
 			if (orderA !== orderB) return orderA - orderB
 			return keyA.localeCompare(keyB)
 		})

@@ -40,6 +40,15 @@
 		     Refresh / Documentation / Request-a-feature trio. -->
 		<template #action-items>
 			<NcActionButton
+				v-if="editable"
+				:close-after-click="true"
+				@click="editModalOpen = true">
+				<template #icon>
+					<Pencil :size="20" />
+				</template>
+				{{ editLabel }}
+			</NcActionButton>
+			<NcActionButton
 				:close-after-click="true"
 				@click="metadataModalOpen = true">
 				<template #icon>
@@ -243,6 +252,19 @@
 			v-if="metadataModalOpen"
 			:object-data="objectData"
 			@close="metadataModalOpen = false" />
+
+		<!-- Full-form edit (alongside the per-field inline editing) — schema-driven
+		     dialog pre-filled with the current object; saves via the same path. -->
+		<CnFormDialog
+			v-if="editModalOpen"
+			:schema="schema"
+			:item="objectData"
+			:dialog-title="editLabel"
+			:overrides="overrides"
+			:exclude-fields="exclude"
+			:include-fields="include"
+			@confirm="onEditConfirm"
+			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
 </template>
 
@@ -251,6 +273,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -302,6 +325,7 @@ export default {
 		NcActionButton,
 		CnWidgetWrapper,
 		CnObjectMetadataModal,
+		CnFormDialog,
 		ContentSaveOutline,
 		InformationOutline,
 		Pencil,
@@ -439,12 +463,19 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+		/** Label for the Edit action item (opens the full-form edit dialog). */
+		editLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Edit'),
+		},
 	},
 
 	data() {
 		return {
 			/** Whether the read-only metadata modal is open. */
 			metadataModalOpen: false,
+			/** Whether the full-form edit dialog is open. */
+			editModalOpen: false,
 			/** Currently editing field key, or null */
 			editingField: null,
 			/** Working copy of changed field values */
@@ -466,51 +497,25 @@ export default {
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
 		resolvedFields() {
-			// Build override map for fieldsFromSchema
-			const fieldOverrides = {}
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				const override = {}
-				if (cfg.label) override.label = cfg.label
-				if (cfg.widget) override.widget = cfg.widget
-				if (typeof cfg.order === 'number') override.order = cfg.order
-				if (cfg.enum) override.enum = cfg.enum
-				if (Object.keys(override).length > 0) {
-					fieldOverrides[key] = override
-				}
-			}
-
-			// Build exclude list: merge prop exclude + hidden overrides
-			const excludeList = [...this.exclude]
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				if (cfg.hidden === true && !excludeList.includes(key)) {
-					excludeList.push(key)
-				}
-			}
-
+			// The shared pipeline now honours per-key `hidden` (filter) and
+			// `order` (sort) directly, so the overrides map is passed through
+			// verbatim — no bespoke hidden→exclude merge or post-sort needed.
+			// This keeps the data widget and the edit modal (CnFormDialog)
+			// identical-by-construction from one config map.
 			const fields = fieldsFromSchema(this.schema, {
-				exclude: excludeList,
+				exclude: this.exclude,
 				include: this.include,
-				overrides: fieldOverrides,
+				overrides: this.overrides,
 				includeReadOnly: true,
 			})
 
-			// Attach grid span info from overrides
-			const result = fields.map(field => ({
+			// Attach grid span info (a display-only concern, not part of the
+			// shared field pipeline) from the same overrides map.
+			return fields.map(field => ({
 				...field,
 				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
 				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
 			}))
-
-			// Re-sort by order after overrides are applied
-			// (fieldsFromSchema sorts before applying overrides, so order may have changed)
-			result.sort(function(a, b) {
-				const orderA = typeof a.order === 'number' ? a.order : Infinity
-				const orderB = typeof b.order === 'number' ? b.order : Infinity
-				if (orderA !== orderB) return orderA - orderB
-				return a.key.localeCompare(b.key)
-			})
-
-			return result
 		},
 
 		/**
@@ -716,6 +721,39 @@ export default {
 				}
 
 				// Fallback: emit for parent to handle
+				this.$emit('save', mergedData)
+			} finally {
+				this.saving = false
+			}
+		},
+
+		/**
+		 * Persist the full-form edit dialog result, merged onto the current
+		 * object, via the same store path as inline save. Closes on success.
+		 * @param {object} formData The submitted form payload.
+		 * @return {Promise<void>}
+		 */
+		async onEditConfirm(formData) {
+			const mergedData = { ...this.objectData, ...formData }
+			this.saving = true
+			try {
+				if (this.objectType) {
+					const store = this._getObjectStore()
+					if (store) {
+						const result = await store.saveObject(this.objectType, mergedData)
+						if (result) {
+							this.dirtyFields = {}
+							this.editData = {}
+							this.editModalOpen = false
+							this.$emit('saved', result)
+						} else {
+							this.$emit('save-error', store.getError(this.objectType))
+						}
+						return
+					}
+				}
+				// Fallback: emit for parent to persist.
+				this.editModalOpen = false
 				this.$emit('save', mergedData)
 			} finally {
 				this.saving = false
