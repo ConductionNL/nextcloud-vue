@@ -1,3 +1,8 @@
+// Dashboard widget library (cn-widget-library) — public API. The 21 widget
+// components self-register into dashboardWidgetRegistry via the side-effect
+// import below and are resolved by type key, so they are not exported here.
+import './CnWidgetGrid/registerDashboardWidgets.js'
+
 export { CnDataTable } from './CnDataTable/index.js'
 export { CnDataMatrix } from './CnDataMatrix/index.js'
 export { CnFilterBar } from './CnFilterBar/index.js'
@@ -258,11 +263,6 @@ export { default as CnEditPagesModal } from '../modals/CnEditPagesModal.vue'
 export { default as CnEditSettingsModal } from '../modals/CnEditSettingsModal.vue'
 export { default as CnEditSidebarModal } from '../modals/CnEditSidebarModal.vue'
 export { default as CnEditActionsModal } from '../modals/CnEditActionsModal.vue'
-
-// Dashboard widget library (cn-widget-library) — public API. The 21 widget
-// components self-register into dashboardWidgetRegistry via the side-effect
-// import below and are resolved by type key, so they are not exported here.
-import './CnWidgetGrid/registerDashboardWidgets.js'
 export { default as CnAddWidgetModal } from '../modals/CnAddWidgetModal.vue'
 export { default as CnWidgetStyleEditorModal } from '../modals/CnWidgetStyleEditorModal.vue'
 export { default as CnWidgetVisibilityRulesModal } from '../modals/CnWidgetVisibilityRulesModal.vue'

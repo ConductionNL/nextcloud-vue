@@ -595,6 +595,37 @@ export default {
  * so users can override any token. Combined selector raises specificity above
  * the base `.cn-widget-wrapper` rules it supersedes.
  */
+.cn-widget-wrapper__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__header-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-widget-wrapper__icon {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__title {
+	font-weight: 600;
+	font-size: 14px;
+	margin: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
 	background: var(--color-main-background-blur, var(--color-main-background));
 	-webkit-backdrop-filter: var(--filter-background-blur, none);
@@ -626,37 +657,6 @@ export default {
 
 .cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
 	padding: 0 16px 16px;
-}
-
-.cn-widget-wrapper__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--color-border);
-	flex-shrink: 0;
-}
-
-.cn-widget-wrapper__header-left {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	min-width: 0;
-}
-
-.cn-widget-wrapper__icon {
-	width: 24px;
-	height: 24px;
-	flex-shrink: 0;
-}
-
-.cn-widget-wrapper__title {
-	font-weight: 600;
-	font-size: 14px;
-	margin: 0;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .cn-widget-wrapper__title-meta {

@@ -163,9 +163,11 @@ export default {
 			const ds = this.dataSource || {}
 			if (!ds.register || !ds.schema || ds.graphql) return null
 			return JSON.stringify({
-				register: ds.register, schema: ds.schema,
+				register: ds.register,
+				schema: ds.schema,
 				metric: ds.metric || (ds.aggregate === 'count' ? 'count' : 'count'),
-				field: ds.field || '', filter: ds.filter || {},
+				field: ds.field || '',
+				filter: ds.filter || {},
 			})
 		},
 		resolvedCount() {

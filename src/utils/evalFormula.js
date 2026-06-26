@@ -26,9 +26,9 @@ function tokenize(src) {
 		const c = src[i]
 		if (c === ' ' || c === '\t') { i++; continue }
 		if ('+-*/()'.includes(c)) { tokens.push({ t: c }); i++; continue }
-		if (c >= '0' && c <= '9' || c === '.') {
+		if ((c >= '0' && c <= '9') || c === '.') {
 			let j = i + 1
-			while (j < src.length && (src[j] >= '0' && src[j] <= '9' || src[j] === '.')) j++
+			while (j < src.length && ((src[j] >= '0' && src[j] <= '9') || src[j] === '.')) j++
 			tokens.push({ t: 'num', v: src.slice(i, j) })
 			i = j
 			continue
@@ -114,8 +114,7 @@ export function evalFormula(formula, vars) {
 			if (tok.t === '+') r = a + b
 			else if (tok.t === '-') r = a - b
 			else if (tok.t === '*') r = a * b
-			else if (tok.t === '/') { if (b === 0) return null; r = a / b }
-			else return null
+			else if (tok.t === '/') { if (b === 0) return null; r = a / b } else return null
 			stack.push(r)
 		}
 	}

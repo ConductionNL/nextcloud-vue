@@ -36,7 +36,9 @@
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
-					<NcNoteCard v-if="step.body" type="info">{{ step.body }}</NcNoteCard>
+					<NcNoteCard v-if="step.body" type="info">
+						{{ step.body }}
+					</NcNoteCard>
 					<NcSelect
 						:input-label="step.title || step.id"
 						:options="optionsFor(step)"
@@ -79,7 +81,9 @@
 
 				<!-- run-action -->
 				<template v-else-if="step.type === 'run-action'">
-					<NcNoteCard v-if="step.body" type="info">{{ step.body }}</NcNoteCard>
+					<NcNoteCard v-if="step.body" type="info">
+						{{ step.body }}
+					</NcNoteCard>
 					<NcNoteCard
 						v-if="actionResult[step.id]"
 						:type="actionResult[step.id].success ? 'success' : 'error'">
@@ -97,7 +101,9 @@
 
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
-					<NcNoteCard v-if="step.body" type="info">{{ step.body }}</NcNoteCard>
+					<NcNoteCard v-if="step.body" type="info">
+						{{ step.body }}
+					</NcNoteCard>
 					<ul class="cn-setup-summary">
 						<li
 							v-for="item in summaryItems"

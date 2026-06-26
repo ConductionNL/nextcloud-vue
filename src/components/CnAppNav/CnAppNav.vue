@@ -142,7 +142,6 @@
 					</NcAppNavigationItem>
 				</NcAppNavigationItem>
 			</template>
-
 		</template>
 		<template v-if="footerItems.length > 0 || showSettingsFoldout" #footer>
 			<!-- Footer-section entries (Documentation, Features & Roadmap,
