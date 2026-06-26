@@ -2105,6 +2105,7 @@ export default {
 		 * `config.widgets` + `config.layout` (the working manifest, by reference)
 		 * and emits the updated layout so consumers persist.
 		 *
+		 * @spec openspec/changes/dashboard-widget-system/specs/dashboard-page/spec.md
 		 * @param {object} item Layout item to remove.
 		 */
 		removeWidget(item) {

@@ -158,7 +158,11 @@ export default {
 	},
 
 	computed: {
-		/** Stable signature of a REST-fetchable source (else null). */
+		/**
+		 * Stable signature of a REST-fetchable source (else null).
+		 *
+		 * @spec openspec/specs/dashboard-page/spec.md
+		 */
 		restKey() {
 			const ds = this.dataSource || {}
 			if (!ds.register || !ds.schema || ds.graphql) return null

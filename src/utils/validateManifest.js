@@ -95,6 +95,7 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
  *    `pages[].slots.*`, `menu[].id`, `menu[].route`,
  *    `dependencies[]`, `version`
  *
+ * @spec openspec/changes/manifest-v2-schema/specs/manifest-v2-schema/spec.md
  * @param {object} manifest The v2 manifest object to validate.
  * @return {{ valid: boolean, errors: string[] }}
  */

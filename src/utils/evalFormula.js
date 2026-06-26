@@ -88,6 +88,7 @@ function toRpn(tokens) {
 /**
  * Evaluate a formula over a variable map.
  *
+ * @spec openspec/specs/dashboard-page/spec.md
  * @param {string} formula The formula (e.g. `A/B*100`).
  * @param {Record<string, number>} vars The named values.
  * @return {number|null} The result, or null on error / divide-by-zero.

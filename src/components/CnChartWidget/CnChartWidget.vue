@@ -509,6 +509,7 @@ export default {
 		 * lookback so the curve stays meaningful. Replaces the GraphQL bucket
 		 * path. Lazily imports axios/router.
 		 *
+		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
 		 */
 		async fetchTimeBucket() {
@@ -582,6 +583,7 @@ export default {
 		 * value array + labels; other types use one named series + categories).
 		 * No-op for the time-bucket (GraphQL) path. Lazily imports axios/router.
 		 *
+		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
 		 */
 		async fetchGroupBy() {

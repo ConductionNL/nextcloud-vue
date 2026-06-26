@@ -149,6 +149,13 @@ export default {
 		}
 	},
 
+	/**
+	 * Initialise non-reactive instance state (event handler refs, DOM observer
+	 * handles). These use the `_` prefix convention and are set here rather than
+	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
+	 *
+	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
+	 */
 	created() {
 		// Non-reactive instance state: event handlers and DOM watchers.
 		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
@@ -450,6 +457,7 @@ export default {
 		 * Position the coachmark near the target with a simple flip so it stays
 		 * on-screen.
 		 *
+		 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		placeCard() {
