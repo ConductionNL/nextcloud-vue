@@ -69,6 +69,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnContextMenu` — Right-click context menu (wraps NcActions, pair with `useContextMenu` composable)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
+- `CnIconBrowser` — Searchable visual icon picker: a search box + capped grid over the full `@mdi/js` set (emits the icon's SVG path) plus an optional Custom tab for curated image-URL icons and uploads (emits a URL). v-model is a single string; pair with `CnDashboardIcon` to render. Supports a `compact` popover layout for inline rows.
 - `CnKpiGrid` — KPI metric cards grid
 - `CnStatsPanel` — Data-driven statistics panel (sections of stat blocks, list items, and progress bars)
 - `CnProgressBar` — Labeled horizontal progress bars with variant colors for distribution visualizations

@@ -10,6 +10,14 @@
 		:alt="alt || 'icon'"
 		:width="size"
 		:height="size">
+	<svg
+		v-else-if="isPath"
+		viewBox="0 0 24 24"
+		:width="size"
+		:height="size"
+		class="cn-widget-icon__path">
+		<path :d="name" />
+	</svg>
 	<component
 		:is="iconComponent"
 		v-else
@@ -27,6 +35,7 @@ import { getIconComponent, isCustomIconUrl } from './widgetIcons.js'
  *   - null / '' / unknown → the default registry icon component
  *   - registry key (e.g. 'Star') → that MDI component
  *   - URL (starts with '/' or 'http') → an `<img>` tag
+ *   - SVG path string (e.g. from CnIconBrowser) → an inline `<svg>`
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
@@ -65,6 +74,18 @@ export default {
 		},
 
 		/**
+		 * Whether the value is a raw SVG path string (render via inline `<svg>`).
+		 * Registry keys are PascalCase words and never match this shape.
+		 *
+		 * @return {boolean} true for SVG path values.
+		 */
+		isPath() {
+			return !this.isUrl
+				&& typeof this.name === 'string'
+				&& /^[Mm][\d\s.,-]/.test(this.name)
+		},
+
+		/**
 		 * The resolved MDI component for non-URL names (default-icon safe).
 		 *
 		 * @return {object|null} a Vue component, or `null` for URL inputs.
@@ -77,4 +98,8 @@ export default {
 </script>
 
 <style scoped>
+/* Match vue-material-design-icons: inline path icons inherit text colour. */
+.cn-widget-icon__path {
+	fill: currentColor;
+}
 </style>

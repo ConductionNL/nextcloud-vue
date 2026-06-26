@@ -9,10 +9,10 @@
 		:class="{ 'cn-stat-widget--linked': isLinked }"
 		v-bind="linkAttrs">
 		<div
-			v-if="iconComponent"
+			v-if="content.icon"
 			class="cn-stat-widget__icon"
 			:style="iconCircleStyle">
-			<component :is="iconComponent" :size="24" />
+			<CnWidgetIcon :name="content.icon" :size="24" />
 		</div>
 
 		<div class="cn-stat-widget__body">
@@ -36,7 +36,7 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
@@ -70,6 +70,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnWidgetIcon,
 	},
 
 	mixins: [widgetLink],
@@ -117,10 +118,6 @@ export default {
 			if (!c) return null
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
-		/** Resolved icon component from the shared widget-icon catalog. */
-		iconComponent() {
-			return this.content.icon ? getIconComponent(this.content.icon) : null
-		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
 			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
@@ -135,7 +132,7 @@ export default {
 			if (this.value === null || this.value === undefined) return '—'
 			const fmt = this.content.format || {}
 			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			let num = Number(this.value)
+			const num = Number(this.value)
 			if (!Number.isFinite(num)) return String(this.value)
 
 			let body

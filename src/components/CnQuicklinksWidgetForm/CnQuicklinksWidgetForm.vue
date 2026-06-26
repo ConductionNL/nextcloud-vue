@@ -111,12 +111,10 @@
 							</small>
 						</td>
 						<td>
-							<input
-								v-model="link.icon"
-								type="text"
-								class="cn-quicklinks-widget-form__input"
-								:placeholder="t('nextcloud-vue', 'Icon')"
-								@input="onContentChange">
+							<CnIconBrowser
+								:value="link.icon"
+								allow-url
+								@input="(v) => { link.icon = v; onContentChange() }" />
 						</td>
 						<td v-if="showColorColumn">
 							<input
@@ -168,6 +166,7 @@
 <script>
 import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -196,6 +195,7 @@ export default {
 
 	components: {
 		NcSelect,
+		CnIconBrowser,
 	},
 
 	props: {

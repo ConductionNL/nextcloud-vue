@@ -10,6 +10,14 @@
 		:alt="alt || 'icon'"
 		:width="size"
 		:height="size">
+	<svg
+		v-else-if="isPath"
+		viewBox="0 0 24 24"
+		:width="size"
+		:height="size"
+		class="cn-dashboard-icon__path">
+		<path :d="name" />
+	</svg>
 	<component
 		:is="iconComponent"
 		v-else
@@ -22,8 +30,9 @@ import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
 /**
  * CnDashboardIcon — renders an icon for any value following the dashboard
  * `icon` convention: a registry key (→ built-in MDI component), a URL (→
- * `<img>`), or null/empty/unknown (→ the default icon). Pair with
- * {@link CnIconPicker} for selection.
+ * `<img>`), a raw SVG path string (→ inline `<svg>`, as emitted by
+ * {@link CnIconBrowser}), or null/empty/unknown (→ the default icon). Pair with
+ * {@link CnIconPicker} or {@link CnIconBrowser} for selection.
  */
 export default {
 	name: 'CnDashboardIcon',
@@ -71,6 +80,17 @@ export default {
 			return isCustomIconUrl(this.name)
 		},
 		/**
+		 * Whether `name` is a raw SVG path string (render via inline `<svg>`).
+		 * Registry keys are PascalCase words and never match this shape.
+		 *
+		 * @return {boolean} true for SVG path values.
+		 */
+		isPath() {
+			return !this.isUrl
+				&& typeof this.name === 'string'
+				&& /^[Mm][\d\s.,-]/.test(this.name)
+		},
+		/**
 		 * The resolved MDI component for a registry name (null for URLs).
 		 *
 		 * @return {object|null} the icon component.
@@ -81,3 +101,10 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* Match vue-material-design-icons: inline path icons inherit text colour. */
+.cn-dashboard-icon__path {
+	fill: currentColor;
+}
+</style>
