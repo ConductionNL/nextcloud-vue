@@ -50,6 +50,7 @@
 						<li v-for="(item, i) in activeGroup.items"
 							:key="`item-${activeGroup.key}-${item.id || i}`"
 							class="cn-related-objects-widget__row"
+							:class="{ 'cn-related-objects-widget__row--expanded': isExpanded(activeGroup.key, item) }"
 							tabindex="0"
 							role="button"
 							@click="onSelectGroupItem(activeGroup, item)"
@@ -57,6 +58,8 @@
 							<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
 							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
 							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+							<p v-if="item.detail && isExpanded(activeGroup.key, item)"
+								class="cn-related-objects-widget__detail">{{ item.detail }}</p>
 						</li>
 					</ul>
 				</section>
@@ -422,6 +425,8 @@ export default {
 			groups: [],
 			/** Active tab key. */
 			activeKey: '',
+			/** Key of the inline-expanded row (`{group}-{id}`) for leaves with no owning-app page (e.g. notes). */
+			expandedKey: '',
 		}
 	},
 
@@ -543,14 +548,31 @@ export default {
 			}
 			if (group.key === 'files') {
 				this.onSelectFile(item.raw)
-			} else {
-				/**
-				 * @event select-related A leaf-group row (mails, events, …) was clicked
-				 * and no owning-app deep link could be resolved.
-				 * @type {{ group: string, item: object }}
-				 */
-				this.$emit('select-related', { group: group.key, item: item.raw })
+				return
 			}
+			// No owning-app page to deep-link to (e.g. notes are NC comments) —
+			// toggle the body text inline so the click does something useful
+			// instead of silently nothing.
+			if (item.detail) {
+				const key = `${group.key}-${item.id}`
+				this.expandedKey = (this.expandedKey === key) ? '' : key
+			}
+			/**
+			 * @event select-related A leaf-group row (mails, events, …) was clicked
+			 * and no owning-app deep link could be resolved.
+			 * @type {{ group: string, item: object }}
+			 */
+			this.$emit('select-related', { group: group.key, item: item.raw })
+		},
+
+		/**
+		 * Whether a row is currently inline-expanded (no-deep-link leaves).
+		 * @param {string} groupKey - The active group key.
+		 * @param {object} item - The normalised row.
+		 * @return {boolean}
+		 */
+		isExpanded(groupKey, item) {
+			return this.expandedKey === `${groupKey}-${item.id}`
 		},
 
 		/**
@@ -727,7 +749,16 @@ export default {
 				|| raw.projectName || raw.reportName || raw.name || raw.basename
 				|| raw.message || raw.content || raw.label || String(id)
 			const meta = raw.date || raw.linkedAt || raw.createdAt || ''
-			return { id: String(id), label, meta: typeof meta === 'string' ? meta : '', raw }
+			// Body text for leaves that have no owning-app page (notes/comments) —
+			// shown inline on click since there's nowhere to deep-link to.
+			const detail = raw.content || raw.message || raw.description || raw.comment || ''
+			return {
+				id: String(id),
+				label,
+				meta: typeof meta === 'string' ? meta : '',
+				detail: typeof detail === 'string' ? detail : '',
+				raw,
+			}
 		},
 
 		/**
@@ -1033,9 +1064,22 @@ export default {
 .cn-related-objects-widget__row {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 10px;
 	padding: calc(1.5 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
 	cursor: pointer;
+	border-radius: var(--border-radius);
+}
+
+.cn-related-objects-widget__detail {
+	flex-basis: 100%;
+	margin: 4px 0 0 calc(20px + 10px);
+	padding: 8px 10px;
+	font-size: 0.9em;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--color-main-text);
+	background: var(--color-background-hover);
 	border-radius: var(--border-radius);
 }
 
