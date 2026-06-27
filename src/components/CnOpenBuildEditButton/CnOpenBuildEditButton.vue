@@ -96,6 +96,13 @@
 				{{ t('nextcloud-vue', 'Edit data…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditFlows">
+				<template #icon>
+					<Sitemap :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit flows…') }}
+			</NcActionButton>
+
 			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
@@ -137,6 +144,10 @@
 			v-if="showDataModal"
 			:manifest="effectiveManifest"
 			@close="showDataModal = false" />
+		<CnEditFlowsModal
+			v-if="showFlowsModal"
+			:manifest="effectiveManifest"
+			@close="showFlowsModal = false" />
 	</div>
 </template>
 
@@ -153,6 +164,7 @@ import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
 import Database from 'vue-material-design-icons/Database.vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
 import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
 import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
 import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
@@ -160,6 +172,7 @@ import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
 import CnEditDataModal from '../../modals/CnEditDataModal.vue'
+import CnEditFlowsModal from '../../modals/CnEditFlowsModal.vue'
 import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
@@ -180,6 +193,7 @@ export default {
 		PageLayoutSidebarRight,
 		GestureTapButton,
 		Database,
+		Sitemap,
 		CnEditMenuModal,
 		CnEditPagesModal,
 		CnEditSettingsModal,
@@ -187,6 +201,7 @@ export default {
 		CnEditActionsModal,
 		CnAddWidgetModal,
 		CnEditDataModal,
+		CnEditFlowsModal,
 	},
 
 	inject: {
@@ -240,6 +255,7 @@ export default {
 			showAddWidgetModal: false,
 			showActionsModal: false,
 			showDataModal: false,
+			showFlowsModal: false,
 			menuOpen: false,
 			saving: false,
 		}
@@ -530,6 +546,19 @@ export default {
 			 * @event edit-data Emitted when the data (register/schema) editor opens.
 			 */
 			this.$emit('edit-data')
+		},
+		/**
+		 * Open the flows editor. Like Edit data, this edits OpenRegister schema
+		 * configuration (`x-openregister-flows`) directly via the API and does
+		 * NOT enter manifest edit mode.
+		 */
+		onEditFlows() {
+			this.showFlowsModal = true
+			this.menuOpen = false
+			/**
+			 * @event edit-flows Emitted when the flows editor opens.
+			 */
+			this.$emit('edit-flows')
 		},
 	},
 }
