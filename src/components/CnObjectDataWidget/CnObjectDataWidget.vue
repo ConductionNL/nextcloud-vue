@@ -280,6 +280,8 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import { useObjectStore } from '../../store/index.js'
 
 /**
@@ -487,10 +489,6 @@ export default {
 		}
 	},
 
-	watch: {
-		objectData: { handler() { this.resolveRelations() }, immediate: true, deep: true },
-		schema: { handler() { this.resolveRelations() } },
-	},
 	mounted() { this.resolveRelations() },
 
 	computed: {
@@ -569,7 +567,12 @@ export default {
 						this.dirtyFields = rest
 					}
 				}
+				// Resolve relation display names whenever the object changes.
+				this.resolveRelations()
 			},
+		},
+		schema: {
+			handler() { this.resolveRelations() },
 		},
 	},
 
@@ -605,12 +608,6 @@ export default {
 		},
 		/** Fetch related objects' display names into relatedLabels. */
 		async resolveRelations() {
-			let axios, generateUrl
-			try {
-				const mods = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
-				axios = mods[0].default
-				generateUrl = mods[1].generateUrl
-			} catch (e) { return }
 			const props = (this.schema && this.schema.properties) || {}
 			for (const key of Object.keys(props)) {
 				const rel = this.relationProp(props[key])
