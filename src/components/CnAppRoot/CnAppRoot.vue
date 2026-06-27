@@ -40,7 +40,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -716,6 +716,15 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+		/**
+		 * Human-readable name shown in the Nextcloud top bar. When set it
+		 * overrides the technical `appId` so a virtual app shows its own name
+		 * (e.g. "Pet Store") instead of the host app id.
+		 */
+		appDisplayName: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * First-open support note (`CnSupportDialog`). `true` (default)
