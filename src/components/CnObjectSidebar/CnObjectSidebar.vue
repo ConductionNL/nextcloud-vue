@@ -214,6 +214,7 @@ import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
  * Built-in widget registry used by the open-enum `tabs` prop.
  * - `data`     → CnObjectDataWidget (schema-driven editable grid)
  * - `metadata` → CnObjectMetadataWidget (read-only system metadata)
+ * - `audit`    → CnAuditTrailTab (the object's change log / audit trail)
  *
  * Any `widgets[].type` value not in this map falls back to the
  * customComponents registry (prop, then injected `cnCustomComponents`).
@@ -221,6 +222,7 @@ import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
 const BUILTIN_WIDGETS = {
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
+	audit: CnAuditTrailTab,
 }
 
 /**

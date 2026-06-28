@@ -40,7 +40,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -718,6 +718,15 @@ export default {
 			required: true,
 		},
 		/**
+		 * Human-readable name shown in the Nextcloud top bar. When set it
+		 * overrides the technical `appId` so a virtual app shows its own name
+		 * (e.g. "Pet Store") instead of the host app id.
+		 */
+		appDisplayName: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * First-open support note (`CnSupportDialog`). `true` (default)
 		 * auto-mounts it, deriving the app name and the App-Store /
 		 * feature-request URLs from `appId` by convention. Pass `false`
@@ -958,7 +967,14 @@ export default {
 			props.initialOrganisation || null,
 		)
 
-		const supportPair = props.supportDialog === false
+		// Off when the host opts out (`:support-dialog="false"`) OR the manifest's
+		// support block is explicitly disabled (the "Show the support note on
+		// first open" toggle in OpenBuild's editor). Omitting the block keeps the
+		// default-on first-open behaviour.
+		const manifestSupportDisabled = !!(props.manifest && props.manifest.support
+			&& typeof props.manifest.support === 'object'
+			&& props.manifest.support.enabled === false)
+		const supportPair = (props.supportDialog === false || manifestSupportDisabled)
 			? {}
 			: (() => {
 				const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
@@ -1161,15 +1177,22 @@ export default {
 			return hasObjectCoordinates
 		},
 		/**
-		 * Resolved support-dialog config object — `{}` when `supportDialog`
-		 * is `true`/`false`, or the host-supplied override object.
+		 * Resolved support-dialog config — the manifest's `support` block
+		 * (authored in OpenBuild's "Edit support & donation" editor) overlaid
+		 * by any host-supplied `supportDialog` override object, so app authors
+		 * can configure the donation/support note entirely from the UI while a
+		 * host can still override per-mount.
 		 *
 		 * @return {object}
 		 */
 		cnSupportConfig() {
-			return (this.supportDialog && typeof this.supportDialog === 'object')
+			const fromManifest = (this.manifest && this.manifest.support && typeof this.manifest.support === 'object')
+				? this.manifest.support
+				: {}
+			const fromProp = (this.supportDialog && typeof this.supportDialog === 'object')
 				? this.supportDialog
 				: {}
+			return { ...fromManifest, ...fromProp }
 		},
 		/**
 		 * App display name for the support note — host override, else the
@@ -1217,7 +1240,7 @@ export default {
 		 */
 		cnSupportOverrides() {
 			const cfg = this.cnSupportConfig
-			const passthrough = ['donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs']
+			const passthrough = ['title', 'donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs', 'buttons']
 			const out = {}
 			for (const key of passthrough) {
 				if (cfg[key] !== undefined) {

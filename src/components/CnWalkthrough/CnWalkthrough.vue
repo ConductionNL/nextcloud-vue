@@ -365,6 +365,11 @@ export default {
 			try { el.scrollIntoView({ block: 'center', inline: 'center' }) } catch (e) { /* jsdom */ }
 			this.computeRect()
 			this.armStep(el)
+			// The ResizeObserver only fires when the target itself resizes. A nav
+			// item can MOVE (siblings render/settle after mount) without resizing,
+			// leaving a stale cutout one row off. Re-measure across the next few
+			// frames so the spotlight tracks the settled position.
+			this.scheduleSettleRemeasure()
 		},
 		/**
 		 * Resolve a step's `target` to a DOM element, preferring stable manifest
@@ -431,6 +436,18 @@ export default {
 			})
 		},
 		/**
+		 * Re-measure the target a few times after arming, to catch post-mount
+		 * layout settling (sibling nav items rendering, fonts, etc.) that moves
+		 * the target without resizing it. Cleared in teardownStep.
+		 *
+		 * @return {void}
+		 */
+		scheduleSettleRemeasure() {
+			const again = () => { if (this.targetEl && !this.isCentered) this.computeRect() }
+			this._settleTimers = (this._settleTimers || [])
+			this._settleTimers.push(setTimeout(again, 100), setTimeout(again, 300), setTimeout(again, 600))
+		},
+		/**
 		 * Measure the target into a viewport rect.
 		 *
 		 * @return {void}
@@ -450,7 +467,13 @@ export default {
 				this.rect = null
 				return
 			}
-			this.rect = { top: r.top, left: r.left, width: r.width, height: r.height }
+			// The overlay (.cn-walkthrough) is position:fixed, but a transformed
+			// ancestor (NC content area) can become its containing block, so its
+			// top-left is not the viewport origin. Convert the viewport rect into
+			// the overlay's coordinate space so the dim/ring/card line up with the
+			// real element instead of sitting a header's height too low.
+			const host = this.$el && this.$el.getBoundingClientRect ? this.$el.getBoundingClientRect() : { top: 0, left: 0 }
+			this.rect = { top: r.top - host.top, left: r.left - host.left, width: r.width, height: r.height }
 			this.$nextTick(() => this.placeCard())
 		},
 		/**
@@ -556,6 +579,7 @@ export default {
 			if (this._observer) { this._observer.disconnect(); this._observer = null }
 			if (this._resizeObs) { this._resizeObs.disconnect(); this._resizeObs = null }
 			if (this._delayTimer) { clearTimeout(this._delayTimer); this._delayTimer = null }
+			if (this._settleTimers) { this._settleTimers.forEach(clearTimeout); this._settleTimers = null }
 			if (this.targetEl && this._clickHandler) {
 				this.targetEl.removeEventListener('click', this._clickHandler)
 				this._clickHandler = null
