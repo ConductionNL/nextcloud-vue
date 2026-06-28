@@ -236,7 +236,7 @@
 						:value="displayValues[field.key]"
 						:raw="objectData[field.key]" />
 					<template v-else>
-						{{ displayValues[field.key] }}
+						<img v-if="isImageField(field) && rawOf(field)" :src="rawOf(field)" :alt="field.label" class="cn-object-data-widget__image" /><template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -280,6 +280,8 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import { useObjectStore } from '../../store/index.js'
 
 /**
@@ -483,9 +485,11 @@ export default {
 			/** Set of field keys that have been modified */
 			dirtyFields: {},
 			/** Whether a save is in progress */
-			saving: false,
+			saving: false, relatedLabels: {},
 		}
 	},
+
+	mounted() { this.resolveRelations() },
 
 	computed: {
 		iconComponent() {
@@ -527,9 +531,9 @@ export default {
 				// Show pending edit value if dirty
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
-					: this.objectData[field.key]
+					: (this.objectData || {})[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
-				values[field.key] = formatValue(raw, prop || {})
+				values[field.key] = (this.isRelationField(prop) && raw != null && raw !== '') ? this.relationLabel(raw) : formatValue(raw, prop || {})
 			}
 			return values
 		},
@@ -563,11 +567,74 @@ export default {
 						this.dirtyFields = rest
 					}
 				}
+				// Resolve relation display names whenever the object changes.
+				this.resolveRelations()
 			},
+		},
+		schema: {
+			handler() { this.resolveRelations() },
 		},
 	},
 
 	methods: {
+		/** Raw (possibly dirty) value for a field. */
+		rawOf(field) {
+			const o = this.objectData || {}
+			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
+		},
+		/** Whether a field should render as an image preview. */
+		isImageField(field) {
+			if (field.widget === 'image') return true
+			const prop = this.schema.properties && this.schema.properties[field.key]
+			const fmt = (prop && (prop.format || prop.contentMediaType)) || ''
+			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) return true
+			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
+		},
+		/** The x-openregister-relation block for a property (scalar or array), or null. */
+		relationProp(prop) {
+			if (!prop) return null
+			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
+			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
+			return null
+		},
+		/** Whether a property is a relation. */
+		isRelationField(prop) {
+			return this.relationProp(prop) !== null
+		},
+		/** Display label(s) for a relation value, using resolved names. */
+		relationLabel(raw) {
+			const one = (v) => this.relatedLabels[v] || (typeof v === 'string' && v.length > 12 ? (v.slice(0, 8) + '…') : String(v))
+			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)
+		},
+		/** Fetch related objects' display names into relatedLabels. */
+		async resolveRelations() {
+			const props = (this.schema && this.schema.properties) || {}
+			for (const key of Object.keys(props)) {
+				const rel = this.relationProp(props[key])
+				if (!rel) continue
+				const parts = String(rel.target || '').split('/')
+				if (parts.length < 2) continue
+				const reg = parts[0]; const sch = parts[1]
+				const raw = (this.objectData || {})[key]
+				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+				for (const id of ids) {
+					if (!id || (id in this.relatedLabels)) continue
+					try {
+						const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
+						const res = await axios.get(url)
+						const d = (res && res.data) ? res.data : {}
+						const obj = (d.results && d.results[0]) ? d.results[0] : d
+						const self = obj['@self'] || {}
+						let name = obj.name || obj.title || obj.displayName
+						if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+						if (!name && self.name && self.name !== id) name = self.name
+						this.$set(this.relatedLabels, id, name || id)
+					} catch (e) {
+						this.$set(this.relatedLabels, id, id)
+					}
+				}
+			}
+		},
 		/**
 		 * Check if a field is editable.
 		 * @param {object} field - Resolved field definition from resolvedFields
@@ -610,7 +677,7 @@ export default {
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
 				? this.dirtyFields[key]
-				: this.objectData[key]
+				: (this.objectData || {})[key]
 			return val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)
 		},
 
@@ -622,7 +689,7 @@ export default {
 			// Set working value: dirty value > current object value
 			const currentValue = field.key in this.dirtyFields
 				? this.dirtyFields[field.key]
-				: this.objectData[field.key]
+				: (this.objectData || {})[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
 
@@ -861,6 +928,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-object-data-widget__image {
+	max-width: 100%;
+	max-height: 160px;
+	border-radius: 8px;
+	object-fit: cover;
+}
+
 .cn-object-data-widget__grid {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
