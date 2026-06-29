@@ -21,6 +21,8 @@ The override `extends` the upstream component, so all props, slots, `v-model` wi
 | no `:options` | Fetches system tags via `searchSystemTags()` (empty list when the instance has none — no error) |
 | non-empty `:options` | Renders exactly those options; no fetch is performed |
 
+> **Do not set `:fetch-tags`.** The override fetches system tags on its own whenever no `:options` are given, so the prop is redundant. Worse, setting `:fetch-tags="true"` makes upstream's own (merged-in) `created()` hook run its broken parser *in addition* to ours — a wasted PROPFIND plus a misleading `"Loading systemtags failed"` console error, even though tags still load correctly. The override can't suppress the inherited hook, so it emits a dev-mode `console.warn` instead. Leave the prop unset.
+
 ---
 
 ## `searchSystemTags()`

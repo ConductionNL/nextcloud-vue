@@ -70,6 +70,16 @@ export default {
 	},
 
 	async created() {
+		// `fetchTags` exists only for upstream compatibility — this override
+		// always fetches itself (via the tolerant parser) when no `:options`
+		// are given. Setting it `true` doesn't change our result, but upstream's
+		// own merged `created()` runs first and re-invokes its broken parser,
+		// producing a wasted PROPFIND and a misleading "Loading systemtags
+		// failed" console error. We can't suppress the parent hook, so warn.
+		if (this.fetchTags === true && process.env.NODE_ENV !== 'production') {
+			console.warn('[NcSelectTags] `fetchTags` is unnecessary on this override and re-triggers upstream\'s broken systemtags parser (a harmless but logged "Loading systemtags failed" error). Remove the prop: system tags are fetched automatically when no `:options` are provided.')
+		}
+
 		// Consumer provided their own options — nothing to fetch.
 		if (Array.isArray(this.options) && this.options.length > 0) {
 			return
