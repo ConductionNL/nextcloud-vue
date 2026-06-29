@@ -382,10 +382,7 @@ export default {
 			this.unavailable = false
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/contents`,
@@ -554,10 +551,7 @@ export default {
 				return
 			}
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
@@ -601,10 +595,7 @@ export default {
 			}
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/upload`,
