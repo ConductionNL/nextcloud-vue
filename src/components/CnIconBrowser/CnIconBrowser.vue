@@ -7,7 +7,11 @@
 	<div
 		class="cn-icon-browser"
 		:class="{ 'cn-icon-browser--inline': inline }">
-		<label v-if="label" class="cn-icon-browser__field-label">{{ label }}</label>
+		<label
+			v-if="label"
+			:id="labelId"
+			:for="triggerId"
+			class="cn-icon-browser__field-label">{{ label }}</label>
 
 		<!-- Inline: the panel is always open. -->
 		<CnIconBrowserPanel
@@ -41,9 +45,11 @@
 					:value="value"
 					:label="selectedLabel">
 					<button
+						:id="triggerId"
 						type="button"
 						class="cn-icon-browser__trigger"
-						:aria-label="t('nextcloud-vue', 'Select icon')"
+						:aria-label="label ? undefined : t('nextcloud-vue', 'Select icon')"
+						:aria-labelledby="label ? labelId : undefined"
 						:aria-expanded="open ? 'true' : 'false'"
 						@click="open = !open">
 						<img
@@ -258,6 +264,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Stable id for the trigger button, used to associate the field label
+		 * (`<label :for>`) with the control.
+		 *
+		 * @return {string} the trigger button id.
+		 */
+		triggerId() {
+			return 'cn-icon-browser-trigger-' + this._uid
+		},
+		/**
+		 * Stable id for the field label, referenced by the trigger button's
+		 * `aria-labelledby` so screen readers announce the label as the
+		 * control's accessible name.
+		 *
+		 * @return {string} the field label id.
+		 */
+		labelId() {
+			return 'cn-icon-browser-label-' + this._uid
+		},
 		/**
 		 * The catalogue actually browsed: the `icons` prop if given, else the
 		 * app-provided `cnIconCatalogue`, else the curated fallback.

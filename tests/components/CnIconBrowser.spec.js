@@ -188,6 +188,21 @@ describe('CnIconBrowser — wrapper', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons, inline: true, label: 'Icon' }, mocks })
 		expect(w.find('.cn-icon-browser__field-label').text()).toBe('Icon')
 	})
+	it('associates the field label with the trigger button (for/id + aria-labelledby)', () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons, label: 'Icon' }, mocks })
+		const label = w.find('.cn-icon-browser__field-label')
+		const button = w.find('.cn-icon-browser__trigger')
+		expect(label.attributes('for')).toBe(button.attributes('id'))
+		expect(button.attributes('aria-labelledby')).toBe(label.attributes('id'))
+		// aria-labelledby supplies the accessible name, so the generic aria-label is dropped.
+		expect(button.attributes('aria-label')).toBeUndefined()
+	})
+	it('falls back to an aria-label on the trigger when no field label is set', () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
+		const button = w.find('.cn-icon-browser__trigger')
+		expect(button.attributes('aria-label')).toBe('Select icon')
+		expect(button.attributes('aria-labelledby')).toBeUndefined()
+	})
 	it('forwards the panel input event as its own', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons, inline: true }, mocks })
 		w.findComponent(CnIconBrowserPanel).vm.$emit('input', 'M1 2 3')
