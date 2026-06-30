@@ -66,6 +66,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { isCustomIconUrl } from '../CnWidgetGrid/widgetIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	title: '',
@@ -216,7 +217,7 @@ export default {
 			this.icon = value || ''
 			if (isCustomIconUrl(this.icon)) {
 				this.iconType = 'url'
-			} else if (/^[Mm][\d\s.,-]/.test(this.icon)) {
+			} else if (isSvgPath(this.icon)) {
 				// SVG path string (e.g. from CnIconBrowser's @mdi/js catalogue).
 				this.iconType = 'svg'
 			} else {

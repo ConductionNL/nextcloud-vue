@@ -141,6 +141,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { findIconByValue } from './iconCatalogue.js'
 import { fuzzyFilter } from './fuzzy.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 import { isCustomIconUrl } from '../CnIconPicker/dashboardIcons.js'
 
 /**
@@ -293,7 +294,7 @@ export default {
 			if (this.selectedEntry) {
 				return this.selectedEntry.path || null
 			}
-			return /^[Mm][\d\s.,-]/.test(this.value) ? this.value : null
+			return isSvgPath(this.value) ? this.value : null
 		},
 		/**
 		 * Human label for the current selection.

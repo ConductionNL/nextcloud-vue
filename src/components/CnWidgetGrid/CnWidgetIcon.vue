@@ -26,6 +26,7 @@
 
 <script>
 import { getIconComponent, isCustomIconUrl } from './widgetIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 
 /**
  * CnWidgetIcon — resolves a widget icon field following the
@@ -80,9 +81,7 @@ export default {
 		 * @return {boolean} true for SVG path values.
 		 */
 		isPath() {
-			return !this.isUrl
-				&& typeof this.name === 'string'
-				&& /^[Mm][\d\s.,-]/.test(this.name)
+			return !this.isUrl && isSvgPath(this.name)
 		},
 
 		/**

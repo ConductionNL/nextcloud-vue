@@ -26,6 +26,7 @@
 
 <script>
 import { getIconComponent, isCustomIconUrl } from './dashboardIcons.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 
 /**
  * CnDashboardIcon — renders an icon for any value following the dashboard
@@ -86,9 +87,7 @@ export default {
 		 * @return {boolean} true for SVG path values.
 		 */
 		isPath() {
-			return !this.isUrl
-				&& typeof this.name === 'string'
-				&& /^[Mm][\d\s.,-]/.test(this.name)
+			return !this.isUrl && isSvgPath(this.name)
 		},
 		/**
 		 * The resolved MDI component for a registry name (null for URLs).

@@ -93,6 +93,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcPopover } from '@nextcloud/vue'
 import CnIconBrowserPanel from './CnIconBrowserPanel.vue'
 import { findIconByValue } from './iconCatalogue.js'
+import { isSvgPath } from '../../utils/iconUtils.js'
 import { isCustomIconUrl, DASHBOARD_ICONS } from '../CnIconPicker/dashboardIcons.js'
 import { DASHBOARD_ICONS as WIDGET_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 
@@ -347,7 +348,7 @@ export default {
 			if (this.selectedEntry) {
 				return this.selectedEntry.path || null
 			}
-			return /^[Mm][\d\s.,-]/.test(this.value) ? this.value : null
+			return isSvgPath(this.value) ? this.value : null
 		},
 		/**
 		 * Human label for the current selection (used by the trigger slot scope).
