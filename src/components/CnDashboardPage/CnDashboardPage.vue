@@ -283,6 +283,7 @@
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
 						:show-actions="item.showActions !== false"
+						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -354,6 +355,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
@@ -427,6 +429,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<component
@@ -448,6 +451,7 @@
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
+						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -468,6 +472,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
+						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
@@ -2176,6 +2181,20 @@ export default {
 			// Prefer a per-placement override, then the widget def's customTitle
 			// (set by the in-place style editor cog), then the def's base title.
 			return item.customTitle || def?.customTitle || def?.title || item.widgetId
+		},
+
+		/**
+		 * Documentation URL for a widget's overflow Actions menu. Prefers a
+		 * per-widget `documentationUrl` on the widget def, then falls back to
+		 * the page-level `documentationUrl` so every widget on a documented
+		 * page surfaces the Documentation item — matching the page header menu.
+		 *
+		 * @param {object} item Layout item descriptor.
+		 * @return {string} The resolved documentation URL, or '' when none.
+		 */
+		getWidgetDocumentationUrl(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def?.documentationUrl || this.documentationUrl || ''
 		},
 
 		getWidgetIconUrl(item) {

@@ -364,6 +364,8 @@ The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) ove
 
 Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
 
+Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolves to the widget def's own `documentationUrl` when set, otherwise it inherits the page-level `documentationUrl` — so a documented dashboard shows Documentation on every widget without per-widget config.
+
 ## In-body sections (`bodyWidgets`)
 
 The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page#in-body-sections-bodywidgets). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
