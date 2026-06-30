@@ -6,7 +6,7 @@ sidebar_position: 5
 
 A stateless presentational chip that surfaces OpenRegister's
 `_translationMeta.translatedFrom` field on detail surfaces. Lets the
-end-user see *"(translated from {sourceLanguage})"* on objects whose
+end-user see *"(translated from &#123;sourceLanguage&#125;)"* on objects whose
 projection is a translation rather than the canonical source row.
 
 Pairs with the language-negotiation getters on `createObjectStore`
