@@ -4,52 +4,82 @@
 -->
 
 <template>
-	<div class="cn-icon-picker">
-		<div class="cn-icon-picker__preview">
+	<component
+		:is="compact ? 'details' : 'div'"
+		ref="root"
+		class="cn-icon-picker"
+		:class="{ 'cn-icon-picker--compact': compact }">
+		<!-- Compact mode: a small trigger that opens the grid as a popover
+		     (for table rows / tight layouts). Full mode: a static preview. -->
+		<summary v-if="compact" class="cn-icon-picker__trigger" :title="value || t('nextcloud-vue', 'Select icon')">
+			<CnDashboardIcon :name="value" :size="20" :alt="value || t('nextcloud-vue', 'Icon')" />
+		</summary>
+		<div v-else class="cn-icon-picker__preview">
 			<CnDashboardIcon :name="value" :size="24" :alt="t('nextcloud-vue', 'Icon preview')" />
 		</div>
 
-		<select
-			:value="builtInValue"
-			class="cn-icon-picker__select"
-			:disabled="uploading"
-			@change="selectIcon">
-			<option value="" disabled>
-				{{ t('nextcloud-vue', 'Select icon…') }}
-			</option>
-			<option
-				v-for="(_, name) in icons"
-				:key="name"
-				:value="name">
-				{{ name }}
-			</option>
-		</select>
+		<div :class="compact ? 'cn-icon-picker__panel' : ''">
+			<div
+				class="cn-icon-picker__grid"
+				role="listbox"
+				:aria-label="t('nextcloud-vue', 'Icon')">
+				<!-- Clearable: a leading "None" tile that unsets the icon. -->
+				<button
+					v-if="clearable"
+					type="button"
+					class="cn-icon-picker__icon cn-icon-picker__none"
+					:class="{ 'cn-icon-picker__icon--selected': !value }"
+					:title="t('nextcloud-vue', 'None')"
+					:aria-label="t('nextcloud-vue', 'No icon')"
+					role="option"
+					:aria-selected="!value"
+					:disabled="uploading"
+					@click="selectIconName(null)">
+					<Cancel :size="20" />
+				</button>
+				<button
+					v-for="(_, name) in icons"
+					:key="name"
+					type="button"
+					class="cn-icon-picker__icon"
+					:class="{ 'cn-icon-picker__icon--selected': name === builtInValue }"
+					:title="name"
+					:aria-label="name"
+					role="option"
+					:aria-selected="name === builtInValue"
+					:disabled="uploading"
+					@click="selectIconName(name)">
+					<CnDashboardIcon :name="name" :size="20" :alt="name" />
+				</button>
+			</div>
 
-		<label v-if="canUpload" class="cn-icon-picker__upload-label">
-			<input
-				ref="fileInput"
-				type="file"
-				accept="image/*"
-				class="cn-icon-picker__file-input"
-				:disabled="uploading"
-				@change="handleFileSelect">
-			<span class="cn-icon-picker__upload-button">
-				<span v-if="uploading">{{ t('nextcloud-vue', 'Uploading…') }}</span>
-				<span v-else>{{ t('nextcloud-vue', 'Upload icon') }}</span>
-			</span>
-		</label>
+			<label v-if="canUpload" class="cn-icon-picker__upload-label">
+				<input
+					ref="fileInput"
+					type="file"
+					accept="image/*"
+					class="cn-icon-picker__file-input"
+					:disabled="uploading"
+					@change="handleFileSelect">
+				<span class="cn-icon-picker__upload-button">
+					<span v-if="uploading">{{ t('nextcloud-vue', 'Uploading…') }}</span>
+					<span v-else>{{ t('nextcloud-vue', 'Upload icon') }}</span>
+				</span>
+			</label>
 
-		<p
-			v-if="uploadError"
-			class="cn-icon-picker__error"
-			role="alert">
-			{{ uploadError }}
-		</p>
-	</div>
+			<p
+				v-if="uploadError"
+				class="cn-icon-picker__error"
+				role="alert">
+				{{ uploadError }}
+			</p>
+		</div>
+	</component>
 </template>
 
 <script>
 import CnDashboardIcon from './CnDashboardIcon.vue'
+import Cancel from 'vue-material-design-icons/Cancel.vue'
 import { DASHBOARD_ICONS, isCustomIconUrl } from './dashboardIcons.js'
 
 /**
@@ -71,6 +101,7 @@ export default {
 
 	components: {
 		CnDashboardIcon,
+		Cancel,
 	},
 
 	props: {
@@ -92,6 +123,23 @@ export default {
 		icons: {
 			type: Object,
 			default: () => DASHBOARD_ICONS,
+		},
+		/**
+		 * Compact mode: render a small trigger button that opens the icon grid
+		 * as a popover, instead of the always-visible grid. Suited to table
+		 * rows / tight inline layouts.
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Show a leading "None" tile that clears the selection (emits null).
+		 * Off by default so existing pickers are unchanged.
+		 */
+		clearable: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Injected upload transport: `async (dataUrl) => ({ url })`. When null,
@@ -156,6 +204,21 @@ export default {
 		},
 
 		/**
+		 * Emit the registry key of a clicked icon tile (grid selection).
+		 *
+		 * @param {string} name the icon registry key.
+		 * @return {void}
+		 */
+		selectIconName(name) {
+			this.uploadError = ''
+			this.$emit('input', name || null)
+			// In compact mode, close the popover after a pick.
+			if (this.compact && this.$refs.root) {
+				this.$refs.root.open = false
+			}
+		},
+
+		/**
 		 * Read the selected file as a data URL and hand it to `uploadFn`,
 		 * emitting the returned URL on success.
 		 *
@@ -216,6 +279,45 @@ export default {
 	gap: 12px;
 }
 
+/* Compact (popover) mode for inline / table use. */
+.cn-icon-picker--compact {
+	display: inline-block;
+	position: relative;
+}
+
+.cn-icon-picker--compact > .cn-icon-picker__trigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	cursor: pointer;
+	list-style: none;
+}
+
+.cn-icon-picker--compact > .cn-icon-picker__trigger::-webkit-details-marker {
+	display: none;
+}
+
+.cn-icon-picker--compact .cn-icon-picker__panel {
+	position: absolute;
+	z-index: 50;
+	top: calc(100% + 4px);
+	inset-inline-start: 0;
+	min-width: 240px;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	box-shadow: 0 2px 8px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
+}
+
 .cn-icon-picker__preview {
 	display: flex;
 	align-items: center;
@@ -227,12 +329,38 @@ export default {
 	background-color: var(--color-background-hover);
 }
 
-.cn-icon-picker__select {
-	width: 100%;
-	padding: 6px 8px;
+.cn-icon-picker__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+	gap: 6px;
+	max-height: 200px;
+	overflow-y: auto;
+	padding: 4px;
 	border: 1px solid var(--color-border);
-	border-radius: 4px;
-	font-size: 14px;
+	border-radius: var(--border-radius, 4px);
+}
+
+.cn-icon-picker__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 2px solid transparent;
+	border-radius: var(--border-radius, 4px);
+	background: transparent;
+	cursor: pointer;
+	color: var(--color-main-text);
+}
+
+.cn-icon-picker__icon:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-icon-picker__icon--selected {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element-light, var(--color-background-hover));
 }
 
 .cn-icon-picker__upload-label {

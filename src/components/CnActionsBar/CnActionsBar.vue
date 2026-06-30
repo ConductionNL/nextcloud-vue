@@ -61,6 +61,9 @@
 				</button>
 			</div>
 
+			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
+			<slot name="filters" />
+
 			<!-- Search / Columns sidebar toggle (opt-in). Icon-only; reflects the
 			     open state via aria-pressed so the index sidebar can default
 			     closed and be opened on demand. -->
@@ -88,6 +91,7 @@
 				variant="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
+				data-walkthrough-id="index-add"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />

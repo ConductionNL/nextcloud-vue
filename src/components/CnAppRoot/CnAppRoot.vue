@@ -40,7 +40,7 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :app-name="appId" data-testid="cn-app-root">
+	<NcContent :app-name="appDisplayName || (manifest && manifest.name) || appId" data-testid="cn-app-root">
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -105,6 +105,26 @@
 				<CnDependencyMissing
 					:dependencies="unresolvedDependencies"
 					:app-name="appId" />
+			</slot>
+		</template>
+
+		<!--
+		  Phase 2b: setup — a REQUIRED first-time-setup step (ADR-042) is unmet,
+		  so the shell is gated to CnSetupWizard until it clears.
+		-->
+		<template v-else-if="phase === 'setup'">
+			<!--
+			  @slot setup
+			  @description Override the gating setup surface. Scope: the manifest
+			  setup steps + the useSetupStatus state.
+			-->
+			<slot name="setup" :steps="manifest.setup.steps" :status="setupState">
+				<div class="cn-app-root__setup">
+					<CnSetupWizard
+						:app-id="appId"
+						:steps="manifest.setup.steps"
+						@complete="onSetupComplete" />
+				</div>
 			</slot>
 		</template>
 
@@ -265,6 +285,26 @@
 				v-bind="cnSupportOverrides"
 				@close="cnSupportHide" />
 			<!--
+			  Product walkthrough (ADR-043) — a non-gating spotlight tour
+			  auto-mounted over the live shell. Reads `manifest.walkthrough` and
+			  auto-starts a tour that qualifies for the user's app version. No
+			  per-app wiring; declare a `walkthrough` block to opt in.
+			-->
+			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
+			<slot v-if="walkthroughEnabled"
+				name="walkthrough"
+				:manifest="manifest"
+				:seen-version="walkthroughSeenVersion">
+				<CnWalkthrough
+					:app-id="appId"
+					:manifest="manifest"
+					:seen-version="walkthroughSeenVersion"
+					:resume="walkthroughResume"
+					:translate="translate"
+					@complete="onWalkthroughComplete"
+					@dismiss="onWalkthroughComplete" />
+			</slot>
+			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
 			  wires this to manifest entries with
@@ -280,6 +320,24 @@
 				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
 				<slot name="user-settings">
 					<CnNotificationPreferences v-if="userSettingsOpen" />
+					<!--
+						Self-service walkthrough replay (ADR-043). Only mounts
+						when the manifest declares an enabled tour, so apps
+						without a walkthrough never show an empty section.
+					-->
+					<NcAppSettingsSection v-if="walkthroughEnabled"
+						id="cn-walkthrough"
+						:name="restartWalkthroughSectionName">
+						<p class="cn-app-root__walkthrough-hint">
+							{{ restartWalkthroughHint }}
+						</p>
+						<NcButton type="secondary" @click="restartWalkthroughFromSettings">
+							<template #icon>
+								<Restart :size="20" />
+							</template>
+							{{ restartWalkthroughLabel }}
+						</NcButton>
+					</NcAppSettingsSection>
 				</slot>
 			</NcAppSettingsDialog>
 
@@ -300,22 +358,27 @@
 </template>
 
 <script>
-import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import Restart from 'vue-material-design-icons/Restart.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
+import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { ref, watch } from 'vue'
+import Vue, { computed, ref, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
 import { useAppStatus } from '../../composables/useAppStatus.js'
+import { useSetupStatus } from '../../composables/useSetupStatus.js'
+import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
@@ -342,10 +405,19 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	header: [],
 	actions: [],
 	tab: [],
+	// In-body section component (CnDetailPage `config.bodyWidgets[].component`,
+	// reusable by dashboard/index). Resolved by registry name and rendered as a
+	// titled card IN THE PAGE BODY with the object/page context injected. Unlike
+	// an integration `widget`, a `section` requires NO sidebar tab and carries no
+	// grid metadata — it sits wherever the page's `placement` puts it.
 	section: [],
-	// Handler kind: not a component but a named async function resolved by
-	// CnPageRenderer.resolveCreateOverride (via `.handler`/`.fn`) for
-	// CnIndexPage's `config.createOverride` sugar. No required metadata.
+	// Create-override handler: a plain async function (exposed as `.handler` /
+	// `.fn`) that CnPageRenderer resolves for CnIndexPage's `createOverride`
+	// prop so a declarative `type:"index"` page can route its generic Add
+	// through an app-specific create flow. Carries no component/metadata — it is
+	// resolved by name, not mounted — so it lists no required fields (like
+	// `page`); listing it here keeps the mount-time validator from rejecting a
+	// valid handler registration.
 	'create-override': [],
 }
 
@@ -366,13 +438,17 @@ export default {
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
+		NcButton,
 		NcContent,
 		NcEmptyContent,
 		NcLoadingIcon,
 		DatabaseSearchOutline,
+		Restart,
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnSetupWizard,
+		CnWalkthrough,
 		CnAiCompanion,
 		CnObjectSidebar,
 		CnSupportDialog,
@@ -391,6 +467,10 @@ export default {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
 			cnManifestEditor: this.manifestEditor,
+			// App registers/schemas for the in-app pages editor (index/detail
+			// data source). Plain value (not a getter) so deep descendants —
+			// the page-tree rows under the edit button — resolve it reliably.
+			cnDataSources: this.dataSources,
 			// Provided as the raw refs (not getters): Vue 2 inject resolves plain
 			// provided properties at any depth, but getter-defined provide
 			// properties don't reliably reach deep descendants (e.g. the edit
@@ -440,6 +520,21 @@ export default {
 			 */
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
+			},
+			/**
+			 * Restart entry for the product walkthrough (ADR-043). Descendants
+			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
+			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
+			 * `tourId` the first declared tour is used.
+			 *
+			 * @param {string} [tourId] The tour to restart.
+			 * @return {void}
+			 */
+			cnReplayWalkthrough: (tourId) => {
+				if (!this.walkthroughEnabled) return
+				const wt = useWalkthrough(this.appId, this.manifest)
+				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
+				if (id) wt.restart(id)
 			},
 			/**
 			 * Reactive AI context holder. Page components (CnIndexPage,
@@ -608,6 +703,21 @@ export default {
 			default: null,
 		},
 		/**
+		 * App data sources for the in-app pages editor (ADR-041). Lets the
+		 * Edit-pages modal offer Register / Schema / Columns dropdowns for
+		 * `index`/`detail` pages instead of free-text slug inputs, so a
+		 * created page actually renders a table. Shape: `{ registers:
+		 * [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`.
+		 * Provided to descendants as `cnDataSources`; when omitted the editor
+		 * falls back to free-text register/schema fields.
+		 *
+		 * @type {object|null}
+		 */
+		dataSources: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Nextcloud app id. Forwarded to NcContent as `app-name` and
 		 * to CnDependencyMissing for the heading.
 		 *
@@ -616,6 +726,15 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+		/**
+		 * Human-readable name shown in the Nextcloud top bar. When set it
+		 * overrides the technical `appId` so a virtual app shows its own name
+		 * (e.g. "Pet Store") instead of the host app id.
+		 */
+		appDisplayName: {
+			type: String,
+			default: '',
 		},
 		/**
 		 * First-open support note (`CnSupportDialog`). `true` (default)
@@ -859,7 +978,14 @@ export default {
 			props.initialOrganisation || null,
 		)
 
-		const supportPair = props.supportDialog === false
+		// Off when the host opts out (`:support-dialog="false"`) OR the manifest's
+		// support block is explicitly disabled (the "Show the support note on
+		// first open" toggle in OpenBuild's editor). Omitting the block keeps the
+		// default-on first-open behaviour.
+		const manifestSupportDisabled = !!(props.manifest && props.manifest.support
+			&& typeof props.manifest.support === 'object'
+			&& props.manifest.support.enabled === false)
+		const supportPair = (props.supportDialog === false || manifestSupportDisabled)
 			? {}
 			: (() => {
 				const { visible, hide } = useSupportDialog(props.appId, { persistence: 'server' })
@@ -881,12 +1007,19 @@ export default {
 			if (!manifestEditor.editing.value) baseRef.value = m
 		})
 		const { available: openBuildAvailable } = useOpenBuildEditAvailability()
+		// A manifest may opt OUT of the OpenBuild in-app edit button by setting
+		// `openbuildEditable: false` (e.g. OpenBuild's own pages — an app does not
+		// edit itself with itself). Default true: omitting the flag keeps the
+		// button wherever the OpenBuild app is enabled (ADR-041).
+		const openBuildEditable = computed(
+			() => openBuildAvailable.value && props.manifest?.openbuildEditable !== false,
+		)
 
 		return {
 			...supportPair,
 			cnTenantContext: tenantContext,
 			manifestEditor,
-			openBuildAvailable,
+			openBuildAvailable: openBuildEditable,
 		}
 	},
 
@@ -1055,15 +1188,22 @@ export default {
 			return hasObjectCoordinates
 		},
 		/**
-		 * Resolved support-dialog config object — `{}` when `supportDialog`
-		 * is `true`/`false`, or the host-supplied override object.
+		 * Resolved support-dialog config — the manifest's `support` block
+		 * (authored in OpenBuild's "Edit support & donation" editor) overlaid
+		 * by any host-supplied `supportDialog` override object, so app authors
+		 * can configure the donation/support note entirely from the UI while a
+		 * host can still override per-mount.
 		 *
 		 * @return {object}
 		 */
 		cnSupportConfig() {
-			return (this.supportDialog && typeof this.supportDialog === 'object')
+			const fromManifest = (this.manifest && this.manifest.support && typeof this.manifest.support === 'object')
+				? this.manifest.support
+				: {}
+			const fromProp = (this.supportDialog && typeof this.supportDialog === 'object')
 				? this.supportDialog
 				: {}
+			return { ...fromManifest, ...fromProp }
 		},
 		/**
 		 * App display name for the support note — host override, else the
@@ -1111,7 +1251,7 @@ export default {
 		 */
 		cnSupportOverrides() {
 			const cfg = this.cnSupportConfig
-			const passthrough = ['donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs']
+			const passthrough = ['title', 'donateUrl', 'supportUrl', 'conductionUrl', 'appsUrl', 'founderName', 'founderTitle', 'founderAvatarUrl', 'founderProfileUrl', 'bodyParagraphs', 'buttons']
 			const out = {}
 			for (const key of passthrough) {
 				if (cfg[key] !== undefined) {
@@ -1170,9 +1310,71 @@ export default {
 					return { id, name: id, category: 'featured', enabled: false }
 				})
 		},
+		/**
+		 * First-time-setup status for this app (ADR-042), or null when the
+		 * manifest declares no `setup` block. Calls useSetupStatus inside the
+		 * computed so the returned refs stay reactive (same pattern as
+		 * unresolvedDependencies → useAppStatus).
+		 */
+		setupState() {
+			if (!this.appId || !this.manifest || !this.manifest.setup || this.manifest.setup.enabled === false) {
+				return null
+			}
+			return useSetupStatus(this.appId, this.manifest)
+		},
+		/**
+		 * Whether a REQUIRED setup step is unmet — the app shell is gated to
+		 * the setup wizard until this clears. Never gates while the status is
+		 * still loading (avoids a flash before the answer is known).
+		 */
+		setupGating() {
+			const s = this.setupState
+			return !!s && s.loading.value === false && s.requiredUnmet.value.length > 0
+		},
+		/**
+		 * Whether the manifest declares an enabled walkthrough with at least one
+		 * tour (ADR-043). Drives the non-gating CnWalkthrough overlay in the shell.
+		 *
+		 * @return {boolean} True when a walkthrough should mount.
+		 */
+		walkthroughEnabled() {
+			const w = this.manifest && this.manifest.walkthrough
+			return !!(w && w.enabled !== false && Array.isArray(w.tours) && w.tours.length > 0)
+		},
+		/**
+		 * The user's last-seen app version for walkthrough composition. Read from
+		 * a per-user/browser key; CnAppRoot writes it on completion. Apps wanting
+		 * cross-device persistence can override the `#walkthrough` slot.
+		 *
+		 * @return {string} The last-seen version, or '' for a fresh user.
+		 */
+		walkthroughSeenVersion() {
+			try {
+				return window.localStorage.getItem('cn-walkthrough-seen:' + this.appId) || ''
+			} catch (e) {
+				return ''
+			}
+		},
+		/**
+		 * Cross-app / refresh resume token parsed from the URL query
+		 * (`cn_resume_tour` / `cn_resume_step`), or null.
+		 *
+		 * @return {object|null} `{ tourId, stepId }` or null.
+		 */
+		walkthroughResume() {
+			try {
+				const p = new URLSearchParams(window.location.search)
+				const tourId = p.get('cn_resume_tour')
+				if (!tourId) return null
+				return { tourId, stepId: p.get('cn_resume_step') || '' }
+			} catch (e) {
+				return null
+			}
+		},
 		phase() {
 			if (this.isLoading) return 'loading'
 			if (this.unresolvedDependencies.length > 0) return 'dependency-missing'
+			if (this.setupGating) return 'setup'
 			return 'shell'
 		},
 		/**
@@ -1219,6 +1421,30 @@ export default {
 			return this.userSettingsTitle || this.translate('User settings')
 		},
 		/**
+		 * Section heading for the walkthrough-replay block in user settings.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughSectionName() {
+			return this.translate('Walkthrough')
+		},
+		/**
+		 * Explanatory line above the restart-walkthrough button.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughHint() {
+			return this.translate('Take the guided tour of this app again.')
+		},
+		/**
+		 * Label for the restart-walkthrough button in user settings.
+		 *
+		 * @return {string}
+		 */
+		restartWalkthroughLabel() {
+			return this.translate('Restart walkthrough')
+		},
+		/**
 		 * Resolve the active modal's Vue component from the registry.
 		 * Returns null when no modal is open or the key no longer resolves.
 		 *
@@ -1232,6 +1458,13 @@ export default {
 	},
 
 	mounted() {
+		// Guard against silently losing unsaved in-app edits. The manifest
+		// editor stays `dirty` for the whole Save (the persist PUT can take a
+		// few seconds), so a refresh mid-save would drop the edit before the
+		// write lands; this warns the user while there are unsaved/in-flight
+		// changes. Registered before the early-return so it always installs.
+		window.addEventListener('beforeunload', this.onBeforeUnload)
+
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
@@ -1268,7 +1501,83 @@ export default {
 		this._hydrateMenuCounts()
 	},
 
+	beforeDestroy() {
+		window.removeEventListener('beforeunload', this.onBeforeUnload)
+	},
+
 	methods: {
+		/**
+		 * Warn before unload when the manifest editor has unsaved (or still-
+		 * persisting) changes, so a refresh can't silently discard an in-app
+		 * edit. No-op when not editing / nothing dirty.
+		 *
+		 * @param {BeforeUnloadEvent} event The browser beforeunload event.
+		 * @return {string|undefined} A non-empty string triggers the native prompt.
+		 */
+		onBeforeUnload(event) {
+			const editor = this.manifestEditor
+			const dirtyRef = editor && editor.dirty
+			const dirty = dirtyRef && typeof dirtyRef === 'object' && 'value' in dirtyRef ? dirtyRef.value : dirtyRef
+			if (!dirty) return undefined
+			// The standard cross-browser incantation to trigger the prompt.
+			event.preventDefault()
+			event.returnValue = ''
+			return ''
+		},
+		/**
+		 * Re-fetch setup status after the wizard reports completion so the
+		 * phase flips from `setup` to `shell` without a page reload.
+		 *
+		 * @return {void}
+		 */
+		onSetupComplete() {
+			if (this.setupState && typeof this.setupState.refresh === 'function') {
+				this.setupState.refresh()
+			}
+			/**
+			 * @event setup-complete Emitted after the gating setup wizard reports
+			 * completion and the status has been re-fetched.
+			 */
+			this.$emit('setup-complete')
+		},
+		/**
+		 * Persist the current app version as the user's last-seen walkthrough
+		 * version (so an upgrade later surfaces only newer steps) and notify.
+		 *
+		 * @return {void}
+		 */
+		onWalkthroughComplete() {
+			try {
+				const v = (this.manifest && this.manifest.version) || '1.0.0'
+				window.localStorage.setItem('cn-walkthrough-seen:' + this.appId, String(v))
+			} catch (e) {
+				// Non-fatal: persistence is best-effort (private mode / no storage).
+			}
+			/**
+			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
+			 */
+			this.$emit('walkthrough-complete')
+		},
+		/**
+		 * Replay the product tour from the user-settings dialog. Closes the
+		 * dialog first, then restarts the first declared tour on the next tick
+		 * — the modal must finish unmounting before the tour overlay paints, or
+		 * the spotlight anchors against the closing modal. Mirrors the
+		 * `cnReplayWalkthrough` provide method (same useWalkthrough cache, so
+		 * the rendered CnWalkthrough genuinely re-fires).
+		 *
+		 * @return {void}
+		 */
+		restartWalkthroughFromSettings() {
+			this.userSettingsOpen = false
+			if (!this.walkthroughEnabled) return
+			// 50ms lets the dialog's close animation settle so the tour
+			// re-appears cleanly over the app shell, not the closing modal.
+			setTimeout(() => {
+				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
+				if (id) useWalkthrough(this.appId, this.manifest).restart(id)
+			}, 50)
+		},
 		/**
 		 * Validate every entry in the `registry` prop at mount time.
 		 *
@@ -1473,5 +1782,10 @@ export default {
 .cn-app-root__or-missing-action:focus {
 	background: var(--color-primary-element-hover);
 	text-decoration: underline;
+}
+
+.cn-app-root__walkthrough-hint {
+	margin-bottom: 12px;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -180,7 +180,10 @@ function applyOrder(entries, order, keyField) {
 	return result
 }
 
-/** Strip all delta-only markers from an entry before it lands in the manifest. */
+/**
+ * Strip all delta-only markers from an entry before it lands in the manifest.
+ * @param entry
+ */
 function stripMarkers(entry) {
 	const out = { ...entry }
 	delete out[OP_KEY]
@@ -188,7 +191,10 @@ function stripMarkers(entry) {
 	return out
 }
 
-/** Strip only `$op`, preserving `__order` for a recursive merge to consume. */
+/**
+ * Strip only `$op`, preserving `__order` for a recursive merge to consume.
+ * @param entry
+ */
 function stripOp(entry) {
 	const out = { ...entry }
 	delete out[OP_KEY]
@@ -199,7 +205,10 @@ function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-/** Structured clone via JSON (manifests are plain JSON — no cycles/functions). */
+/**
+ * Structured clone via JSON (manifests are plain JSON — no cycles/functions).
+ * @param value
+ */
 function clone(value) {
 	if (value === undefined) return undefined
 	if (value === null || typeof value !== 'object') return value

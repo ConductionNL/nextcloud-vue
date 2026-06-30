@@ -76,6 +76,18 @@ With a real up-to-date check (when the backend reports a configured version):
 | `reimported` | `object` | Configuration was re-imported successfully (AppHost response payload) |
 | `reimport-error` | `Error` | Configuration re-import failed |
 
+## First-time setup actions (ADR-042)
+
+Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
+"help us" modal from the admin page (not personal settings):
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSetup` | `boolean` | `false` | Show a "Run setup wizard" button that opens `CnSetupWizard`. |
+| `setupSteps` | `Array` | `[]` | The `manifest.setup.steps` array passed to the wizard. |
+| `showHelp` | `boolean` | `false` | Show a "Help us" button that opens `CnSuggestFeatureModal`. |
+| `helpRepo` | `string` | `''` | `<owner>/<repo>` slug for the feature-request modal. |
+
 ## Slots
 
 | Slot | Description |

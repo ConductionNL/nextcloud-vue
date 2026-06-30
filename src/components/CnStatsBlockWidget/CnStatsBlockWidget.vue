@@ -158,14 +158,20 @@ export default {
 	},
 
 	computed: {
-		/** Stable signature of a REST-fetchable source (else null). */
+		/**
+		 * Stable signature of a REST-fetchable source (else null).
+		 *
+		 * @spec openspec/specs/dashboard-page/spec.md
+		 */
 		restKey() {
 			const ds = this.dataSource || {}
 			if (!ds.register || !ds.schema || ds.graphql) return null
 			return JSON.stringify({
-				register: ds.register, schema: ds.schema,
+				register: ds.register,
+				schema: ds.schema,
 				metric: ds.metric || (ds.aggregate === 'count' ? 'count' : 'count'),
-				field: ds.field || '', filter: ds.filter || {},
+				field: ds.field || '',
+				filter: ds.filter || {},
 			})
 		},
 		resolvedCount() {

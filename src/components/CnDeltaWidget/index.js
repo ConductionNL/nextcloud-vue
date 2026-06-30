@@ -24,6 +24,9 @@ registerDashboardWidget('delta', {
 	},
 	displayName: 'Comparison / delta',
 	icon: 'TrendingUp',
+	// Self-contained card surface — rendered flush and centred (no inner
+	// scrollbar). See CnDashboardPage.isCardWidget.
+	card: true,
 })
 
 export { CnDeltaWidget }

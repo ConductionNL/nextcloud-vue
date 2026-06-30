@@ -396,4 +396,223 @@ describe('CnDashboardPage — dateRange prop', () => {
 			expect(wrapper.vm.currentRange.preset).toBe('custom')
 		})
 	})
+
+	describe('pills control mode (control: "pills")', () => {
+		const pillsPresets = [
+			{ id: 'week', label: 'Last 7 days', days: 7 },
+			{ id: 'month', label: 'Last 30 days', days: 30 },
+			{ id: 'quarter', label: 'Last 90 days', days: 90 },
+			{ id: 'custom', label: 'Custom range', days: null },
+		]
+		// Stub NcActions / NcActionInput so the custom-range popover pill mounts.
+		const pillStubs = {
+			...stubs,
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+		}
+
+		it('renders the pill row instead of CnDateRangePicker', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pills"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-date-range-picker-stub').exists()).toBe(false)
+			// One pill per non-custom preset.
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-week"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-month"]').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').exists()).toBe(true)
+		})
+
+		it('control omitted keeps the default picker (backwards compat)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('.cn-date-range-picker-stub').exists()).toBe(true)
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pills"]').exists()).toBe(false)
+		})
+
+		it('marks the active preset pill with aria-pressed="true"', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-month"]').attributes('aria-pressed')).toBe('true')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-week"]').attributes('aria-pressed')).toBe('false')
+		})
+
+		it('clicking a pill resolves the window, emits date-range-change, and updates active state', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			await wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').trigger('click')
+			expect(wrapper.vm.currentRange.preset).toBe('quarter')
+			expect(wrapper.vm.currentRange.from).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			expect(wrapper.vm.currentRange.to).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			const events = wrapper.emitted('date-range-change')
+			expect(events[events.length - 1][0].preset).toBe('quarter')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-quarter"]').attributes('aria-pressed')).toBe('true')
+		})
+
+		it('exposes a Custom range popover pill when a custom preset exists', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: pillsPresets, default: { preset: 'month' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-pill-custom"]').exists()).toBe(true)
+			expect(wrapper.vm.hasCustomPreset).toBe(true)
+			// pillPresets excludes the custom entry (it surfaces as the popover).
+			expect(wrapper.vm.pillPresets.map((p) => p.id)).toEqual(['week', 'month', 'quarter'])
+		})
+	})
+
+	describe('workspace-context publishing + All/clear preset', () => {
+		// `days: null` non-custom preset = an "All" / clear option.
+		const presetsWithAll = [
+			{ id: 'last-7', label: '7d', days: 7 },
+			{ id: 'last-30', label: '30d', days: 30 },
+			{ id: 'all', label: 'All', days: null },
+			{ id: 'custom', label: 'Custom range', days: null },
+		]
+		const pillStubs = {
+			...stubs,
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+		}
+
+		it('publishes dateFrom / dateTo / datePreset into cnWorkspaceContext on init', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			const ctx = wrapper.vm.workspaceContext
+			expect(ctx.datePreset).toBe('last-7')
+			expect(ctx.dateFrom).toBe(wrapper.vm.currentRange.from)
+			expect(ctx.dateTo).toBe(wrapper.vm.currentRange.to)
+		})
+
+		it('updates cnWorkspaceContext when the range changes', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			wrapper.vm.onChipPresetPick({ id: 'last-30', label: '30d', days: 30 })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.workspaceContext.datePreset).toBe('last-30')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe(wrapper.vm.currentRange.from)
+		})
+
+		it('isClearPreset flags a non-custom days:null preset (not custom)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: { dateRange: { enabled: true }, layout: [], widgets: [] },
+				stubs,
+			})
+			expect(wrapper.vm.isClearPreset({ id: 'all', days: null })).toBe(true)
+			expect(wrapper.vm.isClearPreset({ id: 'custom', days: null })).toBe(false)
+			expect(wrapper.vm.isClearPreset({ id: 'last-7', days: 7 })).toBe(false)
+			expect(wrapper.vm.isClearPreset({ id: 'x', clear: true, days: 7 })).toBe(true)
+		})
+
+		it('clicking the All pill clears the window and the workspace bounds', async () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'last-30' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			// Starts with a bounded window.
+			expect(wrapper.vm.workspaceContext.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			await wrapper.find('[data-testid="cn-dashboard-page-date-pill-all"]').trigger('click')
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+			expect(wrapper.vm.workspaceContext.dateTo).toBe('')
+		})
+
+		it('default preset "all" starts unbounded (empty workspace bounds)', () => {
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					dateRange: { enabled: true, control: 'pills', presets: presetsWithAll, default: { preset: 'all' } },
+					layout: [], widgets: [],
+				},
+				stubs: pillStubs,
+			})
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+		})
+	})
+
+	describe('per-widget date chip (layout[].dateChip) — abstract KPI card select', () => {
+		const presetsWithAll = [
+			{ id: 'last-7', label: '7d', days: 7 },
+			{ id: 'last-30', label: '30d', days: 30 },
+			{ id: 'all', label: 'All', days: null },
+		]
+		const chipStubs = {
+			...stubs,
+			// The default grid stub renders no slot — render it so widget bodies
+			// (and their in-header chips) actually mount.
+			CnDashboardGrid: { template: '<div class="cn-dashboard-grid-stub"><div v-for="it in layout" :key="it.id"><slot name="widget" :item="it" /></div></div>', props: ['layout', 'editable', 'columns', 'cellHeight', 'margin'] },
+			// The default CnWidgetWrapper stub drops named slots — render title-meta
+			// so the in-header date chip is visible to the assertions.
+			CnWidgetWrapper: { template: '<div><slot name="title-meta" /><slot /></div>' },
+			NcActions: { template: '<div class="nc-actions-stub"><slot name="icon" /><slot /></div>' },
+			NcActionButton: { template: '<button class="nc-action-button-stub"><slot name="icon" /><slot /></button>' },
+			NcActionInput: { template: '<div class="nc-action-input-stub" />' },
+			NcActionSeparator: { template: '<div />' },
+		}
+		const mountWithChip = (defaultPreset) => mount(CnDashboardPage, {
+			propsData: {
+				dateRange: { enabled: true, showHeaderPicker: false, presets: presetsWithAll, default: { preset: defaultPreset } },
+				widgets: [{ id: 'kpi', type: 'custom', title: 'Decisions' }],
+				layout: [{ id: '1', widgetId: 'kpi', gridX: 0, gridY: 0, gridWidth: 3, gridHeight: 2, showTitle: true, dateChip: true }],
+			},
+			stubs: chipStubs,
+			scopedSlots: { 'widget-kpi': '<div class="kpi-body" />' },
+		})
+
+		it('dashboardRangeChipLabel prefers the active preset label', () => {
+			const wrapper = mountWithChip('last-30')
+			expect(wrapper.vm.dashboardRangeChipLabel).toBe('30d')
+		})
+
+		it('chip renders on a dateChip widget and shows the preset label', () => {
+			const wrapper = mountWithChip('last-7')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-kpi"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-dashboard-page__date-chip').text()).toBe('7d')
+		})
+
+		it('chip STILL renders (label "All") when the range is unbounded', () => {
+			const wrapper = mountWithChip('all')
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.find('[data-testid="cn-dashboard-page-date-chip-kpi"]').exists()).toBe(true)
+			expect(wrapper.find('.cn-dashboard-page__date-chip').text()).toBe('All')
+		})
+
+		it('picking the All entry in the chip clears the window', async () => {
+			const wrapper = mountWithChip('last-7')
+			expect(wrapper.vm.workspaceContext.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+			wrapper.vm.onChipPresetPick({ id: 'all', label: 'All', days: null }, { widgetId: 'kpi' })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.currentRange.preset).toBe('all')
+			expect(wrapper.vm.workspaceContext.dateFrom).toBe('')
+		})
+	})
 })

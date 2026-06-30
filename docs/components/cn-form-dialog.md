@@ -25,6 +25,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema for auto-generating fields |
 | `item` | Object | `null` | For edit mode (null = create) |
+| `register` | String | `''` | Register slug used to resolve OpenRegister object references (`$ref`). A schema property that is an object reference renders as a searchable dropdown of the referenced objects (label = human name, value = UUID). See [Object references](#object-references-ref). When empty, reference fields fall back to a plain text input. |
 | `dialogTitle` | String | `''` | Defaults to "Create/Edit \{schema.title\}" |
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `excludeFields` | Array | `[]` | Fields to hide |
@@ -178,6 +179,39 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 - Async selects store the **full option object** in `formData` (not just an ID)
 
 **Static enums are unchanged** — arrays work exactly as before, storing just the ID value.
+
+## Object references (`$ref`)
+
+A schema property that is an OpenRegister object reference renders as a **searchable dropdown of the referenced objects** (label = human name, value = UUID) instead of a free-text UUID box:
+
+```js
+// schema
+{
+  title: 'Case',
+  required: ['title', 'caseType'],
+  properties: {
+    title: { type: 'string', title: 'Title' },
+    // single reference → searchable single-select
+    caseType: { type: 'string', format: 'uuid', $ref: 'caseType', title: 'Case type' },
+    // array of references → searchable multi-select
+    contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts' },
+  },
+}
+```
+
+```vue {static}
+<CnFormDialog :schema="schema" :register="'zaken'" @confirm="onConfirm" />
+```
+
+**Behavior:**
+
+- `fieldsFromSchema` resolves a `$ref` property to a `select` widget (or `multiselect` for `items.$ref`) and records `field.reference = { schema, multiple }`. The `$ref` value is the referenced **schema** slug.
+- Pass the **`register`** prop so the dialog can fetch the referenced objects via `GET /api/objects/{register}/{schema}` (limit 100, server-filtered by the search term).
+- Each object is mapped to `{ label, value }` where the label resolves through `title → name → naam → label → identifier → @self.name → id`.
+- The value stored in `formData` is the **UUID** (single) or **array of UUIDs** (multiple) — never the full object. In edit mode the stored UUID is resolved to its label so the current selection displays.
+- When `register` is empty (or the fetch fails) the field falls back to a plain text input — no regression, no console spew.
+
+`CnIndexPage` threads its own `register` into the built-in `CnFormDialog` automatically, so reference fields resolve out of the box on manifest-driven and self-fetch pages.
 
 ## Field Overrides
 

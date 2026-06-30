@@ -41,8 +41,9 @@ Each entry is a ready-to-`register()` integration descriptor: `{ id, label, icon
 | `forms` | 65 | `workflow` | `forms` |
 | `polls` | 66 | `workflow` | `polls` |
 | `time-tracker` | 67 | `workflow` | `timemanager` |
+| `field-inspection` | 68 | `workflow` | — |
 
-All 18 use [`CnIntegrationTab`](../components/cn-integration-tab.md) + [`CnIntegrationCard`](../components/cn-integration-card.md). Bespoke per-leaf components supersede them later by repointing the descriptor's `tab` / `widget`.
+The first 18 use [`CnIntegrationTab`](../components/cn-integration-tab.md) + [`CnIntegrationCard`](../components/cn-integration-card.md). Bespoke per-leaf components supersede them later by repointing the descriptor's `tab` / `widget` — `field-inspection` ships its own [`CnFieldInspectionTab`/`CnFieldInspectionCard`](./field-inspection-integration.md) (offline data-collection; see [`offlineCollection`](./offline-collection.md)).
 
 ## See also
 

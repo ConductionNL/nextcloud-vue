@@ -83,10 +83,10 @@ const DEFAULT_CONTENT = Object.freeze({
  * placement. Collects the six tile fields (title, icon + iconType, background
  * and text colours, linkType, linkValue) and emits them via `update:content`.
  *
- * The icon control offers a curated registry `<select>` plus a free-text input
- * (for URLs / emoji / SVG paths); a URL value sets `iconType` to `url`,
- * otherwise `class`. The `iconType` select stays visible so authors can
- * override to `emoji` or `svg`.
+ * The icon control is a `CnIconBrowser` — a searchable visual picker over the
+ * `@mdi/js` set with an optional custom image-URL tab. A URL value sets
+ * `iconType` to `url`, an SVG path to `svg`, otherwise `class`. The `iconType`
+ * select stays visible so authors can override (e.g. to `emoji`).
  *
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */

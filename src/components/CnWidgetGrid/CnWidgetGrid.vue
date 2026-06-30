@@ -329,7 +329,11 @@ export default {
 		// Expose the shared grid helpers to the template.
 		cnGridCellStyle,
 		hasGridRow,
-		/** Stable GridStack id for a widget entry (its id, else its index). */
+		/**
+		 * Stable GridStack id for a widget entry (its id, else its index).
+		 * @param widget
+		 * @param index
+		 */
 		gsId(widget, index) {
 			return widget.id != null ? widget.id : `idx-${index}`
 		},

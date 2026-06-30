@@ -5,11 +5,30 @@
 
 <template>
 	<div class="cn-image-widget-form">
+		<!-- Upload an image file (primary path); the URL field below stays for
+		     linking an external image. Upload reads the file and either hands it
+		     to the injected uploadFn (→ a hosted URL) or, with no transport,
+		     embeds it as a data URL so it works out of the box. -->
+		<label class="cn-image-widget-form__upload-label">
+			<input
+				ref="fileInput"
+				type="file"
+				accept="image/*"
+				class="cn-image-widget-form__file-input"
+				:disabled="uploading"
+				@change="handleFileSelect">
+			<span class="cn-image-widget-form__upload-button">
+				{{ uploading ? t('nextcloud-vue', 'Uploading…') : t('nextcloud-vue', 'Upload image') }}
+			</span>
+		</label>
+		<p v-if="uploadError" class="cn-image-widget-form__error" role="alert">
+			{{ uploadError }}
+		</p>
+
 		<NcTextField
 			:value="url"
 			:label="t('nextcloud-vue', 'Image URL')"
-			:placeholder="t('nextcloud-vue', 'Enter image URL')"
-			required
+			:placeholder="t('nextcloud-vue', 'Or paste an image URL')"
 			@update:value="updateField('url', $event)" />
 
 		<div v-if="hasUrl" class="cn-image-widget-form__preview-wrap">
@@ -98,6 +117,18 @@ export default {
 			type: Object,
 			default: () => ({ ...DEFAULT_CONTENT }),
 		},
+		/**
+		 * Optional upload transport: `async (dataUrl) => ({ url })`. When given,
+		 * an uploaded file is sent through it and the returned URL is stored.
+		 * When omitted, the file is embedded as a data URL so upload still works
+		 * without a transport dependency.
+		 *
+		 * @type {Function|null}
+		 */
+		uploadFn: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -119,6 +150,8 @@ export default {
 			link: typeof initial.link === 'string' ? initial.link : DEFAULT_CONTENT.link,
 			fit: ALLOWED_FITS.includes(initial.fit) ? initial.fit : DEFAULT_CONTENT.fit,
 			previewError: false,
+			uploading: false,
+			uploadError: '',
 		}
 	},
 
@@ -182,6 +215,60 @@ export default {
 		},
 
 		/**
+		 * Read the selected image file and set the widget URL — via the injected
+		 * uploadFn when present (→ hosted URL), otherwise embedded as a data URL.
+		 *
+		 * @param {Event} event the file-input change event.
+		 * @return {void}
+		 */
+		handleFileSelect(event) {
+			const file = event.target.files && event.target.files[0]
+			if (!file) {
+				return
+			}
+			this.uploadError = ''
+			this.uploading = true
+			const reader = new FileReader()
+			reader.onload = async (e) => {
+				try {
+					const dataUrl = e.target.result
+					if (typeof dataUrl !== 'string') {
+						throw new Error('FileReader did not return a data URL')
+					}
+					if (typeof this.uploadFn === 'function') {
+						const response = await this.uploadFn(dataUrl)
+						this.updateField('url', response.url)
+					} else {
+						this.updateField('url', dataUrl)
+					}
+				} catch (err) {
+					this.uploadError = (err && err.message) || t('nextcloud-vue', 'Failed to upload image')
+					console.error('Image upload failed:', err)
+				} finally {
+					this.uploading = false
+					this.resetFileInput()
+				}
+			}
+			reader.onerror = () => {
+				this.uploadError = t('nextcloud-vue', 'Failed to upload image')
+				this.uploading = false
+				this.resetFileInput()
+			}
+			reader.readAsDataURL(file)
+		},
+
+		/**
+		 * Clear the native file input so re-selecting the same file re-fires.
+		 *
+		 * @return {void}
+		 */
+		resetFileInput() {
+			if (this.$refs.fileInput) {
+				this.$refs.fileInput.value = ''
+			}
+		},
+
+		/**
 		 * Validate the form; an empty array means valid.
 		 *
 		 * @return {string[]} the validation errors.
@@ -201,6 +288,34 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+.cn-image-widget-form__upload-label {
+	display: inline-flex;
+	cursor: pointer;
+}
+
+.cn-image-widget-form__file-input {
+	display: none;
+}
+
+.cn-image-widget-form__upload-button {
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background-color: var(--color-background-hover);
+	font-size: 14px;
+	transition: background-color 0.2s;
+}
+
+.cn-image-widget-form__upload-label:hover .cn-image-widget-form__upload-button {
+	background-color: var(--color-background-dark);
+}
+
+.cn-image-widget-form__error {
+	margin: 0;
+	font-size: 12px;
+	color: var(--color-error);
 }
 
 .cn-image-widget-form__preview-wrap {

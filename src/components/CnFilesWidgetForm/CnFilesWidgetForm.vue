@@ -84,7 +84,10 @@ const VIEW_MODES = Object.freeze(['list', 'grid', 'tree'])
 const SORT_FIELDS = Object.freeze(['name', 'modified', 'size', 'type'])
 
 const DEFAULT_CONTENT = Object.freeze({
-	folderPath: '',
+	// Default to the user's root so a freshly-added Files widget shows content
+	// immediately (and passes validation) instead of an empty "Folder no longer
+	// exists" state. The user can narrow it to any folder.
+	folderPath: '/',
 	fileId: null,
 	viewMode: 'list',
 	showThumbnails: true,

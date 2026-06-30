@@ -78,6 +78,7 @@ export function createIntegrationRegistry() {
 	 * @param {?string} [entry.accentColor] Per-app brand accent hex (e.g. Deck's `#0082c9`) used by CnIntegrationWidget for the tab/header tint. Per-app waves fill these in.
 	 * @param {?string} [entry.appName] Human-readable backing-app name for empty-state copy ("{App} not available"); defaults to `label` when omitted.
 	 * @param {?string} [entry.docsUrl] Setup-docs URL for the empty state; defaults to `https://openregister.conduction.nl/docs/Integrations/{id}/`.
+	 * @param {?object} [entry.offlineConfig] Opaque per-integration config bag forwarded verbatim to the integration's components (e.g. the field-inspection leaf's offline schema/filter config). A consuming app overrides it by pre-registering the same id.
 	 *
 	 * @return {?object} Normalised entry, or null on collision in prod.
 	 */
@@ -133,6 +134,12 @@ export function createIntegrationRegistry() {
 			docsUrl: typeof entry.docsUrl === 'string' && entry.docsUrl !== ''
 				? entry.docsUrl
 				: `https://openregister.conduction.nl/docs/Integrations/${entry.id}/`,
+			// Opaque per-integration config bag. The registry does not interpret
+			// it — it is forwarded verbatim so an integration's components can
+			// read their own settings (e.g. the field-inspection leaf's offline
+			// schema/filter config) and a consuming app can override it by
+			// pre-registering the same id with its own `offlineConfig`.
+			offlineConfig: (entry.offlineConfig && typeof entry.offlineConfig === 'object') ? entry.offlineConfig : null,
 			// Marker set by `registerBuiltinIntegrations` /
 			// `registerLeafIntegrations` so `useIntegrationRegistry` can
 			// distinguish lib-owned registrations (whose components must

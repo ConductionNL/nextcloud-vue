@@ -4,6 +4,8 @@
 import { mount } from '@vue/test-utils'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnDashboardIcon from '../../src/components/CnIconPicker/CnDashboardIcon.vue'
+import CnIcon from '../../src/components/CnIcon/CnIcon.vue'
+import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import {
 	getIconComponent,
 	isCustomIconUrl,
@@ -12,6 +14,17 @@ import {
 } from '../../src/components/CnIconPicker/dashboardIcons.js'
 
 const mocks = { t: (_app, s) => s }
+
+describe('CnIcon dashboard-icon fallback', () => {
+	it('resolves a DASHBOARD_ICONS name (what the picker offers) without registering', () => {
+		const w = mount(CnIcon, { propsData: { name: 'RocketLaunch' } })
+		expect(w.vm.resolvedComponent).toBe(DASHBOARD_ICONS.RocketLaunch)
+	})
+	it('still falls back to the help icon for a genuinely unknown name', () => {
+		const w = mount(CnIcon, { propsData: { name: 'TotallyNotAnIcon' } })
+		expect(w.vm.resolvedComponent).toBe(HelpCircleOutline)
+	})
+})
 
 describe('dashboardIcons helpers', () => {
 	it('resolves unknown/empty names to the default icon component', () => {
@@ -44,12 +57,32 @@ describe('CnDashboardIcon', () => {
 })
 
 describe('CnIconPicker', () => {
-	it('emits input with the selected registry key', async () => {
+	it('emits input with the clicked icon registry key', async () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
-		const select = w.find('select')
-		select.element.value = 'Star'
-		await select.trigger('change')
+		// Grid of icon tiles — click the one whose aria-label is the registry key.
+		const star = w.findAll('.cn-icon-picker__icon').wrappers.find((b) => b.attributes('aria-label') === 'Star')
+		expect(star).toBeTruthy()
+		await star.trigger('click')
 		expect(w.emitted('input')[0]).toEqual(['Star'])
+	})
+
+	it('clearable: renders a leading None tile that emits null', async () => {
+		const w = mount(CnIconPicker, { propsData: { value: 'Star', clearable: true }, mocks })
+		const none = w.find('.cn-icon-picker__none')
+		expect(none.exists()).toBe(true)
+		await none.trigger('click')
+		expect(w.emitted('input')[0]).toEqual([null])
+	})
+
+	it('no None tile unless clearable', () => {
+		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })
+		expect(w.find('.cn-icon-picker__none').exists()).toBe(false)
+	})
+
+	it('marks the current icon tile as selected', () => {
+		const w = mount(CnIconPicker, { propsData: { value: 'Star' }, mocks })
+		const star = w.findAll('.cn-icon-picker__icon').wrappers.find((b) => b.attributes('aria-label') === 'Star')
+		expect(star.classes()).toContain('cn-icon-picker__icon--selected')
 	})
 	it('hides the upload control when no uploadFn is given', () => {
 		const w = mount(CnIconPicker, { propsData: { value: null }, mocks })

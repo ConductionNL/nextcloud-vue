@@ -46,6 +46,24 @@
 			<span :title="rawTitle">{{ formattedValue }}</span>
 		</template>
 
+		<!-- Declarative swatch — a colour dot (from a sibling row field) + text -->
+		<template v-else-if="isSwatch">
+			<span class="cn-cell-renderer__swatch-wrap">
+				<span
+					v-if="swatchColor"
+					class="cn-cell-renderer__swatch-dot"
+					:style="{ backgroundColor: swatchColor }"
+					aria-hidden="true" />
+				<span v-if="hasValue" :title="rawTitle">{{ formattedValue }}</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</span>
+		</template>
+
+		<!-- Declarative built-in format (currency / duration / number / percent) -->
+		<template v-else-if="hasBuiltinFormat">
+			<span :title="rawTitle" class="cn-cell-renderer--number">{{ formattedValue }}</span>
+		</template>
+
 		<!-- Date / date-time: dynamic NcDateTime (relative time, absolute on hover) -->
 		<template v-else-if="isDate">
 			<NcDateTime v-if="dateTimestamp" :timestamp="dateTimestamp" />
@@ -182,6 +200,31 @@ export default {
 		widgetProps: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * Optional declarative cell-format spec — a no-code alternative to a
+		 * registry `formatter`. Recognised `style` values:
+		 *
+		 * - `'currency'` → `Intl.NumberFormat` currency (e.g. `€ 1.234,56`),
+		 *   honouring `currency` (ISO code, default `'EUR'`) and `decimals`
+		 *   (default 2).
+		 * - `'number'` / `'percent'` → localized number (percent appends `%`),
+		 *   honouring `decimals` (default 0).
+		 * - `'duration'` → a seconds value rendered compact (`1u 23m`, `45m 10s`,
+		 *   `12s`); pass `unit: 'minutes'` / `'hours'` when the raw value is not
+		 *   in seconds.
+		 * - `'swatch'` → a colour dot read from a sibling row field named by
+		 *   `colorField` (the value renders as the cell text beside it).
+		 *
+		 * `prefix` / `suffix` are prepended/appended to the numeric styles.
+		 * Resolved AFTER `formatter` / `widget` (those win), but BEFORE the
+		 * type-aware rendering, so a manifest column can opt into currency or a
+		 * colour swatch without registering a function.
+		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 */
+		format: {
+			type: Object,
+			default: null,
 		},
 		/**
 		 * The full row object — passed so a formatter can be a function of
@@ -357,6 +400,42 @@ export default {
 			return this.formatterFn !== null
 		},
 
+		/**
+		 * The declarative format `style`, or null when no (recognised) `format`
+		 * spec is set. Drives the built-in currency / duration / number / percent
+		 * / swatch rendering paths.
+		 *
+		 * @return {string|null}
+		 */
+		formatStyle() {
+			const s = this.format && this.format.style
+			return typeof s === 'string' ? s : null
+		},
+
+		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		hasBuiltinFormat() {
+			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+		},
+
+		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
+		isSwatch() {
+			return this.formatStyle === 'swatch'
+		},
+
+		/**
+		 * The swatch colour — read from the sibling row field named by
+		 * `format.colorField` (default `'color'`). Returns null when no usable
+		 * colour string is present (the dot is then omitted).
+		 *
+		 * @return {string|null}
+		 */
+		swatchColor() {
+			if (!this.isSwatch) return null
+			const field = (this.format && this.format.colorField) || 'color'
+			const c = this.row && this.row[field]
+			return (typeof c === 'string' && c.trim() !== '') ? c : null
+		},
+
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
@@ -365,6 +444,9 @@ export default {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
 				}
+			}
+			if (this.hasBuiltinFormat) {
+				return this.applyBuiltinFormat()
 			}
 			return formatValue(this.value, this.property, { truncate: this.truncate })
 		},
@@ -413,6 +495,79 @@ export default {
 			}
 		}
 	},
+
+	methods: {
+		/**
+		 * Render the cell value per the declarative `format` spec (currency /
+		 * number / percent / duration). Mirrors CnStatWidget's formatting so a
+		 * KPI tile and a table column read identically. Non-numeric values fall
+		 * back to `formatValue`; an empty value renders an em-dash.
+		 *
+		 * @return {string}
+		 */
+		applyBuiltinFormat() {
+			if (!this.hasValue) return '—'
+			const fmt = this.format || {}
+			if (fmt.style === 'duration') return this.formatDuration()
+			const num = Number(this.value)
+			if (!Number.isFinite(num)) {
+				return formatValue(this.value, this.property, { truncate: this.truncate })
+			}
+			const decimals = Number.isFinite(fmt.decimals)
+				? fmt.decimals
+				: (fmt.style === 'currency' ? 2 : 0)
+			let body
+			if (fmt.style === 'currency') {
+				body = new Intl.NumberFormat(undefined, {
+					style: 'currency',
+					currency: fmt.currency || 'EUR',
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			} else if (fmt.style === 'percent') {
+				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num) + '%'
+			} else {
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			}
+			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+		},
+		/**
+		 * Render a numeric duration compactly (`1u 23m`, `45m 10s`, `12s`). The
+		 * raw value is seconds unless `format.unit` is `'minutes'` / `'hours'`.
+		 * The hour suffix is `u` (uur) to read naturally under NL theming while
+		 * staying digit-led for other locales.
+		 *
+		 * @return {string}
+		 */
+		formatDuration() {
+			const fmt = this.format || {}
+			let secs = Number(this.value)
+			if (!Number.isFinite(secs)) {
+				return formatValue(this.value, this.property, { truncate: this.truncate })
+			}
+			if (fmt.unit === 'minutes') secs *= 60
+			else if (fmt.unit === 'hours') secs *= 3600
+			secs = Math.round(secs)
+			const sign = secs < 0 ? '-' : ''
+			secs = Math.abs(secs)
+			const h = Math.floor(secs / 3600)
+			const m = Math.floor((secs % 3600) / 60)
+			const s = secs % 60
+			const parts = []
+			if (h > 0) parts.push(`${h}u`)
+			if (m > 0) parts.push(`${m}m`)
+			if (s > 0 && h === 0) parts.push(`${s}s`)
+			if (parts.length === 0) parts.push('0s')
+			return `${fmt.prefix || ''}${sign}${parts.join(' ')}${fmt.suffix || ''}`
+		},
+	},
 }
 </script>
 
@@ -437,5 +592,20 @@ export default {
 
 .cn-cell-renderer__icon--success {
 	color: var(--color-success);
+}
+
+.cn-cell-renderer__swatch-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-cell-renderer__swatch-dot {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	border: 1px solid var(--color-border-dark);
 }
 </style>

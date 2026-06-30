@@ -50,9 +50,12 @@
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
-				:key="currentPage.id"
+				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
-				v-on="$listeners">
+				v-on="$listeners"
+				@view="onRowOpen"
+				@row-click="onRowOpen"
+				@configure="showConfigModal = true">
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -94,9 +97,12 @@
 		<component
 			:is="resolvedComponent"
 			v-else-if="resolvedComponent"
-			:key="currentPage.id"
+			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
-			v-on="$listeners">
+			v-on="$listeners"
+			@view="onRowOpen"
+			@row-click="onRowOpen"
+			@configure="showConfigModal = true">
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -106,12 +112,18 @@
 					v-bind="slotProps" />
 			</template>
 		</component>
+
+		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
+		<CnPageConfigModal v-if="showConfigModal && currentPage"
+			:page="currentPage"
+			@close="showConfigModal = false" />
 	</div>
 </template>
 
 <script>
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -156,6 +168,7 @@ export default {
 
 	components: {
 		CnWidgetGrid,
+		CnPageConfigModal,
 	},
 
 	inject: {
@@ -302,6 +315,8 @@ export default {
 		return {
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
+			// Whether the per-page config modal (edit-mode cog) is open.
+			showConfigModal: false,
 			// Reactive holder for the loaded object of a `type:"detail"`
 			// page. `null` until the async load resolves (and on non-detail
 			// pages). Shape when populated:
@@ -440,6 +455,21 @@ export default {
 			return manifest.pages.find((page) => page.id === routeName) ?? null
 		},
 		/**
+		 * Remount key for the dispatched page component. Includes the data source
+		 * (register + schema) so changing it in the page-config modal remounts the
+		 * page: the self-fetch composable binds its object type + schema once at
+		 * setup, so without a remount a data-source change would leave the old
+		 * columns, create/edit form, and "Add" label in place.
+		 *
+		 * @return {string} A key of `id:register:schema`.
+		 */
+		pageRenderKey() {
+			const page = this.currentPage
+			if (!page) return 'none'
+			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
+		},
+		/**
 		 * Component to render for the current page. Looked up in
 		 * `effectivePageTypes` for built-in / library / consumer-extended
 		 * types; resolved against `effectiveCustomComponents` for
@@ -506,7 +536,10 @@ export default {
 		 */
 		resolvedProps() {
 			const page = this.currentPage
-			const rawConfig = page?.config ?? {}
+			// Normalise to a plain object: an empty `config: {}` round-trips
+			// through PHP/JSON as `[]`, and spreading an array would silently
+			// contribute no config keys (register/schema/columns) to the page.
+			const rawConfig = (page?.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
 			// Clone params — `resolvedProps` MAY add normalised aliases
 			// (e.g. `objectId` for type='detail') and we must not mutate
 			// the live `$route.params` object.
@@ -538,6 +571,19 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
+			// When an index page has a matching detail page (same register +
+			// schema), make a row click open it: set `rowClickToView` so the
+			// row body emits `row-click` (→ onRowOpen navigates) even though the
+			// page is selectable. Selection stays available via the checkbox.
+			// An explicit `config.rowClickToView` still wins (merged below).
+			if (isIndex) {
+				const allPages = this.effectiveManifest?.pages
+				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
+					&& p.type === 'detail'
+					&& (p.config || {}).register === config.register
+					&& (p.config || {}).schema === config.schema)
+				if (hasDetail) topLevel.rowClickToView = true
+			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
 				const { actionToggles, ...rest } = config
@@ -817,6 +863,39 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open a row's detail page. Bound to an index page's `@view` (the
+		 * built-in eye action) and `@row-click`, this is what makes "View"
+		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
+		 * the event, so without this the action is a no-op. Resolves the
+		 * matching `type: 'detail'` page (same `register` + `schema` as the
+		 * current index page) and pushes to it with the row's id as the `:id`
+		 * route param (CnPageRenderer maps `params.id` → `objectId`). No-ops
+		 * when there is no detail page, no router, or no resolvable id.
+		 *
+		 * @param {object} row The clicked / viewed row object.
+		 * @return {void}
+		 */
+		onRowOpen(row) {
+			const page = this.currentPage
+			const router = this.$router
+			if (!page || page.type !== 'index' || !router || !row || typeof row !== 'object') {
+				return
+			}
+			const cfg = page.config || {}
+			const pages = this.effectiveManifest?.pages
+			if (!Array.isArray(pages)) return
+			const detail = pages.find((p) => p
+				&& p.type === 'detail'
+				&& (p.config || {}).register === cfg.register
+				&& (p.config || {}).schema === cfg.schema)
+			if (!detail) return
+			const self = row['@self'] || {}
+			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
+			if (id === undefined || id === null || id === '') return
+			router.push({ name: detail.id, params: { id: String(id) } }).catch(() => {})
+		},
+
 		/**
 		 * Resolve a custom-component reference (page.component,
 		 * page.headerComponent, page.actionsComponent, page.sidebarComponent,

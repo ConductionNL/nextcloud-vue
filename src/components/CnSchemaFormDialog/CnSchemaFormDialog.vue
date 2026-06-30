@@ -332,6 +332,7 @@ export default {
 				hardValidation: false,
 				immutable: false,
 				searchable: true,
+				icon: null,
 				maxDepth: 0,
 			},
 		}
@@ -580,6 +581,7 @@ export default {
 				hardValidation: false,
 				immutable: false,
 				searchable: true,
+				icon: null,
 				maxDepth: 0,
 			}
 			this.schemaItem = this.item

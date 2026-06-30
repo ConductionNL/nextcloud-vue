@@ -5,7 +5,9 @@
 
 <template>
 	<div class="cn-stats-block-form">
-		<h4 class="cn-stats-block-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-stats-block-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<NcTextField
 			:value="title"
@@ -14,16 +16,11 @@
 			@update:value="updateField('title', $event)" />
 
 		<div class="cn-stats-block-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="openconnector"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="source"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-stats-block-form__row2">
@@ -44,7 +41,9 @@
 
 		<CnFilterRowsEditor :value="filterRows" :fields="availableFields" @input="onFilterRows" />
 
-		<h4 class="cn-stats-block-form__section">{{ t('nextcloud-vue', 'Display') }}</h4>
+		<h4 class="cn-stats-block-form__section">
+			{{ t('nextcloud-vue', 'Display') }}
+		</h4>
 
 		<div class="cn-stats-block-form__row2">
 			<NcTextField
@@ -74,6 +73,7 @@ import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
@@ -95,7 +95,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatsBlockWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
@@ -130,15 +130,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Aggregation metric options. */
 		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
@@ -162,17 +153,37 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 		/** Resolve the schema's field names for the dropdowns. */
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
-		/** Receive updated filter rows. */
+		/**
+		 * Receive updated filter rows.
+		 * @param rows
+		 */
 		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
 		/** Emit the assembled content. */
 		emitChange() { this.$emit('update:content', this.assembledContent) },

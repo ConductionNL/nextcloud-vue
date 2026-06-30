@@ -37,7 +37,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, resolveFilterValue, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -83,6 +83,22 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * Page-level workspace context (a reactive `{ <key>: value }` map)
+		 * provided by CnDashboardPage. Drives `@page.<param>` / `@workspace.<param>`
+		 * tokens in an `endpoint` source's URL / params (e.g. a period selector
+		 * the page renders that every endpoint KPI reads). Empty `{}` when no
+		 * dashboard ancestor provides one.
+		 */
+		cnWorkspaceContext: { default: () => ({}) },
+		/**
+		 * Page-level app config (a reactive `{ <key>: value }` map) provided by
+		 * CnDashboardPage / CnDetailPage. Drives `@config.<key>` tokens in an
+		 * `endpoint` source's URL / params AND in the `format.currency` /
+		 * `format.suffix` / `format.prefix` strings (e.g. the reporting currency
+		 * the setup wizard captures). Empty `{}` when no ancestor provides one.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -90,7 +106,15 @@ export default {
 		 * The widget's persisted configuration blob. An optional `route`
 		 * (vue-router location) or `link` (external href) turns the whole
 		 * tile into a click-through target (see the widgetLink mixin).
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, filter?: object}}}
+		 * The `source` resolves the value. Besides the OpenRegister-backed kinds
+		 * (plain aggregate / `ratio` / `computed` / `weighted`), an
+		 * `{ kind: 'endpoint', url, path?, params? }` source reads an arbitrary
+		 * app REST endpoint and extracts the value at the dot-`path` of the
+		 * response (default = whole body). The `url` and any string `params`
+		 * value interpolate `@page.<param>` / `@workspace.<param>` tokens from the
+		 * page-level context (and `@objectId` / `@object.<field>` on a detail
+		 * page) — so a page-rendered period selector can drive every endpoint KPI.
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}}}
 		 */
 		content: {
 			type: Object,
@@ -118,6 +142,28 @@ export default {
 			if (!c) return null
 			return (typeof c === 'object' && 'value' in c) ? c.value : c
 		},
+		/**
+		 * The unwrapped page-level workspace context map for `@page.*` /
+		 * `@workspace.*` token resolution. Always an object (defaults to `{}`).
+		 *
+		 * @return {object}
+		 */
+		pageCtx() {
+			const c = this.cnWorkspaceContext
+			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+		},
+		/**
+		 * The unwrapped page-level app config map for `@config.*` token
+		 * resolution. Always an object (defaults to `{}`).
+		 *
+		 * @return {object}
+		 */
+		configCtx() {
+			const c = this.cnAppConfig
+			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
 			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
@@ -127,10 +173,35 @@ export default {
 		valueStyle() {
 			return this.content.valueColor ? { color: this.content.valueColor } : {}
 		},
+		/**
+		 * The `content.format` spec with its string fields token-resolved. Each
+		 * of `currency` / `prefix` / `suffix` may be a `@config.<key>` token
+		 * (e.g. `currency: '@config.currency'`) — resolved against the page-level
+		 * app config so the setup-wizard-captured currency formats the value. A
+		 * required `@config.<key>` that is unset falls back to its default (EUR
+		 * for currency, empty for prefix/suffix) rather than rendering the raw
+		 * token; an optional `@config.<key>?` resolves to empty when unset.
+		 *
+		 * @return {object} The resolved format spec.
+		 */
+		resolvedFormat() {
+			const fmt = this.content.format || {}
+			const ctx = { config: this.configCtx }
+			const out = { ...fmt }
+			for (const key of ['currency', 'prefix', 'suffix']) {
+				const raw = fmt[key]
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+				const resolved = resolveFilterValue(raw, ctx)
+				// Token stayed unresolved (config key unset) → drop it so the
+				// downstream default applies instead of a literal `@config.…`.
+				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
+			}
+			return out
+		},
 		/** The formatted value string per the content.format spec. */
 		formattedValue() {
 			if (this.value === null || this.value === undefined) return '—'
-			const fmt = this.content.format || {}
+			const fmt = this.resolvedFormat
 			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
 			const num = Number(this.value)
 			if (!Number.isFinite(num)) return String(this.value)
@@ -159,7 +230,12 @@ export default {
 		},
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
-			return JSON.stringify({ s: this.content.source || {}, o: this.objectCtx ? this.objectCtx.objectId : null })
+			return JSON.stringify({
+				s: this.content.source || {},
+				o: this.objectCtx ? this.objectCtx.objectId : null,
+				p: this.pageCtx,
+				c: this.configCtx,
+			})
 		},
 	},
 
@@ -197,7 +273,14 @@ export default {
 		 */
 		flattenFilter(target, filter) {
 			if (!filter || typeof filter !== 'object') return
-			filter = resolveFilterTokens(filter, this.objectCtx)
+			// Resolve `@objectId` / `@object.*` (detail page), `@workspace.*`
+			// (page-level context — e.g. the dashboard date-range pills publish
+			// `dateFrom` / `dateTo`) AND `@config.*` (page-level app config), then
+			// drop any optional `@workspace.<key>?` / `@config.<key>?` that stayed
+			// unresolved so an unset value omits the filter (show all) instead of
+			// sending a literal token.
+			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
+			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) target[`filter[${k}][${op}]`] = ov
@@ -240,7 +323,14 @@ export default {
 		 */
 		async fetchValue() {
 			const s = this.content.source || {}
-			if (!s.register || !s.schema) {
+			// An `endpoint` source reads an arbitrary app REST endpoint instead
+			// of OpenRegister's per-schema aggregation, so it needs no register/schema.
+			if (s.kind !== 'endpoint' && (!s.register || !s.schema)) {
+				this.value = null
+				this.error = ''
+				return
+			}
+			if (s.kind === 'endpoint' && !s.url) {
 				this.value = null
 				this.error = ''
 				return
@@ -253,7 +343,9 @@ export default {
 					import('@nextcloud/router'),
 				])
 
-				if (s.kind === 'ratio') {
+				if (s.kind === 'endpoint') {
+					this.value = await this.fetchEndpoint(axios, generateUrl, s)
+				} else if (s.kind === 'ratio') {
 					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
 					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
 					this.value = (den && Number(den) !== 0) ? (Number(num) / Number(den)) * 100 : null
@@ -307,6 +399,76 @@ export default {
 			}
 			return sum
 		},
+		/**
+		 * Resolve `@page.<key>` / `@workspace.<key>` / `@config.<key>` /
+		 * `@objectId` / `@object.<field>` tokens inside a string against the page
+		 * + config + object contexts. `@page.*` is an alias for `@workspace.*`
+		 * (both read the page-level context); `@config.*` reads the page-level app
+		 * config. Unresolved tokens collapse to an empty string so a half-built
+		 * URL never sends a literal `@page.period`.
+		 *
+		 * @param {string} str The raw string (URL or param value).
+		 * @return {string} The interpolated string.
+		 */
+		interpolateTokens(str) {
+			if (typeof str !== 'string') return str
+			return str.replace(/@(page|workspace)\.([A-Za-z0-9_]+)/g, (_, _ns, key) => {
+				const v = this.pageCtx[key]
+				return (v === undefined || v === null) ? '' : String(v)
+			}).replace(/@config\.([A-Za-z0-9_]+)/g, (_, key) => {
+				const v = this.configCtx[key]
+				return (v === undefined || v === null) ? '' : String(v)
+			}).replace(/@objectId/g, () => {
+				const id = this.objectCtx && this.objectCtx.objectId
+				return (id === undefined || id === null) ? '' : String(id)
+			}).replace(/@object\.([A-Za-z0-9_]+)/g, (_, field) => {
+				const v = this.objectCtx && this.objectCtx.object && this.objectCtx.object[field]
+				return (v === undefined || v === null) ? '' : String(v)
+			})
+		},
+		/**
+		 * Read a dot-path off an object (e.g. `"data.totalLeads"`, `"summary.0.count"`).
+		 * Returns undefined when any segment is missing.
+		 *
+		 * @param {object} obj The source object.
+		 * @param {string} path The dot-path.
+		 * @return {*} The resolved value or undefined.
+		 */
+		getByPath(obj, path) {
+			if (!path) return obj
+			return String(path).split('.').reduce(
+				(o, k) => (o == null ? undefined : o[k]),
+				obj,
+			)
+		},
+		/**
+		 * Fetch a single value from an arbitrary app REST endpoint. The `url` and
+		 * any string `params` value are token-interpolated (`@page.*` etc.), the
+		 * response is read at `path` (dot-path; default = whole body), and the
+		 * result is coerced to a number when numeric. Lets a dashboard KPI bind
+		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
+		 * OpenRegister's per-schema aggregation can't express.
+		 *
+		 * @param {Function} axios The axios instance.
+		 * @param {Function} generateUrl The router helper.
+		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
+		 * @return {Promise<number|null>} The extracted value.
+		 */
+		async fetchEndpoint(axios, generateUrl, s) {
+			const rawUrl = this.interpolateTokens(s.url)
+			// Leave absolute URLs (http/https) untouched; route app-relative
+			// paths through generateUrl so they resolve under the NC base.
+			const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : generateUrl(rawUrl)
+			const params = {}
+			for (const [k, v] of Object.entries(s.params || {})) {
+				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
+			}
+			const res = await axios.get(url, { params })
+			const extracted = this.getByPath(res && res.data, s.path)
+			if (extracted === undefined || extracted === null) return null
+			const num = Number(extracted)
+			return Number.isFinite(num) ? num : extracted
+		},
 	},
 }
 </script>
@@ -315,9 +477,11 @@ export default {
 .cn-stat-widget {
 	display: flex;
 	align-items: center;
-	gap: 16px;
+	gap: 12px;
 	padding: 8px 4px;
 	min-height: 64px;
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* Whole-tile click target when the widget declares a `route`/`link`. */
@@ -342,8 +506,8 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44px;
-	height: 44px;
+	width: 40px;
+	height: 40px;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
@@ -365,13 +529,18 @@ export default {
 	display: flex;
 	align-items: baseline;
 	gap: 8px;
+	min-width: 0;
 }
 
 .cn-stat-widget__value {
-	font-size: 1.8em;
+	font-size: 1.6em;
 	font-weight: 700;
-	line-height: 1.1;
+	line-height: 1.15;
 	color: var(--color-primary-element);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .cn-stat-widget__caption {

@@ -188,6 +188,7 @@ export default {
 | `sortOrder` | String | `'asc'` | Current sort direction: `'asc'` or `'desc'` |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
@@ -203,3 +204,16 @@ export default {
 | `row-actions` | `{ row }` | Action buttons rendered in a trailing actions column |
 | `actions-header` | — | Content shown in the header cell of the actions column |
 | `empty` | — | Custom empty-state content (replaces `emptyText`) |
+
+## Card / widget mode (folded from CnTableWidget)
+
+CnDataTable is now the single table component — the deprecated `CnTableWidget`'s
+features are folded in here as opt-in props (bare-table usage is unchanged):
+
+- `title` — render a card header (title + total-count badge) above the table.
+- `borderless` — drop the container's card chrome so the table sits flush inside
+  a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
+- `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
+- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.
