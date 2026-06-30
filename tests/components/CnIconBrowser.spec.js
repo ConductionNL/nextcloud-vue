@@ -170,6 +170,38 @@ describe('CnIconBrowserPanel — custom tab', () => {
 		w.setData({ mode: 'custom' })
 		expect(w.find('.cn-icon-browser-panel__url-input').element.value).toBe('/seed.svg')
 	})
+	it('exposes tablist/tab/tabpanel ARIA semantics when the Custom tab is shown', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks })
+		expect(w.find('[role="tablist"]').exists()).toBe(true)
+		const tabs = w.findAll('[role="tab"]')
+		expect(tabs.length).toBe(2)
+		// Icons tab is active by default; aria-selected + roving tabindex reflect it.
+		expect(tabs.at(0).attributes('aria-selected')).toBe('true')
+		expect(tabs.at(0).attributes('tabindex')).toBe('0')
+		expect(tabs.at(1).attributes('aria-selected')).toBe('false')
+		expect(tabs.at(1).attributes('tabindex')).toBe('-1')
+		// Each tab controls a tabpanel that points back at it.
+		const iconsPanelId = tabs.at(0).attributes('aria-controls')
+		const iconsPanel = w.find(`#${iconsPanelId}`)
+		expect(iconsPanel.attributes('role')).toBe('tabpanel')
+		expect(iconsPanel.attributes('aria-labelledby')).toBe(tabs.at(0).attributes('id'))
+	})
+	it('switches tabs with arrow keys (roving focus, activation follows focus)', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks, attachTo: document.body })
+		const tabs = w.findAll('[role="tab"]')
+		await tabs.at(0).trigger('keydown', { key: 'ArrowRight' })
+		expect(w.vm.mode).toBe('custom')
+		expect(tabs.at(1).attributes('aria-selected')).toBe('true')
+		await tabs.at(1).trigger('keydown', { key: 'Home' })
+		expect(w.vm.mode).toBe('icons')
+		w.destroy()
+	})
+	it('omits tab semantics when there is no Custom tab (icons panel is plain)', () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
+		expect(w.find('[role="tablist"]').exists()).toBe(false)
+		expect(w.find('[role="tabpanel"]').exists()).toBe(false)
+		expect(w.find('.cn-icon-browser-panel__icons').attributes('role')).toBeUndefined()
+	})
 })
 
 describe('CnIconBrowser — wrapper', () => {

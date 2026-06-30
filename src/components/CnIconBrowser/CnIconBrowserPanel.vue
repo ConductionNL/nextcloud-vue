@@ -28,25 +28,48 @@
 		</div>
 
 		<!-- Mode tabs (only when a Custom source exists) -->
-		<div v-if="hasCustomTab" class="cn-icon-browser-panel__tabs">
+		<div
+			v-if="hasCustomTab"
+			class="cn-icon-browser-panel__tabs"
+			role="tablist"
+			:aria-label="t('nextcloud-vue', 'Icon source')">
 			<button
+				:id="tabIds.tabIcons"
+				ref="tabIcons"
 				type="button"
+				role="tab"
+				:aria-selected="mode === 'icons' ? 'true' : 'false'"
+				:aria-controls="tabIds.panelIcons"
+				:tabindex="mode === 'icons' ? 0 : -1"
 				class="cn-icon-browser-panel__tab"
 				:class="{ 'cn-icon-browser-panel__tab--active': mode === 'icons' }"
-				@click="mode = 'icons'">
+				@click="mode = 'icons'"
+				@keydown="onTabKeydown">
 				{{ t('nextcloud-vue', 'Icons') }}
 			</button>
 			<button
+				:id="tabIds.tabCustom"
+				ref="tabCustom"
 				type="button"
+				role="tab"
+				:aria-selected="mode === 'custom' ? 'true' : 'false'"
+				:aria-controls="tabIds.panelCustom"
+				:tabindex="mode === 'custom' ? 0 : -1"
 				class="cn-icon-browser-panel__tab"
 				:class="{ 'cn-icon-browser-panel__tab--active': mode === 'custom' }"
-				@click="mode = 'custom'">
+				@click="mode = 'custom'"
+				@keydown="onTabKeydown">
 				{{ t('nextcloud-vue', 'Custom') }}
 			</button>
 		</div>
 
 		<!-- Icons grid -->
-		<div v-show="mode === 'icons'" class="cn-icon-browser-panel__icons">
+		<div
+			v-show="mode === 'icons'"
+			:id="hasCustomTab ? tabIds.panelIcons : undefined"
+			:role="hasCustomTab ? 'tabpanel' : undefined"
+			:aria-labelledby="hasCustomTab ? tabIds.tabIcons : undefined"
+			class="cn-icon-browser-panel__icons">
 			<input
 				v-model="query"
 				type="search"
@@ -88,7 +111,12 @@
 		</div>
 
 		<!-- Custom: free URL input + curated URL icons + upload -->
-		<div v-show="mode === 'custom'" class="cn-icon-browser-panel__custom">
+		<div
+			v-show="mode === 'custom'"
+			:id="hasCustomTab ? tabIds.panelCustom : undefined"
+			:role="hasCustomTab ? 'tabpanel' : undefined"
+			:aria-labelledby="hasCustomTab ? tabIds.tabCustom : undefined"
+			class="cn-icon-browser-panel__custom">
 			<input
 				v-if="allowUrl"
 				:value="urlDraft"
@@ -266,6 +294,20 @@ export default {
 			return this.allowUrl || this.urlIcons.length > 0 || this.canUpload
 		},
 		/**
+		 * Stable ids wiring the mode tabs to their panels (`aria-controls` /
+		 * `aria-labelledby`), so the switcher exposes proper tablist semantics.
+		 *
+		 * @return {{ tabIcons: string, tabCustom: string, panelIcons: string, panelCustom: string }} the tab/panel id set.
+		 */
+		tabIds() {
+			return {
+				tabIcons: 'cn-icon-browser-tab-icons-' + this._uid,
+				tabCustom: 'cn-icon-browser-tab-custom-' + this._uid,
+				panelIcons: 'cn-icon-browser-panel-icons-' + this._uid,
+				panelCustom: 'cn-icon-browser-panel-custom-' + this._uid,
+			}
+		},
+		/**
 		 * Whether the current value is a URL (render as `<img>`).
 		 *
 		 * @return {boolean} true for URL values.
@@ -383,6 +425,30 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * Roving-tabindex keyboard navigation for the mode tablist: Left/Up/Home
+		 * focus the Icons tab, Right/Down/End the Custom tab. Activation follows
+		 * focus (the two tabs' panels are always mounted, so this is cheap).
+		 *
+		 * @param {KeyboardEvent} event the keydown event on a tab button.
+		 * @return {void}
+		 */
+		onTabKeydown(event) {
+			const navKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End']
+			if (!navKeys.includes(event.key)) {
+				return
+			}
+			event.preventDefault()
+			const toCustom = ['ArrowRight', 'ArrowDown', 'End'].includes(event.key)
+			this.mode = toCustom ? 'custom' : 'icons'
+			this.$nextTick(() => {
+				const target = toCustom ? this.$refs.tabCustom : this.$refs.tabIcons
+				if (target) {
+					target.focus()
+				}
+			})
+		},
 
 		/**
 		 * Emit a chosen catalogue icon's value (a discrete pick).
