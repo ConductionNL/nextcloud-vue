@@ -207,6 +207,38 @@ describe('CnIconBrowserPanel — custom tab', () => {
 		w.setData({ mode: 'custom' })
 		expect(w.find('.cn-icon-browser-panel__url-input').element.value).toBe('/seed.svg')
 	})
+	it('exposes tablist/tab/tabpanel ARIA semantics when the Custom tab is shown', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks })
+		expect(w.find('[role="tablist"]').exists()).toBe(true)
+		const tabs = w.findAll('[role="tab"]')
+		expect(tabs.length).toBe(2)
+		// Icons tab is active by default; aria-selected + roving tabindex reflect it.
+		expect(tabs.at(0).attributes('aria-selected')).toBe('true')
+		expect(tabs.at(0).attributes('tabindex')).toBe('0')
+		expect(tabs.at(1).attributes('aria-selected')).toBe('false')
+		expect(tabs.at(1).attributes('tabindex')).toBe('-1')
+		// Each tab controls a tabpanel that points back at it.
+		const iconsPanelId = tabs.at(0).attributes('aria-controls')
+		const iconsPanel = w.find(`#${iconsPanelId}`)
+		expect(iconsPanel.attributes('role')).toBe('tabpanel')
+		expect(iconsPanel.attributes('aria-labelledby')).toBe(tabs.at(0).attributes('id'))
+	})
+	it('switches tabs with arrow keys (roving focus, activation follows focus)', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks, attachTo: document.body })
+		const tabs = w.findAll('[role="tab"]')
+		await tabs.at(0).trigger('keydown', { key: 'ArrowRight' })
+		expect(w.vm.mode).toBe('custom')
+		expect(tabs.at(1).attributes('aria-selected')).toBe('true')
+		await tabs.at(1).trigger('keydown', { key: 'Home' })
+		expect(w.vm.mode).toBe('icons')
+		w.destroy()
+	})
+	it('omits tab semantics when there is no Custom tab (icons panel is plain)', () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
+		expect(w.find('[role="tablist"]').exists()).toBe(false)
+		expect(w.find('[role="tabpanel"]').exists()).toBe(false)
+		expect(w.find('.cn-icon-browser-panel__icons').attributes('role')).toBeUndefined()
+	})
 })
 
 describe('CnIconBrowserPanel — upload', () => {
@@ -276,38 +308,6 @@ describe('CnIconBrowserPanel — upload', () => {
 		expect(w.vm.uploading).toBe(false)
 		expect(uploadFn).not.toHaveBeenCalled()
 	})
-	it('exposes tablist/tab/tabpanel ARIA semantics when the Custom tab is shown', async () => {
-		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks })
-		expect(w.find('[role="tablist"]').exists()).toBe(true)
-		const tabs = w.findAll('[role="tab"]')
-		expect(tabs.length).toBe(2)
-		// Icons tab is active by default; aria-selected + roving tabindex reflect it.
-		expect(tabs.at(0).attributes('aria-selected')).toBe('true')
-		expect(tabs.at(0).attributes('tabindex')).toBe('0')
-		expect(tabs.at(1).attributes('aria-selected')).toBe('false')
-		expect(tabs.at(1).attributes('tabindex')).toBe('-1')
-		// Each tab controls a tabpanel that points back at it.
-		const iconsPanelId = tabs.at(0).attributes('aria-controls')
-		const iconsPanel = w.find(`#${iconsPanelId}`)
-		expect(iconsPanel.attributes('role')).toBe('tabpanel')
-		expect(iconsPanel.attributes('aria-labelledby')).toBe(tabs.at(0).attributes('id'))
-	})
-	it('switches tabs with arrow keys (roving focus, activation follows focus)', async () => {
-		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks, attachTo: document.body })
-		const tabs = w.findAll('[role="tab"]')
-		await tabs.at(0).trigger('keydown', { key: 'ArrowRight' })
-		expect(w.vm.mode).toBe('custom')
-		expect(tabs.at(1).attributes('aria-selected')).toBe('true')
-		await tabs.at(1).trigger('keydown', { key: 'Home' })
-		expect(w.vm.mode).toBe('icons')
-		w.destroy()
-	})
-	it('omits tab semantics when there is no Custom tab (icons panel is plain)', () => {
-		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
-		expect(w.find('[role="tablist"]').exists()).toBe(false)
-		expect(w.find('[role="tabpanel"]').exists()).toBe(false)
-		expect(w.find('.cn-icon-browser-panel__icons').attributes('role')).toBeUndefined()
-	})
 })
 
 describe('CnIconBrowser — wrapper', () => {
@@ -321,6 +321,39 @@ describe('CnIconBrowser — wrapper', () => {
 	it('popup mode renders a trigger button', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
 		expect(w.find('.cn-icon-browser__trigger').exists()).toBe(true)
+	})
+	it('opens the popover when the trigger is clicked', async () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
+		expect(w.vm.open).toBe(false)
+		await w.find('.cn-icon-browser__trigger').trigger('click')
+		expect(w.vm.open).toBe(true)
+		expect(w.find('[role="dialog"]').exists()).toBe(true)
+	})
+	it('closes the popover when the inner panel emits pick', async () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
+		await w.setData({ open: true })
+		w.findComponent(CnIconBrowserPanel).vm.$emit('pick')
+		await w.vm.$nextTick()
+		expect(w.vm.open).toBe(false)
+	})
+	it('exposes open/toggle to the trigger slot scope', async () => {
+		const w = mount(CnIconBrowser, {
+			propsData: { value: null, icons },
+			mocks,
+			scopedSlots: {
+				trigger: `
+					<div>
+						<button class="slot-open" @click="props.open" />
+						<button class="slot-toggle" @click="props.toggle" />
+					</div>
+				`,
+			},
+		})
+		await w.find('.slot-open').trigger('click')
+		expect(w.vm.open).toBe(true)
+		// openPanel is idempotent; toggle flips it back closed.
+		await w.find('.slot-toggle').trigger('click')
+		expect(w.vm.open).toBe(false)
 	})
 	it('renders the field label when provided', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons, inline: true, label: 'Icon' }, mocks })
