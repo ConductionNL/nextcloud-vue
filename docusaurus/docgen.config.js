@@ -65,7 +65,11 @@ module.exports = {
   // --exit-code docs/components/_generated/`) treats this as the
   // authoritative set, so any new Cn* component will land its own
   // partial in the same PR.
-  components: 'Cn*/Cn*.vue',
+  //
+  // CnIconBrowserPanel is an internal-only subcomponent (not exported from
+  // src/index.js and has no parent doc page), so it's excluded to avoid an
+  // orphaned partial Docusaurus would flag as unreferenced.
+  components: ['Cn*/Cn*.vue', '!**/CnIconBrowserPanel.vue'],
   outDir: path.join(REPO_ROOT, 'docs/components/_generated'),
 
   // Each component gets its own .md file.
