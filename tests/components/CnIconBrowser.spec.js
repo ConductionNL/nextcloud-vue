@@ -130,6 +130,43 @@ describe('CnIconBrowserPanel — icons grid', () => {
 		await cells.at(0).trigger('click')
 		expect(w.emitted('input')[0]).toEqual(['Account'])
 	})
+	it('exposes a single roving tab stop in the grid (first cell by default)', () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
+		const cells = w.findAll('.cn-icon-browser-panel__cell')
+		expect(cells.at(0).attributes('tabindex')).toBe('0')
+		expect(cells.at(1).attributes('tabindex')).toBe('-1')
+		expect(cells.at(2).attributes('tabindex')).toBe('-1')
+	})
+	it('starts the roving cursor on the selected icon', () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: icons[2].value, icons }, mocks })
+		const cells = w.findAll('.cn-icon-browser-panel__cell')
+		expect(cells.at(2).attributes('tabindex')).toBe('0')
+		expect(cells.at(0).attributes('tabindex')).toBe('-1')
+	})
+	it('moves the roving cursor with arrow keys and Home/End (clamped at the edges)', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks, attachTo: document.body })
+		const cells = w.findAll('.cn-icon-browser-panel__cell')
+		await cells.at(0).trigger('keydown', { key: 'ArrowRight' })
+		expect(w.vm.activeIndex).toBe(1)
+		await cells.at(1).trigger('keydown', { key: 'ArrowLeft' })
+		expect(w.vm.activeIndex).toBe(0)
+		// ArrowLeft at the first cell clamps (stays put).
+		await cells.at(0).trigger('keydown', { key: 'ArrowLeft' })
+		expect(w.vm.activeIndex).toBe(0)
+		await cells.at(0).trigger('keydown', { key: 'End' })
+		expect(w.vm.activeIndex).toBe(icons.length - 1)
+		await cells.at(icons.length - 1).trigger('keydown', { key: 'Home' })
+		expect(w.vm.activeIndex).toBe(0)
+		w.destroy()
+	})
+	it('resets the roving cursor when the filtered list changes', async () => {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons }, mocks })
+		w.setData({ activeIndex: 2 })
+		await w.vm.$nextTick()
+		w.setData({ debouncedQuery: 'calendarrange' })
+		await w.vm.$nextTick()
+		expect(w.vm.activeIndex).toBe(0)
+	})
 })
 
 describe('CnIconBrowserPanel — custom tab', () => {

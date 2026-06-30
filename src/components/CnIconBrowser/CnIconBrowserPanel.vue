@@ -79,14 +79,17 @@
 
 			<div v-if="visibleIcons.length > 0" class="cn-icon-browser-panel__grid">
 				<button
-					v-for="icon in visibleIcons"
+					v-for="(icon, index) in visibleIcons"
 					:key="icon.key"
+					ref="iconCells"
 					type="button"
 					class="cn-icon-browser-panel__cell"
 					:class="{ 'cn-icon-browser-panel__cell--active': icon.value === value }"
 					:title="icon.label"
 					:aria-label="icon.label"
-					@click="selectIcon(icon)">
+					:tabindex="index === activeIndex ? 0 : -1"
+					@click="selectIcon(icon)"
+					@keydown="onGridKeydown($event, index)">
 					<component
 						:is="icon.component"
 						v-if="icon.component"
@@ -272,6 +275,9 @@ export default {
 			uploadError: '',
 			debounceTimer: null,
 			urlDraft: isCustomIconUrl(this.value) ? this.value : '',
+			// Roving-tabindex cursor into visibleIcons: the one grid cell that's
+			// tab-reachable; arrow keys move it.
+			activeIndex: 0,
 		}
 	},
 
@@ -417,6 +423,15 @@ export default {
 				this.urlDraft = v
 			}
 		},
+		// Keep the roving cursor valid as filtering changes the list; prefer the
+		// currently-selected icon's cell so it's the first one Tab lands on.
+		visibleIcons: {
+			immediate: true,
+			handler(list) {
+				const selected = list.findIndex((icon) => icon.value === this.value)
+				this.activeIndex = selected >= 0 ? selected : 0
+			},
+		},
 	},
 
 	beforeDestroy() {
@@ -446,6 +461,64 @@ export default {
 				const target = toCustom ? this.$refs.tabCustom : this.$refs.tabIcons
 				if (target) {
 					target.focus()
+				}
+			})
+		},
+
+		/**
+		 * Number of cells per grid row, derived from layout (cells sharing the
+		 * first cell's `offsetTop`). Falls back to 1 when layout is unavailable
+		 * (e.g. jsdom), which degrades arrow-down/up to single-step moves.
+		 *
+		 * @return {number} columns currently rendered per row.
+		 */
+		gridColumns() {
+			const cells = this.$refs.iconCells
+			if (!cells || cells.length === 0) {
+				return 1
+			}
+			const firstTop = cells[0].offsetTop
+			let cols = 0
+			for (const cell of cells) {
+				if (cell.offsetTop !== firstTop) {
+					break
+				}
+				cols++
+			}
+			return cols || 1
+		},
+
+		/**
+		 * Roving-tabindex keyboard navigation for the icon grid: arrows move by
+		 * one cell (horizontally) or one row (vertically), Home/End jump to the
+		 * first/last cell. Moves focus to the new cell.
+		 *
+		 * @param {KeyboardEvent} event the keydown event on a grid cell.
+		 * @param {number} index the cell's index in `visibleIcons`.
+		 * @return {void}
+		 */
+		onGridKeydown(event, index) {
+			const last = this.visibleIcons.length - 1
+			if (last < 0) {
+				return
+			}
+			const cols = this.gridColumns()
+			let next = index
+			switch (event.key) {
+			case 'ArrowRight': next = Math.min(index + 1, last); break
+			case 'ArrowLeft': next = Math.max(index - 1, 0); break
+			case 'ArrowDown': next = Math.min(index + cols, last); break
+			case 'ArrowUp': next = Math.max(index - cols, 0); break
+			case 'Home': next = 0; break
+			case 'End': next = last; break
+			default: return
+			}
+			event.preventDefault()
+			this.activeIndex = next
+			this.$nextTick(() => {
+				const cells = this.$refs.iconCells
+				if (cells && cells[next]) {
+					cells[next].focus()
 				}
 			})
 		},
