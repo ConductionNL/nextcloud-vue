@@ -23,7 +23,7 @@
 
 ### Slots
 
-| Name      | Bindings                           | Description                                                                    |
-| --------- | ---------------------------------- | ------------------------------------------------------------------------------ |
-| `empty`   | —                                  | empty Shown when no icons match the search query.                              |
-| `trigger` | `open`, `toggle`, `value`, `label` | trigger Popup-mode trigger; defaults to an icon button that opens the popover. |
+| Name      | Bindings                                    | Description                                                                    |
+| --------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `empty`   | —                                           | empty Shown when no icons match the search query.                              |
+| `trigger` | `open`, `toggle`, `value`, `label`, `attrs` | trigger Popup-mode trigger; defaults to an icon button that opens the popover. |

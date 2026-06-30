@@ -322,6 +322,14 @@ describe('CnIconBrowser — wrapper', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
 		expect(w.find('.cn-icon-browser__trigger').exists()).toBe(true)
 	})
+	it('forwards NcPopover trigger attrs (aria-haspopup/expanded) onto the default button', async () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
+		const btn = () => w.find('.cn-icon-browser__trigger')
+		expect(btn().attributes('aria-haspopup')).toBe('dialog')
+		expect(btn().attributes('aria-expanded')).toBe('false')
+		await btn().trigger('click')
+		expect(btn().attributes('aria-expanded')).toBe('true')
+	})
 	it('opens the popover when the trigger is clicked', async () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
 		expect(w.vm.open).toBe(false)

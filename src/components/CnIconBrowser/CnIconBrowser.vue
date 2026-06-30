@@ -32,25 +32,27 @@
 			:triggers="[]"
 			popup-role="dialog"
 			popover-base-class="cn-icon-browser__popper">
-			<template #trigger>
+			<template #trigger="{ attrs }">
 				<!-- @slot trigger Popup-mode trigger; defaults to an icon button that opens the popover. -->
 				<!-- @binding {Function} open Opens the popover. -->
 				<!-- @binding {Function} toggle Toggles the popover open/closed. -->
 				<!-- @binding {string|null} value The current icon value. -->
 				<!-- @binding {string} label Human label for the current selection. -->
+				<!-- @binding {object} attrs ARIA attributes from NcPopover (aria-haspopup, aria-expanded); bind onto a custom trigger. -->
 				<slot
 					name="trigger"
 					:open="openPanel"
 					:toggle="togglePanel"
 					:value="value"
-					:label="selectedLabel">
+					:label="selectedLabel"
+					:attrs="attrs">
 					<button
 						:id="triggerId"
 						type="button"
 						class="cn-icon-browser__trigger"
+						v-bind="attrs"
 						:aria-label="label ? undefined : t('nextcloud-vue', 'Select icon')"
 						:aria-labelledby="label ? labelId : undefined"
-						:aria-expanded="open ? 'true' : 'false'"
 						@click="open = !open">
 						<img
 							v-if="isUrlValue"
