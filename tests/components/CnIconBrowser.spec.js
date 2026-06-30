@@ -207,6 +207,75 @@ describe('CnIconBrowserPanel — custom tab', () => {
 		w.setData({ mode: 'custom' })
 		expect(w.find('.cn-icon-browser-panel__url-input').element.value).toBe('/seed.svg')
 	})
+})
+
+describe('CnIconBrowserPanel — upload', () => {
+	const icons = mdiCatalogue(FAKE_MDI)
+	const flush = () => new Promise((r) => setTimeout(r, 0))
+	let OrigFileReader
+	let lastReader
+
+	beforeEach(() => {
+		// Mock FileReader so onload/onerror fire deterministically (jsdom's real
+		// reader resolves async and can't be made to error on demand).
+		OrigFileReader = global.FileReader
+		lastReader = null
+		global.FileReader = class {
+			constructor() { lastReader = this; this.onload = null; this.onerror = null }
+			readAsDataURL() { /* test fires onload/onerror manually */ }
+		}
+	})
+	afterEach(() => {
+		global.FileReader = OrigFileReader
+	})
+
+	async function selectFile(uploadFn) {
+		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, uploadFn }, mocks })
+		w.setData({ mode: 'custom' })
+		await w.vm.$nextTick()
+		const input = w.find('.cn-icon-browser-panel__file-input')
+		Object.defineProperty(input.element, 'files', {
+			value: [new File(['x'], 'icon.png', { type: 'image/png' })],
+			configurable: true,
+		})
+		await input.trigger('change')
+		return w
+	}
+
+	it('emits input + pick with the returned URL on a successful upload', async () => {
+		const uploadFn = jest.fn(async () => ({ url: '/uploaded/icon.png' }))
+		const w = await selectFile(uploadFn)
+		expect(w.vm.uploading).toBe(true)
+		lastReader.onload({ target: { result: 'data:image/png;base64,AAA' } })
+		await flush()
+		expect(uploadFn).toHaveBeenCalledWith('data:image/png;base64,AAA')
+		expect(w.emitted('input').pop()).toEqual(['/uploaded/icon.png'])
+		expect(w.emitted('pick')).toBeTruthy()
+		expect(w.vm.uploading).toBe(false)
+		expect(w.vm.uploadError).toBe('')
+	})
+
+	it('sets uploadError and resets uploading when uploadFn rejects', async () => {
+		const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const uploadFn = jest.fn(async () => { throw new Error('Server said no') })
+		const w = await selectFile(uploadFn)
+		lastReader.onload({ target: { result: 'data:image/png;base64,AAA' } })
+		await flush()
+		expect(w.vm.uploadError).toBe('Server said no')
+		expect(w.vm.uploading).toBe(false)
+		expect(w.emitted('pick')).toBeFalsy()
+		consoleError.mockRestore()
+	})
+
+	it('sets uploadError when the FileReader errors', async () => {
+		const uploadFn = jest.fn(async () => ({ url: '/x' }))
+		const w = await selectFile(uploadFn)
+		lastReader.onerror()
+		await flush()
+		expect(w.vm.uploadError).toBe('Failed to upload icon')
+		expect(w.vm.uploading).toBe(false)
+		expect(uploadFn).not.toHaveBeenCalled()
+	})
 	it('exposes tablist/tab/tabpanel ARIA semantics when the Custom tab is shown', async () => {
 		const w = mount(CnIconBrowserPanel, { propsData: { value: null, icons, allowUrl: true }, mocks })
 		expect(w.find('[role="tablist"]').exists()).toBe(true)
