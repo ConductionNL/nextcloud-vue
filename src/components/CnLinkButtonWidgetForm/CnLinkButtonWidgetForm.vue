@@ -597,6 +597,17 @@ export default {
 	font-size: 14px;
 }
 
+.cn-link-button-widget-form__icon-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-link-button-widget-form__icon-label {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-link-button-widget-form__color {
 	width: 48px;
 	height: 32px;

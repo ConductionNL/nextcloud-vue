@@ -168,6 +168,7 @@ import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
+import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	links: [],
@@ -355,6 +356,18 @@ export default {
 		 */
 		onContentChange() {
 			this.$emit('update:content', this.assembledContent)
+		},
+
+		/**
+		 * Set a link's icon from the compact CnIconPicker and re-emit.
+		 *
+		 * @param {object} link the link row.
+		 * @param {string|null} value the chosen icon key/URL.
+		 * @return {void}
+		 */
+		updateLinkIcon(link, value) {
+			link.icon = value || ''
+			this.onContentChange()
 		},
 
 		/**
