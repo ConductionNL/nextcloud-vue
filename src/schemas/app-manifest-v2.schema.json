@@ -168,6 +168,27 @@
 				"primaryAction": {
 					"$ref": "#/$defs/primaryAction",
 					"description": "App-wide default primary action rendered as an NcAppNavigationNew button above the main menu list. A page-scoped pages[].primaryAction for the current route wins over this default."
+				},
+				"featureRequestRepo": {
+					"type": "string",
+					"description": "`<owner>/<repo>` slug on the forge that the in-product feature-request deep-link targets (provided to descendants as `cnFeatureRequestRepo`). Falls back to `Conduction/<appId>` when omitted."
+				},
+				"forge": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Forge that the in-product feature-request deep-link targets. Switching the whole fleet's forge (back to GitHub, or onto a self-hosted Forgejo/Gitea) is just this one field. Defaults to Codeberg.",
+					"properties": {
+						"type": {
+							"type": "string",
+							"enum": ["codeberg", "forgejo", "gitea", "github"],
+							"default": "codeberg",
+							"description": "Forge type. Selects how the 'new issue' form is pre-filled: `github` uses per-field Issue-Form query params; `codeberg`/`forgejo`/`gitea` assemble a Markdown body (only title + body are supported there)."
+						},
+						"baseUrl": {
+							"type": "string",
+							"description": "Override the forge host. Required for self-hosted `forgejo`/`gitea`; optional for `codeberg`/`github` (their canonical public hosts are used when omitted)."
+						}
+					}
 				}
 			}
 		},

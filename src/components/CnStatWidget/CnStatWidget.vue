@@ -9,10 +9,10 @@
 		:class="{ 'cn-stat-widget--linked': isLinked }"
 		v-bind="linkAttrs">
 		<div
-			v-if="iconComponent"
+			v-if="content.icon"
 			class="cn-stat-widget__icon"
 			:style="iconCircleStyle">
-			<component :is="iconComponent" :size="24" />
+			<CnWidgetIcon :name="content.icon" :size="24" />
 		</div>
 
 		<div class="cn-stat-widget__body">
@@ -36,7 +36,7 @@
 
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { resolveFilterTokens, resolveFilterValue, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
@@ -70,6 +70,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnWidgetIcon,
 	},
 
 	mixins: [widgetLink],
@@ -162,10 +163,6 @@ export default {
 			const c = this.cnAppConfig
 			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
 			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
-		},
-		/** Resolved icon component from the shared widget-icon catalog. */
-		iconComponent() {
-			return this.content.icon ? getIconComponent(this.content.icon) : null
 		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {

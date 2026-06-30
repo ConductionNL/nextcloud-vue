@@ -282,6 +282,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:show-actions="item.showActions !== false"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
@@ -355,6 +356,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -429,6 +431,7 @@
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -451,6 +454,7 @@
 						:show-title="item.showTitle !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
+						:show-refresh="getWidgetShowRefresh(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -528,7 +532,8 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="item.showTitle !== false"
+					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
 					</div>
@@ -1025,15 +1030,40 @@ export default {
 		},
 		/**
 		 * Show the built-in Refresh item in the page-level overflow Actions
-		 * menu (distinct from the per-widget menus). On by default. The
-		 * default handler emits `@refresh` and, unless suppressed, fires
-		 * the `cn:page:refresh` event-bus channel.
+		 * menu. On by default. The default handler emits `@refresh` and,
+		 * unless suppressed, fires the `cn:page:refresh` event-bus channel.
+		 *
+		 * This is ALSO the default for each widget's own overflow menu: when
+		 * `false`, the Refresh item is dropped from every widget too (handy
+		 * for a read-only dashboard whose widgets have no refetch wired —
+		 * Request-a-feature stays). A widget can still opt back in (or out)
+		 * individually via `showRefresh` / `hideRefresh` on its definition or
+		 * layout entry.
 		 *
 		 * @type {boolean}
 		 */
 		showRefresh: {
 			type: Boolean,
 			default: true,
+		},
+		/**
+		 * Show the built-in Refresh item on each **custom-slot** widget
+		 * (distinct from the page-level `showRefresh`). Tri-state:
+		 * - `true` / `false` — force it on or off for all custom widgets.
+		 * - `null` (the default) — **auto**: show it only when the app using
+		 *   `CnDashboardPage` attached a `@widget-refresh` listener (i.e. it
+		 *   will actually handle the refresh). Apps that refresh widgets
+		 *   centrally by another route (e.g. a header button bumping a shared
+		 *   signal) leave it unset and get no dead per-widget buttons.
+		 *
+		 * Built-in chart / NC / integration widgets always show Refresh
+		 * (they refresh via the `cn:widget:refresh` bus or their renderer).
+		 *
+		 * @type {boolean|null}
+		 */
+		widgetShowRefresh: {
+			type: Boolean,
+			default: null,
 		},
 		/**
 		 * Show the built-in Request-a-feature item in the page-level
@@ -1198,6 +1228,20 @@ export default {
 			const e = this.cnEditingBody
 			const openBuildEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
 			return this.isEditing || openBuildEditing
+		},
+		/**
+		 * Effective Refresh visibility for custom-slot widgets. An explicit
+		 * `widgetShowRefresh` prop wins; when unset (`null`), show Refresh
+		 * only if the app attached a `@widget-refresh` listener that will
+		 * handle it. (The page always attaches its own `@refresh` re-emitter
+		 * to each wrapper, so wrapper-level auto-detection can't be relied on
+		 * here — we resolve it at the page instead.)
+		 *
+		 * @return {boolean}
+		 */
+		effectiveWidgetShowRefresh() {
+			if (this.widgetShowRefresh !== null) return this.widgetShowRefresh
+			return Boolean(this.$listeners['widget-refresh'])
 		},
 		/**
 		 * Stable id for the page-level Actions menu. Prefers the explicit
@@ -2210,6 +2254,27 @@ export default {
 		getWidgetButtons(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			return def?.buttons || []
+		},
+
+		/**
+		 * Whether a widget's overflow Actions menu shows the Refresh item.
+		 * An explicit per-widget flag wins — on the widget definition or
+		 * the layout item, as either `hideRefresh: true` or
+		 * `showRefresh: false`. Otherwise the widget inherits the page-level
+		 * `showRefresh` prop, so a dashboard that turns Refresh off (e.g. a
+		 * read-only overview whose widgets have no refetch wired) drops the
+		 * dead Refresh item from every widget menu while keeping
+		 * Request-a-feature.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {boolean}
+		 */
+		getWidgetShowRefresh(item) {
+			const def = this.getWidgetDef(item.widgetId) || {}
+			if (def.hideRefresh === true || item.hideRefresh === true) return false
+			if (typeof def.showRefresh === 'boolean') return def.showRefresh
+			if (typeof item.showRefresh === 'boolean') return item.showRefresh
+			return this.showRefresh
 		},
 
 		getWidgetTitleIconPosition(item) {

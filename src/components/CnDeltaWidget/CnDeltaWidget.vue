@@ -9,10 +9,10 @@
 		:class="{ 'cn-delta-widget--linked': isLinked }"
 		v-bind="linkAttrs">
 		<div
-			v-if="iconComponent"
+			v-if="content.icon"
 			class="cn-delta-widget__icon"
 			:style="iconCircleStyle">
-			<component :is="iconComponent" :size="24" />
+			<CnWidgetIcon :name="content.icon" :size="24" />
 		</div>
 
 		<div class="cn-delta-widget__body">
@@ -47,7 +47,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
 import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
-import { getIconComponent } from '../CnWidgetGrid/widgetIcons.js'
+import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
@@ -86,6 +86,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnWidgetIcon,
 		TrendingUp,
 		TrendingDown,
 		TrendingNeutral,
@@ -131,10 +132,6 @@ export default {
 	},
 
 	computed: {
-		/** Resolved icon component from the shared widget-icon catalog. */
-		iconComponent() {
-			return this.content.icon ? getIconComponent(this.content.icon) : null
-		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
 			const color = this.content.iconColor || 'var(--color-primary-element)'

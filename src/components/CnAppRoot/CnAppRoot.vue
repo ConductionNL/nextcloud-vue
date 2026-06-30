@@ -382,6 +382,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { DEFAULT_FORGE } from '../../utils/forge.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
 /**
@@ -397,9 +398,10 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	// Slot-component kinds: a registered component mounted into a named page
 	// slot (CnPageRenderer resolves these by registry name, independent of
 	// `kind`). `header`/`actions` back the `headerComponent`/`actionsComponent`
-	// manifest sugar; `tab` backs `config.sidebarTabs[].component`. They carry
-	// no required metadata (like `page`) — listing them here keeps the mount-time
-	// registry validator from rejecting a valid slot registration.
+	// manifest sugar; `tab` backs `config.sidebarTabs[].component`; `section`
+	// backs `config.bodyWidgets[].component` (rendered into a `section:*` slot).
+	// They carry no required metadata (like `page`) — listing them here keeps the
+	// mount-time registry validator from rejecting a valid slot registration.
 	header: [],
 	actions: [],
 	tab: [],
@@ -568,12 +570,20 @@ export default {
 			cnAppId: this.appId,
 			/**
 			 * Target repo slug for the in-product feature-request deep
-			 * link (e.g. `ConductionNL/pipelinq`). Read from the
+			 * link (e.g. `Conduction/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
-			 * to `ConductionNL/<appId>` which is the convention for
-			 * every Conduction app.
+			 * to `Conduction/<appId>` which is the convention for
+			 * every Conduction app on Codeberg.
 			 */
 			cnFeatureRequestRepo: this.resolvedFeatureRequestRepo,
+			/**
+			 * Forge config (`{type, baseUrl}`) for the in-product
+			 * feature-request deep link. Read from the manifest's
+			 * `nav.forge` (merged over the Codeberg default). Switching
+			 * the fleet's forge — back to GitHub, or onto a self-hosted
+			 * Forgejo/Gitea — is just this one manifest field.
+			 */
+			cnFeatureRequestForge: this.resolvedFeatureRequestForge,
 			/**
 			 * Object-sidebar channel — reactive holder that
 			 * `CnDetailPage` writes to publish its schema-driven
@@ -849,8 +859,9 @@ export default {
 		 * kind-metadata emits `console.warn`.
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
-		 * `cell-renderer`, and the slot-component kinds `header`, `actions`,
-		 * `tab` (mounted into named page slots). See spec REQ-MVR-002.
+		 * `cell-renderer`, the slot-component kinds `header`, `actions`,
+		 * `tab`, `section` (mounted into named page slots), and the handler
+		 * kind `create-override`. See spec REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */
@@ -1379,10 +1390,11 @@ export default {
 		 * Repo target for the built-in feature-request deep link.
 		 * Provided to descendants under the `cnFeatureRequestRepo`
 		 * inject key. Reads `manifest.nav.featureRequestRepo` when set;
-		 * falls back to `ConductionNL/<appId>` which is the convention
-		 * for every Conduction app. Returns empty string when no
-		 * `appId` is available (defensive — should never happen since
-		 * `appId` is a required prop).
+		 * falls back to `Conduction/<appId>` — the convention for every
+		 * Conduction app on Codeberg (the org slug is `Conduction`, vs
+		 * `ConductionNL` on the old GitHub org). Returns empty string
+		 * when no `appId` is available (defensive — should never happen
+		 * since `appId` is a required prop).
 		 *
 		 * @return {string}
 		 */
@@ -1390,7 +1402,20 @@ export default {
 			const explicit = this.manifest?.nav?.featureRequestRepo
 			if (typeof explicit === 'string' && explicit.length > 0) return explicit
 			if (!this.appId) return ''
-			return `ConductionNL/${this.appId}`
+			return `Conduction/${this.appId}`
+		},
+		/**
+		 * Forge config for the built-in feature-request deep link,
+		 * provided under the `cnFeatureRequestForge` inject key. Reads
+		 * `manifest.nav.forge` and merges it over the Codeberg default,
+		 * so a manifest may set just `type` (e.g. back to `github`) or
+		 * also `baseUrl` (self-hosted Forgejo/Gitea).
+		 *
+		 * @return {{type: string, baseUrl: string}}
+		 */
+		resolvedFeatureRequestForge() {
+			const cfg = this.manifest?.nav?.forge
+			return { ...DEFAULT_FORGE, ...(cfg && typeof cfg === 'object' ? cfg : {}) }
 		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')

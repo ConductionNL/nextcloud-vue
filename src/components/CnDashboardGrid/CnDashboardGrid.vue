@@ -219,19 +219,30 @@ export default {
 		},
 
 		syncGridItems(newLayout) {
-			// Add items that don't exist in grid yet
+			// Add new items, and re-adopt items whose backing DOM element was
+			// replaced. When a consumer's `itemKey` changes for an unchanged
+			// `id` (e.g. a style edit — the documented use of `itemKey`), Vue
+			// swaps the element. GridStack keeps tracking the old, now-detached
+			// element, leaving the new one unmanaged (no positioning/sizing) —
+			// so re-register it against the new element.
 			for (const item of newLayout) {
-				const exists = this.grid.engine.nodes.find(
-					n => String(n.id) === String(item.id),
-				)
-				if (!exists) {
-					this.$nextTick(() => {
-						const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
-						if (el) {
-							this.grid.makeWidget(el)
-						}
-					})
-				}
+				this.$nextTick(() => {
+					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
+					if (!el) {
+						return
+					}
+					const node = this.grid.engine.nodes.find(
+						n => String(n.id) === String(item.id),
+					)
+					if (!node) {
+						this.grid.makeWidget(el)
+					} else if (node.el !== el) {
+						// Drop the stale node without touching its detached DOM,
+						// then adopt the new element so GridStack sizes/places it.
+						this.grid.removeWidget(node.el, false, false)
+						this.grid.makeWidget(el)
+					}
+				})
 			}
 
 			// Remove items no longer in layout

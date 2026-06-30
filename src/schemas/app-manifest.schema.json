@@ -41,6 +41,27 @@
 				"primaryAction": {
 					"$ref": "#/$defs/primaryAction",
 					"description": "App-wide default primary action rendered as an NcAppNavigationNew button above the main menu list. A page-scoped `pages[].primaryAction` for the current route wins over this default. The CnAppNav #primary-action slot still takes precedence over both."
+				},
+				"featureRequestRepo": {
+					"type": "string",
+					"description": "`<owner>/<repo>` slug on the forge that the in-product feature-request deep-link targets (provided to descendants as `cnFeatureRequestRepo`). Falls back to `Conduction/<appId>` when omitted."
+				},
+				"forge": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Forge that the in-product feature-request deep-link targets. Switching the whole fleet's forge (back to GitHub, or onto a self-hosted Forgejo/Gitea) is just this one field. Defaults to Codeberg.",
+					"properties": {
+						"type": {
+							"type": "string",
+							"enum": ["codeberg", "forgejo", "gitea", "github"],
+							"default": "codeberg",
+							"description": "Forge type. Selects how the 'new issue' form is pre-filled: `github` uses per-field Issue-Form query params; `codeberg`/`forgejo`/`gitea` assemble a Markdown body (only title + body are supported there)."
+						},
+						"baseUrl": {
+							"type": "string",
+							"description": "Override the forge host. Required for self-hosted `forgejo`/`gitea`; optional for `codeberg`/`github` (their canonical public hosts are used when omitted)."
+						}
+					}
 				}
 			}
 		},
@@ -160,7 +181,7 @@
 				},
 				"href": {
 					"type": "string",
-					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
+					"description": "Destination URL. When set, the entry renders as a real anchor pointing at this URL (visible on hover, native link cursor) instead of dispatching a vue-router navigation. External URLs (containing a `scheme://`) open in a new tab; internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. `route` is ignored when `href` is present. Useful for documentation / help links and cross-app links."
 				},
 				"action": {
 					"type": "string",

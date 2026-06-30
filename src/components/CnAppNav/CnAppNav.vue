@@ -90,6 +90,7 @@
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
+					:href="itemHref(item)"
 					:exact="isExact(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
@@ -124,6 +125,7 @@
 						:key="child.id"
 						:name="resolveLabel(child)"
 						:to="itemTo(child)"
+						:href="itemHref(child)"
 						:exact="isExact(child)"
 						:icon="cssIconClass(child)"
 						:active="isActive(child)"
@@ -155,6 +157,7 @@
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:to="itemTo(item)"
+					:href="itemHref(item)"
 					:exact="isExact(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
@@ -200,6 +203,7 @@
 							:key="item.id"
 							:name="resolveLabel(item)"
 							:to="itemTo(item)"
+							:href="itemHref(item)"
 							:exact="isExact(item)"
 							:icon="cssIconClass(item)"
 							:active="isActive(item)"
@@ -557,6 +561,43 @@ export default {
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
 		},
+		/**
+		 * Route name of the menu item that best matches the current route.
+		 * A direct match (current route name IS a menu target) wins;
+		 * otherwise the current path is matched against each item's page
+		 * path and the LONGEST prefix wins, so detail / nested routes (e.g.
+		 * `/expenses/:id`) light up — and auto-expand — their index entry
+		 * even though the detail route name is not in the menu. Longest
+		 * prefix disambiguates nested namespaces (e.g. `/pos` vs
+		 * `/pos/refunds`). Returns null when nothing matches.
+		 *
+		 * @return {string|null}
+		 */
+		activeRouteName() {
+			const routeName = this.$route?.name
+			const path = this.$route?.path
+			const flat = []
+			for (const item of this.visibleItems) {
+				flat.push(item)
+				for (const child of this.visibleChildren(item)) flat.push(child)
+			}
+			if (routeName && flat.some((it) => it.route === routeName)) return routeName
+			if (!path) return routeName ?? null
+			let best = null
+			let bestLen = -1
+			for (const it of flat) {
+				if (!it.route) continue
+				const pagePath = this.pageForItem(it)?.route
+				if (!pagePath || pagePath === '/' || pagePath.includes(':')) continue
+				if (path === pagePath || path.startsWith(pagePath + '/')) {
+					if (pagePath.length > bestLen) {
+						best = it.route
+						bestLen = pagePath.length
+					}
+				}
+			}
+			return best ?? routeName ?? null
+		},
 	},
 
 	methods: {
@@ -648,7 +689,7 @@ export default {
 		},
 		isActive(item) {
 			if (item.href || !item.route) return false
-			return this.$route?.name === item.route
+			return item.route === this.activeRouteName
 		},
 		/**
 		 * Whether a menu entry renders as a `NcAppNavigationCaption`
@@ -752,32 +793,72 @@ export default {
 		},
 		/**
 		 * Pass-through for `NcAppNavigationItem`'s router-link `exact`.
-		 * Root paths (`/`) match every nested route by default, which
-		 * makes the root item permanently look active. Returning true
-		 * for `route === '/'` restores the expected behaviour.
+		 *
+		 * `NcAppNavigationItem` folds the router-link's `isActive` into its
+		 * highlight as `to && isActive || active`. When `exact` is false that
+		 * `isActive` is an INCLUSIVE prefix match, so an ancestor-namespace
+		 * entry (`/pos`) lights up on any `/pos/...` path — which is correct
+		 * for an index entry's own nested routes (e.g. `/pos/:id` detail), but
+		 * wrong when the deeper path is itself an independent menu entry
+		 * (`/pos/tender-types`).
+		 *
+		 * So default to inclusive (the backwards-compatible behaviour) and only
+		 * force exact when a MORE SPECIFIC sibling entry owns the current route:
+		 * `activeRouteName` (longest-prefix-wins) names that owner, so when it
+		 * is a different entry and this entry's path is merely an ancestor
+		 * prefix of the current path, exact matching stops the router-link from
+		 * also lighting up this ancestor. Root (`/`) is always exact — it would
+		 * otherwise prefix-match every route.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {boolean} Whether to enable exact router-link matching.
 		 */
 		isExact(item) {
-			const page = this.pageForItem(item)
-			return page?.route === '/'
+			const pagePath = this.pageForItem(item)?.route
+			if (pagePath === '/') return true
+			const active = this.activeRouteName
+			// No owner, or this entry IS the owner → keep inclusive matching so
+			// the entry still lights up for its own nested routes.
+			if (!active || item.route === active) return false
+			const path = this.$route?.path
+			if (!path || !pagePath || pagePath.includes(':')) return false
+			// A different entry owns the route; force exact only when this entry
+			// is an ancestor prefix that inclusive matching would falsely light.
+			return path === pagePath || path.startsWith(pagePath + '/')
 		},
 		/**
 		 * Build the `:to` value for an `NcAppNavigationItem`. Action
-		 * items (`action: "user-settings"`) and external (`href`)
-		 * items return `null` so the underlying anchor falls through
-		 * to the click handler instead of vue-router; route items
-		 * return a named route.
+		 * items (`action: "user-settings"`) and `href` items return
+		 * `null` so the entry is NOT a vue-router link: action items
+		 * fall through to the click handler, `href` items render a real
+		 * anchor via `itemHref`. Route items return a named route.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {object|null} A `{ name }` route object, or null for
-		 *   action / external / route-less items.
+		 *   action / href / route-less items.
 		 */
 		itemTo(item) {
 			if (item.action) return null
 			if (item.href) return null
 			return item.route ? { name: item.route } : null
+		},
+		/**
+		 * Build the `:href` value for an `NcAppNavigationItem`. Returns
+		 * the item's `href` so the entry renders as a real anchor whose
+		 * destination is visible on hover and which gets the native link
+		 * cursor. `NcAppNavigationItem` adds `target="_blank"` itself for
+		 * external (`scheme://`) URLs, so those open in a new tab while
+		 * internal app paths (e.g. `/index.php/apps/foo/`) navigate in the
+		 * same tab — no `window.open` interception. Action items never
+		 * carry an href. Returns `null` for non-href items so the entry
+		 * stays a router-link / button.
+		 *
+		 * @param {object} item Menu item being rendered.
+		 * @return {string|null} The destination URL, or null.
+		 */
+		itemHref(item) {
+			if (item.action) return null
+			return item.href || null
 		},
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
@@ -818,20 +899,22 @@ export default {
 			this.$set(this.openState, item.id, value)
 		},
 		/**
-		 * Click handler. Dispatch order: action keyword → external href
-		 * → group toggle → route. For `action: "user-settings"` invokes
-		 * the injected `cnOpenUserSettings` (provided by CnAppRoot) and
-		 * prevents default; for `action: "replay-walkthrough"` invokes
-		 * the injected `cnReplayWalkthrough(item.tourId)`. For `href` items, opens the URL in a new tab
-		 * with safe rel attributes. Route-less items with visible
-		 * children are pure group headers: their anchor is a dead `#`
-		 * link, so clicking the title toggles the children open/closed
-		 * (same effect as the collapse chevron). Route items are handled
-		 * by `:to` and skip this path.
+		 * Click handler. Dispatch order: action keyword → group toggle.
+		 * For `action: "user-settings"` invokes the injected
+		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
+		 * default; for `action: "replay-walkthrough"` invokes the injected
+		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
+		 * items are NOT handled here — they render a real anchor via
+		 * `itemHref`, so the browser navigates natively (external URLs open
+		 * in a new tab, internal app paths in the same tab). Route-less
+		 * items with visible children are pure group headers: their anchor
+		 * is a dead `#` link, so clicking the title toggles the children
+		 * open/closed (same effect as the collapse chevron). Route items
+		 * are handled by `:to` and skip this path.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
-		 *   preventDefault for action / external / group links).
+		 *   preventDefault for action / group links).
 		 */
 		onItemClick(item, event) {
 			if (item.action === 'user-settings') {
@@ -848,14 +931,7 @@ export default {
 				this.cnReplayWalkthrough(item.tourId)
 				return
 			}
-			if (item.href) {
-				if (event && typeof event.preventDefault === 'function') {
-					event.preventDefault()
-				}
-				window.open(item.href, '_blank', 'noopener,noreferrer')
-				return
-			}
-			if (!item.route && this.visibleChildren(item).length > 0) {
+			if (!item.route && !item.href && this.visibleChildren(item).length > 0) {
 				if (event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
 				}
