@@ -38,14 +38,20 @@ export default {
 |------|------|---------|-------------|
 | `show` | `Boolean` | `false` | Toggles visibility. Going `false → true` triggers `resetForm()` (create mode) or `loadEditingWidget()` when `editing-widget` is set. |
 | `preselected-type` | `String` | `null` | When set, the type `<select>` is hidden and the form opens directly on this type (toolbar deep-links). |
-| `editing-widget` | `{ type: string, content: object }` \| `null` | `null` | When set, the modal opens in edit mode: the type select is hidden (placement type is immutable) and the sub-form is pre-filled from `editingWidget.content`. Must expose `type` and `content`. |
+| `editing-widget` | `{ type: string, content: object }` \| `null` | `null` | When set, the modal opens in edit mode: the type select is hidden (placement type is immutable) and the sub-form is pre-filled from `editingWidget.content`. Must expose `type` and `content`. The Appearance chrome is also seeded from it (`showTitle` / `customTitle` / `customIcon` / `styleConfig.backgroundColor`, falling back to `content`). |
+| `upload-fn` | `Function` \| `null` | `null` | Optional upload transport for the Appearance icon picker: `async (file) => dataUrlOrUrl`. When null, the icon picker embeds the uploaded image as a data URL (same-origin, CSP-safe). |
+
+The modal also renders a shared **Appearance** section beneath the per-type
+sub-form — Show title, Custom title, Background (`NcColorPicker`) and Icon
+(`CnIconPicker`) — so every consumer gets the same add/edit chrome. The chosen
+chrome rides alongside the content in the submit payload (see below).
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `close` | — | Fired on the cancel button, backdrop click, or Esc key. |
-| `submit` | `{ type, content }` | Fired with the assembled payload for the parent to persist. |
+| `submit` | `{ type, content, chrome: { showTitle, customTitle, customIcon, backgroundColor } }` | Fired with the assembled payload (content + Appearance chrome) for the parent to persist. |
 
 ## Related
 

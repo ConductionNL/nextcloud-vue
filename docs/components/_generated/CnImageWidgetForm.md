@@ -2,10 +2,11 @@
 
 ### Props
 
-| Name            | Type                          | Required | Default                        | Description                                                                                                 |
-| --------------- | ----------------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode. Pre-fills every control from `editingWidget.content`. |
-| `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults.                   |
+| Name            | Type                          | Required | Default                        | Description                                                                                                                                                                                                                                          |
+| --------------- | ----------------------------- | -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editingWidget` | `{content: object}&#124;null` |          | `null`                         | The placement being edited, or `null` in create mode. Pre-fills every control from `editingWidget.content`.                                                                                                                                          |
+| `value`         | `object`                      |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values — used when not editing and the parent supplies registry defaults.                                                                                                                                                            |
+| `uploadFn`      | `union`                       |          | `null`                         | Optional upload transport: `async (dataUrl) =&gt; ({ url })`. When given, an uploaded file is sent through it and the returned URL is stored. When omitted, the file is embedded as a data URL so upload still works without a transport dependency. |
 
 ### Events
 

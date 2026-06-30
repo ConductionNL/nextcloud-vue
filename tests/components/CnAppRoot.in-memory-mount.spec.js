@@ -308,4 +308,57 @@ describe('CnAppRoot — in-memory manifest mount (REQ-IMM-001..REQ-IMM-004)', ()
 		expect(wrapper.props('manifest')).toBe(fixtureManifest)
 		expect(isLoading.value).toBe(true)
 	})
+
+	// Unsaved-edit guard: refreshing while the manifest editor is dirty
+	// (including the in-flight window of a slow Save) must warn the user so an
+	// in-app edit can't be silently dropped.
+	describe('beforeunload unsaved-edit guard', () => {
+		/**
+		 * Mount CnAppRoot with a fresh deep-cloned fixture manifest.
+		 * @return {object} The Vue Test Utils wrapper.
+		 */
+		function mountApp() {
+			axios.get.mockImplementation(() => Promise.reject(new Error('unrelated probe ignored')))
+			const { manifest, isLoading } = useAppManifest({ manifest: { ...fixtureManifest, pages: fixtureManifest.pages.map((p) => ({ ...p })), menu: fixtureManifest.menu.map((m) => ({ ...m })) } })
+			return mount(CnAppRoot, {
+				propsData: { manifest: manifest.value, isLoading: isLoading.value, appId: 'fixture-app', requiresApps: [], supportDialog: false },
+				mocks: { $route: { name: 'home' } },
+				stubs: { 'router-view': ManifestInjectingRouterView },
+			})
+		}
+
+		it('registers + removes the beforeunload listener across the lifecycle', async () => {
+			const addSpy = jest.spyOn(window, 'addEventListener')
+			const removeSpy = jest.spyOn(window, 'removeEventListener')
+			const wrapper = mountApp()
+			await flush(wrapper)
+			expect(addSpy).toHaveBeenCalledWith('beforeunload', wrapper.vm.onBeforeUnload)
+			wrapper.destroy()
+			expect(removeSpy).toHaveBeenCalledWith('beforeunload', wrapper.vm.onBeforeUnload)
+			addSpy.mockRestore()
+			removeSpy.mockRestore()
+		})
+
+		it('does not block unload when there are no unsaved edits', async () => {
+			const wrapper = mountApp()
+			await flush(wrapper)
+			const event = { preventDefault: jest.fn(), returnValue: undefined }
+			expect(wrapper.vm.onBeforeUnload(event)).toBeUndefined()
+			expect(event.preventDefault).not.toHaveBeenCalled()
+		})
+
+		it('blocks unload while the editor is dirty (unsaved / still-saving edit)', async () => {
+			const wrapper = mountApp()
+			await flush(wrapper)
+			// Enter edit mode and mutate the manifest so the editor is dirty.
+			wrapper.vm.manifestEditor.enter()
+			wrapper.vm.manifestEditor.source.value.pages.push({ id: 'dogs', route: '/dogs', type: 'index', title: 'Dogs' })
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.manifestEditor.dirty.value).toBe(true)
+			const event = { preventDefault: jest.fn(), returnValue: undefined }
+			expect(wrapper.vm.onBeforeUnload(event)).toBe('')
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(event.returnValue).toBe('')
+		})
+	})
 })

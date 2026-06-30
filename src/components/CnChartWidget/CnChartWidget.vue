@@ -509,6 +509,7 @@ export default {
 		 * lookback so the curve stays meaningful. Replaces the GraphQL bucket
 		 * path. Lazily imports axios/router.
 		 *
+		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
 		 */
 		async fetchTimeBucket() {
@@ -526,7 +527,7 @@ export default {
 				// Resolve the [from, to] window: chip range, else staticRange,
 				// else a 12-month lookback; widen a too-narrow chip.
 				const r = (this.cnDashboardDateRange && this.cnDashboardDateRange.value) || b.staticRange || {}
-				let to = r.to || new Date().toISOString()
+				const to = r.to || new Date().toISOString()
 				let from = r.from
 				const span = (from && to) ? (new Date(to).getTime() - new Date(from).getTime()) : 0
 				if (!from || span < (90 * 86400000)) {
@@ -545,7 +546,7 @@ export default {
 				}
 				if (b.metricField) params.metricField = b.metricField
 				const _f = resolveFilterTokens(ds.filter || {})
-				if (_f && typeof _f === "object") {
+				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
@@ -582,6 +583,7 @@ export default {
 		 * value array + labels; other types use one named series + categories).
 		 * No-op for the time-bucket (GraphQL) path. Lazily imports axios/router.
 		 *
+		 * @spec openspec/changes/add-dashboard-date-range-and-chart-bucket/specs/chart-bucket-data-source/spec.md
 		 * @return {Promise<void>}
 		 */
 		async fetchGroupBy() {
@@ -605,7 +607,7 @@ export default {
 				if (gb.sort === 'asc' || gb.sort === 'desc') params.sort = gb.sort
 				if (gb.limit) params.limit = gb.limit
 				const _f = resolveFilterTokens(ds.filter || {})
-				if (_f && typeof _f === "object") {
+				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov

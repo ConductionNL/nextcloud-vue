@@ -51,8 +51,9 @@
 
 ### Slots
 
-| Name           | Bindings                | Description  |
-| -------------- | ----------------------- | ------------ |
-| `actions`      | —                       | actions      |
-| `action-items` | —                       | action-items |
-| `mass-actions` | `count`, `selected-ids` | mass-actions |
+| Name           | Bindings                | Description                                                                                                                                            |
+| -------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `filters`      | —                       | filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). |
+| `actions`      | —                       | actions                                                                                                                                                |
+| `action-items` | —                       | action-items                                                                                                                                           |
+| `mass-actions` | `count`, `selected-ids` | mass-actions                                                                                                                                           |

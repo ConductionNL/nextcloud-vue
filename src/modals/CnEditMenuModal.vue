@@ -14,15 +14,22 @@
 				{{ t('nextcloud-vue', 'Edit menu') }}
 			</h2>
 
-			<CnMenuTreeNode :list="menu" :depth="0" :max-depth="1" />
+			<CnMenuTreeNode :list="menu"
+				:max-depth="1"
+				:pages="pageOptions" />
 
 			<div class="cn-edit-menu__footer">
 				<NcButton type="secondary" @click="add">
-					<template #icon><Plus :size="20" /></template>
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Add menu item') }}
 				</NcButton>
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -30,15 +37,18 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
+import { NcModal, NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditMenuModal',
 
-	components: { NcModal, NcButton, Plus, CnMenuTreeNode },
+	components: { NcModal, NcButton, NcLoadingIcon, Plus, CnMenuTreeNode },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -56,8 +66,32 @@ export default {
 	computed: {
 		/** The working manifest's menu array (always an array). */
 		menu() {
+			// Lazily normalise the working copy's `menu` to an array so the tree
+			// editor always has a mutable list to edit in place (the working
+			// manifest is ours to mutate by design — never the base).
+			// eslint-disable-next-line vue/no-mutating-props, vue/no-side-effects-in-computed-properties
 			if (this.working && !Array.isArray(this.working.menu)) this.working.menu = []
 			return this.working ? this.working.menu : []
+		},
+
+		/**
+		 * The manifest's pages as Route-dropdown options. A menu item's `route`
+		 * holds the target page's id (the vue-router route name), so the option
+		 * `value` is `page.id` and the label is its title (falling back to id).
+		 *
+		 * Detail pages — those whose route carries a dynamic segment like
+		 * `/dogs/:id` — are EXCLUDED: they need a concrete record id to resolve,
+		 * so navigating to one straight from the menu yields a blank page. Detail
+		 * pages are reached from their index (clicking a row), never the menu.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		pageOptions() {
+			const pages = (this.working && Array.isArray(this.working.pages)) ? this.working.pages : []
+			return pages
+				.filter((p) => p && typeof p.id === 'string' && p.id !== '')
+				.filter((p) => !String(p.route || '').includes(':'))
+				.map((p) => ({ value: p.id, label: (typeof p.title === 'string' && p.title) ? p.title : p.id }))
 		},
 	},
 

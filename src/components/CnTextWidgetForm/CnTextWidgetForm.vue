@@ -26,7 +26,17 @@
 
 			<label class="cn-text-widget-form__field">
 				{{ t('nextcloud-vue', 'Text') }}
+				<!-- Markdown mode gets the full editor (toolbar + live preview);
+				     raw-HTML mode keeps a plain textarea. -->
+				<CnMarkdownEditor
+					v-if="contentMode === 'markdown'"
+					:value="text"
+					mode="edit"
+					:rows="6"
+					:placeholder="modePlaceholder"
+					@input="updateField('text', $event)" />
 				<textarea
+					v-else
 					:value="text"
 					:placeholder="modePlaceholder"
 					class="cn-text-widget-form__textarea"
@@ -35,13 +45,17 @@
 					@input="updateField('text', $event.target.value)" />
 			</label>
 
+			<!-- Font size / text colour / alignment only apply to raw-HTML/plain
+			     text. In markdown mode the markdown itself controls headings,
+			     emphasis and alignment, so these would be misleading. -->
 			<NcTextField
+				v-if="contentMode !== 'markdown'"
 				:value="fontSize"
 				:label="t('nextcloud-vue', 'Font size')"
 				placeholder="14px"
 				@update:value="updateField('fontSize', $event)" />
 
-			<label class="cn-text-widget-form__color-label">
+			<label v-if="contentMode !== 'markdown'" class="cn-text-widget-form__color-label">
 				{{ t('nextcloud-vue', 'Text color') }}
 				<input
 					type="color"
@@ -60,6 +74,7 @@
 			</label>
 
 			<NcSelect
+				v-if="contentMode !== 'markdown'"
 				:value="textAlign"
 				:options="textAlignOptions"
 				:input-label="t('nextcloud-vue', 'Alignment')"
@@ -79,6 +94,7 @@
 import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnTextTableEditor from '../CnTextTableEditor/CnTextTableEditor.vue'
+import CnMarkdownEditor from '../CnMarkdownEditor/CnMarkdownEditor.vue'
 import { emptyTable, validateTable } from '../../utils/textTable.js'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -114,6 +130,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		CnTextTableEditor,
+		CnMarkdownEditor,
 	},
 
 	props: {

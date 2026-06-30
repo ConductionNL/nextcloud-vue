@@ -89,6 +89,7 @@ Custom action items can be injected into the overflow menu:
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `filters` | — | Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle). |
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu |

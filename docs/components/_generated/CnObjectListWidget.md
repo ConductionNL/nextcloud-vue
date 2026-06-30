@@ -2,9 +2,9 @@
 
 ### Props
 
-| Name      | Type                                                                                                                                               | Required | Default | Description                                |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ------------------------------------------ |
-| `content` | `{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string}` |          | `\{\}`  | The widget's persisted configuration blob. |
+| Name      | Type                                                                                                                                                                | Required | Default | Description                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ------------------------------------------ |
+| `content` | `{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string}` |          | `\{\}`  | The widget's persisted configuration blob. |
 
 ### Events
 

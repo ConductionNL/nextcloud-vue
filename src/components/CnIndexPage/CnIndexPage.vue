@@ -67,8 +67,33 @@
 			<template v-if="$scopedSlots['action-items']" #action-items>
 				<slot name="action-items" />
 			</template>
-			<template v-if="$scopedSlots['actions']" #actions>
+			<template v-if="$scopedSlots['actions'] || isEditMode" #actions>
 				<slot name="actions" />
+				<!-- Edit-mode config cog: opens the page's full config editor
+				     (CnPageRenderer wires @configure to CnPageConfigModal). -->
+				<NcButton v-if="isEditMode"
+					type="tertiary"
+					:aria-label="t('nextcloud-vue', 'Configure page')"
+					@click="$emit('configure')">
+					<template #icon>
+						<Cog :size="20" />
+					</template>
+				</NcButton>
+			</template>
+			<!-- Quick-filter tabs (REQ-MIPFU-1) rendered INSIDE the action bar
+			     (between the view toggle and the actions) when the manifest
+			     declares `config.quickFilters`. Switching tabs re-fetches with
+			     the merged filter; @event quick-filter-change. -->
+			<template v-if="quickFilters && quickFilters.length > 0" #filters>
+				<CnQuickFilterBar
+					inline
+					:tabs="quickFilters"
+					:mode="quickFilterMode"
+					:multiple="quickFilterMultiple"
+					:active-index="activeQuickFilterIndex"
+					:selected-indices="selectedQuickFilterIndices"
+					@update:active-index="onQuickFilterChange"
+					@update:selected-indices="onQuickFilterMultiChange" />
 			</template>
 		</CnActionsBar>
 
@@ -162,6 +187,7 @@
 				ref="formDialog"
 				:schema="effectiveSchema"
 				:item="editItem"
+				:register="register"
 				:exclude-fields="excludeFields"
 				:include-fields="includeFields"
 				:field-overrides="fieldOverrides"
@@ -184,15 +210,6 @@
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
-
-		<!-- Quick-filter tabs (REQ-MIPFU-1) — rendered above the body when
-		     the manifest declares `config.quickFilters`. Switching tabs
-		     re-fetches with the merged filter; @event quick-filter-change. -->
-		<CnQuickFilterBar
-			v-if="quickFilters && quickFilters.length > 0"
-			:tabs="quickFilters"
-			:active-index="activeQuickFilterIndex"
-			@update:active-index="onQuickFilterChange" />
 
 		<!-- Body -->
 		<div class="cn-index-page__body">
@@ -221,10 +238,11 @@
 					:schema="effectiveSchema"
 					:columns="tableColumns"
 					:row-icon="rowIcon"
-					:rows="effectiveObjects"
+					:rows="displayObjects"
 					:sort-key="effectiveSortKey"
 					:sort-order="effectiveSortOrder"
 					:selectable="selectable"
+					:row-click-to-view="rowClickToView"
 					:selected-ids="internalSelectedIds"
 					:row-key="rowKey"
 					:empty-text="emptyText"
@@ -301,7 +319,7 @@
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
-					:objects="effectiveObjects"
+					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:selectable="selectable"
 					:selected-ids="internalSelectedIds"
@@ -395,7 +413,8 @@
 </template>
 
 <script>
-import { NcActions, NcActionCaption, NcActionCheckbox, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActions, NcActionCaption, NcActionCheckbox, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import { getCurrentInstance, inject } from 'vue'
 import DatabaseSearch from 'vue-material-design-icons/DatabaseSearch.vue'
 import Eye from 'vue-material-design-icons/Eye.vue'
@@ -404,6 +423,7 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
@@ -510,6 +530,8 @@ export default {
 		NcActions,
 		NcActionCaption,
 		NcActionCheckbox,
+		NcButton,
+		Cog,
 		DatabaseSearch,
 		FilterOutline,
 		ViewColumnOutline,
@@ -548,6 +570,11 @@ export default {
 	 */
 	inject: {
 		cnCustomComponents: { default: () => ({}) },
+		/**
+		 * Reactive edit-mode flag from CnAppRoot's manifest editor. When truthy
+		 * the page shows a config cog in its actions bar (emits `configure`).
+		 */
+		cnEditingBody: { default: false },
 		/**
 		 * Reactive holder provided by CnAppRoot for hoisting the
 		 * embedded CnIndexSidebar to NcContent level. The default
@@ -644,6 +671,28 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * How the quick filters render: `'chips'` (pill strip, default) or
+		 * `'dropdown'` (a single `NcSelect`). Sourced from the manifest as
+		 * `pages[].config.quickFilterMode`.
+		 * @type {'chips'|'dropdown'}
+		 */
+		quickFilterMode: {
+			type: String,
+			default: 'chips',
+			validator: (v) => ['chips', 'dropdown'].includes(v),
+		},
+
+		/**
+		 * Allow several quick filters active at once. Selected tabs' filters
+		 * are OR-ed together into the fetch (same field → array value →
+		 * `field[]=` IN query). Sourced from `pages[].config.quickFilterMultiple`.
+		 */
+		quickFilterMultiple: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Manual column definitions (used instead of schema when provided) */
 		columns: {
 			type: Array,
@@ -674,6 +723,19 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * When true, a row/card click emits `row-click` (to open/navigate) even
+		 * while `selectable` — selection then happens via the checkbox only.
+		 * Manifest-driven index pages set this when a matching detail page
+		 * exists, so clicking a row opens its detail. Default false preserves
+		 * the legacy select-on-click behaviour.
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Currently selected IDs */
 		selectedIds: {
 			type: Array,
@@ -697,6 +759,23 @@ export default {
 		sortOrder: {
 			type: String,
 			default: 'asc',
+		},
+
+		/**
+		 * Optional declarative DEFAULT multi-key client-side sort, applied to the
+		 * already-loaded rows whenever no explicit column sort is active (no
+		 * `sortKey` selected by the user / passed in). Each entry is
+		 * `{ field, order }` with `order` one of `'asc'` / `'desc'` (default
+		 * `'asc'`); rows are compared by the first field, ties broken by the
+		 * next, and so on. Comparison is type-aware (numbers numerically, dates
+		 * by timestamp, strings via `localeCompare`). Clicking a sortable header
+		 * takes over and suppresses this default. Useful for a fixed presentation
+		 * order such as "group by type, then name".
+		 * @type {Array<{field: string, order?: 'asc'|'desc'}>}
+		 */
+		defaultSort: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Unique row identifier property */
@@ -1184,6 +1263,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		} = useSelfFetchList(props, getCurrentInstance(), inject)
 
 		return {
@@ -1196,6 +1276,7 @@ export default {
 			selfObjectStore,
 			selfObjectType,
 			activeQuickFilterIndex,
+			selectedQuickFilterIndices,
 		}
 	},
 
@@ -1226,6 +1307,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the host manifest editor is in edit mode (unwraps the injected
+		 * `cnEditingBody`, which may be a Vue ref or a plain boolean). Drives the
+		 * in-header config cog.
+		 *
+		 * @return {boolean}
+		 */
+		isEditMode() {
+			const e = this.cnEditingBody
+			return !!(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
 		/**
 		 * Effective customComponents registry — the explicit prop wins
 		 * over the injected `cnCustomComponents`. Mirrors the priority
@@ -1268,6 +1360,20 @@ export default {
 		isSelfFetchMode() { return this.isSelfFetch && !!this.list },
 		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
 		effectiveObjects() { return this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects },
+		/**
+		 * Rows handed to the table / card grid — `effectiveObjects` re-sorted by
+		 * the declarative `defaultSort` spec whenever no explicit user column
+		 * sort is active. A live `sortKey` (user clicked a header, or one was
+		 * passed in) takes over and this falls through to the unsorted rows so
+		 * the server / prop order wins. No-op when `defaultSort` is empty.
+		 *
+		 * @return {object[]}
+		 */
+		displayObjects() {
+			if (!this.defaultSort || this.defaultSort.length === 0) return this.effectiveObjects
+			if (this.effectiveSortKey) return this.effectiveObjects
+			return multiKeySort(this.effectiveObjects, this.defaultSort)
+		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
 		/**
@@ -1647,6 +1753,15 @@ export default {
 				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
 			},
 		},
+		// A same-path `$route.query` change (e.g. a dashboard deep-link
+		// `/cases?caseType=X`) must also re-fetch — `fixedFilters` merges the
+		// query into the fetch (see useSelfFetchList.resolveQueryFilters).
+		'$route.query': {
+			deep: true,
+			handler() {
+				if (this.isSelfFetchMode && typeof this.list.refresh === 'function') this.list.refresh(1)
+			},
+		},
 	},
 
 	mounted() {
@@ -1702,7 +1817,8 @@ export default {
 		 * @return {object} Possibly-mutated copy: function-typed
 		 *   handlers untouched; `'emit'` and unknown registry names
 		 *   strip the `handler` (emit-only fall-through); `'navigate'`
-		 *   becomes a `$router.push` thunk; `'none'` becomes a no-op +
+		 *   becomes a `$router.push` thunk (with the entry's literal
+		 *   `params` map when present); `'none'` becomes a no-op +
 		 *   `_dispatchSuppress: true`; a registry name resolves to a
 		 *   `fn({ actionId })` thunk.
 		 */
@@ -1725,10 +1841,13 @@ export default {
 				}
 				const route = entry.route
 				const router = this.$router
+				// Literal params let a header action navigate to a detail route
+				// with fixed params, e.g. a "New X" button → `{ id: "new" }`.
+				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
 				const out = { ...entry }
 				out.handler = () => {
 					if (router && typeof router.push === 'function') {
-						router.push({ name: route })
+						router.push(params ? { name: route, params } : { name: route })
 					}
 				}
 				return out
@@ -1809,6 +1928,19 @@ export default {
 			// Vue 2 ref-unwrap proxy makes plain assignment work.
 			this.activeQuickFilterIndex = index
 			this.$emit('quick-filter-change', index)
+		},
+
+		/**
+		 * Multi-select quick-filter change (`quickFilterMultiple`). Updates the
+		 * selected-index array; the `setup()` watcher re-fetches with the
+		 * OR-ed union of the selected tabs' filters.
+		 *
+		 * @param {number[]} indices Selected tab indices (from CnQuickFilterBar).
+		 * @return {void}
+		 */
+		onQuickFilterMultiChange(indices) {
+			this.selectedQuickFilterIndices = Array.isArray(indices) ? indices : []
+			this.$emit('quick-filter-change', this.selectedQuickFilterIndices)
 		},
 
 		/**
@@ -1957,12 +2089,12 @@ export default {
 		 * @param {object} row The clicked row object
 		 */
 		onRowClick(row) {
-			if (this.selectable) {
+			if (this.selectable && !this.rowClickToView) {
 				this.onSelect(this.toggleIdInArray(this.internalSelectedIds, row[this.rowKey]))
 				return
 			}
 			/**
-			 * @event row-click Emitted when a non-selectable row/card is clicked. Only fires when `selectable` is false; selectable rows/cards toggle selection instead.
+			 * @event row-click Emitted on a row/card click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)

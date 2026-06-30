@@ -18,7 +18,12 @@
 			:aria-label="t('nextcloud-vue', 'Edit with OpenBuild')"
 			:class="['cn-openbuild-edit__actions', { 'cn-openbuild-edit__actions--editing': isEditing }]">
 			<template #icon>
-				<svg class="cn-openbuild-edit__glyph" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+				<svg class="cn-openbuild-edit__glyph"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="currentColor"
+					aria-hidden="true">
 					<path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9M12 4.15 6.04 7.5 12 10.85 17.96 7.5 12 4.15M5 15.91l6 3.38v-6.71L5 9.21v6.7m14 0v-6.7l-6 3.37v6.71l6-3.38Z" />
 				</svg>
 			</template>
@@ -35,16 +40,30 @@
 				{{ saving ? t('nextcloud-vue', 'Saving…') : (isEditing ? t('nextcloud-vue', 'Save page') : t('nextcloud-vue', 'Edit page')) }}
 			</NcActionButton>
 
-			<NcActionButton :disabled="!isEditing" :close-after-click="true" @click="onAddWidget">
+			<!-- Widget grids live on dashboard pages and (since the detail-grid
+			     change) detail pages, whose body is an adjustable grid seeded with
+			     Data + Related. Index/custom pages have no widget slots, so hide
+			     Add widget there. -->
+			<NcActionButton v-if="pageSupportsWidgets"
+				:disabled="!isEditing"
+				:close-after-click="true"
+				@click="onAddWidget">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Add widget…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditPages">
+				<template #icon>
+					<FileMultiple :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit pages…') }}
+			</NcActionButton>
+
 			<NcActionButton :close-after-click="true" @click="onEditMenu">
 				<template #icon>
-					<Menu :size="20" />
+					<MenuIcon :size="20" />
 				</template>
 				{{ t('nextcloud-vue', 'Edit menu…') }}
 			</NcActionButton>
@@ -63,6 +82,48 @@
 				{{ t('nextcloud-vue', 'Edit actions…') }}
 			</NcActionButton>
 
+			<NcActionButton :close-after-click="true" @click="onEditSettings">
+				<template #icon>
+					<Cog :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit settings…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditSetup">
+				<template #icon>
+					<AutoFix :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit setup wizard…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditWalkthrough">
+				<template #icon>
+					<MapMarkerPath :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit walkthrough…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditSupport">
+				<template #icon>
+					<HeartOutline :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit support &amp; donation…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditData">
+				<template #icon>
+					<Database :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit data…') }}
+			</NcActionButton>
+
+			<NcActionButton :close-after-click="true" @click="onEditFlows">
+				<template #icon>
+					<Sitemap :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Edit flows…') }}
+			</NcActionButton>
+
 			<NcActionButton v-if="isEditing" :close-after-click="true" @click="onCancel">
 				<template #icon>
 					<Close :size="20" />
@@ -71,10 +132,18 @@
 			</NcActionButton>
 		</NcActions>
 
+		<CnEditPagesModal
+			v-if="showPagesModal"
+			:working="workingManifest"
+			@close="showPagesModal = false" />
 		<CnEditMenuModal
 			v-if="showMenuModal"
 			:working="workingManifest"
 			@close="showMenuModal = false" />
+		<CnEditSettingsModal
+			v-if="showSettingsModal"
+			:working="workingManifest"
+			@close="showSettingsModal = false" />
 		<CnEditSidebarModal
 			v-if="showSidebarModal"
 			:working="workingManifest"
@@ -83,6 +152,8 @@
 		<CnAddWidgetModal
 			v-if="showAddWidgetModal"
 			:show="showAddWidgetModal"
+			:surface="addWidgetSurface"
+			:data-context="addWidgetDataContext"
 			@submit="onAddWidgetSubmit"
 			@close="showAddWidgetModal = false" />
 		<CnEditActionsModal
@@ -90,6 +161,26 @@
 			:working="workingManifest"
 			:page-id="effectivePageId"
 			@close="showActionsModal = false" />
+		<CnEditDataModal
+			v-if="showDataModal"
+			:manifest="effectiveManifest"
+			@close="showDataModal = false" />
+		<CnEditFlowsModal
+			v-if="showFlowsModal"
+			:manifest="effectiveManifest"
+			@close="showFlowsModal = false" />
+		<CnEditSetupModal
+			v-if="showSetupModal"
+			:working="workingManifest"
+			@close="showSetupModal = false" />
+		<CnEditWalkthroughModal
+			v-if="showWalkthroughModal"
+			:working="workingManifest"
+			@close="showWalkthroughModal = false" />
+		<CnEditSupportModal
+			v-if="showSupportModal"
+			:working="workingManifest"
+			@close="showSupportModal = false" />
 	</div>
 </template>
 
@@ -99,15 +190,30 @@ import { translate as t } from '@nextcloud/l10n'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import Menu from 'vue-material-design-icons/Menu.vue'
+import MenuIcon from 'vue-material-design-icons/Menu.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
+import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
 import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarRight.vue'
 import GestureTapButton from 'vue-material-design-icons/GestureTapButton.vue'
+import Database from 'vue-material-design-icons/Database.vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import AutoFix from 'vue-material-design-icons/AutoFix.vue'
+import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
+import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import CnEditMenuModal from '../../modals/CnEditMenuModal.vue'
+import CnEditPagesModal from '../../modals/CnEditPagesModal.vue'
+import CnEditSettingsModal from '../../modals/CnEditSettingsModal.vue'
 import CnEditSidebarModal from '../../modals/CnEditSidebarModal.vue'
 import CnEditActionsModal from '../../modals/CnEditActionsModal.vue'
 import CnAddWidgetModal from '../../modals/CnAddWidgetModal.vue'
+import CnEditDataModal from '../../modals/CnEditDataModal.vue'
+import CnEditFlowsModal from '../../modals/CnEditFlowsModal.vue'
+import CnEditSetupModal from '../../modals/CnEditSetupModal.vue'
+import CnEditWalkthroughModal from '../../modals/CnEditWalkthroughModal.vue'
+import CnEditSupportModal from '../../modals/CnEditSupportModal.vue'
 import { getDefaultContent } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 
 export default {
 	name: 'CnOpenBuildEditButton',
@@ -119,14 +225,28 @@ export default {
 		Pencil,
 		ContentSave,
 		Plus,
-		Menu,
+		MenuIcon,
 		Close,
+		Cog,
+		FileMultiple,
 		PageLayoutSidebarRight,
 		GestureTapButton,
+		Database,
+		Sitemap,
+		AutoFix,
+		MapMarkerPath,
+		HeartOutline,
 		CnEditMenuModal,
+		CnEditPagesModal,
+		CnEditSettingsModal,
 		CnEditSidebarModal,
 		CnEditActionsModal,
 		CnAddWidgetModal,
+		CnEditDataModal,
+		CnEditFlowsModal,
+		CnEditSetupModal,
+		CnEditWalkthroughModal,
+		CnEditSupportModal,
 	},
 
 	inject: {
@@ -134,6 +254,8 @@ export default {
 		cnManifestEditor: { default: null },
 		/** OpenBuild availability published by CnAppRoot; overridden by the `available` prop. */
 		cnOpenBuildAvailable: { default: false },
+		/** The live (published) manifest published by CnAppRoot — read when not editing. */
+		cnManifest: { default: null },
 	},
 
 	props: {
@@ -172,9 +294,16 @@ export default {
 	data() {
 		return {
 			showMenuModal: false,
+			showPagesModal: false,
+			showSettingsModal: false,
 			showSidebarModal: false,
 			showAddWidgetModal: false,
 			showActionsModal: false,
+			showDataModal: false,
+			showFlowsModal: false,
+			showSetupModal: false,
+			showWalkthroughModal: false,
+			showSupportModal: false,
 			menuOpen: false,
 			saving: false,
 		}
@@ -201,11 +330,61 @@ export default {
 		workingManifest() {
 			return this.activeEditor ? this.unref(this.activeEditor.working) : null
 		},
+		/** The manifest to read page metadata from: working copy, else the live one. */
+		effectiveManifest() {
+			return this.workingManifest || this.unref(this.cnManifest) || null
+		},
+		/** The active page object, resolved from the effective manifest. */
+		currentPage() {
+			const m = this.effectiveManifest
+			const pages = (m && Array.isArray(m.pages)) ? m.pages : []
+			return pages.find((p) => p && p.id === this.effectivePageId) || null
+		},
+		/** Whether the active page is a dashboard (the only page type with widget slots). */
+		isDashboardPage() {
+			return !!(this.currentPage && this.currentPage.type === 'dashboard')
+		},
+		/** Whether the active page is a detail page (its body is an adjustable grid). */
+		isDetailPage() {
+			return !!(this.currentPage && this.currentPage.type === 'detail')
+		},
+		/** Whether the active page hosts a widget grid that "Add widget" can target. */
+		pageSupportsWidgets() {
+			return this.isDashboardPage || this.isDetailPage
+		},
+		/**
+		 * The widget-picker surface for "Add widget". Detail pages get
+		 * `'detail-page'` so detail-only types (notably a second `data` widget)
+		 * appear alongside the universal widgets; dashboards keep the default
+		 * dashboard surface.
+		 *
+		 * @return {string} the surface key.
+		 */
+		addWidgetSurface() {
+			return this.isDetailPage ? 'detail-page' : 'app-dashboard'
+		},
+		/**
+		 * The active detail page's `{ register, schema }` (from its config),
+		 * forwarded to the Add-widget modal so the data sub-form resolves the
+		 * right schema regardless of the modal's DOM position. Null for non-detail
+		 * pages.
+		 *
+		 * @return {{register: string, schema: string}|null} the page context.
+		 */
+		addWidgetDataContext() {
+			if (!this.isDetailPage) return null
+			const cfg = (this.currentPage && this.currentPage.config) || {}
+			return { register: cfg.register || '', schema: cfg.schema || '' }
+		},
 	},
 
 	methods: {
 		t,
-		/** Read a value that may be a Vue ref or a plain value. */
+		/**
+		 * Read a value that may be a Vue ref or a plain value.
+		 * @param {*} maybeRef A Vue ref or plain value.
+		 * @return {*} The unwrapped value.
+		 */
 		unref(maybeRef) {
 			return maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef ? maybeRef.value : maybeRef
 		},
@@ -229,6 +408,7 @@ export default {
 				}
 			} else {
 				this.activeEditor.enter()
+				this.ejectDetailGridIfNeeded()
 				/**
 				 * @event edit Emitted when edit mode is entered.
 				 */
@@ -269,14 +449,27 @@ export default {
 			const content = payload.content && typeof payload.content === 'object' ? { ...payload.content } : (getDefaultContent(payload.type) || {})
 			const wid = `w-${payload.type}-${Date.now()}`
 
-			// A v1 dashboard page keeps widgets in config.widgets + config.layout;
-			// a v2 page keeps them in pages[].widgets[] (slot-based). Append to
-			// whichever this page uses so the new widget lands where the renderer reads.
-			const cfg = page.config && typeof page.config === 'object' ? page.config : null
-			if (page.type === 'dashboard' && cfg && Array.isArray(cfg.widgets)) {
+			// Appearance (chrome) chosen in the modal — title visibility/label,
+			// icon and background — applied to the widget entry the renderer reads.
+			const chrome = payload.chrome && typeof payload.chrome === 'object' ? payload.chrome : {}
+			const chromeFields = {
+				title: chrome.customTitle || content.title || payload.type,
+				showTitle: chrome.showTitle !== false,
+				...(chrome.customIcon ? { icon: chrome.customIcon } : {}),
+				...(chrome.backgroundColor ? { styleConfig: { backgroundColor: chrome.backgroundColor } } : {}),
+			}
+
+			// Dashboard AND detail pages keep widgets in config.widgets +
+			// config.layout (a detail page's grid is ejected there on edit — see
+			// ejectDetailGridIfNeeded). A v2 page keeps them in pages[].widgets[]
+			// (slot-based). Append to whichever this page uses so the new widget
+			// lands where the renderer reads.
+			const cfg = page.config && typeof page.config === 'object' && !Array.isArray(page.config) ? page.config : null
+			if ((page.type === 'dashboard' || page.type === 'detail') && cfg) {
+				if (!Array.isArray(cfg.widgets)) this.$set(cfg, 'widgets', [])
 				if (!Array.isArray(cfg.layout)) this.$set(cfg, 'layout', [])
 				const nextY = cfg.layout.reduce((max, l) => Math.max(max, (l.gridY || 0) + (l.gridHeight || 1)), 0)
-				cfg.widgets.push({ id: wid, type: payload.type, title: content.title || payload.type, content })
+				cfg.widgets.push({ id: wid, type: payload.type, ...chromeFields, content })
 				cfg.layout.push({ id: cfg.layout.length + 1, widgetId: wid, gridX: 0, gridY: nextY, gridWidth: 6, gridHeight: 3 })
 			} else {
 				if (!Array.isArray(page.widgets)) this.$set(page, 'widgets', [])
@@ -290,6 +483,7 @@ export default {
 					gridY: nextY,
 					gridWidth: 12,
 					gridHeight: 3,
+					...chromeFields,
 					props: content,
 				})
 			}
@@ -307,8 +501,50 @@ export default {
 		ensureEditing() {
 			if (this.activeEditor && !this.isEditing) {
 				this.activeEditor.enter()
+				this.ejectDetailGridIfNeeded()
 				this.$emit('edit')
 			}
+		},
+		/**
+		 * "Eject" the default detail-page body grid into the working manifest on
+		 * first edit: when the active page is a `type:"detail"` whose config has no
+		 * explicit `widgets`, seed `config.widgets`/`config.layout` with the same
+		 * Data + Related defaults CnDetailPage renders in memory. From then on the
+		 * grid is manifest-backed, so resize, per-property config and Add widget
+		 * all mutate the working manifest in place and persist on Save. Identical
+		 * defaults mean ejecting never visually changes the page. No-op for
+		 * non-detail pages or pages already carrying a widget grid.
+		 *
+		 * @return {void}
+		 */
+		ejectDetailGridIfNeeded() {
+			const manifest = this.workingManifest
+			if (!manifest) return
+			const pages = Array.isArray(manifest.pages) ? manifest.pages : []
+			const page = pages.find((p) => p && p.id === this.effectivePageId) ?? null
+			if (!page || page.type !== 'detail') return
+			if (!page.config || typeof page.config !== 'object' || Array.isArray(page.config)) {
+				this.$set(page, 'config', {})
+			}
+			const cfg = page.config
+			// Already customised (ejected before, or a hand-authored grid page).
+			if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) return
+			const grid = defaultDetailGrid({
+				register: cfg.register || '',
+				schema: cfg.schema || '',
+				showRelated: cfg.showRelatedObjects !== false,
+			})
+			this.$set(cfg, 'widgets', grid.widgets)
+			this.$set(cfg, 'layout', grid.layout)
+		},
+		/** Enter edit mode (if needed) and open the pages editor modal. */
+		onEditPages() {
+			this.ensureEditing()
+			this.showPagesModal = true
+			/**
+			 * @event edit-pages Emitted when the pages editor modal opens.
+			 */
+			this.$emit('edit-pages')
 		},
 		/** Enter edit mode (if needed) and open the menu editor modal. */
 		onEditMenu() {
@@ -318,6 +554,15 @@ export default {
 			 * @event edit-menu Emitted when the menu editor modal opens.
 			 */
 			this.$emit('edit-menu')
+		},
+		/** Enter edit mode (if needed) and open the settings editor modal. */
+		onEditSettings() {
+			this.ensureEditing()
+			this.showSettingsModal = true
+			/**
+			 * @event edit-settings Emitted when the settings editor modal opens.
+			 */
+			this.$emit('edit-settings')
 		},
 		/** Enter edit mode (if needed) and open the sidebar editor modal. */
 		onEditSidebar() {
@@ -336,6 +581,59 @@ export default {
 			 * @event edit-actions Emitted when the actions editor modal opens.
 			 */
 			this.$emit('edit-actions')
+		},
+		/** Enter edit mode (if needed) and open the setup-wizard editor modal. */
+		onEditSetup() {
+			this.ensureEditing()
+			this.showSetupModal = true
+			/**
+			 * @event edit-setup Emitted when the setup-wizard editor modal opens.
+			 */
+			this.$emit('edit-setup')
+		},
+		/** Enter edit mode (if needed) and open the walkthrough editor modal. */
+		onEditWalkthrough() {
+			this.ensureEditing()
+			this.showWalkthroughModal = true
+			/**
+			 * @event edit-walkthrough Emitted when the walkthrough editor modal opens.
+			 */
+			this.$emit('edit-walkthrough')
+		},
+		/** Enter edit mode (if needed) and open the support/donation editor modal. */
+		onEditSupport() {
+			this.ensureEditing()
+			this.showSupportModal = true
+			/**
+			 * @event edit-support Emitted when the support/donation editor modal opens.
+			 */
+			this.$emit('edit-support')
+		},
+		/**
+		 * Open the data (register + schemas) editor. Unlike the manifest editors
+		 * this does NOT enter manifest edit mode — it manages OpenRegister
+		 * registers/schemas directly via the API.
+		 */
+		onEditData() {
+			this.showDataModal = true
+			this.menuOpen = false
+			/**
+			 * @event edit-data Emitted when the data (register/schema) editor opens.
+			 */
+			this.$emit('edit-data')
+		},
+		/**
+		 * Open the flows editor. Like Edit data, this edits OpenRegister schema
+		 * configuration (`x-openregister-flows`) directly via the API and does
+		 * NOT enter manifest edit mode.
+		 */
+		onEditFlows() {
+			this.showFlowsModal = true
+			this.menuOpen = false
+			/**
+			 * @event edit-flows Emitted when the flows editor opens.
+			 */
+			this.$emit('edit-flows')
 		},
 	},
 }

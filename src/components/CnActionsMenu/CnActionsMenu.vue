@@ -142,7 +142,13 @@ export default {
 		Refresh,
 		LightbulbOutline,
 		BookOpenVariant,
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
+		// Unwrap `.default` explicitly: under some webpack chunk layouts the
+		// resolved module namespace is frozen AND carries neither `__esModule`
+		// nor `Symbol.toStringTag === 'Module'`, so Vue 2's `ensureCtor` skips
+		// its own unwrap and calls `Vue.extend()` on the frozen namespace —
+		// throwing "Cannot add property _Ctor, object is not extensible" and
+		// silently swallowing the Request-a-feature modal.
+		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue').then(m => m.default || m),
 	},
 
 	inject: {

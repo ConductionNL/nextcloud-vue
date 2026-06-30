@@ -285,6 +285,19 @@
 							"description": "Row / bulk actions consumed by CnRowActions / CnActionsBar (for type='index'). Each item references the `action` $def.",
 							"items": { "$ref": "#/$defs/action" }
 						},
+						"defaultSort": {
+							"type": "array",
+							"description": "Default multi-key client-side sort for a type='index' page, applied to the already-loaded rows whenever no explicit column sort is active. Rows are compared by the first entry, ties broken by the next, etc. (type-aware: numbers numerically, dates by timestamp, else localeCompare). A user clicking a sortable header takes over and suppresses this default. Maps to CnIndexPage `defaultSort`. Useful for a fixed presentation order such as group-by-type-then-name.",
+							"items": {
+								"type": "object",
+								"required": ["field"],
+								"additionalProperties": false,
+								"properties": {
+									"field": { "type": "string", "description": "Row field (supports dot notation; falls back to the `@self` metadata block)." },
+									"order": { "type": "string", "enum": ["asc", "desc"], "default": "asc", "description": "Sort direction for this key. Defaults to ascending." }
+								}
+							}
+						},
 						"headerActions": {
 							"type": "array",
 							"description": "Page-level header actions rendered inside CnActionsBar's overflow dropdown (between the built-in Refresh action and the `#action-items` slot). Same shape as the row-level `actions[]`, but handlers receive NO row context — they are page-level. Reserved ids (`refresh`, `import`, `export`, `copy`, `delete`) are dropped at render time to avoid shadowing built-ins. See manifest-icons-and-page-actions for the dispatch semantics.",
@@ -305,6 +318,17 @@
 								}
 							}
 						},
+						"quickFilterMode": {
+							"type": "string",
+							"enum": ["chips", "dropdown"],
+							"default": "chips",
+							"description": "How `quickFilters` render on a type='index' page: `chips` (pill button strip, default) or `dropdown` (a single NcSelect; the empty-filter \"All\" tab is dropped — an empty selection means all)."
+						},
+						"quickFilterMultiple": {
+							"type": "boolean",
+							"default": false,
+							"description": "Allow several `quickFilters` active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Default false (single-select)."
+						},
 						"readOnly": {
 							"type": "boolean",
 							"default": false,
@@ -324,6 +348,34 @@
 							"type": "array",
 							"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
 							"items": { "$ref": "#/$defs/layoutItem" }
+						},
+						"pageFilters": {
+							"type": "array",
+							"description": "Page-level filter controls (for type='dashboard') rendered in the dashboard header by CnDashboardPage. Each selection is written into the reactive page-level workspace context, so any widget can read it via a `@page.<key>` / `@workspace.<key>` token — e.g. a period selector every endpoint-bound `stat` KPI's URL interpolates. Maps to the CnDashboardPage `pageFilters` prop.",
+							"items": {
+								"type": "object",
+								"required": ["key", "options"],
+								"additionalProperties": false,
+								"properties": {
+									"key": { "type": "string", "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
+									"label": { "type": "string", "description": "Optional control label (i18n key or plain text)." },
+									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type. Closed enum — \"select\" only for now." },
+									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount. Defaults to the first option's value when omitted." },
+									"options": {
+										"type": "array",
+										"description": "Selectable options.",
+										"items": {
+											"type": "object",
+											"required": ["value", "label"],
+											"additionalProperties": false,
+											"properties": {
+												"value": { "type": ["string", "number"], "description": "Value written into the context when picked." },
+												"label": { "type": "string", "description": "Display text (i18n key or plain text)." }
+											}
+										}
+									}
+								}
+							}
 						},
 						"fields": {
 							"type": "array",
@@ -509,6 +561,44 @@
 					"description": "Optional extra props spread onto the resolved cell-widget component (e.g. `{ \"variant\": \"warning\" }` for the built-in `badge` widget). Ignored when `widget` is unset or unresolved.",
 					"additionalProperties": true
 				},
+				"format": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Optional declarative cell-format — a no-code alternative to a registry `formatter`. Resolved AFTER `formatter` / `widget` (those win) but BEFORE type-aware rendering, so a manifest column can opt into a currency / duration / percent number or a colour swatch without registering a function. Handled by CnCellRenderer.",
+					"properties": {
+						"style": {
+							"type": "string",
+							"enum": ["currency", "number", "percent", "duration", "swatch"],
+							"description": "Format kind. `currency` → Intl currency (e.g. \"€ 1.234,56\"); `number` / `percent` → localized number (percent appends \"%\"); `duration` → a seconds value rendered compact (\"1u 23m\"); `swatch` → a colour dot read from the `colorField` sibling field beside the cell text."
+						},
+						"currency": {
+							"type": "string",
+							"description": "ISO-4217 currency code for `style:\"currency\"`. Defaults to \"EUR\"."
+						},
+						"decimals": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "Fraction digits for the numeric styles. Defaults to 2 for currency, 0 otherwise."
+						},
+						"unit": {
+							"type": "string",
+							"enum": ["seconds", "minutes", "hours"],
+							"description": "Input unit for `style:\"duration\"`. Defaults to \"seconds\"."
+						},
+						"prefix": {
+							"type": "string",
+							"description": "String prepended to the formatted numeric/duration value."
+						},
+						"suffix": {
+							"type": "string",
+							"description": "String appended to the formatted numeric/duration value."
+						},
+						"colorField": {
+							"type": "string",
+							"description": "For `style:\"swatch\"` — the sibling row field holding the colour string (any CSS colour). Defaults to \"color\". The dot is omitted when that field is empty."
+						}
+					}
+				},
 				"aggregate": {
 					"type": "object",
 					"required": ["schema", "op"],
@@ -581,7 +671,12 @@
 				},
 				"route": {
 					"type": "string",
-					"description": "Vue-router route name dispatched when `handler === \"navigate\"`. Required for the navigate keyword; ignored for other handler values. CnIndexPage uses it as `$router.push({ name: action.route, params: { id: row[rowKey] } })`. Added in schema 1.3.0."
+					"description": "Vue-router route name dispatched when `handler === \"navigate\"`. Required for the navigate keyword; ignored for other handler values. CnIndexPage uses it as `$router.push({ name: action.route, params: { id: row[rowKey], ...action.params } })`. Added in schema 1.3.0."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": { "type": ["string", "number", "boolean"] },
+					"description": "Optional LITERAL route params merged into the navigate push (`handler === \"navigate\"`). Row actions default `{ id: row[rowKey] }`; these literals override it (e.g. `{ \"id\": \"new\" }` so a \"New X\" header/row action lands on the detail route in create mode). Header-level actions carry no row, so the literal params are the entire param map. Ignored for non-navigate handlers."
 				}
 			}
 		},

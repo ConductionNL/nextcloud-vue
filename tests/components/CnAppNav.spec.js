@@ -11,6 +11,9 @@
 // Mock `@nextcloud/capabilities` before loading CnAppNav so that the
 // `isAppInstalled` utility (imported by CnAppNav) can have its
 // `getCapabilities` call intercepted.
+import { mount } from '@vue/test-utils'
+import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
+
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
 }))
@@ -19,9 +22,6 @@ const { getCapabilities } = require('@nextcloud/capabilities')
 
 // Import the cache-reset helper so each test starts with a clean slate.
 const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
-
-import { mount } from '@vue/test-utils'
-import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
 
 const baseManifest = {
 	version: '1.0.0',
@@ -52,21 +52,23 @@ function mountNav({
 	routePath,
 	translate,
 	openUserSettings,
+	replayWalkthrough,
 } = {}) {
 	const provide = useProps
 		? {}
 		: {
-				cnManifest: manifest,
-				cnTranslate: translate ?? ((k) => k),
-				...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
-			}
+			cnManifest: manifest,
+			cnTranslate: translate ?? ((k) => k),
+			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
+			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+		}
 	const propsData = {
 		permissions,
 		...(useProps
 			? {
-					manifest,
-					translate: translate ?? ((k) => k),
-				}
+				manifest,
+				translate: translate ?? ((k) => k),
+			}
 			: {}),
 	}
 	return mount(CnAppNav, {
@@ -256,6 +258,40 @@ describe('CnAppNav', () => {
 		it('handles a manifest with no menu array', () => {
 			const wrapper = mountNav({ manifest: { version: '1.0.0', pages: [] }, useProps: true })
 			expect(wrapper.vm.visibleItems).toEqual([])
+		})
+	})
+
+	describe('icon-* → MDI monochrome bridge', () => {
+		// Nextcloud bakes some `icon-*` classes as multi-tone background-images
+		// (e.g. the blue `icon-folder`); bridging them to an MDI component makes
+		// every menu glyph render in the current text colour. The bridged name
+		// must take the `#icon` (MDI) slot path, NOT the CSS-class path.
+		it('renders a bridged icon-* as an MDI component (not a CSS class)', () => {
+			const wrapper = mountNav({ useProps: true })
+			const folder = { icon: 'icon-folder' }
+			expect(wrapper.vm.mdiIconComponent(folder)).toBeTruthy()
+			expect(wrapper.vm.cssIconClass(folder)).toBe('')
+		})
+
+		it('tolerates a -dark / -white theme-variant suffix', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.vm.mdiIconComponent({ icon: 'icon-calendar-dark' })).toBeTruthy()
+			expect(wrapper.vm.cssIconClass({ icon: 'icon-calendar-dark' })).toBe('')
+		})
+
+		it('leaves an unbridged icon-* on the CSS-class path', () => {
+			const wrapper = mountNav({ useProps: true })
+			const exotic = { icon: 'icon-some-unmapped-thing' }
+			expect(wrapper.vm.mdiIconComponent(exotic)).toBeNull()
+			expect(wrapper.vm.cssIconClass(exotic)).toBe('icon-some-unmapped-thing')
+		})
+
+		it('still resolves registered MDI names and ignores empty icons', () => {
+			const wrapper = mountNav({ useProps: true })
+			expect(wrapper.vm.mdiIconComponent({ icon: '' })).toBeNull()
+			expect(wrapper.vm.cssIconClass({ icon: '' })).toBe('')
+			// A non-icon- name that isn't registered falls back to null (CSS path = '')
+			expect(wrapper.vm.cssIconClass({ icon: 'AccountGroup' })).toBe('')
 		})
 	})
 
@@ -537,6 +573,50 @@ describe('CnAppNav', () => {
 			const childIds = wrapper.vm.visibleChildren(parent).map((c) => c.id)
 			expect(childIds).toContain('child-always')
 			expect(childIds).not.toContain('child-hr-only')
+		})
+	})
+
+	describe('action: "replay-walkthrough"', () => {
+		const replayManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+				{
+					id: 'restart-tutorial',
+					label: 'app.restart',
+					action: 'replay-walkthrough',
+					tourId: 'pipelinq:getting-started',
+					section: 'settings',
+					order: 99,
+				},
+			],
+		}
+
+		it('invokes the injected cnReplayWalkthrough with the item tourId and prevents default', () => {
+			const replayWalkthrough = jest.fn()
+			const wrapper = mountNav({
+				manifest: replayManifest,
+				replayWalkthrough,
+				routeName: 'home',
+			})
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(replayManifest.menu[1], event)
+			expect(replayWalkthrough).toHaveBeenCalledTimes(1)
+			expect(replayWalkthrough).toHaveBeenCalledWith('pipelinq:getting-started')
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
+		})
+
+		it('returns null for itemTo so vue-router does not navigate', () => {
+			const wrapper = mountNav({ manifest: replayManifest, routeName: 'home' })
+			expect(wrapper.vm.itemTo(replayManifest.menu[1])).toBeNull()
+		})
+
+		it('falls back to a no-op when no cnReplayWalkthrough inject is provided', () => {
+			const wrapper = mountNav({ manifest: replayManifest, routeName: 'home' })
+			const event = { preventDefault: jest.fn() }
+			expect(() => wrapper.vm.onItemClick(replayManifest.menu[1], event)).not.toThrow()
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
 		})
 	})
 

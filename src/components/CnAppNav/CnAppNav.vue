@@ -39,11 +39,13 @@
   win over inject when both are present.
 
   Items can opt out of routing in favour of a built-in action by
-  setting `action: "user-settings"` on the manifest entry: clicking
-  the item invokes the `cnOpenUserSettings` provide-injected by
-  CnAppRoot, which opens the host app's NcAppSettingsDialog modal
-  instead of navigating. Both `route` and `href` are ignored when
-  `action` is set. The inject defaults to a no-op so CnAppNav stays
+  setting `action` on the manifest entry. Supported keywords:
+  `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
+  by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
+  `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
+  with the item's `tourId`) to re-run the product walkthrough from
+  the first step (ADR-043). Both `route` and `href` are ignored when
+  `action` is set. The injects default to a no-op so CnAppNav stays
   usable standalone (without a CnAppRoot ancestor).
 
   See REQ-JMR-004 of the json-manifest-renderer specification.
@@ -96,6 +98,7 @@
 					:allow-collapse="visibleChildren(item).length > 0"
 					:open="isItemOpen(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
+					:data-cn-route="item.route"
 					@update:open="setItemOpen(item, $event)"
 					@click="onItemClick(item, $event)">
 					<template v-if="mdiIconComponent(item)" #icon>
@@ -128,6 +131,7 @@
 						:active="isActive(child)"
 						:pinned="Boolean(child.pinned)"
 						:data-testid="`cn-nav-entry-${child.id}`"
+						:data-cn-route="child.route"
 						@click="onItemClick(child, $event)">
 						<template v-if="mdiIconComponent(child)" #icon>
 							<component :is="mdiIconComponent(child)" :size="20" />
@@ -140,7 +144,6 @@
 					</NcAppNavigationItem>
 				</NcAppNavigationItem>
 			</template>
-
 		</template>
 		<template v-if="footerItems.length > 0 || showSettingsFoldout" #footer>
 			<!-- Footer-section entries (Documentation, Features & Roadmap,
@@ -159,6 +162,7 @@
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
+					:data-cn-route="item.route"
 					@click="onItemClick(item, $event)">
 					<template v-if="mdiIconComponent(item)" #icon>
 						<component :is="mdiIconComponent(item)" :size="20" />
@@ -230,6 +234,106 @@ import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 
+// MDI components used to render legacy Nextcloud `icon-*` class names as
+// monochrome glyphs (see CSS_ICON_TO_MDI). They render with fill:currentColor,
+// so they always match the menu text colour in both light and dark themes —
+// unlike NC's baked `background-image` data-URIs, some of which (notably
+// `icon-folder`, the blue Files folder) ship multi-tone and ignore theming.
+import Account from 'vue-material-design-icons/Account.vue'
+import AccountBox from 'vue-material-design-icons/AccountBox.vue'
+import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
+import Calendar from 'vue-material-design-icons/Calendar.vue'
+import ChartLine from 'vue-material-design-icons/ChartLine.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import Close from 'vue-material-design-icons/Close.vue'
+import CommentOutline from 'vue-material-design-icons/CommentOutline.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import Download from 'vue-material-design-icons/Download.vue'
+import Earth from 'vue-material-design-icons/Earth.vue'
+import Email from 'vue-material-design-icons/Email.vue'
+import Eye from 'vue-material-design-icons/Eye.vue'
+import FileMultiple from 'vue-material-design-icons/FileMultiple.vue'
+import Folder from 'vue-material-design-icons/Folder.vue'
+import FolderMultiple from 'vue-material-design-icons/FolderMultiple.vue'
+import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue'
+import History from 'vue-material-design-icons/History.vue'
+import Home from 'vue-material-design-icons/Home.vue'
+import Image from 'vue-material-design-icons/Image.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
+import MapMarker from 'vue-material-design-icons/MapMarker.vue'
+import OfficeBuilding from 'vue-material-design-icons/OfficeBuilding.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import PlayCircleOutline from 'vue-material-design-icons/PlayCircleOutline.vue'
+import Sitemap from 'vue-material-design-icons/Sitemap.vue'
+import ShareVariant from 'vue-material-design-icons/ShareVariant.vue'
+import Star from 'vue-material-design-icons/Star.vue'
+import Tag from 'vue-material-design-icons/Tag.vue'
+import Tune from 'vue-material-design-icons/Tune.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
+import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+
+/**
+ * Maps Nextcloud core `icon-*` CSS class names to a monochrome MDI component.
+ * Lets a manifest keep using the familiar NC class names while the nav renders
+ * every glyph in the current text colour. Names not listed here fall through to
+ * the CSS-class path (still fine for the many NC icons that ship monochrome).
+ * Variant suffixes (`-dark` / `-white`) are stripped before lookup.
+ */
+const CSS_ICON_TO_MDI = {
+	'icon-add': Plus,
+	'icon-address': MapMarker,
+	'icon-calendar': Calendar,
+	'icon-category-customization': Tune,
+	'icon-category-dashboard': ViewDashboard,
+	'icon-category-files': FolderMultiple,
+	'icon-category-monitoring': ChartLine,
+	'icon-category-office': OfficeBuilding,
+	'icon-category-workflow': Sitemap,
+	'icon-checkmark': Check,
+	'icon-close': Close,
+	'icon-comment': CommentOutline,
+	'icon-contacts': AccountBox,
+	'icon-delete': Delete,
+	'icon-details': InformationOutline,
+	'icon-download': Download,
+	'icon-edit': Pencil,
+	'icon-files': FileMultiple,
+	'icon-folder': Folder,
+	'icon-group': AccountGroup,
+	'icon-history': History,
+	'icon-home': Home,
+	'icon-info': InformationOutline,
+	'icon-link': LinkVariant,
+	'icon-mail': Email,
+	'icon-more': DotsHorizontal,
+	'icon-picture': Image,
+	'icon-play': PlayCircleOutline,
+	'icon-search': Magnify,
+	'icon-settings': Cog,
+	'icon-shared': ShareVariant,
+	'icon-star': Star,
+	'icon-tag': Tag,
+	'icon-timezone': Earth,
+	'icon-toggle': Eye,
+	'icon-toggle-filelist': FormatListBulleted,
+	'icon-upload': Upload,
+	'icon-user': Account,
+}
+
+/**
+ * Resolve a Nextcloud `icon-*` class name to a bridged MDI component, tolerating
+ * a trailing `-dark` / `-white` theme variant suffix.
+ *
+ * @param {string} icon The `icon-*` class name.
+ * @return {import('vue').Component|undefined} The MDI component, or undefined.
+ */
+function bridgedMdiForCssIcon(icon) {
+	return CSS_ICON_TO_MDI[icon] || CSS_ICON_TO_MDI[icon.replace(/-(dark|white)$/, '')]
+}
+
 export default {
 	name: 'CnAppNav',
 
@@ -254,6 +358,13 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
+		 * from the first step. Bound to menu entries declaring
+		 * `action: "replay-walkthrough"` (optionally with a `tourId`).
+		 * Defaults to a no-op so CnAppNav stays usable standalone.
+		 */
+		cnReplayWalkthrough: { default: () => () => {} },
 		/**
 		 * Provided by CnAppRoot — reactive `{ [register]: { [schema]: number } }`
 		 * map populated from `useObjectStore().totals` for every
@@ -491,11 +602,12 @@ export default {
 
 	methods: {
 		/**
-		 * Resolve a menu item's `icon` string to an MDI Vue component
-		 * via the per-app `registerIcons()` registry. Returns the
-		 * component when the icon name is a registered MDI key,
-		 * otherwise `null` so the template falls back to the
-		 * `:icon="cssIconClass(item)"` (CSS class) path.
+		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
+		 * resolve via the per-app `registerIcons()` registry; legacy Nextcloud
+		 * `icon-*` class names resolve via the {@link CSS_ICON_TO_MDI} bridge so
+		 * they render monochrome (fill:currentColor) like every other glyph.
+		 * Returns `null` (→ the `:icon="cssIconClass(item)"` CSS-class fallback)
+		 * for unbridged `icon-*` names and unknown MDI names.
 		 *
 		 * @param {{ icon?: string }} item Menu item descriptor.
 		 * @return {import('vue').Component|null}
@@ -503,15 +615,15 @@ export default {
 		mdiIconComponent(item) {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) return null
-			if (icon.startsWith('icon-')) return null
+			if (icon.startsWith('icon-')) return bridgedMdiForCssIcon(icon) || null
 			return ICON_MAP[icon] || null
 		},
 		/**
 		 * Pass-through for the `:icon` prop on NcAppNavigationItem when
 		 * the manifest declares a Nextcloud CSS-class icon (`icon-*`).
-		 * Returns an empty string when the icon is an MDI name so
-		 * NcAppNavigationItem doesn't render a bogus CSS class — the
-		 * `#icon` slot above handles the MDI path.
+		 * Returns an empty string when the icon is an MDI name OR a bridged
+		 * `icon-*` (rendered via the `#icon` slot instead), so NcAppNavigationItem
+		 * doesn't also paint a CSS-class background-image.
 		 *
 		 * @param {{ icon?: string }} item Menu item descriptor.
 		 * @return {string}
@@ -519,7 +631,8 @@ export default {
 		cssIconClass(item) {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) return ''
-			return icon.startsWith('icon-') ? icon : ''
+			if (!icon.startsWith('icon-')) return ''
+			return bridgedMdiForCssIcon(icon) ? '' : icon
 		},
 		passesPermission(item) {
 			if (!item.permission) return true
@@ -789,13 +902,15 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default. `href` items are NOT handled here — they render a real
-		 * anchor via `itemHref`, so the browser navigates natively
-		 * (external URLs open in a new tab, internal app paths in the same
-		 * tab). Route-less items with visible children are pure group
-		 * headers: their anchor is a dead `#` link, so clicking the title
-		 * toggles the children open/closed (same effect as the collapse
-		 * chevron). Route items are handled by `:to` and skip this path.
+		 * default; for `action: "replay-walkthrough"` invokes the injected
+		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
+		 * items are NOT handled here — they render a real anchor via
+		 * `itemHref`, so the browser navigates natively (external URLs open
+		 * in a new tab, internal app paths in the same tab). Route-less
+		 * items with visible children are pure group headers: their anchor
+		 * is a dead `#` link, so clicking the title toggles the children
+		 * open/closed (same effect as the collapse chevron). Route items
+		 * are handled by `:to` and skip this path.
 		 *
 		 * @param {object} item Menu item being clicked.
 		 * @param {Event} [event] Native click event (used to call
@@ -807,6 +922,13 @@ export default {
 					event.preventDefault()
 				}
 				this.cnOpenUserSettings()
+				return
+			}
+			if (item.action === 'replay-walkthrough') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnReplayWalkthrough(item.tourId)
 				return
 			}
 			if (!item.route && !item.href && this.visibleChildren(item).length > 0) {

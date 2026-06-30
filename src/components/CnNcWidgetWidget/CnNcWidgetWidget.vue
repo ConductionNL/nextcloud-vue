@@ -269,18 +269,20 @@ export default {
 				if (!container) {
 					return
 				}
-				// Native callback threw — fall back to the API list.
+				// Native callback failed — fall back to the API list.
 				const fallback = () => {
 					this.mode = 'api'
 					this.loadApiItems()
 				}
 				try {
-					// Nextcloud's OCA.Dashboard render callback signature is
-					// `(el, { widget })` — the metadata is wrapped in an
-					// object, not passed bare. Many callbacks are async, so
-					// route a rejected promise to the fallback too (a sync
-					// try/catch alone misses async throws).
+					// NC dashboard widgets are registered as
+					// `register(id, (el, { widget }) => …)` — the second argument
+					// MUST be the `{ widget }` envelope, not the bare metadata, or
+					// the widget destructures `widget` as undefined and throws on
+					// first use (e.g. `widget.title`).
 					const result = callback(container, { widget: this.widgetMeta || {} })
+					// Most widget callbacks are async; a synchronous try/catch
+					// can't see a rejected promise, so wire the fallback to it too.
 					if (result && typeof result.then === 'function') {
 						result.catch(fallback)
 					}
@@ -349,22 +351,33 @@ export default {
 	overflow: hidden;
 }
 
+/*
+ * Header + content match the native Nextcloud Dashboard panel (apps/dashboard)
+ * exactly — this component's whole job is rendering NC dashboard widgets, so it
+ * should look native by default: 16px header, 32px leading icon with a 16px
+ * gap, a 20px/700 title, and the native panel content inset (16px sides +
+ * bottom, flush to the header on top). Same design tokens as core; overridable
+ * via the host's CnWidgetWrapper styleConfig / nldesign.
+ */
 .cn-nc-widget-widget__header {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 12px;
-	font-weight: bold;
+	gap: 16px;
+	padding: 16px;
+	font-weight: 700;
 }
 
 .cn-nc-widget-widget__header-icon {
-	width: 20px;
-	height: 20px;
+	width: 32px;
+	height: 32px;
 	flex: 0 0 auto;
 }
 
 .cn-nc-widget-widget__header-title {
 	flex: 1;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -373,12 +386,13 @@ export default {
 .cn-nc-widget-widget__native {
 	flex: 1;
 	overflow: auto;
+	padding: 0 16px 16px;
 }
 
 .cn-nc-widget-widget__body {
 	flex: 1;
 	overflow: auto;
-	padding: 8px;
+	padding: 0 16px 16px;
 }
 
 .cn-nc-widget-widget__body--vertical {

@@ -6,7 +6,9 @@
 <template>
 	<div class="cn-chart-widget-form">
 		<!-- Presentation. -->
-		<h4 class="cn-chart-widget-form__section">{{ t('nextcloud-vue', 'Chart') }}</h4>
+		<h4 class="cn-chart-widget-form__section">
+			{{ t('nextcloud-vue', 'Chart') }}
+		</h4>
 
 		<div class="cn-chart-widget-form__row2">
 			<NcSelect
@@ -21,25 +23,26 @@
 				:input-label="t('nextcloud-vue', 'Breakdown')"
 				:clearable="false"
 				@input="updateField('mode', $event)">
-				<template #option="{ label: id }">{{ modeLabel(id) }}</template>
-				<template #selected-option="{ label: id }">{{ modeLabel(id) }}</template>
+				<template #option="{ label: id }">
+					{{ modeLabel(id) }}
+				</template>
+				<template #selected-option="{ label: id }">
+					{{ modeLabel(id) }}
+				</template>
 			</NcSelect>
 		</div>
 
 		<!-- Data source. -->
-		<h4 class="cn-chart-widget-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-chart-widget-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<div class="cn-chart-widget-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<!-- Time-series breakdown. -->
@@ -109,6 +112,7 @@ import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 
@@ -142,6 +146,7 @@ export default {
 		NcSelect,
 		CnFilterRowsEditor,
 		CnFieldPicker,
+		CnRegisterSchemaSelect,
 	},
 
 	props: {
@@ -197,15 +202,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Chart-type options understood by CnChartWidget / ApexCharts. */
 		chartKindOptions() {
@@ -254,6 +250,15 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 
@@ -262,36 +267,58 @@ export default {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
 
-		/** Human label for a breakdown mode. */
+		/**
+		 * Human label for a breakdown mode.
+		 * @param id
+		 */
 		modeLabel(id) {
 			return id === 'category' ? t('nextcloud-vue', 'By category') : t('nextcloud-vue', 'Over time')
 		},
 
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) {
 			this[field] = value
 			this.emitChange()
 		},
 
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) {
 			this.$set(this.source, field, value)
 			this.emitChange()
 		},
 
-		/** Set a bucket sub-field and emit. */
+		/**
+		 * Set a bucket sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateBucket(field, value) {
 			this.$set(this.bucket, field, value)
 			this.emitChange()
 		},
 
-		/** Set a group sub-field and emit. */
+		/**
+		 * Set a group sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateGroup(field, value) {
 			this.$set(this.group, field, value)
 			this.emitChange()
 		},
 
-		/** Receive updated filter rows from the shared editor. */
+		/**
+		 * Receive updated filter rows from the shared editor.
+		 * @param rows
+		 */
 		onFilterRows(rows) {
 			this.filterRows = rows
 			this.emitChange()

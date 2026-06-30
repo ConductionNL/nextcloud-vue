@@ -78,6 +78,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
+| `rowClickToView` | Boolean | `false` | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column ("click row = open, tick box = select") |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `emptyText` | String | `'No items found'` | Message shown when `rows` is empty and no `#empty` slot is provided |
@@ -111,3 +112,16 @@ Sortable data table with row selection, loading states, and schema-driven column
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Card / widget mode (folded from CnTableWidget)
+
+CnDataTable is now the single table component — the deprecated `CnTableWidget`'s
+features are folded in here as opt-in props (bare-table usage is unchanged):
+
+- `title` — render a card header (title + total-count badge) above the table.
+- `borderless` — drop the container's card chrome so the table sits flush inside
+  a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
+- `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
+- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.

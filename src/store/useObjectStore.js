@@ -917,6 +917,7 @@ const baseActions = {
  * @param {string} storeId Pinia store identifier
  * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
+ * @param extraOptions
  * @return {Function} Pinia store composable
  */
 function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, extraOptions = {}) {

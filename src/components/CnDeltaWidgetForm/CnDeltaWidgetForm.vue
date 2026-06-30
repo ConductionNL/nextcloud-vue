@@ -16,16 +16,11 @@
 			@update:value="updateField('label', $event)" />
 
 		<div class="cn-delta-form__row2">
-			<NcTextField
-				:value="source.register"
-				:label="t('nextcloud-vue', 'Register')"
-				placeholder="pipelinq"
-				@update:value="updateSource('register', $event)" />
-			<NcTextField
-				:value="source.schema"
-				:label="t('nextcloud-vue', 'Schema')"
-				placeholder="lead"
-				@update:value="updateSource('schema', $event)" />
+			<CnRegisterSchemaSelect
+				:register="source.register"
+				:schema="source.schema"
+				@update:register="updateSource('register', $event)"
+				@update:schema="updateSource('schema', $event)" />
 		</div>
 
 		<div class="cn-delta-form__row2">

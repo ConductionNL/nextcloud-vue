@@ -31,14 +31,18 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
 | `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
+| `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
+| `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
+| `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Manifest-driven pages set this automatically when a matching detail page exists. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `viewMode` | String | `'table'` | `'table'` or `'cards'` |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
+| `defaultSort` | Array | `[]` | Default multi-key **client-side** sort applied to the already-loaded rows whenever no explicit column sort is active (no `sortKey`). Each entry is `\{ field, order? \}` with `order` one of `'asc'` / `'desc'` (default `'asc'`); rows compare by the first field, ties broken by the next, etc. (type-aware: numbers numerically, dates by timestamp, else `localeCompare`; empties sort last). Clicking a sortable header takes over and suppresses this default. Fed from `pages[].config.defaultSort`. Useful for a fixed presentation order such as group-by-type-then-name. |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
@@ -509,7 +513,7 @@ When the user clicks "Process queue" on a row, CnIndexPage looks up `queueProces
 
 Three keywords short-circuit the registry lookup:
 
-- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. The `route` field is required when this keyword is set.
+- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey], ...action.params } })`. The `route` field is required when this keyword is set. An optional `params` object holds **literal** route params merged over the default `{ id: row[rowKey] }` — so `params: { "id": "new" }` makes a "New X" action land on the detail route in create mode, and `params: { "mode": "edit" }` keeps the row id while adding an extra param. The same `params` works on `config.headerActions[]` (page-level — no row, so the literals are the whole param map).
 - `"emit"` — explicit no-op handler that just bubbles `@action`. Identical to leaving `handler` unset, but makes intent visible in the manifest.
 - `"none"` — disables the action click entirely (no handler call, no `@action` emit).
 
@@ -521,6 +525,9 @@ Example:
     { "id": "view", "label": "Open", "handler": "navigate", "route": "QueueDetail" },
     { "id": "z",    "label": "Z",    "handler": "emit" },
     { "id": "x",    "label": "X",    "handler": "none" }
+  ],
+  "headerActions": [
+    { "id": "new", "label": "New resource", "handler": "navigate", "route": "ResourceDetail", "params": { "id": "new" } }
   ]
 }
 ```

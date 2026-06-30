@@ -65,6 +65,7 @@ export default {
 | `manifest` | `Object` | — (required) | Reactive manifest. The renderer reads `manifest.dependencies` and `manifest.menu`; descendants `inject('cnManifest')`. |
 | `appId` | `String` | — (required) | Nextcloud app id. Forwarded to `NcContent` as `app-name` and to `CnDependencyMissing`. |
 | `persistManifestDelta` | `Function` | `null` | Optional persistence hook for in-app editing (ADR-041). Called with the minimal manifest delta when the user saves an edit. When omitted, Save updates the rendered manifest in memory but persists nothing — wire it to the OpenBuild app-override endpoint to make edits durable. When OpenBuild is reachable for the user, CnAppRoot surfaces a Conduction-orange edit button (`CnOpenBuildEditButton`) top-right of the content and provides a shared `cnManifestEditor`; the body grid becomes drag/resizable in edit mode. Emits `@manifest-save(delta)`. |
+| `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. |
 | `isLoading` | `Boolean` | `false` | Wire to `useAppManifest().isLoading`. Apps using only the bundled manifest skip the loading phase. |
 | `customComponents` | `Object` | `{}` | Registry consumed by `CnPageRenderer` for `type: "custom"` pages and slot overrides. Provided as `cnCustomComponents`. |
 | `formatters` | `Object` | `{}` | Cell-formatter registry — map of formatter-id → `(value, row, property) => string\|number`. Resolves the `pages[].config.columns[].formatter` ids that `index` / `logs` pages declare, so per-column value formatting lives in small pure data functions instead of bespoke `type:"custom"` table views. Provided to descendant `CnDataTable` / `CnCellRenderer` as `cnFormatters`. See [migrating-to-manifest → Column formatters](../migrating-to-manifest.md#column-formatters). |
@@ -105,7 +106,7 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
-| `user-settings` | — | Single placeholder section ("User preferences will appear here.") | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). |
+| `user-settings` | — | Notification preferences, plus a "Restart walkthrough" section when the manifest declares an enabled tour | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). Supplying this slot replaces the default content (including the walkthrough section). |
 
 ## User-settings modal
 
@@ -124,7 +125,7 @@ CnAppRoot always mounts a single `NcAppSettingsDialog` and exposes a `cnOpenUser
 </CnAppRoot>
 ```
 
-The slot defaults to a single placeholder section ("User preferences will appear here.") so the modal always has visible content while apps roll out their own preference UI.
+When no `#user-settings` slot is supplied, the modal renders the built-in notification-preferences pane. If the app's manifest declares an enabled `walkthrough` with at least one tour (ADR-043), a **Walkthrough** section is appended with a **Restart walkthrough** button — a self-service way to re-run the product tour. Clicking it closes the settings dialog and re-fires the tour from step 1. The section is strictly gated on `walkthroughEnabled`, so apps without a walkthrough never show it. Supplying your own `#user-settings` slot replaces this default content entirely.
 
 ## Hoisted index sidebar
 
