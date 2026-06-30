@@ -72,14 +72,18 @@
 				</slot>
 			</template>
 
-			<CnIconBrowserPanel
-				v-bind="panelBindings"
-				@input="$emit('input', $event)"
-				@pick="open = false">
-				<template #empty>
-					<slot name="empty" />
-				</template>
-			</CnIconBrowserPanel>
+			<!-- The trigger advertises aria-haspopup="dialog" (via NcPopover's
+			     popup-role), so the opened panel must be a named dialog. -->
+			<div role="dialog" :aria-label="t('nextcloud-vue', 'Icon browser')">
+				<CnIconBrowserPanel
+					v-bind="panelBindings"
+					@input="$emit('input', $event)"
+					@pick="open = false">
+					<template #empty>
+						<slot name="empty" />
+					</template>
+				</CnIconBrowserPanel>
+			</div>
 		</NcPopover>
 	</div>
 </template>

@@ -203,6 +203,13 @@ describe('CnIconBrowser — wrapper', () => {
 		expect(button.attributes('aria-label')).toBe('Select icon')
 		expect(button.attributes('aria-labelledby')).toBeUndefined()
 	})
+	it('names the popover dialog so it has an accessible name', async () => {
+		const w = mount(CnIconBrowser, { propsData: { value: null, icons }, mocks })
+		await w.setData({ open: true })
+		const dialog = w.find('[role="dialog"]')
+		expect(dialog.exists()).toBe(true)
+		expect(dialog.attributes('aria-label')).toBe('Icon browser')
+	})
 	it('forwards the panel input event as its own', () => {
 		const w = mount(CnIconBrowser, { propsData: { value: null, icons, inline: true }, mocks })
 		w.findComponent(CnIconBrowserPanel).vm.$emit('input', 'M1 2 3')
