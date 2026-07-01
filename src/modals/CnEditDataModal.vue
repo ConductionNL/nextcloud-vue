@@ -15,7 +15,7 @@
   PATCH /api/registers/{id} to (un)link a schema. Isolated NcModal per ADR-004.
 -->
 <template>
-	<NcModal size="large" @close="$emit('close')">
+	<NcModal size="large" :name="t('nextcloud-vue', 'Manage data')" @close="$emit('close')">
 		<div class="cn-edit-data">
 			<h2 class="cn-edit-data__title">
 				{{ t('nextcloud-vue', 'Manage data') }}
