@@ -111,6 +111,7 @@
 <!-- eslint-disable jsdoc/valid-types -->
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { Fragment } from 'vue-frag'
 import { NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
 import { CnDataTable } from '../CnDataTable/index.js'
 import { CnNoteCard } from '../CnNoteCard/index.js'
@@ -135,6 +136,7 @@ import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 export default {
 	name: 'CnSchemaPropertiesTab',
 	components: {
+		Fragment,
 		NcButton,
 		NcTextField,
 		NcSelect,
