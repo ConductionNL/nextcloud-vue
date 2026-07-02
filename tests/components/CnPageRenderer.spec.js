@@ -257,6 +257,19 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.attributes('data-page-id')).toBe('broken')
 		})
 
+		it('renders the builder empty-state with the OpenBuild edit button when a page has no renderable body (ADR-041)', () => {
+			const wrapper = mountRenderer('broken', { customComponents: {} })
+			expect(wrapper.vm.hasRenderableBody).toBe(false)
+			expect(wrapper.find('.cn-page-renderer__empty').exists()).toBe(true)
+			expect(wrapper.findComponent({ name: 'CnOpenBuildEditButton' }).exists()).toBe(true)
+		})
+
+		it('does NOT render the empty-state when the page has a renderable component', () => {
+			const wrapper = mountRenderer('settings')
+			expect(wrapper.vm.hasRenderableBody).toBe(true)
+			expect(wrapper.find('.cn-page-renderer__empty').exists()).toBe(false)
+		})
+
 		it('resolves type=custom pages from the v2 cnRegistry (kind:"page") with precedence over legacy customComponents', () => {
 			// ADR-036 — the v2 `registry` prop ({ key: { kind, component }})
 			// MUST be honoured by CnPageRenderer for kind:"page" entries so

@@ -96,6 +96,26 @@ describe('CnPageTreeRow', () => {
 		expect(page.config.columns).toEqual(['name'])
 	})
 
+	it('renders Register/Schema as dropdowns when data sources are provided, free-text otherwise', async () => {
+		// With data sources: register + schema become NcSelect (on top of the
+		// always-present Type select) — the fix for the builder's empty pickers.
+		const withDs = mountRow({ id: 'p', type: 'index', config: {} }, { cnDataSources: DATA_SOURCES })
+		expect(withDs.vm.hasDataSources).toBe(true)
+		await withDs.setData({ expanded: true })
+		const withSelects = withDs.findAllComponents({ name: 'NcSelect' }).length
+		const withTextFields = withDs.findAllComponents({ name: 'NcTextField' }).length
+
+		// Without data sources: register + schema fall back to NcTextField.
+		const noDs = mountRow({ id: 'p2', type: 'index', config: {} })
+		expect(noDs.vm.hasDataSources).toBe(false)
+		await noDs.setData({ expanded: true })
+		const noSelects = noDs.findAllComponents({ name: 'NcSelect' }).length
+		const noTextFields = noDs.findAllComponents({ name: 'NcTextField' }).length
+
+		expect(withSelects).toBeGreaterThan(noSelects)
+		expect(noTextFields).toBeGreaterThan(withTextFields)
+	})
+
 	it('recovers a config corrupted to an array (PHP empty-object round-trip)', () => {
 		const page = { id: 'dogs', type: 'index', config: [] }
 		const wrapper = mountRow(page, { cnDataSources: DATA_SOURCES })
