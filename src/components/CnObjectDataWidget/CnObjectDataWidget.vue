@@ -718,14 +718,19 @@ export default {
 		},
 
 		/**
-		 * Commit the current inline edit — mark the field as dirty.
+		 * Commit the current inline edit — stage the field as dirty and persist
+		 * it immediately so a click-to-edit confirm saves in one step (matching
+		 * user expectation). The header Save/Discard still work for any remaining
+		 * dirty state (e.g. checkbox edits queued without a per-field confirm).
 		 */
-		commitEdit() {
+		async commitEdit() {
 			if (!this.editingField) return
 
 			const key = this.editingField
 			const newValue = this.editData[key]
 			const originalValue = this.objectData[key]
+
+			this.editingField = null
 
 			// Only mark dirty if actually changed
 			if (newValue !== originalValue) {
@@ -734,9 +739,11 @@ export default {
 				// Remove from dirty if reverted to original
 				const { [key]: _, ...rest } = this.dirtyFields
 				this.dirtyFields = rest
+				return
 			}
 
-			this.editingField = null
+			// Persist immediately (single-step inline save).
+			await this.save()
 		},
 
 		/**
