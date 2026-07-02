@@ -41,6 +41,17 @@
 		     (e.g. an `object-table` widget in `body`) still wins over
 		     the default. -->
 		<template v-if="isV2Manifest">
+			<!-- ADR-041 universal in-app edit affordance. The body-widget-grid
+			     path below renders no page component, so (unlike the typed
+			     fall-through pages — CnIndexPage via CnActionsBar, CnDetailPage,
+			     CnDashboardPage — which each mount their own button) nothing here
+			     surfaces the OpenBuild editor. Mount it once for the body-grid
+			     path. CnOpenBuildEditButton self-gates on OpenBuild availability
+			     (renders nothing when unreachable) and self-wires from the
+			     cnManifestEditor / cnOpenBuildAvailable provided by CnAppRoot. -->
+			<div v-if="widgetsBySlot.has('body')" class="cn-page-renderer__edit-affordance">
+				<CnOpenBuildEditButton :page-id="currentPage.id" />
+			</div>
 			<!-- body slot — widgets first, default typed component otherwise -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
@@ -123,6 +134,7 @@
 <script>
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
@@ -168,6 +180,7 @@ export default {
 
 	components: {
 		CnWidgetGrid,
+		CnOpenBuildEditButton,
 		CnPageConfigModal,
 	},
 
@@ -1197,6 +1210,22 @@ export default {
 <style>
 .cn-page-renderer {
 	display: contents;
+}
+
+/*
+ * ADR-041 in-app edit affordance for the v2 body-widget-grid path. The
+ * `.cn-page-renderer` host is `display: contents` (no box of its own), so this
+ * pins to the nearest positioned ancestor — the Nextcloud app-content area —
+ * placing the OpenBuild edit button at the content's top-right corner, inline
+ * with the page header. Empty (zero-cost) when OpenBuild is unavailable, since
+ * CnOpenBuildEditButton renders nothing.
+ */
+.cn-page-renderer__edit-affordance {
+	position: absolute;
+	inset-block-start: 8px;
+	inset-inline-end: 12px;
+	z-index: 100;
+	display: flex;
 }
 
 /*
