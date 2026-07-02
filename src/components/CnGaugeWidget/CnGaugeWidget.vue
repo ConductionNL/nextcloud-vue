@@ -33,6 +33,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
+import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -69,6 +70,16 @@ export default {
 
 	mixins: [widgetLink],
 
+	inject: {
+		/**
+		 * Page-level app config map (reactive `{ <key>: value }`) provided by
+		 * CnDashboardPage / CnDetailPage. Resolves `@config.<key>` tokens in the
+		 * `format.currency` / `format.prefix` / `format.suffix` strings (e.g. the
+		 * reporting currency captured by the setup wizard). Defaults to `{}`.
+		 */
+		cnAppConfig: { default: () => ({}) },
+	},
+
 	props: {
 		/**
 		 * The widget's persisted configuration blob. An optional `route`
@@ -92,6 +103,38 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The unwrapped page-level app config map for `@config.*` token
+		 * resolution. Always an object (defaults to `{}`).
+		 *
+		 * @return {object}
+		 */
+		configCtx() {
+			const c = this.cnAppConfig
+			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+		},
+		/**
+		 * The `content.format` spec with its `currency` / `prefix` / `suffix`
+		 * `@config.<key>` tokens resolved against the page-level app config. A
+		 * required token that stays unset is dropped so the downstream default
+		 * applies (EUR for currency, empty for prefix/suffix) rather than being
+		 * passed to `Intl.NumberFormat` as a literal `@config.…` (which throws).
+		 *
+		 * @return {object} The resolved format spec.
+		 */
+		resolvedFormat() {
+			const fmt = this.content.format || {}
+			const ctx = { config: this.configCtx }
+			const out = { ...fmt }
+			for (const key of ['currency', 'prefix', 'suffix']) {
+				const raw = fmt[key]
+				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
+				const resolved = resolveFilterValue(raw, ctx)
+				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
+			}
+			return out
+		},
 		/** Utilization ratio (0–n) of value to target, or null. */
 		ratio() {
 			const t = Number(this.target)
@@ -158,7 +201,7 @@ export default {
 		 */
 		formatNumber(value) {
 			if (value === null || value === undefined) return '—'
-			const fmt = this.content.format || {}
+			const fmt = this.resolvedFormat
 			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
 			const num = Number(value)
 			if (!Number.isFinite(num)) return String(value)
