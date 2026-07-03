@@ -2232,8 +2232,6 @@ export default {
 				if (!this.sidebarSeeded) {
 					this.sidebarSeeded = true
 				}
-				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
-                
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
