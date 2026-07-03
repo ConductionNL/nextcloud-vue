@@ -116,6 +116,7 @@ import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -520,7 +521,7 @@ export default {
 			if (fmt.style === 'currency') {
 				body = new Intl.NumberFormat(undefined, {
 					style: 'currency',
-					currency: fmt.currency || 'EUR',
+					currency: safeCurrencyCode(fmt.currency),
 					minimumFractionDigits: decimals,
 					maximumFractionDigits: decimals,
 				}).format(num)

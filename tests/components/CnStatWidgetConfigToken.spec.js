@@ -59,9 +59,8 @@ describe('CnStatWidget — @config.<key> token', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 
-		// resolvedFormat must carry the configured currency, not the raw token.
-		expect(wrapper.vm.resolvedFormat.currency).toBe('USD')
-		// And the displayed value must format as USD (Intl uses "$" for USD).
+		// The displayed value formats as USD (Intl uses "$" for USD) — the
+		// @config.currency token is resolved, not rendered raw.
 		expect(wrapper.text()).toContain('$')
 		expect(wrapper.text()).not.toContain('@config')
 		wrapper.destroy()
@@ -79,8 +78,7 @@ describe('CnStatWidget — @config.<key> token', () => {
 		await flush()
 		await wrapper.vm.$nextTick()
 
-		// Unresolved → dropped, so Intl applies the EUR default.
-		expect(wrapper.vm.resolvedFormat.currency).toBeUndefined()
+		// Unresolved → the guard applies the EUR default (no raw token, no RangeError).
 		expect(wrapper.text()).toContain('€')
 		expect(wrapper.text()).not.toContain('@config')
 		wrapper.destroy()
@@ -97,7 +95,6 @@ describe('CnStatWidget — @config.<key> token', () => {
 		)
 		await flush()
 		await wrapper.vm.$nextTick()
-		expect(wrapper.vm.resolvedFormat.currency).toBe('GBP')
 		expect(wrapper.text()).toContain('£')
 		wrapper.destroy()
 	})

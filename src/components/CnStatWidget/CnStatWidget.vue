@@ -37,7 +37,8 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { resolveFilterTokens, resolveFilterValue, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -209,9 +210,7 @@ export default {
 		 * @return {object}
 		 */
 		configCtx() {
-			const c = this.cnAppConfig
-			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
-			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
+			return unwrapAppConfig(this.cnAppConfig)
 		},
 		/** Inline style for the icon circle (tinted with iconColor). */
 		iconCircleStyle() {
@@ -223,59 +222,16 @@ export default {
 			return this.content.valueColor ? { color: this.content.valueColor } : {}
 		},
 		/**
-		 * The `content.format` spec with its string fields token-resolved. Each
-		 * of `currency` / `prefix` / `suffix` may be a `@config.<key>` token
-		 * (e.g. `currency: '@config.currency'`) — resolved against the page-level
-		 * app config so the setup-wizard-captured currency formats the value. A
-		 * required `@config.<key>` that is unset falls back to its default (EUR
-		 * for currency, empty for prefix/suffix) rather than rendering the raw
-		 * token; an optional `@config.<key>?` resolves to empty when unset.
+		 * The formatted value string per the `content.format` spec. Resolves
+		 * `@config.<key>` tokens (e.g. `currency: '@config.currency'`) against the
+		 * page-level app config and guards the currency code, so an unresolved
+		 * token or invalid currency falls back to a safe default instead of
+		 * throwing. See `formatMetricValue`.
 		 *
-		 * @return {object} The resolved format spec.
+		 * @return {string}
 		 */
-		resolvedFormat() {
-			const fmt = this.content.format || {}
-			const ctx = { config: this.configCtx }
-			const out = { ...fmt }
-			for (const key of ['currency', 'prefix', 'suffix']) {
-				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
-				const resolved = resolveFilterValue(raw, ctx)
-				// Token stayed unresolved (config key unset) → drop it so the
-				// downstream default applies instead of a literal `@config.…`.
-				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
-			}
-			return out
-		},
-		/** The formatted value string per the content.format spec. */
 		formattedValue() {
-			if (this.value === null || this.value === undefined) return '—'
-			const fmt = this.resolvedFormat
-			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			const num = Number(this.value)
-			if (!Number.isFinite(num)) return String(this.value)
-
-			let body
-			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency: fmt.currency || 'EUR',
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
-			} else if (fmt.style === 'percent') {
-				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
-				body = new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num) + '%'
-			} else {
-				body = new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
-			}
-			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+			return formatMetricValue(this.value, this.content.format, this.configCtx)
 		},
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
