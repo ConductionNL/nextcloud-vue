@@ -2260,11 +2260,13 @@ export default {
 		 * Whether a widget's overflow Actions menu shows the Refresh item.
 		 * An explicit per-widget flag wins — on the widget definition or
 		 * the layout item, as either `hideRefresh: true` or
-		 * `showRefresh: false`. Otherwise the widget inherits the page-level
-		 * `showRefresh` prop, so a dashboard that turns Refresh off (e.g. a
-		 * read-only overview whose widgets have no refetch wired) drops the
-		 * dead Refresh item from every widget menu while keeping
-		 * Request-a-feature.
+		 * `showRefresh: false`. Otherwise custom-slot widgets (which have no
+		 * built-in refetch path) resolve via the `widgetShowRefresh` tri-state
+		 * — the explicit prop, else whether a `@widget-refresh` listener is
+		 * wired (see `effectiveWidgetShowRefresh`) — while built-in widgets
+		 * (chart / NC / integration) inherit the page-level `showRefresh`. So a
+		 * read-only overview whose widgets have no refetch wired drops the dead
+		 * Refresh item from every widget menu while keeping Request-a-feature.
 		 *
 		 * @param {object} item Layout placement entry.
 		 * @return {boolean}
@@ -2274,6 +2276,7 @@ export default {
 			if (def.hideRefresh === true || item.hideRefresh === true) return false
 			if (typeof def.showRefresh === 'boolean') return def.showRefresh
 			if (typeof item.showRefresh === 'boolean') return item.showRefresh
+			if (this.hasWidgetSlot(item.widgetId)) return this.effectiveWidgetShowRefresh
 			return this.showRefresh
 		},
 
