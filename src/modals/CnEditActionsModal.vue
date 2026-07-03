@@ -60,7 +60,9 @@
 			</ul>
 		</template>
 
-		<template #actions>
+		<!-- No footer actions in the empty state — matches the pre-migration
+		     NcModal, which suppressed the footer entirely when no page was editable. -->
+		<template v-if="page" #actions>
 			<NcButton type="secondary" @click="add">
 				<template #icon>
 					<Plus :size="20" />
@@ -143,7 +145,8 @@ export default {
 		t,
 		/**
 		 * Human label for the target field, hinting what each type targets.
-		 * @param action
+		 * @param {object} action The action whose target field is being labelled.
+		 * @return {string} The localised field label.
 		 */
 		targetLabel(action) {
 			switch (action.type) {
@@ -159,15 +162,15 @@ export default {
 		},
 		/**
 		 * Remove the action at `index`.
-		 * @param index
+		 * @param {number} index Index of the action to remove.
 		 */
 		remove(index) {
 			this.actions.splice(index, 1)
 		},
 		/**
 		 * Move the action at `index` by `delta` positions (reorder).
-		 * @param index
-		 * @param delta
+		 * @param {number} index Index of the action to move.
+		 * @param {number} delta Positions to move by (negative = up, positive = down).
 		 */
 		move(index, delta) {
 			const to = index + delta

@@ -98,17 +98,19 @@
 		</div>
 
 		<template #actions>
-			<template v-if="step === 'events'">
-				<NcButton variant="tertiary" @click="onClose">
-					{{ cancelLabel }}
-				</NcButton>
-				<NcButton
-					variant="primary"
-					:disabled="!selectedEventUid"
-					@click="confirmSelection">
-					{{ confirmLabel }}
-				</NcButton>
-			</template>
+			<!-- Cancel is available in BOTH steps so the footer is never empty and
+			     the user always has a visible exit (not just the top-right X). The
+			     primary Confirm only applies once an event can be picked. -->
+			<NcButton variant="tertiary" @click="onClose">
+				{{ cancelLabel }}
+			</NcButton>
+			<NcButton
+				v-if="step === 'events'"
+				variant="primary"
+				:disabled="!selectedEventUid"
+				@click="confirmSelection">
+				{{ confirmLabel }}
+			</NcButton>
 		</template>
 	</NcDialog>
 </template>

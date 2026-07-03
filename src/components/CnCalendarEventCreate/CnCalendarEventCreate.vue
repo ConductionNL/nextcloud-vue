@@ -48,6 +48,20 @@
 				<div v-if="error" class="cn-calendar-event-create__banner cn-calendar-event-create__banner--error" role="alert">
 					{{ error }}
 				</div>
+
+				<!--
+				  Keyboard bridge: the primary button lives in NcDialog's #actions,
+				  which teleports to a footer OUTSIDE this <form>, so Enter no longer
+				  implicitly submits. This visually-hidden in-form submit button
+				  restores implicit submission from the single-line inputs while
+				  leaving Enter-in-textarea as a newline (textareas never trigger it).
+				  aria-hidden + tabindex=-1 keep it out of the a11y tree and tab order.
+				-->
+				<button
+					type="submit"
+					class="cn-calendar-event-create__submit-bridge"
+					aria-hidden="true"
+					tabindex="-1" />
 			</form>
 		</div>
 
@@ -248,5 +262,18 @@ export default {
 
 .cn-calendar-event-create__banner--error {
 	background: var(--color-error, #e9322d);
+}
+
+/* Visually-hidden in-form submit button — Enter-to-submit keyboard bridge. */
+.cn-calendar-event-create__submit-bridge {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 </style>

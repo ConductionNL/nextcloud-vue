@@ -27,6 +27,7 @@ jest.mock('@nextcloud/axios', () => ({
 const { mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnFilesWidget = require('../../src/components/CnFilesWidget/CnFilesWidget.vue').default
+const CnFilesWidgetDeleteDialog = require('../../src/dialogs/CnFilesWidgetDeleteDialog.vue').default
 
 /**
  * Resolve pending microtasks + a Vue render tick (the widget lazily
@@ -115,6 +116,25 @@ describe('CnFilesWidget — object-bound mode', () => {
 		expect(axios.delete.mock.calls[0][0]).toBe(
 			'/index.php/apps/openregister/api/objects/petstore/pet/pet-123/files/11',
 		)
+	})
+
+	it('opens the extracted delete dialog on confirmDelete and clears the target on close', async () => {
+		const wrapper = mount(CnFilesWidget, { propsData: { ...OBJECT_PROPS } })
+		await flush(wrapper)
+
+		const dialog = wrapper.findComponent(CnFilesWidgetDeleteDialog)
+		expect(dialog.props('open')).toBe(false)
+
+		wrapper.vm.confirmDelete({ fileId: 11, name: 'a.pdf' })
+		await wrapper.vm.$nextTick()
+		expect(dialog.props('open')).toBe(true)
+		expect(dialog.props('fileName')).toBe('a.pdf')
+
+		// Closing (Cancel / Esc / click-outside) clears the pending target.
+		dialog.vm.$emit('update:open', false)
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.confirmTarget).toBeNull()
+		expect(dialog.props('open')).toBe(false)
 	})
 })
 

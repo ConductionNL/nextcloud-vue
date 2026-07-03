@@ -143,35 +143,18 @@
 			</button>
 		</div>
 
-		<div
-			v-if="confirmTarget"
-			class="cn-files-widget__modal-backdrop"
-			role="dialog"
-			aria-modal="true"
-			@click.self="cancelDelete">
-			<div class="cn-files-widget__modal">
-				<p>
-					{{ t('nextcloud-vue', 'Are you sure you want to delete {name}?', { name: confirmTarget.name }) }}
-				</p>
-				<div class="cn-files-widget__modal-actions">
-					<button type="button" @click="cancelDelete">
-						{{ t('nextcloud-vue', 'Cancel') }}
-					</button>
-					<button
-						type="button"
-						class="cn-files-widget__modal-confirm"
-						@click="performDelete">
-						{{ t('nextcloud-vue', 'Delete') }}
-					</button>
-				</div>
-			</div>
-		</div>
+		<CnFilesWidgetDeleteDialog
+			:open="confirmTarget !== null"
+			:file-name="confirmTarget ? confirmTarget.name : ''"
+			@update:open="onDeleteDialogToggle"
+			@confirm="performDelete" />
 	</div>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -197,6 +180,10 @@ import { generateUrl } from '@nextcloud/router'
  */
 export default {
 	name: 'CnFilesWidget',
+
+	components: {
+		CnFilesWidgetDeleteDialog,
+	},
 
 	props: {
 		/**
@@ -735,12 +722,16 @@ export default {
 		},
 
 		/**
-		 * Dismiss the delete-confirmation modal.
+		 * React to the delete dialog's open-state changes. Closing it (Cancel,
+		 * Esc, click-outside, or the header X) clears the pending target.
 		 *
+		 * @param {boolean} open the dialog's new open state.
 		 * @return {void}
 		 */
-		cancelDelete() {
-			this.confirmTarget = null
+		onDeleteDialogToggle(open) {
+			if (!open) {
+				this.confirmTarget = null
+			}
 		},
 
 		/**
@@ -1051,43 +1042,4 @@ export default {
 	cursor: pointer;
 }
 
-.cn-files-widget__modal-backdrop {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10000;
-}
-
-.cn-files-widget__modal {
-	background: var(--color-main-background);
-	color: var(--color-main-text);
-	padding: 16px;
-	border-radius: var(--border-radius-large);
-	max-width: 90vw;
-	min-width: 280px;
-}
-
-.cn-files-widget__modal-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 12px;
-}
-
-.cn-files-widget__modal-actions button {
-	padding: 4px 12px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius);
-	background: var(--color-background-hover);
-	cursor: pointer;
-}
-
-.cn-files-widget__modal-confirm {
-	background: var(--color-error);
-	color: var(--color-primary-element-text);
-	border-color: var(--color-error);
-}
 </style>
