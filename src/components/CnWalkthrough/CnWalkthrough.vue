@@ -30,6 +30,15 @@
 			class="cn-walkthrough__card"
 			:class="`cn-walkthrough__card--${cardPlacement}`"
 			:style="cardStyle">
+			<NcButton class="cn-walkthrough__close"
+				type="tertiary"
+				:aria-label="closeLabel"
+				:title="closeLabel"
+				@click="close">
+				<template #icon>
+					<Close :size="20" />
+				</template>
+			</NcButton>
 			<!-- @slot coachmark Override the whole coachmark body. Scope: { step, index, total, next, back, skip }. -->
 			<slot name="coachmark"
 				:step="step"
@@ -73,6 +82,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -102,7 +112,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 export default {
 	name: 'CnWalkthrough',
 
-	components: { NcButton },
+	components: { NcButton, Close },
 
 	props: {
 		/** The Nextcloud app id (walkthrough machine cache key). */
@@ -125,6 +135,8 @@ export default {
 		skipLabel: { type: String, default: () => t('nextcloud-vue', 'Skip') },
 		/** Final-step button label. */
 		finishLabel: { type: String, default: () => t('nextcloud-vue', 'Finish') },
+		/** Accessible label for the corner close button that ends the tour. */
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close tour') },
 		/** Optional translate function applied to step title/body/task i18n keys. */
 		translate: { type: Function, default: null },
 	},
@@ -636,6 +648,16 @@ export default {
 			try { window.location.href = url } catch (e) { /* jsdom */ }
 		},
 		/**
+		 * End the tour for good from the corner close button: mark it complete so
+		 * the seen-version is persisted and it does not auto-show again.
+		 *
+		 * @return {void}
+		 */
+		close() {
+			this.wt.complete()
+			this.$emit('complete')
+		},
+		/**
 		 * Dismiss the tour from a backdrop click or ESC.
 		 *
 		 * @return {void}
@@ -695,10 +717,18 @@ export default {
 	pointer-events: auto;
 }
 
+.cn-walkthrough__close {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 8px;
+}
+
 .cn-walkthrough__counter {
 	font-size: 0.8125rem;
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 4px;
+	/* Keep the counter/title clear of the absolutely-positioned close button. */
+	padding-inline-end: 32px;
 }
 
 .cn-walkthrough__title {
