@@ -34,6 +34,7 @@
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
 /**
  * CnGaugeWidget — an abstract utilization / progress-to-target gauge.
@@ -69,6 +70,15 @@ export default {
 
 	mixins: [widgetLink],
 
+	inject: {
+		/**
+		 * Page-level app config for `@config.<key>` token resolution in
+		 * `content.format` (e.g. the reporting `currency`). Provided by
+		 * CnDashboardPage / CnDetailPage; defaults to `{}`.
+		 */
+		cnAppConfig: { default: () => ({}) },
+	},
+
 	props: {
 		/**
 		 * The widget's persisted configuration blob. An optional `route`
@@ -92,6 +102,10 @@ export default {
 	},
 
 	computed: {
+		/** The unwrapped page-level app config map for `@config.*` resolution. */
+		configCtx() {
+			return unwrapAppConfig(this.cnAppConfig)
+		},
 		/** Utilization ratio (0–n) of value to target, or null. */
 		ratio() {
 			const t = Number(this.target)
@@ -157,20 +171,7 @@ export default {
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
-			if (value === null || value === undefined) return '—'
-			const fmt = this.content.format || {}
-			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			const num = Number(value)
-			if (!Number.isFinite(num)) return String(value)
-			let body
-			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, { style: 'currency', currency: fmt.currency || 'EUR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			} else if (fmt.style === 'percent') {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num) + '%'
-			} else {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			}
-			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+			return formatMetricValue(value, this.content.format, this.configCtx)
 		},
 		/**
 		 * Fetch the value and resolve the target (static or aggregate).

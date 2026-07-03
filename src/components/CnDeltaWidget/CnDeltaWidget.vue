@@ -51,6 +51,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
 /**
  * CnDeltaWidget — an abstract comparison / delta KPI tile.
@@ -107,6 +108,12 @@ export default {
 		 * so a leg filter can scope to the picked window.
 		 */
 		cnWorkspaceContext: { default: () => ({}) },
+		/**
+		 * Page-level app config for `@config.<key>` token resolution in
+		 * `content.format` (e.g. the reporting `currency`). Provided by
+		 * CnDashboardPage / CnDetailPage; defaults to `{}`.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -219,20 +226,7 @@ export default {
 		 * @return {string} The formatted string.
 		 */
 		formatNumber(value) {
-			if (value === null || value === undefined) return '—'
-			const fmt = this.content.format || {}
-			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			const num = Number(value)
-			if (!Number.isFinite(num)) return String(value)
-			let body
-			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, { style: 'currency', currency: fmt.currency || 'EUR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			} else if (fmt.style === 'percent') {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num) + '%'
-			} else {
-				body = new Intl.NumberFormat(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num)
-			}
-			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+			return formatMetricValue(value, this.content.format, unwrapAppConfig(this.cnAppConfig))
 		},
 		/**
 		 * Fetch the current and previous aggregates from OpenRegister.
