@@ -7,12 +7,8 @@
   (no NcSelect) so no input-label wiring is required.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit sidebar')" @closing="$emit('close')">
 		<div class="cn-edit-sidebar">
-			<h2 class="cn-edit-sidebar__title">
-				{{ t('nextcloud-vue', 'Edit sidebar') }}
-			</h2>
-
 			<template v-if="page">
 				<NcCheckboxRadioSwitch :checked.sync="sidebarShown" type="switch">
 					{{ t('nextcloud-vue', 'Show sidebar on this page') }}
@@ -55,21 +51,21 @@
 				</NcButton>
 			</template>
 			<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
-
-			<div class="cn-edit-sidebar__footer">
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -78,7 +74,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSidebarModal',
 
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
+	components: { NcDialog, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -233,10 +229,6 @@ export default {
 	padding: 20px;
 }
 
-.cn-edit-sidebar__title {
-	margin-top: 0;
-}
-
 .cn-edit-sidebar__subtitle {
 	margin: 16px 0 8px;
 }
@@ -269,11 +261,5 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-}
-
-.cn-edit-sidebar__footer {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 16px;
 }
 </style>

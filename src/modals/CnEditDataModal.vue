@@ -15,12 +15,8 @@
   PATCH /api/registers/{id} to (un)link a schema. Isolated NcModal per ADR-004.
 -->
 <template>
-	<NcModal size="large" @close="$emit('close')">
+	<NcDialog size="large" :name="t('nextcloud-vue', 'Manage data')" @closing="$emit('close')">
 		<div class="cn-edit-data">
-			<h2 class="cn-edit-data__title">
-				{{ t('nextcloud-vue', 'Manage data') }}
-			</h2>
-
 			<NcLoadingIcon v-if="loading" :size="32" class="cn-edit-data__loading" />
 
 			<div v-else-if="error" class="cn-edit-data__error">
@@ -105,12 +101,6 @@
 					</ul>
 				</div>
 			</template>
-
-			<div class="cn-edit-data__footer">
-				<NcButton @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Close') }}
-				</NcButton>
-			</div>
 		</div>
 
 		<!-- Reuse the full OpenRegister schema editor for add/edit. It renders its
@@ -126,11 +116,17 @@
 			@confirm="onSchemaConfirm"
 			@delete-schema="onSchemaDelete"
 			@close="showSchemaDialog = false" />
-	</NcModal>
+
+		<template #actions>
+			<NcButton @click="$emit('close')">
+				{{ t('nextcloud-vue', 'Close') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -162,7 +158,7 @@ function unwrap(data) {
 export default {
 	name: 'CnEditDataModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcLoadingIcon, CnSchemaFormDialog, Plus, Pencil, Delete },
 
 	inject: {
 		/**
@@ -471,10 +467,6 @@ export default {
 	min-height: 280px;
 }
 
-.cn-edit-data__title {
-	margin: 0;
-}
-
 .cn-edit-data__subtitle {
 	margin: 0;
 	font-size: 1em;
@@ -548,14 +540,6 @@ export default {
 .cn-edit-data__row-actions {
 	display: flex;
 	gap: 4px;
-}
-
-.cn-edit-data__footer {
-	display: flex;
-	justify-content: flex-end;
-	border-top: 1px solid var(--color-border);
-	padding-top: 12px;
-	margin-top: auto;
 }
 </style>
 

@@ -11,11 +11,8 @@
   (manifestModalDoneMixin). Isolated NcModal per ADR-004.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit support &amp; donation')" @closing="$emit('close')">
 		<div class="cn-edit-support">
-			<h2 class="cn-edit-support__title">
-				{{ t('nextcloud-vue', 'Edit support &amp; donation') }}
-			</h2>
 			<p class="cn-edit-support__intro">
 				{{ t('nextcloud-vue', 'A one-time, dismissible note shown the first time a user opens the app. It introduces the team and offers to donate, suggest a feature, review, or get support. Leave a field blank to keep the default.') }}
 			</p>
@@ -111,21 +108,21 @@
 						:value.sync="buttonFor(def.id).icon" />
 				</li>
 			</ul>
-
-			<div class="cn-edit-support__footer">
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
@@ -141,7 +138,7 @@ const BUTTON_DEFS = [
 export default {
 	name: 'CnEditSupportModal',
 
-	components: { NcModal, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload },
+	components: { NcDialog, NcButton, NcLoadingIcon, NcTextField, NcTextArea, NcCheckboxRadioSwitch, NcSelect, Upload },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -271,10 +268,6 @@ export default {
 	padding: 20px;
 }
 
-.cn-edit-support__title {
-	margin-top: 0;
-}
-
 .cn-edit-support__intro {
 	color: var(--color-text-maxcontrast);
 	margin-bottom: 12px;
@@ -345,11 +338,5 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-}
-
-.cn-edit-support__footer {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 16px;
 }
 </style>

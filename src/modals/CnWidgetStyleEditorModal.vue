@@ -36,8 +36,12 @@
 				</ul>
 			</div>
 
-			<!-- Title section: toggle + override text. -->
-			<div v-if="!hasTypeForm" class="cn-widget-style-editor__section">
+			<!-- Title section: toggle + override text. Gated by `ownsTitle`, not
+			     `hasTypeForm` — the `showTitle` toggle controls the CnWidgetWrapper
+			     chrome header, which is orthogonal to a typed widget's own content
+			     title (e.g. the `header` banner). Only types that truly own the
+			     chrome title (registry `ownsTitle`) suppress it. -->
+			<div v-if="!ownsTitle" class="cn-widget-style-editor__section">
 				<h3 class="cn-widget-style-editor__section-title">
 					{{ t('nextcloud-vue', 'Title') }}
 				</h3>
@@ -328,6 +332,23 @@ export default {
 		/** Whether this widget type contributes its own content config form. */
 		hasTypeForm() {
 			return this.typeFormComponent !== null
+		},
+
+		/**
+		 * Whether this widget type owns its own title (registry `ownsTitle`),
+		 * so the chrome title toggle + custom-title override are redundant.
+		 * Mirrors CnAddWidgetModal's `activeTypeOwnsTitle` so the create and
+		 * edit dialogs gate the Title section identically — a typed widget
+		 * that does NOT own its title (e.g. `header`) still exposes the
+		 * "Show title" chrome toggle here, not just at create time.
+		 *
+		 * @return {boolean}
+		 */
+		ownsTitle() {
+			const type = this.widget && this.widget.type
+			if (!type) return false
+			const entry = getWidgetTypeEntry(type)
+			return !!(entry && entry.ownsTitle)
 		},
 
 		/**

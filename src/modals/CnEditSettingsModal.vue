@@ -11,12 +11,8 @@
   `inputLabel`.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Edit settings menu')" @closing="$emit('close')">
 		<div class="cn-edit-settings">
-			<h2 class="cn-edit-settings__title">
-				{{ t('nextcloud-vue', 'Edit settings menu') }}
-			</h2>
-
 			<p class="cn-edit-settings__hint">
 				{{ t('nextcloud-vue', 'These items appear in the settings ⚙ foldout at the bottom of the navigation.') }}
 			</p>
@@ -48,27 +44,27 @@
 					:placeholder="t('nextcloud-vue', 'Settings')"
 					@update:value="setSettingsLabel" />
 			</fieldset>
-
-			<div class="cn-edit-settings__footer">
-				<NcButton type="secondary" @click="add">
-					<template #icon>
-						<Plus :size="20" />
-					</template>
-					{{ t('nextcloud-vue', 'Add settings item') }}
-				</NcButton>
-				<NcButton type="primary" :disabled="saving" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton type="secondary" @click="add">
+				<template #icon>
+					<Plus :size="20" />
+				</template>
+				{{ t('nextcloud-vue', 'Add settings item') }}
+			</NcButton>
+			<NcButton type="primary" :disabled="saving" @click="onDone">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
@@ -77,7 +73,7 @@ import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 export default {
 	name: 'CnEditSettingsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, CnMenuTreeNode },
+	components: { NcDialog, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, CnMenuTreeNode },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -171,11 +167,6 @@ export default {
 	padding: 20px;
 }
 
-.cn-edit-settings__title {
-	margin-top: 0;
-	margin-bottom: 4px;
-}
-
 .cn-edit-settings__hint {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 12px;
@@ -194,11 +185,5 @@ export default {
 .cn-edit-settings__legend {
 	font-weight: 600;
 	padding: 0 6px;
-}
-
-.cn-edit-settings__footer {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 16px;
 }
 </style>

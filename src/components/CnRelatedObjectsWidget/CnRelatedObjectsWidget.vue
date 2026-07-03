@@ -435,17 +435,23 @@ export default {
 	computed: {
 		/** Resolved object id — explicit prop wins, else from object data. */
 		resolvedId() {
-			return this.objectId || this.objectData.id || (this.objectData['@self'] && this.objectData['@self'].id) || ''
+			// `objectData` defaults to `{}`, but a host may pass `null` explicitly
+			// (e.g. CnDetailPage forwards `currentObject`, null until it loads),
+			// which bypasses the prop default — so guard against null here.
+			const data = this.objectData || {}
+			return this.objectId || data.id || (data['@self'] && data['@self'].id) || ''
 		},
 
 		/** Resolved register slug — explicit prop wins, else from `@self`. */
 		resolvedRegister() {
-			return this.register || (this.objectData['@self'] && this.objectData['@self'].register) || ''
+			const data = this.objectData || {}
+			return this.register || (data['@self'] && data['@self'].register) || ''
 		},
 
 		/** Resolved schema slug — explicit prop wins, else from `@self`. */
 		resolvedSchema() {
-			return this.schema || (this.objectData['@self'] && this.objectData['@self'].schema) || ''
+			const data = this.objectData || {}
+			return this.schema || (data['@self'] && data['@self'].schema) || ''
 		},
 
 		/** True when the tabbed self-fetch path is usable. */

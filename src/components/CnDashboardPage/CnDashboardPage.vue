@@ -243,7 +243,7 @@
 				<CnWidgetWrapper
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false">
+					:show-title="widgetShowTitle(item)">
 					<NcEmptyContent
 						:name="installAppLabel(missingRequiredApp(item))"
 						:description="t('nextcloud-vue', 'This widget shows data from another app that isn\'t installed yet.')"
@@ -275,15 +275,15 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:title-icon-position="getWidgetTitleIconPosition(item)"
 						:title-icon-color="getWidgetTitleIconColor(item)"
 						:show-refresh="getWidgetShowRefresh(item)"
-						:show-actions="item.showActions !== false"
+						:show-actions="widgetShowActions(item)"
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
@@ -349,8 +349,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -424,8 +424,8 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
-						:borderless="item.showTitle === false"
+						:show-title="widgetShowTitle(item)"
+						:borderless="!widgetShowTitle(item)"
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
@@ -451,7 +451,7 @@
 						:title="getWidgetTitle(item)"
 						:icon-url="getWidgetIconUrl(item)"
 						:icon-class="getWidgetIconClass(item)"
-						:show-title="item.showTitle !== false"
+						:show-title="widgetShowTitle(item)"
 						:buttons="getWidgetButtons(item)"
 						:style-config="item.styleConfig || {}"
 						:show-refresh="getWidgetShowRefresh(item)"
@@ -470,8 +470,8 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:title="getWidgetTitle(item)"
-						:show-title="item.showTitle !== false"
-						:show-actions="item.showActions !== false"
+						:show-title="widgetShowTitle(item)"
+						:show-actions="widgetShowActions(item)"
 						:flush="item.flush !== false"
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
@@ -532,7 +532,7 @@
 				<CnWidgetWrapper
 					v-else
 					:title="getWidgetTitle(item)"
-					:show-title="item.showTitle !== false"
+					:show-title="widgetShowTitle(item)"
 					:show-refresh="false">
 					<div class="cn-dashboard-page__unknown">
 						{{ unavailableLabel }}
@@ -2225,6 +2225,36 @@ export default {
 			// Prefer a per-placement override, then the widget def's customTitle
 			// (set by the in-place style editor cog), then the def's base title.
 			return item.customTitle || def?.customTitle || def?.title || item.widgetId
+		},
+
+		/**
+		 * Whether a widget's title header renders. Tri-state `!== false`
+		 * (shown unless explicitly disabled), resolved from the layout
+		 * placement first, then the widget def. The def fallback matters
+		 * because the in-place style editor persists `showTitle` onto the
+		 * widget def (see onWidgetConfigSave), while hand-written manifests
+		 * may set it on either object — mirrors getWidgetTitle's def fallback.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowTitle(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showTitle !== undefined ? item.showTitle : def?.showTitle
+			return value !== false
+		},
+
+		/**
+		 * Whether a widget's overflow Actions menu renders. Same tri-state +
+		 * layout-then-def resolution as widgetShowTitle.
+		 *
+		 * @param {object} item the layout placement.
+		 * @return {boolean}
+		 */
+		widgetShowActions(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.showActions !== undefined ? item.showActions : def?.showActions
+			return value !== false
 		},
 
 		/**
