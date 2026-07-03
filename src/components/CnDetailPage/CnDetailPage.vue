@@ -329,11 +329,23 @@
 							<!-- Fallback for content-driven catalog widgets
 							     (stat / chart / delta / gauge / object-list / …):
 							     render the registered renderer with the def's
-							     `content`. These self-fetch from OpenRegister. -->
+							     `content`. These self-fetch from OpenRegister.
+							     The current object's context is forwarded too (same
+							     shape CnWidgetGrid merges on the v2 widgets[] path) so
+							     object-aware catalog widgets — e.g. the `files` widget
+							     binding to this object's folder — receive it; widgets
+							     that don't declare these props ignore them. `content`
+							     is spread LAST so explicit widget config still wins. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
 								:content="widgetContentFor(item)"
+								:object-id="objectId"
+								:register="register"
+								:schema="schema"
+								:object-data="currentObject"
+								:object-type="resolvedObjectType"
+								:store="effectiveObjectStore"
 								v-bind="widgetContentFor(item)" />
 						</slot>
 					</div>
@@ -1206,7 +1218,7 @@ export default {
 			autoBodyLayout: null,
 			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
 			autoBodyWidgets: null,
-            /**
+			/**
 			 * Drives the Actions-menu Refresh spinner during a schema-driven
 			 * self-fetch refresh, where the host has no promise to bind
 			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
@@ -1223,7 +1235,6 @@ export default {
 		}
 	},
 
-			
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
@@ -2233,7 +2244,7 @@ export default {
 					this.sidebarSeeded = true
 				}
 				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
-                
+
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
