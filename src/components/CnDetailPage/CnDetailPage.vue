@@ -1206,7 +1206,7 @@ export default {
 			autoBodyLayout: null,
 			/** Widget definitions paired with `autoBodyLayout` (id ↔ widgetId). */
 			autoBodyWidgets: null,
-            /**
+			/**
 			 * Drives the Actions-menu Refresh spinner during a schema-driven
 			 * self-fetch refresh, where the host has no promise to bind
 			 * `:refreshing` to. Mirrors CnIndexPage.internalRefreshing.
@@ -1223,7 +1223,6 @@ export default {
 		}
 	},
 
-			
 	computed: {
 		/**
 		 * Stable id for the page-header Actions menu. Prefers the explicit
