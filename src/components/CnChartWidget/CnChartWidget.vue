@@ -31,7 +31,7 @@
 
 <script>
 import { inject, ref } from 'vue'
-import { translate as t } from '@nextcloud/l10n'
+import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
@@ -623,8 +623,13 @@ export default {
 					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
 				}
 				if (gb.limit) groups = groups.slice(0, gb.limit)
-				const keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
+				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
 				const values = groups.map((g) => Number(g.value) || 0)
+				// When the grouped field is a reference (uuid), swap the raw ids for
+				// the referenced objects' display labels (e.g. client name).
+				if (gb.reference && gb.reference.schema) {
+					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
+				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys }
 				} else {
@@ -633,6 +638,70 @@ export default {
 			} catch (e) {
 				this.groupByData = null
 			}
+		},
+		/**
+		 * Resolve reference (uuid) group keys to their referenced objects'
+		 * display labels. Fetches each referenced object once and maps its
+		 * `labelField` (default `name`) — falling back to the raw key when the
+		 * object can't be loaded, so a chart never regresses to a blank bar.
+		 *
+		 * @param {string} defaultRegister Register to use when the reference omits one.
+		 * @param {{ register?: string, schema: string, labelField?: string }} reference Reference descriptor from `groupBy.reference`.
+		 * @param {Array<{ key: * }>} groups Raw grouped rows from OpenRegister.
+		 * @return {Promise<string[]>} One resolved label per group, in order.
+		 */
+		async resolveGroupByLabels(defaultRegister, reference, groups) {
+			const register = reference.register || defaultRegister
+			const schema = reference.schema
+			const labelField = reference.labelField || 'name'
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				return await Promise.all(groups.map(async (g) => {
+					const key = g.key
+					if (key === null || key === undefined || key === '') return '—'
+					try {
+						const url = generateUrl(
+							'/apps/openregister/api/objects/{register}/{schema}/{id}',
+							{ register, schema, id: key },
+						)
+						const res = await axios.get(url)
+						const obj = (res && res.data) || {}
+						let raw = obj[labelField]
+						if (raw === undefined || raw === null || raw === '') {
+							raw = obj['@self'] && obj['@self'].name
+						}
+						return this.displayString(raw) || String(key)
+					} catch (e) {
+						return String(key)
+					}
+				}))
+			} catch (e) {
+				return groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
+			}
+		},
+		/**
+		 * Pick a display string from a value that may be a plain string or a
+		 * translatable `{ <lang>: value }` map — falls back to the active
+		 * Nextcloud language, then its base subtag, then the first available
+		 * translation.
+		 *
+		 * @param {*} value Raw property value (string or per-language map).
+		 * @return {string} A display-ready string.
+		 */
+		displayString(value) {
+			if (value === null || value === undefined) return ''
+			if (typeof value === 'object' && !Array.isArray(value)) {
+				const lang = getLanguage() || ''
+				const short = lang.split('-')[0]
+				if (value[lang] !== undefined) return String(value[lang])
+				if (value[short] !== undefined) return String(value[short])
+				const vals = Object.values(value)
+				return vals.length ? String(vals[0]) : ''
+			}
+			return String(value)
 		},
 		/**
 		 * Deep merge two objects (target wins on conflict)
