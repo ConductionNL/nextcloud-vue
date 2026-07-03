@@ -213,6 +213,36 @@ A schema property that is an OpenRegister object reference renders as a **search
 
 `CnIndexPage` threads its own `register` into the built-in `CnFormDialog` automatically, so reference fields resolve out of the box on manifest-driven and self-fetch pages.
 
+## Cross-app semantic references (`referenceSemanticType`)
+
+The semantic sibling of the `$ref` mechanism (ADR-048). A schema property can point at a **canonical semantic-type URI** instead of a local schema slug, so the form binds to whichever installed app provides that type — regardless of which register/schema it lives in:
+
+```js
+// schema
+{
+  title: 'Product',
+  properties: {
+    // resolves to the provider schema that implements this URI, in ANY app
+    supplier: {
+      type: 'string',
+      title: 'Supplier',
+      referenceSemanticType: 'https://schema.org/Organization',
+      referenceSemanticApp: 'shillinq', // optional — names the expected provider app
+    },
+  },
+}
+```
+
+**Behavior:**
+
+- `fieldsFromSchema` surfaces `field.referenceSemanticType` and `field.referenceSemanticApp` onto the field descriptor (both `null` when the keys are absent — no behaviour change).
+- On mount the dialog resolves each distinct URI **once** against OpenRegister's discovery endpoint `GET /apps/openregister/api/schemas/resolve-by-implements?uri=<uri>` → `{ resolved, registerSlug, schemaSlug, appId }`. Resolution is async; results are cached per URI, so the endpoint is hit at most once per URI, never per render.
+- **Resolved** (some installed schema implements the URI) → the field is transformed into a `$ref` reference field pointed at the **provider's** register (`registerSlug`) and schema (`schemaSlug`) and rendered as a searchable object picker over that cross-app register. The chosen object's **UUID** is stored as the value.
+- **Unresolved** (no installed provider, or the endpoint 404s / errors) → the field renders **disabled** with a mouse-over `title` tooltip and helper text: *"The {appLabel} app that provides {typeLabel} is not installed."* `typeLabel` is derived from the URI's last path segment; `appLabel` from `referenceSemanticApp` (fallback: a generic "supporting app"). The rest of the form stays fully editable and saveable.
+- **While loading** → the field renders disabled (loading) and never crashes.
+
+This reuses the same `register` fetch machinery as `$ref`, targeting the provider's register rather than the form's own `register` prop — so no extra props are needed.
+
 ## Field Overrides
 
 The `fieldOverrides` prop accepts an object keyed by field name. Each override is merged onto the auto-generated field definition, so any field property can be changed.

@@ -335,7 +335,7 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
@@ -402,6 +402,20 @@ export function fieldsFromSchema(schema, options = {}) {
 			// surfaces (CnFormDialog, CnDetailGrid) render that
 			// integration's single-entity widget instead of a plain input.
 			referenceType: prop.referenceType || null,
+			// Cross-app semantic reference (ADR-048): a property can declare
+			// `referenceSemanticType: '<canonical-uri>'` (e.g.
+			// 'https://schema.org/Organization') plus an optional
+			// `referenceSemanticApp: '<appid>'` naming the app expected to
+			// provide it. The consuming surface (CnFormDialog) resolves the
+			// URI against OpenRegister's discovery endpoint: when SOME
+			// installed schema implements it, the field renders as a
+			// searchable object picker over that provider schema's register;
+			// when NONE does, the field renders DISABLED with a tooltip. This
+			// is the semantic sibling of `referenceType` (integration id).
+			// `null` when the keys are absent (no behaviour change). Pure: no
+			// resolution happens here.
+			referenceSemanticType: prop.referenceSemanticType || null,
+			referenceSemanticApp: prop.referenceSemanticApp || null,
 			// OpenRegister object reference (`$ref`): when a property points
 			// at another schema (`$ref: '<slug>'`, or `items.$ref` for an
 			// array), record the referenced schema slug + whether it is a
