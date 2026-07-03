@@ -20,6 +20,7 @@ Single-value KPI card (`Statistic / KPI`). Resolves one number from an OpenRegis
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source`, …). |
+| `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
 

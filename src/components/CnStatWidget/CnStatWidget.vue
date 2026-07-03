@@ -17,7 +17,7 @@
 
 		<div class="cn-stat-widget__body">
 			<div v-if="content.label" class="cn-stat-widget__label">
-				{{ content.label }}
+				{{ resolvedLabel }}
 			</div>
 
 			<div class="cn-stat-widget__value-row">
@@ -27,7 +27,7 @@
 					{{ formattedValue }}
 				</span>
 				<span v-if="!loading && !error && content.caption" class="cn-stat-widget__caption">
-					{{ content.caption }}
+					{{ resolvedCaption }}
 				</span>
 			</div>
 		</div>
@@ -99,6 +99,16 @@ export default {
 		 * the setup wizard captures). Empty `{}` when no ancestor provides one.
 		 */
 		cnAppConfig: { default: () => ({}) },
+		/**
+		 * Translate function provided by CnAppRoot (the host app's
+		 * `translate`, scoped to its app id). Applied to the manifest-authored
+		 * `content.label` / `content.caption` so a KPI tile renders in the
+		 * user's Nextcloud language instead of the raw source string. Defaults
+		 * to an identity function so the widget stays usable standalone.
+		 *
+		 * @type {(key: string) => string}
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -120,6 +130,17 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`
+		 * (itself an identity function by default). Provide explicitly when
+		 * mounting CnStatWidget outside a CnAppRoot ancestor.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
+		},
 	},
 
 	data() {
@@ -131,6 +152,34 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+		/**
+		 * The tile label, run through the host translate function so a
+		 * manifest-authored source string localises to the user's language.
+		 *
+		 * @return {string}
+		 */
+		resolvedLabel() {
+			const label = this.content.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+		/**
+		 * The tile caption, run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedCaption() {
+			const caption = this.content.caption
+			return caption ? this.effectiveTranslate(caption) : ''
+		},
 		/**
 		 * The unwrapped detail-page object context for token resolution, or null
 		 * on surfaces (dashboards) that don't provide one.
