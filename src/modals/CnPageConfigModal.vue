@@ -24,12 +24,8 @@
   the key otherwise, keeping the persisted config minimal.
 -->
 <template>
-	<NcModal size="normal" @close="$emit('close')">
+	<NcDialog size="normal" :name="t('nextcloud-vue', 'Page configuration')" @closing="$emit('close')">
 		<div class="cn-page-config">
-			<h2 class="cn-page-config__title">
-				{{ t('nextcloud-vue', 'Page configuration') }}
-			</h2>
-
 			<div class="cn-page-config__tabs">
 				<NcButton v-for="tab in tabs"
 					:key="tab.id"
@@ -441,22 +437,22 @@
 					</span>
 				</div>
 			</div>
-
-			<div class="cn-page-config__footer">
-				<span class="cn-page-config__id">{{ page.id }}</span>
-				<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
-					<template v-if="saving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
-				</NcButton>
-			</div>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<span class="cn-page-config__id">{{ page.id }}</span>
+			<NcButton type="primary" :disabled="saving || hasJsonError" @click="onDone">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnIconPicker from '../components/CnIconPicker/CnIconPicker.vue'
 import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
@@ -551,7 +547,7 @@ const JSON_FIELDS = [
 export default {
 	name: 'CnPageConfigModal',
 
-	components: { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, CnIconPicker },
+	components: { NcDialog, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcLoadingIcon, CnIconPicker },
 
 	mixins: [manifestModalDoneMixin],
 
@@ -990,10 +986,6 @@ export default {
 	gap: 12px;
 }
 
-.cn-page-config__title {
-	margin: 0;
-}
-
 .cn-page-config__subtitle {
 	margin: 0;
 	font-size: 1em;
@@ -1104,14 +1096,6 @@ export default {
 .cn-page-config__json-error {
 	color: var(--color-error);
 	font-size: 0.85em;
-}
-
-.cn-page-config__footer {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	border-top: 1px solid var(--color-border);
-	padding-top: 12px;
 }
 
 .cn-page-config__id {

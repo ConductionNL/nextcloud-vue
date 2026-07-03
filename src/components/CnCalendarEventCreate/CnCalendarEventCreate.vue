@@ -12,15 +12,11 @@
   via `<NcModal>`.
 -->
 <template>
-	<NcModal
+	<NcDialog
 		size="normal"
 		:name="title"
-		@close="onClose">
+		@closing="onClose">
 		<div class="cn-calendar-event-create">
-			<h2 class="cn-calendar-event-create__title">
-				{{ title }}
-			</h2>
-
 			<form class="cn-calendar-event-create__form" @submit.prevent="submit">
 				<NcTextField
 					v-model="form.summary"
@@ -52,30 +48,30 @@
 				<div v-if="error" class="cn-calendar-event-create__banner cn-calendar-event-create__banner--error" role="alert">
 					{{ error }}
 				</div>
-
-				<div class="cn-calendar-event-create__actions">
-					<NcButton variant="tertiary" @click="onClose">
-						{{ cancelLabel }}
-					</NcButton>
-					<NcButton
-						variant="primary"
-						native-type="submit"
-						:disabled="!canSubmit || saving">
-						<template v-if="saving" #icon>
-							<NcLoadingIcon :size="20" />
-						</template>
-						{{ confirmLabel }}
-					</NcButton>
-				</div>
 			</form>
 		</div>
-	</NcModal>
+
+		<template #actions>
+			<NcButton variant="tertiary" @click="onClose">
+				{{ cancelLabel }}
+			</NcButton>
+			<NcButton
+				variant="primary"
+				:disabled="!canSubmit || saving"
+				@click="submit">
+				<template v-if="saving" #icon>
+					<NcLoadingIcon :size="20" />
+				</template>
+				{{ confirmLabel }}
+			</NcButton>
+		</template>
+	</NcDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import {
-	NcModal,
+	NcDialog,
 	NcButton,
 	NcTextField,
 	NcTextArea,
@@ -100,7 +96,7 @@ export default {
 	name: 'CnCalendarEventCreate',
 
 	components: {
-		NcModal,
+		NcDialog,
 		NcButton,
 		NcTextField,
 		NcTextArea,
@@ -231,12 +227,6 @@ export default {
 	min-width: 480px;
 }
 
-.cn-calendar-event-create__title {
-	margin: 0 0 16px 0;
-	font-size: 18px;
-	font-weight: 600;
-}
-
 .cn-calendar-event-create__form {
 	display: flex;
 	flex-direction: column;
@@ -258,12 +248,5 @@ export default {
 
 .cn-calendar-event-create__banner--error {
 	background: var(--color-error, #e9322d);
-}
-
-.cn-calendar-event-create__actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 8px;
 }
 </style>
