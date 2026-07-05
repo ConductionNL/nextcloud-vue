@@ -8,7 +8,21 @@
  * value for unparseable input, empty string for null/empty).
  */
 
-const { formatDate, formatDateTime, formatRelativeTime, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+
+/**
+ * A date `days` whole days from today, at local noon so DST shifts and
+ * midnight-boundary flakiness can't move it across a day boundary.
+ *
+ * @param {number} days Signed day offset from today.
+ * @return {Date}
+ */
+function daysFromToday(days) {
+	const d = new Date()
+	d.setHours(12, 0, 0, 0)
+	d.setDate(d.getDate() + days)
+	return d
+}
 
 describe('builtInFormatters', () => {
 	describe('formatDate', () => {
@@ -76,11 +90,75 @@ describe('builtInFormatters', () => {
 		})
 	})
 
+	describe('formatDaysUntil (daysUntil)', () => {
+		it('renders "N days remaining" for a future date (plural)', () => {
+			expect(formatDaysUntil(daysFromToday(5))).toBe('5 days remaining')
+		})
+
+		it('renders the singular form for exactly one day', () => {
+			expect(formatDaysUntil(daysFromToday(1))).toBe('1 day remaining')
+		})
+
+		it('renders "Due today" for today', () => {
+			expect(formatDaysUntil(daysFromToday(0))).toBe('Due today')
+		})
+
+		it('renders "N days overdue" for a past date (plural + singular)', () => {
+			expect(formatDaysUntil(daysFromToday(-3))).toBe('3 days overdue')
+			expect(formatDaysUntil(daysFromToday(-1))).toBe('1 day overdue')
+		})
+
+		it('accepts an ISO date-only string', () => {
+			const iso = daysFromToday(2).toISOString().slice(0, 10)
+			// Date-only ISO parses as UTC midnight; depending on the runner's
+			// timezone that is "1-2 days" out — assert the remaining phrasing.
+			expect(formatDaysUntil(iso)).toMatch(/days? remaining/)
+		})
+
+		it('never throws on null / empty / unparseable input', () => {
+			expect(formatDaysUntil(null)).toBe('')
+			expect(formatDaysUntil(undefined)).toBe('')
+			expect(formatDaysUntil('')).toBe('')
+			expect(formatDaysUntil('garbage')).toBe('garbage')
+		})
+	})
+
+	describe('formatDaysSince (daysSince)', () => {
+		it('renders "N days ago" for a past date (plural)', () => {
+			expect(formatDaysSince(daysFromToday(-7))).toBe('7 days ago')
+		})
+
+		it('renders the singular form for exactly one day ago', () => {
+			expect(formatDaysSince(daysFromToday(-1))).toBe('1 day ago')
+		})
+
+		it('renders "Today" for today', () => {
+			expect(formatDaysSince(daysFromToday(0))).toBe('Today')
+		})
+
+		it('renders a forward phrasing for a (nonsensical) future date instead of garbage', () => {
+			expect(formatDaysSince(daysFromToday(4))).toBe('In 4 days')
+			expect(formatDaysSince(daysFromToday(1))).toBe('In 1 day')
+		})
+
+		it('never throws on null / empty / unparseable input', () => {
+			expect(formatDaysSince(null)).toBe('')
+			expect(formatDaysSince(undefined)).toBe('')
+			expect(formatDaysSince('')).toBe('')
+			expect(formatDaysSince('garbage')).toBe('garbage')
+		})
+	})
+
 	describe('BUILT_IN_FORMATTERS map', () => {
 		it('exports date / datetime / relative-time entries', () => {
 			expect(typeof BUILT_IN_FORMATTERS.date).toBe('function')
 			expect(typeof BUILT_IN_FORMATTERS.datetime).toBe('function')
 			expect(typeof BUILT_IN_FORMATTERS['relative-time']).toBe('function')
+		})
+
+		it('exports daysSince / daysUntil entries resolvable by a column formatter name', () => {
+			expect(BUILT_IN_FORMATTERS.daysSince).toBe(formatDaysSince)
+			expect(BUILT_IN_FORMATTERS.daysUntil).toBe(formatDaysUntil)
 		})
 
 		it('a consumer override (spread under, consumer wins) replaces the built-in', () => {

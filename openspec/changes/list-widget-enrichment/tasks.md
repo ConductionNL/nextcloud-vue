@@ -15,7 +15,7 @@ Every task targets `beta`, Vue 2.7 Options API, new props default to no-op, `cn-
 
 ## 3. Relative-day formatters
 
-- [ ] 3.1 Add `daysUntil` (future → "N days remaining", today → "Due today", past → "N days overdue") and `daysSince` (past → "N days ago", today → "Today") to `BUILT_IN_FORMATTERS`, i18n'd via `translate`/`translatePlural` (`nextcloud-vue`), null-safe (return original/empty, never throw). — spec_ref: "Generic daysSince and daysUntil display formatters" — files: `src/utils/builtInFormatters.js`
+- [x] 3.1 Add `daysUntil` (future → "N days remaining", today → "Due today", past → "N days overdue") and `daysSince` (past → "N days ago", today → "Today") to `BUILT_IN_FORMATTERS`, i18n'd via `translate`/`translatePlural` (`nextcloud-vue`), null-safe (return original/empty, never throw). — spec_ref: "Generic daysSince and daysUntil display formatters" — files: `src/utils/builtInFormatters.js`
 
 ## 4. Row actions + object-op + confirm dialog
 
