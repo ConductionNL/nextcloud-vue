@@ -124,4 +124,11 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
 - `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
 - `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
+- `fetchParams` — extra query params for the self-fetch (a resolved filter map,
+  `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
+  `CnWidgetObjectTable`'s declarative `source`.
 - `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.
+- `hideHeader` — drop the column-label row for a compact list widget.
+- `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
+  or an always-shown "View all") with its own handler; works outside a
+  vue-router context.
