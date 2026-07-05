@@ -26,7 +26,7 @@
 
 		<!-- Table -->
 		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
-			<thead>
+			<thead v-if="!hideHeader">
 				<tr>
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
@@ -137,17 +137,22 @@
 			</tbody>
 		</table>
 
-		<!-- Optional "View all" footer (folded from the retired CnTableWidget):
-		     shown when a route is given and the displayed rows are a `limit`-ed
-		     subset of the total. -->
+		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
+		     footer link (e.g. a "+ New" create action or an always-shown
+		     "View all") with its own click handler — useful when the widget runs
+		     outside a vue-router context (the built-in link uses $router). When
+		     no slot is given, the built-in "View all" link (folded from the
+		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
 		<div
-			v-if="viewAllRoute && totalRowCount > effectiveRows.length"
+			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
 			class="cn-data-table__footer">
-			<a
-				class="cn-data-table__view-all"
-				@click.prevent="onViewAll">
-				{{ viewAllLabel }}
-			</a>
+			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
+				<a
+					class="cn-data-table__view-all"
+					@click.prevent="onViewAll">
+					{{ viewAllLabel }}
+				</a>
+			</slot>
 		</div>
 	</div>
 </template>
@@ -356,6 +361,14 @@ export default {
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
 		 */
 		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
+		 * list widgets that want a plain bordered-row list without column labels.
+		 */
+		hideHeader: {
 			type: Boolean,
 			default: false,
 		},
