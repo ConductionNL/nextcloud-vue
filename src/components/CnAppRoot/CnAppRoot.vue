@@ -321,6 +321,20 @@
 				<slot name="user-settings">
 					<CnNotificationPreferences v-if="userSettingsOpen" />
 					<!--
+						Credential broker (OpenRegister). Lets the user manage the
+						secrets OR holds on their behalf; apps call external providers
+						through OR without ever seeing the secret. The app's manifest
+						`credentials[]` declarations drive the informational "Apps
+						requesting credentials" list.
+					-->
+					<NcAppSettingsSection v-if="userSettingsOpen"
+						id="credentials"
+						:name="translate('Credentials')">
+						<CnCredentials
+							:app-id="appId"
+							:app-credentials="(manifest && manifest.credentials) || []" />
+					</NcAppSettingsSection>
+					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
@@ -370,6 +384,7 @@ import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import Vue, { computed, ref, watch } from 'vue'
@@ -453,6 +468,7 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnCredentials,
 		CnTenantBadge,
 	},
 

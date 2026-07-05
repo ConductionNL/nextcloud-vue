@@ -192,6 +192,7 @@ export { CnFeaturesAndRoadmapSidebar } from './CnFeaturesAndRoadmapSidebar/index
 export { CnFeaturesAndRoadmapView } from './CnFeaturesAndRoadmapView/index.js'
 export { CnSupportDialog } from './CnSupportDialog/index.js'
 export { CnNotificationPreferences } from './CnNotificationPreferences/index.js'
+export { CnCredentials } from './CnCredentials/index.js'
 export { CnFeaturesTab } from './CnFeaturesTab/index.js'
 export { CnRoadmapTab } from './CnRoadmapTab/index.js'
 export { CnRoadmapItem } from './CnRoadmapItem/index.js'
