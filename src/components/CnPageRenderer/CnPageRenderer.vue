@@ -221,16 +221,23 @@ export default {
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
 			 * actions. Context is pre-bound with this component's
-			 * $router and the injected cnRegistry.
+			 * $router and the injected cnRegistry; a caller may merge
+			 * extra context (e.g. CnWidgetObjectTable passes
+			 * `{ objectStore, source, row }` for `object-op` actions).
+			 * The dispatch result is returned so async `object-op`
+			 * dispatches can be awaited.
 			 *
 			 * @param {object} action The action to dispatch.
+			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
+			 * @return {*} The dispatchAction return value (a promise for object-op).
 			 */
-			cnDispatchAction: (action) => {
-				dispatchAction(action, {
+			cnDispatchAction: (action, extraContext = {}) => {
+				return dispatchAction(action, {
 					router: this.$router ?? null,
 					registry: this.cnRegistry,
 					handlers: this.effectiveManifest?.actions ?? {},
 					openModal: this._cnOpenModal,
+					...extraContext,
 				})
 			},
 		}

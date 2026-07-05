@@ -16,20 +16,26 @@ import { dispatchAction } from '@conduction/nextcloud-vue'
 ```ts
 function dispatchAction(
     action: {
-        type?: 'handler' | 'open-modal' | 'open-page' | 'navigate',
+        type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op',
         // type-specific fields:
         handler?: string,           // type='handler'
         args?: any[],               // type='handler'
         target?: string,            // type='open-modal' | 'open-page' | 'navigate'
         props?: object,             // type='open-modal'
+        op?: 'patch' | 'delete' | 'create',  // type='object-op'
+        values?: object,            // type='object-op' — patch merge / create payload
+        confirm?: boolean,          // type='object-op' — confirm-gating intent (host-consumed)
     },
     context: {
         router?: VueRouter,         // required for 'open-page' + 'navigate'
         registry?: Record<string, { kind, component }>,  // required for 'open-modal'
         handlers?: Record<string, Function>,             // required for 'handler'
         openModal?: (key: string, props?: object) => void,  // required for 'open-modal'
+        objectStore?: ObjectStore,  // required for 'object-op' (useObjectStore shape)
+        source?: { register, schema },  // required for 'object-op' — the widget's source
+        row?: object,               // required for 'object-op' patch/delete (row-scoped)
     },
-): void
+): void | Promise<object | boolean | null>  // object-op returns the store call's promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
@@ -73,6 +79,36 @@ dispatchAction(
     { type: 'navigate', target: '/sources' },
     { router: $router },
 )
+```
+
+### `object-op`
+
+Declarative mutation of an OpenRegister object (ADR-049), dispatched via
+the shared object store: `saveObject` for `op: 'patch'` (the `row` merged
+with `values`) and `op: 'create'` (`values` as a new object), and
+`deleteObject` for `op: 'delete'` — always against
+`context.source.register` / `context.source.schema` (a matching
+already-registered store type is reused; otherwise a
+`<register>/<schema>` type is registered on the fly).
+
+The manifest declares **intent only**: authorization-shaped fields on
+the action (`role`, `allow`, …) are never consulted — OpenRegister RBAC
+is the single authority, a forbidden mutation is rejected server-side,
+and the store only mutates its caches on success, so a rejected write
+surfaces (via the returned `null` / `false` and the store's
+`errors[type]`) with **no local state change**.
+
+`confirm` is consumed by the rendering host, not by the dispatcher:
+`CnWidgetObjectTable` routes `delete` (always) and `patch`/`create`
+(on `confirm: true`) through `CnConfirmDialog` *before* calling
+`dispatchAction`.
+
+```js
+const result = await dispatchAction(
+    { type: 'object-op', op: 'patch', values: { status: 'accepted' } },
+    { objectStore: useObjectStore(), source: { register: 'pipelinq', schema: 'case' }, row },
+)
+if (result === null) { /* rejected — surface the store error, mutate nothing */ }
 ```
 
 ## When you'd call it directly
