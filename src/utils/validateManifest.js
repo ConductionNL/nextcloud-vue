@@ -242,6 +242,32 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 3d. stats-block dataSource | entries mutual exclusion. A multi-entry
+	//     stats-block (`props.entries[]`) declares one source PER entry, so a
+	//     widget-level `dataSource` (entry-level or `props.dataSource`) at the
+	//     same time is ambiguous — exactly one of the two forms is allowed.
+	//     Cross-field rule → post-schema check (clear message), matching the
+	//     gridX+gridWidth precedent. A stats-block with NEITHER is left to the
+	//     component (CnStatsBlockWidget flags it at mount time) because the
+	//     in-app widget editor legitimately creates not-yet-configured widgets.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.widgetKey !== 'stats-block') return
+				const props = isPlainObject(widget.props) ? widget.props : {}
+				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
+				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+					|| (props.dataSource !== undefined && props.dataSource !== null)
+				if (hasEntries && hasDataSource) {
+					errors.push(
+						`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`,
+					)
+				}
+			})
+		})
+	}
+
 	// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {

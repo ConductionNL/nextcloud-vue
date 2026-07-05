@@ -4,8 +4,8 @@ Every task targets `beta`, Vue 2.7 Options API, new props default to no-op, `cn-
 
 ## 1. Schema + validator regen
 
-- [ ] 1.1 Add the `source` object shape (`register`, `schema`, `filter`, `order`, `limit`) to `object-table` widget props, the `object-op` action `$def` (`op` enum `patch|delete|create`, `values` object, `confirm` boolean), and the `entries[]` array to `stats-block` widget props in the v2 schema. — spec_ref: "v2 manifest schema and compiled validator accept the new fields" — files: `src/schemas/app-manifest-v2.schema.json`
-- [ ] 1.2 Regenerate the compiled validator via `node scripts/build-validators.js` (never hand-edit the artifact) and verify it loads. — spec_ref: same — files: `scripts/build-validators.js`, `src/**/validateManifestV2.compiled.js`
+- [x] 1.1 Add the `source` object shape (`register`, `schema`, `filter`, `order`, `limit`) to `object-table` widget props, the `object-op` action `$def` (`op` enum `patch|delete|create`, `values` object, `confirm` boolean), and the `entries[]` array to `stats-block` widget props in the v2 schema. — spec_ref: "v2 manifest schema and compiled validator accept the new fields" — files: `src/schemas/app-manifest-v2.schema.json`
+- [x] 1.2 Regenerate the compiled validator via `node scripts/build-validators.js` (never hand-edit the artifact) and verify it loads. — spec_ref: same — files: `scripts/build-validators.js`, `src/**/validateManifestV2.compiled.js`
 
 ## 2. object-table enrichment
 

@@ -582,6 +582,49 @@
 					"then": {
 						"properties": { "gridY": { "const": 0 } }
 					}
+				},
+				{
+					"description": "object-table built-in widget: when props declares a `source` it must match the declarative self-fetch shape, and `actions` must be typed manifest actions (incl. type:'object-op'). Other props stay free-form (pass-through to CnDataTable).",
+					"if": {
+						"properties": { "widgetKey": { "const": "object-table" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"source": { "$ref": "#/$defs/objectTableSource" },
+									"actions": {
+										"type": "array",
+										"items": { "$ref": "#/$defs/action" },
+										"description": "Declarative row/widget actions rendered by CnWidgetObjectTable. object-op patch/delete render per row; object-op create renders as a widget-scoped footer affordance."
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "stats-block built-in widget: when props declares `entries[]` each entry must match the statsBlockEntry shape. The exactly-one-of dataSource | props.entries constraint is a cross-field rule enforced by validateManifestV2() as a post-schema check (clear error message), not by JSON Schema.",
+					"if": {
+						"properties": { "widgetKey": { "const": "stats-block" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"entries": {
+										"type": "array",
+										"items": { "$ref": "#/$defs/statsBlockEntry" },
+										"description": "Multi-entry KPI sources — each entry renders one CnStatsBlock within the widget card. Mutually exclusive with a single dataSource."
+									}
+								}
+							}
+						}
+					}
 				}
 			]
 		},
@@ -678,7 +721,7 @@
 			"type": "object",
 			"required": ["id", "label"],
 			"additionalProperties": false,
-			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -690,9 +733,24 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["handler", "open-modal", "open-page", "navigate"],
+					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+				},
+				"op": {
+					"type": "string",
+					"enum": ["patch", "delete", "create"],
+					"description": "object-op only: the mutation verb. patch merges `values` into the row's object (row-scoped); delete removes the row's object (row-scoped, ALWAYS confirm-gated); create adds a new object built from `values` against the widget's source register/schema (widget-scoped footer/header affordance). Required when type is 'object-op'."
+				},
+				"values": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "object-op only: the verb's payload. For patch: the partial object merged over the row's object. For create: the new object's properties. Omitted for delete."
+				},
+				"confirm": {
+					"type": "boolean",
+					"default": false,
+					"description": "object-op only: when true, patch/create present a confirmation dialog (CnConfirmDialog) before dispatch. delete ALWAYS confirms regardless of this flag."
 				},
 				"target": {
 					"type": "string",
@@ -714,6 +772,103 @@
 				"icon": {
 					"type": "string",
 					"description": "Optional icon for the action, rendered by CnActionsBar. Either an MDI icon name (e.g. 'TextBoxOutline') or a CSS icon class (e.g. 'icon-file')."
+				}
+			},
+			"allOf": [
+				{
+					"description": "object-op actions MUST declare their mutation verb via `op`.",
+					"if": {
+						"properties": { "type": { "const": "object-op" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["op"] }
+				}
+			]
+		},
+		"objectTableSource": {
+			"type": "object",
+			"required": ["register", "schema"],
+			"additionalProperties": false,
+			"description": "Declarative self-fetch source for the object-table built-in widget (CnWidgetObjectTable). The widget resolves `filter` @-tokens (@me, @today, @workspace.*, ?-optional suffix) with the shared resolveFilterTokens grammar just before fetching, and drives CnDataTable's existing self-fetch. `register` MAY carry an `@resolve:` sentinel — the widget passes it through unexpanded (resolution is the host loader's responsibility). Externally supplied `rows` always win over `source`.",
+			"properties": {
+				"register": {
+					"type": "string",
+					"description": "OpenRegister register slug (or an `@resolve:<key>` sentinel, passed through unexpanded by the widget)."
+				},
+				"schema": {
+					"type": "string",
+					"description": "OpenRegister schema slug."
+				},
+				"filter": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Filter map (`{ field: value | { op: value } }`). Values may use the shared @-token grammar (@me, @today, @workspace.<key>, trailing `?` for optional clauses that drop when unresolved)."
+				},
+				"order": {
+					"type": "object",
+					"additionalProperties": { "type": "string", "enum": ["asc", "desc"] },
+					"description": "Fetch ordering: field name to direction map (e.g. { \"dueDate\": \"asc\" })."
+				},
+				"limit": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Row cap. 0 (or omitted) shows all fetched rows; a positive value caps the rendered rows and enables the View-all footer when more rows exist."
+				}
+			}
+		},
+		"statsBlockEntry": {
+			"type": "object",
+			"required": ["register", "schema"],
+			"additionalProperties": false,
+			"description": "One KPI entry inside a multi-entry stats-block widget (CnStatsBlockWidget `entries[]`). Carries the same source contract as a type:'stat' widget: register + schema + metric + token-resolved filter (@today / @me / @workspace.* and ?-optional clauses), plus per-entry presentation (title, variant, countLabel), an optional route deep link, and hideWhenZero.",
+			"properties": {
+				"title": {
+					"type": "string",
+					"description": "KPI title rendered by the inner CnStatsBlock."
+				},
+				"register": {
+					"type": "string",
+					"description": "OpenRegister register slug for this entry's count."
+				},
+				"schema": {
+					"type": "string",
+					"description": "OpenRegister schema slug for this entry's count."
+				},
+				"metric": {
+					"type": "string",
+					"description": "Aggregation metric for the REST /value aggregation (default 'count')."
+				},
+				"field": {
+					"type": "string",
+					"description": "Field the metric aggregates over (metric-dependent; unused for count)."
+				},
+				"filter": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Filter map with the shared @-token grammar (@today / @me / @workspace.<key>, trailing `?` for optional clauses)."
+				},
+				"route": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Optional vue-router location for the KPI's deep link (renders the entry clickable)."
+				},
+				"variant": {
+					"type": "string",
+					"enum": ["default", "primary", "success", "warning", "error"],
+					"description": "Color variant forwarded to the inner CnStatsBlock."
+				},
+				"countLabel": {
+					"type": "string",
+					"description": "Label displayed next to the count."
+				},
+				"iconClass": {
+					"type": "string",
+					"description": "Optional Nextcloud core icon class (icon-link, icon-mail, …) for the entry."
+				},
+				"hideWhenZero": {
+					"type": "boolean",
+					"default": false,
+					"description": "When true, the entry is omitted from the card when its resolved count is 0."
 				}
 			}
 		},
