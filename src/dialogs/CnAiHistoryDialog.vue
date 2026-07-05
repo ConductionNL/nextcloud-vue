@@ -5,7 +5,7 @@
   Opened by CnAiChatPanel when the user clicks the History button.
 
   On open, fetches the 50 most-recent conversations from:
-    GET /index.php/apps/openregister/api/chat/conversations?limit=50
+    GET /index.php/apps/openregister/api/conversations?limit=50
   via axios from @nextcloud/axios.
 
   Emits:
@@ -131,7 +131,7 @@ export default {
 			this.fetchError = false
 			try {
 				const response = await axios.get(
-					'/index.php/apps/openregister/api/chat/conversations',
+					'/index.php/apps/openregister/api/conversations',
 					{ params: { limit: 50 } },
 				)
 				const data = response.data
@@ -141,7 +141,7 @@ export default {
 				this.conversations = list.map((c) => ({
 					uuid: c.uuid || c.id,
 					title: c.title || this.excerptTitle(c),
-					updatedAt: c.updatedAt || c.modified || c.created,
+					updatedAt: c.updatedAt || c.updated || c.created,
 					createdAt: c.createdAt || c.created,
 				}))
 			} catch {

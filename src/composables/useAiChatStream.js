@@ -164,8 +164,8 @@ export function useAiChatStream(contextInstance) {
 
 	/**
 	 * Handle an error event or transport failure.
-	 * @param code
-	 * @param message
+	 * @param {string} code - Machine-readable error code (e.g. 'rate_limited', 'connection_error')
+	 * @param {string} message - Human-readable error message for the UI
 	 */
 	function fail(code, message) {
 		state.isStreaming = false
@@ -184,8 +184,8 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Non-streaming fallback: POST to /api/chat/send via axios, then synthesise
 	 * a single "final" event from the JSON response.
-	 * @param {string} content
-	 * @param {object} body
+	 * @param {string} content - The user's message text
+	 * @param {object} body - Request body already built by send() (message, context, newThread)
 	 */
 	async function sendFallback(content, body) {
 		try {
@@ -207,7 +207,7 @@ export function useAiChatStream(contextInstance) {
 	 * non-streaming endpoint on 404/501 or connection failure.
 	 *
 	 * @param {string} content - The user's message text
-	 * @param {object} [options]
+	 * @param {object} [options] - Send options
 	 * @param {boolean} [options.newThread] - Force a new Conversation row on the server
 	 * @returns {Promise<void>} Resolves on "final", rejects on "error" or abort
 	 */
@@ -349,16 +349,29 @@ export function useAiChatStream(contextInstance) {
 	/**
 	 * Load an existing conversation's messages into the state.
 	 * Used by CnAiHistoryDialog when the user selects a past conversation.
-	 * @param {string} conversationUuid
+	 *
+	 * Fetches GET /api/conversations/{uuid}/messages (OR's conversation#messages
+	 * route), which returns { results: [...] } ordered oldest-first. Each OR
+	 * message carries { id, uuid, conversationId, role, content, sources,
+	 * context, created } — mapped here onto the { role, content, toolCalls }
+	 * shape the send/stream paths produce so CnAiMessageList renders resumed
+	 * conversations identically to live ones. OR does not persist tool calls
+	 * on messages, so toolCalls degrades to [].
+	 * @param {string} conversationUuid - UUID of the conversation to resume
 	 * @returns {Promise<void>}
 	 */
 	async function loadConversation(conversationUuid) {
 		try {
 			const response = await axios.get(
-				`/index.php/apps/openregister/api/chat/conversations/${conversationUuid}`,
+				`/index.php/apps/openregister/api/conversations/${conversationUuid}/messages`,
+				// OR's controller defaults to 50 messages; raise the limit so
+				// long threads resume fully.
+				{ params: { limit: 200 } },
 			)
 			const data = response.data
-			const messages = Array.isArray(data.messages) ? data.messages : (data.results || [])
+			const messages = Array.isArray(data.results)
+				? data.results
+				: (Array.isArray(data.messages) ? data.messages : [])
 			state.messages = messages.map((m) => ({
 				role: m.role || 'assistant',
 				content: m.content || '',
