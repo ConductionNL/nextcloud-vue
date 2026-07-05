@@ -66,7 +66,7 @@ function ajvErrorToString(err) {
  * the rule when those widgets ship. New built-ins added to the
  * library MUST be appended to this list in the same PR.
  *
- * @type {ReadonlySet<string>}
+ * @type {Set<string>}
  */
 const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'object-table',

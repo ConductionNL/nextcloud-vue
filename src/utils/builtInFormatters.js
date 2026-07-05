@@ -22,7 +22,7 @@ import { translate as t, translatePlural as n } from '@nextcloud/l10n'
  * Parse a value that's meant to be a date — accepts a `Date` instance,
  * an ISO/parseable string, or a numeric timestamp.
  *
- * @param {Date|string|number|null|undefined} value
+ * @param {Date|string|number|null|undefined} value The candidate date value.
  * @return {Date|null} A `Date` instance, or `null` if the input is null/empty/unparseable.
  */
 function toDate(value) {
@@ -36,7 +36,7 @@ function toDate(value) {
  * Locale-formatted date (no time). Backed by `Intl.DateTimeFormat`
  * (`dateStyle: 'medium'`) using the user-agent locale.
  *
- * @param {*} value
+ * @param {*} value A `Date`, parseable date string, or timestamp.
  * @return {string} Formatted date, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDate(value) {
@@ -50,8 +50,8 @@ export function formatDate(value) {
  * Locale-formatted date + time. Backed by `Intl.DateTimeFormat`
  * (`dateStyle: 'medium'`, `timeStyle: 'short'`).
  *
- * @param {*} value
- * @return {string}
+ * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @return {string} Formatted date + time, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatDateTime(value) {
 	if (value == null || value === '') return ''
@@ -65,8 +65,8 @@ export function formatDateTime(value) {
  * Picks the coarsest unit whose absolute delta exceeds one unit,
  * down to minutes (anything sub-minute clamps to "now"/seconds).
  *
- * @param {*} value
- * @return {string}
+ * @param {*} value A `Date`, parseable date string, or timestamp.
+ * @return {string} Relative phrasing, or `''` for null/empty, or `String(value)` for unparseable.
  */
 export function formatRelativeTime(value) {
 	if (value == null || value === '') return ''
