@@ -257,6 +257,8 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
+// AI Chat Companion backend config (single point for the chat backend app id)
+export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
 export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
