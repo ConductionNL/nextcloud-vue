@@ -74,6 +74,7 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
@@ -83,6 +84,7 @@ import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
 // for why it lives in its own module).
@@ -105,6 +107,14 @@ import { CnWidgetHostShell } from './hostShell.js'
  * passed through unexpanded (resolution is the host loader's job).
  * Externally supplied `rows` always win — the pre-existing pass-through
  * interface is unchanged.
+ *
+ * Wave 2 (#91): a declarative `endpointSource` (`{ url, method?, params?,
+ * responsePath? }`) is the alternative to the OpenRegister `source` — rows
+ * come from an app REST endpoint's payload at `responsePath`, fetched by the
+ * shared `useEndpointSource` engine (token-resolved params, request dedup +
+ * short-TTL cache, `cn:page:refresh` / `cn:widget:refresh` subscription).
+ * Exactly one of `source` | `endpointSource`; columns / formatters /
+ * `rowRoute` / `actions` apply unchanged on top of endpoint rows.
  *
  * A declarative `actions[]` array renders `patch` / `delete` `object-op`
  * actions (and reused `handler` / `open-modal` / `open-page` / `navigate`
@@ -223,6 +233,26 @@ export default {
 			default: null,
 		},
 		/**
+		 * Endpoint data binding (Wave 2, #91) — the alternative to the
+		 * OpenRegister `source` for rows an app REST endpoint computes (e.g. a
+		 * per-source performance report). Rows come from the payload at
+		 * `responsePath` (a dot-path; the plucked value must be an array —
+		 * anything else renders as empty). `params` values use the shared
+		 * filter-token grammar (`@workspace.dateFrom?`, `@me`, `@today±Nd`, …)
+		 * and re-resolve + refetch when the page context changes. Requests are
+		 * deduped + short-TTL cached per (url+params) by the shared
+		 * `useEndpointSource` engine, which also subscribes to
+		 * `cn:page:refresh` / `cn:widget:refresh`. Exactly one of `source` |
+		 * `endpointSource` (validator-enforced); external `rows` still win
+		 * over both. `columns` / formatters / `rowRoute` / `actions` apply
+		 * unchanged on top of endpoint rows.
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string}|null}
+		 */
+		endpointSource: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Declarative actions (unified manifest action shape — `handler` |
 		 * `open-modal` | `open-page` | `navigate` | `object-op`). `object-op`
 		 * `patch` / `delete` (and every non-mutating type) render per row via
@@ -291,6 +321,35 @@ export default {
 		},
 	},
 
+	setup(props) {
+		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
+		// owns token resolution, request dedup + TTL caching, and the
+		// cn:page:refresh / cn:widget:refresh subscriptions (the widget's own
+		// `widgetId` is matched against widget-scoped refresh payloads).
+		// No-op while `endpointSource` is null, so the OpenRegister `source`
+		// self-fetch path is untouched. Injects re-read in setup (same
+		// resolution as the Options `inject` block).
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', ref(null))
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		// External rows always win — and suppress the request entirely (the
+		// pre-existing "when rows are provided, no API calls are made"
+		// contract), so the getter resolves to null while `rows` are supplied.
+		const { data, loading, error, refetch } = useEndpointSource(
+			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
+			{
+				ctx: () => ({
+					...(unwrap(objectCtxRaw) || {}),
+					workspace: unwrap(workspaceRaw) || {},
+					config: unwrap(appConfigRaw) || {},
+				}),
+				widgetId: () => props.widgetId,
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+	},
+
 	data() {
 		return {
 			/** Error message from the last rejected object-op write ('' = none). */
@@ -352,14 +411,35 @@ export default {
 			return !!this.source && hasUnresolvedTokens(this.resolvedFilter)
 		},
 		/**
+		 * Whether the Wave-2 `endpointSource` drives the rows: a usable
+		 * endpoint config and no external rows (external rows always win).
+		 * @return {boolean}
+		 */
+		endpointActive() {
+			return !!(this.endpointSource && this.endpointSource.url)
+				&& (!this.rows || this.rows.length === 0)
+		},
+		/**
+		 * Rows resolved from the endpoint payload. The payload (after the
+		 * `responsePath` pluck the shared engine applies) must be an ARRAY;
+		 * anything else renders as an empty table rather than crashing the
+		 * column renderer.
+		 * @return {Array<object>}
+		 */
+		endpointRows() {
+			return Array.isArray(this.epData) ? this.epData : []
+		},
+		/**
 		 * Whether the declarative `source` drives a self-fetch: a usable
-		 * source, no external rows (external rows always win), and no
-		 * unresolved required token.
+		 * source, no external rows (external rows always win), no active
+		 * endpoint binding (exactly-one-of — endpointSource wins when both
+		 * slip past the validator), and no unresolved required token.
 		 * @return {boolean}
 		 */
 		selfFetchActive() {
 			return !!(this.source && this.source.register && this.source.schema)
 				&& (!this.rows || this.rows.length === 0)
+				&& !this.endpointActive
 				&& !this.waitingForContext
 		},
 		/**
@@ -411,17 +491,20 @@ export default {
 		},
 		/**
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
-		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`, `actions`,
-		 * `rowRoute`), so they are consumed here and never forwarded to the
-		 * inner CnDataTable. `undefined` values are dropped so CnDataTable's
-		 * own prop defaults apply. When the declarative `source` is active it
-		 * supplies `register` / `schemaId` / `fetchParams` / `limit`; an
-		 * `@resolve:` register sentinel passes through unexpanded.
+		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`,
+		 * `endpointSource`, `actions`, `rowRoute`), so they are consumed here
+		 * and never forwarded to the inner CnDataTable. `undefined` values are
+		 * dropped so CnDataTable's own prop defaults apply. When the
+		 * declarative `source` is active it supplies `register` / `schemaId` /
+		 * `fetchParams` / `limit`; an `@resolve:` register sentinel passes
+		 * through unexpanded. When the Wave-2 `endpointSource` is active it
+		 * supplies the resolved `rows` + `loading` instead — columns,
+		 * formatters, and row navigation apply unchanged on top.
 		 * @return {object}
 		 */
 		innerProps() {
 			// eslint-disable-next-line no-unused-vars
-			const { title, documentationUrl, widgetId, hideWrapper, source, actions, rowRoute, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) inner[k] = v
@@ -433,6 +516,10 @@ export default {
 				if (typeof this.source.limit === 'number' && this.source.limit > 0) {
 					inner.limit = this.source.limit
 				}
+			}
+			if (this.endpointActive) {
+				inner.rows = this.endpointRows
+				inner.loading = this.epLoading || this.loading
 			}
 			if (this.rowRoute) {
 				inner.rowClickRoute = this.rowRouteFn
@@ -599,10 +686,15 @@ export default {
 		},
 
 		/**
-		 * Re-run the inner CnDataTable's self-fetch (no-op when the widget is
-		 * fed external rows).
+		 * Re-run the active fetch: the endpoint binding (force-refetch past
+		 * the shared cache) or the inner CnDataTable's self-fetch. No-op when
+		 * the widget is fed external rows.
 		 */
 		refresh() {
+			if (this.endpointActive) {
+				this.epRefetch()
+				return
+			}
 			const table = this.$refs.dataTable
 			if (this.selfFetchActive && table && typeof table.fetchData === 'function') {
 				table.fetchData()
