@@ -109,6 +109,7 @@ Fallback slot — shown when ApexCharts is not available:
 | `valueFormat` | String\|Object | `null` | Named value formatter for the value axis + tooltip: `'currency'`, `'currency-compact'`, `'percent'`, or `{ name, currency?, decimals? }` |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie-family slices and (distributed) bar categories |
 | `emptyLabel` | String | `''` | Empty-state message rendered instead of the chart when the resolved series have no data points |
+| `endpointSource` | Object | `null` | Endpoint-bound series/labels (Wave 2, #91): `{ url, method?, params?, responsePath?, labelsPath?, series: [{ name?, path }] }`. `params` use the shared filter-token grammar (`@workspace.datePreset?` rides the dashboard range); an ARRAY payload maps per-item field paths, an OBJECT payload maps parallel arrays; pie-family charts flatten the first series. Exactly one of `dataSource` \| `endpointSource`. |
 
 ## Slots
 
