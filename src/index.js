@@ -179,6 +179,7 @@ export {
 	CnSuggestFeatureModal,
 	CnSupportDialog,
 	CnNotificationPreferences,
+	CnCredentials,
 	CnDeckCardPicker,
 	CnDeckCardCreate,
 	registerIcons,
