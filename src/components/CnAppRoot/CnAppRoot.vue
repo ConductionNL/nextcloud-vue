@@ -397,6 +397,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
@@ -498,6 +499,11 @@ export default {
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
+			// Pluggable kb-search providers (#91 Wave 3): library built-ins
+			// (`default`) merged UNDER the consumer registry — the same
+			// last-wins spread as cnFormatters. CnKbSearchWidget resolves
+			// `content.provider` against this.
+			cnKbSearchProviders: { ...BUILT_IN_KB_PROVIDERS, ...this.kbSearchProviders },
 			/**
 			 * V2 component registry. Provided to all descendants so
 			 * CnWidgetGrid and CnPageRenderer can resolve widget keys.
@@ -835,6 +841,23 @@ export default {
 		 * @type {object}
 		 */
 		cellWidgets: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Pluggable knowledge-base search providers (#91 Wave 3). Map of
+		 * provider-key → provider object (`{ search(query, opts), externalOpen? }`),
+		 * merged OVER the library built-ins (`default`) and provided to
+		 * descendant `CnKbSearchWidget` via inject (`cnKbSearchProviders`).
+		 * A `kb-search` widget selects its provider by `content.provider`;
+		 * an app talking to a bespoke KB backend (the xwiki proxy) registers
+		 * its client here — the library ships only the `default` endpoint
+		 * provider + the seam. Empty by default (the built-in `default`
+		 * provider then serves every `kb-search` widget).
+		 *
+		 * @type {object}
+		 */
+		kbSearchProviders: {
 			type: Object,
 			default: () => ({}),
 		},

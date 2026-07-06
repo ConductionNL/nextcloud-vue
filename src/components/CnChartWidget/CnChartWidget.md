@@ -18,7 +18,7 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueFormat`, `colorMap`, `emptyLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueFormat`, `colorMap`, `emptyLabel`, `views`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
 
 Area chart — time series data:
 
@@ -110,6 +110,9 @@ Fallback slot — shown when ApexCharts is not available:
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie-family slices and (distributed) bar categories |
 | `emptyLabel` | String | `''` | Empty-state message rendered instead of the chart when the resolved series have no data points |
 | `endpointSource` | Object | `null` | Endpoint-bound series/labels (Wave 2, #91): `{ url, method?, params?, responsePath?, labelsPath?, series: [{ name?, path }] }`. `params` use the shared filter-token grammar (`@workspace.datePreset?` rides the dashboard range); an ARRAY payload maps per-item field paths, an OBJECT payload maps parallel arrays; pie-family charts flatten the first series. Exactly one of `dataSource` \| `endpointSource`. |
+| `views` | Array | `[]` | In-widget display switcher (Wave 3, #91): `[{ key, label?, series?, valueFormat? }]` — 2+ entries render a pill row; the active view's `series` names filter the rendered cartesian series and its `valueFormat` overrides the widget-level one. Pure display, no arithmetic. |
+
+The `dataSource` OBJECT-form `aggregate` (Wave 3, #91) — `{ groupBy, metric?: 'count'|'sum', sumField?, topN?, otherBucket?, labelResolve?: { register?, schema, labelField?, colorField? } }` — groups the schema's objects via OpenRegister's `/grouped` facet (client-side collection fallback when unavailable), folds the post-`topN` remainder into a translated "Other" slice when `otherBucket: true`, and resolves reference keys to labels/colours through the shared object store (fkResolve pattern). A sibling `drilldown: { route, filterParam }` navigates on segment/bar click with the RAW category key in the query (`/`-prefixed routes are paths, others route names; the Other bucket never navigates).
 
 ## Slots
 

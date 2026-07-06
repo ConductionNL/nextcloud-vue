@@ -128,6 +128,37 @@ dataSource: {
 
 The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`selectByPath`](../utilities/composables/use-graph-q-l.md) for the full path grammar.
 
+### Aggregation shorthand (Wave 3, #91) — group-by over an OR collection
+
+`aggregate` as an **object** (the string form `aggregate: 'count'` stays the count shorthand above) runs a categorical group-by over the schema's objects — the "requests by status" / "cases by type" / "top skills" chart in one declarative block:
+
+```js
+dataSource: {
+  register: 'crm',
+  schema: 'request',
+  filter: { active: true },              // shared @-token grammar
+  aggregate: {
+    groupBy: 'status',                   // the categorical field
+    metric: 'count',                     // 'count' (default) | 'sum'
+    sumField: 'hours',                   // required for metric: 'sum'
+    topN: 10,                            // keep the 10 largest groups (sorted desc)
+    otherBucket: true,                   // fold the remainder into a translated "Other" slice
+    labelResolve: {                      // when groupBy holds reference uuids:
+      schema: 'billingCategory',         //   resolve each key to the referenced object…
+      labelField: 'name',                //   …'s display label (default 'name')
+      colorField: 'color',               //   optional per-category colour (feeds the colorMap path)
+    },
+  },
+  drilldown: { route: 'Requests', filterParam: 'status' },
+}
+```
+
+Server-first: OpenRegister's `/grouped` facet endpoint does the aggregation (the same facet the `groupBy` shorthand reaches), so the client never pulls a collection just to count it. When that endpoint is unavailable (older OR) the widget falls back to fetching the collection (capped at 1000 objects) and grouping client-side. `labelResolve` resolves reference keys through the **shared object store** (per-id cache + in-flight dedup — the `fkResolve` cell pattern), degrading to the raw key when an object can't be loaded. An explicit `colorMap` prop wins over `labelResolve.colorField` colours.
+
+### Drilldown — segment/bar click → filtered route
+
+A `drilldown: { route, filterParam }` block on the `dataSource` makes every slice / bar click navigate with the clicked category's **raw** key (the uuid / status value, not the resolved display label) in the query: `{ [filterParam]: rawKey }`. A `route` starting with `/` is treated as a path, anything else as a route name. The folded "Other" bucket never navigates (it has no single category value). Works with both the `aggregate` and legacy `groupBy` forms.
+
 ## `endpointSource` — endpoint-bound series/labels (Wave 2, #91)
 
 Binds the chart to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine (token-resolved `params`, request dedup + short-TTL cache, `cn:page:refresh` wiring; the chart's own `refresh()` / `cn:widget:refresh` handler force-refetches it too). **Exactly one of `dataSource` | `endpointSource`** (validator-enforced).
@@ -154,6 +185,19 @@ endpointSource: {
 
 Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
 
+## `views` — in-widget display switcher (Wave 3, #91)
+
+An optional `views` array renders a compact pill row above the chart that toggles which named series / value format render — pure display, no series arithmetic (the €/% and hours/% toggles from the Wave-4 evaluation):
+
+```js
+views: [
+  { key: 'eur', label: '€', series: ['Margin €'], valueFormat: 'currency' },
+  { key: 'pct', label: '%', series: ['Margin %'], valueFormat: 'percent' },
+]
+```
+
+Each entry is `{ key, label?, series?, valueFormat? }`: `series` (an array of series **names**) filters which resolved cartesian series render (a filter that matches nothing falls back to all series, so a typo never blanks the chart; pie-family series have no names to filter on), and `valueFormat` overrides the widget-level `valueFormat` while the view is active. The first view is active by default; fewer than two views render no switcher.
+
 ### Props
 
 | Prop | Type | Default | Description |
@@ -176,8 +220,9 @@ Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped serie
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |
 | `emptyLabel` | String | `''` | Empty-state message rendered INSTEAD of the chart when the resolved series contain no data points. Empty keeps the pre-existing empty-canvas behaviour. |
 | `endpointSource` | Object | `null` | Endpoint-bound series/labels — see [`endpointSource`](#endpointsource--endpoint-bound-serieslabels-wave-2-91) above. Exactly one of `dataSource` \| `endpointSource`. |
+| `views` | Array | `[]` | In-widget display switcher — see [`views`](#views--in-widget-display-switcher-wave-3-91) above. Each entry `{ key, label?, series?, valueFormat? }`. |
 
-All five display props are additive (`chart` widget manifest `content` /
+All display props are additive (`chart` widget manifest `content` /
 `props` keys of the same names pass through CnDashboardPage's dispatcher).
 
 ### Slots

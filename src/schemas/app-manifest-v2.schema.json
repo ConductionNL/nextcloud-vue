@@ -890,6 +890,135 @@
 						}
 					}
 				}
+				,
+				{
+					"description": "workspace-filter catalog widget (#91 Wave 3): a choice list whose selection writes into the page workspace context so sibling widgets refetch. The endpoint/OR-source binding keys of `props.content` are typed here; the rest stays free-form.",
+					"if": {
+						"properties": { "widgetKey": { "const": "workspace-filter" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"writes": {
+												"type": "string",
+												"description": "The workspace context key the selection writes (`@workspace.<key>` or a bare `<key>`). Sibling widgets whose declarative source interpolates `@workspace.<key>` refetch on change."
+											},
+											"style": {
+												"type": "string",
+												"enum": ["radio", "select"],
+												"default": "radio",
+												"description": "Choice style: 'radio' (default) list or 'select' dropdown."
+											},
+											"allLabel": {
+												"type": "string",
+												"description": "Optional leading 'All' option — writes the empty string so an optional sibling token (`@workspace.<key>?`) drops (unfiltered set)."
+											},
+											"showCounts": {
+												"type": "boolean",
+												"default": true,
+												"description": "Render per-option counts."
+											},
+											"options": {
+												"type": "array",
+												"description": "Static options — each { value, label, count? } (or { id, name } / bare strings, normalised).",
+												"items": { "type": ["object", "string", "number"] }
+											},
+											"source": {
+												"type": "object",
+												"additionalProperties": true,
+												"description": "OpenRegister /grouped facet source { register, schema, groupBy, filter? } — each distinct value becomes an option with its object count.",
+												"properties": {
+													"register": { "type": "string" },
+													"schema": { "type": "string" },
+													"groupBy": { "type": "string" },
+													"filter": { "type": "object", "additionalProperties": true }
+												}
+											},
+											"endpointSource": {
+												"$ref": "#/$defs/endpointSource",
+												"description": "App endpoint returning an array of { value, label, count? } options at responsePath."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "kb-search catalog widget (#91 Wave 3): summary-driven knowledge-base search through a PLUGGABLE PROVIDER. The provider seam keys of `props.content` are typed here; the rest stays free-form.",
+					"if": {
+						"properties": { "widgetKey": { "const": "kb-search" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"provider": {
+												"type": "string",
+												"description": "Provider registry key (default 'default' — the built-in endpoint search). An app registers bespoke providers (the xwiki proxy) on CnAppRoot's kbSearchProviders; the xwiki client stays app-side."
+											},
+											"space": {
+												"type": "string",
+												"description": "Provider-specific KB space filter (passed to provider.search)."
+											},
+											"tags": {
+												"description": "Provider-specific tag filter — a single tag or an array.",
+												"oneOf": [
+													{ "type": "string" },
+													{ "type": "array", "items": { "type": "string" } }
+												]
+											},
+											"endpoint": {
+												"type": "string",
+												"description": "The default provider's search endpoint (OpenRegister xWiki leaf by default)."
+											},
+											"queryParam": {
+												"type": "string",
+												"description": "The default provider's query parameter name (default 'q')."
+											},
+											"bindTo": {
+												"type": "string",
+												"description": "Workspace context key to auto-search on (default 'activeSummary')."
+											},
+											"minChars": {
+												"type": "integer",
+												"minimum": 0,
+												"description": "Minimum characters before a search fires (default 3)."
+											},
+											"limit": {
+												"type": "integer",
+												"minimum": 1,
+												"description": "Result cap passed to the provider (default 8)."
+											},
+											"externalOpen": {
+												"type": "boolean",
+												"description": "Whether result links open in a new tab (defaults to the provider's own externalOpen flag)."
+											},
+											"unavailableFallback": {
+												"type": "string",
+												"description": "Text shown when the provider rejects / is unavailable (replaces the default 'Knowledge base unavailable')."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
 			]
 		},
 		"fieldWidget": {
@@ -936,7 +1065,7 @@
 		},
 		"dataSource": {
 			"type": "object",
-			"description": "Declarative data binding for widgets. Two forms: (a) shorthand {register, schema, filter?, aggregate: 'count'} — the lib builds a count query and resolves to {count}. (b) raw {graphql: {query, variables?, selectors}} — the lib issues the query and runs selectors against the response. Carry-forward from v1.3.0 widgetDef.dataSource.",
+			"description": "Declarative data binding for widgets. Forms: (a) shorthand {register, schema, filter?, aggregate: 'count'} — the lib builds a count query and resolves to {count}. (b) raw {graphql: {query, variables?, selectors}} — the lib issues the query and runs selectors. (c) #91 Wave 3 chart aggregation — `aggregate` as an OBJECT {groupBy, metric?: count|sum, sumField?, topN?, otherBucket?, labelResolve?} grouped over the schema's objects via OpenRegister's /grouped facet (client-side collection fallback), plus an optional sibling `drilldown` {route, filterParam}. Carry-forward from v1.3.0 widgetDef.dataSource.",
 			"additionalProperties": true,
 			"properties": {
 				"register": {
@@ -953,9 +1082,45 @@
 					"additionalProperties": true
 				},
 				"aggregate": {
-					"type": "string",
-					"enum": ["count"],
-					"description": "Shorthand aggregation. Currently only count is supported."
+					"description": "Shorthand aggregation. The STRING 'count' builds a GraphQL count query resolving to {count}. The OBJECT form (#91 Wave 3) is a chart-only categorical group-by served by OpenRegister's /grouped facet.",
+					"oneOf": [
+						{ "type": "string", "enum": ["count"] },
+						{
+							"type": "object",
+							"required": ["groupBy"],
+							"additionalProperties": false,
+							"description": "#91 Wave 3 chart aggregation: group the schema's objects by `groupBy`, count (default) or sum `sumField`, keep the `topN` largest (sorted desc) and optionally fold the remainder into a translated 'Other' slice, resolving reference keys to labels/colours via `labelResolve`.",
+							"properties": {
+								"groupBy": { "type": "string", "description": "The categorical field grouped on." },
+								"metric": { "type": "string", "enum": ["count", "sum"], "default": "count", "description": "count (default) | sum. sum requires sumField." },
+								"sumField": { "type": "string", "description": "Numeric field summed when metric is 'sum' (required for sum)." },
+								"topN": { "type": "integer", "minimum": 1, "description": "Keep the N largest groups (sorted by value desc)." },
+								"otherBucket": { "type": "boolean", "description": "Fold the post-topN remainder into a single translated 'Other' slice (sum of the rest). The Other bucket never drilldown-navigates." },
+								"labelResolve": {
+									"type": "object",
+									"required": ["schema"],
+									"additionalProperties": false,
+									"description": "Resolve reference (uuid) group keys to the referenced objects' display labels (and optional per-category colours) through the shared object store — the fkResolve pattern.",
+									"properties": {
+										"register": { "type": "string", "description": "Register the reference points into (defaults to the dataSource register)." },
+										"schema": { "type": "string", "description": "Schema slug the reference points into." },
+										"labelField": { "type": "string", "description": "Property used as the display label (default 'name')." },
+										"colorField": { "type": "string", "description": "Optional property read as a per-category CSS colour (feeds the chart's colorMap path)." }
+									}
+								}
+							}
+						}
+					]
+				},
+				"drilldown": {
+					"type": "object",
+					"required": ["route", "filterParam"],
+					"additionalProperties": false,
+					"description": "#91 Wave 3 (chart only): a segment/bar click navigates to `route` with the clicked category's RAW key in the query ({ [filterParam]: rawKey }). A `/`-prefixed route is a path, otherwise a route name. Works with the OBJECT `aggregate` and the legacy `groupBy` forms; the folded 'Other' bucket never navigates.",
+					"properties": {
+						"route": { "type": "string", "description": "Destination route name, or a path when it starts with '/'." },
+						"filterParam": { "type": "string", "description": "Query-param name the clicked category's raw key is written to." }
+					}
 				},
 				"graphql": {
 					"type": "object",
@@ -985,7 +1150,7 @@
 			"type": "object",
 			"required": ["id", "label"],
 			"additionalProperties": false,
-			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT an app endpoint + toast + refresh — CnActionButtons/dispatchAction), toggle (two-way state button — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -997,9 +1162,9 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export"],
+					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "toggle"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with params (JSON body) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent). toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
 				"op": {
 					"type": "string",
@@ -1014,7 +1179,7 @@
 				"confirm": {
 					"type": "boolean",
 					"default": false,
-					"description": "object-op only: when true, patch/create present a confirmation dialog (CnConfirmDialog) before dispatch. delete ALWAYS confirms regardless of this flag."
+					"description": "Confirm-gating (object-op + #91 Wave 3 api-call / open-form): when true, the action presents a CnConfirmDialog before running (the dispatcher / CnActionButtons runs AFTER confirmation). object-op delete ALWAYS confirms regardless of this flag."
 				},
 				"target": {
 					"type": "string",
@@ -1071,6 +1236,73 @@
 				"description": {
 					"type": "string",
 					"description": "export only: pre-translated description shown above the export launcher's pickers."
+				},
+				"url": {
+					"type": "string",
+					"description": "api-call / toggle only: the app endpoint (POST/PUT). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline (unresolved tokens collapse to empty)."
+				},
+				"method": {
+					"type": "string",
+					"enum": ["POST", "PUT"],
+					"description": "api-call: HTTP method (default POST). toggle writeUrl: default PUT."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "api-call / toggle only: the JSON request body. Values run the shared filter-token grammar (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call)."
+				},
+				"successMessage": {
+					"type": "string",
+					"description": "api-call / open-form / toggle: pre-translated success toast text (a library default applies when absent)."
+				},
+				"errorMessage": {
+					"type": "string",
+					"description": "api-call / toggle: pre-translated error toast text (falls back to the server's error/message, then a library default)."
+				},
+				"refresh": {
+					"type": "boolean",
+					"default": true,
+					"description": "api-call / toggle: bump the page-level cn:page:refresh signal after a successful call (default true; set false to skip)."
+				},
+				"register": {
+					"type": "string",
+					"description": "open-form only: OpenRegister register slug for the create dialog's schema (falls back to the page object context's register)."
+				},
+				"schema": {
+					"type": "string",
+					"description": "open-form only: OpenRegister schema slug — the create dialog fetches this schema and saves the new object against it."
+				},
+				"onSuccessRoute": {
+					"type": "string",
+					"description": "open-form only: optional route NAME navigated to after a successful save."
+				},
+				"labelOn": {
+					"type": "string",
+					"description": "toggle only: button label rendered while the state is ON (true). Falls back to `label`."
+				},
+				"labelOff": {
+					"type": "string",
+					"description": "toggle only: button label rendered while the state is OFF (false). Falls back to `label`."
+				},
+				"stateSource": {
+					"$ref": "#/$defs/endpointSource",
+					"description": "toggle only: the endpoint the initial state is read from on mount (the shared endpointSource shape — url + token-resolved params + responsePath). The `field` dot-path picks the boolean off the payload."
+				},
+				"writeUrl": {
+					"type": "string",
+					"description": "toggle only: the endpoint the flipped state is written to on click (interpolates the same tokens as `url`)."
+				},
+				"field": {
+					"type": "string",
+					"description": "toggle only: the state field — read off the stateSource payload on mount AND sent (as the flipped boolean) in the write body under this key."
+				},
+				"variant": {
+					"type": "string",
+					"description": "CnActionButtons button variant (e.g. 'primary', 'secondary', 'error'). 'error' also styles the confirm dialog as destructive."
+				},
+				"visibleWhen": {
+					"$ref": "#/$defs/visibleWhen",
+					"description": "#91 Wave 3: an optional predicate gating whether the action renders — the shared banner shape ({ endpoint | source | field, op, value }). The `field`-only LOCAL form evaluates against the page object context (a detail action shown only in the right lifecycle state); endpoint / source forms fetch. Fail-safe: a broken predicate hides the action."
 				}
 			},
 			"allOf": [
@@ -1081,8 +1313,66 @@
 						"required": ["type"]
 					},
 					"then": { "required": ["op"] }
+				},
+				{
+					"description": "api-call actions MUST declare their endpoint via `url`.",
+					"if": {
+						"properties": { "type": { "const": "api-call" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["url"] }
+				},
+				{
+					"description": "open-form actions MUST declare the create schema via `schema`.",
+					"if": {
+						"properties": { "type": { "const": "open-form" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["schema"] }
+				},
+				{
+					"description": "toggle actions MUST declare their write endpoint via `writeUrl`.",
+					"if": {
+						"properties": { "type": { "const": "toggle" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["writeUrl"] }
 				}
 			]
+		},
+		"visibleWhen": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "#91 Wave 3: the shared visibility predicate (the Wave-1 banner shape). THREE modes: `endpoint` (GET a JSON endpoint, `field` dot-paths into the body), `source` (an OpenRegister { register, schema, filter? } query — `field` into the first result, or omit / use @total for the collection total), or LOCAL (neither endpoint nor source — `field` dot-paths into the caller's object context, e.g. a detail-page record). `op` defaults to eq. Evaluation is FAIL-SAFE (any error → hidden).",
+			"properties": {
+				"endpoint": {
+					"type": "string",
+					"description": "A same-origin URL returning JSON; `field` is a dot-path into the body."
+				},
+				"source": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "An OpenRegister object query { register, schema, filter? } (filter supports the shared @-token grammar). `field` dot-paths into the first result; omit it (or use @total) to compare the collection total.",
+					"properties": {
+						"register": { "type": "string" },
+						"schema": { "type": "string" },
+						"filter": { "type": "object", "additionalProperties": true }
+					}
+				},
+				"field": {
+					"type": "string",
+					"description": "Dot-path to the compared value — into the endpoint body, the source's first result, or (LOCAL mode) the caller's object context."
+				},
+				"op": {
+					"type": "string",
+					"enum": ["eq", "neq", "gt", "gte", "lt", "lte"],
+					"default": "eq",
+					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number."
+				},
+				"value": {
+					"description": "The literal right-hand side of the comparison."
+				}
+			}
 		},
 		"objectTableSource": {
 			"type": "object",

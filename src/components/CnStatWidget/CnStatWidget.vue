@@ -54,6 +54,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import widgetLink from '../../mixins/widgetLink.js'
 
 /**
@@ -147,6 +148,14 @@ export default {
 		 */
 		cnObjectContext: { default: null },
 		/**
+		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
+		 * objectType, objectId, register, store } | null }`) provided by
+		 * CnPageRenderer — backfills the object token context so
+		 * `@objectId` / `@object.<field>` resolve on detail surfaces where
+		 * CnDetailPage is not an ancestor (#91 Wave 3).
+		 */
+		cnDetailObjectContext: { default: null },
+		/**
 		 * Page-level workspace context (a reactive `{ <key>: value }` map)
 		 * provided by CnDashboardPage. Drives `@page.<param>` / `@workspace.<param>`
 		 * tokens in an `endpoint` source's URL / params (e.g. a period selector
@@ -226,6 +235,7 @@ export default {
 		// setup — Vue 2.7 resolves them identically to the Options `inject`
 		// block (same precedent as CnChartWidget's date-range ref).
 		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
@@ -233,7 +243,7 @@ export default {
 			() => (props.content && props.content.endpointSource) || null,
 			{
 				ctx: () => ({
-					...(unwrap(objectCtxRaw) || {}),
+					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 					workspace: unwrap(workspaceRaw) || {},
 					config: unwrap(appConfigRaw) || {},
 				}),
@@ -286,9 +296,7 @@ export default {
 		 * @return {object|null}
 		 */
 		objectCtx() {
-			const c = this.cnObjectContext
-			if (!c) return null
-			return (typeof c === 'object' && 'value' in c) ? c.value : c
+			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
 		/**
 		 * The unwrapped page-level workspace context map for `@page.*` /
