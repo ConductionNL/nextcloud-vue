@@ -35,3 +35,52 @@ describe('CnDashboardPage — headerActions (#91 Wave 3)', () => {
 		expect(wrapper.findComponent({ name: 'CnActionButtons' }).exists()).toBe(false)
 	})
 })
+
+describe('CnDashboardPage — chart endpointSource forwarding (#91 Wave 2/3)', () => {
+	function mountChartDash(propsData) {
+		return shallowMount(CnDashboardPage, {
+			propsData,
+			stubs: {
+				CnChartWidget: { name: 'CnChartWidget', props: ['endpointSource', 'dataSource', 'views'], template: '<div class="chart-stub" />' },
+				CnWidgetWrapper: { name: 'CnWidgetWrapper', template: '<div><slot /></div>' },
+				CnDashboardGrid: {
+					name: 'CnDashboardGrid',
+					props: ['layout'],
+					template: '<div><template v-for="item in layout"><slot name="widget" :item="item" /></template></div>',
+				},
+			},
+		})
+	}
+
+	it('forwards a chart widget endpointSource to CnChartWidget (unblocks the fleet trend charts)', () => {
+		const endpointSource = {
+			url: '/apps/pipelinq/api/analytics/trends',
+			responsePath: 'series',
+			labelsPath: 'date',
+			series: [{ name: 'Leads', path: 'value' }],
+		}
+		const wrapper = mountChartDash({
+			title: 'Analytics',
+			widgets: [{ id: 'trend', type: 'chart', props: { chartKind: 'line', endpointSource } }],
+			layout: [{ id: 'l1', widgetId: 'trend', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3 }],
+		})
+		const chart = wrapper.findComponent({ name: 'CnChartWidget' })
+		expect(chart.exists()).toBe(true)
+		expect(chart.props('endpointSource')).toEqual(endpointSource)
+	})
+
+	it('forwards a chart widget dataSource (aggregate/drilldown ride inside it)', () => {
+		const dataSource = {
+			register: 'crm', schema: 'request',
+			aggregate: { groupBy: 'status', topN: 5, otherBucket: true },
+			drilldown: { route: 'Requests', filterParam: 'status' },
+		}
+		const wrapper = mountChartDash({
+			title: 'Breakdown',
+			widgets: [{ id: 'byStatus', type: 'chart', props: { chartKind: 'donut' }, dataSource }],
+			layout: [{ id: 'l1', widgetId: 'byStatus', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 3 }],
+		})
+		const chart = wrapper.findComponent({ name: 'CnChartWidget' })
+		expect(chart.props('dataSource')).toEqual(dataSource)
+	})
+})

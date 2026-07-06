@@ -654,6 +654,13 @@ const CHART_PROP_KEYS = [
 	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display
 	// views toggling which series / value format render.
 	'views',
+	// Endpoint data binding (Wave 2, nextcloud-vue#91): WITHOUT this key the
+	// chart's endpointSource never reaches CnChartWidget on a dashboard
+	// surface (getChartProps only forwards this allowlist), so the fleet's
+	// trend charts silently render empty. `dataSource` is forwarded
+	// separately via the template's :data-source binding (getWidgetDataSource),
+	// so the Wave-3 aggregate/drilldown inside it already flow through.
+	'endpointSource',
 ]
 
 /**
