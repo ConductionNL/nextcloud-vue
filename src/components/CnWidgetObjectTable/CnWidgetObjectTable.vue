@@ -369,6 +369,14 @@ export default {
 		 * `source.limit` is set — `_limit` of limit + 1 so CnDataTable's
 		 * View-all footer can detect that more rows exist while the display
 		 * caps at `limit`.
+		 *
+		 * IN-lists: an ARRAY filter value (either directly on the field or via
+		 * the `{ in: [...] }` operator form) is emitted as the bare field with
+		 * the array value, which axios serializes as repeated bracket params
+		 * (`field[]=a&field[]=b`) — the same shape `buildQueryString` /
+		 * `useObjectStore` send and the only IN form OpenRegister parses (a
+		 * `field[in]`-style key is NOT understood server-side). Empty arrays
+		 * are skipped (no constraint).
 		 * @return {object}
 		 */
 		resolvedFetchParams() {
@@ -383,8 +391,17 @@ export default {
 			const filter = this.resolvedFilter
 			if (filter && typeof filter === 'object') {
 				for (const [k, v] of Object.entries(filter)) {
-					if (v && typeof v === 'object') {
-						for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+					if (Array.isArray(v)) {
+						if (v.length > 0) params[k] = v
+					} else if (v && typeof v === 'object') {
+						for (const [op, ov] of Object.entries(v)) {
+							if (op === 'in' && Array.isArray(ov)) {
+								// OR's IN form is the bare repeated field param.
+								if (ov.length > 0) params[k] = ov
+							} else {
+								params[`${k}[${op}]`] = ov
+							}
+						}
 					} else if (v !== '' && v !== null && v !== undefined) {
 						params[k] = v
 					}
