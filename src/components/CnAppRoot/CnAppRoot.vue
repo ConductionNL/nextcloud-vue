@@ -264,9 +264,9 @@
 			  edge (positioning relies on being the last NcContent sibling,
 			  same trick the hoisted index-page sidebar above uses).
 			  Gating (health probe, pageKind overrides) happens inside the
-			  component. No per-app wiring required.
+			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion />
+			<CnAiCompanion v-if="aiCompanion" />
 
 			<!--
 			  Support note — auto-mounted on first open per the fleet
@@ -751,6 +751,21 @@ export default {
 		supportDialog: {
 			type: [Boolean, Object],
 			default: true,
+		},
+		/**
+		 * Whether to mount the floating AI-chat companion (`CnAiCompanion`).
+		 * Opt-in: `false` (default) keeps the companion off; pass `true` to
+		 * show it. When enabled the companion still self-gates on its own
+		 * backend health probe and hides on chat pages. The companion is an
+		 * AI capability provided by the Hermiq app, so apps opt in explicitly
+		 * rather than every app auto-mounting it whenever a chat backend
+		 * happens to be reachable.
+		 *
+		 * @type {boolean}
+		 */
+		aiCompanion: {
+			type: Boolean,
+			default: false,
 		},
 		/**
 		 * Whether the manifest is still loading from the backend.
