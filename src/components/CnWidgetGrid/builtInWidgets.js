@@ -23,6 +23,10 @@ import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWi
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
 import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
+import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
+import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
+import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
+import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
 
 /**
  * Built-in widget registry.
@@ -47,6 +51,15 @@ import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
  * `props { variant, text, visibleWhen?, route? }` — see the component for
  * the visibleWhen predicate shape.
  *
+ * The `audit-trail` key places the object change-log card
+ * (CnAuditTrailWidget) — a detail-page widget whose register / schema /
+ * objectId arrive via the detail-context merge (or explicit `props`).
+ *
+ * The `header` / `text` / `divider` keys reuse the dashboard catalog's
+ * content-only presentation widgets on v2 pages: each takes a single
+ * `props.content` object with the same shape their dashboard `content`
+ * blob uses (see the components' docblocks).
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -59,4 +72,8 @@ export const BUILT_IN_WIDGETS = {
 	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
 	banner: CnBannerWidget,
+	'audit-trail': CnAuditTrailWidget,
+	header: CnHeaderWidget,
+	text: CnTextWidget,
+	divider: CnDividerWidget,
 }
