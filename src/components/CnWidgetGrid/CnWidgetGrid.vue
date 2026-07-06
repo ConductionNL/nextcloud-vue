@@ -331,8 +331,8 @@ export default {
 		hasGridRow,
 		/**
 		 * Stable GridStack id for a widget entry (its id, else its index).
-		 * @param widget
-		 * @param index
+		 * @param {object} widget The resolved widget entry.
+		 * @param {number} index The entry's position in the slot.
 		 */
 		gsId(widget, index) {
 			return widget.id != null ? widget.id : `idx-${index}`

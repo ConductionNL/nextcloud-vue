@@ -22,6 +22,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
+import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
 
 /**
  * Built-in widget registry.
@@ -42,6 +43,10 @@ import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
  * the manifest should set `props.schema` to the schema slug (the merged
  * context `schema` is the schema *object*, so an explicit slug prop wins).
  *
+ * The `banner` key places a declarative notice banner (CnBannerWidget):
+ * `props { variant, text, visibleWhen?, route? }` — see the component for
+ * the visibleWhen predicate shape.
+ *
  * @type {Record<string, import('vue').Component>}
  */
 export const BUILT_IN_WIDGETS = {
@@ -53,4 +58,5 @@ export const BUILT_IN_WIDGETS = {
 	metadata: CnObjectMetadataWidget,
 	related: CnRelatedObjectsWidget,
 	integration: CnIntegrationWidget,
+	banner: CnBannerWidget,
 }

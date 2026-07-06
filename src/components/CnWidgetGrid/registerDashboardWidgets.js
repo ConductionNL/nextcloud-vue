@@ -41,6 +41,7 @@ import '../CnWidgetObjectTable/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
+import '../CnBannerWidget/index.js'
 
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
