@@ -138,7 +138,7 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :permissions="permissions" />
+				<CnAppNav :manifest="menuManifest" :permissions="permissions" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -1167,6 +1167,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The manifest the default `<CnAppNav>` renders — the editor's working
+		 * `source` while in-app editing, else the live `manifest` prop. Passed to
+		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
+		 * Vue 2 `inject` resolves the provided `cnManifest` getter once at the
+		 * child's create time, so an async manifest update (e.g. a backend
+		 * `/api/manifest` delta merged in by `useAppManifest`) never reaches the
+		 * injected value. Binding the prop makes the nav update reactively.
+		 * Mirrors the `cnManifest` provide getter so deep descendants stay
+		 * consistent with the menu.
+		 *
+		 * @return {object}
+		 */
+		menuManifest() {
+			return this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+		},
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
 		 * Mirrors the local holder; if an ancestor already provides

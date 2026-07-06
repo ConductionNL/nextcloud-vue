@@ -1218,7 +1218,7 @@ describe('CnAppNav', () => {
 	})
 
 	describe('per-item actions slot pass-through', () => {
-		it('renders content from item-${id}-actions slot inside the NcAppNavigationItem #actions slot', () => {
+		it('renders content from the item-<id>-actions slot inside the NcAppNavigationItem #actions slot', () => {
 			const wrapper = mount(CnAppNav, {
 				propsData: {
 					manifest: {
@@ -1232,6 +1232,49 @@ describe('CnAppNav', () => {
 				scopedSlots: { 'item-a-actions': '<button class="host-action">Do</button>' },
 			})
 			expect(wrapper.find('.host-action').exists()).toBe(true)
+		})
+	})
+
+	// A menu entry (or a backend-merged child) may carry `query` params so it
+	// deep-links to a pre-filtered index page, e.g. one entry per case type →
+	// Cases?caseType=<uuid>. itemTo() must fold them into the router target.
+	describe('menu-item query params', () => {
+		it('includes query in the router target when item.query is set', () => {
+			const wrapper = mountNav({})
+			const to = wrapper.vm.itemTo({ id: 'x', route: 'Cases', query: { caseType: 'abc' } })
+			expect(to).toEqual({ name: 'Cases', query: { caseType: 'abc' } })
+			wrapper.destroy()
+		})
+
+		it('omits query when item.query is absent (unchanged behaviour)', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Cases' })).toEqual({ name: 'Cases' })
+			wrapper.destroy()
+		})
+
+		it('returns null (no route) for action/href items regardless of query', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', query: { a: 1 } })).toBeNull()
+			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', query: { a: 1 } })).toBeNull()
+			wrapper.destroy()
+		})
+
+		it('renders a per-case-type child link carrying its query', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [{ id: 'Cases', route: '/cases' }],
+				menu: [{
+					id: 'CasesGroup',
+					label: 'Cases',
+					order: 1,
+					open: true,
+					children: [{ id: 'ct-1', label: 'Objections', route: 'Cases', query: { caseType: 'uuid-1' } }],
+				}],
+			}
+			const wrapper = mountNav({ manifest })
+			const child = wrapper.vm.itemTo({ id: 'ct-1', route: 'Cases', query: { caseType: 'uuid-1' } })
+			expect(child.query.caseType).toBe('uuid-1')
+			wrapper.destroy()
 		})
 	})
 })

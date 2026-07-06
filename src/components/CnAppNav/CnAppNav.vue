@@ -840,7 +840,10 @@ export default {
 		itemTo(item) {
 			if (item.action) return null
 			if (item.href) return null
-			return item.route ? { name: item.route } : null
+			if (!item.route) return null
+			// Carry optional query params so a nav entry can deep-link to a
+			// pre-filtered index page (e.g. one entry per case type → Cases?caseType=…).
+			return item.query ? { name: item.route, query: item.query } : { name: item.route }
 		},
 		/**
 		 * Build the `:href` value for an `NcAppNavigationItem`. Returns

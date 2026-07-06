@@ -31,6 +31,13 @@ const baseManifest = {
  * interfere with the existing manifest-dependency / phase tests — those
  * scenarios are independent of the capabilities-API guard. Tests that
  * exercise the guard explicitly opt in via `requiresApps`.
+ * @param root0
+ * @param root0.manifest
+ * @param root0.isLoading
+ * @param root0.slots
+ * @param root0.customComponents
+ * @param root0.t
+ * @param root0.requiresApps
  */
 function mountRoot({
 	manifest = baseManifest,
@@ -324,6 +331,11 @@ describe('CnAppRoot', () => {
 		 * Mount helper that exercises the guard. Unlike mountRoot above,
 		 * this one defaults `requiresApps` to its production default
 		 * `['openregister']` so the test asserts the as-shipped behaviour.
+		 * @param root0
+		 * @param root0.manifest
+		 * @param root0.requiresApps
+		 * @param root0.slots
+		 * @param root0.t
 		 */
 		function mountWithGuard({
 			manifest = baseManifest,
@@ -611,6 +623,40 @@ describe('CnAppRoot', () => {
 			const wrapper = mountRoot()
 			await wrapper.vm._fetchAndCacheCount(fakeStore, 'foo-bar', 'foo', 'bar')
 			expect(wrapper.vm.cnMenuCounts).toEqual({})
+		})
+	})
+
+	// The default <CnAppNav> receives the manifest as a REACTIVE prop
+	// (`menuManifest`), not via the non-reactive provide/inject fallback — so an
+	// async manifest update (e.g. a backend /api/manifest delta merged in by
+	// useAppManifest) reaches the nav without a reload. Regression guard for the
+	// per-case-type dynamic-menu path.
+	describe('reactive menu manifest (default CnAppNav)', () => {
+		it('passes the manifest to the default CnAppNav as a prop', () => {
+			const wrapper = mountRoot()
+			const nav = wrapper.findComponent({ name: 'CnAppNav' })
+			expect(nav.exists()).toBe(true)
+			expect(nav.props('manifest')).toBe(wrapper.props('manifest'))
+			wrapper.destroy()
+		})
+
+		it('updates the CnAppNav manifest prop when the manifest prop changes', async () => {
+			const wrapper = mountRoot()
+			const merged = {
+				version: '1.0.0',
+				dependencies: [],
+				pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+				menu: [{
+					id: 'CasesGroup',
+					label: 'Cases',
+					children: [{ id: 'ct-1', label: 'Objections', route: 'home', query: { caseType: 'u1' } }],
+				}],
+			}
+			await wrapper.setProps({ manifest: merged })
+			const nav = wrapper.findComponent({ name: 'CnAppNav' })
+			expect(nav.props('manifest')).toBe(merged)
+			expect(nav.props('manifest').menu[0].children[0].query.caseType).toBe('u1')
+			wrapper.destroy()
 		})
 	})
 

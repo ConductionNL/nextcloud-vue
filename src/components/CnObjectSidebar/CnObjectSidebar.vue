@@ -223,6 +223,11 @@ const BUILTIN_WIDGETS = {
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
 	audit: CnAuditTrailTab,
+	// Alias matching the dashboard/detail-page widget key `audit-trail` so a
+	// manifest can declare a sidebar tab with `widgets: [{ type: 'audit-trail' }]`
+	// (the same key it uses for the detail-page body widget) and get the object's
+	// change log as a proper sidebar tab.
+	'audit-trail': CnAuditTrailTab,
 }
 
 /**

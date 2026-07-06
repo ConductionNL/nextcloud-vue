@@ -115,7 +115,7 @@ For example, an app like opencatalogi that previously rendered one nav entry per
 }
 ```
 
-The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour — lives in the [`useAppManifest` reference docs](./utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
+The full contract — required fields, schema-conformance, i18n key requirement, fallback behaviour, and the two merge strategies (`deepMerge` replaces `menu[]` wholesale; `delta` merges entries and nested `children[]` **by `id`** so a group can be extended without clobbering it) — lives in [Overriding an app's manifest at runtime](./manifest-runtime-override.md) and the [`useAppManifest` reference](./utilities/composables/use-app-manifest.md#merge-semantics--two-modes). The lib never directly queries a register or schema; ADR-022 keeps the data layer behind the app's backend.
 
 ---
 

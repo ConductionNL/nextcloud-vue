@@ -87,6 +87,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
 
 ### Events
 

@@ -362,6 +362,11 @@
 					"type": "string",
 					"description": "Vue-router route name (matches a pages[].id) that this entry navigates to. Sentinels (@resolve:*) are NOT allowed — this is a router invariant."
 				},
+				"query": {
+					"type": "object",
+					"additionalProperties": { "type": ["string", "number", "boolean"] },
+					"description": "Optional vue-router query parameters merged into the target route link (e.g. a filter like { caseType: '<uuid>' }). Deep-links a nav entry to a pre-filtered index page."
+				},
 				"order": {
 					"type": "integer",
 					"description": "Display order in the menu. Items without an order render last."
@@ -437,6 +442,11 @@
 				"label": { "type": "string" },
 				"icon": { "type": "string" },
 				"route": { "type": "string" },
+				"query": {
+					"type": "object",
+					"additionalProperties": { "type": ["string", "number", "boolean"] },
+					"description": "Optional vue-router query parameters merged into the target route link (e.g. a filter like { caseType: '<uuid>' }). Deep-links a nav entry to a pre-filtered index page."
+				},
 				"order": { "type": "integer" },
 				"permission": { "type": "string" },
 				"section": {
