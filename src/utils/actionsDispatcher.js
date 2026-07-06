@@ -8,7 +8,10 @@
  * handled without throwing — errors surface as console.warn calls.
  * Types: handler | open-modal | open-page | navigate | object-op (the
  * declarative OpenRegister mutation verb added by ADR-049 — dispatched
- * via the shared object store, intent-only, RBAC stays server-side).
+ * via the shared object store, intent-only, RBAC stays server-side) |
+ * export (opens the shared CnMassExportDialog export launcher configured
+ * via the action's `entities[]` / `formats[]` — Wave 1 of
+ * nextcloud-vue#91; the host page provides `context.openExport`).
  *
  * Spec: REQ-MVR-011 (manifest-v2-renderer) — unified actions dispatcher
  * / ADR-036 Decision 7 / ADR-049 Decision 2
@@ -61,9 +64,10 @@ function rowObjectId(row) {
  * Dispatch a v2 manifest action.
  *
  * @param {object} action The action object from the manifest.
- * @param {string} [action.type] Dispatch type: "handler" | "open-modal" | "open-page" | "navigate" | "object-op".
+ * @param {string} [action.type] Dispatch type: "handler" | "open-modal" | "open-page" | "navigate" | "object-op" | "export".
  *   When absent, treated as "handler" for v1 backward compatibility.
- * @param {string} [action.handler] Registry key for "handler" type.
+ * @param {string} [action.handler] Registry key for "handler" type. For "export": the optional
+ *   handler invoked by the host with the dialog's confirm payload (`{ format, entity }`).
  * @param {Array} [action.args] Arguments spread to the handler function.
  * @param {string} [action.target] Target for "open-modal", "open-page", and "navigate" types.
  * @param {object} [action.props] Props forwarded to modal for "open-modal" type.
@@ -73,6 +77,14 @@ function rowObjectId(row) {
  * @param {boolean} [action.confirm] "object-op" only: confirm-gating INTENT consumed by the
  *   rendering host (CnWidgetObjectTable routes it through CnConfirmDialog) — the dispatcher
  *   itself never gates; it is called after any confirmation already happened.
+ * @param {Array<{id: string, label: string}>} [action.entities] "export" only: selectable
+ *   entity types offered by the export launcher (e.g. Leads / Requests). Optional — when
+ *   absent the dialog shows only the format picker.
+ * @param {Array<string|{id: string, label: string}>} [action.formats] "export" only: the
+ *   offered export formats (bare ids like "csv" or full `{id, label}` entries). Optional —
+ *   the dialog's built-in Excel/CSV defaults apply when absent.
+ * @param {string} [action.description] "export" only: pre-translated description shown
+ *   above the pickers.
  *
  * @param {object} context Runtime context.
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".
@@ -81,6 +93,9 @@ function rowObjectId(row) {
  * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
  * @param {Function} [context.openModal] Function `(key, props)` that opens a modal.
  *   Required for "open-modal" type.
+ * @param {Function} [context.openExport] Function `(action)` that opens the shared
+ *   CnMassExportDialog configured from the action. Required for "export" type —
+ *   CnPageRenderer pre-binds it in the `cnDispatchAction` context.
  * @param {object} [context.objectStore] Object store instance (useObjectStore shape).
  *   Required for "object-op" type. All mutations go through `saveObject` / `deleteObject`
  *   so store caches (and their no-mutation-on-error semantics) apply.
@@ -174,6 +189,20 @@ export function dispatchAction(action, context = {}) {
 			return
 		}
 		context.router.push(action.target)
+		break
+	}
+
+	case 'export': {
+		// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
+		// shared CnMassExportDialog configured via the action's entities[] /
+		// formats[]; the dialog's confirm payload routes to the action's
+		// optional `handler` (the app's export service does the download).
+		if (typeof context.openExport !== 'function') {
+			// eslint-disable-next-line no-console
+			console.warn('[dispatchAction] export requires context.openExport to be a function.')
+			return
+		}
+		context.openExport(action)
 		break
 	}
 

@@ -291,3 +291,28 @@ describe('dispatchAction — object-op type', () => {
 		warnSpy.mockRestore()
 	})
 })
+
+describe('dispatchAction — export (export launcher, Wave 1)', () => {
+	it('opens the export launcher via context.openExport with the full action', () => {
+		const openExport = jest.fn()
+		const action = {
+			id: 'report-export',
+			label: 'Export report',
+			type: 'export',
+			entities: [{ id: 'leads', label: 'Leads' }],
+			formats: ['excel', 'csv', 'json'],
+			handler: 'exportReport',
+		}
+		dispatchAction(action, { openExport })
+		expect(openExport).toHaveBeenCalledWith(action)
+	})
+
+	it('warns and no-ops when context.openExport is missing', () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		expect(() => {
+			dispatchAction({ type: 'export', entities: [], formats: [] }, {})
+		}).not.toThrow()
+		expect(warnSpy).toHaveBeenCalled()
+		warnSpy.mockRestore()
+	})
+})
