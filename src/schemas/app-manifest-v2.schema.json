@@ -1402,6 +1402,11 @@
 					"type": "integer",
 					"minimum": 0,
 					"description": "Row cap. 0 (or omitted) shows all fetched rows; a positive value caps the rendered rows and enables the View-all footer when more rows exist."
+				},
+				"extend": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "OpenRegister `_extend[]` values forwarded on the fetch (e.g. [\"calculations\"]) so read-time virtual/derived fields are hydrated and available as columns. Each entry is passed through verbatim."
 				}
 			}
 		},
