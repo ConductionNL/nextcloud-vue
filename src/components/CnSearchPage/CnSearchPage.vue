@@ -319,6 +319,11 @@ export default {
 	padding: 16px;
 }
 
+/* Reserve room for NcAppNavigationToggle (matches CnPageRenderer / CnPageHeader). */
+.cn-search-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-search-page__title {
 	margin: 0 0 8px;
 	font-size: 1.4em;
