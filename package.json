@@ -25,7 +25,9 @@
 		"css/",
 		"l10n/"
 	],
-	"sideEffects": true,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"scripts": {
 		"build:validators": "node scripts/build-validators.js",
 		"prebuild": "npm run build:validators",

@@ -99,8 +99,20 @@
 	will-change: transform;
 }
 
-.cn-actions-bar__view-toggle-thumb--right {
+.cn-actions-bar__view-toggle-thumb--right,
+.cn-actions-bar__view-toggle-thumb--pos-1 {
 	transform: translateX(100%);
+}
+
+.cn-actions-bar__view-toggle-thumb--pos-2 {
+	transform: translateX(200%);
+}
+
+/* Three-segment layout (Cards / Table / Map): the thumb shrinks to one third of
+   the track so a single translateX(100%) step lands it exactly on the next
+   segment. The two-segment default above (50% - 4px) is untouched. */
+.cn-actions-bar__view-toggle--three .cn-actions-bar__view-toggle-thumb {
+	width: calc((100% - 8px) / 3);
 }
 
 /* Segment buttons must shed Nextcloud core's global <button> chrome (server.css

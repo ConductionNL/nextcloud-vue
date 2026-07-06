@@ -89,6 +89,21 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* Reusable cell utilities — set on a column's `cellClass`. Handy for compact
+   list widgets (name + trailing status) that use `hideHeader`. */
+.cn-data-table td.cn-cell--strong {
+	font-weight: 500;
+}
+
+.cn-data-table td.cn-cell--muted {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-data-table td.cn-cell--end {
+	text-align: right;
+	white-space: nowrap;
+}
+
 .cn-data-table th.cn-table-header--sortable {
 	cursor: pointer;
 	user-select: none;

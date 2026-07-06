@@ -634,6 +634,13 @@ const CHART_PROP_KEYS = [
 	'height',
 	'width',
 	'unavailableLabel',
+	// Display passthrough (Wave 1, nextcloud-vue#91): additive presentation
+	// keys forwarded verbatim to CnChartWidget.
+	'horizontal',
+	'legendPosition',
+	'valueFormat',
+	'colorMap',
+	'emptyLabel',
 ]
 
 /**
@@ -2439,7 +2446,8 @@ export default {
 		 * apexcharts' own reserved `type` prop) and forwards the
 		 * supported subset (`series`, `categories`, `labels`, `options`,
 		 * `colors`, `toolbar`, `legend`, `height`, `width`,
-		 * `unavailableLabel`).
+		 * `unavailableLabel`, plus the display passthrough `horizontal`,
+		 * `legendPosition`, `valueFormat`, `colorMap`, `emptyLabel`).
 		 *
 		 * Unknown keys on `props` (including the reserved `dataSource`
 		 * union) are ignored at render time so manifest authors can ship

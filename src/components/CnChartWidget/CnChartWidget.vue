@@ -10,9 +10,12 @@
 -->
 <template>
 	<div class="cn-chart-widget">
+		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
+			{{ emptyLabel }}
+		</div>
 		<component
 			:is="chartComponent"
-			v-if="chartComponent"
+			v-else-if="chartComponent"
 			ref="chart"
 			:type="type"
 			:height="computedHeight"
@@ -20,6 +23,7 @@
 			:options="mergedOptions"
 			:series="resolvedSeries" />
 		<div v-else class="cn-chart-widget__fallback">
+			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
 			<slot name="fallback">
 				<p class="cn-chart-widget__error">
 					{{ unavailableLabel }}
@@ -35,7 +39,9 @@ import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
 
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
@@ -185,6 +191,61 @@ export default {
 			default: () => t('nextcloud-vue', 'Chart library not available'),
 		},
 		/**
+		 * Render bar charts horizontally (row bars instead of columns).
+		 * Only meaningful for `type: "bar"`; an explicit
+		 * `options.plotOptions.bar.horizontal` still wins (deep-merge).
+		 * @type {boolean}
+		 */
+		horizontal: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Legend placement override: `top | bottom | left | right`. Empty (the
+		 * default) keeps the pre-existing automatic placement (bottom for
+		 * pie-family charts, top otherwise).
+		 * @type {string}
+		 */
+		legendPosition: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'top', 'bottom', 'left', 'right'].includes(v),
+		},
+		/**
+		 * Named value formatter applied to the VALUE axis labels and the
+		 * tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"`
+		 * (compact notation, e.g. `€ 1,2K`), or `"percent"` (appends `%`). The
+		 * object form `{ name, currency?, decimals? }` overrides the ISO-4217
+		 * currency code (EUR default, guarded) and the fraction digits.
+		 * `null` (the default) keeps raw values.
+		 * @type {string|{name: string, currency?: string, decimals?: number}|null}
+		 */
+		valueFormat: {
+			type: [String, Object],
+			default: null,
+		},
+		/**
+		 * Per-category colour map (`{ categoryLabel: cssColor }`) applied to
+		 * pie / donut / radialBar slices and (distributed) bar categories.
+		 * Categories without an entry keep the default palette colour. `null`
+		 * (the default) keeps the palette-based colouring.
+		 * @type {Record<string, string>|null}
+		 */
+		colorMap: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Empty-state message rendered INSTEAD of the chart when the resolved
+		 * series contain no data points. Empty (the default) keeps the
+		 * pre-existing behaviour (an empty chart canvas).
+		 * @type {string}
+		 */
+		emptyLabel: {
+			type: String,
+			default: '',
+		},
+		/**
 		 * Manifest dataSource block. When set, `series` /
 		 * `categories` / `labels` are resolved from the GraphQL
 		 * response via the dataSource selectors and override the
@@ -214,6 +275,42 @@ export default {
 		 * }|null}
 		 */
 		dataSource: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Endpoint data binding (Wave 2, #91). Reads `series` / `categories` /
+		 * `labels` from an arbitrary app REST endpoint through the shared
+		 * `useEndpointSource` engine (token-resolved `params`, per-(url+params)
+		 * request dedup + short-TTL cache, `cn:page:refresh` subscription).
+		 * Exactly one of `dataSource` | `endpointSource` (validator-enforced);
+		 * endpoint data wins when both slip through. Static `series` /
+		 * `categories` / `labels` props stay the fallback while loading.
+		 *
+		 * The response mapping keys live INSIDE this block (not as sibling
+		 * props) because the flat `series` / `labels` prop names already carry
+		 * the static data:
+		 * - `responsePath` — dot-path pluck of the payload (default whole body).
+		 * - When the payload is an ARRAY of points (e.g. pipelinq
+		 *   `/api/analytics/trends` → `series: [{ date, value }]` with
+		 *   `responsePath: 'series'`): `labelsPath` / `series[].path` are
+		 *   PER-ITEM field paths — `labelsPath: 'date'`,
+		 *   `series: [{ name: 'Leads', path: 'value' }]`.
+		 * - When the payload is an OBJECT: `labelsPath` / `series[].path`
+		 *   point at parallel arrays — `labelsPath: 'labels'`,
+		 *   `series: [{ name: 'Total', path: 'totals' }]`.
+		 *
+		 * Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST
+		 * mapped series into the flat value array ApexCharts expects. `params`
+		 * values use the shared filter-token grammar (`@workspace.dateFrom?`,
+		 * `@workspace.datePreset?`, `@me`, `@today±Nd`, …) and re-resolve +
+		 * refetch automatically when the dashboard date range changes (the
+		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
+		 * workspace context).
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 */
+		endpointSource: {
 			type: Object,
 			default: null,
 		},
@@ -261,7 +358,30 @@ export default {
 			return ds
 		}
 		const { data, refetch } = useDataSource(dsForGraphql, { range })
-		return { dsData: data, dsRefetch: refetch }
+
+		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
+		// resolves `params` tokens against the page-level workspace context
+		// (the dashboard publishes dateFrom / dateTo / datePreset into it), so
+		// a date-range change re-resolves + refetches automatically. No-op
+		// while `endpointSource` is null. The chart's existing
+		// cn:widget:refresh handler routes through refresh() (which also
+		// re-runs this source), so no widgetId is passed here — the composable
+		// still covers cn:page:refresh.
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		const ep = useEndpointSource(
+			() => props.endpointSource,
+			{
+				ctx: () => ({
+					...(unwrap(objectCtxRaw) || {}),
+					workspace: unwrap(workspaceRaw) || {},
+					config: unwrap(appConfigRaw) || {},
+				}),
+			},
+		)
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch }
 	},
 
 	data() {
@@ -284,25 +404,81 @@ export default {
 			return this.width
 		},
 		/**
-		 * Series shown to ApexCharts. Pulls from `dsData.series`
-		 * when a `dataSource` is configured AND has resolved a
-		 * non-undefined value; otherwise falls back to the static
+		 * Series/categories/labels mapped from a resolved `endpointSource`
+		 * payload (Wave 2), or null while the source is absent / unresolved.
+		 *
+		 * Mapping rules (see the `endpointSource` prop docblock):
+		 * - ARRAY payload → `labelsPath` / `series[].path` are per-item field
+		 *   paths (one point per array item).
+		 * - OBJECT payload → they point at parallel arrays.
+		 * - Pie-family types flatten the first mapped series into the flat
+		 *   value array ApexCharts expects.
+		 *
+		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}|null}
+		 */
+		endpointChartData() {
+			const es = this.endpointSource
+			if (!es || !es.url) return null
+			const payload = this.epData
+			if (payload === null || payload === undefined) return null
+			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
+			let labels = []
+			let mapped = []
+			if (Array.isArray(payload)) {
+				if (es.labelsPath) {
+					labels = payload.map((pt) => {
+						const v = getByPath(pt, es.labelsPath)
+						return (v === null || v === undefined) ? '' : String(v)
+					})
+				}
+				mapped = seriesDefs.map((s) => ({
+					name: s.name || s.path,
+					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
+				}))
+			} else {
+				const rawLabels = es.labelsPath ? getByPath(payload, es.labelsPath) : undefined
+				labels = Array.isArray(rawLabels)
+					? rawLabels.map((v) => ((v === null || v === undefined) ? '' : String(v)))
+					: []
+				mapped = seriesDefs.map((s) => {
+					const values = getByPath(payload, s.path)
+					return {
+						name: s.name || s.path,
+						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
+					}
+				})
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return { series: (mapped[0] && mapped[0].data) || [], categories: labels, labels }
+			}
+			return { series: mapped, categories: labels, labels }
+		},
+		/**
+		 * Series shown to ApexCharts. An `endpointSource` (Wave 2) wins,
+		 * then the REST bucket/groupBy data, then `dsData.series` from a
+		 * GraphQL `dataSource`; otherwise falls back to the static
 		 * `series` prop. Same fallback rule applies to `categories`
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			const ep = this.endpointChartData
+			if (ep) return ep.series
 			const rest = this.bucketData || this.groupByData
 			if (rest?.series !== undefined) return rest.series
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
 		resolvedCategories() {
+			const ep = this.endpointChartData
+			if (ep) return ep.categories
 			const rest = this.bucketData || this.groupByData
 			if (rest?.categories !== undefined) return rest.categories
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
 		resolvedLabels() {
+			const ep = this.endpointChartData
+			if (ep) return ep.labels
 			const rest = this.bucketData || this.groupByData
 			if (rest?.labels !== undefined) return rest.labels
 			const fromDs = this.dsData?.labels
@@ -344,6 +520,86 @@ export default {
 				'var(--color-text-maxcontrast, #767676)',
 			]
 		},
+		/**
+		 * The value-formatter function derived from `valueFormat`, or null.
+		 * Applied to the value-axis labels and the tooltip so both read
+		 * identically. Non-numeric values pass through untouched.
+		 *
+		 * @return {(function(*): string)|null}
+		 */
+		valueFormatterFn() {
+			const vf = this.valueFormat
+			if (!vf) return null
+			const name = typeof vf === 'string' ? vf : vf.name
+			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
+			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
+			const numeric = (v, fmt) => {
+				const num = Number(v)
+				return Number.isFinite(num) ? fmt(num) : v
+			}
+			if (name === 'currency') {
+				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+					style: 'currency',
+					currency,
+					minimumFractionDigits: decimals ?? 0,
+					maximumFractionDigits: decimals ?? 0,
+				}).format(num))
+			}
+			if (name === 'currency-compact') {
+				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+					style: 'currency',
+					currency,
+					notation: 'compact',
+					maximumFractionDigits: decimals ?? 1,
+				}).format(num))
+			}
+			if (name === 'percent') {
+				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals ?? 0,
+					maximumFractionDigits: decimals ?? 0,
+				}).format(num) + '%')
+			}
+			return null
+		},
+		/**
+		 * Palette with the per-category `colorMap` applied: one colour per
+		 * resolved label/category (map hit, else the default palette colour by
+		 * position). Null when no `colorMap` is set or nothing resolved yet —
+		 * the default palette then applies unchanged.
+		 *
+		 * @return {string[]|null}
+		 */
+		mappedColors() {
+			if (!this.colorMap || typeof this.colorMap !== 'object') return null
+			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
+				? this.resolvedLabels
+				: this.resolvedCategories
+			if (!Array.isArray(keys) || keys.length === 0) return null
+			const palette = this.defaultColors
+			return keys.map((key, i) => this.colorMap[key] || palette[i % palette.length])
+		},
+		/**
+		 * Whether the resolved series carry any data point (pie-family charts
+		 * use a flat value array; cartesian charts use `[{ data: [...] }]`).
+		 *
+		 * @return {boolean}
+		 */
+		hasChartData() {
+			const series = this.resolvedSeries
+			if (!Array.isArray(series) || series.length === 0) return false
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) return true
+			return series.some((s) => Array.isArray(s && s.data) && s.data.length > 0)
+		},
+		/**
+		 * Whether the declarative empty state renders instead of the chart —
+		 * only when an `emptyLabel` is configured (default keeps the
+		 * pre-existing empty-canvas behaviour).
+		 *
+		 * @return {boolean}
+		 */
+		showEmptyState() {
+			return this.emptyLabel !== '' && !this.hasChartData
+		},
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -356,7 +612,7 @@ export default {
 					foreColor: 'var(--color-main-text, #222)',
 					background: 'transparent',
 				},
-				colors: this.defaultColors,
+				colors: this.mappedColors || this.defaultColors,
 				stroke: {
 					curve: 'smooth',
 					width: this.type === 'area' ? 2 : (this.type === 'bar' ? 0 : 2),
@@ -378,7 +634,7 @@ export default {
 				},
 				legend: {
 					show: this.legend,
-					position: isPieType ? 'bottom' : 'top',
+					position: this.legendPosition || (isPieType ? 'bottom' : 'top'),
 					labels: {
 						colors: 'var(--color-main-text, #222)',
 					},
@@ -389,6 +645,14 @@ export default {
 				tooltip: {
 					theme: 'light',
 				},
+			}
+
+			// Named value formatter (currency / currency-compact / percent) —
+			// applied to the tooltip and, below, to the VALUE axis so both read
+			// identically. An explicit `options.tooltip/xaxis/yaxis` formatter
+			// still wins through the deep-merge.
+			if (this.valueFormatterFn) {
+				defaults.tooltip.y = { formatter: this.valueFormatterFn }
 			}
 
 			// Add categories for cartesian charts
@@ -408,6 +672,12 @@ export default {
 						},
 					},
 				}
+				// The VALUE axis is the y-axis normally, the x-axis when bars
+				// render horizontally (ApexCharts flips the axes).
+				if (this.valueFormatterFn) {
+					const valueAxis = (this.type === 'bar' && this.horizontal) ? defaults.xaxis : defaults.yaxis
+					valueAxis.labels = { ...valueAxis.labels, formatter: this.valueFormatterFn }
+				}
 			}
 
 			// Add labels for pie/donut
@@ -419,9 +689,12 @@ export default {
 			if (this.type === 'bar') {
 				defaults.plotOptions = {
 					bar: {
-						horizontal: false,
+						horizontal: this.horizontal,
 						columnWidth: '55%',
 						borderRadius: 4,
+						// Per-category colours need distributed bars — otherwise
+						// apexcharts colours per SERIES and the map has no effect.
+						...(this.mappedColors ? { distributed: true } : {}),
 					},
 				}
 			}
@@ -487,16 +760,20 @@ export default {
 
 	methods: {
 		/**
-		 * Re-query the chart's dataSource. Exposed as a ref-callable
-		 * method (B3 canonical refresh mode) AND invoked by the
+		 * Re-query the chart's dataSource / endpointSource. Exposed as a
+		 * ref-callable method (B3 canonical refresh mode) AND invoked by the
 		 * `cn:widget:refresh` bus subscription. No-op when the chart has
-		 * no dataSource (static series/labels mode).
+		 * neither (static series/labels mode). The endpoint refetch is
+		 * force-mode: it bypasses the shared useEndpointSource cache.
 		 *
 		 * @return {void}
 		 */
 		refresh() {
 			if (typeof this.dsRefetch === 'function') {
 				this.dsRefetch()
+			}
+			if (typeof this.epRefetch === 'function') {
+				this.epRefetch()
 			}
 			this.fetchGroupBy()
 			this.fetchTimeBucket()
@@ -743,6 +1020,17 @@ export default {
 	justify-content: center;
 	min-height: 150px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-chart-widget__empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 150px;
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+	text-align: center;
+	padding: 12px;
 }
 
 .cn-chart-widget__error {

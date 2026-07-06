@@ -46,6 +46,8 @@ export default {
 | `description` | `''` | Optional description text shown above the format selector (e.g., `'Export 42 objects from Cases'`). |
 | `formats` | `[{ id: 'excel', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }]` | Available export format options. Each entry must have `id` and `label`. |
 | `defaultFormat` | `'excel'` | The `id` of the format that is pre-selected when the dialog opens. |
+| `entities` | `[]` | Optional selectable entity types (`[{ id, label }]`) rendered as an extra picker above the format selector — the export-launcher case. Empty hides the picker; when set, the `confirm` payload carries the chosen `entity` id. |
+| `defaultEntity` | `''` | The `id` of the entity that is pre-selected (first entity when unset). |
 
 ### Label customization
 
@@ -55,6 +57,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 |---|---|---|
 | `successText` | `'Export completed successfully.'` | Message shown in the success note card. |
 | `formatLabel` | `'Export format'` | Label above the format dropdown. |
+| `entityLabel` | `'Entity'` | Label above the entity dropdown (when `entities` is set). |
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `'Export'` | Label for the confirm/export button. |

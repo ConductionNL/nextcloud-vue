@@ -194,6 +194,15 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 		expect(wrapper.findComponent(CnObjectMetadataWidget).exists()).toBe(true)
 	})
 
+	it('resolves type:"audit-trail" → CnAuditTrailTab (alias of the built-in "audit")', () => {
+		// Lets a manifest declare a change-log sidebar tab with the same widget
+		// key it uses for the detail-page body widget (`audit-trail`).
+		const wrapper = mountSidebar({
+			tabs: [{ id: 'history', label: 'Change history', widgets: [{ type: 'audit-trail' }] }],
+		})
+		expect(wrapper.findComponent({ name: 'CnAuditTrailTab' }).exists()).toBe(true)
+	})
+
 	it('forwards shared object context (objectId, register, schema, apiBase) to widgets', () => {
 		const wrapper = mountSidebar({
 			tabs: [{
