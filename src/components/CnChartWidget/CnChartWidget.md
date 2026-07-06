@@ -18,7 +18,7 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueFormat`, `colorMap`, `emptyLabel`. The reserved `dataSource` field (`{ url }` OR `{ register, schema, groupBy, aggregate }`) is round-tripped through manifest validators today; the resolver lands in a follow-up cycle.
 
 Area chart — time series data:
 
@@ -104,6 +104,11 @@ Fallback slot — shown when ApexCharts is not available:
 | `toolbar` | Boolean | `false` | Show or hide the ApexCharts toolbar (zoom, download, etc.) |
 | `legend` | Boolean | `true` | Show or hide the chart legend |
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts cannot be loaded |
+| `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars); an explicit `options.plotOptions.bar.horizontal` still wins |
+| `legendPosition` | String | `''` | Legend placement override (`top`/`bottom`/`left`/`right`); empty keeps the automatic placement |
+| `valueFormat` | String\|Object | `null` | Named value formatter for the value axis + tooltip: `'currency'`, `'currency-compact'`, `'percent'`, or `{ name, currency?, decimals? }` |
+| `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie-family slices and (distributed) bar categories |
+| `emptyLabel` | String | `''` | Empty-state message rendered instead of the chart when the resolved series have no data points |
 
 ## Slots
 

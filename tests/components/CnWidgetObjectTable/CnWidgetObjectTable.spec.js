@@ -134,6 +134,55 @@ describe('CnWidgetObjectTable — declarative source self-fetch', () => {
 		expect(table.props('register')).toBe('@resolve:tenant_register')
 	})
 
+	it('serializes an IN-list array filter as the bare field with the array value', () => {
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				source: {
+					register: 'pipelinq',
+					schema: 'case',
+					filter: { status: ['open', 'pending'], assignee: ['@me'] },
+				},
+			},
+		})
+		const params = wrapper.findComponent({ name: 'CnDataTable' }).props('fetchParams')
+		// The array is kept as-is so axios serializes it as repeated
+		// `status[]=open&status[]=pending` params — the buildQueryString /
+		// useObjectStore shape OpenRegister parses as an IN filter.
+		expect(params.status).toEqual(['open', 'pending'])
+		expect(params.assignee).toEqual(['alice'])
+	})
+
+	it('flattens the { in: [...] } operator form onto the bare repeated field', () => {
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				source: {
+					register: 'pipelinq',
+					schema: 'case',
+					filter: { status: { in: ['open', 'pending'] }, dueDate: { lt: '@today+7d' } },
+				},
+			},
+		})
+		const params = wrapper.findComponent({ name: 'CnDataTable' }).props('fetchParams')
+		expect(params.status).toEqual(['open', 'pending'])
+		expect(params['status[in]']).toBeUndefined()
+		expect(params['dueDate[lt]']).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+	})
+
+	it('skips empty IN-list arrays entirely (no constraint)', () => {
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: {
+				source: {
+					register: 'pipelinq',
+					schema: 'case',
+					filter: { status: [], client: { in: [] } },
+				},
+			},
+		})
+		const params = wrapper.findComponent({ name: 'CnDataTable' }).props('fetchParams')
+		expect(params.status).toBeUndefined()
+		expect(params.client).toBeUndefined()
+	})
+
 	it('external rows always win: no self-fetch wiring when rows are passed', () => {
 		const rows = [{ id: '1', title: 'Row 1' }]
 		const wrapper = shallowMount(CnWidgetObjectTable, {

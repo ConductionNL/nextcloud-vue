@@ -144,6 +144,14 @@ The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`
 | `legend` | Boolean | `true` | Show/hide the chart legend |
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts is not installed |
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
+| `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
+| `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
+| `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |
+| `emptyLabel` | String | `''` | Empty-state message rendered INSTEAD of the chart when the resolved series contain no data points. Empty keeps the pre-existing empty-canvas behaviour. |
+
+All five display props are additive (`chart` widget manifest `content` /
+`props` keys of the same names pass through CnDashboardPage's dispatcher).
 
 ### Slots
 

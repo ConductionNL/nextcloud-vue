@@ -18,11 +18,9 @@
   Spec: openspec/changes/list-widget-enrichment/specs/manifest-v2-renderer/spec.md
 -->
 <template>
-	<CnWidgetWrapper
-		:title="title"
-		:widget-id="widgetId"
-		:documentation-url="documentationUrl"
-		flush>
+	<component
+		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
+		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true }">
 		<div class="cn-widget-object-table">
 			<CnDataTable ref="dataTable" v-bind="innerProps" v-on="$listeners">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
@@ -72,7 +70,7 @@
 				@confirm="onConfirmConfirmed"
 				@close="closeConfirm" />
 		</div>
-	</CnWidgetWrapper>
+	</component>
 </template>
 
 <script>
@@ -86,6 +84,9 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+// Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
+// for why it lives in its own module).
+import { CnWidgetHostShell } from './hostShell.js'
 
 /**
  * CnWidgetObjectTable — built-in v2 widget wrapping CnDataTable.
@@ -117,7 +118,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnWidgetObjectTable',
 
-	components: { CnDataTable, CnWidgetWrapper, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
+	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
 	inject: {
 		/**
@@ -165,6 +166,18 @@ export default {
 		widgetId: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Render content-only, WITHOUT the widget's own CnWidgetWrapper
+		 * chrome. Set by hosts that already provide the card chrome — e.g.
+		 * CnDashboardPage's dashboard widget grid, whose registry branch
+		 * wraps every catalog widget in its own CnWidgetWrapper (a naive
+		 * mount would double-card). Default `false` keeps the pre-existing
+		 * self-chromed v2 rendering byte-for-byte.
+		 */
+		hideWrapper: {
+			type: Boolean,
+			default: false,
 		},
 		/** Register slug. Forwarded to CnDataTable. */
 		register: {
@@ -356,6 +369,14 @@ export default {
 		 * `source.limit` is set — `_limit` of limit + 1 so CnDataTable's
 		 * View-all footer can detect that more rows exist while the display
 		 * caps at `limit`.
+		 *
+		 * IN-lists: an ARRAY filter value (either directly on the field or via
+		 * the `{ in: [...] }` operator form) is emitted as the bare field with
+		 * the array value, which axios serializes as repeated bracket params
+		 * (`field[]=a&field[]=b`) — the same shape `buildQueryString` /
+		 * `useObjectStore` send and the only IN form OpenRegister parses (a
+		 * `field[in]`-style key is NOT understood server-side). Empty arrays
+		 * are skipped (no constraint).
 		 * @return {object}
 		 */
 		resolvedFetchParams() {
@@ -370,8 +391,17 @@ export default {
 			const filter = this.resolvedFilter
 			if (filter && typeof filter === 'object') {
 				for (const [k, v] of Object.entries(filter)) {
-					if (v && typeof v === 'object') {
-						for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+					if (Array.isArray(v)) {
+						if (v.length > 0) params[k] = v
+					} else if (v && typeof v === 'object') {
+						for (const [op, ov] of Object.entries(v)) {
+							if (op === 'in' && Array.isArray(ov)) {
+								// OR's IN form is the bare repeated field param.
+								if (ov.length > 0) params[k] = ov
+							} else {
+								params[`${k}[${op}]`] = ov
+							}
+						}
 					} else if (v !== '' && v !== null && v !== undefined) {
 						params[k] = v
 					}
@@ -381,7 +411,7 @@ export default {
 		},
 		/**
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
-		 * `widgetId`) and the widget-only props (`source`, `actions`,
+		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`, `actions`,
 		 * `rowRoute`), so they are consumed here and never forwarded to the
 		 * inner CnDataTable. `undefined` values are dropped so CnDataTable's
 		 * own prop defaults apply. When the declarative `source` is active it
@@ -391,7 +421,7 @@ export default {
 		 */
 		innerProps() {
 			// eslint-disable-next-line no-unused-vars
-			const { title, documentationUrl, widgetId, source, actions, rowRoute, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, actions, rowRoute, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) inner[k] = v

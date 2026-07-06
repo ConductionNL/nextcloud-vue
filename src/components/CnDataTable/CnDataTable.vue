@@ -124,6 +124,7 @@
 								:value="cellValue(row, col)"
 								:property="columnProperty(col)"
 								:formatter="col.formatter || null"
+								:formatter-options="col.formatterOptions || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
 								:format="col.format || null"
