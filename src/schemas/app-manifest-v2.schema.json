@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.14.0",
+	"version": "2.15.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -225,6 +225,20 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/page" },
 			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by validateManifestV2 as a post-schema check."
+		},
+		"credentials": {
+			"type": "array",
+			"description": "External-provider credentials this app can use via the OpenRegister credential broker (github, gitlab, …). Each entry declares which provider, why, and at what scope; the app never receives the secret — the broker performs the outbound call on the user's behalf. See the credential-broker capability.",
+			"items": {
+				"type": "object",
+				"required": ["provider"],
+				"additionalProperties": false,
+				"properties": {
+					"provider": { "type": "string", "description": "Catalogue provider identifier (e.g. \"github\", \"gitlab\") — a key in OpenRegister's credential-providers catalogue." },
+					"reason": { "type": "string", "description": "Human-readable reason shown to the user in credential settings (why the app wants this provider)." },
+					"scopes": { "type": "array", "items": { "type": "string" }, "description": "Advisory scopes the app needs (e.g. [\"repo\"])." }
+				}
+			}
 		},
 		"observability": {
 			"$ref": "#/$defs/observability",
