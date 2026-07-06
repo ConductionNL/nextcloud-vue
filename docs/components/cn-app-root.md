@@ -64,6 +64,7 @@ export default {
 |------|------|---------|-------------|
 | `manifest` | `Object` | — (required) | Reactive manifest. The renderer reads `manifest.dependencies` and `manifest.menu`; descendants `inject('cnManifest')`. |
 | `appId` | `String` | — (required) | Nextcloud app id. Forwarded to `NcContent` as `app-name` and to `CnDependencyMissing`. |
+| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. |
 | `persistManifestDelta` | `Function` | `null` | Optional persistence hook for in-app editing (ADR-041). Called with the minimal manifest delta when the user saves an edit. When omitted, Save updates the rendered manifest in memory but persists nothing — wire it to the OpenBuild app-override endpoint to make edits durable. When OpenBuild is reachable for the user, CnAppRoot surfaces a Conduction-orange edit button (`CnOpenBuildEditButton`) top-right of the content and provides a shared `cnManifestEditor`; the body grid becomes drag/resizable in edit mode. Emits `@manifest-save(delta)`. |
 | `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. |
 | `isLoading` | `Boolean` | `false` | Wire to `useAppManifest().isLoading`. Apps using only the bundled manifest skip the loading phase. |
@@ -198,3 +199,9 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |
+
+## AI companion
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `aiCompanion` (`ai-companion`) | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it. When enabled it still self-gates on its own backend health probe and hides on chat pages. The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
