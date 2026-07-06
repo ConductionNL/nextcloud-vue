@@ -23,14 +23,10 @@
 
 <script>
 import { NcNoteCard } from '@nextcloud/vue'
-import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 
 /** Variants understood by NcNoteCard. */
 const VARIANTS = ['info', 'warning', 'error', 'success']
-
-/** Supported visibleWhen comparison operators. */
-const OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
 
 /**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
@@ -167,8 +163,11 @@ export default {
 
 	methods: {
 		/**
-		 * Evaluate the `visibleWhen` predicate against its endpoint / OR
-		 * source. Fail-safe: any fetch/shape error leaves the banner hidden.
+		 * Evaluate the `visibleWhen` predicate through the shared
+		 * `evaluateVisibleWhen` util (endpoint / OpenRegister-source modes —
+		 * the Wave-1 banner shape is the canonical one, extracted to
+		 * `utils/visibleWhen.js` in Wave 3 so manifest actions reuse it).
+		 * Fail-safe: any fetch/shape error leaves the banner hidden.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -178,82 +177,7 @@ export default {
 				this.conditionMet = null
 				return
 			}
-			try {
-				const actual = await this.readConditionValue(cond)
-				this.conditionMet = this.compare(actual, cond.op || 'eq', cond.value)
-			} catch (e) {
-				this.conditionMet = false
-			}
-		},
-
-		/**
-		 * Fetch the condition's left-hand value from the endpoint or the
-		 * OpenRegister source.
-		 *
-		 * @param {object} cond The visibleWhen condition.
-		 * @return {Promise<*>} The value `field` points at.
-		 */
-		async readConditionValue(cond) {
-			if (cond.endpoint) {
-				const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
-				if (!response.ok) throw new Error(`endpoint returned ${response.status}`)
-				const data = await response.json()
-				return this.readPath(data, cond.field)
-			}
-			const src = cond.source
-			if (src && src.register && src.schema) {
-				const filter = resolveFilterTokens(src.filter || {})
-				const qs = buildQueryString({ ...filter, _limit: 1 })
-				const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
-				const response = await fetch(url, { headers: buildHeaders() })
-				if (!response.ok) throw new Error(`source returned ${response.status}`)
-				const data = await response.json()
-				if (!cond.field || cond.field === '@total') {
-					return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
-				}
-				const first = Array.isArray(data.results) ? data.results[0] : data
-				return this.readPath(first, cond.field)
-			}
-			throw new Error('visibleWhen needs an endpoint or a source')
-		},
-
-		/**
-		 * Read a dot-path off an object (`'a.b.c'`); the object itself when
-		 * no field is given.
-		 *
-		 * @param {object} data The response object.
-		 * @param {string} [field] Dot-path into the response.
-		 * @return {*}
-		 */
-		readPath(data, field) {
-			if (!field) return data
-			return String(field).split('.').reduce((obj, key) => (obj == null ? obj : obj[key]), data)
-		},
-
-		/**
-		 * Apply the comparison operator. Ordering operators coerce both
-		 * sides to Number; equality compares loosely-normalized primitives
-		 * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds
-		 * for JSON round-trips.
-		 *
-		 * @param {*} actual The fetched left-hand value.
-		 * @param {string} op The operator (`eq` when unknown).
-		 * @param {*} expected The declared right-hand value.
-		 * @return {boolean}
-		 */
-		compare(actual, op, expected) {
-			const operator = OPS.includes(op) ? op : 'eq'
-			if (operator === 'eq' || operator === 'neq') {
-				const equal = actual === expected || String(actual) === String(expected)
-				return operator === 'eq' ? equal : !equal
-			}
-			const a = Number(actual)
-			const b = Number(expected)
-			if (!Number.isFinite(a) || !Number.isFinite(b)) return false
-			if (operator === 'gt') return a > b
-			if (operator === 'gte') return a >= b
-			if (operator === 'lt') return a < b
-			return a <= b
+			this.conditionMet = await evaluateVisibleWhen(cond)
 		},
 
 		/**
