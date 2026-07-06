@@ -69,11 +69,19 @@ export function safeCurrencyCode(currency) {
 /**
  * Format a numeric value per a manifest `content.format` spec.
  *
- * Handles the `number` / `currency` / `percent` styles, resolves `@config.<key>`
- * tokens in `currency` / `prefix` / `suffix` against `configCtx`, and guards the
- * currency code so an unresolved or invalid currency can never throw a
- * `RangeError`. Returns `'—'` for null/undefined and the raw string for
- * non-numeric input, matching the KPI widgets' prior behaviour.
+ * Handles the `number` / `currency` / `percent` / `duration-hours` /
+ * `decimal` styles, resolves `@config.<key>` tokens in `currency` / `prefix`
+ * / `suffix` against `configCtx`, and guards the currency code so an
+ * unresolved or invalid currency can never throw a `RangeError`. Returns
+ * `'—'` for null/undefined and the raw string for non-numeric input,
+ * matching the KPI widgets' prior behaviour.
+ *
+ * Style notes:
+ *  - `duration-hours` renders an hour count with an `h` suffix and ONE
+ *    fraction digit by default (`42.5h` — the pipelinq resolution-time KPI
+ *    contract); `decimals` overrides the fraction digits.
+ *  - `decimal` is a plain number with ONE fraction digit by default (the
+ *    fleet KPIs' `toFixed(1)` convention), where `number` defaults to 0.
  *
  * @param {*}      value     The raw value to format.
  * @param {object} format    The `content.format` spec (`{ style, currency, decimals, prefix, suffix }`).
@@ -86,7 +94,10 @@ export function formatMetricValue(value, format, configCtx) {
 	if (!Number.isFinite(num)) return String(value)
 
 	const fmt = resolveConfigFormat(format, configCtx)
-	const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
+	// `duration-hours` and `decimal` default to ONE fraction digit; the
+	// other styles keep the pre-existing default of 0.
+	const oneDigitDefault = fmt.style === 'duration-hours' || fmt.style === 'decimal'
+	const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : (oneDigitDefault ? 1 : 0)
 
 	let body
 	if (fmt.style === 'currency') {
@@ -102,6 +113,12 @@ export function formatMetricValue(value, format, configCtx) {
 			minimumFractionDigits: decimals,
 			maximumFractionDigits: decimals,
 		}).format(num) + '%'
+	} else if (fmt.style === 'duration-hours') {
+		// An hour count (e.g. mean resolution time): `42.5h`.
+		body = new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals,
+			maximumFractionDigits: decimals,
+		}).format(num) + 'h'
 	} else {
 		body = new Intl.NumberFormat(undefined, {
 			minimumFractionDigits: decimals,

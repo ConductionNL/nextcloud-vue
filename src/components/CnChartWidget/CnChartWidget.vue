@@ -23,6 +23,7 @@
 			:options="mergedOptions"
 			:series="resolvedSeries" />
 		<div v-else class="cn-chart-widget__fallback">
+			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
 			<slot name="fallback">
 				<p class="cn-chart-widget__error">
 					{{ unavailableLabel }}
@@ -38,6 +39,7 @@ import { translate as t, getLanguage } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import VueApexCharts from 'vue-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 
@@ -277,6 +279,42 @@ export default {
 			default: null,
 		},
 		/**
+		 * Endpoint data binding (Wave 2, #91). Reads `series` / `categories` /
+		 * `labels` from an arbitrary app REST endpoint through the shared
+		 * `useEndpointSource` engine (token-resolved `params`, per-(url+params)
+		 * request dedup + short-TTL cache, `cn:page:refresh` subscription).
+		 * Exactly one of `dataSource` | `endpointSource` (validator-enforced);
+		 * endpoint data wins when both slip through. Static `series` /
+		 * `categories` / `labels` props stay the fallback while loading.
+		 *
+		 * The response mapping keys live INSIDE this block (not as sibling
+		 * props) because the flat `series` / `labels` prop names already carry
+		 * the static data:
+		 * - `responsePath` — dot-path pluck of the payload (default whole body).
+		 * - When the payload is an ARRAY of points (e.g. pipelinq
+		 *   `/api/analytics/trends` → `series: [{ date, value }]` with
+		 *   `responsePath: 'series'`): `labelsPath` / `series[].path` are
+		 *   PER-ITEM field paths — `labelsPath: 'date'`,
+		 *   `series: [{ name: 'Leads', path: 'value' }]`.
+		 * - When the payload is an OBJECT: `labelsPath` / `series[].path`
+		 *   point at parallel arrays — `labelsPath: 'labels'`,
+		 *   `series: [{ name: 'Total', path: 'totals' }]`.
+		 *
+		 * Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST
+		 * mapped series into the flat value array ApexCharts expects. `params`
+		 * values use the shared filter-token grammar (`@workspace.dateFrom?`,
+		 * `@workspace.datePreset?`, `@me`, `@today±Nd`, …) and re-resolve +
+		 * refetch automatically when the dashboard date range changes (the
+		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
+		 * workspace context).
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 */
+		endpointSource: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Widget id used to match `cn:widget:refresh` event-bus events
 		 * (broadcast by CnWidgetWrapper's Refresh action). When the bus
 		 * fires with a matching `widgetId`, the chart re-queries its
@@ -320,7 +358,30 @@ export default {
 			return ds
 		}
 		const { data, refetch } = useDataSource(dsForGraphql, { range })
-		return { dsData: data, dsRefetch: refetch }
+
+		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
+		// resolves `params` tokens against the page-level workspace context
+		// (the dashboard publishes dateFrom / dateTo / datePreset into it), so
+		// a date-range change re-resolves + refetches automatically. No-op
+		// while `endpointSource` is null. The chart's existing
+		// cn:widget:refresh handler routes through refresh() (which also
+		// re-runs this source), so no widgetId is passed here — the composable
+		// still covers cn:page:refresh.
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		const ep = useEndpointSource(
+			() => props.endpointSource,
+			{
+				ctx: () => ({
+					...(unwrap(objectCtxRaw) || {}),
+					workspace: unwrap(workspaceRaw) || {},
+					config: unwrap(appConfigRaw) || {},
+				}),
+			},
+		)
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch }
 	},
 
 	data() {
@@ -343,25 +404,81 @@ export default {
 			return this.width
 		},
 		/**
-		 * Series shown to ApexCharts. Pulls from `dsData.series`
-		 * when a `dataSource` is configured AND has resolved a
-		 * non-undefined value; otherwise falls back to the static
+		 * Series/categories/labels mapped from a resolved `endpointSource`
+		 * payload (Wave 2), or null while the source is absent / unresolved.
+		 *
+		 * Mapping rules (see the `endpointSource` prop docblock):
+		 * - ARRAY payload → `labelsPath` / `series[].path` are per-item field
+		 *   paths (one point per array item).
+		 * - OBJECT payload → they point at parallel arrays.
+		 * - Pie-family types flatten the first mapped series into the flat
+		 *   value array ApexCharts expects.
+		 *
+		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}|null}
+		 */
+		endpointChartData() {
+			const es = this.endpointSource
+			if (!es || !es.url) return null
+			const payload = this.epData
+			if (payload === null || payload === undefined) return null
+			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
+			let labels = []
+			let mapped = []
+			if (Array.isArray(payload)) {
+				if (es.labelsPath) {
+					labels = payload.map((pt) => {
+						const v = getByPath(pt, es.labelsPath)
+						return (v === null || v === undefined) ? '' : String(v)
+					})
+				}
+				mapped = seriesDefs.map((s) => ({
+					name: s.name || s.path,
+					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
+				}))
+			} else {
+				const rawLabels = es.labelsPath ? getByPath(payload, es.labelsPath) : undefined
+				labels = Array.isArray(rawLabels)
+					? rawLabels.map((v) => ((v === null || v === undefined) ? '' : String(v)))
+					: []
+				mapped = seriesDefs.map((s) => {
+					const values = getByPath(payload, s.path)
+					return {
+						name: s.name || s.path,
+						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
+					}
+				})
+			}
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return { series: (mapped[0] && mapped[0].data) || [], categories: labels, labels }
+			}
+			return { series: mapped, categories: labels, labels }
+		},
+		/**
+		 * Series shown to ApexCharts. An `endpointSource` (Wave 2) wins,
+		 * then the REST bucket/groupBy data, then `dsData.series` from a
+		 * GraphQL `dataSource`; otherwise falls back to the static
 		 * `series` prop. Same fallback rule applies to `categories`
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			const ep = this.endpointChartData
+			if (ep) return ep.series
 			const rest = this.bucketData || this.groupByData
 			if (rest?.series !== undefined) return rest.series
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
 		},
 		resolvedCategories() {
+			const ep = this.endpointChartData
+			if (ep) return ep.categories
 			const rest = this.bucketData || this.groupByData
 			if (rest?.categories !== undefined) return rest.categories
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
 		},
 		resolvedLabels() {
+			const ep = this.endpointChartData
+			if (ep) return ep.labels
 			const rest = this.bucketData || this.groupByData
 			if (rest?.labels !== undefined) return rest.labels
 			const fromDs = this.dsData?.labels
@@ -643,16 +760,20 @@ export default {
 
 	methods: {
 		/**
-		 * Re-query the chart's dataSource. Exposed as a ref-callable
-		 * method (B3 canonical refresh mode) AND invoked by the
+		 * Re-query the chart's dataSource / endpointSource. Exposed as a
+		 * ref-callable method (B3 canonical refresh mode) AND invoked by the
 		 * `cn:widget:refresh` bus subscription. No-op when the chart has
-		 * no dataSource (static series/labels mode).
+		 * neither (static series/labels mode). The endpoint refetch is
+		 * force-mode: it bypasses the shared useEndpointSource cache.
 		 *
 		 * @return {void}
 		 */
 		refresh() {
 			if (typeof this.dsRefetch === 'function') {
 				this.dsRefetch()
+			}
+			if (typeof this.epRefetch === 'function') {
+				this.epRefetch()
 			}
 			this.fetchGroupBy()
 			this.fetchTimeBucket()

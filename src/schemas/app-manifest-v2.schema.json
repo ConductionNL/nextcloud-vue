@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.13.0",
+	"version": "2.14.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -611,7 +611,7 @@
 					}
 				},
 				{
-					"description": "object-table built-in widget: when props declares a `source` it must match the declarative self-fetch shape, and `actions` must be typed manifest actions (incl. type:'object-op'). Other props stay free-form (pass-through to CnDataTable).",
+					"description": "object-table built-in widget: when props declares a `source` it must match the declarative self-fetch shape, an `endpointSource` (Wave 2) must match the shared endpoint binding (exactly one of source | endpointSource — post-schema check), and `actions` must be typed manifest actions (incl. type:'object-op'). Other props stay free-form (pass-through to CnDataTable).",
 					"if": {
 						"properties": { "widgetKey": { "const": "object-table" } },
 						"required": ["widgetKey"]
@@ -622,6 +622,10 @@
 								"type": "object",
 								"properties": {
 									"source": { "$ref": "#/$defs/objectTableSource" },
+									"endpointSource": {
+										"$ref": "#/$defs/endpointSource",
+										"description": "Wave 2 (#91): endpoint-bound rows — the payload at responsePath must be an array; columns / formatters / rowRoute / actions apply unchanged on top. Exactly one of source | endpointSource (post-schema check)."
+									},
 									"actions": {
 										"type": "array",
 										"items": { "$ref": "#/$defs/action" },
@@ -762,7 +766,11 @@
 										"additionalProperties": { "type": "string" },
 										"description": "Per-category colour map ({ categoryLabel: cssColor }) for pie/donut/radialBar slices and (distributed) bar categories."
 									},
-									"emptyLabel": { "type": "string", "description": "Empty-state message rendered instead of the chart when the resolved series contain no data points." }
+									"emptyLabel": { "type": "string", "description": "Empty-state message rendered instead of the chart when the resolved series contain no data points." },
+									"endpointSource": {
+										"$ref": "#/$defs/chartEndpointSource",
+										"description": "Wave 2 (#91): endpoint-bound series/labels — the shared endpoint transport plus the labelsPath / series[] {name, path} response mapping. Exactly one of dataSource | endpointSource (post-schema check)."
+									}
 								}
 							}
 						}
@@ -783,6 +791,85 @@
 										"type": "object",
 										"additionalProperties": true,
 										"description": "The widget's content blob — header: { title, subtitle, backgroundImageUrl, overlayMode, height, cta, … }; text: { text, contentMode, fontSize, … }; divider: { style, lineColor, headingText, … }."
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "stat / delta catalog widgets on the v2 grid (Wave 2, #91): the KPI tiles take a `props.content` blob (same shape as their dashboard `content`). The endpoint-binding keys are typed here; the rest of the blob stays free-form (label, icon, format, source, …). Exactly one of content.source | content.endpointSource — a cross-field rule enforced by validateManifestV2() as a post-schema check (stats-block precedent), which also covers the legacy pages[].config.widgets[] placement.",
+					"if": {
+						"properties": { "widgetKey": { "enum": ["stat", "delta"] } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"endpointSource": {
+												"$ref": "#/$defs/endpointSource",
+												"description": "Wave 2 (#91): endpoint-bound KPI value(s) — exactly one of source | endpointSource (post-schema check)."
+											},
+											"valueField": {
+												"type": "string",
+												"description": "Dot-path into the endpoint payload for the displayed (current) value. Omitted = the payload itself."
+											},
+											"previousField": {
+												"type": "string",
+												"description": "Dot-path into the endpoint payload for the previous-period value — renders the trend sublabel (arrow + percent-vs-previous; the pipelinq previousPeriod contract)."
+											},
+											"deltaField": {
+												"type": "string",
+												"description": "Dot-path into the endpoint payload for a SERVER-computed delta percent — wins over the client-side previousField computation."
+											},
+											"goodDirection": {
+												"type": "string",
+												"enum": ["up", "down"],
+												"default": "up",
+												"description": "Which trend direction tints green ('up' default; 'down' for cost-like KPIs). The delta widget's source.goodDirection still wins for the OpenRegister form."
+											},
+											"variantWhen": {
+												"type": "array",
+												"description": "First-match threshold styling rules for the stat tile — the matched rule's variant re-tints the value + icon circle, and its optional icon overrides content.icon.",
+												"items": {
+													"type": "object",
+													"required": ["op", "value", "variant"],
+													"additionalProperties": false,
+													"properties": {
+														"op": {
+															"type": "string",
+															"enum": ["eq", "neq", "gt", "gte", "lt", "lte"],
+															"description": "Comparison operator against the resolved display value (numeric when both sides coerce; eq/neq fall back to string equality)."
+														},
+														"value": {
+															"description": "Literal right-hand side of the comparison."
+														},
+														"variant": {
+															"type": "string",
+															"enum": ["default", "primary", "success", "warning", "error"],
+															"description": "Colour variant applied on match ('default' keeps the configured colours). The component also accepts 'danger' as an alias of 'error' for doriath-migrated content."
+														},
+														"icon": {
+															"type": "string",
+															"description": "Optional MDI icon name overriding content.icon while this rule matches."
+														}
+													}
+												}
+											},
+											"clickRoute": {
+												"description": "Whole-tile click-through: a vue-router route NAME (string) or full location object. Alias of content.route (route wins when both are set).",
+												"oneOf": [
+													{ "type": "string" },
+													{ "type": "object", "additionalProperties": true }
+												]
+											}
+										}
 									}
 								}
 							}
@@ -1011,6 +1098,83 @@
 					"type": "integer",
 					"minimum": 0,
 					"description": "Row cap. 0 (or omitted) shows all fetched rows; a positive value caps the rendered rows and enables the View-all footer when more rows exist."
+				}
+			}
+		},
+		"endpointSource": {
+			"type": "object",
+			"required": ["url"],
+			"additionalProperties": false,
+			"description": "Wave 2 (#91): ONE coherent endpoint data binding shared by the stat / delta / object-table widgets (the chart uses the extended $defs/chartEndpointSource). Reads an arbitrary app REST endpoint through the library's useEndpointSource engine: params pass the SAME @-token grammar widget filters use (@me, @today±Nd, @monthStart, @workspace.<key>/@config.<key> with a trailing `?` for optional values that drop when unresolved — a REQUIRED token that stays unresolved blocks the fetch), requests dedupe + short-TTL cache per (method, url, resolved params), and the widget refetches on cn:page:refresh / a matching cn:widget:refresh. Exactly ONE of the widget's OpenRegister source | endpointSource may be configured — a cross-field rule enforced by validateManifestV2() as a post-schema check (clear error message), matching the stats-block precedent.",
+			"properties": {
+				"url": {
+					"type": "string",
+					"description": "Endpoint URL — app-relative (routed through generateUrl, e.g. '/apps/pipelinq/api/analytics/overview') or absolute (http/https, left untouched). May interpolate @page.<key> / @workspace.<key> / @config.<key> / @objectId / @object.<field> tokens inline; unresolved URL tokens collapse to an empty string."
+				},
+				"method": {
+					"type": "string",
+					"enum": ["GET", "POST"],
+					"default": "GET",
+					"description": "HTTP method. GET (default) sends the resolved params as query parameters; POST sends them as the JSON body."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Request parameters. Values pass the shared filter-token grammar (resolveFilterTokens): @me, @now, @today, @today±Nd, @monthStart/@quarterStart/@yearStart, @objectId/@object.<field> (detail context), @workspace.<key>/@config.<key> with a trailing `?` for optional values (dropped when unresolved; e.g. `{ \"period\": \"@workspace.datePreset?\" }` rides the dashboard date-range pills). A required token that stays unresolved blocks the fetch until the page context provides it."
+				},
+				"responsePath": {
+					"type": "string",
+					"description": "Dot-path pluck of the response payload (e.g. 'summary', 'data.series'). Omitted = the whole response body."
+				}
+			}
+		},
+		"chartEndpointSource": {
+			"type": "object",
+			"required": ["url"],
+			"additionalProperties": false,
+			"description": "The chart widget's endpoint binding: the $defs/endpointSource transport plus the labels/series response mapping. The mapping keys live INSIDE this block (not as sibling props) because the chart's flat `series` / `labels` props already carry the static data. When the plucked payload is an ARRAY of points (e.g. pipelinq /api/analytics/trends → responsePath 'series'), labelsPath / series[].path are PER-ITEM field paths (labelsPath 'date', series [{ name: 'Leads', path: 'value' }]); when it is an OBJECT they point at parallel arrays. Pie-family charts flatten the FIRST mapped series into the flat value array ApexCharts expects. Exactly ONE of dataSource | endpointSource per chart widget (post-schema check).",
+			"properties": {
+				"url": {
+					"type": "string",
+					"description": "Endpoint URL — app-relative (generateUrl) or absolute. Same token interpolation as $defs/endpointSource."
+				},
+				"method": {
+					"type": "string",
+					"enum": ["GET", "POST"],
+					"default": "GET",
+					"description": "HTTP method. GET (default) sends params as query parameters; POST as the JSON body."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Request parameters — the shared filter-token grammar (see $defs/endpointSource.params). Params re-resolve and the chart refetches when the dashboard date range changes (the page publishes dateFrom / dateTo / datePreset into the workspace context)."
+				},
+				"responsePath": {
+					"type": "string",
+					"description": "Dot-path pluck of the response payload. Omitted = the whole response body."
+				},
+				"labelsPath": {
+					"type": "string",
+					"description": "Labels/categories mapping: a per-item field path for an ARRAY payload ('date'), or the path of a parallel label array for an OBJECT payload ('labels')."
+				},
+				"series": {
+					"type": "array",
+					"description": "Series mapping — one entry per rendered series.",
+					"items": {
+						"type": "object",
+						"required": ["path"],
+						"additionalProperties": false,
+						"properties": {
+							"name": {
+								"type": "string",
+								"description": "Series display name (legend / tooltip). Defaults to the path."
+							},
+							"path": {
+								"type": "string",
+								"description": "Value mapping: a per-item field path for an ARRAY payload ('value'), or the path of a parallel number array for an OBJECT payload ('totals')."
+							}
+						}
+					}
 				}
 			}
 		},
