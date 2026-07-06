@@ -29,6 +29,13 @@ export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrou
 export { useGraphQL, selectByPath } from './useGraphQL.js'
 export { useDataSource, buildCountQuery, buildBucketQuery } from './useDataSource.js'
 export {
+	useBrokeredCall,
+	brokerSessionRequestUrl,
+	buildBrokerPath,
+	parseBrokeredBody,
+	OPENREGISTER_SESSION_REQUEST_PATH,
+} from './useBrokeredCall.js'
+export {
 	useEndpointSource,
 	fetchEndpointSource,
 	resolveEndpointRequest,

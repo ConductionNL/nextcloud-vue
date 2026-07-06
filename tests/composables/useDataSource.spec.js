@@ -98,6 +98,75 @@ describe('useDataSource', () => {
 	})
 })
 
+describe('useDataSource — brokered discriminant', () => {
+	beforeEach(() => axios.post.mockReset())
+
+	test('broker block routes to the session-broker endpoint, standard contract', async () => {
+		axios.post.mockResolvedValue({
+			data: { status: 200, headers: {}, body: '{"login":"octocat"}' },
+		})
+		const { data, loading, error, refetch } = useDataSource(
+			{
+				broker: {
+					credentialId: 'cred-1',
+					provider: 'github',
+					method: 'GET',
+					path: '/user',
+				},
+			},
+			{ appId: 'pipelinq' },
+		)
+		await refetch()
+		expect(loading.value).toBe(false)
+		expect(error.value).toBeNull()
+		expect(data.value).toEqual({ login: 'octocat' })
+		// Hit the credential session-request endpoint, NOT graphql.
+		expect(axios.post.mock.calls[0][0]).toContain('/api/credentials/cred-1/session-request')
+		expect(axios.post.mock.calls[0][0]).not.toContain('graphql')
+		// appId from options flows into the broker request body.
+		expect(axios.post.mock.calls[0][1]).toMatchObject({
+			appId: 'pipelinq',
+			method: 'GET',
+			path: '/user',
+		})
+	})
+
+	test('broker query + responsePath slice the parsed body', async () => {
+		axios.post.mockResolvedValue({
+			data: { status: 200, body: '{"items":[{"title":"a"},{"title":"b"}]}' },
+		})
+		const { data, refetch } = useDataSource(
+			{
+				broker: {
+					credentialId: 'cred-1',
+					path: '/issues',
+					query: { state: 'open' },
+					responsePath: 'items[].title',
+				},
+			},
+			{ appId: 'pipelinq' },
+		)
+		await refetch()
+		expect(axios.post.mock.calls[0][1].path).toBe('/issues?state=open')
+		expect(data.value).toEqual(['a', 'b'])
+	})
+
+	test('broker 403 surfaces a clean error, no secret', async () => {
+		const boom = new Error('Request failed with status code 403')
+		boom.response = { status: 403 }
+		axios.post.mockRejectedValue(boom)
+		const { data, error, refetch } = useDataSource(
+			{ broker: { credentialId: 'cred-1', path: '/user' } },
+			{ appId: 'pipelinq' },
+		)
+		await refetch()
+		expect(data.value).toBeNull()
+		expect(error.value).not.toBeNull()
+		expect(error.value.message).toContain('403')
+		expect(error.value.message).not.toMatch(/secret|token|password/i)
+	})
+})
+
 describe('buildBucketQuery', () => {
 	test('builds groupBy query with from/to variables', () => {
 		const q = buildBucketQuery({
