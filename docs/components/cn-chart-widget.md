@@ -128,6 +128,32 @@ dataSource: {
 
 The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`selectByPath`](../utilities/composables/use-graph-q-l.md) for the full path grammar.
 
+## `endpointSource` — endpoint-bound series/labels (Wave 2, #91)
+
+Binds the chart to an arbitrary app REST endpoint through the shared [`useEndpointSource`](../utilities/composables/use-endpoint-source.md) engine (token-resolved `params`, request dedup + short-TTL cache, `cn:page:refresh` wiring; the chart's own `refresh()` / `cn:widget:refresh` handler force-refetches it too). **Exactly one of `dataSource` | `endpointSource`** (validator-enforced).
+
+The response mapping keys live INSIDE the block — the flat `series` / `labels` prop names already carry the static data:
+
+```js
+// ARRAY-of-points payload (pipelinq /api/analytics/trends → { series: [{ date, value }] }):
+endpointSource: {
+  url: '/apps/pipelinq/api/analytics/trends',
+  params: { metric: 'leads', period: '@workspace.datePreset?' },
+  responsePath: 'series',
+  labelsPath: 'date',                          // per-item field path
+  series: [{ name: 'Leads', path: 'value' }],  // per-item field path
+}
+
+// OBJECT payload with parallel arrays:
+endpointSource: {
+  url: '/apps/myapp/api/pipeline-by-stage',
+  labelsPath: 'labels',                        // → payload.labels (array)
+  series: [{ name: 'Open value', path: 'open' }], // → payload.open (number array)
+}
+```
+
+Pie-family charts (`pie` / `donut` / `radialBar`) flatten the FIRST mapped series into the flat value array ApexCharts expects. `params` re-resolve + the chart refetches when the dashboard date range changes (the page publishes `dateFrom` / `dateTo` / `datePreset` into the workspace context).
+
 ### Props
 
 | Prop | Type | Default | Description |
@@ -144,6 +170,15 @@ The selector path syntax supports dot-paths with optional `[]` flat-maps. See [`
 | `legend` | Boolean | `true` | Show/hide the chart legend |
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts is not installed |
 | `dataSource` | Object | `null` | Optional OpenRegister GraphQL block — see [`dataSource`](#datasource--resolving-series--categories-from-openregister) above |
+| `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars). An explicit `options.plotOptions.bar.horizontal` still wins. |
+| `legendPosition` | String | `''` | Legend placement override: `top \| bottom \| left \| right`. Empty keeps the automatic placement (bottom for pie-family, top otherwise). |
+| `valueFormat` | String \| Object | `null` | Named value formatter applied to the VALUE axis labels AND the tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"` (compact notation, e.g. `€ 1,2K`), `"percent"`. Object form `{ name, currency?, decimals? }` overrides the ISO code (EUR default, guarded) and fraction digits. With `horizontal` bars the formatter moves to the x-axis (the value axis flips). |
+| `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie/donut/radialBar slices and bar categories (bars switch to `distributed` rendering so each category gets its colour). Unmapped categories keep the default palette colour. |
+| `emptyLabel` | String | `''` | Empty-state message rendered INSTEAD of the chart when the resolved series contain no data points. Empty keeps the pre-existing empty-canvas behaviour. |
+| `endpointSource` | Object | `null` | Endpoint-bound series/labels — see [`endpointSource`](#endpointsource--endpoint-bound-serieslabels-wave-2-91) above. Exactly one of `dataSource` \| `endpointSource`. |
+
+All five display props are additive (`chart` widget manifest `content` /
+`props` keys of the same names pass through CnDashboardPage's dispatcher).
 
 ### Slots
 

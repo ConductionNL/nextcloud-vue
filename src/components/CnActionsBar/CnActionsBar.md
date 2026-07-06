@@ -145,6 +145,9 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `tableLabel` | `String` | `''` | Label for the table/list view-toggle option (defaults to "Table") |
 | `cardsIcon` | `String` | `''` | MDI icon name for the cards option (defaults to the built-in grid icon). Resolved via `CnIcon` |
 | `tableIcon` | `String` | `''` | MDI icon name for the table option (defaults to the built-in list icon). Resolved via `CnIcon` |
+| `showMap` | `Boolean` | `false` | Whether to render the third "Map" view-toggle segment. Off by default so existing two-segment consumers are unchanged |
+| `mapLabel` | `String` | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
+| `mapIcon` | `String` | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via `CnIcon` |
 | `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar |
 | `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |

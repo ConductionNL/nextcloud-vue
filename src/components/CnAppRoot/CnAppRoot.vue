@@ -138,7 +138,7 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :permissions="permissions" />
+				<CnAppNav :manifest="menuManifest" :permissions="permissions" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -264,9 +264,9 @@
 			  edge (positioning relies on being the last NcContent sibling,
 			  same trick the hoisted index-page sidebar above uses).
 			  Gating (health probe, pageKind overrides) happens inside the
-			  component. No per-app wiring required.
+			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion />
+			<CnAiCompanion v-if="aiCompanion" />
 
 			<!--
 			  Support note — auto-mounted on first open per the fleet
@@ -769,6 +769,21 @@ export default {
 			default: true,
 		},
 		/**
+		 * Whether to mount the floating AI-chat companion (`CnAiCompanion`).
+		 * Opt-in: `false` (default) keeps the companion off; pass `true` to
+		 * show it. When enabled the companion still self-gates on its own
+		 * backend health probe and hides on chat pages. The companion is an
+		 * AI capability provided by the Hermiq app, so apps opt in explicitly
+		 * rather than every app auto-mounting it whenever a chat backend
+		 * happens to be reachable.
+		 *
+		 * @type {boolean}
+		 */
+		aiCompanion: {
+			type: Boolean,
+			default: false,
+		},
+		/**
 		 * Whether the manifest is still loading from the backend.
 		 * Typically wired to `useAppManifest().isLoading`. Defaults to
 		 * false so that apps using only the bundled manifest skip the
@@ -1168,6 +1183,22 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The manifest the default `<CnAppNav>` renders — the editor's working
+		 * `source` while in-app editing, else the live `manifest` prop. Passed to
+		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
+		 * Vue 2 `inject` resolves the provided `cnManifest` getter once at the
+		 * child's create time, so an async manifest update (e.g. a backend
+		 * `/api/manifest` delta merged in by `useAppManifest`) never reaches the
+		 * injected value. Binding the prop makes the nav update reactively.
+		 * Mirrors the `cnManifest` provide getter so deep descendants stay
+		 * consistent with the menu.
+		 *
+		 * @return {object}
+		 */
+		menuManifest() {
+			return this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+		},
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
 		 * Mirrors the local holder; if an ancestor already provides

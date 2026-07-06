@@ -19,6 +19,16 @@ export { useSetupStatus } from './useSetupStatus.js'
 export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrough.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'
 export { useDataSource, buildCountQuery, buildBucketQuery } from './useDataSource.js'
+export {
+	useEndpointSource,
+	fetchEndpointSource,
+	resolveEndpointRequest,
+	interpolateUrlTokens,
+	endpointCacheKey,
+	invalidateEndpointSourceCache,
+	getByPath,
+	ENDPOINT_SOURCE_TTL_MS,
+} from './useEndpointSource.js'
 export { useObjectSubscription } from './useObjectSubscription.js'
 export { useObjectLock, LockConflictError, PermissionError } from './useObjectLock.js'
 export { cnRenderFormField } from './cnFormFieldRenderer.js'

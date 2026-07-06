@@ -25,6 +25,9 @@ Export format selection dialog. Lets users pick a format and triggers export for
 | `description` | String | `''` | Optional description text shown above the format selector |
 | `formats` | Array | `[{ id: 'excel', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }]` | Available export formats as `[{ id, label }]` objects |
 | `defaultFormat` | String | `'excel'` | ID of the format selected by default |
+| `entities` | Array | `[]` | Optional selectable entity types (`[{ id, label }]`) rendered as an extra picker above the format selector — the export-launcher case ("which dataset am I exporting?"). Empty hides the picker (pre-existing format-only dialog). Used by the manifest `type: "export"` action (see [dispatch-action](../utilities/dispatch-action.md)). |
+| `defaultEntity` | String | `''` | ID of the entity selected by default (first entity when unset) |
+| `entityLabel` | String | `'Entity'` | Label above the entity selector |
 | `successText` | String | `'Export completed successfully.'` | Message shown in the result phase on success |
 | `formatLabel` | String | `'Export format'` | Label above the format selector |
 | `cancelLabel` | String | `'Cancel'` | |
@@ -35,7 +38,7 @@ Export format selection dialog. Lets users pick a format and triggers export for
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `confirm` | `\{ ids, format \}` | Export confirmed |
+| `confirm` | `\{ format, entity? \}` | Export confirmed — `entity` is present only when the `entities` picker is configured |
 | `close` | — | Dialog closed |
 
 ## Public Methods

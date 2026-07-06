@@ -88,4 +88,16 @@ describe('formatMetricValue', () => {
 		expect(formatMetricValue(83.3, { style: 'percent', decimals: 1 }, {})).toMatch(/^83[.,]3%$/)
 		expect(formatMetricValue(5, { style: 'number', prefix: '≈', suffix: ' pts' }, {})).toBe('≈5 pts')
 	})
+
+	// Wave 2 (#91): the fleet-KPI styles — duration-hours (pipelinq mean
+	// resolution time, `42.5h`) and decimal (the toFixed(1) convention).
+	it('formats duration-hours with one fraction digit by default and an h suffix', () => {
+		expect(formatMetricValue(42.51, { style: 'duration-hours' }, {})).toMatch(/^42[.,]5h$/)
+		expect(formatMetricValue(3, { style: 'duration-hours', decimals: 0 }, {})).toBe('3h')
+	})
+
+	it('formats decimal with one fraction digit by default', () => {
+		expect(formatMetricValue(83.33, { style: 'decimal' }, {})).toMatch(/^83[.,]3$/)
+		expect(formatMetricValue(83.336, { style: 'decimal', decimals: 2 }, {})).toMatch(/^83[.,]34$/)
+	})
 })
