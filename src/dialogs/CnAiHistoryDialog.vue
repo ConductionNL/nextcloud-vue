@@ -5,8 +5,10 @@
   Opened by CnAiChatPanel when the user clicks the History button.
 
   On open, fetches the 50 most-recent conversations from:
-    GET /index.php/apps/openregister/api/conversations?limit=50
-  via axios from @nextcloud/axios.
+    GET /index.php/apps/{chatAppId}/api/conversations?limit=50
+  via axios from @nextcloud/axios. The backend app id is the `chatAppId` prop
+  (default `openregister`) forwarded from CnAiCompanion — see
+  composables/aiChatConfig.js.
 
   Emits:
   - update:open (false) — when the dialog is closed
@@ -78,6 +80,7 @@ import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
+import { DEFAULT_CHAT_APP_ID, conversationsUrl } from '../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiHistoryDialog',
@@ -105,6 +108,16 @@ export default {
 			type: String,
 			default: null,
 		},
+		/**
+		 * Backend app id the conversation-list URL resolves against. Single
+		 * configuration point for the chat backend — see
+		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
+		},
 	},
 
 	emits: ['update:open', 'select'],
@@ -131,7 +144,7 @@ export default {
 			this.fetchError = false
 			try {
 				const response = await axios.get(
-					'/index.php/apps/openregister/api/conversations',
+					conversationsUrl(this.chatAppId),
 					{ params: { limit: 50 } },
 				)
 				const data = response.data

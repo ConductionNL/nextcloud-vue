@@ -266,7 +266,7 @@
 			  Gating (health probe, pageKind overrides) happens inside the
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion v-if="aiCompanion" />
+			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
 
 			<!--
 			  Support note — auto-mounted on first open per the fleet
@@ -381,6 +381,7 @@ import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
@@ -788,6 +789,24 @@ export default {
 		aiCompanion: {
 			type: Boolean,
 			default: false,
+		},
+		/**
+		 * Backend app id the AI Chat Companion targets for its chat / health /
+		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
+		 * the single configuration point for switching the chat backend — see
+		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 *
+		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine is moving from
+		 * OpenRegister to Hermiq; the default flips to `hermiq` on a coordinated
+		 * `@conduction/nextcloud-vue` beta bump once Hermiq's engine flag is live
+		 * and OR's compat proxy has shipped. Until then, apps that want to target
+		 * Hermiq early can pass `chatAppId="hermiq"` explicitly.
+		 *
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
 		},
 		/**
 		 * Whether the manifest is still loading from the backend.

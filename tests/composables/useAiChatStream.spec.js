@@ -262,6 +262,62 @@ describe('useAiChatStream', () => {
 		expect(stream.state.messages).toEqual([{ role: 'user', content: 'Existing', toolCalls: [] }])
 	})
 
+	// --- chatAppId parameterization (chat-appid-flip) -----------------------
+
+	it('streams against the default backend app id (openregister) when no chatAppId is given', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null)
+		await stream.send('Hi')
+
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/openregister/api/chat/stream')
+	})
+
+	it('streams against an overridden chatAppId (hermiq)', async () => {
+		setupSse([FINAL_EVENT])
+
+		const stream = useAiChatStream(null, { chatAppId: 'hermiq' })
+		await stream.send('Hi')
+
+		expect(fetchEventSource.mock.calls[0][0]).toBe('/index.php/apps/hermiq/api/chat/stream')
+	})
+
+	it('non-streaming fallback posts to the send URL of the overridden chatAppId', async () => {
+		fetchEventSource.mockImplementation((_url, options) => {
+			const fakeResponse = { ok: false, status: 404 }
+			return (async () => {
+				if (options.onopen) await options.onopen(fakeResponse)
+			})()
+		})
+		axios.post.mockResolvedValue({ data: { content: 'Fallback', role: 'assistant' }, status: 200 })
+
+		const stream = useAiChatStream(null, { chatAppId: 'hermiq' })
+		await stream.send('Hi')
+
+		expect(axios.post).toHaveBeenCalledWith(
+			'/index.php/apps/hermiq/api/chat/send',
+			expect.objectContaining({ content: 'Hi' }),
+		)
+	})
+
+	it('loadConversation resolves the messages URL against the chatAppId (default + override)', async () => {
+		axios.get.mockResolvedValue({ data: { results: [] } })
+
+		const defaultStream = useAiChatStream(null)
+		await defaultStream.loadConversation('conv-1')
+		expect(axios.get).toHaveBeenLastCalledWith(
+			'/index.php/apps/openregister/api/conversations/conv-1/messages',
+			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
+		)
+
+		const hermiqStream = useAiChatStream(null, { chatAppId: 'hermiq' })
+		await hermiqStream.loadConversation('conv-2')
+		expect(axios.get).toHaveBeenLastCalledWith(
+			'/index.php/apps/hermiq/api/conversations/conv-2/messages',
+			expect.objectContaining({ params: expect.objectContaining({ limit: expect.any(Number) }) }),
+		)
+	})
+
 	it('outgoing request body contains current cnAiContext snapshot', async () => {
 		setupSse([FINAL_EVENT])
 

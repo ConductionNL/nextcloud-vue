@@ -2,6 +2,15 @@ export { useManifestEditor } from './useManifestEditor.js'
 export { useOpenBuildEditAvailability } from './useOpenBuildEditAvailability.js'
 export { useAiContext, CN_AI_CONTEXT_KEY } from './useAiContext.js'
 export { useAiChatStream } from './useAiChatStream.js'
+export {
+	DEFAULT_CHAT_APP_ID,
+	chatApiBase,
+	chatStreamUrl,
+	chatSendUrl,
+	chatHealthUrl,
+	conversationsUrl,
+	conversationMessagesUrl,
+} from './aiChatConfig.js'
 export { useListView } from './useListView.js'
 export { useDetailView } from './useDetailView.js'
 export { useSubResource } from './useSubResource.js'
