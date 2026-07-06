@@ -157,3 +157,162 @@ describe('dispatchAction — navigate type', () => {
 		warnSpy.mockRestore()
 	})
 })
+
+/**
+ * object-op — declarative OpenRegister mutation dispatch (ADR-049 /
+ * list-widget-enrichment "Declarative row actions include an object-op
+ * mutation type"). All verbs dispatch via the shared object store
+ * (saveObject for patch/create, deleteObject for delete); the manifest
+ * declares INTENT only — authorization-shaped fields have no effect and
+ * a rejected write surfaces without local mutation (the store only
+ * writes caches on success).
+ */
+describe('dispatchAction — object-op type', () => {
+	/**
+	 * Fake useObjectStore-shaped store for dispatch assertions.
+	 *
+	 * @param {object} [overrides] Method/state overrides.
+	 * @return {object} The fake store.
+	 */
+	function makeStore(overrides = {}) {
+		return {
+			objectTypeRegistry: {},
+			errors: {},
+			registerObjectType: jest.fn(function(slug, schemaId, registerId) {
+				this.objectTypeRegistry[slug] = {
+					schema: schemaId, register: registerId, registerSlug: null, schemaSlug: null,
+				}
+			}),
+			saveObject: jest.fn().mockResolvedValue({ id: '42' }),
+			deleteObject: jest.fn().mockResolvedValue(true),
+			...overrides,
+		}
+	}
+
+	const source = { register: 'pipelinq', schema: 'case' }
+
+	it('patch calls saveObject with the row object merged with values against the source type', async () => {
+		const store = makeStore()
+		const row = { id: '42', title: 'A case', status: 'open' }
+		const result = await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { status: 'accepted' } },
+			{ objectStore: store, source, row },
+		)
+		expect(store.registerObjectType).toHaveBeenCalledWith('pipelinq/case', 'case', 'pipelinq')
+		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', {
+			id: '42', title: 'A case', status: 'accepted',
+		})
+		expect(result).toEqual({ id: '42' })
+	})
+
+	it('patch reuses an already-registered type whose config matches the source', async () => {
+		const store = makeStore()
+		store.objectTypeRegistry = {
+			case: { schema: 'case', register: 'pipelinq', registerSlug: null, schemaSlug: null },
+		}
+		await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { status: 'won' } },
+			{ objectStore: store, source, row: { id: '7' } },
+		)
+		expect(store.registerObjectType).not.toHaveBeenCalled()
+		expect(store.saveObject).toHaveBeenCalledWith('case', { id: '7', status: 'won' })
+	})
+
+	it('delete calls deleteObject with the row id (with @self.id fallback)', async () => {
+		const store = makeStore()
+		const ok = await dispatchAction(
+			{ type: 'object-op', op: 'delete' },
+			{ objectStore: store, source, row: { '@self': { id: 'uuid-9' }, title: 'x' } },
+		)
+		expect(store.deleteObject).toHaveBeenCalledWith('pipelinq/case', 'uuid-9')
+		expect(store.saveObject).not.toHaveBeenCalled()
+		expect(ok).toBe(true)
+	})
+
+	it('create calls saveObject with values as a new object (no row required)', async () => {
+		const store = makeStore()
+		await dispatchAction(
+			{ type: 'object-op', op: 'create', values: { title: 'New case', status: 'open' } },
+			{ objectStore: store, source },
+		)
+		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', { title: 'New case', status: 'open' })
+	})
+
+	it('a rejected (RBAC) write resolves to the store failure value and mutates NO local state', async () => {
+		const store = makeStore({ saveObject: jest.fn().mockResolvedValue(null) })
+		const row = { id: '42', status: 'open' }
+		const before = JSON.parse(JSON.stringify(row))
+		const result = await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { status: 'accepted' } },
+			{ objectStore: store, source, row },
+		)
+		expect(result).toBeNull()
+		// The dispatcher builds a NEW payload — the caller's row is untouched.
+		expect(row).toEqual(before)
+	})
+
+	it('authorization-shaped fields (role / allow) have NO effect on dispatch', async () => {
+		const store = makeStore()
+		await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { status: 'accepted' }, role: 'admin', allow: false },
+			{ objectStore: store, source, row: { id: '1', status: 'open' } },
+		)
+		// Dispatched exactly as without the fields — and none of them leak
+		// into the payload.
+		expect(store.saveObject).toHaveBeenCalledWith('pipelinq/case', { id: '1', status: 'accepted' })
+	})
+
+	it('invalid op warns and calls no store method', async () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const store = makeStore()
+		const result = dispatchAction(
+			{ type: 'object-op', op: 'truncate' },
+			{ objectStore: store, source, row: { id: '1' } },
+		)
+		expect(result).toBeUndefined()
+		expect(store.saveObject).not.toHaveBeenCalled()
+		expect(store.deleteObject).not.toHaveBeenCalled()
+		expect(warnSpy).toHaveBeenCalled()
+		warnSpy.mockRestore()
+	})
+
+	it('warns and does NOT throw when objectStore / source / row are missing', () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		expect(() => {
+			dispatchAction({ type: 'object-op', op: 'patch', values: {} }, {})
+		}).not.toThrow()
+		expect(() => {
+			dispatchAction({ type: 'object-op', op: 'patch', values: {} }, { objectStore: makeStore() })
+		}).not.toThrow()
+		expect(() => {
+			dispatchAction({ type: 'object-op', op: 'patch', values: {} }, { objectStore: makeStore(), source })
+		}).not.toThrow()
+		expect(warnSpy).toHaveBeenCalledTimes(3)
+		warnSpy.mockRestore()
+	})
+})
+
+describe('dispatchAction — export (export launcher, Wave 1)', () => {
+	it('opens the export launcher via context.openExport with the full action', () => {
+		const openExport = jest.fn()
+		const action = {
+			id: 'report-export',
+			label: 'Export report',
+			type: 'export',
+			entities: [{ id: 'leads', label: 'Leads' }],
+			formats: ['excel', 'csv', 'json'],
+			handler: 'exportReport',
+		}
+		dispatchAction(action, { openExport })
+		expect(openExport).toHaveBeenCalledWith(action)
+	})
+
+	it('warns and no-ops when context.openExport is missing', () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		expect(() => {
+			dispatchAction({ type: 'export', entities: [], formats: [] }, {})
+		}).not.toThrow()
+		expect(warnSpy).toHaveBeenCalled()
+		warnSpy.mockRestore()
+	})
+})

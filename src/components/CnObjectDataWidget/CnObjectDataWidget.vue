@@ -236,7 +236,10 @@
 						:value="displayValues[field.key]"
 						:raw="objectData[field.key]" />
 					<template v-else>
-						<img v-if="isImageField(field) && rawOf(field)" :src="rawOf(field)" :alt="field.label" class="cn-object-data-widget__image" /><template v-else>{{ displayValues[field.key] }}</template>
+						<img v-if="isImageField(field) && rawOf(field)"
+							:src="rawOf(field)"
+							:alt="field.label"
+							class="cn-object-data-widget__image"><template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -485,7 +488,9 @@ export default {
 			/** Set of field keys that have been modified */
 			dirtyFields: {},
 			/** Whether a save is in progress */
-			saving: false, relatedLabels: {},
+			saving: false,
+			/** Resolved display labels for related-object fields, keyed by field key */
+			relatedLabels: {},
 		}
 	},
 

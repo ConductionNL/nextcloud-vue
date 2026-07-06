@@ -66,7 +66,7 @@ function ajvErrorToString(err) {
  * the rule when those widgets ship. New built-ins added to the
  * library MUST be appended to this list in the same PR.
  *
- * @type {ReadonlySet<string>}
+ * @type {Set<string>}
  */
 const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'object-table',
@@ -75,6 +75,13 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'map-viewer',
 	'chart',
 	'stats-block',
+	// Wave 1 (nextcloud-vue#91): banner + audit-trail built-ins, and the
+	// dashboard-catalog presentation widgets ported to the v2 grid.
+	'banner',
+	'audit-trail',
+	'header',
+	'text',
+	'divider',
 ])
 
 /**
@@ -239,6 +246,32 @@ export function validateManifestV2(manifest) {
 					errors.push(`pages[${pIndex}]/config/slotColumns/${slotName}: must be a positive integer`)
 				}
 			}
+		})
+	}
+
+	// 3d. stats-block dataSource | entries mutual exclusion. A multi-entry
+	//     stats-block (`props.entries[]`) declares one source PER entry, so a
+	//     widget-level `dataSource` (entry-level or `props.dataSource`) at the
+	//     same time is ambiguous — exactly one of the two forms is allowed.
+	//     Cross-field rule → post-schema check (clear message), matching the
+	//     gridX+gridWidth precedent. A stats-block with NEITHER is left to the
+	//     component (CnStatsBlockWidget flags it at mount time) because the
+	//     in-app widget editor legitimately creates not-yet-configured widgets.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) return
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || widget.widgetKey !== 'stats-block') return
+				const props = isPlainObject(widget.props) ? widget.props : {}
+				const hasEntries = Array.isArray(props.entries) && props.entries.length > 0
+				const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+					|| (props.dataSource !== undefined && props.dataSource !== null)
+				if (hasEntries && hasDataSource) {
+					errors.push(
+						`pages[${pIndex}]/widgets[${wIndex}]: stats-block widget declares BOTH a dataSource and props.entries[] — exactly one of the two source forms is allowed (single-KPI dataSource OR multi-entry entries[])`,
+					)
+				}
+			})
 		})
 	}
 

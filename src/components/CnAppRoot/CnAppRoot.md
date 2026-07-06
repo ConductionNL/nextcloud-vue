@@ -188,3 +188,4 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `supportDialog` | Boolean \| Object | `true` | Auto-mount the built-in support/feedback dialog. Pass `false` to disable, or an options object to configure it. |
+| `aiCompanion` | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it (it still self-gates on its own backend health probe and hides on chat pages). The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |

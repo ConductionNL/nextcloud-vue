@@ -229,6 +229,9 @@ export {
 export { CnAiCompanion, CnAiFloatingButton, CnAiChatPanel, CnAiMessageList, CnAiInput } from './components/CnAiCompanion/index.js'
 export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
+// Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
+export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
+
 // Store
 export { useObjectStore, createObjectStore } from './store/index.js'
 export { createCrudStore } from './store/index.js'
