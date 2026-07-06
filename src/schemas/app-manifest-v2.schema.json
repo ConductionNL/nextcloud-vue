@@ -3,9 +3,21 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.12.0",
+	"version": "2.13.0",
 	"type": "object",
-	"required": ["$schema", "version", "menu", "pages"],
+	"required": ["$schema", "version"],
+	"allOf": [
+		{
+			"$comment": "UI manifests: a manifest that declares pages MUST also declare menu (unchanged v2 coupling).",
+			"if": { "required": ["pages"] },
+			"then": { "required": ["menu"] }
+		},
+		{
+			"$comment": "Observability-only profile: a manifest with no pages MUST carry an observability block. ADR-040 Tier-0 adopters (e.g. nldesign, planix) ship src/manifest.json solely as AppHost engine config — the app renders no manifest-driven UI, so forcing menu/pages on them produced permanently-failing gate-22 manifests (2026-07-06 fleet audit, item 3b).",
+			"if": { "not": { "required": ["pages"] } },
+			"then": { "required": ["observability"] }
+		}
+	],
 	"additionalProperties": false,
 	"properties": {
 		"$schema": {
@@ -266,6 +278,11 @@
 									"key": { "type": "string", "description": "Config key, for the appConfig check." }
 								}
 							}
+						},
+						"cors": {
+							"type": "boolean",
+							"default": false,
+							"description": "ADR-040: when true the engine emits permissive CORS headers on the /api/health response."
 						}
 					}
 				},
