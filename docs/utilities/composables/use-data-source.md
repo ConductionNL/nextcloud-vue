@@ -1,6 +1,6 @@
 # useDataSource
 
-Resolves a manifest `dataSource` block on a dashboard widget into reactive `{ data, loading, error, refetch }`. Backed by [`useGraphQL`](./use-graph-q-l.md).
+Resolves a manifest `dataSource` block on a dashboard widget into reactive `{ data, loading, error, refetch }`. Backed by [`useGraphQL`](./use-graph-q-l.md) for OpenRegister forms and [`useBrokeredCall`](./use-brokered-call.md) for the brokered (external-provider) form.
 
 ## Signature
 
@@ -36,6 +36,33 @@ The library builds:
   }
 }
 ```
+
+### Brokered — `{ broker: { credentialId, provider?, method?, path, query?, headers?, body?, responsePath? } }`
+
+Fetches from an **external provider through the OpenRegister credential broker** instead of OR GraphQL, so a no-code manifest app renders authenticated third-party API data **without ever handling the secret**. Routed to [`useBrokeredCall`](./use-brokered-call.md).
+
+```json
+{
+  "broker": {
+    "credentialId": "5f0e…",
+    "provider": "github",
+    "method": "GET",
+    "path": "/repos/ConductionNL/openregister/issues",
+    "query": { "state": "open", "per_page": 20 },
+    "responsePath": "0.title"
+  }
+}
+```
+
+`data.value` is the parsed upstream body (JSON when it looks like JSON), optionally sliced by `responsePath`. `provider` is advisory metadata for the manifest/editor only — the broker resolves the upstream base URL from the credential server-side.
+
+**Zero-secret model.** The browser never receives the credential. `useDataSource` POSTs `{ appId, method, path, headers?, body? }` to `POST /apps/openregister/api/credentials/{credentialId}/session-request`; OpenRegister loads the credential the current user owns, injects the secret server-side, calls the upstream, and returns `{ status, headers, body }`. Failures (403 broker-refused, 502 upstream-unreachable, any non-2xx) resolve into a clean, secret-free `error.value`.
+
+**Requirements.**
+
+- The OpenRegister session-broker endpoint above must be available.
+- The user must **own** a credential whose `allowedApps` includes this manifest app id.
+- The **manifest app id** is taken from `options.appId` when given, otherwise from the `cnAppId` value `CnAppRoot` provides — resolved automatically when `useDataSource` runs inside a component `setup()`. Pass `useDataSource(ds, { appId })` when calling outside a `CnAppRoot` tree.
 
 ## Helpers
 
