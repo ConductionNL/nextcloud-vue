@@ -75,6 +75,13 @@ const LIBRARY_BUILT_IN_WIDGET_KEYS = new Set([
 	'map-viewer',
 	'chart',
 	'stats-block',
+	// Wave 1 (nextcloud-vue#91): banner + audit-trail built-ins, and the
+	// dashboard-catalog presentation widgets ported to the v2 grid.
+	'banner',
+	'audit-trail',
+	'header',
+	'text',
+	'divider',
 ])
 
 /**

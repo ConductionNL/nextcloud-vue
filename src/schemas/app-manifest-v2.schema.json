@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.12.0",
+	"version": "2.13.0",
 	"type": "object",
 	"required": ["$schema", "version", "menu", "pages"],
 	"additionalProperties": false,
@@ -625,6 +625,142 @@
 							}
 						}
 					}
+				},
+				{
+					"description": "banner built-in widget (CnBannerWidget, Wave 1): a declarative notice banner. props { variant, text, visibleWhen?, route? } — visibleWhen is a simple {endpoint|source, field?, op?, value} predicate evaluated at mount (fail-safe: hidden on fetch failure).",
+					"if": {
+						"properties": { "widgetKey": { "const": "banner" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"variant": {
+										"type": "string",
+										"enum": ["info", "warning", "error", "success"],
+										"description": "Banner severity variant (NcNoteCard type). Default info."
+									},
+									"text": {
+										"type": "string",
+										"description": "Pre-translated banner text (required for the banner to render)."
+									},
+									"visibleWhen": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "Optional visibility condition: exactly one of `endpoint` (same-origin JSON URL) or `source` (OpenRegister object query). `field` is a dot-path into the response (source: into the first result; omit or use '@total' for the collection total). Fail-safe: the banner stays hidden until the predicate evaluates true.",
+										"properties": {
+											"endpoint": { "type": "string", "description": "Same-origin URL returning JSON." },
+											"source": {
+												"type": "object",
+												"additionalProperties": false,
+												"required": ["register", "schema"],
+												"description": "OpenRegister object query; `filter` supports the shared @-token grammar.",
+												"properties": {
+													"register": { "type": "string" },
+													"schema": { "type": "string" },
+													"filter": { "type": "object", "additionalProperties": true }
+												}
+											},
+											"field": { "type": "string", "description": "Dot-path into the response ('@total' or omitted = collection total for a source)." },
+											"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator." },
+											"value": { "description": "Literal right-hand side of the comparison." }
+										}
+									},
+									"route": {
+										"description": "Optional click-through: a vue-router route NAME (string) or a full location object. Makes the banner text an accessible button.",
+										"oneOf": [
+											{ "type": "string" },
+											{ "type": "object", "additionalProperties": true }
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "audit-trail built-in widget (CnAuditTrailWidget, Wave 1): the object change-log card. All props are optional — register/schema/objectId normally arrive via the detail-page object-context merge; explicit props win.",
+					"if": {
+						"properties": { "widgetKey": { "const": "audit-trail" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"register": { "type": "string", "description": "OpenRegister register slug/id (context merge fallback when omitted)." },
+									"schema": { "type": "string", "description": "OpenRegister schema slug (context merge fallback when omitted)." },
+									"objectId": { "type": "string", "description": "The audited object's id (context merge fallback when omitted)." },
+									"title": { "type": "string", "description": "Optional card title override." },
+									"maxDisplay": { "type": "integer", "minimum": 1, "description": "Maximum audit rows to render (default 5)." }
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "chart widget display passthrough (Wave 1): additive presentation keys forwarded verbatim to CnChartWidget by CnDashboardPage's dispatcher and the v2 grid. Other chart props stay free-form.",
+					"if": {
+						"properties": { "widgetKey": { "const": "chart" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"horizontal": { "type": "boolean", "description": "Render type:'bar' charts horizontally (row bars)." },
+									"legendPosition": { "type": "string", "enum": ["top", "bottom", "left", "right"], "description": "Legend placement override (empty/omitted keeps the automatic placement)." },
+									"valueFormat": {
+										"description": "Named value formatter applied to the value axis + tooltip: 'currency' | 'currency-compact' | 'percent', or the object form { name, currency?, decimals? }.",
+										"oneOf": [
+											{ "type": "string", "enum": ["currency", "currency-compact", "percent"] },
+											{
+												"type": "object",
+												"additionalProperties": false,
+												"required": ["name"],
+												"properties": {
+													"name": { "type": "string", "enum": ["currency", "currency-compact", "percent"] },
+													"currency": { "type": "string", "description": "ISO-4217 code (EUR default; invalid codes fall back to EUR)." },
+													"decimals": { "type": "integer", "minimum": 0, "description": "Fraction digits override." }
+												}
+											}
+										]
+									},
+									"colorMap": {
+										"type": "object",
+										"additionalProperties": { "type": "string" },
+										"description": "Per-category colour map ({ categoryLabel: cssColor }) for pie/donut/radialBar slices and (distributed) bar categories."
+									},
+									"emptyLabel": { "type": "string", "description": "Empty-state message rendered instead of the chart when the resolved series contain no data points." }
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "header / text / divider on the v2 grid (Wave 1): the dashboard catalog's content-only presentation widgets reused as built-ins. Each takes a single `props.content` object with the same shape as its dashboard `content` blob.",
+					"if": {
+						"properties": { "widgetKey": { "enum": ["header", "text", "divider"] } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"description": "The widget's content blob — header: { title, subtitle, backgroundImageUrl, overlayMode, height, cta, … }; text: { text, contentMode, fontSize, … }; divider: { style, lineColor, headingText, … }."
+									}
+								}
+							}
+						}
+					}
 				}
 			]
 		},
@@ -721,7 +857,7 @@
 			"type": "object",
 			"required": ["id", "label"],
 			"additionalProperties": false,
-			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -733,9 +869,9 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op"],
+					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
 				"op": {
 					"type": "string",
@@ -772,6 +908,41 @@
 				"icon": {
 					"type": "string",
 					"description": "Optional icon for the action, rendered by CnActionsBar. Either an MDI icon name (e.g. 'TextBoxOutline') or a CSS icon class (e.g. 'icon-file')."
+				},
+				"entities": {
+					"type": "array",
+					"description": "export only: selectable entity types offered by the export launcher (e.g. Leads / Requests). Optional — when absent the dialog shows only the format picker. Each entry needs an id + pre-translated label.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "label"],
+						"properties": {
+							"id": { "type": "string", "description": "Entity id handed to the confirm handler." },
+							"label": { "type": "string", "description": "Pre-translated display label." }
+						}
+					}
+				},
+				"formats": {
+					"type": "array",
+					"description": "export only: the offered export formats — bare ids ('excel', 'csv', 'json' — lifted to {id, label} with an upper-cased label) or full {id, label} entries. Optional — the dialog's built-in Excel/CSV defaults apply when absent.",
+					"items": {
+						"oneOf": [
+							{ "type": "string" },
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["id", "label"],
+								"properties": {
+									"id": { "type": "string", "description": "Format id handed to the confirm handler." },
+									"label": { "type": "string", "description": "Pre-translated display label." }
+								}
+							}
+						]
+					}
+				},
+				"description": {
+					"type": "string",
+					"description": "export only: pre-translated description shown above the export launcher's pickers."
 				}
 			},
 			"allOf": [
@@ -789,7 +960,7 @@
 			"type": "object",
 			"required": ["register", "schema"],
 			"additionalProperties": false,
-			"description": "Declarative self-fetch source for the object-table built-in widget (CnWidgetObjectTable). The widget resolves `filter` @-tokens (@me, @today, @workspace.*, ?-optional suffix) with the shared resolveFilterTokens grammar just before fetching, and drives CnDataTable's existing self-fetch. `register` MAY carry an `@resolve:` sentinel — the widget passes it through unexpanded (resolution is the host loader's responsibility). Externally supplied `rows` always win over `source`.",
+			"description": "Declarative self-fetch source for the object-table built-in widget (CnWidgetObjectTable). The widget resolves `filter` @-tokens (@me, @today, @today±Nd, @workspace.*, ?-optional suffix) with the shared resolveFilterTokens grammar just before fetching, and drives CnDataTable's existing self-fetch. `register` MAY carry an `@resolve:` sentinel — the widget passes it through unexpanded (resolution is the host loader's responsibility). Externally supplied `rows` always win over `source`.",
 			"properties": {
 				"register": {
 					"type": "string",
@@ -802,7 +973,7 @@
 				"filter": {
 					"type": "object",
 					"additionalProperties": true,
-					"description": "Filter map (`{ field: value | { op: value } }`). Values may use the shared @-token grammar (@me, @today, @workspace.<key>, trailing `?` for optional clauses that drop when unresolved)."
+					"description": "Filter map (`{ field: value | value[] | { op: value | value[] } }`). Values may use the shared @-token grammar: `@me` (current user via @nextcloud/auth), `@now`, `@today`, relative-date arithmetic `@today±Nd` at day granularity (e.g. `@today-30d`, `@today+7d`), `@monthStart`/`@quarterStart`/`@yearStart`, `@objectId`/`@object.<field>` (detail context), `@workspace.<key>`/`@config.<key>` with a trailing `?` for optional clauses that drop when unresolved. IN-lists: an ARRAY value (directly, or via `{ in: [...] }`) matches any of its entries — tokens resolve item-by-item and the widget serializes the list as repeated `field[]` params (the shape OpenRegister parses)."
 				},
 				"order": {
 					"type": "object",
@@ -928,7 +1099,7 @@
 				"widgets": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/widgetEntry" },
-					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check. Single-widget dashboards: a type:'dashboard' page with exactly one body widget covering the full 12×12 grid whose widgetKey resolves to a custom (non-library-built-in) registry component is REJECTED — see ADR-036 Decision 1 (single-widget dashboard anti-pattern). Use type:'custom' with component:'<widgetKey>' or split into N>1 widgets instead. Library built-in widget keys (object-table, card-grid, form-renderer, map-viewer, chart, stats-block) are exempt from the rule. Enforced by validateManifestV2() post-schema check."
+					"description": "Uniform widget placement array. Available on ALL page types in v2 (not just dashboard). Each entry specifies a widget key, slot, and grid coordinates. The cross-field constraint gridX + gridWidth <= 12 is enforced by validateManifestV2() post-schema check. Single-widget dashboards: a type:'dashboard' page with exactly one body widget covering the full 12×12 grid whose widgetKey resolves to a custom (non-library-built-in) registry component is REJECTED — see ADR-036 Decision 1 (single-widget dashboard anti-pattern). Use type:'custom' with component:'<widgetKey>' or split into N>1 widgets instead. Library built-in widget keys (object-table, card-grid, form-renderer, map-viewer, chart, stats-block, banner, audit-trail, header, text, divider) are exempt from the rule. Enforced by validateManifestV2() post-schema check."
 				},
 				"actions": {
 					"type": "array",
@@ -1092,7 +1263,7 @@
 						},
 						"columns": {
 							"type": "array",
-							"description": "Table columns (for type='index' and type='logs'). Items may be strings (legacy shorthand) or column objects.",
+							"description": "Table columns (for type='index' and type='logs'). Items may be strings (legacy shorthand) or column objects ({ key, label, sortable?, width?, formatter?, formatterOptions?, widget?, widgetProps?, format?, aggregate? }). `formatter` resolves against cnFormatters (built-ins incl. currency / conditionalPhrase — configured via `formatterOptions`); `widget` resolves against cnCellWidgets (built-ins incl. badge / fkResolve / link).",
 							"items": {
 								"oneOf": [
 									{ "type": "string" },
