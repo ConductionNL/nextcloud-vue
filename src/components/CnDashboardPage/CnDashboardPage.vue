@@ -641,6 +641,9 @@ const CHART_PROP_KEYS = [
 	'valueFormat',
 	'colorMap',
 	'emptyLabel',
+	// In-widget view switcher (Wave 3, nextcloud-vue#91): named display
+	// views toggling which series / value format render.
+	'views',
 ]
 
 /**

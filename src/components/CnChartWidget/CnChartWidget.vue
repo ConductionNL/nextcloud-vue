@@ -10,6 +10,28 @@
 -->
 <template>
 	<div class="cn-chart-widget">
+		<!-- In-widget view switcher (Wave-4 amendment folded into Wave 3,
+		     #91): a compact pill row that switches which named series /
+		     value format render. Pure display — no series arithmetic.
+		     Renders only when 2+ views are configured. -->
+		<div
+			v-if="views.length > 1"
+			class="cn-chart-widget__views"
+			role="group"
+			:aria-label="viewsGroupLabel"
+			data-testid="cn-chart-widget-views">
+			<button
+				v-for="view in views"
+				:key="view.key"
+				type="button"
+				class="cn-chart-widget__view-pill"
+				:class="{ 'cn-chart-widget__view-pill--active': activeView && activeView.key === view.key }"
+				:aria-pressed="String(Boolean(activeView && activeView.key === view.key))"
+				:data-testid="`cn-chart-widget-view-${view.key}`"
+				@click="activeViewKey = view.key">
+				{{ view.label || view.key }}
+			</button>
+		</div>
 		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
 			{{ emptyLabel }}
 		</div>
@@ -21,7 +43,7 @@
 			:height="computedHeight"
 			:width="computedWidth"
 			:options="mergedOptions"
-			:series="resolvedSeries" />
+			:series="displayedSeries" />
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
 			<slot name="fallback">
@@ -42,9 +64,18 @@ import { useDataSource } from '../../composables/useDataSource.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
+import { useObjectStore } from '../../store/useObjectStore.js'
+import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
+
+/**
+ * Sentinel raw key of the folded "Other" bucket (Wave 3 aggregate top-N).
+ * Never a real category value, so drilldown clicks on it are skipped.
+ */
+const OTHER_BUCKET_KEY = '__other__'
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -264,12 +295,37 @@ export default {
 		 *     from `bucket.staticRange`. If neither is available no
 		 *     query is fired and the chart shows its fallback.
 		 * - Raw GraphQL: `{ graphql: { query, variables?, selectors } }`.
+		 * - Aggregation shorthand (Wave 3, #91): `aggregate` as an OBJECT —
+		 *   `{ groupBy, metric?: 'count'|'sum', sumField?, topN?,
+		 *     otherBucket?, labelResolve?: { register?, schema, labelField?,
+		 *     colorField? } }` — a categorical group-by over the schema's
+		 *   objects. Served by OpenRegister's `/grouped` facet endpoint
+		 *   (the server aggregates); when that endpoint is unavailable the
+		 *   widget falls back to fetching the collection and grouping
+		 *   client-side. `topN` keeps the N largest groups (sorted by value
+		 *   desc) and `otherBucket: true` folds the remainder into a single
+		 *   translated "Other" slice (sum of the rest). `labelResolve`
+		 *   swaps reference (uuid) group keys for the referenced objects'
+		 *   `labelField` labels via the shared object store (per-id cache +
+		 *   request dedup — the fkResolve pattern), and `colorField` reads a
+		 *   per-category colour off each referenced object (feeding the
+		 *   same per-category colour path as the `colorMap` prop, which
+		 *   wins on overlap). `metric: 'sum'` requires `sumField`.
+		 *
+		 * Drilldown (Wave 3, #91): a sibling `drilldown: { route,
+		 * filterParam }` block makes every segment / bar click navigate to
+		 * `route` (a route NAME, or a PATH when it starts with `/`) with
+		 * the clicked category's RAW key in the query —
+		 * `{ [filterParam]: rawKey }` — so an index page opens pre-filtered.
+		 * The folded "Other" bucket never navigates (it has no single
+		 * category value).
 		 *
 		 * @type {{
 		 *   register?: string,
 		 *   schema?: string,
 		 *   filter?: object,
-		 *   aggregate?: 'count',
+		 *   aggregate?: ('count'|{ groupBy: string, metric?: string, sumField?: string, topN?: number, otherBucket?: boolean, labelResolve?: { register?: string, schema: string, labelField?: string, colorField?: string } }),
+		 *   drilldown?: { route: string, filterParam: string },
 		 *   bucket?: { field: string, interval: string, metric?: string, metricField?: string, fromVar?: string, toVar?: string, staticRange?: { from: string, to: string } },
 		 *   graphql?: { query: string, variables?: object, selectors: object }
 		 * }|null}
@@ -315,6 +371,24 @@ export default {
 			default: null,
 		},
 		/**
+		 * In-widget view switcher (the Wave-4 amendment folded into Wave 3,
+		 * #91): each entry declares a named display view —
+		 * `{ key, label?, series?, valueFormat? }`. When 2+ views are
+		 * configured a compact pill row renders above the chart; the active
+		 * view's `series` (an array of series NAMES) filters which of the
+		 * resolved cartesian series render, and its `valueFormat` overrides
+		 * the widget-level `valueFormat` (same named-formatter grammar).
+		 * This is PURE DISPLAY — no series arithmetic — covering the €/%
+		 * and hours/% toggles (shillinq Margin / BillableHours) with zero
+		 * client-side computation. Empty (the default) renders no switcher.
+		 *
+		 * @type {Array<{key: string, label?: string, series?: string[], valueFormat?: (string|object)}>}
+		 */
+		views: {
+			type: Array,
+			default: () => [],
+		},
+		/**
 		 * Widget id used to match `cn:widget:refresh` event-bus events
 		 * (broadcast by CnWidgetWrapper's Refresh action). When the bus
 		 * fires with a matching `widgetId`, the chart re-queries its
@@ -346,15 +420,17 @@ export default {
 		// useDataSource — Vue treats inject() within setup and the
 		// Options `inject:` declaration as the same resolution.
 		const range = inject('cnDashboardDateRange', null) || ref(null)
-		// The `bucket` (time) and `groupBy` (category) shorthands are fetched
-		// over REST by this component (fetchTimeBucket / fetchGroupBy) against
-		// OpenRegister's /timeseries + /grouped aggregation endpoints — the
-		// GraphQL bucket path is bypassed. Hide those shapes from useDataSource
-		// so it stays a no-op for them (raw `graphql` / `count` still flow
-		// through it).
+		// The `bucket` (time), `groupBy` (category), and OBJECT-form
+		// `aggregate` (Wave 3) shorthands are fetched over REST by this
+		// component (fetchTimeBucket / fetchGroupBy / fetchAggregateSource)
+		// against OpenRegister's /timeseries + /grouped aggregation
+		// endpoints — the GraphQL bucket path is bypassed. Hide those shapes
+		// from useDataSource so it stays a no-op for them (raw `graphql` /
+		// the STRING `aggregate: 'count'` still flow through it).
 		const dsForGraphql = () => {
 			const ds = props.dataSource
 			if (ds && (ds.bucket || ds.groupBy)) return null
+			if (ds && ds.aggregate && typeof ds.aggregate === 'object') return null
 			return ds
 		}
 		const { data, refetch } = useDataSource(dsForGraphql, { range })
@@ -368,20 +444,28 @@ export default {
 		// re-runs this source), so no widgetId is passed here — the composable
 		// still covers cn:page:refresh.
 		const objectCtxRaw = inject('cnObjectContext', null)
+		// v2 slot-grid detail context (CnPageRenderer holder) — backfills the
+		// object token context so `@objectId` / `@object.<field>` params
+		// resolve on detail surfaces where CnDetailPage is not an ancestor
+		// (the ZGW sidebar-tab contract, #91 Wave 3).
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		// One token context for EVERY declarative binding on this widget —
+		// the endpoint params AND the REST-aggregation source filters, so
+		// `@objectId` / `@object.<field>` / `@workspace.<key>` /
+		// `@config.<key>` resolve identically in both (#91 Wave 3).
+		const chartTokenCtx = () => ({
+			...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
+			workspace: unwrap(workspaceRaw) || {},
+			config: unwrap(appConfigRaw) || {},
+		})
 		const ep = useEndpointSource(
 			() => props.endpointSource,
-			{
-				ctx: () => ({
-					...(unwrap(objectCtxRaw) || {}),
-					workspace: unwrap(workspaceRaw) || {},
-					config: unwrap(appConfigRaw) || {},
-				}),
-			},
+			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -393,6 +477,22 @@ export default {
 			// respective source resolves.
 			groupByData: null,
 			bucketData: null,
+			// Series/categories resolved from the OBJECT-form
+			// `dataSource.aggregate` (Wave 3, #91): server /grouped facet with
+			// a client-side collection fallback, top-N + Other folding, and
+			// fkResolve-style label/colour resolution. Shape when resolved:
+			// `{ series, categories, labels, rawKeys, colorMap? }` — `rawKeys`
+			// carries the UNRESOLVED group keys (uuids / raw values) so a
+			// `drilldown` click navigates with the filterable value, not the
+			// display label.
+			aggregateData: null,
+			// Active `views[]` switcher key (null = the first view). Local
+			// UI state only — never persisted.
+			activeViewKey: null,
+			// Pre-translated aria-label for the views pill group, evaluated
+			// once at creation (data, not computed — matches the dashboard
+			// date-chip convention).
+			viewsGroupLabel: t('nextcloud-vue', 'Chart view'),
 		}
 	},
 
@@ -455,15 +555,15 @@ export default {
 		},
 		/**
 		 * Series shown to ApexCharts. An `endpointSource` (Wave 2) wins,
-		 * then the REST bucket/groupBy data, then `dsData.series` from a
-		 * GraphQL `dataSource`; otherwise falls back to the static
+		 * then the REST aggregate/bucket/groupBy data, then `dsData.series`
+		 * from a GraphQL `dataSource`; otherwise falls back to the static
 		 * `series` prop. Same fallback rule applies to `categories`
 		 * and `labels`.
 		 */
 		resolvedSeries() {
 			const ep = this.endpointChartData
 			if (ep) return ep.series
-			const rest = this.bucketData || this.groupByData
+			const rest = this.aggregateData || this.bucketData || this.groupByData
 			if (rest?.series !== undefined) return rest.series
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
@@ -471,7 +571,7 @@ export default {
 		resolvedCategories() {
 			const ep = this.endpointChartData
 			if (ep) return ep.categories
-			const rest = this.bucketData || this.groupByData
+			const rest = this.aggregateData || this.bucketData || this.groupByData
 			if (rest?.categories !== undefined) return rest.categories
 			const fromDs = this.dsData?.categories
 			return fromDs !== undefined ? fromDs : this.categories
@@ -479,10 +579,58 @@ export default {
 		resolvedLabels() {
 			const ep = this.endpointChartData
 			if (ep) return ep.labels
-			const rest = this.bucketData || this.groupByData
+			const rest = this.aggregateData || this.bucketData || this.groupByData
 			if (rest?.labels !== undefined) return rest.labels
 			const fromDs = this.dsData?.labels
 			return fromDs !== undefined ? fromDs : this.labels
+		},
+		/**
+		 * The OBJECT-form `dataSource.aggregate` block (Wave 3), or null —
+		 * the STRING form (`aggregate: 'count'`) stays on the GraphQL path.
+		 *
+		 * @return {object|null}
+		 */
+		aggregateDef() {
+			const agg = this.dataSource && this.dataSource.aggregate
+			return (agg && typeof agg === 'object' && agg.groupBy) ? agg : null
+		},
+		/**
+		 * The `dataSource.drilldown` block (Wave 3) when it is actionable —
+		 * both `route` and `filterParam` set — else null.
+		 *
+		 * @return {{route: string, filterParam: string}|null}
+		 */
+		drilldownDef() {
+			const d = this.dataSource && this.dataSource.drilldown
+			return (d && d.route && d.filterParam) ? d : null
+		},
+		/**
+		 * The RAW (unresolved) category keys backing the rendered
+		 * slices/bars, index-aligned with the resolved labels — what a
+		 * drilldown click puts in the route query. Aggregate and groupBy
+		 * data carry explicit `rawKeys`; other paths fall back to the
+		 * display labels/categories (raw == label there).
+		 *
+		 * @return {string[]}
+		 */
+		drilldownKeys() {
+			const rest = this.aggregateData || this.groupByData
+			if (rest && Array.isArray(rest.rawKeys)) return rest.rawKeys
+			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
+				? this.resolvedLabels
+				: this.resolvedCategories
+			return Array.isArray(keys) ? keys.map((k) => String(k)) : []
+		},
+		/** Stable signature of the aggregate source (else null). */
+		aggregateKey() {
+			const agg = this.aggregateDef
+			if (!agg || !this.dataSource.schema) return null
+			return JSON.stringify({
+				register: this.dataSource.register || '',
+				schema: this.dataSource.schema,
+				filter: this.dataSource.filter || {},
+				aggregate: agg,
+			})
 		},
 		/** Stable signature of a categorical groupBy source (else null). */
 		groupByKey() {
@@ -521,14 +669,44 @@ export default {
 			]
 		},
 		/**
-		 * The value-formatter function derived from `valueFormat`, or null.
+		 * The active `views[]` entry: the one matching `activeViewKey`,
+		 * else the FIRST configured view, else null (no switcher).
+		 *
+		 * @return {{key: string, label?: string, series?: string[], valueFormat?: (string|object)}|null}
+		 */
+		activeView() {
+			if (!Array.isArray(this.views) || this.views.length === 0) return null
+			return this.views.find((v) => v && v.key === this.activeViewKey) || this.views[0]
+		},
+		/**
+		 * The series actually handed to ApexCharts: the resolved series,
+		 * filtered to the active view's named `series` when the view
+		 * declares any (cartesian charts only — pie-family series are flat
+		 * value arrays with no names to filter on). Falls back to the full
+		 * resolved series when the filter matches nothing, so a typo'd view
+		 * never blanks the chart.
+		 *
+		 * @return {Array} The displayed series.
+		 */
+		displayedSeries() {
+			const series = this.resolvedSeries
+			const view = this.activeView
+			if (!view || !Array.isArray(view.series) || view.series.length === 0) return series
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) return series
+			if (!Array.isArray(series)) return series
+			const filtered = series.filter((s) => s && view.series.includes(s.name))
+			return filtered.length > 0 ? filtered : series
+		},
+		/**
+		 * The value-formatter function derived from `valueFormat` (the
+		 * active `views[]` entry's `valueFormat` wins when set), or null.
 		 * Applied to the value-axis labels and the tooltip so both read
 		 * identically. Non-numeric values pass through untouched.
 		 *
 		 * @return {(function(*): string)|null}
 		 */
 		valueFormatterFn() {
-			const vf = this.valueFormat
+			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
 			if (!vf) return null
 			const name = typeof vf === 'string' ? vf : vf.name
 			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
@@ -562,21 +740,35 @@ export default {
 			return null
 		},
 		/**
-		 * Palette with the per-category `colorMap` applied: one colour per
-		 * resolved label/category (map hit, else the default palette colour by
-		 * position). Null when no `colorMap` is set or nothing resolved yet —
-		 * the default palette then applies unchanged.
+		 * The effective per-category colour map: the explicit `colorMap`
+		 * prop wins; otherwise the map an aggregate `labelResolve.colorField`
+		 * built from the referenced objects (Wave 3). Null when neither is
+		 * available.
+		 *
+		 * @return {Record<string, string>|null}
+		 */
+		effectiveColorMap() {
+			if (this.colorMap && typeof this.colorMap === 'object') return this.colorMap
+			const fromAggregate = this.aggregateData && this.aggregateData.colorMap
+			return (fromAggregate && typeof fromAggregate === 'object') ? fromAggregate : null
+		},
+		/**
+		 * Palette with the effective per-category colour map applied: one
+		 * colour per resolved label/category (map hit, else the default
+		 * palette colour by position). Null when no map is set or nothing
+		 * resolved yet — the default palette then applies unchanged.
 		 *
 		 * @return {string[]|null}
 		 */
 		mappedColors() {
-			if (!this.colorMap || typeof this.colorMap !== 'object') return null
+			const map = this.effectiveColorMap
+			if (!map) return null
 			const keys = ['pie', 'donut', 'radialBar'].includes(this.type)
 				? this.resolvedLabels
 				: this.resolvedCategories
 			if (!Array.isArray(keys) || keys.length === 0) return null
 			const palette = this.defaultColors
-			return keys.map((key, i) => this.colorMap[key] || palette[i % palette.length])
+			return keys.map((key, i) => map[key] || palette[i % palette.length])
 		},
 		/**
 		 * Whether the resolved series carry any data point (pie-family charts
@@ -655,6 +847,21 @@ export default {
 				defaults.tooltip.y = { formatter: this.valueFormatterFn }
 			}
 
+			// Drilldown (Wave 3, #91): a segment / bar click navigates to the
+			// configured route with the clicked category's RAW key in the
+			// query. Wired through ApexCharts' own selection event so it
+			// works identically for pie slices and (distributed) bars; the
+			// cursor hint makes the affordance visible. An explicit
+			// `options.chart.events` still wins through the deep-merge.
+			if (this.drilldownDef && this.$router) {
+				defaults.chart.events = {
+					dataPointSelection: this.onDataPointSelection,
+					dataPointMouseEnter: (event) => {
+						if (event && event.target) event.target.style.cursor = 'pointer'
+					},
+				}
+			}
+
 			// Add categories for cartesian charts
 			if (!isPieType && this.resolvedCategories.length > 0) {
 				defaults.xaxis = {
@@ -710,6 +917,9 @@ export default {
 		bucketKey() {
 			this.fetchTimeBucket()
 		},
+		aggregateKey() {
+			this.fetchAggregateSource()
+		},
 	},
 
 	created() {
@@ -719,6 +929,7 @@ export default {
 	mounted() {
 		this.fetchGroupBy()
 		this.fetchTimeBucket()
+		this.fetchAggregateSource()
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -777,6 +988,7 @@ export default {
 			}
 			this.fetchGroupBy()
 			this.fetchTimeBucket()
+			this.fetchAggregateSource()
 		},
 		/**
 		 * Fetch a time series from OpenRegister's REST `/timeseries` aggregation
@@ -822,7 +1034,7 @@ export default {
 					to,
 				}
 				if (b.metricField) params.metricField = b.metricField
-				const _f = resolveFilterTokens(ds.filter || {})
+				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
@@ -883,7 +1095,7 @@ export default {
 				if (gb.metricField) params.field = gb.metricField
 				if (gb.sort === 'asc' || gb.sort === 'desc') params.sort = gb.sort
 				if (gb.limit) params.limit = gb.limit
-				const _f = resolveFilterTokens(ds.filter || {})
+				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
 				if (_f && typeof _f === 'object') {
 					for (const [k, v] of Object.entries(_f)) {
 						if (v && typeof v === 'object') {
@@ -901,6 +1113,9 @@ export default {
 				}
 				if (gb.limit) groups = groups.slice(0, gb.limit)
 				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
+				// Raw (unresolved) keys, index-aligned with the display labels —
+				// a `dataSource.drilldown` click navigates with these (Wave 3).
+				const rawKeys = groups.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
 				const values = groups.map((g) => Number(g.value) || 0)
 				// When the grouped field is a reference (uuid), swap the raw ids for
 				// the referenced objects' display labels (e.g. client name).
@@ -908,14 +1123,278 @@ export default {
 					keys = await this.resolveGroupByLabels(ds.register, gb.reference, groups)
 				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
-					this.groupByData = { series: values, labels: keys, categories: keys }
+					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
 				} else {
-					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys }
+					this.groupByData = { series: [{ name: gb.metricField || gb.metric || 'count', data: values }], categories: keys, labels: keys, rawKeys }
 				}
 			} catch (e) {
 				this.groupByData = null
 			}
 		},
+		/**
+		 * Resolve the OBJECT-form `dataSource.aggregate` (Wave 3, #91) into
+		 * chart data: a categorical group-by over the schema's objects with
+		 * top-N + Other folding and optional reference label/colour
+		 * resolution.
+		 *
+		 * Server-first: OpenRegister's `/grouped` facet endpoint does the
+		 * aggregation (count, or sum of `sumField`) — the same facet the
+		 * existing `groupBy` shorthand reaches — so the client never pulls
+		 * the collection just to count it. Only when that endpoint is
+		 * unavailable (older OR) does the widget fall back to fetching the
+		 * collection and grouping client-side. Any remaining failure leaves
+		 * `aggregateData` null (static props / fallback render).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchAggregateSource() {
+			const ds = this.dataSource || {}
+			const agg = this.aggregateDef
+			if (!agg || !ds.schema) {
+				this.aggregateData = null
+				return
+			}
+			const metric = agg.metric === 'sum' ? 'sum' : 'count'
+			if (metric === 'sum' && !agg.sumField) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnChartWidget] aggregate.metric "sum" requires aggregate.sumField — skipping.')
+				this.aggregateData = null
+				return
+			}
+			const requestKey = this.aggregateKey
+			let groups = null
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/aggregations/{register}/{schema}/grouped',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const params = { groupBy: agg.groupBy, metric }
+				if (metric === 'sum') params.field = agg.sumField
+				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
+				if (_f && typeof _f === 'object') {
+					for (const [k, v] of Object.entries(_f)) {
+						if (v && typeof v === 'object') {
+							for (const [op, ov] of Object.entries(v)) params[`filter[${k}][${op}]`] = ov
+						} else if (v !== '' && v !== null && v !== undefined) {
+							params[`filter[${k}]`] = v
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
+				groups = (res && res.data && res.data.groups) || []
+			} catch (e) {
+				// Facet endpoint unavailable → client-side fallback aggregation.
+				groups = await this.aggregateFromCollection(ds, agg, metric)
+			}
+			if (!groups) {
+				if (requestKey === this.aggregateKey) this.aggregateData = null
+				return
+			}
+			const built = await this.buildAggregateData(groups, agg)
+			// Guard against a stale (slower) response overwriting a newer
+			// source signature — mirrors the endpoint-source seq guard.
+			if (requestKey === this.aggregateKey) this.aggregateData = built
+		},
+
+		/**
+		 * Client-side fallback aggregation (Wave 3): fetch the collection and
+		 * group it locally — count per `aggregate.groupBy` value, or the sum
+		 * of `sumField`. Used only when OpenRegister's `/grouped` facet
+		 * endpoint is unavailable; capped at 1000 objects (the fleet's
+		 * established client-fetch bound). Returns the same
+		 * `[{ key, value }]` group shape the facet returns, or null on
+		 * failure.
+		 *
+		 * @param {object} ds The dataSource block.
+		 * @param {object} agg The aggregate block.
+		 * @param {string} metric Normalised metric (`count` | `sum`).
+		 * @return {Promise<Array<{key: *, value: number}>|null>}
+		 */
+		async aggregateFromCollection(ds, agg, metric) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: ds.register, schema: ds.schema },
+				)
+				const params = { _limit: 1000 }
+				const _f = resolveFilterTokens(ds.filter || {}, this.chartTokenCtx())
+				if (_f && typeof _f === 'object') {
+					for (const [k, v] of Object.entries(_f)) {
+						if (v && typeof v === 'object' && !Array.isArray(v)) {
+							for (const [op, ov] of Object.entries(v)) params[`${k}[${op}]`] = ov
+						} else if (v !== '' && v !== null && v !== undefined) {
+							params[k] = v
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
+				const results = (res && res.data && res.data.results) || []
+				const totals = new Map()
+				for (const obj of results) {
+					const raw = obj && obj[agg.groupBy]
+					const key = (raw === null || raw === undefined || raw === '') ? null : raw
+					const increment = metric === 'sum' ? (Number(obj && obj[agg.sumField]) || 0) : 1
+					totals.set(key, (totals.get(key) || 0) + increment)
+				}
+				return Array.from(totals.entries()).map(([key, value]) => ({ key, value }))
+			} catch (e) {
+				return null
+			}
+		},
+
+		/**
+		 * Turn raw `[{ key, value }]` groups into the chart-ready
+		 * `aggregateData` blob: sort by value (desc), apply `topN`, fold the
+		 * remainder into a translated "Other" bucket when `otherBucket` is
+		 * true, resolve reference labels/colours via `labelResolve`, and
+		 * shape series/labels per chart family. `rawKeys` keeps the
+		 * UNRESOLVED keys index-aligned for drilldown.
+		 *
+		 * @param {Array<{key: *, value: number}>} groups The raw groups.
+		 * @param {object} agg The aggregate block.
+		 * @return {Promise<{series: *, categories: string[], labels: string[], rawKeys: string[], colorMap?: Record<string, string>}>}
+		 */
+		async buildAggregateData(groups, agg) {
+			let sorted = [...groups].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0))
+			const topN = Number(agg.topN)
+			let other = null
+			if (Number.isFinite(topN) && topN > 0 && sorted.length > topN) {
+				const rest = sorted.slice(topN)
+				sorted = sorted.slice(0, topN)
+				if (agg.otherBucket === true) {
+					other = {
+						key: OTHER_BUCKET_KEY,
+						label: t('nextcloud-vue', 'Other'),
+						value: rest.reduce((sum, g) => sum + (Number(g.value) || 0), 0),
+					}
+				}
+			}
+			const rawKeys = sorted.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
+			let labels = rawKeys.map((k) => (k === '' ? '—' : k))
+			let colorMap = null
+			if (agg.labelResolve && agg.labelResolve.schema) {
+				const resolved = await this.resolveAggregateRefs(
+					(this.dataSource && this.dataSource.register) || '',
+					agg.labelResolve,
+					rawKeys,
+				)
+				labels = resolved.map((r, i) => r.label || labels[i])
+				const withColor = resolved.filter((r) => r.color)
+				if (withColor.length > 0) {
+					colorMap = {}
+					resolved.forEach((r, i) => {
+						if (r.color) colorMap[labels[i]] = r.color
+					})
+				}
+			}
+			const values = sorted.map((g) => Number(g.value) || 0)
+			if (other) {
+				rawKeys.push(other.key)
+				labels.push(other.label)
+				values.push(other.value)
+			}
+			const base = { rawKeys, labels, categories: labels }
+			if (colorMap) base.colorMap = colorMap
+			if (['pie', 'donut', 'radialBar'].includes(this.type)) {
+				return { ...base, series: values }
+			}
+			const name = agg.sumField || agg.metric || 'count'
+			return { ...base, series: [{ name, data: values }] }
+		},
+
+		/**
+		 * Resolve reference (uuid) aggregate keys to their referenced
+		 * objects' display labels (and optional per-category colours) —
+		 * the fkResolve pattern: the SHARED object store first (per-id
+		 * cache + in-flight dedup, so 10 slices pointing at 10 clients
+		 * resolve once each across the whole page), a direct per-id GET
+		 * when no Pinia store is active. Unresolvable ids degrade to an
+		 * empty label (the caller keeps the raw key) — a chart never
+		 * regresses to a blank slice.
+		 *
+		 * @param {string} defaultRegister Register used when `labelResolve` omits one.
+		 * @param {{register?: string, schema: string, labelField?: string, colorField?: string}} labelResolve The labelResolve block.
+		 * @param {string[]} keys The raw group keys (uuids; '' entries skip).
+		 * @return {Promise<Array<{label: string, color: string}>>} One entry per key, in order.
+		 */
+		async resolveAggregateRefs(defaultRegister, labelResolve, keys) {
+			const register = labelResolve.register || defaultRegister
+			const schema = labelResolve.schema
+			const labelField = labelResolve.labelField || 'name'
+			const colorField = labelResolve.colorField || ''
+			let store = null
+			try {
+				store = useObjectStore()
+			} catch (e) {
+				store = null
+			}
+			const type = store ? resolveObjectOpType(store, { register, schema }) : null
+			const fetchViaAxios = async (id) => {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}/{id}',
+					{ register, schema, id },
+				)
+				const res = await axios.get(url)
+				return (res && res.data) || null
+			}
+			return Promise.all(keys.map(async (id) => {
+				if (!id) return { label: '', color: '' }
+				try {
+					const cached = store && store.objects && store.objects[type] && store.objects[type][id]
+					const obj = cached || (store ? await store.fetchObject(type, id) : await fetchViaAxios(id))
+					if (!obj || typeof obj !== 'object') return { label: '', color: '' }
+					let raw = obj[labelField]
+					if (raw === undefined || raw === null || raw === '') {
+						raw = obj['@self'] && obj['@self'].name
+					}
+					const color = colorField && typeof obj[colorField] === 'string' ? obj[colorField] : ''
+					return { label: this.displayString(raw), color }
+				} catch (e) {
+					return { label: '', color: '' }
+				}
+			}))
+		},
+
+		/**
+		 * ApexCharts `dataPointSelection` handler backing the declarative
+		 * `dataSource.drilldown` (Wave 3, #91): navigate to the configured
+		 * route with the clicked category's RAW key in the query
+		 * (`{ [filterParam]: rawKey }`). A route starting with `/` is
+		 * treated as a PATH, anything else as a route NAME. The folded
+		 * "Other" bucket never navigates. Navigation errors (duplicate
+		 * route, guards) are swallowed.
+		 *
+		 * @param {Event} _event The DOM event (unused).
+		 * @param {object} _chartContext The ApexCharts instance (unused).
+		 * @param {{dataPointIndex: number}} config The selection payload.
+		 * @return {void}
+		 */
+		onDataPointSelection(_event, _chartContext, config) {
+			const drill = this.drilldownDef
+			if (!drill || !this.$router) return
+			const idx = config && config.dataPointIndex
+			if (typeof idx !== 'number' || idx < 0) return
+			const key = this.drilldownKeys[idx]
+			if (key === undefined || key === OTHER_BUCKET_KEY) return
+			const query = { [drill.filterParam]: key }
+			const location = String(drill.route).startsWith('/')
+				? { path: drill.route, query }
+				: { name: drill.route, query }
+			this.$router.push(location).catch(() => {})
+		},
+
 		/**
 		 * Resolve reference (uuid) group keys to their referenced objects'
 		 * display labels. Fetches each referenced object once and maps its
@@ -1036,5 +1515,30 @@ export default {
 .cn-chart-widget__error {
 	font-size: 14px;
 	margin: 0;
+}
+
+/* In-widget view switcher pills (views[] prop) — compact segmented row,
+   mirroring the dashboard date-range pill styling. */
+.cn-chart-widget__views {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 6px;
+	justify-content: flex-end;
+}
+
+.cn-chart-widget__view-pill {
+	padding: 2px 10px;
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	background: var(--color-main-background);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.cn-chart-widget__view-pill--active {
+	background: var(--color-primary-element-light, #aad2ed);
+	color: var(--color-main-text);
+	border-color: var(--color-primary-element, #0082c9);
 }
 </style>
