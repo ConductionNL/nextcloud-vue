@@ -275,6 +275,87 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 3e. endpointSource mutual exclusion (Wave 2, nextcloud-vue#91). Every
+	//     endpoint-capable widget binds to exactly ONE data source: the stat /
+	//     delta KPI tiles to `content.source` OR `content.endpointSource`, the
+	//     chart to `dataSource` OR `props.endpointSource`, the object-table to
+	//     `props.source` OR `props.endpointSource`. Cross-field rule →
+	//     post-schema check (clear message), matching the stats-block 3d
+	//     precedent. An OpenRegister source only counts when it is MEANINGFULLY
+	//     configured (register+schema, an endpoint kind, or a url) — the
+	//     in-app widget editor seeds stat/delta content with an EMPTY
+	//     `source: { register: '', schema: '', … }` blob, which must not trip
+	//     the rule when an endpointSource is added. Covers BOTH placements:
+	//     the v2 pages[].widgets[] grid (content under props.content) and the
+	//     legacy pages[].config.widgets[] dashboard catalog (content under
+	//     widget.content, chart inputs under widget.props).
+	const _hasConfiguredOrSource = (source) => isPlainObject(source) && (
+		(typeof source.register === 'string' && source.register !== ''
+			&& typeof source.schema === 'string' && source.schema !== '')
+		|| source.kind === 'endpoint'
+		|| typeof source.url === 'string'
+	)
+	const _hasEndpointSource = (es) => isPlainObject(es)
+	const _checkKpiContent = (content, path) => {
+		if (!isPlainObject(content)) return
+		if (_hasConfiguredOrSource(content.source) && _hasEndpointSource(content.endpointSource)) {
+			errors.push(
+				`${path}: widget content declares BOTH a source and an endpointSource — exactly one of the two data bindings is allowed (OpenRegister source OR endpointSource)`,
+			)
+		}
+	}
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			if (!page) return
+			// v2 grid placement: pages[].widgets[]
+			if (Array.isArray(page.widgets)) {
+				page.widgets.forEach((widget, wIndex) => {
+					if (!widget) return
+					const props = isPlainObject(widget.props) ? widget.props : {}
+					if (widget.widgetKey === 'stat' || widget.widgetKey === 'delta') {
+						_checkKpiContent(props.content, `pages[${pIndex}]/widgets[${wIndex}]`)
+					}
+					if (widget.widgetKey === 'chart') {
+						const hasDataSource = (widget.dataSource !== undefined && widget.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+					if (widget.widgetKey === 'object-table') {
+						if (_hasConfiguredOrSource(props.source) && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/widgets[${wIndex}]: object-table widget declares BOTH a props.source and a props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+			// Legacy dashboard catalog placement: pages[].config.widgets[]
+			const legacy = page.config && Array.isArray(page.config.widgets) ? page.config.widgets : null
+			if (legacy) {
+				legacy.forEach((def, wIndex) => {
+					if (!def) return
+					if (def.type === 'stat' || def.type === 'delta') {
+						_checkKpiContent(def.content, `pages[${pIndex}]/config/widgets[${wIndex}]`)
+					}
+					if (def.type === 'chart') {
+						const props = isPlainObject(def.props) ? def.props : {}
+						const hasDataSource = (def.dataSource !== undefined && def.dataSource !== null)
+							|| (props.dataSource !== undefined && props.dataSource !== null)
+						if (hasDataSource && _hasEndpointSource(props.endpointSource)) {
+							errors.push(
+								`pages[${pIndex}]/config/widgets[${wIndex}]: chart widget declares BOTH a dataSource and props.endpointSource — exactly one of the two data bindings is allowed`,
+							)
+						}
+					}
+				})
+			}
+		})
+	}
+
 	// 4. @resolve: sentinel rejection on registry-key paths
 	const _v2Sentinel = /^@resolve:[a-z][a-z0-9_-]*$/
 	if (typeof clone.version === 'string' && _v2Sentinel.test(clone.version)) {
