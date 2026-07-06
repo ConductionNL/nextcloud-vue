@@ -22,6 +22,15 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
+				<!-- Declarative header actions (#91 Wave 3): a manifest
+				     `headerActions[]` renders as buttons (open-form / api-call /
+				     toggle / navigate / refresh) with visibleWhen gating,
+				     before the slot content so app-provided buttons stay
+				     right-most next to the edit toggle. -->
+				<CnActionButtons
+					v-if="headerActions && headerActions.length"
+					:actions="headerActions"
+					data-testid="cn-dashboard-page-header-actions" />
 				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
 				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
@@ -606,6 +615,7 @@ import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnWidgetStyleEditorModal from '../../modals/CnWidgetStyleEditorModal.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -740,6 +750,7 @@ export default {
 		CnBodySections,
 		CnDateRangePicker,
 		CnActionsMenu,
+		CnActionButtons,
 		CnOpenBuildEditButton,
 		CnWidgetStyleEditorModal,
 	},
@@ -1018,6 +1029,21 @@ export default {
 		dateRange: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
+		 * in the dashboard header via CnActionButtons — `open-form` (schema
+		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
+		 * (two-way state button), `navigate` / `open-modal` / `refresh`, each
+		 * with an optional `visibleWhen` predicate. Empty (the default) renders
+		 * nothing; the `#header-actions` slot still works alongside it for
+		 * bespoke buttons.
+		 *
+		 * @type {Array<object>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
 		},
 		/**
 		 * Optional page-level filter controls rendered in the dashboard header.

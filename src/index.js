@@ -137,6 +137,7 @@ export {
 	CnTableWidget,
 	CnActionsBar,
 	CnActionsMenu,
+	CnActionButtons,
 	CnOpenBuildEditButton,
 	CnEditMenuModal,
 	CnEditPagesModal,
