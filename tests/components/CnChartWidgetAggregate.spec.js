@@ -25,7 +25,7 @@ jest.mock('@nextcloud/router', () => ({
 }))
 
 import axios from '@nextcloud/axios'
-import { mount } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
 
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 
@@ -33,8 +33,13 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const GROUPED_URL = '/nc/apps/openregister/api/objects/aggregations/crm/request/grouped'
 
+// shallowMount stubs the apexcharts child `<component :is>` so the real
+// apexcharts renderer never runs (its DOM draw is irrelevant here — the
+// assertions read vm computeds like resolvedSeries / drilldownKeys and the
+// widget's OWN template, e.g. the views pills). This also makes the suite
+// immune to any cross-file vue-apexcharts mock ordering in the full run.
 function mountChart(props = {}, mocks = {}) {
-	return mount(CnChartWidget, {
+	return shallowMount(CnChartWidget, {
 		propsData: props,
 		mocks,
 	})
