@@ -56,7 +56,7 @@ wrapper, and passes the `props` map through.
 
 ## Declarative source (self-fetch)
 
-`source` (`{ register, schema, filter, order, limit }`, default `null`)
+`source` (`{ register, schema, filter, order, limit, extend }`, default `null`)
 drives CnDataTable's existing self-fetch — the widget does not
 re-implement fetching:
 
@@ -65,12 +65,21 @@ re-implement fetching:
   `@objectId` / `@object.<field>` (on detail pages). A `?`-suffixed
   optional token that resolves to empty **drops its clause**
   (`dropOptionalUnresolved`) instead of failing the fetch; an unresolved
-  *required* token skips the fetch entirely.
+  *required* token skips the fetch entirely. Since Wave 3 the
+  `@objectId` / `@object.<field>` tokens resolve from **either** detail
+  surface: CnDetailPage's `cnObjectContext` ref (which wins per field)
+  or CnPageRenderer's v2 `cnDetailObjectContext` holder (which
+  backfills), so a ZGW-style sidebar tab widget works without a
+  CnDetailPage ancestor.
 - `register` MAY carry an `@resolve:` sentinel — the widget passes it
   through **unexpanded** (resolution is the host loader's job).
 - `order` becomes `_order[field]=asc|desc` fetch params; `limit` caps
   the rendered rows (the widget fetches `limit + 1` so the "View all"
   footer can detect that more rows exist).
+- `extend` (Wave 3, #91) — an array of OpenRegister `_extend[]` values
+  (e.g. `["calculations"]`) forwarded on the fetch, so virtual /
+  declarative calc fields (procest `daysOverdue` / `daysUntilDeadline`)
+  ride along and render as ordinary columns.
 - Externally supplied `rows` **always win** — passing `rows`/`columns`
   without a `source` behaves exactly as before.
 

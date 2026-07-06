@@ -85,6 +85,7 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
 // for why it lives in its own module).
@@ -137,6 +138,14 @@ export default {
 		 * tokens in `source.filter`. Null on dashboards.
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
+		 * objectType, objectId, register, store } | null }`) provided by
+		 * CnPageRenderer — backfills the object token context so
+		 * `@objectId` / `@object.<field>` resolve on detail surfaces where
+		 * CnDetailPage is not an ancestor (#91 Wave 3).
+		 */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Page-level workspace context (reactive `ref({})`) provided by
 		 * CnDashboardPage — enables `@workspace.<key>` tokens in
@@ -224,9 +233,12 @@ export default {
 		 * `rows` are supplied, the widget resolves `filter` @-tokens and
 		 * drives CnDataTable's existing self-fetch with the resolved filter,
 		 * `order`, and `limit`. `register` MAY carry an `@resolve:` sentinel —
-		 * it is passed through unexpanded. Default `null` keeps the
-		 * pre-existing pass-through behaviour byte-for-byte.
-		 * @type {{register?: string, schema?: string, filter?: object, order?: object, limit?: number}|null}
+		 * it is passed through unexpanded. `extend` (#91 Wave 3) forwards
+		 * OpenRegister `_extend[]` values (e.g. `["calculations"]`) on the
+		 * fetch so virtual/declarative calc fields ride along and render as
+		 * ordinary columns. Default `null` keeps the pre-existing
+		 * pass-through behaviour byte-for-byte.
+		 * @type {{register?: string, schema?: string, filter?: object, order?: object, limit?: number, extend?: string[]}|null}
 		 */
 		source: {
 			type: Object,
@@ -330,6 +342,7 @@ export default {
 		// self-fetch path is untouched. Injects re-read in setup (same
 		// resolution as the Options `inject` block).
 		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref(null))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
@@ -340,7 +353,7 @@ export default {
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
-					...(unwrap(objectCtxRaw) || {}),
+					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 					workspace: unwrap(workspaceRaw) || {},
 					config: unwrap(appConfigRaw) || {},
 				}),
@@ -363,14 +376,13 @@ export default {
 
 	computed: {
 		/**
-		 * The unwrapped detail-page object context for token resolution, or
-		 * null on surfaces (dashboards) that don't provide one.
+		 * The merged detail-page object context for token resolution — both
+		 * detail-surface injects, holder fields backfilling (#91 Wave 3) —
+		 * or null on surfaces (dashboards) that don't provide one.
 		 * @return {object|null}
 		 */
 		objectCtx() {
-			const c = this.cnObjectContext
-			if (!c) return null
-			return (typeof c === 'object' && 'value' in c) ? c.value : c
+			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 inject may
@@ -467,6 +479,14 @@ export default {
 			}
 			if (typeof src.limit === 'number' && src.limit > 0) {
 				params._limit = src.limit + 1
+			}
+			// `source.extend` (#91 Wave 3): forwarded as OR's repeated
+			// `_extend[]` param so virtual/declarative fields (e.g.
+			// `calculations` — procest daysOverdue) ride the fetch and are
+			// displayable as ordinary columns. Serialized by the shared
+			// query builder (array value → repeated `key[]`).
+			if (Array.isArray(src.extend) && src.extend.length > 0) {
+				params._extend = src.extend.filter((e) => typeof e === 'string' && e !== '')
 			}
 			const filter = this.resolvedFilter
 			if (filter && typeof filter === 'object') {
