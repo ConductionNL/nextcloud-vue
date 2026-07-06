@@ -8,6 +8,3 @@
 | `maxDepth` | `number`                                |          | `1`     | Maximum nesting depth that may gain children (CnAppNav supports one level).                                                                                                                 |
 | `pages`    | `Array<{value: string, label: string}>` |          | `[]`    | Selectable target pages as `{ value: routeName, label }` options, forwarded to every row's Page picker.                                                                                     |
 | `section`  | `union`                                 |          | `null`  | Which nav section this editor scopes to at the top level (`"settings"` shows only the gear-foldout items; anything else shows the non-settings items). Flatten preserves the other section. |
-ription                                               |
-| ---------- | ------- | --------------------------------------------------------- |
-| `navigate` | —       | Fired when a leaf is activated; payload is the menu item. |
