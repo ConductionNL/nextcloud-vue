@@ -116,9 +116,24 @@ re-implement fetching:
 | `title` | `String` | Widget title shown in the chrome header (default `'Table'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
+| `hideWrapper` | `Boolean` | Render content-only, without the widget's own CnWidgetWrapper chrome (default `false`). Set by hosts that already provide the card chrome — CnDashboardPage's registry branch mounts the widget this way to avoid a double card. |
 
 All other props are forwarded to `CnDataTable` — see the
 [CnDataTable docs](./cn-data-table.md) for the full surface.
+
+## Dashboard registration (`type: "object-table"`)
+
+Besides the v2 grid (`widgetKey: "object-table"`), the widget is
+registered in the shared `dashboardWidgetRegistry` so a
+`CnDashboardPage` widget definition with `type: "object-table"`
+renders it — including through the in-app "Add widget…" picker (the
+config form is the shared object-list form: register / schema /
+filters / sort / limit / columns). The registered renderer is a
+chrome-aware adapter: it mounts the widget with `hideWrapper: true`
+inside the dashboard's own `CnWidgetWrapper`, and accepts the stored
+`content` blob in either the flat form shape
+(`{ register, schema, filter, sort, limit, columns }`) or the v2 prop
+shape (`{ source, columns, actions, … }`).
 
 ## Slots
 

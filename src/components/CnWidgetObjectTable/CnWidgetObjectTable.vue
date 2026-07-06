@@ -18,11 +18,9 @@
   Spec: openspec/changes/list-widget-enrichment/specs/manifest-v2-renderer/spec.md
 -->
 <template>
-	<CnWidgetWrapper
-		:title="title"
-		:widget-id="widgetId"
-		:documentation-url="documentationUrl"
-		flush>
+	<component
+		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
+		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true }">
 		<div class="cn-widget-object-table">
 			<CnDataTable ref="dataTable" v-bind="innerProps" v-on="$listeners">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
@@ -72,7 +70,7 @@
 				@confirm="onConfirmConfirmed"
 				@close="closeConfirm" />
 		</div>
-	</CnWidgetWrapper>
+	</component>
 </template>
 
 <script>
@@ -86,6 +84,9 @@ import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
+// Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
+// for why it lives in its own module).
+import { CnWidgetHostShell } from './hostShell.js'
 
 /**
  * CnWidgetObjectTable — built-in v2 widget wrapping CnDataTable.
@@ -117,7 +118,7 @@ import { useObjectStore } from '../../store/useObjectStore.js'
 export default {
 	name: 'CnWidgetObjectTable',
 
-	components: { CnDataTable, CnWidgetWrapper, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
+	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
 	inject: {
 		/**
@@ -165,6 +166,18 @@ export default {
 		widgetId: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Render content-only, WITHOUT the widget's own CnWidgetWrapper
+		 * chrome. Set by hosts that already provide the card chrome — e.g.
+		 * CnDashboardPage's dashboard widget grid, whose registry branch
+		 * wraps every catalog widget in its own CnWidgetWrapper (a naive
+		 * mount would double-card). Default `false` keeps the pre-existing
+		 * self-chromed v2 rendering byte-for-byte.
+		 */
+		hideWrapper: {
+			type: Boolean,
+			default: false,
 		},
 		/** Register slug. Forwarded to CnDataTable. */
 		register: {
@@ -381,7 +394,7 @@ export default {
 		},
 		/**
 		 * `$props` minus the chrome props (`title`, `documentationUrl`,
-		 * `widgetId`) and the widget-only props (`source`, `actions`,
+		 * `widgetId`, `hideWrapper`) and the widget-only props (`source`, `actions`,
 		 * `rowRoute`), so they are consumed here and never forwarded to the
 		 * inner CnDataTable. `undefined` values are dropped so CnDataTable's
 		 * own prop defaults apply. When the declarative `source` is active it
@@ -391,7 +404,7 @@ export default {
 		 */
 		innerProps() {
 			// eslint-disable-next-line no-unused-vars
-			const { title, documentationUrl, widgetId, source, actions, rowRoute, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, actions, rowRoute, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) inner[k] = v
