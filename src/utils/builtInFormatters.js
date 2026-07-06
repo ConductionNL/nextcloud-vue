@@ -1,4 +1,5 @@
 import { translate as t, translatePlural as n } from '@nextcloud/l10n'
+import { safeCurrencyCode } from './formatMetric.js'
 
 /**
  * @file Built-in formatters merged into the `cnFormatters` registry
@@ -12,6 +13,13 @@ import { translate as t, translatePlural as n } from '@nextcloud/l10n'
  *
  * Consumer formatters win (CnAppRoot spreads
  * `{ ...BUILT_IN_FORMATTERS, ...props.formatters }`).
+ *
+ * A formatter is invoked as `fn(value, row, property, options)` — `options`
+ * is the column's declarative `formatterOptions` map (undefined when the
+ * column declares none), so config-driven formatters (`currency`,
+ * `conditionalPhrase`) work without one registry function per configuration.
+ * The fourth argument is additive: pre-existing three-argument formatters
+ * are unaffected.
  *
  * Every built-in MUST be safe against null / empty / non-parseable
  * inputs — the contract is "return the original value (or empty
@@ -159,6 +167,64 @@ export function formatDaysSince(value) {
 }
 
 /**
+ * Currency formatter (`currency` registry key) via `Intl.NumberFormat`.
+ * Defaults to EUR; the column's `formatterOptions` may set `currency`
+ * (ISO-4217 code, guarded by `safeCurrencyCode` so an invalid code can
+ * never throw a `RangeError`) and `decimals` (default 2).
+ *
+ * Null-safe per the built-in-formatter contract: `''` for null/empty,
+ * `String(value)` for non-numeric input — never throws.
+ *
+ * @param {*} value A numeric value (or numeric string).
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{currency?: string, decimals?: number}} [options] The column's `formatterOptions`.
+ * @return {string} The locale currency string (or ''/original on bad input).
+ */
+export function formatCurrency(value, _row, _property, options) {
+	if (value == null || value === '') return ''
+	const num = Number(value)
+	if (!Number.isFinite(num)) return String(value)
+	const opts = options || {}
+	const decimals = Number.isFinite(opts.decimals) ? opts.decimals : 2
+	return new Intl.NumberFormat(undefined, {
+		style: 'currency',
+		currency: safeCurrencyCode(opts.currency),
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
+	}).format(num)
+}
+
+/**
+ * Sign/zero-based phrase selector (`conditionalPhrase` registry key) —
+ * generalizes `daysUntil` to ANY numeric field: the column's
+ * `formatterOptions` supply pre-translated `{ negative, zero, positive }`
+ * phrases and the matching one renders with `{n}` replaced by the ABSOLUTE
+ * value (so "{n} days overdue" reads naturally for -3). Phrases are
+ * consumer-provided strings — apps translate them before declaring the
+ * column, keeping i18n in the app layer.
+ *
+ * Null-safe per the built-in-formatter contract: `''` for null/empty,
+ * `String(value)` for non-numeric input or when the selected phrase is
+ * missing — never throws.
+ *
+ * @param {*} value A numeric value (or numeric string).
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{negative?: string, zero?: string, positive?: string}} [options] The column's `formatterOptions`.
+ * @return {string} The selected phrase with `{n}` substituted (or ''/original on bad input).
+ */
+export function formatConditionalPhrase(value, _row, _property, options) {
+	if (value == null || value === '') return ''
+	const num = Number(value)
+	if (!Number.isFinite(num)) return String(value)
+	const opts = options || {}
+	const phrase = num < 0 ? opts.negative : (num > 0 ? opts.positive : opts.zero)
+	if (typeof phrase !== 'string' || phrase === '') return String(value)
+	return phrase.replace(/\{n\}/g, String(Math.abs(num)))
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
@@ -168,4 +234,6 @@ export const BUILT_IN_FORMATTERS = {
 	'relative-time': formatRelativeTime,
 	daysSince: formatDaysSince,
 	daysUntil: formatDaysUntil,
+	currency: formatCurrency,
+	conditionalPhrase: formatConditionalPhrase,
 }

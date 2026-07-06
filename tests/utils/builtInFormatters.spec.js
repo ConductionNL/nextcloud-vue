@@ -8,7 +8,7 @@
  * value for unparseable input, empty string for null/empty).
  */
 
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -149,11 +149,76 @@ describe('builtInFormatters', () => {
 		})
 	})
 
+	describe('formatCurrency (currency)', () => {
+		it('formats a number as EUR by default with two decimals', () => {
+			const out = formatCurrency(1234.5)
+			expect(out).toContain('€')
+			expect(out).toMatch(/1.?234/)
+			expect(out).toMatch(/50/)
+		})
+
+		it('honours options.currency and options.decimals', () => {
+			const out = formatCurrency(1000, {}, {}, { currency: 'USD', decimals: 0 })
+			expect(out).toContain('$')
+			expect(out).not.toContain('.00')
+		})
+
+		it('guards an invalid currency code back to EUR (never throws)', () => {
+			expect(() => formatCurrency(10, {}, {}, { currency: 'not-a-code' })).not.toThrow()
+			expect(formatCurrency(10, {}, {}, { currency: 'not-a-code' })).toContain('€')
+		})
+
+		it('follows the null-safety contract', () => {
+			expect(formatCurrency(null)).toBe('')
+			expect(formatCurrency(undefined)).toBe('')
+			expect(formatCurrency('')).toBe('')
+			expect(formatCurrency('garbage')).toBe('garbage')
+		})
+
+		it('accepts numeric strings', () => {
+			expect(formatCurrency('12.5')).toMatch(/12/)
+		})
+	})
+
+	describe('formatConditionalPhrase (conditionalPhrase)', () => {
+		const options = {
+			negative: '{n} days overdue',
+			zero: 'Due today',
+			positive: '{n} days remaining',
+		}
+
+		it('selects the phrase by sign and substitutes the absolute value for {n}', () => {
+			expect(formatConditionalPhrase(-3, {}, {}, options)).toBe('3 days overdue')
+			expect(formatConditionalPhrase(0, {}, {}, options)).toBe('Due today')
+			expect(formatConditionalPhrase(7, {}, {}, options)).toBe('7 days remaining')
+		})
+
+		it('substitutes every {n} occurrence', () => {
+			expect(formatConditionalPhrase(2, {}, {}, { positive: '{n} + {n}' })).toBe('2 + 2')
+		})
+
+		it('falls back to the raw value when the selected phrase is missing', () => {
+			expect(formatConditionalPhrase(5, {}, {}, { negative: 'x' })).toBe('5')
+			expect(formatConditionalPhrase(5, {}, {}, undefined)).toBe('5')
+		})
+
+		it('follows the null-safety contract', () => {
+			expect(formatConditionalPhrase(null, {}, {}, options)).toBe('')
+			expect(formatConditionalPhrase('', {}, {}, options)).toBe('')
+			expect(formatConditionalPhrase('garbage', {}, {}, options)).toBe('garbage')
+		})
+	})
+
 	describe('BUILT_IN_FORMATTERS map', () => {
 		it('exports date / datetime / relative-time entries', () => {
 			expect(typeof BUILT_IN_FORMATTERS.date).toBe('function')
 			expect(typeof BUILT_IN_FORMATTERS.datetime).toBe('function')
 			expect(typeof BUILT_IN_FORMATTERS['relative-time']).toBe('function')
+		})
+
+		it('exports currency / conditionalPhrase entries resolvable by a column formatter name', () => {
+			expect(BUILT_IN_FORMATTERS.currency).toBe(formatCurrency)
+			expect(BUILT_IN_FORMATTERS.conditionalPhrase).toBe(formatConditionalPhrase)
 		})
 
 		it('exports daysSince / daysUntil entries resolvable by a column formatter name', () => {
