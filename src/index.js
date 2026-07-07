@@ -290,6 +290,24 @@ export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, va
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
+export {
+	SENTINEL_TOKEN_PATTERNS,
+	SENTINEL_CONTEXTS,
+	SENTINEL_VOCABULARY,
+	SENTINEL_DEPRECATIONS,
+	looksLikeSentinel,
+	contextOf,
+	isKnownToken,
+	matchDeprecation,
+	classifyToken,
+	scanManifestTokens,
+} from './utils/sentinelTokens.js'
+export {
+	SENTINEL_RESOLVERS,
+	resolveManifestSubtree,
+	warnIfDeprecated,
+	clearDeprecationWarnings,
+} from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'

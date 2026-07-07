@@ -33,7 +33,11 @@
  * @module utils/resolveManifestSentinels
  */
 
-const SENTINEL_PATTERN = /^@resolve:([a-z][a-z0-9_-]*)$/
+import { RESOLVE_TOKEN_RE } from './sentinelTokens.js'
+
+// `@resolve:<key>` — the config-context token, sourced from the single closed
+// vocabulary (src/utils/sentinelTokens.js) so schema + runtime cannot drift.
+const SENTINEL_PATTERN = RESOLVE_TOKEN_RE
 
 /**
  * Process-wide cache of resolved IAppConfig values, keyed by
