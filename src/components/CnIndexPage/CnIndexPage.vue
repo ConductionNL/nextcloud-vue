@@ -39,6 +39,9 @@
 			:table-label="tableLabel"
 			:cards-icon="cardsIcon"
 			:table-icon="tableIcon"
+			:show-map="showMapSegment"
+			:map-label="mapLabel"
+			:map-icon="mapIcon"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
 			:search-placeholder="searchPlaceholder"
@@ -316,6 +319,19 @@
 					</template>
 				</CnDataTable>
 
+				<!-- Map view — plots the CURRENT filtered rows (displayObjects) as
+				     inline markers; no separate fetch path, so it reuses the same
+				     filter / sidebar / quick-filter machinery as table and cards.
+				     A marker click routes back through onRowClick for identical
+				     detail-page navigation. -->
+				<CnMapWidget
+					v-else-if="currentViewMode === 'map'"
+					class="cn-index-page__map"
+					:center="mapCenter"
+					:markers="mapMarkers"
+					:auto-fit="true"
+					@marker-click="onMarkerClick" />
+
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
@@ -434,6 +450,7 @@ import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
+import { CnMapWidget } from '../CnMapWidget/index.js'
 import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
 import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
 import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
@@ -541,6 +558,7 @@ export default {
 		CnIcon,
 		CnDataTable,
 		CnCardGrid,
+		CnMapWidget,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -742,11 +760,61 @@ export default {
 			default: () => [],
 		},
 
-		/** View mode: 'table' or 'cards' */
+		/**
+		 * View mode: 'table', 'cards' or 'map'. Default 'table'. The 'map' mode
+		 * is only offered when the page opts in via `mapConfig` / `config.viewModes`.
+		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'map'].includes(v),
+		},
+
+		/**
+		 * Marker geometry mapping for the opt-in `map` view mode, mirroring the
+		 * manifest `config.map` block 1:1. When non-empty (and not excluded by an
+		 * explicit `config.viewModes`), a third "Map" segment appears in the view
+		 * toggle and the current filtered rows are plotted on a CnMapWidget.
+		 *
+		 * - `latField` / `lngField` — object (or `@self`) property paths holding the
+		 *   marker's latitude / longitude. Dotted paths are supported (e.g.
+		 *   `@self.geo.lat`).
+		 * - `geoField` — alternative single property holding a GeoJSON Point
+		 *   geometry (`{ type: 'Point', coordinates: [lng, lat] }`); takes
+		 *   precedence over lat/lngField when present and resolvable.
+		 * - `popupField` — object property rendered in the marker popup.
+		 * - `center` — optional `[lat, lng]` fallback centre when the filtered set
+		 *   has no plottable rows.
+		 * @type {{ latField?: string, lngField?: string, geoField?: string, popupField?: string, center?: [number, number] }}
+		 */
+		mapConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** Label for the map view-toggle segment (defaults to "Map"). */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). */
+		mapIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Explicit whitelist of view-toggle segments to offer, e.g.
+		 * `['table', 'cards', 'map']`. Fed from the manifest as
+		 * `pages[].config.viewModes`. When set it takes precedence over the
+		 * inferred availability (map otherwise appears iff `mapConfig` is
+		 * non-empty). Cards/table always render regardless of this list.
+		 * @type {Array<'table' | 'cards' | 'map'>}
+		 */
+		viewModes: {
+			type: Array,
+			default: null,
 		},
 
 		/** Current sort key */
@@ -1373,6 +1441,67 @@ export default {
 			if (!this.defaultSort || this.defaultSort.length === 0) return this.effectiveObjects
 			if (this.effectiveSortKey) return this.effectiveObjects
 			return multiKeySort(this.effectiveObjects, this.defaultSort)
+		},
+
+		/**
+		 * Whether the `map` segment is offered in the view toggle. An explicit
+		 * `viewModes` whitelist wins; otherwise map is available iff `mapConfig`
+		 * carries at least one field. Cards/table are always available.
+		 *
+		 * @return {boolean}
+		 */
+		showMapSegment() {
+			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
+			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * Inline GeoJSON markers for the map view, built from the CURRENT filtered
+		 * `displayObjects` using `mapConfig`. Each feature stashes the row's
+		 * `rowKey` in `properties` so a marker click can resolve back to its source
+		 * row. Rows without finite, resolvable geometry are skipped silently.
+		 *
+		 * @return {{ features: object[], popupField: (string|undefined) }}
+		 */
+		mapMarkers() {
+			const features = []
+			for (const row of this.displayObjects) {
+				const coords = this.resolveRowLatLng(row)
+				if (!coords) continue
+				features.push({
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [coords.lng, coords.lat] },
+					properties: {
+						[this.rowKey]: row[this.rowKey],
+						...(this.mapConfig.popupField ? { [this.mapConfig.popupField]: row[this.mapConfig.popupField] } : {}),
+					},
+				})
+			}
+			return { features, popupField: this.mapConfig.popupField }
+		},
+
+		/**
+		 * Initial map centre `[lat, lng]`. Uses the centroid of the plotted markers
+		 * when any exist (CnMapWidget's autoFit then tightens to the bounds); falls
+		 * back to `mapConfig.center`, then a neutral world view when the set is empty.
+		 *
+		 * @return {[number, number]}
+		 */
+		mapCenter() {
+			const feats = this.mapMarkers.features
+			if (feats.length > 0) {
+				let sumLat = 0
+				let sumLng = 0
+				for (const f of feats) {
+					sumLng += f.geometry.coordinates[0]
+					sumLat += f.geometry.coordinates[1]
+				}
+				return [sumLat / feats.length, sumLng / feats.length]
+			}
+			if (Array.isArray(this.mapConfig.center) && this.mapConfig.center.length === 2) {
+				return this.mapConfig.center
+			}
+			return [0, 0]
 		},
 		/** Loading flag: store loading in self-fetch mode, else the `loading` prop. */
 		effectiveLoading() { return this.isSelfFetchMode ? !!this.list.loading.value : this.loading },
@@ -2098,6 +2227,70 @@ export default {
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
+		},
+
+		/**
+		 * Resolve a marker click on the map back to its source row and route it
+		 * through `onRowClick`, so `@row-click` fires with the identical payload a
+		 * table/card click would emit — giving uniform detail-page navigation
+		 * across all three view modes.
+		 *
+		 * @param {{ feature: object }} payload CnMapWidget marker-click payload.
+		 */
+		onMarkerClick(payload) {
+			const feature = payload && payload.feature
+			const key = feature && feature.properties ? feature.properties[this.rowKey] : undefined
+			if (key === undefined || key === null) return
+			const row = this.displayObjects.find((o) => o[this.rowKey] === key)
+			if (row) this.onRowClick(row)
+		},
+
+		/**
+		 * Extract a `{ lat, lng }` pair from a row using `mapConfig`. Prefers a
+		 * GeoJSON Point on `geoField` (`coordinates: [lng, lat]`), else reads the
+		 * dotted `latField` / `lngField` paths. Returns null when the geometry is
+		 * missing or non-finite, so callers can skip the row.
+		 *
+		 * @param {object} row The source object.
+		 * @return {{ lat: number, lng: number } | null}
+		 */
+		resolveRowLatLng(row) {
+			if (!row) return null
+			const cfg = this.mapConfig || {}
+			if (cfg.geoField) {
+				let geo = this.getByPath(row, cfg.geoField)
+				// OpenRegister often stores geometry as a JSON-encoded string on
+				// object metadata; parse it before reading `coordinates`.
+				if (typeof geo === 'string') {
+					try {
+						geo = JSON.parse(geo)
+					} catch {
+						geo = null
+					}
+				}
+				const coords = geo && Array.isArray(geo.coordinates) ? geo.coordinates : null
+				if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+					return { lat: Number(coords[1]), lng: Number(coords[0]) }
+				}
+			}
+			const lat = Number(this.getByPath(row, cfg.latField))
+			const lng = Number(this.getByPath(row, cfg.lngField))
+			if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+			return null
+		},
+
+		/**
+		 * Read a possibly-dotted property path off an object (e.g. `@self.geo.lat`).
+		 * Returns undefined on any missing segment. No path = undefined.
+		 *
+		 * @param {object} obj The object to read from.
+		 * @param {string} path Dot-separated property path.
+		 * @return {*} The resolved value or undefined.
+		 */
+		getByPath(obj, path) {
+			if (!obj || !path) return undefined
+			if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+			return path.split('.').reduce((acc, seg) => (acc == null ? undefined : acc[seg]), obj)
 		},
 
 		/**

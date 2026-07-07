@@ -133,6 +133,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { safeCurrencyCode } from '../../utils/formatMetric.js'
 
 const VIEW_MODES = ['summary', 'trend', 'top-vendors', 'top-categories']
 const PERIODS = ['month', 'quarter', 'ytd', 'fy']
@@ -456,7 +457,7 @@ export default {
 			try {
 				return new Intl.NumberFormat(locale, {
 					style: 'currency',
-					currency: this.finance.currency || 'EUR',
+					currency: safeCurrencyCode(this.finance.currency),
 				}).format(value)
 			} catch (e) {
 				return String(value)

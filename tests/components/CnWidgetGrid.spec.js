@@ -77,12 +77,18 @@ describe('CnWidgetGrid — gridWidth clamping', () => {
 })
 
 describe('CnWidgetGrid — unknown widgetKey', () => {
-	it('skips widget and emits console.warn for unknown widgetKey', () => {
+	it('renders a visible placeholder (not a silent skip) and warns for an unknown widgetKey', () => {
+		// 2026-07-06 audit item 12: an unknown widgetKey used to be dropped
+		// silently, so a page whose widgets all failed to resolve rendered a
+		// blank pane (petstore dashboard). It now resolves to the CnUnknownWidget
+		// placeholder so the failure is visible, while still warning for devs.
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const wrapper = mount('body', [
 			{ widgetKey: 'does-not-exist', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
 		])
-		expect(wrapper.vm.resolvedWidgets.length).toBe(0)
+		expect(wrapper.vm.resolvedWidgets.length).toBe(1)
+		expect(wrapper.vm.resolvedWidgets[0].widgetKey).toBe('does-not-exist')
+		expect(wrapper.vm.resolvedWidgets[0].component.name).toBe('CnUnknownWidget')
 		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'))
 		warnSpy.mockRestore()
 	})

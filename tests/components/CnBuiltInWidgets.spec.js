@@ -43,6 +43,51 @@ describe('builtInWidgets registry', () => {
 		const CnWidgetCardGrid = require('../../src/components/CnWidgetCardGrid/CnWidgetCardGrid.vue').default
 		expect(BUILT_IN_WIDGETS['card-grid']).toBe(CnWidgetCardGrid)
 	})
+
+	it('registers the Wave-1 keys: banner + audit-trail', () => {
+		const CnBannerWidget = require('../../src/components/CnBannerWidget/CnBannerWidget.vue').default
+		const CnAuditTrailWidget = require('../../src/components/CnAuditTrailWidget/CnAuditTrailWidget.vue').default
+		expect(BUILT_IN_WIDGETS.banner).toBe(CnBannerWidget)
+		expect(BUILT_IN_WIDGETS['audit-trail']).toBe(CnAuditTrailWidget)
+	})
+
+	it('ports header / text / divider to the v2 grid (same content-only components as the dashboard catalog)', () => {
+		const CnHeaderWidget = require('../../src/components/CnHeaderWidget/CnHeaderWidget.vue').default
+		const CnTextWidget = require('../../src/components/CnTextWidget/CnTextWidget.vue').default
+		const CnDividerWidget = require('../../src/components/CnDividerWidget/CnDividerWidget.vue').default
+		expect(BUILT_IN_WIDGETS.header).toBe(CnHeaderWidget)
+		expect(BUILT_IN_WIDGETS.text).toBe(CnTextWidget)
+		expect(BUILT_IN_WIDGETS.divider).toBe(CnDividerWidget)
+		// Identity with the dashboard registry renderers — one component, two surfaces.
+		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
+		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+		expect(getWidgetTypeEntry('header').renderer).toBe(CnHeaderWidget)
+		expect(getWidgetTypeEntry('text').renderer).toBe(CnTextWidget)
+		expect(getWidgetTypeEntry('divider').renderer).toBe(CnDividerWidget)
+	})
+
+	it('a v2 widgets[] entry with widgetKey "header" renders CnHeaderWidget content-only', () => {
+		const CnWidgetGrid = require('../../src/components/CnWidgetGrid/CnWidgetGrid.vue').default
+		const wrapper = shallowMount(CnWidgetGrid, {
+			propsData: {
+				slotName: 'body',
+				widgets: [{
+					widgetKey: 'header',
+					slot: 'body',
+					gridX: 0,
+					gridY: 0,
+					gridWidth: 12,
+					gridHeight: 2,
+					props: { content: { title: 'Welcome' } },
+				}],
+			},
+		})
+		const header = wrapper.findComponent({ name: 'CnHeaderWidget' })
+		expect(header.exists()).toBe(true)
+		expect(header.props('content')).toEqual({ title: 'Welcome' })
+		// Content-only: no CnWidgetWrapper chrome around it.
+		expect(wrapper.findComponent({ name: 'CnWidgetWrapper' }).exists()).toBe(false)
+	})
 })
 
 describe('CnWidgetObjectTable', () => {

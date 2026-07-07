@@ -18,6 +18,7 @@ The FAB and panel are both hidden when `useAiContext().pageKind === 'chat'` (i.e
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `position` | `'bottom-right'` \| `'bottom-left'` \| `'top-right'` \| `'top-left'` | `'bottom-right'` | Corner at which to anchor the FAB |
+| `chatAppId` | `String` | `'openregister'` | Backend app id the chat/agent endpoints resolve against; passed through to `useAiChatStream`. |
 
 ## Inject
 

@@ -60,6 +60,7 @@ the manifest declares an enabled `walkthrough`; you can also mount it standalone
 | `resume` | `object` | `null` | Resume token `{ tourId, stepId }` (refresh / cross-app hand-off). |
 | `zIndex` | `number` | `10000` | Stacking order of the overlay. |
 | `nextLabel` / `backLabel` / `skipLabel` / `finishLabel` | `string` | localized | Control labels. |
+| `closeLabel` | `string` | `"Close tour"` | Accessible label for the corner ✕ button that ends the tour for good (marks it complete). |
 | `translate` | `function` | `null` | Optional translator applied to step title/body/task i18n keys. |
 
 ## Events

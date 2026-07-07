@@ -95,6 +95,17 @@
 					:config="lifecycleActions"
 					@transitioned="onTransitioned"
 					@reload="onLifecycleReload" />
+				<!-- Declarative header actions (#91 Wave 3): a manifest
+				     `config.headerActions[]` renders as buttons (api-call /
+				     open-form / toggle / navigate) with visibleWhen gating —
+				     the object context this page provides drives `@objectId` /
+				     `@object.<field>` tokens + local predicates (the shillinq
+				     PaymentRunDetailActions contract). -->
+				<CnActionButtons
+					v-if="headerActions && headerActions.length"
+					:actions="headerActions"
+					data-testid="cn-detail-page-header-actions"
+					@created="onLifecycleReload" />
 				<!--
 					@slot actions
 					@description Right-hand action surface in the page header (typically NcActions
@@ -526,6 +537,7 @@ import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
@@ -635,6 +647,7 @@ export default {
 		CnRelatedObjectsWidget,
 		CnDashboardGrid,
 		CnLifecycleActions,
+		CnActionButtons,
 		CnSummaryAggregates,
 		CnRelatedCollections,
 		CnBodySections,
@@ -1035,6 +1048,24 @@ export default {
 		lifecycleActions: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Declarative header actions (manifest `config.headerActions`, #91
+		 * Wave 3) rendered as buttons in the page header via CnActionButtons —
+		 * `api-call` (POST/PUT + toast + refresh), `open-form`, `toggle`,
+		 * `navigate` / `open-modal`, each with an optional `visibleWhen`
+		 * predicate. Distinct from `lifecycleActions` (state-machine
+		 * transitions): these are free-form record actions (approve, send,
+		 * archive). The page's object context drives `@objectId` /
+		 * `@object.<field>` token + local-predicate resolution. Empty (the
+		 * default) renders nothing.
+		 *
+		 * @type {Array<object>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -2243,8 +2274,6 @@ export default {
 				if (!this.sidebarSeeded) {
 					this.sidebarSeeded = true
 				}
-				this.objectSidebarState.hiddenTabs = merged.hiddenTabs || []
-
 				// Manifest-driven open-enum tabs (forwarded to the host
 				// app's mounted CnObjectSidebar via inject). When the
 				// top-level `sidebarTabs` prop is non-empty it provides
