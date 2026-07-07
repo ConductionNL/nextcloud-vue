@@ -17,6 +17,7 @@
 	     dialog the moment it opens. -->
 	<Fragment v-if="hasOverflowMenu">
 		<NcActions
+			:force-menu="true"
 			:force-name="true"
 			:menu-name="actionsMenuLabel"
 			:data-testid="`${testidBase}-actions`">
