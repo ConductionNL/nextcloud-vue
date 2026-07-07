@@ -28,6 +28,21 @@
 	margin-bottom: 0;
 }
 
+/* Fill: grow to the full height of a flex-column card/widget content area and
+   push the footer to the bottom (via `margin-top: auto`) instead of letting it
+   float directly under a short list. When the list overflows, the container
+   grows past the parent and the sticky footer keeps it pinned. No-op when the
+   parent has no constrained height. */
+.cn-table-container.cn-table-container--fill {
+	min-height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-table-container--fill .cn-data-table__footer {
+	margin-top: auto;
+}
+
 /* Optional card header + "View all" footer (folded from CnTableWidget). */
 .cn-data-table__header {
 	display: flex;
@@ -55,6 +70,14 @@
 	padding: 8px 16px;
 	border-top: 1px solid var(--color-border);
 	text-align: center;
+	/* Keep the footer (e.g. "+ New" / "View all") pinned to the bottom of the
+	   scroll region so it stays reachable while a long list scrolls. Sticks to
+	   whichever ancestor scrolls — the container's own `--scrollable` region
+	   (max-height 400) or the enclosing widget card's content area. The opaque
+	   background stops scrolling rows from showing through behind it. */
+	position: sticky;
+	bottom: 0;
+	background: var(--color-main-background);
 }
 
 .cn-data-table__view-all {
