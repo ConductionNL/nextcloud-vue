@@ -17,14 +17,27 @@
  *   const fragments = ctx.keys().sort().map((k) => ctx(k))
  *   const manifest = buildManifest(bundledManifest, fragments, menuLayout)
  *
+ * If the base (or a fragment) declares `pageTemplates[]` + `pageInstances[]`
+ * (manifest-entity-scaffold-templating), the entity-scaffold expander runs as
+ * the final step: each instantiation is materialised into a concrete page and
+ * appended to `pages[]`, so the runtime renderer only ever sees concrete pages.
+ * A manifest without templating is passed through unchanged (no-op fast path).
+ *
  * @param {object} base The bundled base manifest (`src/manifest.json`).
  * @param {Array<object>} [fragments] Fragment objects (each may carry `pages`/`menu`).
  * @param {object} [menuLayout] `{ relocations?, removals?, settingsSection? }`.
  * @return {object} The merged manifest: `{ ...base, pages, menu }`.
  */
+
+import { expandPageTemplates } from './expandPageTemplates.js'
+
 export function buildManifest(base, fragments = [], menuLayout = {}) {
 	const merged = { ...base, pages: [...(base.pages || [])], menu: [] }
 	mergeMenuItems(merged.menu, base.menu || [])
+	// Fragments may also carry page-template instantiations/templates/sets;
+	// collect them so a fragment-authored entity scaffold expands too.
+	const fragTemplates = []
+	const fragInstances = []
 	for (const frag of (Array.isArray(fragments) ? fragments : [])) {
 		if (frag && Array.isArray(frag.pages)) {
 			mergePages(merged.pages, frag.pages)
@@ -32,8 +45,27 @@ export function buildManifest(base, fragments = [], menuLayout = {}) {
 		if (frag && Array.isArray(frag.menu)) {
 			mergeMenuItems(merged.menu, frag.menu)
 		}
+		if (frag && Array.isArray(frag.pageTemplates)) fragTemplates.push(...frag.pageTemplates)
+		if (frag && Array.isArray(frag.pageInstances)) fragInstances.push(...frag.pageInstances)
+		if (frag && frag.sets && typeof frag.sets === 'object') {
+			merged.sets = { ...(merged.sets || {}), ...frag.sets }
+		}
 	}
+	if (fragTemplates.length) merged.pageTemplates = [...(merged.pageTemplates || []), ...fragTemplates]
+	if (fragInstances.length) merged.pageInstances = [...(merged.pageInstances || []), ...fragInstances]
 	merged.menu = applyMenuLayout(merged.menu, menuLayout)
+
+	// Entity-scaffold expansion (runtime/boot path). No-op unless the manifest
+	// declares pageTemplates + pageInstances. Runtime fallback semantics: a bad
+	// instantiation is skipped + warned rather than blanking the whole app.
+	if (Array.isArray(merged.pageTemplates) || Array.isArray(merged.pageInstances)) {
+		const result = expandPageTemplates(merged, { throwOnError: false })
+		if (result.errors.length) {
+			// eslint-disable-next-line no-console
+			console.warn('[buildManifest] page-template expansion reported errors; the offending instantiations were skipped.', result.errors)
+		}
+		return result.manifest
+	}
 	return merged
 }
 

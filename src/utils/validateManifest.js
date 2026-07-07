@@ -135,6 +135,33 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 1b. Entity-scaffold templating (manifest-entity-scaffold-templating):
+	//     pageTemplates[].id uniqueness + pageInstances[].templateRef resolves.
+	//     Cheap early feedback so a dangling ref is caught at validation time,
+	//     not only when the expander runs. No-op for a manifest without
+	//     templating (the fleet corpus), so it can't break the regression.
+	if (Array.isArray(clone.pageTemplates) || Array.isArray(clone.pageInstances)) {
+		const templateIds = new Set()
+		if (Array.isArray(clone.pageTemplates)) {
+			clone.pageTemplates.forEach((tpl, index) => {
+				if (!tpl || typeof tpl.id !== 'string') return
+				if (templateIds.has(tpl.id)) {
+					errors.push(`pageTemplates[${index}]/id: "${tpl.id}" must be unique within pageTemplates[]`)
+				} else {
+					templateIds.add(tpl.id)
+				}
+			})
+		}
+		if (Array.isArray(clone.pageInstances)) {
+			clone.pageInstances.forEach((inst, index) => {
+				if (!inst || typeof inst.templateRef !== 'string') return
+				if (!templateIds.has(inst.templateRef)) {
+					errors.push(`pageInstances[${index}]/templateRef: "${inst.templateRef}" references no pageTemplates[] entry`)
+				}
+			})
+		}
+	}
+
 	// 2. gridX + gridWidth <= 12 for widget entries (sidebar already
 	//    constrained to gridWidth:1 by schema, so the sum is always ≤12 for
 	//    sidebar; we still run the arithmetic check for clarity).
