@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.16.0",
+	"version": "2.17.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -248,9 +248,150 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/deepLink" },
 			"description": "ADR-040: object deep-link descriptors consumed by the integration registry / cross-app linking, NOT by the Vue renderer. Optional and additive."
+		},
+		"pageTemplates": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageTemplate" },
+			"description": "Entity-scaffold page templates (manifest-entity-scaffold-templating). A template declares one reusable index/detail page shape ONCE, with `{{param}}` placeholders for the parts that vary per entity (register/schema binding, label, field/column subset) and a declared parameter list. The expander (utils/expandPageTemplates) materialises `pageInstances[]` into concrete `pages[]` at build/boot time, so CnPageRenderer only ever sees concrete pages and is unchanged by templating. Optional and additive: a manifest without pageTemplates is unaffected."
+		},
+		"pageInstances": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageInstance" },
+			"description": "Per-entity template instantiations. Each entry references a `pageTemplates[]` template by `templateRef` and supplies only the values that vary. The expander substitutes them into the referenced template and appends the resulting concrete pages to `pages[]`. Expansion FAILS (named error) on an unknown templateRef or a missing required template parameter. Optional and additive."
+		},
+		"sets": {
+			"type": "object",
+			"description": "Named, reusable field/column/sidebar sets referenced from templates via a `{{set:NAME}}` placeholder, so a repeated field/column/sidebar block is declared ONCE and shared across templates and pages instead of being re-listed. Each value is arbitrary JSON (typically an array of field/column defs or a sidebar object). Optional and additive.",
+			"additionalProperties": true
 		}
 	},
 	"$defs": {
+		"pageTemplate": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "page"],
+			"description": "A reusable page shape declared once and instantiated per entity. `page` is an ordinary v2 page object whose string values may contain `{{param}}` placeholders (and `{{set:NAME}}` set references); `params` declares which placeholders exist and which are required. Fixed structure lives in `page`; only declared params vary per instantiation.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique template identifier — the `templateRef` target. Uniqueness across pageTemplates[] is enforced by validateManifestV2 as a post-schema check."
+				},
+				"_note": {
+					"type": "string",
+					"description": "Free-form maintainer note; ignored by the expander."
+				},
+				"params": {
+					"type": "array",
+					"description": "Declared parameters. A placeholder `{{name}}` in `page` is substituted with the instantiation's value for `name`. A `required` param absent from an instantiation is an expansion error; an optional param absent from an instantiation causes its exact-match placeholder key to be omitted from the expanded page.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": { "type": "string", "description": "Parameter name, referenced as `{{name}}` in the template `page`." },
+							"required": { "type": "boolean", "default": false, "description": "When true, an instantiation omitting this parameter is an expansion error." },
+							"description": { "type": "string", "description": "Human-readable description of the parameter." }
+						}
+					}
+				},
+				"page": {
+					"type": "object",
+					"description": "The parameterised page shape. An ordinary v2 page whose string leaves may embed `{{param}}` placeholders and `{{set:NAME}}` set references. After substitution the result MUST be a valid concrete page (it is validated as part of the expanded pages[])."
+				}
+			}
+		},
+		"pageInstance": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["templateRef"],
+			"description": "A per-entity instantiation of a pageTemplate. Supplies only the values that vary. `register`, `schema` and `label` are first-class shortcuts folded into the parameter map (equivalent to listing them under `params`); `params` may carry any additional declared parameters (e.g. a field/column subset).",
+			"properties": {
+				"templateRef": {
+					"type": "string",
+					"description": "Id of the `pageTemplates[]` entry to instantiate. An unknown templateRef is an expansion error."
+				},
+				"register": { "type": "string", "description": "Shortcut for the `register` parameter." },
+				"schema": { "type": "string", "description": "Shortcut for the `schema` parameter." },
+				"label": { "type": "string", "description": "Shortcut for the `label` parameter." },
+				"params": {
+					"type": "object",
+					"description": "Parameter values keyed by the template's declared parameter names. Values may be any JSON type (a field/column subset is an array value). Overrides the register/schema/label shortcuts on conflict.",
+					"additionalProperties": true
+				},
+				"override": {
+					"type": "object",
+					"description": "Optional structural delta applied over the substituted page via the SAME base+delta merge semantics as mergeManifestDelta (layered-versioned-app-deltas alignment). Lets an instantiation patch a single widget/field without re-listing the page, and is where a per-user/app override sits on top of the template base. No second merge model is introduced.",
+					"additionalProperties": true
+				}
+			}
+		},
+		"sentinelFilterToken": {
+			"type": "string",
+			"pattern": "^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
+			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @now, @today, @today±Nd, @monthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
+		},
+		"sentinelConfigToken": {
+			"type": "string",
+			"pattern": "^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$",
+			"description": "Config context: IAppConfig-sourced values. @resolve:<key> resolved at manifest-load time; @config.<key> (trailing ? optional) at fetch time. Mirrors SENTINEL_TOKEN_PATTERNS.config."
+		},
+		"sentinelObjectToken": {
+			"type": "string",
+			"pattern": "^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$",
+			"description": "Object context: detail-page object tokens (@objectId, @object.<field>) resolved only when a { objectId, object } ctx is supplied. Mirrors SENTINEL_TOKEN_PATTERNS.object."
+		},
+		"sentinelWorkspaceToken": {
+			"type": "string",
+			"pattern": "^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$",
+			"description": "Workspace context: page-level workspace state (@workspace.<key>; trailing ? marks optional). Mirrors SENTINEL_TOKEN_PATTERNS.workspace."
+		},
+		"sentinelRouteToken": {
+			"type": "string",
+			"pattern": "^@route\\.[A-Za-z][A-Za-z0-9_-]*$",
+			"description": "Route context: vue-router param substitution (@route.<param>) resolved by resolveRouteSentinels. Mirrors SENTINEL_TOKEN_PATTERNS.route."
+		},
+		"sentinelDeclarativeToken": {
+			"type": "string",
+			"pattern": "^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$",
+			"description": "Declarative context (OpenRegister direction, resolved server-side): @self.<field> (the object's own field in a cross-object calc), @ref:<path>, @aggregate:<expr>. @ref/@aggregate are first-class members even though currently unused fleet-wide. Mirrors SENTINEL_TOKEN_PATTERNS.declarative."
+		},
+		"sentinelDeprecatedToken": {
+			"type": "string",
+			"pattern": "^@currentFiscalYear$|^@page\\.[A-Za-z][A-Za-z0-9_]*$|^@runtime(?:\\.[A-Za-z][A-Za-z0-9_]*)?$",
+			"description": "Deprecated single-app inventions kept in the union so deployed manifests still validate during the migration window. The hydra token-vocabulary gate downgrades these to a WARN (see SENTINEL_DEPRECATIONS): @currentFiscalYear → @config.fiscalYear, @page.<key> → @workspace.<key>, @runtime → removal. Mirrors SENTINEL_TOKEN_PATTERNS.deprecated."
+		},
+		"sentinelTokenAny": {
+			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
+			"anyOf": [
+				{ "$ref": "#/$defs/sentinelFilterToken" },
+				{ "$ref": "#/$defs/sentinelConfigToken" },
+				{ "$ref": "#/$defs/sentinelObjectToken" },
+				{ "$ref": "#/$defs/sentinelWorkspaceToken" },
+				{ "$ref": "#/$defs/sentinelRouteToken" },
+				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
+				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
+			]
+		},
+		"sentinelTokenLeaf": {
+			"$comment": "A string leaf: either NOT a sentinel (does not start with @) or a member of the closed vocabulary. An @-prefixed out-of-vocabulary string FAILS here instead of passing through additionalProperties:true.",
+			"anyOf": [
+				{ "not": { "pattern": "^@" } },
+				{ "$ref": "#/$defs/sentinelTokenAny" }
+			]
+		},
+		"sentinelGuardedValue": {
+			"$comment": "Recursive guard applied (via allOf) to pages[].config and widgetEntry so every string leaf anywhere beneath is checked against the closed vocabulary. Additive + backward-compatible: only @-prefixed out-of-vocabulary strings newly fail; all other shapes are untouched.",
+			"if": { "type": "string" },
+			"then": { "$ref": "#/$defs/sentinelTokenLeaf" },
+			"else": {
+				"if": { "type": "array" },
+				"then": { "items": { "$ref": "#/$defs/sentinelGuardedValue" } },
+				"else": {
+					"if": { "type": "object" },
+					"then": { "additionalProperties": { "$ref": "#/$defs/sentinelGuardedValue" } }
+				}
+			}
+		},
 		"observability": {
 			"type": "object",
 			"additionalProperties": false,
@@ -544,7 +685,7 @@
 			"type": "object",
 			"required": ["widgetKey", "slot", "gridX", "gridY", "gridWidth", "gridHeight"],
 			"additionalProperties": false,
-			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
+			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. Its props/dataSource/filter string leaves are guarded against the closed sentinel vocabulary via the sentinelGuardedValue allOf. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -604,6 +745,7 @@
 				}
 			},
 			"allOf": [
+				{ "$ref": "#/$defs/sentinelGuardedValue" },
 				{
 					"description": "sidebar slot: gridWidth MUST equal 1. The sidebar is a fixed-width panel; widgets always span the full width.",
 					"if": {
@@ -1643,8 +1785,9 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
+					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use the closed sentinel vocabulary (see $defs/sentinelTokenAny) — an out-of-vocabulary @-token FAILS validation via the sentinelGuardedValue allOf guard. Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
+					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
 					"properties": {
 						"register": {
 							"type": "string",

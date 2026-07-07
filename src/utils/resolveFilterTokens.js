@@ -51,6 +51,7 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
+import { TODAY_DELTA_RE } from './sentinelTokens.js'
 
 /**
  * Format a Date as `YYYY-MM-DD` (local).
@@ -141,7 +142,7 @@ export function resolveFilterValue(v, ctx) {
 	if (v === '@currentFiscalYear') {
 		return String(now.getFullYear())
 	}
-	const m = v.match(/^@today([+-]\d+)d$/)
+	const m = v.match(TODAY_DELTA_RE)
 	if (m) {
 		const d = new Date(now)
 		d.setHours(0, 0, 0, 0)
