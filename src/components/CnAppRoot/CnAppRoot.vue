@@ -388,7 +388,7 @@ import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificati
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, ref, watch } from 'vue'
+import Vue, { computed, shallowRef, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
@@ -1065,12 +1065,20 @@ export default {
 				return { cnSupportVisible: visible, cnSupportHide: hide }
 			})()
 
-		// In-app editing (ADR-041). `baseRef` tracks the live manifest prop while
-		// NOT editing; on Save the editor adopts the working copy so the saved
-		// state keeps rendering until the host reloads the prop. `source` is what
-		// descendants render (working while editing, the live manifest otherwise),
-		// so the edit shell is behaviour-neutral until the user enters edit mode.
-		const baseRef = ref(props.manifest)
+		// In-app editing (ADR-041) + the raw/reactive boundary (audit item 9,
+		// `manifest-markraw-reactivity`). `baseRef` is the SINGLE reactive holder
+		// for the manifest — it reconciles the prop read path and the editor's
+		// live source into one wrap site. It is a `shallowRef`, NOT a `ref`: a
+		// plain `ref(obj)` deep-observes the whole immutable manifest graph (up to
+		// ~434 KB of nested objects) at boot for a structure the renderer only
+		// ever reads. `shallowRef` holds the manifest RAW — `isReactive(baseRef
+		// .value) === false` — so ordinary navigation and rendering never trigger
+		// per-node observer conversion. The ADR-041 editor opts the live manifest
+		// into deep reactivity IN PLACE on edit-enter (see `useManifestEditor`),
+		// preserving object identity so already-mounted renderers see the edits;
+		// on the next manifest publish the watch below re-installs a fresh raw
+		// manifest, returning the read path to non-reactive.
+		const baseRef = shallowRef(props.manifest)
 		const manifestEditor = useManifestEditor(baseRef, {
 			persist: (delta) => (typeof props.persistManifestDelta === 'function'
 				? props.persistManifestDelta(delta)
@@ -1239,7 +1247,24 @@ export default {
 		 * @return {object}
 		 */
 		menuManifest() {
-			return this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+			const m = this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+			// Raw/reactive boundary (audit item 9). The manifest is held raw at
+			// boot (CnAppRoot's shallowRef), so the default CnAppNav establishes
+			// its render dependencies against a NON-reactive `menu` at first
+			// render. When the in-app editor opts the manifest into reactivity on
+			// edit-enter (`useManifestEditor.enter()` → `reactive()` in place),
+			// CnAppNav would otherwise keep its stale dep-less render and miss live
+			// menu edits. Handing it a FRESH wrapper identity while editing forces
+			// one re-render that re-subscribes to the now-reactive `menu` array, so
+			// menu add/label/reorder edits render live exactly as before — while
+			// the spread's `menu` is the SAME reactive array, so in-place edits
+			// flow through. Outside edit mode the live manifest is returned BY
+			// IDENTITY (regression guard: the CnAppNav prop must === the manifest
+			// prop for async backend-merge updates — see the reactive-menu tests).
+			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
+				return { ...m }
+			}
+			return m
 		},
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
