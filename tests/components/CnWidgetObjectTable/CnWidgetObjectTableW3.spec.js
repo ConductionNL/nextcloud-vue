@@ -68,3 +68,51 @@ describe('CnWidgetObjectTable — Wave 3 (#91)', () => {
 		expect(wrapper.vm.waitingForContext).toBe(false)
 	})
 })
+
+describe('CnWidgetObjectTable — declarative rowClass (#91)', () => {
+	function mountWithRowClass(rowClass) {
+		return shallowMount(CnWidgetObjectTable, {
+			propsData: { rows: [], columns: ['title'], rowClass },
+		})
+	}
+
+	it('compiles a rules[] array into a (row) => class function forwarded to CnDataTable', () => {
+		const wrapper = mountWithRowClass([
+			{ when: { field: 'status', op: 'eq', value: 'overdue' }, class: 'row--overdue' },
+			{ when: { field: 'daysLeft', op: 'lt', value: 3 }, class: 'row--at-risk' },
+		])
+		const fn = wrapper.vm.compiledRowClass
+		expect(typeof fn).toBe('function')
+		// The compiled function is the one handed to CnDataTable.
+		expect(wrapper.vm.innerProps.rowClass).toBe(fn)
+
+		expect(fn({ status: 'overdue', daysLeft: 10 })).toBe('row--overdue')
+		expect(fn({ status: 'open', daysLeft: 1 })).toBe('row--at-risk')
+		// Both predicates hold → both classes join with a space (rule order).
+		expect(fn({ status: 'overdue', daysLeft: 1 })).toBe('row--overdue row--at-risk')
+		// Neither holds → empty string.
+		expect(fn({ status: 'open', daysLeft: 9 })).toBe('')
+	})
+
+	it('defaults op to eq and reads a dot-path field', () => {
+		const wrapper = mountWithRowClass([
+			{ when: { field: 'meta.flag', value: 'red' }, class: 'row--red' },
+		])
+		const fn = wrapper.vm.compiledRowClass
+		expect(fn({ meta: { flag: 'red' } })).toBe('row--red')
+		expect(fn({ meta: { flag: 'green' } })).toBe('')
+	})
+
+	it('passes a host-supplied rowClass FUNCTION straight through (back-compat)', () => {
+		const fn = (row) => (row.hot ? 'row--hot' : '')
+		const wrapper = mountWithRowClass(fn)
+		expect(wrapper.vm.compiledRowClass).toBe(fn)
+		expect(wrapper.vm.innerProps.rowClass).toBe(fn)
+	})
+
+	it('forwards no rowClass when unset or an empty array', () => {
+		expect(mountWithRowClass(null).vm.compiledRowClass).toBeNull()
+		expect(mountWithRowClass([]).vm.compiledRowClass).toBeNull()
+		expect('rowClass' in mountWithRowClass(null).vm.innerProps).toBe(false)
+	})
+})

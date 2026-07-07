@@ -68,7 +68,7 @@ import { NcButton } from '@nextcloud/vue'
 import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, resolveObjectOpType, buildOnSuccessRoute } from '../../utils/actionsDispatcher.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
@@ -443,7 +443,9 @@ export default {
 		/**
 		 * The create dialog's confirm: save the new object through the shared
 		 * object store, report the result phase, toast, refresh the page, and
-		 * navigate to `onSuccessRoute` when set.
+		 * navigate to `onSuccessRoute` when set — merging the saved object's id
+		 * into the route params (via `buildOnSuccessRoute`) so the navigation
+		 * can deep-link to the created object's detail page.
 		 *
 		 * @param {object} formData The dialog's form payload.
 		 * @return {Promise<void>}
@@ -470,7 +472,8 @@ export default {
 				 */
 				this.$emit('created', saved)
 				if (entry && entry.onSuccessRoute && this.effectiveRouter) {
-					this.effectiveRouter.push({ name: entry.onSuccessRoute }).catch(() => {})
+					const location = buildOnSuccessRoute(entry.onSuccessRoute, saved)
+					if (location) this.effectiveRouter.push(location).catch(() => {})
 				}
 			} catch (e) {
 				if (dialog && typeof dialog.setResult === 'function') {

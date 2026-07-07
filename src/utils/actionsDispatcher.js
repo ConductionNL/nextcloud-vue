@@ -84,6 +84,64 @@ function rowObjectId(row) {
 }
 
 /**
+ * Extract a saved OpenRegister object's id for a post-save deep-link:
+ * top-level `id`, then `uuid`, then the `@self.id` metadata fallback.
+ *
+ * @param {object} saved The saved record returned by the object store.
+ * @return {string|number|null} The object id, or null when absent.
+ */
+export function savedObjectId(saved) {
+	if (!saved || typeof saved !== 'object') return null
+	if (saved.id !== undefined && saved.id !== null) return saved.id
+	if (saved.uuid !== undefined && saved.uuid !== null) return saved.uuid
+	const self = saved['@self']
+	if (self && typeof self === 'object' && self.id !== undefined && self.id !== null) return self.id
+	return null
+}
+
+/**
+ * Build the vue-router push location for an `open-form` action's
+ * `onSuccessRoute`, merging the saved object's id into the route params so
+ * the post-save navigation can deep-link to the created object's detail page
+ * (#91).
+ *
+ * `onSuccessRoute` may be:
+ *  - a STRING route NAME → `{ name, params: { id } }`. The saved id lands
+ *    under the default `id` param; a route without an `:id` segment simply
+ *    ignores the extra param, so a bare-name route keeps working unchanged
+ *    (backward compatible).
+ *  - an OBJECT `{ name, paramField?, objectParam? }` → the id is placed
+ *    under `paramField` (default `id`), and — when `objectParam` is set —
+ *    the whole saved object is passed under that param key too (so a
+ *    `props: true` detail route can render the record without a refetch).
+ *
+ * The id is read via {@link savedObjectId} (`saved.id` → `saved.uuid` →
+ * `saved['@self'].id`). Returns `null` when no route name is resolvable, so
+ * the caller can skip the navigation.
+ *
+ * @param {(string|{name: string, paramField?: string, objectParam?: string})} onSuccessRoute The action's onSuccessRoute config.
+ * @param {object} saved The saved OpenRegister object.
+ * @return {{name: string, params: object}|null} The router push location, or null.
+ */
+export function buildOnSuccessRoute(onSuccessRoute, saved) {
+	const spec = typeof onSuccessRoute === 'string'
+		? { name: onSuccessRoute }
+		: (onSuccessRoute && typeof onSuccessRoute === 'object' ? onSuccessRoute : null)
+	if (!spec || typeof spec.name !== 'string' || spec.name === '') {
+		return null
+	}
+	const params = {}
+	const id = savedObjectId(saved)
+	if (id !== null && id !== undefined) {
+		params[spec.paramField || 'id'] = id
+	}
+	if (spec.objectParam && saved && typeof saved === 'object') {
+		params[spec.objectParam] = saved
+	}
+	return { name: spec.name, params }
+}
+
+/**
  * Execute a Wave-3 `api-call` action: POST/PUT the configured app endpoint
  * (URL + params run the SAME @-token grammar endpoint sources use), toast
  * the outcome via @nextcloud/dialogs, then — unless `action.refresh` is
@@ -187,7 +245,11 @@ async function executeApiCall(action, context) {
  *   CnPageRenderer pre-binds it in the `cnDispatchAction` context.
  * @param {Function} [context.openForm] Function `(action)` that opens the schema-driven
  *   create dialog. Required for "open-form" type — the rendering surface
- *   (CnActionButtons) provides it, mirroring `openExport`.
+ *   (CnActionButtons) provides it, mirroring `openExport`. On a successful save the
+ *   surface navigates to `action.onSuccessRoute` (a route NAME string, or
+ *   `{name, paramField?, objectParam?}`) via {@link buildOnSuccessRoute}, which merges
+ *   the saved object's id into the route params so the navigation can deep-link to the
+ *   created object.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [context.tokenCtx]
  *   Token context "api-call" URLs/params resolve against (the same shape
  *   `resolveFilterTokens` / `interpolateUrlTokens` take).
