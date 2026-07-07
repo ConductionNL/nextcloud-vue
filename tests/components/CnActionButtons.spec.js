@@ -10,11 +10,26 @@
  * actionsDispatcherW3.spec.js).
  */
 
-jest.mock('../../src/utils/actionsDispatcher.js', () => ({
-	__esModule: true,
-	dispatchAction: jest.fn(() => Promise.resolve({ ok: true })),
-	resolveObjectOpType: jest.fn(() => 'crm/lead'),
-}))
+import { mount } from '@vue/test-utils'
+import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
+import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
+import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
+import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
+import { useObjectStore } from '../../src/store/useObjectStore.js'
+
+jest.mock('../../src/utils/actionsDispatcher.js', () => {
+	// Keep the real route-builder helper (buildOnSuccessRoute) so the
+	// open-form success navigation is exercised end-to-end; only the
+	// dispatch + type-resolution are stubbed to isolate the surface.
+	const actual = jest.requireActual('../../src/utils/actionsDispatcher.js')
+	return {
+		__esModule: true,
+		dispatchAction: jest.fn(() => Promise.resolve({ ok: true })),
+		resolveObjectOpType: jest.fn(() => 'crm/lead'),
+		buildOnSuccessRoute: actual.buildOnSuccessRoute,
+		savedObjectId: actual.savedObjectId,
+	}
+})
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
 	__esModule: true,
 	fetchEndpointSource: jest.fn(() => Promise.resolve(null)),
@@ -38,13 +53,6 @@ jest.mock('@nextcloud/event-bus', () => ({
 	subscribe: jest.fn(),
 	unsubscribe: jest.fn(),
 }))
-
-import { mount } from '@vue/test-utils'
-import CnActionButtons from '../../src/components/CnActionButtons/CnActionButtons.vue'
-import { dispatchAction } from '../../src/utils/actionsDispatcher.js'
-import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
-import { evaluateVisibleWhen } from '../../src/utils/visibleWhen.js'
-import { useObjectStore } from '../../src/store/useObjectStore.js'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -131,9 +139,14 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			fetchEndpointSource.mockResolvedValue({ open: true })
 			const wrapper = mountBar([
 				{
-					id: 'werkplek', type: 'toggle', labelOn: 'Open', labelOff: 'Closed',
+					id: 'werkplek',
+					type: 'toggle',
+					labelOn: 'Open',
+					labelOff: 'Closed',
 					stateSource: { url: '/apps/pipelinq/api/werkplek/state', responsePath: '' },
-					field: 'open', writeUrl: '/apps/pipelinq/api/werkplek/state', method: 'PUT',
+					field: 'open',
+					writeUrl: '/apps/pipelinq/api/werkplek/state',
+					method: 'PUT',
 				},
 			])
 			await flush()
@@ -156,8 +169,13 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			dispatchAction.mockResolvedValue({ ok: false })
 			const wrapper = mountBar([
 				{
-					id: 'wp', type: 'toggle', labelOn: 'Open', labelOff: 'Closed',
-					stateSource: { url: '/state' }, field: 'open', writeUrl: '/state',
+					id: 'wp',
+					type: 'toggle',
+					labelOn: 'Open',
+					labelOff: 'Closed',
+					stateSource: { url: '/state' },
+					field: 'open',
+					writeUrl: '/state',
 				},
 			])
 			await flush()
@@ -193,6 +211,54 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
 			expect(wrapper.emitted('created')).toBeTruthy()
+		})
+
+		it('navigates to onSuccessRoute with the saved object id merged into the params (#91)', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'lead-42' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+
+			const push = jest.fn(() => Promise.resolve())
+			const wrapper = mount(CnActionButtons, {
+				propsData: {
+					actions: [
+						{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead', onSuccessRoute: { name: 'LeadDetail', paramField: 'leadId' } },
+					],
+				},
+				stubs,
+				mocks: { $router: { push } },
+			})
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			await flush()
+
+			expect(push).toHaveBeenCalledWith({ name: 'LeadDetail', params: { leadId: 'lead-42' } })
+		})
+
+		it('string onSuccessRoute still deep-links via the default id param (backward compatible)', async () => {
+			const saveObject = jest.fn(() => Promise.resolve({ id: 'lead-7' }))
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Lead', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject, fetchSchema })
+
+			const push = jest.fn(() => Promise.resolve())
+			const wrapper = mount(CnActionButtons, {
+				propsData: {
+					actions: [
+						{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead', onSuccessRoute: 'Leads' },
+					],
+				},
+				stubs,
+				mocks: { $router: { push } },
+			})
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			wrapper.findComponent({ name: 'CnAdvancedFormDialog' }).vm.$emit('confirm', { name: 'Acme' })
+			await flush()
+
+			expect(push).toHaveBeenCalledWith({ name: 'Leads', params: { id: 'lead-7' } })
 		})
 	})
 })

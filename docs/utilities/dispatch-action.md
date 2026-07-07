@@ -167,6 +167,27 @@ save the surface optionally navigates to the action's `onSuccessRoute`.
 { "id": "new-lead", "label": "New lead", "type": "open-form", "schema": "lead", "onSuccessRoute": "Leads" }
 ```
 
+**`onSuccessRoute` deep-linking (#91).** On a successful save the surface
+navigates via `buildOnSuccessRoute(onSuccessRoute, saved)`, which merges the
+saved object's id (`saved.id` → `saved.uuid` → `saved['@self'].id`) into the
+route params so the navigation can land on the created object's detail page.
+`onSuccessRoute` is either:
+
+- a **string** route NAME → `{ name, params: { id } }`. A route with no `:id`
+  segment simply ignores the extra param, so a bare name keeps working
+  unchanged (backward compatible).
+- an **object** `{ name, paramField?, objectParam? }` → the id lands under
+  `paramField` (default `id`), and — when `objectParam` is set — the whole
+  saved object is passed under that param key too (so a `props: true` detail
+  route renders the record without a refetch).
+
+```jsonc
+{
+  "id": "new-lead", "label": "New lead", "type": "open-form", "schema": "lead",
+  "onSuccessRoute": { "name": "LeadDetail", "paramField": "leadId" }
+}
+```
+
 ### `refresh` (Wave 3, #91)
 
 Emits the page-level `cn:page:refresh` event-bus signal — every

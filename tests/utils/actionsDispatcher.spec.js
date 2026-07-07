@@ -12,7 +12,7 @@
  * - absent router warns for open-page/navigate
  */
 
-const { dispatchAction } = require('../../src/utils/actionsDispatcher.js')
+const { dispatchAction, buildOnSuccessRoute, savedObjectId } = require('../../src/utils/actionsDispatcher.js')
 
 describe('dispatchAction — handler type', () => {
 	it('calls the handler function with spread args', () => {
@@ -314,5 +314,64 @@ describe('dispatchAction — export (export launcher, Wave 1)', () => {
 		}).not.toThrow()
 		expect(warnSpy).toHaveBeenCalled()
 		warnSpy.mockRestore()
+	})
+})
+
+describe('savedObjectId', () => {
+	it('prefers top-level id, then uuid, then @self.id', () => {
+		expect(savedObjectId({ id: '1', uuid: 'u', '@self': { id: 's' } })).toBe('1')
+		expect(savedObjectId({ uuid: 'u', '@self': { id: 's' } })).toBe('u')
+		expect(savedObjectId({ '@self': { id: 's' } })).toBe('s')
+	})
+
+	it('returns null when no id is present or the input is not an object', () => {
+		expect(savedObjectId({})).toBeNull()
+		expect(savedObjectId(null)).toBeNull()
+		expect(savedObjectId('nope')).toBeNull()
+	})
+})
+
+describe('buildOnSuccessRoute (#91)', () => {
+	it('string form → { name, params: { id } } from the saved id', () => {
+		expect(buildOnSuccessRoute('Leads', { id: 'lead-9' })).toEqual({
+			name: 'Leads',
+			params: { id: 'lead-9' },
+		})
+	})
+
+	it('string form with a route that has no :id param still works (extra param ignored by vue-router)', () => {
+		// The bare-name/no-id-in-record case yields an empty params bag —
+		// identical to the pre-#91 `{ name }` push (backward compatible).
+		expect(buildOnSuccessRoute('Leads', {})).toEqual({ name: 'Leads', params: {} })
+	})
+
+	it('object form names the id param via paramField (default id)', () => {
+		expect(buildOnSuccessRoute({ name: 'CaseDetail', paramField: 'caseId' }, { id: 'c-1' })).toEqual({
+			name: 'CaseDetail',
+			params: { caseId: 'c-1' },
+		})
+		expect(buildOnSuccessRoute({ name: 'CaseDetail' }, { id: 'c-1' })).toEqual({
+			name: 'CaseDetail',
+			params: { id: 'c-1' },
+		})
+	})
+
+	it('object form with objectParam also passes the whole saved object', () => {
+		const saved = { id: 'c-1', title: 'Case' }
+		expect(buildOnSuccessRoute({ name: 'CaseDetail', objectParam: 'object' }, saved)).toEqual({
+			name: 'CaseDetail',
+			params: { id: 'c-1', object: saved },
+		})
+	})
+
+	it('reads the id from uuid / @self.id when there is no top-level id', () => {
+		expect(buildOnSuccessRoute('Leads', { uuid: 'u-2' })).toEqual({ name: 'Leads', params: { id: 'u-2' } })
+		expect(buildOnSuccessRoute('Leads', { '@self': { id: 's-3' } })).toEqual({ name: 'Leads', params: { id: 's-3' } })
+	})
+
+	it('returns null when no route name is resolvable', () => {
+		expect(buildOnSuccessRoute('', { id: '1' })).toBeNull()
+		expect(buildOnSuccessRoute({}, { id: '1' })).toBeNull()
+		expect(buildOnSuccessRoute(null, { id: '1' })).toBeNull()
 	})
 })
