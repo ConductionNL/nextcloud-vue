@@ -5,6 +5,7 @@
 		:class="{
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
+			'cn-table-container--fill': fillHeight,
 		}">
 		<!-- Optional card header (folded from the retired CnTableWidget): a title
 		     + total-count badge. Only rendered when `title` is set; bare table
@@ -367,6 +368,18 @@ export default {
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
 		 */
 		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Fill the height of the parent (a flex-column card / widget content
+		 * area) so the optional `#footer` is pushed to the bottom instead of
+		 * floating directly under a short list. When the list is long enough to
+		 * overflow, the footer stays pinned via its sticky rule. No-op outside a
+		 * height-constrained parent. Opt-in so ordinary in-flow tables are
+		 * unaffected.
+		 */
+		fillHeight: {
 			type: Boolean,
 			default: false,
 		},
