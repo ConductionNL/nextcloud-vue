@@ -372,6 +372,8 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
@@ -1802,6 +1804,56 @@ export default {
 				uniquePairs.push(pair)
 			}
 
+			// Prefer ONE batched round-trip (audit item 26): shillinq's nav
+			// alone hits ~dozens of unique (register, schema) pairs, each of
+			// which was a separate `?_limit=1` request at boot. On an
+			// OpenRegister without the batch route (404) or any error, fall
+			// back to the per-entry store path below so badges still render.
+			this._hydrateMenuCountsBatched(uniquePairs).catch(() => {
+				this._hydrateMenuCountsPerEntry(uniquePairs)
+			})
+		},
+
+		/**
+		 * Hydrate all menu counts with a single `POST /api/objects/counts`
+		 * (OpenRegister batched-counts endpoint). Distributes each returned
+		 * count into the reactive `cnMenuCounts` map. Rejects (so the caller
+		 * falls back) on a non-2xx status, a missing/404 route, or a malformed
+		 * response — never leaving a half-populated batch masquerading as done.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _hydrateMenuCountsBatched(uniquePairs) {
+			const url = generateUrl('/apps/openregister/api/objects/counts')
+			const { data } = await axios.post(url, {
+				counts: uniquePairs.map(({ register, schema }) => ({ register, schema })),
+			})
+			const results = data?.results
+			if (!Array.isArray(results)) {
+				throw new Error('batched counts: malformed response')
+			}
+			for (const result of results) {
+				const { register, schema, count } = result ?? {}
+				if (typeof count !== 'number' || count < 0) continue
+				if (!this.cnMenuCounts[register]) {
+					Vue.set(this.cnMenuCounts, register, {})
+				}
+				Vue.set(this.cnMenuCounts[register], schema, count)
+			}
+		},
+
+		/**
+		 * Legacy per-entry hydration: one `?_limit=1` store fetch per pair.
+		 * The pre-batch behaviour, retained verbatim as the fallback for an
+		 * OpenRegister without the batch route.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuCountsPerEntry(uniquePairs) {
 			let store
 			try {
 				store = useObjectStore()
