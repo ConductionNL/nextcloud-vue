@@ -248,9 +248,83 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/deepLink" },
 			"description": "ADR-040: object deep-link descriptors consumed by the integration registry / cross-app linking, NOT by the Vue renderer. Optional and additive."
+		},
+		"pageTemplates": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageTemplate" },
+			"description": "Entity-scaffold page templates (manifest-entity-scaffold-templating). A template declares one reusable index/detail page shape ONCE, with `{{param}}` placeholders for the parts that vary per entity (register/schema binding, label, field/column subset) and a declared parameter list. The expander (utils/expandPageTemplates) materialises `pageInstances[]` into concrete `pages[]` at build/boot time, so CnPageRenderer only ever sees concrete pages and is unchanged by templating. Optional and additive: a manifest without pageTemplates is unaffected."
+		},
+		"pageInstances": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageInstance" },
+			"description": "Per-entity template instantiations. Each entry references a `pageTemplates[]` template by `templateRef` and supplies only the values that vary. The expander substitutes them into the referenced template and appends the resulting concrete pages to `pages[]`. Expansion FAILS (named error) on an unknown templateRef or a missing required template parameter. Optional and additive."
+		},
+		"sets": {
+			"type": "object",
+			"description": "Named, reusable field/column/sidebar sets referenced from templates via a `{{set:NAME}}` placeholder, so a repeated field/column/sidebar block is declared ONCE and shared across templates and pages instead of being re-listed. Each value is arbitrary JSON (typically an array of field/column defs or a sidebar object). Optional and additive.",
+			"additionalProperties": true
 		}
 	},
 	"$defs": {
+		"pageTemplate": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "page"],
+			"description": "A reusable page shape declared once and instantiated per entity. `page` is an ordinary v2 page object whose string values may contain `{{param}}` placeholders (and `{{set:NAME}}` set references); `params` declares which placeholders exist and which are required. Fixed structure lives in `page`; only declared params vary per instantiation.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique template identifier — the `templateRef` target. Uniqueness across pageTemplates[] is enforced by validateManifestV2 as a post-schema check."
+				},
+				"_note": {
+					"type": "string",
+					"description": "Free-form maintainer note; ignored by the expander."
+				},
+				"params": {
+					"type": "array",
+					"description": "Declared parameters. A placeholder `{{name}}` in `page` is substituted with the instantiation's value for `name`. A `required` param absent from an instantiation is an expansion error; an optional param absent from an instantiation causes its exact-match placeholder key to be omitted from the expanded page.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": { "type": "string", "description": "Parameter name, referenced as `{{name}}` in the template `page`." },
+							"required": { "type": "boolean", "default": false, "description": "When true, an instantiation omitting this parameter is an expansion error." },
+							"description": { "type": "string", "description": "Human-readable description of the parameter." }
+						}
+					}
+				},
+				"page": {
+					"type": "object",
+					"description": "The parameterised page shape. An ordinary v2 page whose string leaves may embed `{{param}}` placeholders and `{{set:NAME}}` set references. After substitution the result MUST be a valid concrete page (it is validated as part of the expanded pages[])."
+				}
+			}
+		},
+		"pageInstance": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["templateRef"],
+			"description": "A per-entity instantiation of a pageTemplate. Supplies only the values that vary. `register`, `schema` and `label` are first-class shortcuts folded into the parameter map (equivalent to listing them under `params`); `params` may carry any additional declared parameters (e.g. a field/column subset).",
+			"properties": {
+				"templateRef": {
+					"type": "string",
+					"description": "Id of the `pageTemplates[]` entry to instantiate. An unknown templateRef is an expansion error."
+				},
+				"register": { "type": "string", "description": "Shortcut for the `register` parameter." },
+				"schema": { "type": "string", "description": "Shortcut for the `schema` parameter." },
+				"label": { "type": "string", "description": "Shortcut for the `label` parameter." },
+				"params": {
+					"type": "object",
+					"description": "Parameter values keyed by the template's declared parameter names. Values may be any JSON type (a field/column subset is an array value). Overrides the register/schema/label shortcuts on conflict.",
+					"additionalProperties": true
+				},
+				"override": {
+					"type": "object",
+					"description": "Optional structural delta applied over the substituted page via the SAME base+delta merge semantics as mergeManifestDelta (layered-versioned-app-deltas alignment). Lets an instantiation patch a single widget/field without re-listing the page, and is where a per-user/app override sits on top of the template base. No second merge model is introduced.",
+					"additionalProperties": true
+				}
+			}
+		},
 		"sentinelFilterToken": {
 			"type": "string",
 			"pattern": "^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
