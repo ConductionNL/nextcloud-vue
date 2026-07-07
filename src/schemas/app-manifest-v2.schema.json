@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.15.0",
+	"version": "2.16.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -644,6 +644,29 @@
 										"type": "array",
 										"items": { "$ref": "#/$defs/action" },
 										"description": "Declarative row/widget actions rendered by CnWidgetObjectTable. object-op patch/delete render per row; object-op create renders as a widget-scoped footer affordance."
+									},
+									"rowClass": {
+										"type": "array",
+										"description": "#91: declarative per-row CSS class rules compiled into CnDataTable's rowClass function. Each rule { when: { field, op?, value }, class } adds `class` to a row when the shared visibleWhen predicate holds against that row (field = dot-path into the row, op = eq|neq|gt|gte|lt|lte default eq, value = literal). Rules evaluate in order and every matching class is space-joined — so overdue / at-risk rows can be highlighted from the manifest. A host-supplied rowClass FUNCTION (runtime-only) still passes straight through.",
+										"items": {
+											"type": "object",
+											"additionalProperties": false,
+											"required": ["when", "class"],
+											"properties": {
+												"when": {
+													"type": "object",
+													"additionalProperties": false,
+													"required": ["field", "value"],
+													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
+													"properties": {
+														"field": { "type": "string", "description": "Dot-path into the row." },
+														"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
+														"value": { "description": "Literal right-hand side of the comparison." }
+													}
+												},
+												"class": { "type": "string", "description": "CSS class added to the row when `when` holds." }
+											}
+										}
 									}
 								}
 							}
@@ -1273,8 +1296,20 @@
 					"description": "open-form only: OpenRegister schema slug — the create dialog fetches this schema and saves the new object against it."
 				},
 				"onSuccessRoute": {
-					"type": "string",
-					"description": "open-form only: optional route NAME navigated to after a successful save."
+					"description": "open-form only: optional post-save navigation target (#91). A bare route NAME (string) navigates with the saved object's id merged into the route params under `id` (harmless when the route has no `:id` segment — backward compatible). The object form { name, paramField?, objectParam? } names the id param (`paramField`, default `id`) and, when `objectParam` is set, also passes the whole saved object under that param key (for a props:true detail route to render without a refetch). The id is read from saved.id, then saved.uuid, then saved['@self'].id.",
+					"oneOf": [
+						{ "type": "string" },
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["name"],
+							"properties": {
+								"name": { "type": "string", "description": "The vue-router route NAME pushed after a successful save." },
+								"paramField": { "type": "string", "default": "id", "description": "Route param name populated from the saved object's id (default `id`)." },
+								"objectParam": { "type": "string", "description": "When set, the whole saved object is passed under this route param (props:true detail routes render without a refetch)." }
+							}
+						}
+					]
 				},
 				"labelOn": {
 					"type": "string",
