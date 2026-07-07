@@ -143,17 +143,21 @@ When the loader runs, the sentinel is replaced with the result of `getAppConfigV
 - **Empty-state behaviour:** an unset `IAppConfig` key resolves to `null` (NOT empty string) and the key is added to `unresolvedSentinels`. A `console.warn` is emitted once per unresolved key.
 - **Best practice:** consume `unresolvedSentinels` to render an admin warning when a tenant's manifest has unconfigured slugs. Downstream renderers (e.g. `CnIndexPage` with `config.register === null`) should short-circuit to a "not configured" empty state.
 
-## Deep-merge semantics
+## Merge semantics — two modes
 
-- Plain objects are merged recursively (own keys from `source` take precedence).
-- Arrays are **replaced**, not concatenated — the typical override semantic for manifest fields like `menu` and `pages`.
-- Non-object `source` values short-circuit and replace the target.
+The backend `/api/manifest` response is merged over the bundled manifest using one of two strategies, chosen by `options.mergeStrategy`:
+
+- **`'deepMerge'` (default)** — plain objects merge recursively; **arrays are replaced wholesale** (the backend `menu[]` / `pages[]` fully replaces the bundled one). Non-object `source` values short-circuit and replace the target. Simple; the backend returns the complete resolved arrays.
+- **`'delta'`** — a **keyed structural merge** via [`mergeManifestDelta`](../merge-manifest-delta.md): `pages[]`, `widgets[]`, `menu[]`, and a menu entry's nested `children[]` merge **by `id`**. The backend sends only the *difference* — patch an entry, append a new one, `{ id, $op: 'remove' }` to delete, `__order` to reorder — without resending or clobbering siblings.
+
+See [Overriding an app's manifest at runtime](../../manifest-runtime-override.md) for the full fleet-wide feature: the endpoint contract, both modes, security, and worked examples.
 
 ## Dynamic per-tenant menu entries
 
-The `menu[]` array is replaced wholesale by any 200 response from the backend `/api/manifest` endpoint. This is the canonical pattern for **per-tenant menu fan-out** — apps whose top-level navigation depends on runtime data (catalogues, organisations, registers).
+A backend `/api/manifest` response can turn one declared menu entry into N runtime-resolved children — the canonical pattern for **per-tenant / per-record menu fan-out** (one entry per catalogue, organisation, register, or case type).
 
-The bundled manifest declares a static placeholder; the backend resolves the per-tenant data and returns a fully-populated `menu[]`; `useAppManifest`'s deep-merge replaces the bundled list with the resolved one.
+- In **deepMerge** mode the backend returns the complete resolved `menu[]` (replacing the bundled placeholder).
+- In **delta** mode the backend returns just the affected group with its `children[]`; because `children` merge by `id`, the fan-out **adds** to a group without erasing the entries the bundled manifest / `buildManifest` already placed there. This is the strategy procest uses to list one entry per case type under its "Cases" group.
 
 ### Bundled (`src/manifest.json`)
 

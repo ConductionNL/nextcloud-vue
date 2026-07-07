@@ -75,6 +75,16 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.wt.running.value).toBe(false)
 	})
 
+	it('renders a corner close button that ends the tour for good (complete, not just dismiss)', async () => {
+		const w = factory()
+		await w.vm.$nextTick()
+		const closeBtn = w.find('.cn-walkthrough__close')
+		expect(closeBtn.exists()).toBe(true)
+		w.vm.close()
+		expect(w.emitted('complete')).toBeTruthy()
+		expect(w.vm.wt.running.value).toBe(false)
+	})
+
 	it('exposes an aria-live step announcement', async () => {
 		const w = factory()
 		await w.vm.$nextTick()

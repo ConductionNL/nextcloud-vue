@@ -138,7 +138,7 @@
 			  keeping the rest of CnAppRoot's shell.
 			-->
 			<slot name="menu">
-				<CnAppNav :permissions="permissions" />
+				<CnAppNav :manifest="menuManifest" :permissions="permissions" />
 			</slot>
 			<NcAppContent>
 				<!--
@@ -264,9 +264,9 @@
 			  edge (positioning relies on being the last NcContent sibling,
 			  same trick the hoisted index-page sidebar above uses).
 			  Gating (health probe, pageKind overrides) happens inside the
-			  component. No per-app wiring required.
+			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion />
+			<CnAiCompanion v-if="aiCompanion" :chat-app-id="chatAppId" />
 
 			<!--
 			  Support note — auto-mounted on first open per the fleet
@@ -321,6 +321,20 @@
 				<slot name="user-settings">
 					<CnNotificationPreferences v-if="userSettingsOpen" />
 					<!--
+						Credential broker (OpenRegister). Lets the user manage the
+						secrets OR holds on their behalf; apps call external providers
+						through OR without ever seeing the secret. The app's manifest
+						`credentials[]` declarations drive the informational "Apps
+						requesting credentials" list.
+					-->
+					<NcAppSettingsSection v-if="userSettingsOpen"
+						id="credentials"
+						:name="translate('Credentials')">
+						<CnCredentials
+							:app-id="appId"
+							:app-credentials="(manifest && manifest.credentials) || []" />
+					</NcAppSettingsSection>
+					<!--
 						Self-service walkthrough replay (ADR-043). Only mounts
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
@@ -358,6 +372,8 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
@@ -367,12 +383,14 @@ import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
 import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
+import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
+import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
-import Vue, { computed, ref, watch } from 'vue'
+import Vue, { computed, shallowRef, watch } from 'vue'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useOpenBuildEditAvailability } from '../../composables/useOpenBuildEditAvailability.js'
 import { loadState } from '@nextcloud/initial-state'
@@ -382,6 +400,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { useObjectStore } from '../../store/index.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { DEFAULT_FORGE } from '../../utils/forge.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 
@@ -453,6 +472,7 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnCredentials,
 		CnTenantBadge,
 	},
 
@@ -482,6 +502,11 @@ export default {
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
+			// Pluggable kb-search providers (#91 Wave 3): library built-ins
+			// (`default`) merged UNDER the consumer registry — the same
+			// last-wins spread as cnFormatters. CnKbSearchWidget resolves
+			// `content.provider` against this.
+			cnKbSearchProviders: { ...BUILT_IN_KB_PROVIDERS, ...this.kbSearchProviders },
 			/**
 			 * V2 component registry. Provided to all descendants so
 			 * CnWidgetGrid and CnPageRenderer can resolve widget keys.
@@ -753,6 +778,39 @@ export default {
 			default: true,
 		},
 		/**
+		 * Whether to mount the floating AI-chat companion (`CnAiCompanion`).
+		 * Opt-in: `false` (default) keeps the companion off; pass `true` to
+		 * show it. When enabled the companion still self-gates on its own
+		 * backend health probe and hides on chat pages. The companion is an
+		 * AI capability provided by the Hermiq app, so apps opt in explicitly
+		 * rather than every app auto-mounting it whenever a chat backend
+		 * happens to be reachable.
+		 *
+		 * @type {boolean}
+		 */
+		aiCompanion: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Backend app id the AI Chat Companion targets for its chat / health /
+		 * conversation HTTP calls (`/index.php/apps/{chatAppId}/api/...`). This is
+		 * the single configuration point for switching the chat backend — see
+		 * composables/aiChatConfig.js. Defaults to `openregister`.
+		 *
+		 * Per hydra ADR-034 "Amendment 2026-07-05" the agent engine is moving from
+		 * OpenRegister to Hermiq; the default flips to `hermiq` on a coordinated
+		 * `@conduction/nextcloud-vue` beta bump once Hermiq's engine flag is live
+		 * and OR's compat proxy has shipped. Until then, apps that want to target
+		 * Hermiq early can pass `chatAppId="hermiq"` explicitly.
+		 *
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
+		},
+		/**
 		 * Whether the manifest is still loading from the backend.
 		 * Typically wired to `useAppManifest().isLoading`. Defaults to
 		 * false so that apps using only the bundled manifest skip the
@@ -804,6 +862,23 @@ export default {
 		 * @type {object}
 		 */
 		cellWidgets: {
+			type: Object,
+			default: () => ({}),
+		},
+		/**
+		 * Pluggable knowledge-base search providers (#91 Wave 3). Map of
+		 * provider-key → provider object (`{ search(query, opts), externalOpen? }`),
+		 * merged OVER the library built-ins (`default`) and provided to
+		 * descendant `CnKbSearchWidget` via inject (`cnKbSearchProviders`).
+		 * A `kb-search` widget selects its provider by `content.provider`;
+		 * an app talking to a bespoke KB backend (the xwiki proxy) registers
+		 * its client here — the library ships only the `default` endpoint
+		 * provider + the seam. Empty by default (the built-in `default`
+		 * provider then serves every `kb-search` widget).
+		 *
+		 * @type {object}
+		 */
+		kbSearchProviders: {
 			type: Object,
 			default: () => ({}),
 		},
@@ -992,12 +1067,20 @@ export default {
 				return { cnSupportVisible: visible, cnSupportHide: hide }
 			})()
 
-		// In-app editing (ADR-041). `baseRef` tracks the live manifest prop while
-		// NOT editing; on Save the editor adopts the working copy so the saved
-		// state keeps rendering until the host reloads the prop. `source` is what
-		// descendants render (working while editing, the live manifest otherwise),
-		// so the edit shell is behaviour-neutral until the user enters edit mode.
-		const baseRef = ref(props.manifest)
+		// In-app editing (ADR-041) + the raw/reactive boundary (audit item 9,
+		// `manifest-markraw-reactivity`). `baseRef` is the SINGLE reactive holder
+		// for the manifest — it reconciles the prop read path and the editor's
+		// live source into one wrap site. It is a `shallowRef`, NOT a `ref`: a
+		// plain `ref(obj)` deep-observes the whole immutable manifest graph (up to
+		// ~434 KB of nested objects) at boot for a structure the renderer only
+		// ever reads. `shallowRef` holds the manifest RAW — `isReactive(baseRef
+		// .value) === false` — so ordinary navigation and rendering never trigger
+		// per-node observer conversion. The ADR-041 editor opts the live manifest
+		// into deep reactivity IN PLACE on edit-enter (see `useManifestEditor`),
+		// preserving object identity so already-mounted renderers see the edits;
+		// on the next manifest publish the watch below re-installs a fresh raw
+		// manifest, returning the read path to non-reactive.
+		const baseRef = shallowRef(props.manifest)
 		const manifestEditor = useManifestEditor(baseRef, {
 			persist: (delta) => (typeof props.persistManifestDelta === 'function'
 				? props.persistManifestDelta(delta)
@@ -1152,6 +1235,39 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The manifest the default `<CnAppNav>` renders — the editor's working
+		 * `source` while in-app editing, else the live `manifest` prop. Passed to
+		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
+		 * Vue 2 `inject` resolves the provided `cnManifest` getter once at the
+		 * child's create time, so an async manifest update (e.g. a backend
+		 * `/api/manifest` delta merged in by `useAppManifest`) never reaches the
+		 * injected value. Binding the prop makes the nav update reactively.
+		 * Mirrors the `cnManifest` provide getter so deep descendants stay
+		 * consistent with the menu.
+		 *
+		 * @return {object}
+		 */
+		menuManifest() {
+			const m = this.manifestEditor ? this.manifestEditor.source.value : this.manifest
+			// Raw/reactive boundary (audit item 9). The manifest is held raw at
+			// boot (CnAppRoot's shallowRef), so the default CnAppNav establishes
+			// its render dependencies against a NON-reactive `menu` at first
+			// render. When the in-app editor opts the manifest into reactivity on
+			// edit-enter (`useManifestEditor.enter()` → `reactive()` in place),
+			// CnAppNav would otherwise keep its stale dep-less render and miss live
+			// menu edits. Handing it a FRESH wrapper identity while editing forces
+			// one re-render that re-subscribes to the now-reactive `menu` array, so
+			// menu add/label/reorder edits render live exactly as before — while
+			// the spread's `menu` is the SAME reactive array, so in-place edits
+			// flow through. Outside edit mode the live manifest is returned BY
+			// IDENTITY (regression guard: the CnAppNav prop must === the manifest
+			// prop for async backend-merge updates — see the reactive-menu tests).
+			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
+				return { ...m }
+			}
+			return m
+		},
 		/**
 		 * Active object-sidebar holder for the auto-mount block.
 		 * Mirrors the local holder; if an ancestor already provides
@@ -1688,6 +1804,56 @@ export default {
 				uniquePairs.push(pair)
 			}
 
+			// Prefer ONE batched round-trip (audit item 26): shillinq's nav
+			// alone hits ~dozens of unique (register, schema) pairs, each of
+			// which was a separate `?_limit=1` request at boot. On an
+			// OpenRegister without the batch route (404) or any error, fall
+			// back to the per-entry store path below so badges still render.
+			this._hydrateMenuCountsBatched(uniquePairs).catch(() => {
+				this._hydrateMenuCountsPerEntry(uniquePairs)
+			})
+		},
+
+		/**
+		 * Hydrate all menu counts with a single `POST /api/objects/counts`
+		 * (OpenRegister batched-counts endpoint). Distributes each returned
+		 * count into the reactive `cnMenuCounts` map. Rejects (so the caller
+		 * falls back) on a non-2xx status, a missing/404 route, or a malformed
+		 * response — never leaving a half-populated batch masquerading as done.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _hydrateMenuCountsBatched(uniquePairs) {
+			const url = generateUrl('/apps/openregister/api/objects/counts')
+			const { data } = await axios.post(url, {
+				counts: uniquePairs.map(({ register, schema }) => ({ register, schema })),
+			})
+			const results = data?.results
+			if (!Array.isArray(results)) {
+				throw new Error('batched counts: malformed response')
+			}
+			for (const result of results) {
+				const { register, schema, count } = result ?? {}
+				if (typeof count !== 'number' || count < 0) continue
+				if (!this.cnMenuCounts[register]) {
+					Vue.set(this.cnMenuCounts, register, {})
+				}
+				Vue.set(this.cnMenuCounts[register], schema, count)
+			}
+		},
+
+		/**
+		 * Legacy per-entry hydration: one `?_limit=1` store fetch per pair.
+		 * The pre-batch behaviour, retained verbatim as the fallback for an
+		 * OpenRegister without the batch route.
+		 *
+		 * @param {Array<{register: string, schema: string}>} uniquePairs Deduped pairs.
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuCountsPerEntry(uniquePairs) {
 			let store
 			try {
 				store = useObjectStore()

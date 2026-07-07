@@ -9,25 +9,35 @@
 		:class="{ 'cn-stat-widget--linked': isLinked }"
 		v-bind="linkAttrs">
 		<div
-			v-if="content.icon"
+			v-if="resolvedIcon"
 			class="cn-stat-widget__icon"
 			:style="iconCircleStyle">
-			<CnWidgetIcon :name="content.icon" :size="24" />
+			<CnWidgetIcon :name="resolvedIcon" :size="24" />
 		</div>
 
 		<div class="cn-stat-widget__body">
 			<div v-if="content.label" class="cn-stat-widget__label">
-				{{ content.label }}
+				{{ resolvedLabel }}
 			</div>
 
 			<div class="cn-stat-widget__value-row">
-				<NcLoadingIcon v-if="loading" :size="22" />
-				<span v-else-if="error" class="cn-stat-widget__error" :title="error">—</span>
-				<span v-else class="cn-stat-widget__value" :style="valueStyle">
-					{{ formattedValue }}
-				</span>
-				<span v-if="!loading && !error && content.caption" class="cn-stat-widget__caption">
-					{{ content.caption }}
+				<NcLoadingIcon v-if="displayLoading" :size="22" />
+				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
+				<template v-else>
+					<span class="cn-stat-widget__value" :style="valueStyle">
+						{{ formattedValue }}
+					</span>
+					<span
+						v-if="trendPct !== null"
+						class="cn-stat-widget__trend"
+						data-testid="cn-stat-widget-trend"
+						:style="{ color: trendColor }">
+						<component :is="trendIcon" :size="14" />
+						{{ formattedTrend }}
+					</span>
+				</template>
+				<span v-if="!displayLoading && !displayError && content.caption" class="cn-stat-widget__caption">
+					{{ resolvedCaption }}
 				</span>
 			</div>
 		</div>
@@ -35,10 +45,33 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
+import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
+import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { resolveFilterTokens, resolveFilterValue, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { resolveFilterTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import widgetLink from '../../mixins/widgetLink.js'
+
+/**
+ * Variant → CSS colour token map for the `variantWhen` threshold rules.
+ * `danger` is accepted as an alias of `error` (the doriath KPI-card
+ * vocabulary); `default` keeps the widget's configured colours.
+ *
+ * @type {Record<string, string>}
+ */
+const VARIANT_COLORS = {
+	default: '',
+	primary: 'var(--color-primary-element)',
+	success: 'var(--color-success)',
+	warning: 'var(--color-warning)',
+	error: 'var(--color-error)',
+	danger: 'var(--color-error)',
+}
 
 /**
  * CnStatWidget — an abstract, manifest-configured KPI / single-statistic tile.
@@ -64,6 +97,34 @@ import widgetLink from '../../mixins/widgetLink.js'
  *   source: { register: 'pipelinq', schema: 'lead', metric: 'sum', field: 'value', filter: { status: 'won' } },
  * }
  * ```
+ *
+ * ENDPOINT BINDING (Wave 2, #91) — instead of an OpenRegister `source`, the
+ * tile can bind to an arbitrary app REST endpoint through the shared
+ * `useEndpointSource` engine (token-resolved params, per-(url+params)
+ * request dedup + short-TTL cache, `cn:page:refresh` / `cn:widget:refresh`
+ * subscription). Exactly ONE of `source` | `endpointSource` may be
+ * configured (validator-enforced); when both slip through, `endpointSource`
+ * wins. The pipelinq analytics-KPI contract in full:
+ * ```js
+ * content: {
+ *   label: 'Revenue',
+ *   icon: 'CashMultiple',
+ *   format: { style: 'currency', currency: 'EUR', decimals: 0 },
+ *   endpointSource: {
+ *     url: '/apps/pipelinq/api/analytics/commercial',
+ *     params: { period: '@workspace.datePreset?' },
+ *   },
+ *   valueField: 'revenue',                     // dot-path into the payload
+ *   previousField: 'previousPeriod.revenue',   // → trend sublabel (arrow + % vs previous)
+ *   // deltaField: 'revenueDeltaPct',          // OR a server-computed delta percent
+ *   goodDirection: 'up',                       // tints the trend good/bad (default 'up')
+ *   variantWhen: [                             // first-match threshold styling
+ *     { op: 'gte', value: 100000, variant: 'success' },
+ *     { op: 'lt', value: 10000, variant: 'warning', icon: 'AlertOutline' },
+ *   ],
+ *   clickRoute: 'leads',                       // whole-tile click-through (alias of route)
+ * }
+ * ```
  */
 export default {
 	name: 'CnStatWidget',
@@ -71,6 +132,9 @@ export default {
 	components: {
 		NcLoadingIcon,
 		CnWidgetIcon,
+		TrendingUp,
+		TrendingDown,
+		TrendingNeutral,
 	},
 
 	mixins: [widgetLink],
@@ -83,6 +147,14 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
+		 * objectType, objectId, register, store } | null }`) provided by
+		 * CnPageRenderer — backfills the object token context so
+		 * `@objectId` / `@object.<field>` resolve on detail surfaces where
+		 * CnDetailPage is not an ancestor (#91 Wave 3).
+		 */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Page-level workspace context (a reactive `{ <key>: value }` map)
 		 * provided by CnDashboardPage. Drives `@page.<param>` / `@workspace.<param>`
@@ -99,13 +171,24 @@ export default {
 		 * the setup wizard captures). Empty `{}` when no ancestor provides one.
 		 */
 		cnAppConfig: { default: () => ({}) },
+		/**
+		 * Translate function provided by CnAppRoot (the host app's
+		 * `translate`, scoped to its app id). Applied to the manifest-authored
+		 * `content.label` / `content.caption` so a KPI tile renders in the
+		 * user's Nextcloud language instead of the raw source string. Defaults
+		 * to an identity function so the widget stays usable standalone.
+		 *
+		 * @type {(key: string) => string}
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
 		/**
 		 * The widget's persisted configuration blob. An optional `route`
-		 * (vue-router location) or `link` (external href) turns the whole
-		 * tile into a click-through target (see the widgetLink mixin).
+		 * (vue-router location), `clickRoute` (Wave-2 alias), or `link`
+		 * (external href) turns the whole tile into a click-through target
+		 * (see the widgetLink mixin).
 		 * The `source` resolves the value. Besides the OpenRegister-backed kinds
 		 * (plain aggregate / `ratio` / `computed` / `weighted`), an
 		 * `{ kind: 'endpoint', url, path?, params? }` source reads an arbitrary
@@ -114,12 +197,59 @@ export default {
 		 * value interpolate `@page.<param>` / `@workspace.<param>` tokens from the
 		 * page-level context (and `@objectId` / `@object.<field>` on a detail
 		 * page) — so a page-rendered period selector can drive every endpoint KPI.
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}}}
+		 *
+		 * Wave 2 (#91): `endpointSource` (`{ url, method?, params?,
+		 * responsePath? }`) binds the tile to an arbitrary endpoint through the
+		 * shared `useEndpointSource` engine — exactly one of `source` |
+		 * `endpointSource`. `valueField` plucks the displayed value from the
+		 * payload; `previousField` (previous-period value) or `deltaField`
+		 * (server-computed percent) renders the trend sublabel (arrow +
+		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
+		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
+		 * re-tints the value/icon by threshold.
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variantWhen?: Array<{op: string, value: *, variant: string, icon?: string}>}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+		/**
+		 * Translate function. Falls back to the injected `cnTranslate`
+		 * (itself an identity function by default). Provide explicitly when
+		 * mounting CnStatWidget outside a CnAppRoot ancestor.
+		 *
+		 * @type {((key: string) => string)|null}
+		 */
+		translate: {
+			type: Function,
+			default: null,
+		},
+	},
+
+	setup(props) {
+		// Endpoint binding (Wave 2): the shared useEndpointSource engine owns
+		// token resolution, request dedup + TTL caching, and the
+		// cn:page:refresh / cn:widget:refresh subscriptions. It is a no-op
+		// while `content.endpointSource` is absent, so the OpenRegister
+		// `source` path below is untouched. The injects are re-read here in
+		// setup — Vue 2.7 resolves them identically to the Options `inject`
+		// block (same precedent as CnChartWidget's date-range ref).
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		const { data, loading, error, refetch } = useEndpointSource(
+			() => (props.content && props.content.endpointSource) || null,
+			{
+				ctx: () => ({
+					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
+					workspace: unwrap(workspaceRaw) || {},
+					config: unwrap(appConfigRaw) || {},
+				}),
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
 	},
 
 	data() {
@@ -132,15 +262,41 @@ export default {
 
 	computed: {
 		/**
+		 * Effective translate function: the explicit `translate` prop when
+		 * given, else the injected `cnTranslate` (identity by default).
+		 *
+		 * @return {(key: string) => string}
+		 */
+		effectiveTranslate() {
+			return this.translate ?? this.cnTranslate
+		},
+		/**
+		 * The tile label, run through the host translate function so a
+		 * manifest-authored source string localises to the user's language.
+		 *
+		 * @return {string}
+		 */
+		resolvedLabel() {
+			const label = this.content.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+		/**
+		 * The tile caption, run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedCaption() {
+			const caption = this.content.caption
+			return caption ? this.effectiveTranslate(caption) : ''
+		},
+		/**
 		 * The unwrapped detail-page object context for token resolution, or null
 		 * on surfaces (dashboards) that don't provide one.
 		 *
 		 * @return {object|null}
 		 */
 		objectCtx() {
-			const c = this.cnObjectContext
-			if (!c) return null
-			return (typeof c === 'object' && 'value' in c) ? c.value : c
+			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
 		/**
 		 * The unwrapped page-level workspace context map for `@page.*` /
@@ -160,73 +316,161 @@ export default {
 		 * @return {object}
 		 */
 		configCtx() {
-			const c = this.cnAppConfig
-			const unwrapped = (c && typeof c === 'object' && 'value' in c) ? c.value : c
-			return (unwrapped && typeof unwrapped === 'object') ? unwrapped : {}
-		},
-		/** Inline style for the icon circle (tinted with iconColor). */
-		iconCircleStyle() {
-			const color = this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
-			return { color, backgroundColor: this.tint(color) }
-		},
-		/** Inline style for the value text (the configurable primary colour). */
-		valueStyle() {
-			return this.content.valueColor ? { color: this.content.valueColor } : {}
+			return unwrapAppConfig(this.cnAppConfig)
 		},
 		/**
-		 * The `content.format` spec with its string fields token-resolved. Each
-		 * of `currency` / `prefix` / `suffix` may be a `@config.<key>` token
-		 * (e.g. `currency: '@config.currency'`) — resolved against the page-level
-		 * app config so the setup-wizard-captured currency formats the value. A
-		 * required `@config.<key>` that is unset falls back to its default (EUR
-		 * for currency, empty for prefix/suffix) rather than rendering the raw
-		 * token; an optional `@config.<key>?` resolves to empty when unset.
+		 * Whether the tile is endpoint-bound (Wave 2): a `content.endpointSource`
+		 * with a `url` switches the value/loading/error surface to the shared
+		 * `useEndpointSource` engine. Exactly one of `source` | `endpointSource`
+		 * is allowed (validator-enforced); endpointSource wins when both slip
+		 * through.
 		 *
-		 * @return {object} The resolved format spec.
+		 * @return {boolean}
 		 */
-		resolvedFormat() {
-			const fmt = this.content.format || {}
-			const ctx = { config: this.configCtx }
-			const out = { ...fmt }
-			for (const key of ['currency', 'prefix', 'suffix']) {
-				const raw = fmt[key]
-				if (typeof raw !== 'string' || raw.charAt(0) !== '@') continue
-				const resolved = resolveFilterValue(raw, ctx)
-				// Token stayed unresolved (config key unset) → drop it so the
-				// downstream default applies instead of a literal `@config.…`.
-				out[key] = (typeof resolved === 'string' && resolved.charAt(0) === '@') ? undefined : resolved
-			}
-			return out
+		endpointMode() {
+			const es = this.content.endpointSource
+			return !!(es && es.url)
 		},
-		/** The formatted value string per the content.format spec. */
-		formattedValue() {
-			if (this.value === null || this.value === undefined) return '—'
-			const fmt = this.resolvedFormat
-			const decimals = Number.isFinite(fmt.decimals) ? fmt.decimals : 0
-			const num = Number(this.value)
-			if (!Number.isFinite(num)) return String(this.value)
-
-			let body
-			if (fmt.style === 'currency') {
-				body = new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency: fmt.currency || 'EUR',
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
-			} else if (fmt.style === 'percent') {
-				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
-				body = new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num) + '%'
-			} else {
-				body = new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals,
-					maximumFractionDigits: decimals,
-				}).format(num)
+		/**
+		 * The raw display value: in endpoint mode, the payload value plucked at
+		 * `content.valueField` (dot-path; omitted = the payload itself);
+		 * otherwise the OpenRegister-aggregated `value`.
+		 *
+		 * @return {*}
+		 */
+		displayValue() {
+			if (!this.endpointMode) return this.value
+			const v = getByPath(this.epData, this.content.valueField)
+			return v === undefined ? null : v
+		},
+		/**
+		 * Loading state for the active source (endpoint or OpenRegister).
+		 *
+		 * @return {boolean}
+		 */
+		displayLoading() {
+			return this.endpointMode ? this.epLoading : this.loading
+		},
+		/**
+		 * Error message for the active source ('' = none).
+		 *
+		 * @return {string}
+		 */
+		displayError() {
+			return this.endpointMode ? this.epError : this.error
+		},
+		/**
+		 * The previous-period value plucked at `content.previousField`
+		 * (endpoint mode only), or null when not configured / not numeric.
+		 *
+		 * @return {number|null}
+		 */
+		previousValue() {
+			if (!this.endpointMode || !this.content.previousField) return null
+			const v = Number(getByPath(this.epData, this.content.previousField))
+			return Number.isFinite(v) ? v : null
+		},
+		/**
+		 * Trend percent for the sublabel (the pipelinq KPI contract): a
+		 * server-computed percent plucked at `content.deltaField` when set,
+		 * else the client-computed change vs `previousField`
+		 * (`(current − previous) ÷ |previous| × 100`). Null when the trend is
+		 * not configured or not computable (previous of 0, non-numeric values).
+		 *
+		 * @return {number|null}
+		 */
+		trendPct() {
+			if (!this.endpointMode) return null
+			if (this.content.deltaField) {
+				const v = Number(getByPath(this.epData, this.content.deltaField))
+				return Number.isFinite(v) ? v : null
 			}
-			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+			const prev = this.previousValue
+			const cur = Number(this.displayValue)
+			if (prev === null || prev === 0 || !Number.isFinite(cur)) return null
+			return ((cur - prev) / Math.abs(prev)) * 100
+		},
+		/** The signed trend percent, e.g. "+12.3%". */
+		formattedTrend() {
+			if (this.trendPct === null) return ''
+			const sign = this.trendPct > 0 ? '+' : ''
+			return `${sign}${this.trendPct.toFixed(1)}%`
+		},
+		/** The arrow component for the trend direction. */
+		trendIcon() {
+			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) return 'TrendingNeutral'
+			return this.trendPct > 0 ? 'TrendingUp' : 'TrendingDown'
+		},
+		/**
+		 * Green when the trend moves in `content.goodDirection` (default
+		 * 'up'), red otherwise, neutral for a ~0 change — the CnDeltaWidget
+		 * convention.
+		 *
+		 * @return {string}
+		 */
+		trendColor() {
+			if (this.trendPct === null || Math.abs(this.trendPct) < 0.05) return 'var(--color-text-maxcontrast)'
+			const good = this.content.goodDirection || 'up'
+			const rising = this.trendPct > 0
+			const isGood = good === 'up' ? rising : !rising
+			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+		},
+		/**
+		 * The first `content.variantWhen` rule matching the current display
+		 * value (first-match wins), or null. Each rule is
+		 * `{ op: eq|neq|gt|gte|lt|lte, value, variant, icon? }`.
+		 *
+		 * @return {object|null}
+		 */
+		activeVariantRule() {
+			const rules = this.content.variantWhen
+			if (!Array.isArray(rules) || rules.length === 0) return null
+			const current = this.displayValue
+			if (current === null || current === undefined) return null
+			return rules.find((r) => r && this.matchesRule(current, r)) || null
+		},
+		/**
+		 * The CSS colour for the matched variant rule ('' = keep the
+		 * configured colours).
+		 *
+		 * @return {string}
+		 */
+		variantColor() {
+			const rule = this.activeVariantRule
+			if (!rule || !rule.variant) return ''
+			return VARIANT_COLORS[rule.variant] || ''
+		},
+		/**
+		 * The icon shown in the circle: a matched variant rule's `icon`
+		 * override, else `content.icon`.
+		 *
+		 * @return {string}
+		 */
+		resolvedIcon() {
+			const rule = this.activeVariantRule
+			return (rule && rule.icon) || this.content.icon || ''
+		},
+		/** Inline style for the icon circle (variant rule wins over iconColor). */
+		iconCircleStyle() {
+			const color = this.variantColor || this.content.iconColor || this.content.valueColor || 'var(--color-primary-element)'
+			return { color, backgroundColor: this.tint(color) }
+		},
+		/** Inline style for the value text (variant rule wins over valueColor). */
+		valueStyle() {
+			const color = this.variantColor || this.content.valueColor
+			return color ? { color } : {}
+		},
+		/**
+		 * The formatted value string per the `content.format` spec. Resolves
+		 * `@config.<key>` tokens (e.g. `currency: '@config.currency'`) against the
+		 * page-level app config and guards the currency code, so an unresolved
+		 * token or invalid currency falls back to a safe default instead of
+		 * throwing. See `formatMetricValue`.
+		 *
+		 * @return {string}
+		 */
+		formattedValue() {
+			return formatMetricValue(this.displayValue, this.content.format, this.configCtx)
 		},
 		/** Stable signature of the data source so the watcher only refetches on real change. */
 		sourceKey() {
@@ -262,6 +506,29 @@ export default {
 				return color + '1f' // ~12% alpha
 			}
 			return 'var(--color-primary-element-light, rgba(0,130,201,0.1))'
+		},
+		/**
+		 * Whether a `variantWhen` rule matches the current value. Numeric
+		 * comparison when both sides coerce to numbers; `eq` / `neq` fall back
+		 * to strict string equality for non-numeric values.
+		 *
+		 * @param {*} current The current display value.
+		 * @param {{op: string, value: *}} rule The threshold rule.
+		 * @return {boolean} True when the rule matches.
+		 */
+		matchesRule(current, rule) {
+			const a = Number(current)
+			const b = Number(rule.value)
+			const numeric = Number.isFinite(a) && Number.isFinite(b)
+			switch (rule.op) {
+			case 'eq': return numeric ? a === b : String(current) === String(rule.value)
+			case 'neq': return numeric ? a !== b : String(current) !== String(rule.value)
+			case 'gt': return numeric && a > b
+			case 'gte': return numeric && a >= b
+			case 'lt': return numeric && a < b
+			case 'lte': return numeric && a <= b
+			default: return false
+			}
 		},
 		/**
 		 * Flatten a filter map into `filter[key]=value` / `filter[key][op]=value`
@@ -322,6 +589,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValue() {
+			// Endpoint-bound tiles are fetched by the shared useEndpointSource
+			// engine (see setup) — the OpenRegister paths below must not fire.
+			if (this.endpointMode) {
+				this.value = null
+				this.error = ''
+				return
+			}
 			const s = this.content.source || {}
 			// An `endpoint` source reads an arbitrary app REST endpoint instead
 			// of OpenRegister's per-schema aggregation, so it needs no register/schema.
@@ -435,11 +709,10 @@ export default {
 		 * @return {*} The resolved value or undefined.
 		 */
 		getByPath(obj, path) {
-			if (!path) return obj
-			return String(path).split('.').reduce(
-				(o, k) => (o == null ? undefined : o[k]),
-				obj,
-			)
+			// Delegates to the shared useEndpointSource util so the legacy
+			// `source.kind: 'endpoint'` path and the Wave-2 `endpointSource`
+			// path pluck identically.
+			return getByPath(obj, path)
 		},
 		/**
 		 * Fetch a single value from an arbitrary app REST endpoint. The `url` and
@@ -541,6 +814,14 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-stat-widget__trend {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 0.85em;
+	font-weight: 600;
 }
 
 .cn-stat-widget__caption {

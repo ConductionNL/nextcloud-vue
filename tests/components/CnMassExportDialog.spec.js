@@ -46,3 +46,46 @@ describe('CnMassExportDialog', () => {
 		expect(wrapper.vm.selectedFormat.id).toBe('xml')
 	})
 })
+
+describe('CnMassExportDialog — entities picker (export launcher, Wave 1)', () => {
+	const entities = [
+		{ id: 'leads', label: 'Leads' },
+		{ id: 'requests', label: 'Requests' },
+	]
+
+	it('renders no entity picker by default (regression)', () => {
+		const wrapper = mount(CnMassExportDialog, { stubs })
+		expect(wrapper.find('label[for="cn-mass-export-entity"]').exists()).toBe(false)
+		expect(wrapper.vm.selectedEntity).toBeNull()
+		// Only the format NcSelect is present.
+		expect(wrapper.findAllComponents({ name: 'NcSelect' })).toHaveLength(1)
+	})
+
+	it('renders the entity picker with the first entity pre-selected', () => {
+		const wrapper = mount(CnMassExportDialog, { stubs, propsData: { entities } })
+		expect(wrapper.find('label[for="cn-mass-export-entity"]').exists()).toBe(true)
+		expect(wrapper.findAllComponents({ name: 'NcSelect' })).toHaveLength(2)
+		expect(wrapper.vm.selectedEntity).toEqual(entities[0])
+	})
+
+	it('honours defaultEntity for the pre-selection', () => {
+		const wrapper = mount(CnMassExportDialog, {
+			stubs,
+			propsData: { entities, defaultEntity: 'requests' },
+		})
+		expect(wrapper.vm.selectedEntity).toEqual(entities[1])
+	})
+
+	it('confirm payload carries format + the chosen entity id', () => {
+		const wrapper = mount(CnMassExportDialog, { stubs, propsData: { entities } })
+		wrapper.vm.selectedEntity = entities[1]
+		wrapper.vm.executeExport()
+		expect(wrapper.emitted('confirm')[0][0]).toEqual({ format: 'excel', entity: 'requests' })
+	})
+
+	it('confirm payload stays format-only without entities (back-compat)', () => {
+		const wrapper = mount(CnMassExportDialog, { stubs })
+		wrapper.vm.executeExport()
+		expect(wrapper.emitted('confirm')[0][0]).toEqual({ format: 'excel' })
+	})
+})

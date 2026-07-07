@@ -1,0 +1,403 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "1.0.0",
+	"dependencies": [
+		"openregister"
+	],
+	"deepLinks": [
+		{
+			"registerSlug": "hrmq",
+			"schemaSlug": "Timesheet",
+			"urlTemplate": "/apps/hrmq/timesheets/{uuid}",
+			"displayName": "Timesheet"
+		},
+		{
+			"registerSlug": "hrmq",
+			"schemaSlug": "Expense",
+			"urlTemplate": "/apps/hrmq/expenses/{uuid}",
+			"displayName": "Expense"
+		}
+	],
+	"menu": [
+		{
+			"id": "TimesheetsGroup",
+			"label": "Uren",
+			"icon": "ClockCheckOutline",
+			"order": 100,
+			"children": [
+				{
+					"id": "Timesheets",
+					"label": "Urenregistratie",
+					"icon": "ClockCheckOutline",
+					"route": "Timesheets"
+				},
+				{
+					"id": "TimesheetApproval",
+					"label": "Urengoedkeuring",
+					"icon": "CheckDecagramOutline",
+					"route": "TimesheetApproval"
+				}
+			]
+		},
+		{
+			"id": "ExpensesGroup",
+			"label": "Onkosten",
+			"icon": "Receipt",
+			"order": 110,
+			"children": [
+				{
+					"id": "Expenses",
+					"label": "Declaraties",
+					"icon": "Receipt",
+					"route": "Expenses"
+				},
+				{
+					"id": "ExpenseApproval",
+					"label": "Declaratiegoedkeuring",
+					"icon": "CheckDecagramOutline",
+					"route": "ExpenseApproval"
+				}
+			]
+		}
+	],
+	"pages": [
+		{
+			"id": "Timesheets",
+			"route": "/timesheets",
+			"type": "index",
+			"title": "Urenregistratie",
+			"config": {
+				"register": "hrmq",
+				"schema": "Timesheet",
+				"columns": [
+					"employeeId",
+					"period",
+					"hours",
+					"billable",
+					"status"
+				],
+				"filters": [
+					"status",
+					"period",
+					"billable"
+				],
+				"sort": {
+					"field": "period",
+					"order": "desc"
+				}
+			}
+		},
+		{
+			"id": "TimesheetApproval",
+			"route": "/timesheets/approval",
+			"type": "index",
+			"title": "Urengoedkeuring",
+			"config": {
+				"register": "hrmq",
+				"schema": "Timesheet",
+				"description": "Ingediende urenstaten die wachten op goedkeuring of afkeuring.",
+				"columns": [
+					"employeeId",
+					"period",
+					"hours",
+					"submittedAt",
+					"status"
+				],
+				"filters": [
+					"status",
+					"period"
+				],
+				"defaultFilters": {
+					"status": "submitted"
+				},
+				"sort": {
+					"field": "submittedAt",
+					"order": "asc"
+				}
+			}
+		},
+		{
+			"id": "TimesheetDetail",
+			"route": "/timesheets/:id",
+			"type": "detail",
+			"title": "Urenstaat",
+			"config": {
+				"register": "hrmq",
+				"schema": "Timesheet",
+				"_note": "HR/labour approval record (urenstaat). A single Timesheet captures the hours an employee logged for one period plus a submit -> approve/reject -> reopen approval workflow (x-openregister-lifecycle on `status`). Bespoke grid leads with the operational content: (1) a total-hours KPI stat so the approver sees the claimed volume at a glance; (2) the data widget (period / employee / hours / billable / project / cost centre / status / approval trail) as the primary 8-wide surface; (3) related alongside it for the linked Employee/project. Files sits full-width below for approval evidence and signed timesheets (approval documents matter, so they are on the body, not a tab). NO email/calendar/talk widgets -- the Timesheet schema declares no comms linkedTypes and a labour record does not correspond; any communication is with the person (Employee), not the record. lifecycleActions expose the schema's own submit/approve/reject/reopen transitions (guarded server-side by NoSelfApprovalGuard). Audit history is pushed to a sidebar tab as a rarely-scanned surface.",
+				"widgets": [
+					{
+						"id": "ts-hours",
+						"type": "stat",
+						"title": "Total hours",
+						"content": {
+							"label": "Total hours",
+							"caption": "logged this period",
+							"icon": "ClockCheckOutline",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "number",
+								"decimals": 2
+							},
+							"source": {
+								"register": "hrmq",
+								"schema": "Timesheet",
+								"metric": "sum",
+								"field": "hours",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "ts-data",
+						"type": "data",
+						"title": "Timesheet",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "ts-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "ts-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Approval documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "ts-hours",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "ts-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "ts-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 7
+					},
+					{
+						"id": "4",
+						"widgetId": "ts-files",
+						"gridX": 0,
+						"gridY": 7,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"lifecycleActions": {
+					"field": "status",
+					"transitions": [
+						"submit",
+						"approve",
+						"reject",
+						"reopen"
+					]
+				},
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "History",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "Expenses",
+			"route": "/expenses",
+			"type": "index",
+			"title": "Declaraties",
+			"config": {
+				"register": "hrmq",
+				"schema": "Expense",
+				"columns": [
+					"employeeId",
+					"title",
+					"amount",
+					"category",
+					"expenseDate",
+					"status"
+				],
+				"filters": [
+					"status",
+					"category"
+				],
+				"sort": {
+					"field": "expenseDate",
+					"order": "desc"
+				}
+			}
+		},
+		{
+			"id": "ExpenseApproval",
+			"route": "/expenses/approval",
+			"type": "index",
+			"title": "Declaratiegoedkeuring",
+			"config": {
+				"register": "hrmq",
+				"schema": "Expense",
+				"description": "Ingediende declaraties die wachten op goedkeuring of afkeuring.",
+				"columns": [
+					"employeeId",
+					"title",
+					"amount",
+					"category",
+					"submittedAt",
+					"status"
+				],
+				"filters": [
+					"status",
+					"category"
+				],
+				"defaultFilters": {
+					"status": "submitted"
+				},
+				"sort": {
+					"field": "submittedAt",
+					"order": "asc"
+				}
+			}
+		},
+		{
+			"id": "ExpenseDetail",
+			"route": "/expenses/:id",
+			"type": "detail",
+			"title": "Declaratie",
+			"config": {
+				"register": "hrmq",
+				"schema": "Expense",
+				"_note": "Expense-reimbursement claim (onkostendeclaratie). A single Expense holds one claim (amount / currency / category / date + attached receipt) and a submit -> approve/reject -> reimburse lifecycle (x-openregister-lifecycle on `status`). This grid is deliberately DIFFERENT from the Timesheet: the operational hero here is the RECEIPT, so the Files widget is a large full-width band right under the header -- the approver's first job is to open the bon and verify it against the claimed amount. An amount KPI stat sits top-right so the payout figure is unmissable. The data widget (title / amount / currency / category / expenseDate / receiptFile / status / approval + reimbursement trail) is the primary surface, with related for the linked Employee. NO email/calendar/talk -- Expense declares no comms linkedTypes; a reimbursement claim is a financial/HR record, not a correspondence thread. lifecycleActions expose submit/approve/reject/reimburse (approve/reject guarded server-side by NoSelfApprovalGuard; reimburse is terminal). Audit history is a sidebar tab.",
+				"widgets": [
+					{
+						"id": "ex-amount",
+						"type": "stat",
+						"title": "Claimed amount",
+						"content": {
+							"label": "Claimed amount",
+							"caption": "to reimburse",
+							"icon": "CashMultiple",
+							"valueColor": "#46ba61",
+							"format": {
+								"style": "currency",
+								"currency": "EUR",
+								"decimals": 2
+							},
+							"source": {
+								"register": "hrmq",
+								"schema": "Expense",
+								"metric": "sum",
+								"field": "amount",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "ex-receipt",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Receipt / bon"
+					},
+					{
+						"id": "ex-data",
+						"type": "data",
+						"title": "Expense claim",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "ex-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "ex-amount",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "ex-receipt",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "ex-data",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "4",
+						"widgetId": "ex-related",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 7
+					}
+				],
+				"lifecycleActions": {
+					"field": "status",
+					"transitions": [
+						"submit",
+						"approve",
+						"reject",
+						"reimburse"
+					]
+				},
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit",
+							"label": "History",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		}
+	]
+}

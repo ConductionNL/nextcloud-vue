@@ -37,9 +37,13 @@ import '../CnStatWidget/index.js'
 import '../CnDeltaWidget/index.js'
 import '../CnGaugeWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
+import '../CnWidgetObjectTable/dashboardRegistration.js'
+import '../CnAuditTrailWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
+import '../CnBannerWidget/index.js'
+import '../CnWorkspaceFilterWidget/index.js'
 
 // Typed widgets registered with an explicit renderer + config FORM. chart /
 // stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
