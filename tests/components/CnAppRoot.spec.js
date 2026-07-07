@@ -14,6 +14,15 @@ import { mount } from '@vue/test-utils'
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
 }))
+// Mock @nextcloud/axios so the batched menu-count hydration
+// (POST /api/objects/counts, audit item 26) is controlled per-test and
+// never issues a real request on mount. Default: reject so mounts without
+// an explicit resolution fall back to the per-entry path harmlessly.
+jest.mock('@nextcloud/axios', () => ({
+	__esModule: true,
+	default: { post: jest.fn().mockRejectedValue(new Error('no batch route')) },
+}))
+const axios = require('@nextcloud/axios').default
 const { getCapabilities } = require('@nextcloud/capabilities')
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
@@ -62,6 +71,10 @@ function mountRoot({
 describe('CnAppRoot', () => {
 	beforeEach(() => {
 		getCapabilities.mockReset()
+		// Reset the shared batched-counts axios mock each test, restoring the
+		// default reject (no batch route) so per-test call counts are isolated.
+		axios.post.mockReset()
+		axios.post.mockRejectedValue(new Error('no batch route'))
 		__resetAppStatusCacheForTests()
 		// Define a clean appswebroots each test. CnAppRoot's in-app edit shell
 		// (ADR-041) calls useAppStatus('openbuild'); without OpenBuild present it
@@ -623,6 +636,49 @@ describe('CnAppRoot', () => {
 			const wrapper = mountRoot()
 			await wrapper.vm._fetchAndCacheCount(fakeStore, 'foo-bar', 'foo', 'bar')
 			expect(wrapper.vm.cnMenuCounts).toEqual({})
+		})
+
+		it('hydrates all counts with ONE POST /api/objects/counts (audit item 26)', async () => {
+			axios.post.mockResolvedValueOnce({
+				data: { results: [
+					{ register: 'decisions', schema: 'decision', count: 17 },
+					{ register: 'meetings', schema: 'meeting', count: 5 },
+				] },
+			})
+			const wrapper = mountRoot()
+			await wrapper.vm._hydrateMenuCountsBatched([
+				{ register: 'decisions', schema: 'decision' },
+				{ register: 'meetings', schema: 'meeting' },
+			])
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			const [url, body] = axios.post.mock.calls[0]
+			expect(url).toContain('/apps/openregister/api/objects/counts')
+			expect(body).toEqual({ counts: [
+				{ register: 'decisions', schema: 'decision' },
+				{ register: 'meetings', schema: 'meeting' },
+			] })
+			expect(wrapper.vm.cnMenuCounts).toEqual({
+				decisions: { decision: 17 },
+				meetings: { meeting: 5 },
+			})
+		})
+
+		it('falls back to per-entry fetches when the batch endpoint 404s', async () => {
+			axios.post.mockRejectedValueOnce(Object.assign(new Error('not found'), { response: { status: 404 } }))
+			const wrapper = mountRoot()
+			const perEntry = jest.spyOn(wrapper.vm, '_hydrateMenuCountsPerEntry').mockImplementation(() => {})
+			// Drive the top-level hydrator with count:"auto" pairs present.
+			wrapper.setData({}) // no-op to ensure vm ready
+			await wrapper.vm._hydrateMenuCountsBatched([{ register: 'r', schema: 's' }]).catch(() => {
+				wrapper.vm._hydrateMenuCountsPerEntry([{ register: 'r', schema: 's' }])
+			})
+			expect(perEntry).toHaveBeenCalledWith([{ register: 'r', schema: 's' }])
+		})
+
+		it('rejects a malformed batch response so the caller can fall back', async () => {
+			axios.post.mockResolvedValueOnce({ data: { notResults: true } })
+			const wrapper = mountRoot()
+			await expect(wrapper.vm._hydrateMenuCountsBatched([{ register: 'r', schema: 's' }])).rejects.toThrow()
 		})
 	})
 
