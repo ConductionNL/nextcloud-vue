@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.16.0",
+	"version": "2.17.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -325,6 +325,73 @@
 				}
 			}
 		},
+		"sentinelFilterToken": {
+			"type": "string",
+			"pattern": "^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
+			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @now, @today, @today±Nd, @monthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
+		},
+		"sentinelConfigToken": {
+			"type": "string",
+			"pattern": "^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$",
+			"description": "Config context: IAppConfig-sourced values. @resolve:<key> resolved at manifest-load time; @config.<key> (trailing ? optional) at fetch time. Mirrors SENTINEL_TOKEN_PATTERNS.config."
+		},
+		"sentinelObjectToken": {
+			"type": "string",
+			"pattern": "^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$",
+			"description": "Object context: detail-page object tokens (@objectId, @object.<field>) resolved only when a { objectId, object } ctx is supplied. Mirrors SENTINEL_TOKEN_PATTERNS.object."
+		},
+		"sentinelWorkspaceToken": {
+			"type": "string",
+			"pattern": "^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$",
+			"description": "Workspace context: page-level workspace state (@workspace.<key>; trailing ? marks optional). Mirrors SENTINEL_TOKEN_PATTERNS.workspace."
+		},
+		"sentinelRouteToken": {
+			"type": "string",
+			"pattern": "^@route\\.[A-Za-z][A-Za-z0-9_-]*$",
+			"description": "Route context: vue-router param substitution (@route.<param>) resolved by resolveRouteSentinels. Mirrors SENTINEL_TOKEN_PATTERNS.route."
+		},
+		"sentinelDeclarativeToken": {
+			"type": "string",
+			"pattern": "^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$",
+			"description": "Declarative context (OpenRegister direction, resolved server-side): @self.<field> (the object's own field in a cross-object calc), @ref:<path>, @aggregate:<expr>. @ref/@aggregate are first-class members even though currently unused fleet-wide. Mirrors SENTINEL_TOKEN_PATTERNS.declarative."
+		},
+		"sentinelDeprecatedToken": {
+			"type": "string",
+			"pattern": "^@currentFiscalYear$|^@page\\.[A-Za-z][A-Za-z0-9_]*$|^@runtime(?:\\.[A-Za-z][A-Za-z0-9_]*)?$",
+			"description": "Deprecated single-app inventions kept in the union so deployed manifests still validate during the migration window. The hydra token-vocabulary gate downgrades these to a WARN (see SENTINEL_DEPRECATIONS): @currentFiscalYear → @config.fiscalYear, @page.<key> → @workspace.<key>, @runtime → removal. Mirrors SENTINEL_TOKEN_PATTERNS.deprecated."
+		},
+		"sentinelTokenAny": {
+			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
+			"anyOf": [
+				{ "$ref": "#/$defs/sentinelFilterToken" },
+				{ "$ref": "#/$defs/sentinelConfigToken" },
+				{ "$ref": "#/$defs/sentinelObjectToken" },
+				{ "$ref": "#/$defs/sentinelWorkspaceToken" },
+				{ "$ref": "#/$defs/sentinelRouteToken" },
+				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
+				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
+			]
+		},
+		"sentinelTokenLeaf": {
+			"$comment": "A string leaf: either NOT a sentinel (does not start with @) or a member of the closed vocabulary. An @-prefixed out-of-vocabulary string FAILS here instead of passing through additionalProperties:true.",
+			"anyOf": [
+				{ "not": { "pattern": "^@" } },
+				{ "$ref": "#/$defs/sentinelTokenAny" }
+			]
+		},
+		"sentinelGuardedValue": {
+			"$comment": "Recursive guard applied (via allOf) to pages[].config and widgetEntry so every string leaf anywhere beneath is checked against the closed vocabulary. Additive + backward-compatible: only @-prefixed out-of-vocabulary strings newly fail; all other shapes are untouched.",
+			"if": { "type": "string" },
+			"then": { "$ref": "#/$defs/sentinelTokenLeaf" },
+			"else": {
+				"if": { "type": "array" },
+				"then": { "items": { "$ref": "#/$defs/sentinelGuardedValue" } },
+				"else": {
+					"if": { "type": "object" },
+					"then": { "additionalProperties": { "$ref": "#/$defs/sentinelGuardedValue" } }
+				}
+			}
+		},
 		"observability": {
 			"type": "object",
 			"additionalProperties": false,
@@ -618,7 +685,7 @@
 			"type": "object",
 			"required": ["widgetKey", "slot", "gridX", "gridY", "gridWidth", "gridHeight"],
 			"additionalProperties": false,
-			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
+			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. Its props/dataSource/filter string leaves are guarded against the closed sentinel vocabulary via the sentinelGuardedValue allOf. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -678,6 +745,7 @@
 				}
 			},
 			"allOf": [
+				{ "$ref": "#/$defs/sentinelGuardedValue" },
 				{
 					"description": "sidebar slot: gridWidth MUST equal 1. The sidebar is a fixed-width panel; widgets always span the full width.",
 					"if": {
@@ -1717,8 +1785,9 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
+					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use the closed sentinel vocabulary (see $defs/sentinelTokenAny) — an out-of-vocabulary @-token FAILS validation via the sentinelGuardedValue allOf guard. Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
+					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
 					"properties": {
 						"register": {
 							"type": "string",
