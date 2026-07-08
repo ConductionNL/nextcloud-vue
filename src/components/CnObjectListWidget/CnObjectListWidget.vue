@@ -41,11 +41,29 @@
 		<p v-if="error" class="cn-object-list-widget__error">
 			{{ error }}
 		</p>
+		<!-- Create affordance (ADR-062): every collection carries its Add at
+		     the bottom of the widget; the host card's Actions menu calls the
+		     same openCreate() through the public method. -->
+		<button
+			v-if="allowCreate && !waitingForContext"
+			type="button"
+			class="cn-object-list-widget__add"
+			@click="openCreate">
+			+ {{ addLabel }}
+		</button>
+		<CnFormDialog
+			v-if="showCreate && createSchema"
+			ref="createDialog"
+			:schema="createSchema"
+			:item="null"
+			@confirm="onCreateConfirm"
+			@close="showCreate = false" />
 	</div>
 </template>
 
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
 
@@ -74,7 +92,7 @@ import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable },
+	components: { CnDataTable, CnFormDialog },
 
 	inject: {
 		/**
@@ -118,6 +136,10 @@ export default {
 			total: 0,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
 			fitRows: null,
+			/** Whether the create dialog is open. */
+			showCreate: false,
+			/** Target schema definition fetched for the create dialog. */
+			createSchema: null,
 		}
 	},
 
@@ -235,6 +257,15 @@ export default {
 		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
 		moreLabel() {
 			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
+		},
+		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
+		allowCreate() {
+			const c = this.content || {}
+			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+		/** Pre-translated Add label (overridable via `content.addLabel`). */
+		addLabel() {
+			return this.content.addLabel || t('nextcloud-vue', 'Add')
 		},
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
@@ -360,10 +391,74 @@ export default {
 			const rowH = (firstRow && firstRow.getBoundingClientRect().height) || 44
 			const head = table.querySelector('thead')
 			const headH = (head && head.getBoundingClientRect().height) || 40
-			const footerReserve = 36
+			// Room for the "View all" footer AND the Add button (ADR-062).
+			const footerReserve = 68
 			const available = cellRect.bottom - tableRect.top - footerReserve
 			const fit = Math.floor((available - headH) / rowH)
 			this.fitRows = Math.max(fit, 1)
+		},
+
+		/**
+		 * Open the create dialog for the list's target schema. PUBLIC — the
+		 * host card's Actions-menu "Add" entry calls this through a ref, the
+		 * widget's own footer button calls it directly (ADR-062: both
+		 * affordances, one dialog).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async openCreate() {
+			const c = this.content || {}
+			if (!c.schema) return
+			try {
+				if (!this.createSchema) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([
+						import('@nextcloud/axios'),
+						import('@nextcloud/router'),
+					])
+					const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
+					const res = await axios.get(url)
+					this.createSchema = (res && res.data) || null
+				}
+				this.showCreate = true
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Persist the create-dialog form: the resolved scalar filter values
+		 * are merged in as defaults (an FK-scoped list creates PRE-LINKED
+		 * children — a task added on a case detail already carries the case).
+		 *
+		 * @param {object} formData Confirmed form values.
+		 * @return {Promise<void>}
+		 */
+		async onCreateConfirm(formData) {
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const payload = { ...formData }
+				const filter = this.resolvedFilter || {}
+				for (const [k, v] of Object.entries(filter)) {
+					if (v && typeof v !== 'object' && (payload[k] === undefined || payload[k] === null || payload[k] === '')) {
+						payload[k] = v
+					}
+				}
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
+				await axios.post(url, payload)
+				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ success: true })
+				/**
+				 * @event created Emitted after a successful create with the sent payload.
+				 * @type {object}
+				 */
+				this.$emit('created', payload)
+				this.fetchRows()
+			} catch (e) {
+				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+			}
 		},
 
 		/**
@@ -462,6 +557,23 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__add {
+	align-self: flex-start;
+	background: none;
+	border: none;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+	margin-top: auto;
+	padding: 4px;
+}
+
+.cn-object-list-widget__add:hover,
+.cn-object-list-widget__add:focus-visible {
+	text-decoration: underline;
 }
 
 .cn-object-list-widget__error {

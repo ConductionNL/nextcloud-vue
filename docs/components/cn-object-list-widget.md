@@ -40,3 +40,13 @@ On detail pages the widget is **cell-budgeted** (ADR-062): it renders as many ro
 - An empty collection renders a compact one-line empty state (`emptyText`), never a full-height void.
 - `viewAllRoute` names a page id; `viewAllQuery` values are token-resolved (`@objectId` / `@object.<field>` / `@workspace.<key>`) so the target index opens pre-scoped.
 - The `table` registry alias uses the same renderer.
+
+### Create affordance
+
+The widget renders a **"+ Add"** footer button (and the detail-page card's
+Actions menu carries the same **Add** entry, both calling the public
+`openCreate()`). The dialog is a `CnFormDialog` over the target schema; the
+list's resolved scalar filter values are merged in as defaults, so an
+FK-scoped list creates pre-linked children (a task added on a case detail
+already carries the case). Opt out with `content.allowCreate: false`; rename
+with `content.addLabel`. Emits `created` with the sent payload.

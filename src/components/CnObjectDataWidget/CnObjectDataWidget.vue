@@ -13,8 +13,11 @@
 		:title="title"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
-		:title-icon-position="iconComponent ? 'left' : 'right'">
-		<template v-if="iconComponent" #title-icon>
+		:title-icon-position="(iconComponent || iconName) ? 'left' : 'right'">
+		<template v-if="iconName" #title-icon>
+			<CnIcon :name="iconName" :size="20" />
+		</template>
+		<template v-else-if="iconComponent" #title-icon>
 			<component :is="iconComponent" :size="20" />
 		</template>
 		<template #actions>
@@ -255,7 +258,14 @@
 						<img v-if="isImageField(field) && rawOf(field)"
 							:src="rawOf(field)"
 							:alt="field.label"
-							class="cn-object-data-widget__image"><template v-else>{{ displayValues[field.key] }}</template>
+							class="cn-object-data-widget__image">
+						<!-- Relation name still resolving: a quiet skeleton bar,
+						     never a raw uuid or a bare '…' (ADR-062). -->
+						<span
+							v-else-if="isRelationPending(field)"
+							class="cn-object-data-widget__skeleton"
+							:aria-label="t('nextcloud-vue', 'Loading')" />
+						<template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -291,6 +301,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -339,6 +350,7 @@ export default {
 	name: 'CnObjectDataWidget',
 
 	components: {
+		CnIcon,
 		NcButton,
 		NcLoadingIcon,
 		NcTextField,
@@ -374,7 +386,7 @@ export default {
 		},
 		/** Optional MDI icon component for the header. */
 		icon: {
-			type: [Object, Function],
+			type: [Object, Function, String],
 			default: null,
 		},
 		/**
@@ -530,7 +542,12 @@ export default {
 
 	computed: {
 		iconComponent() {
-			return this.icon
+			return (this.icon && typeof this.icon !== 'string') ? this.icon : null
+		},
+
+		/** MDI icon NAME (String form of `icon`) — rendered via CnIcon. */
+		iconName() {
+			return typeof this.icon === 'string' ? this.icon : ''
 		},
 
 		/**
@@ -614,6 +631,9 @@ export default {
 	},
 
 	methods: {
+		/** Pre-translated string helper exposed to the template. */
+		t,
+
 		/** Raw (possibly dirty) value for a field. */
 		rawOf(field) {
 			const o = this.objectData || {}
@@ -670,6 +690,20 @@ export default {
 		relationLabel(raw) {
 			const one = (v) => this.relatedLabels[v] || '…'
 			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)
+		},
+
+		/**
+		 * Whether a relation field's display name(s) are still being fetched
+		 * (drives the skeleton placeholder in the display cell).
+		 * @param {object} field Resolved field definition.
+		 * @return {boolean}
+		 */
+		isRelationPending(field) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (!prop || this.relationProp(prop) === null) return false
+			const raw = (this.objectData || {})[field.key]
+			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+			return ids.some((id) => id && !(id in this.relatedLabels))
 		},
 
 		/**
@@ -776,32 +810,35 @@ export default {
 		},
 		/** Fetch related objects' display names into relatedLabels. */
 		async resolveRelations() {
+			// Collect every unresolved (target, id) pair first, then fetch them
+			// ALL in parallel — sequential lookups made names trail the page by
+			// seconds, leaving confusing placeholder values (ADR-062: names
+			// must arrive with the page, uuids never show).
 			const props = (this.schema && this.schema.properties) || {}
+			const jobs = []
 			for (const key of Object.keys(props)) {
 				const rel = this.relationProp(props[key])
 				if (!rel) continue
 				const parts = String(rel.target || '').split('/')
 				if (parts.length < 2) continue
-				const reg = parts[0]; const sch = parts[1]
 				const raw = (this.objectData || {})[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
-					if (!id || (id in this.relatedLabels)) continue
-					try {
-						const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
-						const res = await axios.get(url)
-						const d = (res && res.data) ? res.data : {}
-						const obj = (d.results && d.results[0]) ? d.results[0] : d
-						const self = obj['@self'] || {}
-						let name = obj.name || obj.title || obj.displayName
-						if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
-						if (!name && self.name && self.name !== id) name = self.name
-						this.$set(this.relatedLabels, id, name || id)
-					} catch (e) {
-						this.$set(this.relatedLabels, id, id)
-					}
+					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) continue
+					jobs.push({ reg: parts[0], sch: parts[1], id })
 				}
 			}
+			await Promise.all(jobs.map(async ({ reg, sch, id }) => {
+				try {
+					const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
+					const res = await axios.get(url)
+					const d = (res && res.data) ? res.data : {}
+					const obj = (d.results && d.results[0]) ? d.results[0] : d
+					this.$set(this.relatedLabels, id, this.objectDisplayName(obj, id))
+				} catch (e) {
+					this.$set(this.relatedLabels, id, id)
+				}
+			}))
 		},
 		/**
 		 * Check if a field is editable.
@@ -1109,6 +1146,26 @@ export default {
 	max-height: 160px;
 	border-radius: 8px;
 	object-fit: cover;
+}
+
+/* Shimmering placeholder while a relation's display name resolves. */
+.cn-object-data-widget__skeleton {
+	display: inline-block;
+	width: 90px;
+	height: 1em;
+	border-radius: 4px;
+	background: linear-gradient(90deg, var(--color-background-dark) 25%, var(--color-background-hover) 50%, var(--color-background-dark) 75%);
+	background-size: 200% 100%;
+	animation: cn-odw-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes cn-odw-shimmer {
+	from { background-position: 200% 0; }
+	to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-object-data-widget__skeleton { animation: none; }
 }
 
 .cn-object-data-widget__grid {

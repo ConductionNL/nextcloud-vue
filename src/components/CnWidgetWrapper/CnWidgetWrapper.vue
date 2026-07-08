@@ -559,6 +559,9 @@ export default {
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	/* NC design system: every content card is rounded — same token as
+	   CnDetailCard so detail pages read as ONE card family (ADR-062). */
+	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
 }
 

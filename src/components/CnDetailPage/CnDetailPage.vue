@@ -309,6 +309,7 @@
 							<CnObjectDataWidget
 								v-if="isDataWidget(item) && currentSchema"
 								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:icon="findWidget(item).icon || null"
 								:schema="currentSchema"
 								:object-data="currentObject"
 								:object-type="resolvedObjectType"
@@ -349,8 +350,20 @@
 								:show-refresh="false"
 								:show-request-feature="false"
 								class="cn-detail-page__catalog-card">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<template v-if="catalogAddEnabled(item)" #action-items>
+									<NcActionButton @click="invokeCatalogAdd(item)">
+										<template #icon>
+											<Plus :size="20" />
+										</template>
+										{{ t('nextcloud-vue', 'Add') }}
+									</NcActionButton>
+								</template>
 								<component
 									:is="registryRendererFor(item)"
+									:ref="'catalog-' + item.widgetId"
 									:content="widgetContentFor(item)"
 									v-bind="widgetContentFor(item)" />
 							</CnWidgetWrapper>
@@ -529,7 +542,7 @@
 <script>
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -639,6 +652,7 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -2019,6 +2033,33 @@ export default {
 		isContentOnlyWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+		},
+
+		/**
+		 * Whether a catalog list widget offers the Add action (ADR-062:
+		 * collections carry their create affordance in the card's Actions
+		 * menu AND as the widget's own footer button). On by default for
+		 * object-list/table; opt out via `content.allowCreate: false`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		catalogAddEnabled(item) {
+			if (!this.isContentOnlyWidget(item)) return false
+			return this.widgetContentFor(item).allowCreate !== false
+		},
+
+		/**
+		 * Actions-menu "Add" entry: delegate to the rendered list widget's
+		 * public `openCreate()` (the same dialog its footer button opens).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {void}
+		 */
+		invokeCatalogAdd(item) {
+			const r = this.$refs['catalog-' + item.widgetId]
+			const w = Array.isArray(r) ? r[0] : r
+			if (w && typeof w.openCreate === 'function') w.openCreate()
 		},
 
 		/**

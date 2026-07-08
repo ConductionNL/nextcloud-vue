@@ -372,3 +372,12 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+
+### Widget icons (ADR-062)
+
+Every `config.widgets[]` def may carry `icon` (an MDI component name, e.g.
+`"CheckboxMarkedOutline"`). Data widgets forward it to their card header via
+`CnIcon`; content-only catalog widgets (object-list / table) render it in
+their `CnWidgetWrapper` title. Together with the shared
+`var(--border-radius-large, 8px)` card radius this keeps all detail-page
+widgets in one visual family.
