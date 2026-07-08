@@ -12,7 +12,7 @@
  * - injected persist is called with the delta; a persist throw aborts the save
  */
 
-import { ref } from 'vue'
+import { ref, shallowRef, isReactive } from 'vue'
 
 const { useManifestEditor } = require('../../src/composables/useManifestEditor.js')
 const { mergeManifestDelta } = require('../../src/utils/mergeManifestDelta.js')
@@ -111,5 +111,53 @@ describe('useManifestEditor', () => {
 		await expect(ed.save()).rejects.toThrow('network')
 		expect(ed.editing.value).toBe(true)
 		expect(base.value.pages[0].title).toBe('Failed') // in-place edit retained for retry
+	})
+
+	// Audit item 9 (manifest-markraw-reactivity): CnAppRoot holds the manifest in
+	// a shallowRef so the immutable graph is NOT deep-observed at boot. enter()
+	// is the reactivity opt-in — it observes the live manifest IN PLACE, keeping
+	// object identity so already-mounted (inject-once) renderers pick up edits.
+	describe('raw/reactive boundary (audit item 9)', () => {
+		it('holds the manifest raw and opts it into reactivity in place on enter', () => {
+			const base = shallowRef(baseManifest())
+			const live = base.value
+			// Boot read path: raw, no per-node observer conversion.
+			expect(isReactive(base.value)).toBe(false)
+			expect(isReactive(base.value.pages[0])).toBe(false)
+			const ed = useManifestEditor(base)
+			ed.enter()
+			// reactive IN PLACE — same object identity (critical: CnPageRenderer
+			// captured this object once via inject('cnManifest')), now deep-observed.
+			expect(base.value).toBe(live)
+			expect(ed.working.value).toBe(live)
+			expect(isReactive(base.value)).toBe(true)
+			expect(isReactive(base.value.pages[0])).toBe(true)
+		})
+
+		it('a page subtree becomes reactive on enter and a fresh manifest reads raw again on exit', async () => {
+			const base = shallowRef(baseManifest())
+			const ed = useManifestEditor(base)
+			expect(isReactive(base.value.pages[0])).toBe(false)
+			ed.enter()
+			expect(isReactive(base.value.pages[0])).toBe(true)
+			ed.working.value.pages[0].title = 'Edited'
+			await ed.save()
+			// On the next manifest publish (host reload / backend delta merge) the
+			// shallowRef re-installs a fresh RAW manifest → read path non-reactive.
+			base.value = baseManifest()
+			expect(isReactive(base.value)).toBe(false)
+			expect(isReactive(base.value.pages[0])).toBe(false)
+		})
+
+		it('is idempotent on a second edit session (reactive() no-op)', () => {
+			const base = shallowRef(baseManifest())
+			const ed = useManifestEditor(base)
+			ed.enter()
+			ed.cancel()
+			expect(ed.editing.value).toBe(false)
+			ed.enter()
+			expect(isReactive(base.value)).toBe(true)
+			expect(ed.editing.value).toBe(true)
+		})
 	})
 })

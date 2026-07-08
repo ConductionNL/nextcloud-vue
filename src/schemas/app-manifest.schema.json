@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest.schema.json",
 	"title": "Conduction App Manifest",
 	"description": "Schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Each Conduction Nextcloud app declares its routes, menu, page types, widget configuration, and required app dependencies in a single src/manifest.json validated against this schema. Manifests can also be mounted in-memory at runtime (no static file, no backend route) via the `useAppManifest({ manifest })` overload — see the in-memory-app-manifest-loader capability for the virtual-app-host call shape.",
-	"version": "1.6.0",
+	"version": "1.7.0",
 	"type": "object",
 	"required": ["version", "menu", "pages"],
 	"additionalProperties": false,
@@ -41,6 +41,27 @@
 				"primaryAction": {
 					"$ref": "#/$defs/primaryAction",
 					"description": "App-wide default primary action rendered as an NcAppNavigationNew button above the main menu list. A page-scoped `pages[].primaryAction` for the current route wins over this default. The CnAppNav #primary-action slot still takes precedence over both."
+				},
+				"featureRequestRepo": {
+					"type": "string",
+					"description": "`<owner>/<repo>` slug on the forge that the in-product feature-request deep-link targets (provided to descendants as `cnFeatureRequestRepo`). Falls back to `Conduction/<appId>` when omitted."
+				},
+				"forge": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Forge that the in-product feature-request deep-link targets. Switching the whole fleet's forge (back to GitHub, or onto a self-hosted Forgejo/Gitea) is just this one field. Defaults to Codeberg.",
+					"properties": {
+						"type": {
+							"type": "string",
+							"enum": ["codeberg", "forgejo", "gitea", "github"],
+							"default": "codeberg",
+							"description": "Forge type. Selects how the 'new issue' form is pre-filled: `github` uses per-field Issue-Form query params; `codeberg`/`forgejo`/`gitea` assemble a Markdown body (only title + body are supported there)."
+						},
+						"baseUrl": {
+							"type": "string",
+							"description": "Override the forge host. Required for self-hosted `forgejo`/`gitea`; optional for `codeberg`/`github` (their canonical public hosts are used when omitted)."
+						}
+					}
 				}
 			}
 		},
@@ -65,6 +86,20 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/page" },
 			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by useAppManifest at validation time."
+		},
+		"credentials": {
+			"type": "array",
+			"description": "External-provider credentials this app can use via the OpenRegister credential broker (github, gitlab, …). Each entry declares which provider, why, and at what scope; the app never receives the secret — the broker performs the outbound call on the user's behalf. See the credential-broker capability.",
+			"items": {
+				"type": "object",
+				"required": ["provider"],
+				"additionalProperties": false,
+				"properties": {
+					"provider": { "type": "string", "description": "Catalogue provider identifier (e.g. \"github\", \"gitlab\") — a key in OpenRegister's credential-providers catalogue." },
+					"reason": { "type": "string", "description": "Human-readable reason shown to the user in credential settings (why the app wants this provider)." },
+					"scopes": { "type": "array", "items": { "type": "string" }, "description": "Advisory scopes the app needs (e.g. [\"repo\"])." }
+				}
+			}
 		}
 	},
 	"$defs": {
@@ -160,7 +195,7 @@
 				},
 				"href": {
 					"type": "string",
-					"description": "External URL. When set, the entry opens the URL in a new tab via window.open() instead of dispatching a vue-router navigation. `route` is ignored when `href` is present. Useful for documentation / help links."
+					"description": "Destination URL. When set, the entry renders as a real anchor pointing at this URL (visible on hover, native link cursor) instead of dispatching a vue-router navigation. External URLs (containing a `scheme://`) open in a new tab; internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. `route` is ignored when `href` is present. Useful for documentation / help links and cross-app links."
 				},
 				"action": {
 					"type": "string",

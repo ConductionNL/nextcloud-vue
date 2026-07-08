@@ -169,6 +169,68 @@ describe('useObjectStore', () => {
 			expect(result).toEqual({ id: 'abc', name: 'Test Client' })
 			expect(store.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
 		})
+
+		it('de-duplicates concurrent requests for the same object into one network call', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			let resolveFetch
+			global.fetch = jest.fn().mockReturnValue(new Promise((resolve) => {
+				resolveFetch = () => resolve({
+					ok: true,
+					json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+				})
+			}))
+
+			// Fire three concurrent requests before the first settles.
+			const promises = [
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+				store.fetchObject('client', 'abc'),
+			]
+			resolveFetch()
+			const results = await Promise.all(promises)
+
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			results.forEach((r) => expect(r).toEqual({ id: 'abc', name: 'Test Client' }))
+		})
+
+		it('fetches again after a prior request settled (cache is per-flight, not permanent)', async () => {
+			store.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			await store.fetchObject('client', 'abc')
+			await store.fetchObject('client', 'abc')
+
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+		})
+
+		it('does NOT coalesce across separate store instances — each store populates its own cache', async () => {
+			// Two distinct stores resolving to the same URL must each run their
+			// own request and write their own objects[type][id]; the in-flight
+			// de-dup is per-store, so it can never starve a sibling store's cache.
+			const storeA = createObjectStore('store-a')()
+			const storeB = createObjectStore('store-b')()
+			storeA.registerObjectType('client', '28', '5')
+			storeB.registerObjectType('client', '28', '5')
+
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ id: 'abc', name: 'Test Client' }),
+			})
+
+			await Promise.all([
+				storeA.fetchObject('client', 'abc'),
+				storeB.fetchObject('client', 'abc'),
+			])
+
+			expect(global.fetch).toHaveBeenCalledTimes(2)
+			expect(storeA.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
+			expect(storeB.getObject('client', 'abc')).toEqual({ id: 'abc', name: 'Test Client' })
+		})
 	})
 
 	describe('saveObject', () => {

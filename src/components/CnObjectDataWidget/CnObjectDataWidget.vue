@@ -239,9 +239,7 @@
 						<img v-if="isImageField(field) && rawOf(field)"
 							:src="rawOf(field)"
 							:alt="field.label"
-							class="cn-object-data-widget__image"><template v-else>
-								{{ displayValues[field.key] }}
-							</template>
+							class="cn-object-data-widget__image"><template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -491,9 +489,12 @@ export default {
 			dirtyFields: {},
 			/** Whether a save is in progress */
 			saving: false,
+			/** Resolved display labels for related-object fields, keyed by field key */
 			relatedLabels: {},
 		}
 	},
+
+	mounted() { this.resolveRelations() },
 
 	computed: {
 		iconComponent() {
@@ -580,21 +581,13 @@ export default {
 		},
 	},
 
-	mounted() { this.resolveRelations() },
-
 	methods: {
-		/**
-		 * Raw (possibly dirty) value for a field.
-		 * @param field
-		 */
+		/** Raw (possibly dirty) value for a field. */
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
 		},
-		/**
-		 * Whether a field should render as an image preview.
-		 * @param field
-		 */
+		/** Whether a field should render as an image preview. */
 		isImageField(field) {
 			if (field.widget === 'image') return true
 			const prop = this.schema.properties && this.schema.properties[field.key]
@@ -602,27 +595,18 @@ export default {
 			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) return true
 			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
 		},
-		/**
-		 * The x-openregister-relation block for a property (scalar or array), or null.
-		 * @param prop
-		 */
+		/** The x-openregister-relation block for a property (scalar or array), or null. */
 		relationProp(prop) {
 			if (!prop) return null
 			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
 			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
 			return null
 		},
-		/**
-		 * Whether a property is a relation.
-		 * @param prop
-		 */
+		/** Whether a property is a relation. */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
 		},
-		/**
-		 * Display label(s) for a relation value, using resolved names.
-		 * @param raw
-		 */
+		/** Display label(s) for a relation value, using resolved names. */
 		relationLabel(raw) {
 			const one = (v) => this.relatedLabels[v] || (typeof v === 'string' && v.length > 12 ? (v.slice(0, 8) + '…') : String(v))
 			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)

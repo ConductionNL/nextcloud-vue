@@ -72,17 +72,19 @@ Container shell around a dashboard widget. Provides a header with icon and title
 
 ## Built-in Actions menu
 
-`CnWidgetWrapper` ships with a small overflow `…` menu in the header — the shared [`CnActionsMenu`](./cn-actions-menu) — containing up to three actions, all functional **without any host wiring** when the wrapper is mounted under `CnAppRoot`:
+`CnWidgetWrapper` ships with a small overflow `…` menu in the header — the shared [`CnActionsMenu`](./cn-actions-menu) — containing up to three actions. Documentation and Request-a-feature are functional **without any host wiring** when the wrapper is mounted under `CnAppRoot`; **Refresh is shown only when something will handle it** (see below):
 
-- **Refresh** — emits `@refresh`, then (unless the host listener calls `event.preventDefault()`) emits on the `@nextcloud/event-bus` channel `cn:widget:refresh` with payload `{ widgetId, title }`. Widgets that care subscribe and filter by `widgetId`.
+- **Refresh** — **shown only when it will do something.** `showRefresh` is tri-state: `true`/`false` force it on/off, and the default (`null`) is **auto** — the item renders only when a parent has attached an `@refresh` listener. This prevents dead buttons on widgets that can't refresh (e.g. a prop-driven `CnObjectDataWidget`) and on detail-page auto-body widgets where the page owns refresh. A widget that wants a manual Refresh while refreshing itself via the bus (no `@refresh` listener) can set `:show-refresh="true"` explicitly. When shown and clicked it emits `@refresh`, then (unless the host listener calls `event.preventDefault()`) emits on the `@nextcloud/event-bus` channel `cn:widget:refresh` with payload `{ widgetId, title }`.
 - **Documentation** — rendered only when a `documentationUrl` is supplied. Opens the host-provided link in a new tab (`target="_blank"`, `rel="noopener noreferrer"`); no JS handler. Apps pass the URL from the widget configuration (`:documentation-url="widget.documentationUrl"`); customise the wording with `documentationLabel`.
-- **Request a feature** — emits `@request-feature`, then (unless suppressed) auto-mounts `CnSuggestFeatureModal` with `app + page + surface=widget:<id>` context auto-filled from `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
+- **Request a feature** — on by default; emits `@request-feature`, then (unless suppressed) auto-mounts `CnSuggestFeatureModal` with `app + page + surface=widget:<id>` context auto-filled from `CnAppRoot` injects. The host can override the default by binding `@request-feature` and calling `event.preventDefault()` to handle it themselves.
 
-Opt out per-instance with `:show-refresh="false"` and/or `:show-request-feature="false"` (the legacy `hide-refresh` / `hide-request-feature` aliases also still work for back-compat). When everything is hidden — both built-ins opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely. To drop the entire actions area in one go — e.g. on a compact KPI tile whose only header affordance is a date chip — set `:show-actions="false"`.
+Force Refresh on/off per-instance with `:show-refresh="true"`/`:show-refresh="false"` (the legacy `hide-refresh` alias still opts out for back-compat); opt out of Request-a-feature with `:show-request-feature="false"` (the legacy `hide-request-feature` alias also still works). When everything is hidden — Refresh auto-hidden or opted out, Request-a-feature opted out, no `documentationUrl`, and no `#action-items` slot content — the overflow menu disappears entirely. To drop the entire actions area in one go — e.g. on a compact KPI tile whose only header affordance is a date chip — set `:show-actions="false"`.
 
 Set `:widget-id` so the event-bus payload + modal surface tag are stable across renames; otherwise the wrapper falls back to a slugified `title`.
 
 ## Opting into Refresh
+
+Because Refresh auto-hides unless a parent attaches an `@refresh` listener, opting in is the act of wiring one of the patterns below. A widget that refreshes itself purely via the bus (no `@refresh` listener — mode 3) must also pass `:show-refresh="true"` so the action renders.
 
 A widget can opt in to Refresh in one of three ways. Pick whichever fits the widget's existing reactivity model — all three are first-class.
 
@@ -117,7 +119,7 @@ Useful when the widget cannot easily expose a ref (e.g. async-loaded). The host 
 
 ```vue
 <template>
-  <CnWidgetWrapper title="Outgoing calls" widget-id="outgoing-calls-daily">
+  <CnWidgetWrapper title="Outgoing calls" widget-id="outgoing-calls-daily" :show-refresh="true">
     <CallsChart :refresh-trigger="callsRefreshTrigger" />
   </CnWidgetWrapper>
 </template>

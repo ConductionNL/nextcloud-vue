@@ -1,0 +1,4629 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "1.0.0",
+	"dependencies": [
+		"openregister",
+		"openconnector",
+		"deck",
+		"workflowengine",
+		"timemanager",
+		"forms"
+	],
+	"setup": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "setup_completed_version",
+		"steps": [
+			{
+				"id": "welcome",
+				"type": "info",
+				"title": "Welcome to Pipelinq",
+				"body": "A few quick choices to get your CRM, pipeline and service desk ready. Only the reporting currency is required — everything else is optional and can be changed later in the admin settings."
+			},
+			{
+				"id": "currency",
+				"type": "choice",
+				"title": "Reporting currency",
+				"required": true,
+				"configKey": "currency",
+				"body": "Used to format revenue, forecast and pipeline amounts across dashboards and reports.",
+				"options": [
+					{
+						"value": "EUR",
+						"label": "Euro (EUR)"
+					},
+					{
+						"value": "USD",
+						"label": "US Dollar (USD)"
+					},
+					{
+						"value": "GBP",
+						"label": "Pound Sterling (GBP)"
+					},
+					{
+						"value": "CHF",
+						"label": "Swiss Franc (CHF)"
+					}
+				]
+			},
+			{
+				"id": "provision",
+				"type": "run-action",
+				"title": "Provision data",
+				"action": "provision-register",
+				"body": "Create the Pipelinq OpenRegister register and schemas, plus the default sales pipeline and stages, service queues, agent skills, lead sources and request channels. This normally runs automatically on install; run it here if OpenRegister was enabled after Pipelinq, or to repair a partial install. It is safe to run more than once."
+			},
+			{
+				"id": "demo-data",
+				"type": "run-action",
+				"title": "Demo data (optional)",
+				"action": "seed-demo-data",
+				"body": "Seed a small linked demo dataset — clients, leads, requests and contactmomenten — so lists, dashboards and the 360° client view show a working product right away. Optional and safe to run more than once; every object is marked [Demo] and can be removed later with `occ pipelinq:demo:seed --remove`. Skip this on a production install."
+			},
+			{
+				"id": "organisation",
+				"type": "config-fields",
+				"title": "Organisation",
+				"body": "Your organisation details, printed on POS receipts and shown on reports. Optional — leave blank to skip.",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"receipt_company_name": {
+							"type": "string",
+							"title": "Organisation name"
+						},
+						"receipt_company_vat": {
+							"type": "string",
+							"title": "VAT number"
+						},
+						"receipt_company_kvk": {
+							"type": "string",
+							"title": "Chamber of Commerce (KvK) number"
+						}
+					}
+				}
+			},
+			{
+				"id": "integrations",
+				"type": "config-fields",
+				"title": "Integrations",
+				"body": "Optional connections to other Conduction apps. Set the Shillinq base URL to surface recurring-revenue metrics and route billing/ledger entries; set the XWiki URL to embed the knowledge base. Leave blank to disable.",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"shillinq_app_url": {
+							"type": "string",
+							"title": "Shillinq base URL"
+						},
+						"xwiki_direct_url": {
+							"type": "string",
+							"title": "XWiki base URL"
+						}
+					}
+				}
+			},
+			{
+				"id": "done",
+				"type": "summary",
+				"title": "All set",
+				"healthCheck": true,
+				"body": "Pipelinq is ready. Head to the Dashboard or Leads to get started."
+			}
+		]
+	},
+	"walkthrough": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "walkthrough_seen_version",
+		"tours": [
+			{
+				"id": "pipelinq:getting-started",
+				"title": "Getting started",
+				"trigger": "first-visit",
+				"minAppVersion": "1.0.0",
+				"steps": [
+					{
+						"id": "welcome",
+						"placement": "center",
+						"sinceVersion": "1.0.0",
+						"title": "Welcome to Pipelinq",
+						"body": "Let's walk the core sales journey together — from a product to a billed contract. You'll create each record yourself, in your own workspace.",
+						"target": {
+							"kind": "page",
+							"ref": "Products"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-products",
+						"sinceVersion": "1.0.0",
+						"placement": "right",
+						"body": "First, your catalogue. Open Products from the menu.",
+						"task": "Click Products in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Products"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Products"
+						}
+					},
+					{
+						"id": "create-product",
+						"sinceVersion": "1.0.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Add the product or service you sell — we'll put it on the quotation later.",
+						"task": "Click New and save a product",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "pipelinq",
+							"schema": "product",
+							"capture": {
+								"productId": ":id"
+							}
+						}
+					},
+					{
+						"id": "go-contacts",
+						"sinceVersion": "1.0.0",
+						"placement": "right",
+						"body": "Now the customer. Open Contacts.",
+						"task": "Click Contacts in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Contacts"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Contacts"
+						}
+					},
+					{
+						"id": "create-contact",
+						"sinceVersion": "1.0.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Add the person or organisation you're selling to.",
+						"task": "Click New and save a contact",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "pipelinq",
+							"schema": "contact",
+							"capture": {
+								"contactId": ":id"
+							}
+						}
+					},
+					{
+						"id": "go-leads",
+						"sinceVersion": "1.0.0",
+						"placement": "right",
+						"body": "A lead is a sales opportunity. Open Leads.",
+						"task": "Click Leads in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Leads"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Leads"
+						}
+					},
+					{
+						"id": "create-lead",
+						"sinceVersion": "1.0.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Create a lead for this opportunity and link the contact you just made.",
+						"task": "Click New and save a lead",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "pipelinq",
+							"schema": "lead",
+							"capture": {
+								"leadId": ":id"
+							}
+						}
+					},
+					{
+						"id": "move-pipeline",
+						"sinceVersion": "1.0.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "The pipeline shows every lead by stage. Drag your lead forward as it progresses.",
+						"task": "Open the Pipeline and move your lead to the next stage",
+						"target": {
+							"kind": "element",
+							"ref": "pipeline-board"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "create-quote",
+						"sinceVersion": "1.0.0",
+						"placement": "right",
+						"allowManualNext": true,
+						"body": "Quote the lead. In Pipelinq a signable quotation IS the contract — one record, no duplication.",
+						"task": "Open Contracts and create a quotation",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Contracts"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "pipelinq",
+							"schema": "contract",
+							"capture": {
+								"contractId": ":id"
+							}
+						}
+					},
+					{
+						"id": "quote-is-contract",
+						"sinceVersion": "1.0.0",
+						"placement": "center",
+						"title": "Your quote is the contract",
+						"body": "Once the customer signs the quotation it becomes the contract automatically — the same record carries the agreed lines, price and signature.",
+						"target": {
+							"kind": "page",
+							"ref": "Contracts"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "send-to-shillinq",
+						"sinceVersion": "1.0.0",
+						"placement": "center",
+						"title": "Send it for billing",
+						"body": "Finally, hand the signed contract to Shillinq for invoicing and ledger posting — that closes the loop from product to paid.",
+						"task": "Continue in Shillinq to invoice this contract",
+						"target": {
+							"kind": "page",
+							"ref": "Contracts"
+						},
+						"advanceOn": {
+							"type": "manual"
+						},
+						"handoff": {
+							"app": "Shillinq",
+							"url": "/index.php/apps/shillinq/"
+						}
+					}
+				]
+			}
+		]
+	},
+	"observability": {
+		"health": {
+			"checks": [
+				{
+					"id": "database",
+					"type": "database"
+				},
+				{
+					"id": "filesystem",
+					"type": "filesystem",
+					"severity": "degraded"
+				}
+			]
+		},
+		"metrics": [
+			{
+				"name": "leads_total",
+				"type": "gauge",
+				"help": "Total leads by status and pipeline",
+				"source": {
+					"kind": "objectCount",
+					"register": "pipelinq",
+					"schema": "lead",
+					"groupBy": [
+						"status",
+						"pipeline"
+					]
+				}
+			},
+			{
+				"name": "leads_value_total",
+				"type": "gauge",
+				"help": "Total pipeline value in EUR",
+				"source": {
+					"kind": "objectSum",
+					"register": "pipelinq",
+					"schema": "lead",
+					"field": "value",
+					"groupBy": [
+						"pipeline"
+					]
+				}
+			},
+			{
+				"name": "clients_total",
+				"type": "gauge",
+				"help": "Total clients",
+				"source": {
+					"kind": "objectCount",
+					"register": "pipelinq",
+					"schema": "client"
+				}
+			},
+			{
+				"name": "contacts_total",
+				"type": "gauge",
+				"help": "Total contacts",
+				"source": {
+					"kind": "objectCount",
+					"register": "pipelinq",
+					"schema": "contact"
+				}
+			},
+			{
+				"name": "service_requests_total",
+				"type": "gauge",
+				"help": "Total service requests by status",
+				"source": {
+					"kind": "objectCount",
+					"register": "pipelinq",
+					"schema": "request",
+					"groupBy": [
+						"status"
+					]
+				}
+			}
+		]
+	},
+	"deepLinks": [
+		{
+			"registerSlug": "pipelinq",
+			"schemaSlug": "client",
+			"urlTemplate": "/apps/pipelinq/clients/{uuid}",
+			"displayName": "Client"
+		},
+		{
+			"registerSlug": "pipelinq",
+			"schemaSlug": "lead",
+			"urlTemplate": "/apps/pipelinq/leads/{uuid}",
+			"displayName": "Lead"
+		},
+		{
+			"registerSlug": "pipelinq",
+			"schemaSlug": "request",
+			"urlTemplate": "/apps/pipelinq/requests/{uuid}",
+			"displayName": "Request"
+		},
+		{
+			"registerSlug": "pipelinq",
+			"schemaSlug": "contact",
+			"urlTemplate": "/apps/pipelinq/contacts/{uuid}",
+			"displayName": "Contact"
+		}
+	],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Sales",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "OperationalDashboard",
+			"label": "Operational",
+			"icon": "icon-category-dashboard",
+			"route": "OperationalDashboard",
+			"order": 15
+		},
+		{
+			"id": "Clients",
+			"label": "Clients",
+			"icon": "icon-group",
+			"route": "Clients",
+			"order": 20
+		},
+		{
+			"id": "Contacts",
+			"label": "Contacts",
+			"icon": "icon-user",
+			"route": "Contacts",
+			"order": 30
+		},
+		{
+			"id": "Leads",
+			"label": "Leads",
+			"icon": "icon-checkmark",
+			"route": "Leads",
+			"order": 40
+		},
+		{
+			"id": "Requests",
+			"label": "Tickets",
+			"icon": "icon-file",
+			"route": "Requests",
+			"order": 50
+		},
+		{
+			"id": "Tasks",
+			"label": "Tasks",
+			"icon": "icon-checkmark",
+			"route": "Tasks",
+			"order": 60
+		},
+		{
+			"id": "Contactmomenten",
+			"label": "Contactmomenten",
+			"icon": "icon-comment",
+			"route": "Contactmomenten",
+			"order": 70
+		},
+		{
+			"id": "Complaints",
+			"label": "Complaints",
+			"icon": "icon-error",
+			"route": "Complaints",
+			"order": 80
+		},
+		{
+			"id": "Products",
+			"label": "Products",
+			"icon": "icon-category-app-bundles",
+			"route": "Products",
+			"order": 90
+		},
+		{
+			"id": "ProductBarcodeSearch",
+			"label": "Barcode lookup",
+			"icon": "icon-search",
+			"route": "ProductBarcodeSearch",
+			"order": 91
+		},
+		{
+			"id": "PosTransactions",
+			"label": "Kassabon",
+			"icon": "icon-category-monitoring",
+			"route": "PosTransactions",
+			"order": 95
+		},
+		{
+			"id": "PosRefunds",
+			"label": "Retouren",
+			"icon": "icon-history",
+			"route": "PosRefunds",
+			"order": 96
+		},
+		{
+			"id": "CashShifts",
+			"label": "Kassalade",
+			"icon": "icon-toggle-filelist",
+			"route": "CashShifts",
+			"order": 97
+		},
+		{
+			"id": "PosStaffList",
+			"label": "POS medewerkers",
+			"icon": "icon-user",
+			"route": "PosStaffList",
+			"order": 70
+		},
+		{
+			"id": "PosRoleList",
+			"label": "POS rollen",
+			"icon": "icon-rename",
+			"route": "PosRoleList",
+			"order": 71
+		},
+		{
+			"id": "KassakoppelingAuditList",
+			"label": "Kassakoppeling audit",
+			"icon": "icon-checkmark",
+			"route": "KassakoppelingAuditList",
+			"order": 99
+		},
+		{
+			"id": "PointOfSale",
+			"label": "Point of Sale",
+			"icon": "icon-category-monitoring",
+			"order": 90
+		},
+		{
+			"id": "Catalog",
+			"label": "Product catalog",
+			"icon": "icon-category-app-bundles",
+			"order": 92
+		},
+		{
+			"id": "AnalyticsGroup",
+			"label": "Reports & Compliance",
+			"icon": "icon-category-monitoring",
+			"order": 150
+		},
+		{
+			"id": "Pipeline",
+			"label": "Pipeline",
+			"icon": "icon-category-organization",
+			"route": "Pipeline",
+			"order": 100
+		},
+		{
+			"id": "Queues",
+			"label": "Queues",
+			"icon": "icon-category-workflow",
+			"route": "Queues",
+			"order": 120
+		},
+		{
+			"id": "MyWork",
+			"label": "My Work",
+			"icon": "icon-user",
+			"route": "MyWork",
+			"order": 140
+		},
+		{
+			"id": "Rapportage",
+			"label": "Reporting",
+			"icon": "icon-category-monitoring",
+			"route": "Rapportage",
+			"order": 150
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://pipelinq.conduction.nl/",
+			"section": "footer",
+			"order": 160
+		},
+		{
+			"id": "Pipelines",
+			"label": "Pipelines",
+			"icon": "icon-category-organization",
+			"route": "Pipelines",
+			"order": 200
+		},
+		{
+			"id": "SettingsIntegrationsCaption",
+			"label": "Integrations",
+			"type": "caption",
+			"order": 205
+		},
+		{
+			"id": "ExportJobs",
+			"label": "BI export",
+			"icon": "icon-category-integration",
+			"route": "ExportJobs",
+			"order": 215
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 230
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Sales overview",
+			"actionsComponent": "DashboardHeaderActions",
+			"config": {
+				"showRefresh": false,
+				"widgetShowRefresh": false,
+				"description": "Revenue, pipeline and win performance",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"dateRange": {
+					"enabled": true,
+					"showHeaderPicker": false,
+					"persistKey": "pipelinq-commercial-range",
+					"default": {
+						"preset": "month"
+					},
+					"presets": [
+						{
+							"id": "week",
+							"label": "Last 7 days",
+							"days": 7
+						},
+						{
+							"id": "month",
+							"label": "Last 30 days",
+							"days": 30
+						},
+						{
+							"id": "quarter",
+							"label": "Last 90 days",
+							"days": 90
+						},
+						{
+							"id": "year",
+							"label": "Last 365 days",
+							"days": 365
+						}
+					]
+				},
+				"widgets": [
+					{
+						"id": "revenue",
+						"type": "stat",
+						"title": "Revenue",
+						"content": {
+							"label": "Revenue",
+							"route": {
+								"name": "Leads"
+							},
+							"icon": "Cash",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "currency",
+								"currency": "@config.currency",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "sum",
+								"field": "value",
+								"filter": {
+									"expectedCloseDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "won-value",
+						"type": "stat",
+						"title": "Won Value",
+						"content": {
+							"label": "Won Value",
+							"route": {
+								"name": "Leads"
+							},
+							"icon": "Trophy",
+							"valueColor": "#46ba61",
+							"format": {
+								"style": "currency",
+								"currency": "@config.currency",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "sum",
+								"field": "value",
+								"filter": {
+									"status": "won",
+									"expectedCloseDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "win-rate",
+						"type": "stat",
+						"title": "Win Rate",
+						"content": {
+							"label": "Win Rate",
+							"route": {
+								"name": "Leads"
+							},
+							"icon": "TrendingUp",
+							"valueColor": "#46ba61",
+							"format": {
+								"style": "percent",
+								"decimals": 1
+							},
+							"source": {
+								"kind": "ratio",
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "count",
+								"numerator": {
+									"filter": {
+										"status": "won",
+										"expectedCloseDate": {
+											"gte": "@workspace.dateFrom?",
+											"lte": "@workspace.dateTo?"
+										}
+									}
+								},
+								"denominator": {
+									"filter": {
+										"expectedCloseDate": {
+											"gte": "@workspace.dateFrom?",
+											"lte": "@workspace.dateTo?"
+										}
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "weighted-forecast",
+						"type": "stat",
+						"title": "Weighted Forecast",
+						"content": {
+							"label": "Weighted Forecast",
+							"route": {
+								"name": "Leads"
+							},
+							"icon": "ChartLine",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "currency",
+								"currency": "@config.currency",
+								"decimals": 0
+							},
+							"source": {
+								"kind": "weighted",
+								"register": "pipelinq",
+								"schema": "lead",
+								"field": "value",
+								"weightField": "probability",
+								"divisor": 100,
+								"filter": {
+									"expectedCloseDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "mrr",
+						"type": "stat",
+						"title": "Recurring revenue",
+						"requiresApp": "shillinq",
+						"content": {
+							"label": "Recurring revenue (run-rate)",
+							"route": {
+								"name": "Contracts"
+							},
+							"icon": "Repeat",
+							"valueColor": "#46ba61",
+							"format": {
+								"style": "currency",
+								"currency": "@config.currency",
+								"decimals": 0
+							},
+							"source": {
+								"register": "shillinq",
+								"schema": "SalesOrderLine",
+								"metric": "sum",
+								"field": "maandWaarde",
+								"filter": {
+									"nature": "RECURRING"
+								}
+							}
+						}
+					},
+					{
+						"id": "revenue-over-time",
+						"type": "chart",
+						"title": "Revenue over time",
+						"content": {
+							"chartKind": "area",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"filter": {},
+								"bucket": {
+									"field": "expectedCloseDate",
+									"interval": "month",
+									"metric": "sum",
+									"metricField": "value"
+								}
+							}
+						}
+					},
+					{
+						"id": "pipeline-by-stage",
+						"type": "chart",
+						"title": "Pipeline by stage",
+						"content": {
+							"chartKind": "bar",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"filter": {},
+								"groupBy": {
+									"field": "stage",
+									"metric": "sum",
+									"metricField": "value",
+									"sort": "desc"
+								}
+							}
+						}
+					},
+					{
+						"id": "revenue-by-category",
+						"type": "chart",
+						"title": "Revenue by source",
+						"content": {
+							"chartKind": "donut",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"filter": {},
+								"groupBy": {
+									"field": "source",
+									"metric": "sum",
+									"metricField": "value",
+									"sort": "desc"
+								}
+							}
+						}
+					},
+					{
+						"id": "top-customers",
+						"type": "chart",
+						"title": "Top customers by revenue",
+						"content": {
+							"chartKind": "bar",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"filter": {},
+								"groupBy": {
+									"field": "client",
+									"metric": "sum",
+									"metricField": "value",
+									"sort": "desc",
+									"limit": 5,
+									"reference": {
+										"schema": "client",
+										"labelField": "name"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "closing-soon",
+						"type": "object-list",
+						"title": "Deals closing soon",
+						"content": {
+							"register": "pipelinq",
+							"schema": "lead",
+							"filter": {
+								"status": "open"
+							},
+							"sort": {
+								"field": "expectedCloseDate",
+								"dir": "asc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Deal"
+								},
+								{
+									"key": "value",
+									"label": "Value"
+								},
+								{
+									"key": "stage",
+									"label": "Stage"
+								}
+							]
+						}
+					},
+					{
+						"id": "recently-won-lost",
+						"type": "object-list",
+						"title": "Recently won / lost",
+						"content": {
+							"register": "pipelinq",
+							"schema": "lead",
+							"filter": {},
+							"sort": {
+								"field": "expectedCloseDate",
+								"dir": "desc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Deal"
+								},
+								{
+									"key": "status",
+									"label": "Status"
+								},
+								{
+									"key": "value",
+									"label": "Value"
+								}
+							]
+						}
+					},
+					{
+						"id": "pipeline-coverage",
+						"type": "gauge",
+						"title": "Pipeline coverage",
+						"content": {
+							"label": "Open pipeline vs target",
+							"route": {
+								"name": "Pipeline"
+							},
+							"format": {
+								"style": "currency",
+								"currency": "EUR",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "sum",
+								"field": "value",
+								"filter": {
+									"status": "open"
+								}
+							},
+							"target": {
+								"kind": "static",
+								"value": 500000
+							},
+							"thresholds": {
+								"warn": 60,
+								"danger": 90,
+								"invert": true
+							}
+						}
+					},
+					{
+						"id": "won-vs-open",
+						"type": "delta",
+						"title": "Won vs open",
+						"content": {
+							"label": "Won deals",
+							"route": {
+								"name": "Pipeline"
+							},
+							"icon": "Trophy",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "count",
+								"goodDirection": "up",
+								"current": {
+									"filter": {
+										"status": "won",
+										"expectedCloseDate": {
+											"gte": "@workspace.dateFrom?",
+											"lte": "@workspace.dateTo?"
+										}
+									}
+								},
+								"previous": {
+									"filter": {
+										"status": "open"
+									}
+								}
+							}
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "c16",
+						"widgetId": "pipeline-coverage",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c5",
+						"widgetId": "weighted-forecast",
+						"gridX": 3,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c1",
+						"widgetId": "revenue",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c13",
+						"widgetId": "mrr",
+						"gridX": 9,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c17",
+						"widgetId": "won-vs-open",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c2",
+						"widgetId": "won-value",
+						"gridX": 4,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c3",
+						"widgetId": "win-rate",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "c7",
+						"widgetId": "revenue-over-time",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "c8",
+						"widgetId": "pipeline-by-stage",
+						"gridX": 6,
+						"gridY": 4,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "c9",
+						"widgetId": "revenue-by-category",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "c10",
+						"widgetId": "top-customers",
+						"gridX": 6,
+						"gridY": 8,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "c11",
+						"widgetId": "closing-soon",
+						"gridX": 0,
+						"gridY": 12,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "c12",
+						"widgetId": "recently-won-lost",
+						"gridX": 6,
+						"gridY": 12,
+						"gridWidth": 6,
+						"gridHeight": 4
+					}
+				]
+			},
+			"slots": {}
+		},
+		{
+			"id": "OperationalDashboard",
+			"route": "/operational",
+			"type": "dashboard",
+			"title": "Operational overview",
+			"actionsComponent": "DashboardHeaderActions",
+			"config": {
+				"showRefresh": false,
+				"widgetShowRefresh": false,
+				"description": "Leads, requests, service and team workload",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"dateRange": {
+					"enabled": true,
+					"showHeaderPicker": false,
+					"persistKey": "pipelinq-operational-range",
+					"default": {
+						"preset": "month"
+					},
+					"presets": [
+						{
+							"id": "week",
+							"label": "Last 7 days",
+							"days": 7
+						},
+						{
+							"id": "month",
+							"label": "Last 30 days",
+							"days": 30
+						},
+						{
+							"id": "quarter",
+							"label": "Last 90 days",
+							"days": 90
+						},
+						{
+							"id": "year",
+							"label": "Last 365 days",
+							"days": 365
+						}
+					]
+				},
+				"widgets": [
+					{
+						"id": "open-leads",
+						"type": "stat",
+						"title": "Open Leads",
+						"content": {
+							"label": "Open Leads",
+							"icon": "FilterVariant",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "count",
+								"filter": {
+									"status": "open"
+								}
+							}
+						}
+					},
+					{
+						"id": "open-requests",
+						"type": "stat",
+						"title": "Requests",
+						"content": {
+							"label": "Requests",
+							"icon": "ClipboardList",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "request",
+								"metric": "count",
+								"filter": {}
+							}
+						}
+					},
+					{
+						"id": "pipeline-value",
+						"type": "stat",
+						"title": "Pipeline Value",
+						"content": {
+							"label": "Pipeline Value",
+							"icon": "Cash",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "currency",
+								"currency": "@config.currency",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "sum",
+								"field": "value",
+								"filter": {}
+							}
+						}
+					},
+					{
+						"id": "overdue",
+						"type": "stat",
+						"title": "Overdue",
+						"content": {
+							"label": "Overdue",
+							"icon": "ScaleBalance",
+							"valueColor": "#e9322d",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "count",
+								"filter": {
+									"status": "open",
+									"expectedCloseDate": {
+										"lt": "@today"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "lead-conversion",
+						"type": "stat",
+						"title": "Lead Conversion Rate",
+						"content": {
+							"label": "Lead Conversion Rate",
+							"icon": "TrendingUp",
+							"valueColor": "#46ba61",
+							"format": {
+								"style": "percent",
+								"decimals": 1
+							},
+							"source": {
+								"kind": "ratio",
+								"register": "pipelinq",
+								"schema": "lead",
+								"metric": "count",
+								"numerator": {
+									"filter": {
+										"status": "won"
+									}
+								},
+								"denominator": {
+									"filter": {}
+								}
+							}
+						}
+					},
+					{
+						"id": "avg-resolution",
+						"type": "custom",
+						"title": "Avg Request Resolution"
+					},
+					{
+						"id": "contact-volume",
+						"type": "stat",
+						"title": "Contact Moment Volume",
+						"content": {
+							"label": "Contacts",
+							"icon": "Account",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"register": "pipelinq",
+								"schema": "contact",
+								"metric": "count",
+								"filter": {}
+							}
+						}
+					},
+					{
+						"id": "leads-over-time",
+						"type": "chart",
+						"title": "Leads over time",
+						"content": {
+							"chartKind": "area",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "lead",
+								"filter": {},
+								"bucket": {
+									"field": "expectedCloseDate",
+									"interval": "month",
+									"metric": "count"
+								}
+							}
+						}
+					},
+					{
+						"id": "requests-by-category",
+						"type": "chart",
+						"title": "Requests by category",
+						"content": {
+							"chartKind": "donut",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "request",
+								"filter": {},
+								"groupBy": {
+									"field": "category",
+									"metric": "count",
+									"sort": "desc"
+								}
+							}
+						}
+					},
+					{
+						"id": "requests-by-status",
+						"type": "chart",
+						"title": "Requests by Status",
+						"content": {
+							"chartKind": "bar",
+							"dataSource": {
+								"register": "pipelinq",
+								"schema": "request",
+								"filter": {},
+								"groupBy": {
+									"field": "status",
+									"metric": "count",
+									"sort": "desc"
+								}
+							}
+						}
+					},
+					{
+						"id": "complaints",
+						"type": "object-list",
+						"title": "Complaints",
+						"content": {
+							"register": "pipelinq",
+							"schema": "complaint",
+							"filter": {},
+							"sort": {
+								"field": "priority",
+								"dir": "desc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Complaint"
+								},
+								{
+									"key": "status",
+									"label": "Status"
+								},
+								{
+									"key": "priority",
+									"label": "Priority"
+								}
+							]
+						}
+					},
+					{
+						"id": "my-work",
+						"type": "object-list",
+						"title": "My Work",
+						"content": {
+							"register": "pipelinq",
+							"schema": "lead",
+							"filter": {
+								"assignee": "@me"
+							},
+							"sort": {
+								"field": "expectedCloseDate",
+								"dir": "asc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Lead"
+								},
+								{
+									"key": "priority",
+									"label": "Priority"
+								},
+								{
+									"key": "stage",
+									"label": "Stage"
+								}
+							]
+						}
+					},
+					{
+						"id": "client-overview",
+						"type": "object-list",
+						"title": "Client Overview",
+						"content": {
+							"register": "pipelinq",
+							"schema": "client",
+							"filter": {},
+							"sort": {
+								"field": "name",
+								"dir": "asc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "name",
+									"label": "Client"
+								},
+								{
+									"key": "type",
+									"label": "Type"
+								},
+								{
+									"key": "industry",
+									"label": "Industry"
+								}
+							]
+						}
+					},
+					{
+						"id": "billing-categories",
+						"type": "custom",
+						"title": "Hours by billing category"
+					},
+					{
+						"id": "navi-analytics",
+						"type": "custom",
+						"title": "Ask Navi"
+					},
+					{
+						"id": "report-export",
+						"type": "custom",
+						"title": "Report Export"
+					},
+					{
+						"id": "xwiki-knowledge",
+						"type": "integration",
+						"integrationId": "xwiki",
+						"title": "Knowledge base"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "open-leads",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "2",
+						"widgetId": "open-requests",
+						"gridX": 3,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "3",
+						"widgetId": "pipeline-value",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "4",
+						"widgetId": "overdue",
+						"gridX": 9,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "14",
+						"widgetId": "lead-conversion",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "15",
+						"widgetId": "avg-resolution",
+						"gridX": 4,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "16",
+						"widgetId": "contact-volume",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": "18",
+						"widgetId": "leads-over-time",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "19",
+						"widgetId": "requests-by-category",
+						"gridX": 6,
+						"gridY": 4,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"dateChip": true
+					},
+					{
+						"id": "5",
+						"widgetId": "requests-by-status",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "6",
+						"widgetId": "complaints",
+						"gridX": 6,
+						"gridY": 8,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "11",
+						"widgetId": "navi-analytics",
+						"gridX": 0,
+						"gridY": 12,
+						"gridWidth": 12,
+						"gridHeight": 6
+					},
+					{
+						"id": "7",
+						"widgetId": "my-work",
+						"gridX": 0,
+						"gridY": 18,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "8",
+						"widgetId": "client-overview",
+						"gridX": 6,
+						"gridY": 18,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "9",
+						"widgetId": "billing-categories",
+						"gridX": 0,
+						"gridY": 22,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "12",
+						"widgetId": "report-export",
+						"gridX": 0,
+						"gridY": 26,
+						"gridWidth": 12,
+						"gridHeight": 3
+					},
+					{
+						"id": "13",
+						"widgetId": "xwiki-knowledge",
+						"gridX": 0,
+						"gridY": 29,
+						"gridWidth": 6,
+						"gridHeight": 5
+					}
+				]
+			},
+			"_note": "The Customer Satisfaction KPI (SatisfactionKpiWidget, widget id 'satisfaction', layout slot 17) was removed 2026-07 because its data source is permanently empty (AnalyticsService hardcodes no survey responses after the forms-leaf migration); it returns with real CSAT data via openspec change customer-satisfaction-closed-loop.",
+			"slots": {
+				"widget-avg-resolution": "AvgResolutionKpiWidget",
+				"widget-billing-categories": "BillingCategoryWidget",
+				"widget-navi-analytics": "NaviAnalyticsWidget",
+				"widget-report-export": "ReportExportPanel"
+			}
+		},
+		{
+			"id": "Clients",
+			"route": "/clients",
+			"type": "index",
+			"title": "Clients",
+			"config": {
+				"register": "pipelinq",
+				"schema": "client",
+				"createOverride": "createClientContactAware",
+				"fieldOverrides": {
+					"name": {
+						"readOnly": false
+					},
+					"email": {
+						"readOnly": false
+					},
+					"phone": {
+						"readOnly": false
+					}
+				},
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ClientDetail"
+					}
+				],
+				"columns": [
+					"name",
+					"type",
+					"industry",
+					"email",
+					"phone"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ClientDetail",
+			"_note": "Client 360 record as a declarative type:detail page (pipelinq-client-contact-detail-declarative). Identity + account/relationship fields auto-render in the body (CnObjectDataWidget; name/email/phone/address/website are sourced from the linked NC contact and stay read-only via the index fieldOverrides). KPI chips come from summaryAggregates; related lists (contacts/leads/requests/projecten/contactmomenten/complaints, FK 'client') from relatedCollections; the rich sub-features (Relationships / Activity / Communication / Bookings / contactmoment quick-log) stay in the page body via bodyWidgets registered as kind:'section'. KEPT-AS-NOTE: (1) the 'Edit in Contacts' deep-link and the delete-with-linked-entity warning have no declarative primitive — the page Delete uses CnDetailPage's standard delete and 'Edit in Contacts' is reachable from the linked NC contact; (2) summaryAggregates filters are equality-only, so 'Open leads'=status:open (the lead enum is open|won|lost) and 'Open requests' counts status:new (in_progress not expressible as one equality chip); (3) the contactmoment quick-log no longer auto-refreshes the related list on save — use the page Refresh action.",
+			"route": "/clients/:id",
+			"type": "detail",
+			"title": "Client",
+			"config": {
+				"register": "pipelinq",
+				"schema": "client",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Communication-first grid detail (comms-first-detail-pages). The 360 record now leads with account details + the live Email and Files leaves as body widgets, so correspondence and documents sit on the main page. KPI chips (summaryAggregates), the six related-collection tables, and the Relationships/Activity/Bookings/quick-log sections render below. Flow/Time/Knowledge/Forms stay in sidebar tabs.",
+				"widgets": [
+					{
+						"id": "client-data",
+						"type": "data",
+						"title": "Account details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "client-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "client-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "client-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 3
+					},
+					{
+						"id": "2",
+						"widgetId": "client-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 7
+					},
+					{
+						"id": "3",
+						"widgetId": "client-email",
+						"gridX": 0,
+						"gridY": 3,
+						"gridWidth": 8,
+						"gridHeight": 4
+					}
+				],
+				"summaryAggregates": [
+					{
+						"label": "Open leads",
+						"register": "pipelinq",
+						"schema": "lead",
+						"metric": "count",
+						"filter": {
+							"client": "@objectId",
+							"status": "open"
+						}
+					},
+					{
+						"label": "Open leads value",
+						"register": "pipelinq",
+						"schema": "lead",
+						"metric": "sum",
+						"field": "value",
+						"filter": {
+							"client": "@objectId",
+							"status": "open"
+						},
+						"format": "currency"
+					},
+					{
+						"label": "Won leads",
+						"register": "pipelinq",
+						"schema": "lead",
+						"metric": "count",
+						"filter": {
+							"client": "@objectId",
+							"status": "won"
+						}
+					},
+					{
+						"label": "Won leads value",
+						"register": "pipelinq",
+						"schema": "lead",
+						"metric": "sum",
+						"field": "value",
+						"filter": {
+							"client": "@objectId",
+							"status": "won"
+						},
+						"format": "currency"
+					},
+					{
+						"label": "New requests",
+						"register": "pipelinq",
+						"schema": "request",
+						"metric": "count",
+						"filter": {
+							"client": "@objectId",
+							"status": "new"
+						}
+					}
+				],
+				"relatedCollections": [
+					{
+						"title": "Contacts",
+						"register": "pipelinq",
+						"schema": "contact",
+						"filter": {
+							"client": "@objectId"
+						},
+						"columns": [
+							{
+								"key": "name",
+								"label": "Name"
+							},
+							{
+								"key": "role",
+								"label": "Role"
+							},
+							{
+								"key": "email",
+								"label": "Email"
+							},
+							{
+								"key": "phone",
+								"label": "Phone"
+							}
+						],
+						"limit": 50,
+						"rowRoute": "ContactDetail"
+					},
+					{
+						"title": "Leads",
+						"register": "pipelinq",
+						"schema": "lead",
+						"filter": {
+							"client": "@objectId"
+						},
+						"sort": {
+							"field": "updatedAt",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "title",
+								"label": "Title"
+							},
+							{
+								"key": "stage",
+								"label": "Stage"
+							},
+							{
+								"key": "value",
+								"label": "Value"
+							},
+							{
+								"key": "probability",
+								"label": "Probability"
+							},
+							{
+								"key": "expectedCloseDate",
+								"label": "Expected close"
+							}
+						],
+						"limit": 10,
+						"rowRoute": "LeadDetail"
+					},
+					{
+						"title": "Requests",
+						"register": "pipelinq",
+						"schema": "request",
+						"filter": {
+							"client": "@objectId"
+						},
+						"sort": {
+							"field": "requestedAt",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "title",
+								"label": "Title"
+							},
+							{
+								"key": "status",
+								"label": "Status"
+							},
+							{
+								"key": "priority",
+								"label": "Priority"
+							},
+							{
+								"key": "requestedAt",
+								"label": "Requested"
+							}
+						],
+						"limit": 10,
+						"rowRoute": "RequestDetail"
+					},
+					{
+						"title": "Projecten",
+						"register": "pipelinq",
+						"schema": "project",
+						"filter": {
+							"client": "@objectId"
+						},
+						"sort": {
+							"field": "_dateCreated",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "name",
+								"label": "Name"
+							},
+							{
+								"key": "status",
+								"label": "Status"
+							},
+							{
+								"key": "billable",
+								"label": "Billable"
+							},
+							{
+								"key": "budgetHours",
+								"label": "Budget hours"
+							},
+							{
+								"key": "endDate",
+								"label": "End date"
+							}
+						],
+						"limit": 10,
+						"rowRoute": "ProjectDetail"
+					},
+					{
+						"title": "Contactmomenten",
+						"register": "pipelinq",
+						"schema": "contactmoment",
+						"filter": {
+							"client": "@objectId"
+						},
+						"sort": {
+							"field": "contactedAt",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "subject",
+								"label": "Subject"
+							},
+							{
+								"key": "channel",
+								"label": "Channel"
+							},
+							{
+								"key": "contactedAt",
+								"label": "Date"
+							},
+							{
+								"key": "agent",
+								"label": "Agent"
+							},
+							{
+								"key": "outcome",
+								"label": "Outcome"
+							}
+						],
+						"limit": 10,
+						"rowRoute": "ContactmomentDetail"
+					},
+					{
+						"title": "Complaints",
+						"register": "pipelinq",
+						"schema": "complaint",
+						"filter": {
+							"client": "@objectId"
+						},
+						"sort": {
+							"field": "_dateCreated",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "title",
+								"label": "Title"
+							},
+							{
+								"key": "status",
+								"label": "Status"
+							},
+							{
+								"key": "_dateCreated",
+								"label": "Date"
+							}
+						],
+						"limit": 50,
+						"rowRoute": "ComplaintDetail"
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "relationships",
+						"component": "ContactRelationships",
+						"title": "Relationships",
+						"placement": "after-related",
+						"props": {
+							"entityId": "@objectId",
+							"entityType": "client",
+							"entityName": "@object.name"
+						}
+					},
+					{
+						"id": "activity",
+						"component": "ActivityTimeline",
+						"title": "Activity",
+						"placement": "after-related",
+						"props": {
+							"entityId": "@objectId",
+							"entityType": "client"
+						}
+					},
+					{
+						"id": "bookings",
+						"component": "BookingsCard",
+						"placement": "after-related",
+						"props": {
+							"customerId": "@objectId"
+						}
+					},
+					{
+						"id": "contactmoment-quick-log",
+						"component": "ContactmomentQuickLog",
+						"title": "Log contactmoment",
+						"placement": "end",
+						"props": {
+							"clientId": "@objectId",
+							"inline": true
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "flow",
+							"label": "Flow",
+							"component": "CnFlowTab",
+							"config": {
+								"linkedType": "flow"
+							}
+						},
+						{
+							"id": "time-tracker",
+							"label": "Time",
+							"component": "CnTimeTrackerTab",
+							"config": {
+								"linkedType": "time-tracker"
+							}
+						},
+						{
+							"id": "xwiki",
+							"label": "Knowledge",
+							"component": "CnXwikiTab",
+							"config": {
+								"linkedType": "xwiki"
+							}
+						},
+						{
+							"id": "xwiki-pipelinq",
+							"label": "Knowledge base",
+							"component": "XWikiSidebarTab",
+							"config": {
+								"space": "",
+								"contextQuery": ""
+							}
+						},
+						{
+							"id": "forms",
+							"label": "Forms",
+							"component": "CnFormsTab",
+							"config": {
+								"linkedType": "forms"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "Requests",
+			"route": "/requests",
+			"type": "index",
+			"title": "Requests",
+			"config": {
+				"register": "pipelinq",
+				"schema": "request",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "RequestDetail"
+					}
+				],
+				"columns": [
+					"title",
+					"status",
+					"priority",
+					"channel",
+					"requestedAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "RequestDetail",
+			"route": "/requests/:id",
+			"type": "detail",
+			"title": "Request",
+			"config": {
+				"register": "pipelinq",
+				"schema": "request",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Communication-first grid detail (comms-first-detail-pages). Request fields + related on top, then the live Email and Files leaves as body widgets so a handler sees the correspondence and attachments without leaving the record. Deck/Flow/Time/Knowledge/Forms stay in sidebar tabs.",
+				"widgets": [
+					{
+						"id": "request-data",
+						"type": "data",
+						"title": "Request details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "request-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "request-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "request-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "request-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "request-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "request-email",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "request-files",
+						"gridX": 8,
+						"gridY": 4,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "deck",
+							"label": "Deck",
+							"component": "CnDeckTab",
+							"config": {
+								"linkedType": "deck"
+							}
+						},
+						{
+							"id": "flow",
+							"label": "Flow",
+							"component": "CnFlowTab",
+							"config": {
+								"linkedType": "flow"
+							}
+						},
+						{
+							"id": "time-tracker",
+							"label": "Time",
+							"component": "CnTimeTrackerTab",
+							"config": {
+								"linkedType": "time-tracker"
+							}
+						},
+						{
+							"id": "xwiki",
+							"label": "Knowledge",
+							"component": "CnXwikiTab",
+							"config": {
+								"linkedType": "xwiki"
+							}
+						},
+						{
+							"id": "xwiki-pipelinq",
+							"label": "Knowledge base",
+							"component": "XWikiSidebarTab",
+							"config": {
+								"space": "",
+								"contextQuery": ""
+							}
+						},
+						{
+							"id": "forms",
+							"label": "Forms",
+							"component": "CnFormsTab",
+							"config": {
+								"linkedType": "forms"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "Complaints",
+			"route": "/complaints",
+			"type": "index",
+			"title": "Complaints",
+			"config": {
+				"register": "pipelinq",
+				"schema": "complaint",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ComplaintDetail"
+					}
+				],
+				"columns": [
+					"title",
+					"status",
+					"priority",
+					"category",
+					"channel",
+					"_dateCreated"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ComplaintDetail",
+			"route": "/complaints/:id",
+			"type": "detail",
+			"title": "Complaint",
+			"config": {
+				"register": "pipelinq",
+				"schema": "complaint",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Case archetype (bespoke-detail-pages). A complaint is a service case a case-handler works to resolution against an SLA, so the body leads with the case fields (status / priority / channel / SLA deadline + slaStatus / assignedTo) at 8-wide and the related graph (client, contact, task) at 4-wide, then Documents (evidence, correspondence attachments) full-width. Comms leaves are NOT on the body: the complaint schema declares no email/calendar/talk linkedType, so per the hard rule they stay off — a complaint communicates via its linked client/contact records. Workflow leaves (Deck for handling steps, Flow for the resolution automation) and the SLA/status timeline live in sidebar tabs so the main body stays focused on triage.",
+				"widgets": [
+					{
+						"id": "complaint-data",
+						"type": "data",
+						"title": "Complaint",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "complaint-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "complaint-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "complaint-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "complaint-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "complaint-files",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "deck",
+							"label": "Handling",
+							"component": "CnDeckTab",
+							"config": {
+								"linkedType": "deck"
+							}
+						},
+						{
+							"id": "flow",
+							"label": "Flow",
+							"component": "CnFlowTab",
+							"config": {
+								"linkedType": "flow"
+							}
+						},
+						{
+							"id": "activity",
+							"label": "Timeline",
+							"component": "CnActivityTab",
+							"config": {
+								"linkedType": "activity"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "Contacts",
+			"route": "/contacts",
+			"type": "index",
+			"title": "Contacts",
+			"config": {
+				"register": "pipelinq",
+				"schema": "contact",
+				"createOverride": "createContactContactAware",
+				"fieldOverrides": {
+					"name": {
+						"readOnly": false
+					},
+					"email": {
+						"readOnly": false
+					},
+					"phone": {
+						"readOnly": false
+					}
+				},
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ContactDetail"
+					}
+				],
+				"columns": [
+					"name",
+					"email",
+					"phone",
+					"role"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ContactDetail",
+			"_note": "Contact record as a declarative type:detail page (pipelinq-client-contact-detail-declarative). The contact-person fields (role, email, phone, client FK) auto-render in the body (CnObjectDataWidget; name/email/phone are read-only NC-contact mirror via the index fieldOverrides). The parent-organisation link is a relationLinks entry (fkField 'client', labelField 'name') — its search-and-link modal replaces the bespoke CnFormDialog organisation linker, and the linked client is shown by the auto data widget's 'client' field. BRP / Relationships / Communication stay in the page body via bodyWidgets registered as kind:'section'. KEPT-AS-NOTE: (1) the bespoke 'Parent Organisation' card also rendered the client name+type as a clickable deep-link; the declarative client FK shows the id/name in the data widget and relationLinks drives the link/relink — the separate type-line is dropped; (2) BrpContactPanel emits @contact-updated to trigger a re-fetch — in declarative mode the panel updates the contact server-side and the user refreshes via the page Refresh action; (3) 'Edit in Contacts' deep-link has no declarative primitive — identity is editable from the linked NC contact.",
+			"route": "/contacts/:id",
+			"type": "detail",
+			"title": "Contact",
+			"config": {
+				"register": "pipelinq",
+				"schema": "contact",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Communication-first grid detail (comms-first-detail-pages). A salesperson opening a contact sees the person's details, their emails and meetings, and files on the main body. BRP/BSN compliance + relationship graph stay as end-of-page sections; the parent-organisation link stays a relationLink.",
+				"widgets": [
+					{
+						"id": "contact-data",
+						"type": "data",
+						"title": "Contact details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "contact-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "contact-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "contact-calendar",
+						"type": "integration",
+						"integrationId": "calendar",
+						"title": "Meetings"
+					},
+					{
+						"id": "contact-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "contact-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 3
+					},
+					{
+						"id": "2",
+						"widgetId": "contact-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 3
+					},
+					{
+						"id": "3",
+						"widgetId": "contact-email",
+						"gridX": 0,
+						"gridY": 3,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "contact-calendar",
+						"gridX": 8,
+						"gridY": 3,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "5",
+						"widgetId": "contact-files",
+						"gridX": 0,
+						"gridY": 7,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"relationLinks": [
+					{
+						"label": "Link to Organisation",
+						"title": "Link to Organisation",
+						"register": "pipelinq",
+						"schema": "client",
+						"fkField": "client",
+						"labelField": "name"
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "relationships",
+						"component": "ContactRelationships",
+						"title": "Relationships",
+						"placement": "end",
+						"props": {
+							"entityId": "@objectId",
+							"entityType": "contact",
+							"entityName": "@object.name"
+						}
+					},
+					{
+						"id": "brp",
+						"component": "BrpContactPanel",
+						"title": "BSN / BRP",
+						"placement": "end",
+						"props": {
+							"contactId": "@objectId"
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true
+				}
+			}
+		},
+		{
+			"id": "Leads",
+			"_note": "LeadList.vue extends a CnIndexPage with lead-specific bulk controls (NcCheckboxRadioSwitch quick-filters plus CnMassImportDialog / CnMassExportDialog) that the declarative 'index' page type does not expose; kept as a host-app component until those bulk actions are promoted to the library.",
+			"route": "/leads",
+			"type": "custom",
+			"title": "Leads",
+			"component": "LeadListView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "lead",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "LeadDetail"
+					}
+				],
+				"columns": [
+					"title",
+					"stage",
+					"status",
+					"priority",
+					{
+						"key": "probability",
+						"label": "Probability",
+						"widget": "lead-probability"
+					},
+					"value",
+					{
+						"key": "expectedCloseDate",
+						"label": "Expected close",
+						"widget": "lead-close-date"
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "LeadDetail",
+			"route": "/leads/:id",
+			"type": "detail",
+			"title": "Lead",
+			"config": {
+				"register": "pipelinq",
+				"schema": "lead",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Communication-first grid detail (comms-first-detail-pages). Main body surfaces what a salesperson looks at every visit — the deal fields, related records, and the live Email / Files / Meetings leaves as body widgets. Rarely-touched leaves (Deck, Flow, Time, Knowledge, Forms) stay in sidebar tabs.",
+				"widgets": [
+					{
+						"id": "lead-data",
+						"type": "data",
+						"title": "Lead details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "lead-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "lead-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "lead-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					},
+					{
+						"id": "lead-calendar",
+						"type": "integration",
+						"integrationId": "calendar",
+						"title": "Meetings"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "lead-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "lead-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "lead-email",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "lead-files",
+						"gridX": 8,
+						"gridY": 4,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "5",
+						"widgetId": "lead-calendar",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "deck",
+							"label": "Deck",
+							"component": "CnDeckTab",
+							"config": {
+								"linkedType": "deck"
+							}
+						},
+						{
+							"id": "flow",
+							"label": "Flow",
+							"component": "CnFlowTab",
+							"config": {
+								"linkedType": "flow"
+							}
+						},
+						{
+							"id": "time-tracker",
+							"label": "Time",
+							"component": "CnTimeTrackerTab",
+							"config": {
+								"linkedType": "time-tracker"
+							}
+						},
+						{
+							"id": "xwiki",
+							"label": "Knowledge",
+							"component": "CnXwikiTab",
+							"config": {
+								"linkedType": "xwiki"
+							}
+						},
+						{
+							"id": "xwiki-pipelinq",
+							"label": "Knowledge base",
+							"component": "XWikiSidebarTab",
+							"config": {
+								"space": "",
+								"contextQuery": ""
+							}
+						},
+						{
+							"id": "forms",
+							"label": "Forms",
+							"component": "CnFormsTab",
+							"config": {
+								"linkedType": "forms"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "Contactmomenten",
+			"route": "/contactmomenten",
+			"type": "index",
+			"title": "Contactmomenten",
+			"config": {
+				"register": "pipelinq",
+				"schema": "contactmoment",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ContactmomentDetail"
+					}
+				],
+				"columns": [
+					"channel",
+					"subject",
+					"client",
+					"agent",
+					"occurredAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ContactmomentNew",
+			"route": "/contactmomenten/new",
+			"type": "custom",
+			"title": "New contactmoment",
+			"component": "CnWizardDialog",
+			"config": {
+				"register": "pipelinq",
+				"schema": "contactmoment"
+			}
+		},
+		{
+			"id": "ContactmomentDetail",
+			"route": "/contactmomenten/:id",
+			"type": "detail",
+			"title": "Contactmoment",
+			"config": {
+				"register": "pipelinq",
+				"schema": "contactmoment",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Interaction-log archetype (bespoke-detail-pages). A contactmoment is the immutable record of a single interaction (call / email / chat / CTI-telephony), so it reads like a log entry, not a workspace: the interaction fields (channel, subject, outcome/disposition, agent, direction, timestamps, duration, CTI extension) fill the body 8-wide, with the related parties (client, contact, request) at 4-wide for one-click drill-through. Documents full-width carries the call recording (recording_url) and any attached correspondence. NO email/calendar body widgets — contactmoment declares no comms linkedType and is itself the communication record, not a live mailbox. There are no child collections, so no object-list; a lean two-row grid keeps it fast to scan.",
+				"widgets": [
+					{
+						"id": "cm-data",
+						"type": "data",
+						"title": "Interaction",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "cm-related",
+						"type": "related",
+						"title": "Parties"
+					},
+					{
+						"id": "cm-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Recording & documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "cm-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "cm-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "cm-files",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Tasks",
+			"route": "/tasks",
+			"type": "index",
+			"title": "Tasks",
+			"config": {
+				"register": "pipelinq",
+				"schema": "task",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "TaskDetail"
+					}
+				],
+				"columns": [
+					"title",
+					"type",
+					"status",
+					"priority",
+					"assignee",
+					"dueDate"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "TaskNew",
+			"route": "/tasks/new",
+			"type": "custom",
+			"title": "New task",
+			"component": "CnWizardDialog",
+			"config": {
+				"register": "pipelinq",
+				"schema": "task"
+			}
+		},
+		{
+			"id": "TaskDetail",
+			"route": "/tasks/:id",
+			"type": "detail",
+			"title": "Task",
+			"config": {
+				"register": "pipelinq",
+				"schema": "task",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Task/action-item archetype (bespoke-detail-pages). A task is a to-do an agent works to completion, so the body leads with the execution fields (type, status, priority, deadline, assignee user/group, callbackPhoneNumber, preferredTimeSlot, attempts, resultText) 8-wide and the source records it hangs off (client, request, originating contactmoment) at 4-wide. Documents full-width for any attached result artefact. NO email/calendar body widgets — task declares no comms linkedType; a callback task carries the phone number as a field, not a live mailbox. No child collection, so no object-list.",
+				"widgets": [
+					{
+						"id": "task-data",
+						"type": "data",
+						"title": "Task",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "task-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "task-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "task-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "task-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "task-files",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Products",
+			"route": "/products",
+			"type": "index",
+			"title": "Products",
+			"config": {
+				"register": "pipelinq",
+				"schema": "product",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ProductDetail"
+					}
+				],
+				"columns": [
+					"name",
+					"category",
+					"type",
+					"status",
+					"price"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "ProductBarcodeSearch",
+			"_note": "ProductBarcodeSearch.vue is a single-purpose scanner surface: a barcode/EAN input that resolves one product and shows an NcEmptyContent fallback when nothing matches; it is neither a list nor an object-detail page, so no standard page type fits.",
+			"route": "/products-barcode",
+			"type": "custom",
+			"title": "Barcode lookup",
+			"component": "ProductBarcodeSearchView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "product"
+			}
+		},
+		{
+			"id": "ProductDetail",
+			"route": "/products/:id",
+			"type": "detail",
+			"title": "Product",
+			"config": {
+				"register": "pipelinq",
+				"schema": "product",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Catalog archetype (bespoke-detail-pages). A product is a catalog master, not a conversation — so there are deliberately NO comms leaves (product declares no email/calendar linkedType). The body leads with the catalog fields (name, sku/barcode/gtin, unitPrice/cost/taxRate/btwClass, category, type, unit, variants/modifierGroups/priceTiers) 8-wide and the related graph (category, preferredSupplier, MDM masterEntityRef) at 4-wide. Below sits an object-list of the deal lines that reference this product (leadProduct, FK 'product') so a product manager can see demand at a glance, then the product image/spec files full-width. Two-tone grid (catalog + usage) makes it read very differently from the comms-first person pages.",
+				"widgets": [
+					{
+						"id": "product-data",
+						"type": "data",
+						"title": "Product",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "product-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "product-lines",
+						"type": "object-list",
+						"title": "Used on deals",
+						"content": {
+							"register": "pipelinq",
+							"schema": "leadProduct",
+							"filter": {
+								"product": "@objectId"
+							},
+							"columns": [
+								{
+									"key": "lead",
+									"label": "Lead"
+								},
+								{
+									"key": "quantity",
+									"label": "Qty"
+								},
+								{
+									"key": "unitPrice",
+									"label": "Unit price"
+								},
+								{
+									"key": "discount",
+									"label": "Discount %"
+								},
+								{
+									"key": "total",
+									"label": "Line total"
+								}
+							],
+							"limit": 100
+						}
+					},
+					{
+						"id": "product-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Images & spec sheets"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "product-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "product-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "product-lines",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "product-files",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "PosTransactions",
+			"_note": "POS receipt ledger as a declarative type:index page (pipelinq-declarative-pages-round1). Row view + Add both navigate to the bespoke cart editor routes (PosTransactionDetail / PosTransactionNew), which stay custom because they host interactive line-item editing.",
+			"route": "/pos",
+			"type": "index",
+			"title": "Kassabon",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posTransaction",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showAdd": false,
+				"showFormDialog": false,
+				"showViewAction": false,
+				"showEditAction": false,
+				"showCopyAction": false,
+				"showDeleteAction": false,
+				"showMassImport": false,
+				"showMassExport": false,
+				"showMassCopy": false,
+				"showMassDelete": false,
+				"includeColumns": [
+					"reference",
+					"cashier",
+					"terminalId",
+					"status",
+					"priceMode",
+					"total",
+					"created"
+				],
+				"headerActions": [
+					{
+						"id": "create",
+						"label": "Nieuwe transactie",
+						"icon": "Plus",
+						"handler": "navigate",
+						"route": "PosTransactionNew"
+					}
+				],
+				"actions": [
+					{
+						"id": "view",
+						"label": "Openen",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "PosTransactionDetail"
+					}
+				]
+			}
+		},
+		{
+			"id": "PosTransactionNew",
+			"_note": "PosTransactionForm.vue is a bespoke cart/checkout form (line-item rows, NcSelect tender pickers, totals math) for ringing up a sale; the standard form/detail page types cannot host the interactive line-item editing the POS register requires.",
+			"route": "/pos/new",
+			"type": "custom",
+			"title": "Nieuwe transactie",
+			"component": "PosTransactionFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posTransaction"
+			}
+		},
+		{
+			"id": "PosTransactionEdit",
+			"_note": "Reuses PosTransactionForm.vue (the bespoke cart/checkout editor with line-item rows and tender pickers) in edit mode; no standard form/detail page type can host the interactive line-item editing.",
+			"route": "/pos/:id/edit",
+			"type": "custom",
+			"title": "Transactie bewerken",
+			"component": "PosTransactionFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posTransaction"
+			}
+		},
+		{
+			"id": "PosRefunds",
+			"_note": "POS refund ledger as a declarative type:index page (pipelinq-declarative-pages-round1). Row view navigates to the bespoke refund editor (PosRefundDetail); Add navigates to PosRefundNew. Both editors stay custom (interactive per-line refund selection).",
+			"route": "/pos/refunds",
+			"type": "index",
+			"title": "Retouren",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRefund",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showAdd": false,
+				"showFormDialog": false,
+				"showViewAction": false,
+				"showEditAction": false,
+				"showCopyAction": false,
+				"showDeleteAction": false,
+				"showMassImport": false,
+				"showMassExport": false,
+				"showMassCopy": false,
+				"showMassDelete": false,
+				"includeColumns": [
+					"reference",
+					"originalTransaction",
+					"refundReason",
+					"refundAmount",
+					"status",
+					"created"
+				],
+				"headerActions": [
+					{
+						"id": "create",
+						"label": "Nieuwe retour",
+						"icon": "Plus",
+						"handler": "navigate",
+						"route": "PosRefundNew"
+					}
+				],
+				"actions": [
+					{
+						"id": "view",
+						"label": "Openen",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "PosRefundDetail"
+					}
+				]
+			}
+		},
+		{
+			"id": "PosRefundNewFromTransaction",
+			"_note": "Reuses PosRefundForm.vue (bespoke refund editor: per-line refund selection and tender NcSelect) pre-seeded from the originating transaction; the interactive line-selection logic has no standard form page-type equivalent.",
+			"route": "/pos/refunds/new/:transactionId",
+			"type": "custom",
+			"title": "Nieuwe retour",
+			"component": "PosRefundFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRefund"
+			}
+		},
+		{
+			"id": "PosRefundNew",
+			"_note": "Reuses PosRefundForm.vue (bespoke refund editor with per-line refund selection and tender NcSelect) for a standalone refund; the interactive line-selection logic has no standard form page-type equivalent.",
+			"route": "/pos/refunds/new",
+			"type": "custom",
+			"title": "Nieuwe retour",
+			"component": "PosRefundFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRefund"
+			}
+		},
+		{
+			"id": "PosRefundEdit",
+			"_note": "Reuses PosRefundForm.vue (bespoke refund editor with per-line refund selection and tender NcSelect) in edit mode; the interactive line-selection logic has no standard form page-type equivalent.",
+			"route": "/pos/refunds/:id/edit",
+			"type": "custom",
+			"title": "Retour bewerken",
+			"component": "PosRefundFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRefund"
+			}
+		},
+		{
+			"id": "PosRefundDetail",
+			"_note": "POS refund record as a declarative type:detail page (pipelinq-pos-mdm-detail-declarative). The refund's flat fields (reference / originalTransaction / cashier / status / refundReason / paymentMethod / refundAmount / totalTax / confirmedAt / rejectedAt / notes / …) auto-render in the body via CnObjectDataWidget. The parts no declarative primitive can express live in one kind:'section' bodyWidget (PosRefundActionsSection, after-data): the manager-gated Bevestigen / Afwijzen actions and the 'Returned items' table. KEPT-AS-NOTE: (1) lifecycleActions is NOT wired — the actions POST to bespoke /api/pos-refunds/{id}/{action} endpoints (NOT OR /transition) and posRefund has no x-openregister-lifecycle; (2) the 'Returned items' table stays in the section because it is a CROSS-SCHEMA JOIN — each posRefundLine row is enriched with its original posTransactionLine (description + original quantity, via the line's originalLine pointer) and relatedCollections renders ONE schema and cannot resolve a column off a second schema. Missing primitives: a relatedCollections column resolved off a SECOND schema (cross-schema join lookup); the host-app-endpoint action toolbar (see PosTransactionDetail).",
+			"route": "/pos/refunds/:id",
+			"type": "detail",
+			"title": "Retour",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRefund",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "FINANCIAL archetype (bespoke-detail-pages). A POS refund is a credit-side ledger record, so NO comms leaves (posRefund declares no email/calendar linkedType). The body opens with two KPI stat cards (Refund amount / Tax) then the refund fields (reference, originalTransaction, cashier, status, refundReason, paymentMethod/reference, confirmed/rejected timestamps) 8-wide and the related graph (original transaction, cashier) 4-wide. The returned lines render as an object-list (posRefundLine, FK 'refund') giving the plain per-line quantities/totals; the manager-gated Bevestigen/Afwijzen actions and the CROSS-SCHEMA-JOIN 'Returned items' table (each line enriched from its original posTransactionLine) stay in the PRESERVED PosRefundActionsSection bodyWidget — that join cannot be expressed by a single-schema object-list, exactly as the section's note records. Audit-trail moves to a sidebar tab.",
+				"widgets": [
+					{
+						"id": "pos-refund-amount",
+						"type": "stat",
+						"title": "Refund amount",
+						"content": {
+							"label": "Refund amount",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posRefund",
+								"metric": "sum",
+								"field": "refundAmount",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "pos-refund-tax",
+						"type": "stat",
+						"title": "VAT",
+						"content": {
+							"label": "VAT",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posRefund",
+								"metric": "sum",
+								"field": "totalTax",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "pos-refund-data",
+						"type": "data",
+						"title": "Refund",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "pos-refund-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "pos-refund-lines",
+						"type": "object-list",
+						"title": "Returned lines",
+						"content": {
+							"register": "pipelinq",
+							"schema": "posRefundLine",
+							"filter": {
+								"refund": "@objectId"
+							},
+							"columns": [
+								{
+									"key": "returnedQuantity",
+									"label": "Qty"
+								},
+								{
+									"key": "returnReason",
+									"label": "Reason"
+								},
+								{
+									"key": "restock",
+									"label": "Restock"
+								},
+								{
+									"key": "taxAmount",
+									"label": "VAT"
+								},
+								{
+									"key": "lineTotal",
+									"label": "Line total"
+								}
+							],
+							"limit": 500
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "pos-refund-amount",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "pos-refund-tax",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 2
+					},
+					{
+						"id": "3",
+						"widgetId": "pos-refund-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "pos-refund-related",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "5",
+						"widgetId": "pos-refund-lines",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 12,
+						"gridHeight": 3
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "pos-refund-actions",
+						"component": "PosRefundActionsSection",
+						"placement": "after-data",
+						"props": {
+							"refundId": "@objectId"
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit-trail",
+							"label": "Audit trail",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "CashShifts",
+			"_note": "CashShiftList.vue is a CnIndexPage specialised for the cash-drawer shift register (shift-specific columns/state on the cashShift schema); kept as a host-app component while those presets live outside the library.",
+			"route": "/pos/shifts",
+			"type": "custom",
+			"title": "Kassalade",
+			"component": "CashShiftListView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "cashShift"
+			}
+		},
+		{
+			"id": "CashShiftDetail",
+			"_note": "Cash-shift record as a declarative type:detail page (pipelinq-pos-mdm-detail-declarative). The shift's flat float fields (reference / drawer / operator / managedBy / currency / floatAmount / floatAt / status / closedAt / reconciliationStatus / notes) auto-render in the body via CnObjectDataWidget; the drops render as a relatedCollections table (cashDrop, FK 'shift'). The parts no declarative primitive can express live in one kind:'section' bodyWidget (CashShiftActionsSection, after-related): the cash-reconciliation VARIANCE panel and the drop/count/reconcile actions. KEPT-AS-NOTE: (1) lifecycleActions is NOT wired — Geld verwijderen (drop) / Shift afsluiten en tellen (count) / reconcile POST to bespoke /api/pos-shifts/{id}/{drop|count|diff} endpoints that recompute variance server-side (NOT OR /transition); cashShift/cashDiff have no x-openregister-lifecycle; (2) the variance panel stays in the section because it is a LATEST/PENDING-child projection — relatedCollections lists ALL children and cannot pick + lay out the single most-relevant cashDiff with its tolerance verdict and inline approve/reject. Missing primitives: a host-app-endpoint action toolbar (see PosTransactionDetail); a 'latest/pending child object' projection primitive.",
+			"route": "/pos/shifts/:id",
+			"type": "detail",
+			"title": "Shift",
+			"config": {
+				"register": "pipelinq",
+				"schema": "cashShift",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "FINANCIAL archetype (bespoke-detail-pages). A cash-drawer shift is a cash-management ledger record, so NO comms leaves (cashShift declares no email/calendar linkedType). The body opens with the opening-float KPI stat then the shift fields (reference, drawer, operator, managedBy, currency, floatAt, status, closedAt, reconciliationStatus) 8-wide and the related graph (drawer, operator) 4-wide. The cash drops stay in the PRESERVED relatedCollections table (cashDrop, FK 'shift') and the cash-reconciliation VARIANCE panel + drop/count/reconcile actions stay in the PRESERVED CashShiftActionsSection bodyWidget (after-related) — the variance panel is a latest/pending-child projection a plain object-list cannot lay out, as its note records. Audit-trail moves to a sidebar tab.",
+				"widgets": [
+					{
+						"id": "shift-float",
+						"type": "stat",
+						"title": "Opening float",
+						"content": {
+							"label": "Opening float",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "cashShift",
+								"metric": "sum",
+								"field": "floatAmount",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "shift-drops",
+						"type": "stat",
+						"title": "Drops",
+						"content": {
+							"label": "Cash drops",
+							"icon": "CashMultiple",
+							"source": {
+								"register": "pipelinq",
+								"schema": "cashDrop",
+								"metric": "count",
+								"filter": {
+									"shift": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "shift-data",
+						"type": "data",
+						"title": "Shift",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "shift-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "shift-float",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "shift-drops",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 2
+					},
+					{
+						"id": "3",
+						"widgetId": "shift-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "shift-related",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"relatedCollections": [
+					{
+						"title": "Drops",
+						"register": "pipelinq",
+						"schema": "cashDrop",
+						"filter": {
+							"shift": "@objectId"
+						},
+						"sort": {
+							"field": "droppedAt",
+							"dir": "desc"
+						},
+						"columns": [
+							{
+								"key": "reason",
+								"label": "Reden"
+							},
+							{
+								"key": "amount",
+								"label": "Bedrag"
+							},
+							{
+								"key": "droppedAt",
+								"label": "Op"
+							},
+							{
+								"key": "droppedBy",
+								"label": "Door"
+							}
+						],
+						"limit": 500
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "cash-shift-actions",
+						"component": "CashShiftActionsSection",
+						"placement": "after-related",
+						"props": {
+							"shiftId": "@objectId"
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit-trail",
+							"label": "Audit trail",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "ZReports",
+			"_note": "Daily Z-report (end-of-day close) ledger as a declarative type:index page (pipelinq-views-to-declarative-r1). Row click navigates to the bespoke ZReportDetail (per-tender totals / tax breakdown / resubmit), which stays custom. No Add (Z-reports are generated by the day-close job, not created by hand).",
+			"route": "/pos/z-reports",
+			"type": "index",
+			"title": "Boekhoudkundige Afhandeling",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posZReport",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showAdd": false,
+				"showFormDialog": false,
+				"showViewAction": false,
+				"showEditAction": false,
+				"showCopyAction": false,
+				"showDeleteAction": false,
+				"showMassImport": false,
+				"showMassExport": false,
+				"showMassCopy": false,
+				"showMassDelete": false,
+				"columns": [
+					"reference",
+					{
+						"key": "reportDate",
+						"label": "Datum",
+						"format": "date"
+					},
+					"terminalId",
+					"transactionCount",
+					"total",
+					{
+						"key": "status",
+						"label": "Status",
+						"widget": "badge",
+						"widgetProps": {
+							"colorMap": {
+								"posted": "success",
+								"submitted": "primary",
+								"synced": "success",
+								"pending": "warning",
+								"failed": "error",
+								"draft": "default",
+								"open": "info"
+							}
+						}
+					},
+					{
+						"key": "createdAt",
+						"label": "Aangemaakt",
+						"format": "date-time"
+					}
+				],
+				"actions": [
+					{
+						"id": "view",
+						"label": "Openen",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "ZReportDetail"
+					}
+				]
+			}
+		},
+		{
+			"id": "ZReportDetail",
+			"_note": "Z-report per-day close as a declarative type:detail page (pipelinq-detail-pages-declarative-r3). The Z-report's flat fields (reference / reportDate / terminalId / transactionCount / status / subtotal / totalTax / total / bookkeepingStatus / shillinqJournalEntryId / notes) auto-render in the body via CnObjectDataWidget. CONVERTED: the BTW breakdown table, the payment-method breakdown table (both ARRAY fields on the object, not FK children, so not relatedCollections) and the shillinq bookkeeping-status projection + manager-gated idempotent re-raise action are one kind:'section' bodyWidget (ZReportBookkeepingSection, after-data). KEPT-AS-NOTE: (1) lifecycleActions is NOT wired — posZReport has no x-openregister-lifecycle and the only state-changing action is the re-raise, which POSTs to a bespoke pipelinq endpoint (idempotency key) not OR's /transition, so it stays inside the section (missing primitive: declarative action that POSTs to a host-app endpoint instead of OR /transition); (2) no summaryAggregates — the totals are fields ON the object, not aggregations over a related schema; (3) Z-reports are generated by the day-close job, never created/edited by hand, so the auto-body data widget is effectively read-only.",
+			"route": "/pos/z-reports/:id",
+			"type": "detail",
+			"title": "Z-report",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posZReport",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "FINANCIAL archetype (bespoke-detail-pages). A Z-report is the end-of-day close ledger record, generated by the day-close job and read-only by hand — so NO comms leaves (posZReport declares no email/calendar linkedType) and no object-list (the day's transactions are referenced by the transactionIds ARRAY on the object, not a FK child schema, so there is no single-schema collection to list). The body opens with three KPI stat cards (Day total / VAT / Transaction count) — the headline numbers an accountant checks first — then the report fields (reference, reportDate, terminalId, status, subtotal/discount/total, bookkeepingStatus, shillinqJournalEntryId) full-width. The BTW + payment-method breakdown tables (also arrays-on-object) and the shillinq re-raise action stay in the PRESERVED ZReportBookkeepingSection bodyWidget (after-data), as its note records. Audit-trail moves to a sidebar tab.",
+				"widgets": [
+					{
+						"id": "z-total",
+						"type": "stat",
+						"title": "Day total",
+						"content": {
+							"label": "Day total",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posZReport",
+								"metric": "sum",
+								"field": "total",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "z-tax",
+						"type": "stat",
+						"title": "VAT",
+						"content": {
+							"label": "VAT",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posZReport",
+								"metric": "sum",
+								"field": "totalTax",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "z-count",
+						"type": "stat",
+						"title": "Transactions",
+						"content": {
+							"label": "Transactions",
+							"icon": "Receipt",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posZReport",
+								"metric": "sum",
+								"field": "transactionCount",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "z-data",
+						"type": "data",
+						"title": "Z-report",
+						"content": {
+							"columns": 2
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "z-total",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "z-tax",
+						"gridX": 4,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "3",
+						"widgetId": "z-count",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "4",
+						"widgetId": "z-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "z-report-bookkeeping",
+						"component": "ZReportBookkeepingSection",
+						"title": "Boekhoudkundige afhandeling",
+						"placement": "after-data",
+						"props": {
+							"zReportId": "@objectId"
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit-trail",
+							"label": "Audit trail",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "PosCustomerSettings",
+			"_note": "PosCustomerSettings.vue is an in-app settings surface (NcSettingsSection with the POS customer-lookup configuration form); it edits app configuration rather than register objects, so no object-oriented page type applies.",
+			"route": "/admin/pos-customer-link",
+			"type": "custom",
+			"title": "POS customer lookup",
+			"component": "PosCustomerSettingsView"
+		},
+		{
+			"id": "BrpMonitor",
+			"_note": "BrpMonitor.vue is a bespoke operational monitor for BRP (Dutch persons-registry) connection health and recent lookups, with its own status/refresh layout; it is a live diagnostics panel, not a list or detail of register objects, so no standard page type fits.",
+			"route": "/admin/brp-monitor",
+			"type": "custom",
+			"title": "BRP Monitor",
+			"component": "BrpMonitorView"
+		},
+		{
+			"id": "KassakoppelingAuditList",
+			"_note": "KassakoppelingAuditList.vue is a bespoke audit-trail viewer for the kassakoppeling (cash-register fiscalisation link) with append-only entries and verification actions rendered in a custom layout; the generic 'index' type cannot express the immutable-audit presentation and per-row verify controls.",
+			"route": "/kassakoppeling/audit",
+			"type": "custom",
+			"title": "Kassakoppeling audit",
+			"component": "KassakoppelingAuditListView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "kassakoppelingAuditLog"
+			}
+		},
+		{
+			"id": "KassakoppelingAuditDetail",
+			"_note": "KassakoppelingAuditDetail.vue is a CnDetailPage with audit-specific CnDetailCard panels showing the signed payload, hash chain and verification result of one fiscalisation entry; the standard 'detail' type cannot render this signed/verifiable audit layout.",
+			"route": "/kassakoppeling/audit/:id",
+			"type": "custom",
+			"title": "Audit entry",
+			"component": "KassakoppelingAuditDetailView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "kassakoppelingAuditLog"
+			}
+		},
+		{
+			"id": "PosTransactionDetail",
+			"_note": "POS transaction record as a declarative type:detail page (pipelinq-pos-mdm-detail-declarative). The transaction's flat fields (reference / cashier / terminalId / status / priceMode / subtotal / totalTax / total / notes / …) auto-render in the body via CnObjectDataWidget; the line items render as a relatedCollections table (posTransactionLine, FK 'transaction'). Everything no declarative primitive can express lives in one kind:'section' bodyWidget (PosTransactionActionsSection, after-related): the status-gated action toolbar (Bevestigen / Parkeren / Hervatten / Afrekenen / Retour registreren / Terugboeken / Print / Email Receipt), the tax-breakdown + totals, the interactive TenderEntryPanel (live add/remove split tenders + recompute) and the PaymentStatusCard. KEPT-AS-NOTE: lifecycleActions is NOT wired — the action buttons POST to bespoke /api/pos-transactions/{id}/{action} endpoints with side-effects (NOT OR's /transition), and posTransaction has no x-openregister-lifecycle. Missing primitive: a declarative action-toolbar whose buttons POST to a host-app endpoint (not OR /transition), status-gated client-side, with a custom-recompute reload; and an editable/interactive sub-grid primitive for the tender panel.",
+			"route": "/pos/:id",
+			"type": "detail",
+			"title": "Transactie",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posTransaction",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "FINANCIAL archetype (bespoke-detail-pages). A POS transaction is a receipt/ledger record — so deliberately NO comms leaves (posTransaction declares no email/calendar linkedType; the receipt is a financial artefact, not a conversation). The body opens with three KPI stat cards (Total / Tax / Line count) so a cashier or auditor reads the money first, then the transaction fields (reference, cashier, terminal, tender, status, priceMode, subtotal/discount/total) 8-wide and the related graph (client/customer, paymentProvider) 4-wide. The line-item register stays in relatedCollections (posTransactionLine, FK 'transaction') and the status-gated action toolbar + interactive tender panel stay in the PRESERVED PosTransactionActionsSection bodyWidget (after-related) — both already carry the missing-primitive notes. Audit-trail moves to a sidebar tab, the correct home for the immutable change log of a financial record.",
+				"widgets": [
+					{
+						"id": "pos-tx-total",
+						"type": "stat",
+						"title": "Total",
+						"content": {
+							"label": "Total",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posTransaction",
+								"metric": "sum",
+								"field": "total",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "pos-tx-tax",
+						"type": "stat",
+						"title": "VAT",
+						"content": {
+							"label": "VAT",
+							"format": "currency",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posTransaction",
+								"metric": "sum",
+								"field": "totalTax",
+								"filter": {
+									"id": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "pos-tx-lines",
+						"type": "stat",
+						"title": "Lines",
+						"content": {
+							"label": "Line items",
+							"icon": "FormatListNumbered",
+							"source": {
+								"register": "pipelinq",
+								"schema": "posTransactionLine",
+								"metric": "count",
+								"filter": {
+									"transaction": "@objectId"
+								}
+							}
+						}
+					},
+					{
+						"id": "pos-tx-data",
+						"type": "data",
+						"title": "Transaction",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "pos-tx-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "pos-tx-total",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "2",
+						"widgetId": "pos-tx-tax",
+						"gridX": 4,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "3",
+						"widgetId": "pos-tx-lines",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 2
+					},
+					{
+						"id": "4",
+						"widgetId": "pos-tx-data",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "5",
+						"widgetId": "pos-tx-related",
+						"gridX": 8,
+						"gridY": 2,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"relatedCollections": [
+					{
+						"title": "Line items",
+						"register": "pipelinq",
+						"schema": "posTransactionLine",
+						"filter": {
+							"transaction": "@objectId"
+						},
+						"sort": {
+							"field": "sortOrder",
+							"dir": "asc"
+						},
+						"columns": [
+							{
+								"key": "description",
+								"label": "Description"
+							},
+							{
+								"key": "quantity",
+								"label": "Qty"
+							},
+							{
+								"key": "unitPrice",
+								"label": "Unit price"
+							},
+							{
+								"key": "discount",
+								"label": "Discount %"
+							},
+							{
+								"key": "taxRate",
+								"label": "VAT %"
+							},
+							{
+								"key": "lineTotal",
+								"label": "Line total"
+							}
+						],
+						"limit": 500
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "pos-transaction-actions",
+						"component": "PosTransactionActionsSection",
+						"placement": "after-related",
+						"props": {
+							"transactionId": "@objectId"
+						}
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"tabs": [
+						{
+							"id": "audit-trail",
+							"label": "Audit trail",
+							"component": "CnAuditTrailTab",
+							"config": {
+								"linkedType": "audit-trail"
+							}
+						}
+					]
+				}
+			}
+		},
+		{
+			"id": "PosRoleList",
+			"_note": "PosRoleList.vue is a CnIndexPage specialised for POS role definitions (permission-summary columns on the posRole schema); kept as a host-app component while those POS-permission presets live outside the library.",
+			"route": "/pos/roles",
+			"type": "custom",
+			"title": "POS rollen",
+			"component": "PosRoleListView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRole"
+			}
+		},
+		{
+			"id": "PosRoleNew",
+			"_note": "Uses PosRoleForm.vue, a bespoke role editor with a grid of NcCheckboxRadioSwitch permission toggles; the per-capability toggle matrix has no standard form page-type representation.",
+			"route": "/pos/roles/new",
+			"type": "custom",
+			"title": "Nieuwe rol",
+			"component": "PosRoleFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRole"
+			}
+		},
+		{
+			"id": "PosRoleDetail",
+			"_note": "Reuses PosRoleForm.vue (bespoke role editor with a permission-toggle grid) in edit mode; the per-capability NcCheckboxRadioSwitch matrix has no standard form/detail page-type representation.",
+			"route": "/pos/roles/:id",
+			"type": "custom",
+			"title": "POS rol",
+			"component": "PosRoleFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posRole"
+			}
+		},
+		{
+			"id": "PosStaffList",
+			"_note": "PosStaffList.vue is a CnIndexPage specialised for POS staff accounts (role/PIN-status columns on the posStaff schema) with staff-only row actions; kept as a host-app component while those presets live outside the library.",
+			"route": "/pos/staff",
+			"type": "custom",
+			"title": "POS medewerkers",
+			"component": "PosStaffListView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posStaff"
+			}
+		},
+		{
+			"id": "PosStaffNew",
+			"_note": "Uses PosStaffForm.vue, a bespoke staff editor combining identity NcTextFields, a role NcSelect and a PIN/active NcCheckboxRadioSwitch; the mixed credential + role-assignment form has no standard form page-type representation.",
+			"route": "/pos/staff/new",
+			"type": "custom",
+			"title": "Nieuwe medewerker",
+			"component": "PosStaffFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posStaff"
+			}
+		},
+		{
+			"id": "PosStaffDetail",
+			"_note": "Reuses PosStaffForm.vue (bespoke staff editor: identity fields, role NcSelect, PIN/active toggles) in edit mode; the mixed credential + role-assignment form has no standard form/detail page-type representation.",
+			"route": "/pos/staff/:id",
+			"type": "custom",
+			"title": "POS medewerker",
+			"component": "PosStaffFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "posStaff"
+			}
+		},
+		{
+			"id": "Queues",
+			"route": "/queues",
+			"type": "index",
+			"title": "Queues",
+			"config": {
+				"register": "pipelinq",
+				"schema": "queue",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "Eye",
+						"handler": "navigate",
+						"route": "QueueDetail"
+					}
+				],
+				"columns": [
+					"title",
+					"description",
+					"isActive",
+					"sortOrder"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "QueueDetail",
+			"route": "/queues/:id",
+			"type": "detail",
+			"title": "Queue",
+			"config": {
+				"register": "pipelinq",
+				"schema": "queue",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"_note": "Config/ops archetype (bespoke-detail-pages). A queue is a routing-configuration record (which categories route here, capacity, sort order, which agents are assigned) — not an entity anyone communicates with — so there are deliberately NO comms leaves and NO files. The body is a single wide config data widget (title, description, categories, isActive, maxCapacity, sortOrder, assignedAgents) with the related graph (assigned agents) alongside. No object-list: nothing in the register carries a FK back to a queue (walk-in tickets are keyed by service/resource, not queue), so there is no child collection to render — a lean config layout is the honest shape.",
+				"widgets": [
+					{
+						"id": "queue-data",
+						"type": "data",
+						"title": "Queue configuration",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "queue-related",
+						"type": "related",
+						"title": "Assigned agents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "queue-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "queue-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "MyWork",
+			"_note": "MyWork.vue is a personal cross-entity worklist: it merges tasks, deals and contactmomenten assigned to the current user into grouped, due-date-coloured sections with entity badges and quick-filter buttons; no single-register 'index' page can aggregate across these schemas.",
+			"route": "/my-work",
+			"type": "custom",
+			"title": "My Work",
+			"component": "MyWorkView"
+		},
+		{
+			"id": "SyncSettings",
+			"route": "/sync-settings",
+			"type": "settings",
+			"title": "Sync settings",
+			"config": {
+				"sections": [
+					{
+						"id": "sync",
+						"title": "Integrations",
+						"component": "SyncSettingsView"
+					}
+				]
+			},
+			"slots": {
+				"section-sync": "SyncSettingsView"
+			}
+		},
+		{
+			"id": "Rapportage",
+			"_note": "Lead analytics as a declarative type:dashboard page (pipelinq-dashboards-declarative). The surface has no headline KPI cards to lift into endpoint stat widgets — its four bespoke widgets (pipeline-value funnel bar chart, source-performance table, lead-aging donut, win/loss pie + KPI block) are fed from ONE GET /api/rapportage/pipeline-stats fetch and the interactivity lives INSIDE the widgets (the funnel's OR-sourced pipeline selector filters in memory; the win/loss date-range selector re-fetches with dateFrom/dateTo). All four therefore live in one kind:'section' bodyWidget (LeadAnalyticsSection) which preserves the legacy single-fetch + in-widget filtering verbatim. KEPT-AS-NOTE: no page-level period pageFilter — the date window is derived inside the win/loss range selector (a from/to pair a static select cannot emit) and the pipeline selector's options are OR-sourced; missing primitives: derived-date-range pageFilter + OR-collection pageFilter options.",
+			"route": "/rapportage",
+			"type": "dashboard",
+			"title": "Analytics",
+			"config": {
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"bodyWidgets": [
+					{
+						"id": "lead-analytics",
+						"component": "LeadAnalyticsSection",
+						"placement": "before-grid"
+					}
+				]
+			}
+		},
+		{
+			"id": "RapportageContactmomenten",
+			"_note": "Contact-reporting monitor as a declarative type:dashboard page (pipelinq-dashboards-declarative). The four headline KPIs (Total Contacts, FCR %, Avg Handling Time, SLA Compliance) are endpoint-bound stat widgets reading GET /apps/pipelinq/api/rapportage/kpis (avgHandlingTime is a pre-formatted 'H:MM' string the stat widget renders verbatim). A period pageFilter (today/week/month -> @page.period) drives the query; ReportingController now resolves that relative period to a from/to window server-side (today=[today,today], week=[Monday,today], month=[1st,today]) so one select re-queries every KPI without client-side date math. The hand-rendered per-channel bar chart + the CSV export the stat grid cannot express live in one kind:'section' bodyWidget (ChannelDistributionSection) that reads the same period (via @workspace.period) and self-fetches /api/rapportage/channels. The 60s auto-refresh + 'last updated' label of the legacy view are dropped (the page-level Refresh action covers manual reload).",
+			"route": "/rapportage/contactmomenten",
+			"type": "dashboard",
+			"title": "Contact reporting",
+			"config": {
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"pageFilters": [
+					{
+						"key": "period",
+						"label": "Period",
+						"type": "select",
+						"default": "today",
+						"options": [
+							{
+								"value": "today",
+								"label": "Today"
+							},
+							{
+								"value": "week",
+								"label": "This week"
+							},
+							{
+								"value": "month",
+								"label": "This month"
+							}
+						]
+					}
+				],
+				"widgets": [
+					{
+						"id": "rap-total",
+						"type": "stat",
+						"title": "Total Contacts",
+						"content": {
+							"label": "Total Contacts",
+							"caption": "contact moments",
+							"icon": "MessageText",
+							"valueColor": "#0082c9",
+							"format": {
+								"style": "number",
+								"decimals": 0
+							},
+							"source": {
+								"kind": "endpoint",
+								"url": "/apps/pipelinq/api/rapportage/kpis",
+								"path": "total",
+								"params": {
+									"period": "@page.period"
+								}
+							}
+						}
+					},
+					{
+						"id": "rap-fcr",
+						"type": "stat",
+						"title": "FCR %",
+						"content": {
+							"label": "FCR %",
+							"caption": "first-contact resolution",
+							"icon": "CheckCircle",
+							"format": {
+								"style": "percent",
+								"decimals": 0
+							},
+							"source": {
+								"kind": "endpoint",
+								"url": "/apps/pipelinq/api/rapportage/kpis",
+								"path": "fcrRate",
+								"params": {
+									"period": "@page.period"
+								}
+							}
+						}
+					},
+					{
+						"id": "rap-aht",
+						"type": "stat",
+						"title": "Avg Handling Time",
+						"content": {
+							"label": "Avg Handling Time",
+							"caption": "h:mm",
+							"icon": "ClockOutline",
+							"source": {
+								"kind": "endpoint",
+								"url": "/apps/pipelinq/api/rapportage/kpis",
+								"path": "avgHandlingTime",
+								"params": {
+									"period": "@page.period"
+								}
+							}
+						}
+					},
+					{
+						"id": "rap-sla",
+						"type": "stat",
+						"title": "SLA Compliance",
+						"content": {
+							"label": "SLA Compliance",
+							"caption": "within target",
+							"icon": "ShieldCheckOutline",
+							"format": {
+								"style": "percent",
+								"decimals": 0
+							},
+							"source": {
+								"kind": "endpoint",
+								"url": "/apps/pipelinq/api/rapportage/kpis",
+								"path": "slaCompliance",
+								"params": {
+									"period": "@page.period"
+								}
+							}
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": 1,
+						"widgetId": "rap-total",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": 2,
+						"widgetId": "rap-fcr",
+						"gridX": 3,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": 3,
+						"widgetId": "rap-aht",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					},
+					{
+						"id": 4,
+						"widgetId": "rap-sla",
+						"gridX": 9,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "rap-channels",
+						"component": "ChannelDistributionSection",
+						"placement": "after-grid",
+						"props": {
+							"period": "@workspace.period"
+						}
+					}
+				]
+			}
+		},
+		{
+			"id": "ChannelAnalyticsView",
+			"_note": "Cross-channel comparison as a declarative type:dashboard page (pipelinq-dashboards-declarative). It has no headline KPI cards — the cross-channel comparison table (total / FCR / SLA per channel, colour-keyed) lives entirely in one kind:'section' bodyWidget (ChannelComparisonSection). Two pageFilters drive it: period (today/week/month -> @page.period, resolved to from/to server-side by ReportingController) and granularity (daily/weekly -> @page.granularity); the section reads both via @workspace.* and self-fetches /api/rapportage/channels + /api/rapportage/sla.",
+			"route": "/rapportage/channels",
+			"type": "dashboard",
+			"title": "Channel analytics",
+			"config": {
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"pageFilters": [
+					{
+						"key": "period",
+						"label": "Period",
+						"type": "select",
+						"default": "month",
+						"options": [
+							{
+								"value": "today",
+								"label": "Today"
+							},
+							{
+								"value": "week",
+								"label": "This week"
+							},
+							{
+								"value": "month",
+								"label": "This month"
+							}
+						]
+					},
+					{
+						"key": "granularity",
+						"label": "Granularity",
+						"type": "select",
+						"default": "daily",
+						"options": [
+							{
+								"value": "daily",
+								"label": "Daily"
+							},
+							{
+								"value": "weekly",
+								"label": "Weekly"
+							}
+						]
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "channel-comparison",
+						"component": "ChannelComparisonSection",
+						"placement": "before-grid",
+						"props": {
+							"period": "@workspace.period",
+							"granularity": "@workspace.granularity"
+						}
+					}
+				]
+			}
+		},
+		{
+			"id": "AgentPerformanceView",
+			"_note": "Per-agent performance as a declarative type:dashboard page (pipelinq-dashboards-declarative). It has no headline KPI cards — the sortable per-agent leaderboard (contacts / avg time / FCR) plus the team-summary footer (total contacts, team FCR, both derived from the same agents map) live in one kind:'section' bodyWidget (AgentPerformanceSection). A period pageFilter (today/week/month -> @page.period, resolved to from/to server-side) drives the query; the section reads @workspace.period and self-fetches /api/rapportage/agents.",
+			"route": "/rapportage/agents",
+			"type": "dashboard",
+			"title": "Agent performance",
+			"config": {
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"pageFilters": [
+					{
+						"key": "period",
+						"label": "Period",
+						"type": "select",
+						"default": "today",
+						"options": [
+							{
+								"value": "today",
+								"label": "Today"
+							},
+							{
+								"value": "week",
+								"label": "This week"
+							},
+							{
+								"value": "month",
+								"label": "This month"
+							}
+						]
+					}
+				],
+				"bodyWidgets": [
+					{
+						"id": "agent-performance",
+						"component": "AgentPerformanceSection",
+						"placement": "before-grid",
+						"props": {
+							"period": "@workspace.period"
+						}
+					}
+				]
+			}
+		},
+		{
+			"id": "Pipeline",
+			"_note": "PipelineBoard.vue is a bespoke drag-and-drop kanban of deals across pipeline stages, with a pipeline selector, search and list/board view toggle; the standard 'index' type renders a flat table and cannot provide the stage-column drag interaction.",
+			"route": "/pipeline",
+			"type": "custom",
+			"title": "Pipeline",
+			"component": "PipelineBoardView"
+		},
+		{
+			"id": "Pipelines",
+			"route": "/pipelines",
+			"type": "index",
+			"title": "Pipelines",
+			"config": {
+				"register": "pipelinq",
+				"schema": "pipeline",
+				"documentationUrl": "https://pipelinq.conduction.nl",
+				"showViewAction": false,
+				"columns": [
+					"title",
+					"description",
+					"isDefault",
+					"_dateCreated"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://pipelinq.conduction.nl"
+			}
+		},
+		{
+			"id": "ExportJobs",
+			"_note": "ExportJobs.vue is a CnIndexPage specialised for BI export jobs with run/schedule controls in the page header; kept as a host-app component while those export-trigger actions live outside the library.",
+			"route": "/export/jobs",
+			"type": "custom",
+			"title": "BI export jobs",
+			"component": "ExportJobsView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportJob"
+			}
+		},
+		{
+			"id": "ExportJobNew",
+			"_note": "ExportJobForm.vue is a bespoke export-job builder (destination NcSelect, dataset/field selection and schedule NcTextFields rendered as a CnDetailPage); the multi-section job configuration has no standard form page-type representation.",
+			"route": "/export/jobs/new",
+			"type": "custom",
+			"title": "New export job",
+			"component": "ExportJobFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportJob"
+			}
+		},
+		{
+			"id": "ExportJobDetail",
+			"_note": "Reuses ExportJobForm.vue (bespoke export-job builder with destination, dataset and schedule sections) in edit mode; the multi-section job configuration has no standard form/detail page-type representation.",
+			"route": "/export/jobs/:id",
+			"type": "custom",
+			"title": "Export job",
+			"component": "ExportJobFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportJob"
+			}
+		},
+		{
+			"id": "ExportDestinations",
+			"_note": "ExportDestinations.vue is a CnIndexPage specialised for export destinations with a connection-test action in the header; kept as a host-app component while that test-connection action lives outside the library.",
+			"route": "/export/destinations",
+			"type": "custom",
+			"title": "Export destinations",
+			"component": "ExportDestinationsView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportDestination"
+			}
+		},
+		{
+			"id": "ExportDestinationNew",
+			"_note": "ExportDestinationForm.vue is a bespoke connection editor: transport NcSelect plus credential NcTextFields and an NcCheckboxRadioSwitch whose visible fields change per destination type; this conditional connection form has no standard form page-type representation.",
+			"route": "/export/destinations/new",
+			"type": "custom",
+			"title": "New export destination",
+			"component": "ExportDestinationFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportDestination"
+			}
+		},
+		{
+			"id": "ExportDestinationDetail",
+			"_note": "Reuses ExportDestinationForm.vue (bespoke connection editor with type-conditional credential fields) in edit mode; this conditional connection form has no standard form/detail page-type representation.",
+			"route": "/export/destinations/:id",
+			"type": "custom",
+			"title": "Export destination",
+			"component": "ExportDestinationFormView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportDestination"
+			}
+		},
+		{
+			"id": "ExportRuns",
+			"_note": "ExportRuns.vue is a CnIndexPage specialised for the export run history with a re-run action in the header; kept as a host-app component while that re-run action lives outside the library.",
+			"route": "/export/runs",
+			"type": "custom",
+			"title": "Export runs",
+			"component": "ExportRunsView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportRun"
+			}
+		},
+		{
+			"id": "ExportRunDetail",
+			"_note": "ExportRunDetail.vue is a CnDetailPage with run-specific CnDetailCard panels (row counts, duration, error log) and a CnStatusBadge; the flat 'detail' type cannot lay out these execution-result cards.",
+			"route": "/export/runs/:id",
+			"type": "custom",
+			"title": "Export run",
+			"component": "ExportRunDetailView",
+			"config": {
+				"register": "pipelinq",
+				"schema": "exportRun"
+			}
+		}
+	]
+}

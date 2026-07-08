@@ -98,10 +98,9 @@
 			placeholder="Revenue"
 			@update:value="updateField('label', $event)" />
 
-		<NcSelect
+		<CnIconBrowser
 			:value="icon"
-			:options="iconOptions"
-			:input-label="t('nextcloud-vue', 'Icon')"
+			:label="t('nextcloud-vue', 'Icon')"
 			@input="updateField('icon', $event)" />
 
 		<NcTextField
@@ -162,9 +161,9 @@ import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
-import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -191,7 +190,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
 
 	props: {
 		/**
@@ -269,10 +268,6 @@ export default {
 		/** Number-format style options. */
 		styleOptions() {
 			return ['number', 'currency', 'percent']
-		},
-		/** Icon name options from the shared catalog. */
-		iconOptions() {
-			return Object.keys(DASHBOARD_ICONS)
 		},
 		/** The assembled content blob from the current field values. */
 		assembledContent() {

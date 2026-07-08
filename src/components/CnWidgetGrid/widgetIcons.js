@@ -48,6 +48,10 @@ import PercentIcon from 'vue-material-design-icons/Percent.vue'
 import AccountIcon from 'vue-material-design-icons/Account.vue'
 import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
 import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
+import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
+import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
+import ClipboardCheckOutlineIcon from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 
 /**
  * Map of icon registry name → Vue component reference. Iteration order is the
@@ -85,6 +89,10 @@ export const DASHBOARD_ICONS = Object.freeze({
 	Account: AccountIcon,
 	ClipboardList: ClipboardListIcon,
 	TableColumn: TableColumnIcon,
+	FolderOutline: FolderOutlineIcon,
+	AlertCircleOutline: AlertCircleOutlineIcon,
+	CheckCircleOutline: CheckCircleOutlineIcon,
+	ClipboardCheckOutline: ClipboardCheckOutlineIcon,
 })
 
 /**

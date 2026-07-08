@@ -24,6 +24,7 @@ jest.mock('@microsoft/fetch-event-source', () => ({
 	fetchEventSource: jest.fn(),
 }))
 
+// eslint-disable-next-line n/no-missing-require -- ESM-only package; jest resolves it via moduleNameMapper (tests/__mocks__/nextcloud-axios.js)
 const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
 
@@ -42,6 +43,33 @@ function mountCompanion(options = {}) {
 describe('CnAiCompanion', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+	})
+
+	it('health probe targets the default backend app id (openregister)', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+		const wrapper = mountCompanion()
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		expect(axios.get).toHaveBeenCalledWith(
+			'/index.php/apps/openregister/api/chat/health',
+			expect.any(Object),
+		)
+	})
+
+	it('health probe targets an overridden chatAppId (hermiq)', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+		const wrapper = mount(CnAiCompanion, {
+			propsData: { chatAppId: 'hermiq' },
+			provide: {},
+		})
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
+
+		expect(axios.get).toHaveBeenCalledWith(
+			'/index.php/apps/hermiq/api/chat/health',
+			expect.any(Object),
+		)
 	})
 
 	it('renders FAB when health probe returns 200', async () => {

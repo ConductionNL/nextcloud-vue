@@ -50,6 +50,35 @@ describe('CnDetailPage — sidebar Object form + show flag', () => {
 		warnSpy.mockRestore()
 	})
 
+	describe('refresh stickiness (enabled: !loading hosts)', () => {
+		it('keeps the sidebar active through a refresh-driven enabled flip', async () => {
+			const state = makeState()
+			// Mimic a legacy host: `:sidebar="{ enabled: !loading }"`.
+			const wrapper = mountDetailPage({
+				title: 'Lead',
+				objectType: 'lead',
+				objectId: '1',
+				loading: true,
+				sidebar: { enabled: false },
+			}, state)
+			// First load: sidebar inactive (object not ready yet).
+			expect(state.active).toBe(false)
+
+			// First load completes → sidebar activates.
+			await wrapper.setProps({ loading: false, sidebar: { enabled: true } })
+			expect(state.active).toBe(true)
+
+			// Refresh starts: loading true, enabled flips false again. The
+			// sidebar must stay active (no teardown / sub-resource refetch).
+			await wrapper.setProps({ loading: true, sidebar: { enabled: false } })
+			expect(state.active).toBe(true)
+
+			// Refresh settles → still active.
+			await wrapper.setProps({ loading: false, sidebar: { enabled: true } })
+			expect(state.active).toBe(true)
+		})
+	})
+
 	describe('Boolean back-compat', () => {
 		it('treats sidebar=true as an active Object form', () => {
 			const state = makeState()

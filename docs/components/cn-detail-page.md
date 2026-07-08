@@ -327,7 +327,7 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 
 ## Built-in Actions menu
 
-The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Refresh and Request-a-feature are **on by default**; opt out per item with `:show-refresh="false"` / `:show-request-feature="false"`.
+The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Request-a-feature is **on by default**; **Refresh is shown only when it will do something** — `showRefresh` is tri-state (`true`/`false` force it; the default `null` is **auto**: shown when a consumer attached an `@refresh` listener *or* the page is in schema-driven mode and can self-fetch). A legacy `objectType`-mode page that never wires `@refresh` therefore shows no dead Refresh button. Force it with `:show-refresh="true"`/`false`; opt out of Request-a-feature with `:show-request-feature="false"`.
 
 - **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.

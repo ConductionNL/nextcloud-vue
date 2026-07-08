@@ -181,7 +181,7 @@ export default {
 		},
 		/**
 		 * URL the "Suggest a feature" CTA opens (typically the host app's
-		 * GitHub issues "new feature" template). Required.
+		 * forge "new issue" form, e.g. on Codeberg). Required.
 		 */
 		featureRequestUrl: {
 			type: String,
