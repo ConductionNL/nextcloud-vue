@@ -461,13 +461,6 @@ export default {
 		}
 	},
 
-	created() {
-		this.isAdmin = typeof window !== 'undefined'
-			&& !!window.OC
-			&& typeof window.OC.isUserAdmin === 'function'
-			&& window.OC.isUserAdmin() === true
-	},
-
 	computed: {
 		effectiveManifest() {
 			return this.manifest ?? this.cnManifest
@@ -648,6 +641,13 @@ export default {
 			}
 			return best ?? routeName ?? null
 		},
+	},
+
+	created() {
+		this.isAdmin = typeof window !== 'undefined'
+			&& !!window.OC
+			&& typeof window.OC.isUserAdmin === 'function'
+			&& window.OC.isUserAdmin() === true
 	},
 
 	methods: {
