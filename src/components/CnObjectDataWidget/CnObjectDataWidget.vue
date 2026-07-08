@@ -338,6 +338,17 @@ export default {
 		Close,
 	},
 
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, register, schema }`) provided
+		 * by CnDetailPage. Supplies the register that bare-slug `$ref` relation
+		 * properties resolve against (an OpenRegister `$ref: "caseType"` means
+		 * "schema caseType in the SAME register"). Null on other surfaces —
+		 * bare-slug refs then stay unresolved (shortened id fallback).
+		 */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/** Widget title shown in the widget header. */
 		title: {
@@ -600,7 +611,28 @@ export default {
 			if (!prop) return null
 			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
 			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
+			// Canonical OpenRegister shorthand: `$ref: "<schemaSlug>"` on a
+			// uuid-string property (or its array items) references a schema in
+			// the SAME register. Resolve the register from the detail-page
+			// object context so the label lookup can run (ADR-062: references
+			// display the target object's NAME, never a raw uuid).
+			const ref = (typeof prop.$ref === 'string' && prop.$ref)
+				|| (prop.items && typeof prop.items.$ref === 'string' && prop.items.$ref)
+				|| ''
+			if (ref) {
+				const slug = ref.split('/').pop().replace(/\.json$/, '')
+				const reg = this.contextRegisterOf()
+				if (slug && reg) return { target: `${reg}/${slug}` }
+			}
 			return null
+		},
+
+		/** The current register from the injected detail-page object context. */
+		contextRegisterOf() {
+			const c = this.cnObjectContext
+			if (!c) return ''
+			const v = (typeof c === 'object' && 'value' in c) ? c.value : c
+			return (v && v.register) || ''
 		},
 		/** Whether a property is a relation. */
 		isRelationField(prop) {
