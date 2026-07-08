@@ -29,10 +29,15 @@
     A "Personal settings" entry is auto-prepended at the top of the
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
-    false`. The foldout mounts whenever there are settings items OR
-    personal settings is enabled — so every app shows a Settings gear
-    with at least Personal settings. It is only fully suppressed when
-    there are no settings items AND `nav.includePersonalSettings: false`.
+    false`. Right below it, an "Admin settings" entry is auto-prepended
+    for administrators only (opens the host app's SEPARATE admin-
+    settings NcAppSettingsDialog via cnOpenAdminSettings — see
+    CnAppRoot; this is where app-level, not per-user, configuration
+    such as the organisation credential broker lives). The foldout
+    mounts whenever there are settings items OR personal settings is
+    enabled — so every app shows a Settings gear with at least Personal
+    settings. It is only fully suppressed when there are no settings
+    items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -42,6 +47,8 @@
   setting `action` on the manifest entry. Supported keywords:
   `"user-settings"` invokes the `cnOpenUserSettings` provide-injected
   by CnAppRoot, which opens the host app's NcAppSettingsDialog modal;
+  `"admin-settings"` invokes `cnOpenAdminSettings`, which opens the
+  host app's admin-settings NcAppSettingsDialog;
   `"replay-walkthrough"` invokes `cnReplayWalkthrough` (optionally
   with the item's `tourId`) to re-run the product walkthrough from
   the first step (ADR-043). Both `route` and `href` are ignored when
@@ -192,6 +199,15 @@
 							<Cog :size="20" />
 						</template>
 					</NcAppNavigationItem>
+					<NcAppNavigationItem
+						v-if="isAdmin"
+						:name="adminSettingsLabel"
+						data-testid="cn-nav-admin-settings"
+						@click="onAdminSettingsClick">
+						<template #icon>
+							<ShieldAccountOutline :size="20" />
+						</template>
+					</NcAppNavigationItem>
 					<template v-for="item in settingsItems">
 						<NcAppNavigationCaption
 							v-if="isCaption(item)"
@@ -229,6 +245,7 @@
 import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import { isAppInstalled } from '../../utils/appInstalled.js'
@@ -345,6 +362,7 @@ export default {
 		NcAppNavigationSettings,
 		NcCounterBubble,
 		Cog,
+		ShieldAccountOutline,
 	},
 
 	inject: {
@@ -358,6 +376,15 @@ export default {
 		 * throwing.
 		 */
 		cnOpenUserSettings: { default: () => () => {} },
+		/**
+		 * Provided by CnAppRoot — opens the host app's admin-settings
+		 * NcAppSettingsDialog (the app-level, not per-user, surface
+		 * that hosts the organisation credential broker). Defaults to
+		 * a no-op so CnAppNav is still usable when mounted outside a
+		 * CnAppRoot ancestor; the click silently does nothing in that
+		 * case rather than throwing.
+		 */
+		cnOpenAdminSettings: { default: () => () => {} },
 		/**
 		 * Provided by CnAppRoot — restarts the product walkthrough (ADR-043)
 		 * from the first step. Bound to menu entries declaring
@@ -560,6 +587,30 @@ export default {
 		 */
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
+		},
+		/**
+		 * Whether the current user is a Nextcloud administrator. Gates the
+		 * auto-prepended "Admin settings" foldout entry — that entry opens
+		 * the app-level admin-settings dialog (organisation credential
+		 * broker and other admin-only surfaces), which non-admins should
+		 * never see the trigger for. Guarded for SSR/tests where `window`
+		 * or `OC` is unavailable.
+		 *
+		 * @return {boolean}
+		 */
+		isAdmin() {
+			return typeof window !== 'undefined'
+				&& !!window.OC
+				&& typeof window.OC.isUserAdmin === 'function'
+				&& window.OC.isUserAdmin() === true
+		},
+		/**
+		 * Label for the auto-prepended Admin-settings entry.
+		 *
+		 * @return {string}
+		 */
+		adminSettingsLabel() {
+			return t('nextcloud-vue', 'Admin settings')
 		},
 		/**
 		 * Route name of the menu item that best matches the current route.
@@ -905,7 +956,9 @@ export default {
 		 * Click handler. Dispatch order: action keyword → group toggle.
 		 * For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "replay-walkthrough"` invokes the injected
+		 * default; for `action: "admin-settings"` invokes the injected
+		 * `cnOpenAdminSettings` and prevents default; for `action:
+		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items are NOT handled here — they render a real anchor via
 		 * `itemHref`, so the browser navigates natively (external URLs open
@@ -925,6 +978,13 @@ export default {
 					event.preventDefault()
 				}
 				this.cnOpenUserSettings()
+				return
+			}
+			if (item.action === 'admin-settings') {
+				if (event && typeof event.preventDefault === 'function') {
+					event.preventDefault()
+				}
+				this.cnOpenAdminSettings()
 				return
 			}
 			if (item.action === 'replay-walkthrough') {
@@ -951,6 +1011,18 @@ export default {
 		 */
 		onPersonalSettingsClick() {
 			this.cnOpenUserSettings()
+		},
+		/**
+		 * Click handler for the auto-prepended Admin-settings entry in the
+		 * settings foldout (visible only when `isAdmin` is true). Invokes
+		 * the injected `cnOpenAdminSettings` (provided by CnAppRoot →
+		 * opens the host's admin-settings NcAppSettingsDialog). No-op
+		 * inject when mounted standalone.
+		 *
+		 * @return {void}
+		 */
+		onAdminSettingsClick() {
+			this.cnOpenAdminSettings()
 		},
 		/**
 		 * Click handler for the manifest-declared primary action. Emits

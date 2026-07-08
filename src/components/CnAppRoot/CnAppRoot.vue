@@ -29,12 +29,20 @@
   with explicit props (the props-vs-inject fallback). CnAppRoot is the
   full-shell convenience.
 
-  Hosts a single `NcAppSettingsDialog` that any descendant can open
+  Hosts a per-user `NcAppSettingsDialog` that any descendant can open
   via the injected `cnOpenUserSettings()` method. CnAppNav binds the
   inject to manifest entries with `action: "user-settings"`. Apps
   populate the modal by passing `NcAppSettingsSection`s into the
   `#user-settings` slot; the slot falls back to a single placeholder
   section when no content is supplied.
+
+  A SECOND, distinct `NcAppSettingsDialog` hosts admin-only, app-level
+  (not per-user) settings — currently the organisation credential
+  broker. Any descendant opens it via the injected
+  `cnOpenAdminSettings()` method; CnAppNav auto-prepends an "Admin
+  settings" entry (visible only to admins) that opens it, and also
+  binds manifest entries with `action: "admin-settings"`. Apps populate
+  it via the `#admin-settings` slot.
 
   See REQ-JMR-003 and REQ-JMR-013 of the json-manifest-renderer spec,
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
@@ -341,15 +349,6 @@
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
 					-->
-					<NcAppSettingsSection v-if="userSettingsOpen && isAdmin"
-						id="organisation-credentials"
-						:name="translate('Organisation credentials')">
-						<CnCredentials
-							scope="organisation"
-							:app-id="appId"
-							:app-name="appDisplayName || (manifest && manifest.name) || appId"
-							:app-credentials="(manifest && manifest.credentials) || []" />
-					</NcAppSettingsSection>
 					<NcAppSettingsSection v-if="walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
@@ -362,6 +361,49 @@
 							</template>
 							{{ restartWalkthroughLabel }}
 						</NcButton>
+					</NcAppSettingsSection>
+				</slot>
+			</NcAppSettingsDialog>
+
+			<!--
+			  Admin-settings modal. Distinct from the user-settings dialog
+			  above — this hosts APP-level (not per-user) configuration
+			  surfaces that only administrators should reach, starting with
+			  the organisation credential broker. Always mounted (like the
+			  user-settings dialog) so descendants can open it via the
+			  `cnOpenAdminSettings` inject (CnAppNav wires this to the
+			  auto-prepended "Admin settings" entry and to manifest entries
+			  with `action: "admin-settings"`). Reachability is gated by
+			  `isAdmin` in CnAppNav (the nav entry only renders for admins);
+			  the `#admin-settings` slot content below repeats the `isAdmin`
+			  check as defence-in-depth.
+			-->
+			<NcAppSettingsDialog
+				:open="adminSettingsOpen"
+				:show-navigation="true"
+				:name="resolvedAdminSettingsTitle"
+				@update:open="adminSettingsOpen = $event">
+				<!-- @slot admin-settings Sections rendered inside the host admin-settings NcAppSettingsDialog. Pass NcAppSettingsSection children. -->
+				<slot name="admin-settings">
+					<!--
+						Organisation credential broker (OpenRegister). Lets an
+						admin manage the secrets OR holds on behalf of the whole
+						organisation; apps call external providers through OR
+						without ever seeing the secret. The app's manifest
+						`credentials[]` declarations drive the informational
+						"Apps requesting credentials" list. Moved out of the
+						personal user-settings modal — organisation-scoped
+						configuration belongs on the admin surface, not a
+						per-user pane.
+					-->
+					<NcAppSettingsSection v-if="adminSettingsOpen && isAdmin"
+						id="organisation-credentials"
+						:name="translate('Organisation credentials')">
+						<CnCredentials
+							scope="organisation"
+							:app-id="appId"
+							:app-name="appDisplayName || (manifest && manifest.name) || appId"
+							:app-credentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 				</slot>
 			</NcAppSettingsDialog>
@@ -557,6 +599,19 @@ export default {
 			 */
 			cnOpenUserSettings: () => {
 				this.userSettingsOpen = true
+			},
+			/**
+			 * Open the host app's admin-settings NcAppSettingsDialog —
+			 * the app-level (not per-user) surface introduced to hold
+			 * the organisation credential broker out of the personal
+			 * settings modal. Bound to `this` so descendants don't have
+			 * to. Used by CnAppNav to dispatch the auto-prepended "Admin
+			 * settings" entry (admins only) and `action:
+			 * "admin-settings"` manifest entries; consumer apps can also
+			 * call it directly via inject for custom triggers.
+			 */
+			cnOpenAdminSettings: () => {
+				this.adminSettingsOpen = true
 			},
 			/**
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
@@ -998,6 +1053,18 @@ export default {
 			type: String,
 			default: '',
 		},
+		/**
+		 * Title rendered at the top of the admin-settings modal
+		 * (NcAppSettingsDialog `name` prop). Defaults to the
+		 * translated string "Administration"; pass a custom label
+		 * (e.g. "Pipelinq administration") to override per app.
+		 *
+		 * @type {string}
+		 */
+		adminSettingsTitle: {
+			type: String,
+			default: '',
+		},
 
 		/**
 		 * Initial active organisation UUID (multi-tenancy-context). When
@@ -1185,6 +1252,15 @@ export default {
 			 * via its `update:open` event.
 			 */
 			userSettingsOpen: false,
+			/**
+			 * Open state of the host admin-settings NcAppSettingsDialog.
+			 * Toggled to `true` by the provided `cnOpenAdminSettings()`
+			 * method (CnAppNav binds this to the auto-prepended "Admin
+			 * settings" entry and to manifest entries with `action:
+			 * "admin-settings"`); the dialog flips it back via its
+			 * `update:open` event.
+			 */
+			adminSettingsOpen: false,
 			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
 			 * null when no modal is open.
@@ -1563,6 +1639,15 @@ export default {
 		},
 		resolvedUserSettingsTitle() {
 			return this.userSettingsTitle || this.translate('User settings')
+		},
+		/**
+		 * Title for the admin-settings modal. Prop override, else the
+		 * translated "Administration". Mirrors `resolvedUserSettingsTitle`.
+		 *
+		 * @return {string}
+		 */
+		resolvedAdminSettingsTitle() {
+			return this.adminSettingsTitle || this.translate('Administration')
 		},
 		/**
 		 * Section heading for the walkthrough-replay block in user settings.
