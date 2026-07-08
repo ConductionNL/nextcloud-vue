@@ -60,17 +60,31 @@
 					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ step.task }}
 				</p>
 				<div class="cn-walkthrough__actions">
-					<NcButton ref="skipBtn" type="tertiary" @click="skip">
-						{{ skipLabel }}
-					</NcButton>
-					<span class="cn-walkthrough__spacer" />
 					<NcButton v-if="!isFirst" type="secondary" @click="back">
+						<template #icon>
+							<ChevronLeft :size="20" />
+						</template>
 						{{ backLabel }}
 					</NcButton>
-					<NcButton v-if="isHandoff" type="primary" @click="doHandoff">
+					<span class="cn-walkthrough__spacer" />
+					<NcButton v-if="isHandoff"
+						ref="firstBtn"
+						type="primary"
+						alignment="center-reverse"
+						@click="doHandoff">
+						<template #icon>
+							<ChevronRight :size="20" />
+						</template>
 						{{ handoffLabel }}
 					</NcButton>
-					<NcButton v-else-if="showNext" type="primary" @click="advance">
+					<NcButton v-else-if="showNext"
+						ref="firstBtn"
+						type="primary"
+						alignment="center-reverse"
+						@click="advance">
+						<template #icon>
+							<ChevronRight :size="20" />
+						</template>
 						{{ isLast ? finishLabel : nextLabel }}
 					</NcButton>
 				</div>
@@ -83,6 +97,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -112,7 +128,7 @@ import { useWalkthrough } from '../../composables/useWalkthrough.js'
 export default {
 	name: 'CnWalkthrough',
 
-	components: { NcButton, Close },
+	components: { NcButton, Close, ChevronLeft, ChevronRight },
 
 	props: {
 		/** The Nextcloud app id (walkthrough machine cache key). */
@@ -159,26 +175,6 @@ export default {
 			cardPlacement: 'bottom',
 			targetEl: null,
 		}
-	},
-
-	/**
-	 * Initialise non-reactive instance state (event handler refs, DOM observer
-	 * handles). These use the `_` prefix convention and are set here rather than
-	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
-	 *
-	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
-	 */
-	created() {
-		// Non-reactive instance state: event handlers and DOM watchers.
-		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
-		this._revealAttempted = false
-		this._observer = null
-		this._resizeObs = null
-		this._delayTimer = null
-		this._onScroll = null
-		this._onKey = null
-		this._onObjectCreated = null
-		this._routeUnhook = null
 	},
 
 	computed: {
@@ -291,6 +287,26 @@ export default {
 				this.teardownStep()
 			}
 		},
+	},
+
+	/**
+	 * Initialise non-reactive instance state (event handler refs, DOM observer
+	 * handles). These use the `_` prefix convention and are set here rather than
+	 * in `data()` to avoid Vue's reserved-key warning for `_`-prefixed fields.
+	 *
+	 * @spec openspec/changes/cn-walkthrough-engine/specs/cn-walkthrough/spec.md
+	 */
+	created() {
+		// Non-reactive instance state: event handlers and DOM watchers.
+		// Not in data() to avoid triggering Vue's reserved-key warning (_prefix).
+		this._revealAttempted = false
+		this._observer = null
+		this._resizeObs = null
+		this._delayTimer = null
+		this._onScroll = null
+		this._onKey = null
+		this._onObjectCreated = null
+		this._routeUnhook = null
 	},
 
 	mounted() {
@@ -523,7 +539,7 @@ export default {
 		 */
 		focusCard() {
 			this.$nextTick(() => {
-				const btn = this.$refs.skipBtn && this.$refs.skipBtn.$el
+				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
 				if (btn && typeof btn.focus === 'function') btn.focus()
 			})
 		},
@@ -718,9 +734,13 @@ export default {
 }
 
 .cn-walkthrough__close {
-	position: absolute;
+	/* !important beats NcButton's own `position: relative`, which would otherwise
+	   leave the close button in-flow at the card's top-left. */
+	position: absolute !important;
 	top: 8px;
 	inset-inline-end: 8px;
+	inset-inline-start: auto;
+	z-index: 1;
 }
 
 .cn-walkthrough__counter {
