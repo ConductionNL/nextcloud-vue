@@ -193,10 +193,38 @@
 	overflow: auto;
 }
 
+/* dashboard.css draws a square cell border + background around any grid cell
+   holding a CnWidgetWrapper — a DASHBOARD look. On detail pages the widget's
+   own rounded card (ADR-062) is the only chrome; the square cell outline
+   showed as a stray gray line behind the rounded corners. The doubled class
+   outranks the dashboard rule at equal source order. */
+.cn-dashboard-grid.cn-detail-page__grid .grid-stack-item-content:has(.cn-widget-wrapper) {
+	border: none;
+	background: transparent;
+	box-shadow: none;
+}
+
 .cn-detail-page__grid-item {
 	min-width: 0;
 	height: 100%;
 	position: relative;
+}
+
+/* Content-only catalog widgets (object-list / table) rendered on the
+   CnWidgetWrapper card chrome (ADR-062). The wrapper fills its grid cell so
+   the widget can fit its row count to the cell height, and the table region
+   flexes between the card header and the view-all footer. */
+.cn-detail-page__catalog-card {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.cn-detail-page__catalog-card .cn-widget-wrapper__content {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 /* OpenBuild in-app edit cog (ADR-041), shown over a configurable widget

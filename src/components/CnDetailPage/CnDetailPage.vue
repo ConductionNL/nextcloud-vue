@@ -309,11 +309,14 @@
 							<CnObjectDataWidget
 								v-if="isDataWidget(item) && currentSchema"
 								:title="findWidget(item).title || widgetContentFor(item).title || undefined"
+								:icon="findWidget(item).icon || null"
 								:schema="currentSchema"
 								:object-data="currentObject"
 								:object-type="resolvedObjectType"
 								:store="effectiveObjectStore"
 								:overrides="widgetContentFor(item).overrides || {}"
+								:include="widgetContentFor(item).include || null"
+								:exclude="widgetContentFor(item).exclude || []"
 								:columns="widgetContentFor(item).columns || 3" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
@@ -337,10 +340,38 @@
 								:is="resolveIntegrationWidget(item)"
 								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 								v-bind="getIntegrationProps(item)" />
+							<!-- Content-only catalog widgets (object-list / table)
+							     render bare tables, so give them the titled
+							     CnWidgetWrapper card chrome (ADR-062: every body
+							     widget has chrome + its manifest title). -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
+								:title="findWidget(item).title || ''"
+								title-icon-position="left"
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__catalog-card">
+								<template v-if="findWidget(item).icon" #title-icon>
+									<CnIcon :name="findWidget(item).icon" :size="20" />
+								</template>
+								<template v-if="catalogAddEnabled(item)" #action-items>
+									<NcActionButton @click="invokeCatalogAdd(item)">
+										<template #icon>
+											<Plus :size="20" />
+										</template>
+										{{ t('nextcloud-vue', 'Add') }}
+									</NcActionButton>
+								</template>
+								<component
+									:is="registryRendererFor(item)"
+									:ref="'catalog-' + item.widgetId"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
-							     (stat / chart / delta / gauge / object-list / …):
-							     render the registered renderer with the def's
-							     `content`. These self-fetch from OpenRegister. -->
+							     (stat / chart / delta / gauge / …): render the
+							     registered renderer with the def's `content`.
+							     These self-fetch from OpenRegister. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
@@ -512,7 +543,7 @@
 <script>
 import { provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -524,6 +555,7 @@ import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
@@ -621,6 +653,7 @@ export default {
 	name: 'CnDetailPage',
 
 	components: {
+		NcActionButton,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
@@ -634,6 +667,7 @@ export default {
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
 		CnDashboardGrid,
+		CnWidgetWrapper,
 		CnLifecycleActions,
 		CnActionButtons,
 		CnSummaryAggregates,
@@ -1710,6 +1744,11 @@ export default {
 		// `effectiveObjectStore` relies on a live Pinia context, which
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
+		this.scheduleCellOverflowAudit()
+	},
+
+	updated() {
+		this.scheduleCellOverflowAudit()
 	},
 
 	beforeDestroy() {
@@ -1981,6 +2020,82 @@ export default {
 		isRelatedWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether a grid item is a content-only catalog widget (a bare table
+		 * renderer with no chrome of its own). These get the titled
+		 * CnWidgetWrapper card in the grid (ADR-062); self-chromed catalog
+		 * widgets (stat / chart / gauge / tile / …) render bare.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's type is content-only.
+		 */
+		isContentOnlyWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+		},
+
+		/**
+		 * Whether a catalog list widget offers the Add action (ADR-062:
+		 * collections carry their create affordance in the card's Actions
+		 * menu AND as the widget's own footer button). On by default for
+		 * object-list/table; opt out via `content.allowCreate: false`.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		catalogAddEnabled(item) {
+			if (!this.isContentOnlyWidget(item)) return false
+			return this.widgetContentFor(item).allowCreate !== false
+		},
+
+		/**
+		 * Actions-menu "Add" entry: delegate to the rendered list widget's
+		 * public `openCreate()` (the same dialog its footer button opens).
+		 *
+		 * @param {object} item Layout item.
+		 * @return {void}
+		 */
+		invokeCatalogAdd(item) {
+			const r = this.$refs['catalog-' + item.widgetId]
+			const w = Array.isArray(r) ? r[0] : r
+			if (w && typeof w.openCreate === 'function') w.openCreate()
+		},
+
+		/**
+		 * Debounced dev-mode audit: warn when a grid widget's rendered content
+		 * overflows its fixed cell (ADR-062 — the cell is the budget; overflow
+		 * is a design bug, never a scroll surface). No-op in production builds.
+		 *
+		 * @return {void}
+		 */
+		scheduleCellOverflowAudit() {
+			if (process.env.NODE_ENV === 'production') return
+			clearTimeout(this._cellAuditTimer)
+			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
+		},
+
+		/**
+		 * Measure every grid cell and console.warn the widget ids whose content
+		 * is taller than the cell. Dev aid only — called via
+		 * {@link scheduleCellOverflowAudit}.
+		 *
+		 * @return {void}
+		 */
+		auditCellOverflow() {
+			if (!this.$el || !this.$el.querySelectorAll) return
+			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
+				const content = cell.querySelector('.grid-stack-item-content')
+				if (!content) return
+				if (content.scrollHeight > content.clientHeight + 8) {
+					const inner = cell.querySelector('.cn-detail-page__grid-item')
+					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDetailPage] widget cell ${label || '(unlabelled)'} content overflows its gridHeight `
+						+ `(${content.scrollHeight}px in ${content.clientHeight}px) — enlarge the cell or scope the widget's content (ADR-062).`)
+				}
+			})
 		},
 
 		/**
