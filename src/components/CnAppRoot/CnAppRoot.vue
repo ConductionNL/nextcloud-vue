@@ -331,7 +331,9 @@
 						id="credentials"
 						:name="translate('Credentials')">
 						<CnCredentials
+							scope="personal"
 							:app-id="appId"
+							:app-name="appDisplayName || (manifest && manifest.name) || appId"
 							:app-credentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
