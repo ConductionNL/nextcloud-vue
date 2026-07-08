@@ -1255,6 +1255,11 @@ export default {
 		 * @return {boolean} True when the signed-in user is an admin.
 		 */
 		isAdmin() {
+			// getCurrentUser() does not carry the admin flag on all builds;
+			// OC.isUserAdmin() is the reliable signal. Guarded for SSR/tests.
+			if (typeof window !== 'undefined' && window.OC && typeof window.OC.isUserAdmin === 'function') {
+				return window.OC.isUserAdmin() === true
+			}
 			const user = getCurrentUser()
 			return !!(user && user.isAdmin)
 		},
