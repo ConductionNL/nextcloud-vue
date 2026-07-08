@@ -139,3 +139,38 @@ state (still shown, never editable). Both are honoured by `isEditable`; a
 per-field `overrides[key].editable` still takes priority. Read-only here is a UI
 affordance — pair it with server-side enforcement (an OpenRegister write guard /
 listener) for the authoritative boundary.
+
+## Reference (relation) display
+
+Relation properties display the referenced object's **name, never its raw
+uuid** (ADR-062). Two property shapes are recognised:
+
+- `x-openregister-relation: { target: "<register>/<schema>" }` (explicit,
+  works on every surface), and
+- the canonical OpenRegister shorthand `"$ref": "<schemaSlug>"` on a
+  uuid-string property or its array `items` — the slug resolves against the
+  **same register**, taken from the detail-page object context
+  (`cnObjectContext` inject). On surfaces without that context the shorthand
+  falls back to the shortened-id display.
+
+Names resolve via one `GET /api/objects/{register}/{schema}/{id}` per distinct
+id (cached per widget instance): `name` → `title` → `displayName` →
+`firstName lastName` → `@self.name` → the id itself.
+
+### Scoping picker options: `x-relation-filter`
+
+A relation property may declare `x-relation-filter` to narrow its edit-picker
+options to objects that fit the CURRENT object:
+
+```json
+"status": {
+  "type": "string", "format": "uuid", "$ref": "statusType",
+  "x-relation-filter": { "caseType": "@object.caseType" }
+}
+```
+
+Filter values are token-resolved (`@objectId` / `@object.<field>`), with the
+widget's **dirty values winning** — picking a new caseType immediately scopes
+the status options to it, before any save. Entries whose token stays
+unresolved are dropped (an unfiltered picker beats an empty one). Options
+reload on every edit start for the same reason.

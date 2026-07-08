@@ -30,8 +30,8 @@
 				:variant="view.entry.variant || 'default'"
 				:show-zero-count="showZeroCount"
 				:horizontal="horizontal"
-				:clickable="!!view.entry.route"
-				:route="view.entry.route || null" />
+				:clickable="!!view.route"
+				:route="view.route || null" />
 		</template>
 
 		<!-- Single-source mode (pre-existing interface, unchanged). -->
@@ -310,6 +310,11 @@ export default {
 						count: resolved ? raw : 0,
 						loading: !!this.entryFetching[i],
 						resolved,
+						// Token-resolve the deep link the same way entry.filter
+						// is resolved — `route.query: { case: "@objectId" }` must
+						// land on the target pre-scoped, never as a literal token
+						// (ADR-062; parity with object-list's viewAllQuery).
+						route: this.resolveEntryRoute(entry && entry.route),
 					}
 				})
 				.filter((view) => !(view.entry.hideWhenZero && view.resolved && view.count === 0))
@@ -383,6 +388,30 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * An entry's `route` deep link with `@`-tokens in `query` / `params`
+		 * resolved against `tokenCtx` (same treatment as `entry.filter`), so
+		 * a KPI card can deep-link to an index pre-scoped to the current
+		 * object. Unresolved optional query clauses are dropped; a route
+		 * whose query still carries a REQUIRED unresolved token is returned
+		 * without that query entry resolution left as-is (router will show
+		 * the unfiltered index rather than a broken literal-token filter).
+		 *
+		 * @param {object|string|null} route The entry's route location.
+		 * @return {object|string|null} The token-resolved route.
+		 */
+		resolveEntryRoute(route) {
+			if (!route || typeof route !== 'object') return route || null
+			const out = { ...route }
+			if (out.query && typeof out.query === 'object') {
+				out.query = dropOptionalUnresolved(resolveFilterTokens(out.query, this.tokenCtx))
+			}
+			if (out.params && typeof out.params === 'object') {
+				out.params = resolveFilterTokens(out.params, this.tokenCtx)
+			}
+			return out
+		},
+
 		/**
 		 * An entry's filter with every @-token resolved against `tokenCtx`
 		 * and UNRESOLVED OPTIONAL clauses (`@workspace.<key>?`) dropped.

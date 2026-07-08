@@ -11,6 +11,8 @@ module.exports = {
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
 		'\\.(css)$': 'jest-transform-stub',
+		'^@toast-ui/vue-editor$': '<rootDir>/tests/__mocks__/toast-ui-vue-editor.js',
+		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',

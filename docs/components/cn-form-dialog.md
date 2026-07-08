@@ -56,6 +56,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
+| `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
 
 ## Events
 

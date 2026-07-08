@@ -13,8 +13,11 @@
 		:title="title"
 		:widget-id="widgetId || objectType"
 		:documentation-url="documentationUrl"
-		:title-icon-position="iconComponent ? 'left' : 'right'">
-		<template v-if="iconComponent" #title-icon>
+		:title-icon-position="(iconComponent || iconName) ? 'left' : 'right'">
+		<template v-if="iconName" #title-icon>
+			<CnIcon :name="iconName" :size="20" />
+		</template>
+		<template v-else-if="iconComponent" #title-icon>
 			<component :is="iconComponent" :size="20" />
 		</template>
 		<template #actions>
@@ -125,6 +128,22 @@
 							rows="4"
 							@input="updateField(field.key, $event.target.value)"
 							@keydown.escape="cancelEdit" />
+
+						<!-- Relation ($ref / x-openregister-relation): pick the
+						     referenced object by NAME — the raw uuid is never a
+						     user-facing value (ADR-062). Options load from the
+						     target schema on edit start. Array relations keep
+						     their generic editor for now. -->
+						<NcSelect
+							v-else-if="isSingleRelationField(field.key)"
+							ref="activeEditor"
+							:options="relationOptions[field.key] || []"
+							:value="relationSelectedOption(field)"
+							:loading="relationOptionsLoading"
+							label="label"
+							:clearable="!field.required"
+							@input="onRelationChange(field, $event)"
+							@close="commitEdit" />
 
 						<!-- Select -->
 						<NcSelect
@@ -239,7 +258,14 @@
 						<img v-if="isImageField(field) && rawOf(field)"
 							:src="rawOf(field)"
 							:alt="field.label"
-							class="cn-object-data-widget__image"><template v-else>{{ displayValues[field.key] }}</template>
+							class="cn-object-data-widget__image">
+						<!-- Relation name still resolving: a quiet skeleton bar,
+						     never a raw uuid or a bare '…' (ADR-062). -->
+						<span
+							v-else-if="isRelationPending(field)"
+							class="cn-object-data-widget__skeleton"
+							:aria-label="t('nextcloud-vue', 'Loading')" />
+						<template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -275,6 +301,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
@@ -283,6 +310,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { useObjectStore } from '../../store/index.js'
@@ -322,6 +350,7 @@ export default {
 	name: 'CnObjectDataWidget',
 
 	components: {
+		CnIcon,
 		NcButton,
 		NcLoadingIcon,
 		NcTextField,
@@ -338,6 +367,17 @@ export default {
 		Close,
 	},
 
+	inject: {
+		/**
+		 * Detail-page object context (`{ objectId, register, schema }`) provided
+		 * by CnDetailPage. Supplies the register that bare-slug `$ref` relation
+		 * properties resolve against (an OpenRegister `$ref: "caseType"` means
+		 * "schema caseType in the SAME register"). Null on other surfaces —
+		 * bare-slug refs then stay unresolved (shortened id fallback).
+		 */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/** Widget title shown in the widget header. */
 		title: {
@@ -346,7 +386,7 @@ export default {
 		},
 		/** Optional MDI icon component for the header. */
 		icon: {
-			type: [Object, Function],
+			type: [Object, Function, String],
 			default: null,
 		},
 		/**
@@ -491,6 +531,10 @@ export default {
 			saving: false,
 			/** Resolved display labels for related-object fields, keyed by field key */
 			relatedLabels: {},
+			/** Name-labeled picker options per relation field key ({ id, label }[]). */
+			relationOptions: {},
+			/** Whether relation picker options are being fetched. */
+			relationOptionsLoading: false,
 		}
 	},
 
@@ -498,7 +542,12 @@ export default {
 
 	computed: {
 		iconComponent() {
-			return this.icon
+			return (this.icon && typeof this.icon !== 'string') ? this.icon : null
+		},
+
+		/** MDI icon NAME (String form of `icon`) — rendered via CnIcon. */
+		iconName() {
+			return typeof this.icon === 'string' ? this.icon : ''
 		},
 
 		/**
@@ -582,6 +631,9 @@ export default {
 	},
 
 	methods: {
+		/** Pre-translated string helper exposed to the template. */
+		t,
+
 		/** Raw (possibly dirty) value for a field. */
 		rawOf(field) {
 			const o = this.objectData || {}
@@ -600,45 +652,193 @@ export default {
 			if (!prop) return null
 			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
 			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
+			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
+			// property (or its array items) references a schema in the SAME
+			// register. Authored as a slug ("caseType"), but the live schema
+			// API serves it REWRITTEN to the numeric schema id (e.g. 85) —
+			// accept both; the objects API resolves either in its path.
+			// Register comes from the detail-page object context (ADR-062:
+			// references display the target object's NAME, never a raw uuid).
+			const rawRef = prop.$ref != null ? prop.$ref : (prop.items ? prop.items.$ref : null)
+			if (rawRef != null && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
+				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const reg = this.contextRegisterOf()
+				if (slug && reg) return { target: `${reg}/${slug}` }
+			}
 			return null
+		},
+
+		/** The current register from the injected detail-page object context. */
+		contextRegisterOf() {
+			const c = this.cnObjectContext
+			if (!c) return ''
+			const v = (typeof c === 'object' && 'value' in c) ? c.value : c
+			return (v && v.register) || ''
 		},
 		/** Whether a property is a relation. */
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
 		},
-		/** Display label(s) for a relation value, using resolved names. */
+		/**
+		 * Display label(s) for a relation value, using resolved names. While a
+		 * name lookup is still in flight the placeholder '…' shows — a raw
+		 * uuid must never flash before the name arrives (ADR-062). Failed
+		 * lookups land in relatedLabels as the id itself (terminal fallback).
+		 * @param {string|Array} raw The relation value(s).
+		 * @return {string} Resolved name(s), '…' while loading.
+		 */
 		relationLabel(raw) {
-			const one = (v) => this.relatedLabels[v] || (typeof v === 'string' && v.length > 12 ? (v.slice(0, 8) + '…') : String(v))
+			const one = (v) => this.relatedLabels[v] || '…'
 			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)
+		},
+
+		/**
+		 * Whether a relation field's display name(s) are still being fetched
+		 * (drives the skeleton placeholder in the display cell).
+		 * @param {object} field Resolved field definition.
+		 * @return {boolean}
+		 */
+		isRelationPending(field) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (!prop || this.relationProp(prop) === null) return false
+			const raw = (this.objectData || {})[field.key]
+			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+			return ids.some((id) => id && !(id in this.relatedLabels))
+		},
+
+		/**
+		 * Whether a field is a SINGLE-VALUE relation (edited through the
+		 * name-labeled object picker). Array relations keep the generic
+		 * editor for now.
+		 * @param {string} key Schema property key.
+		 * @return {boolean}
+		 */
+		isSingleRelationField(key) {
+			const prop = ((this.schema && this.schema.properties) || {})[key]
+			if (!prop || prop.type === 'array') return false
+			return this.relationProp(prop) !== null
+		},
+
+		/**
+		 * Best display name for a referenced object.
+		 * @param {object} obj The fetched object.
+		 * @param {string} id Fallback id.
+		 * @return {string}
+		 */
+		objectDisplayName(obj, id) {
+			const self = (obj && obj['@self']) || {}
+			let name = obj.name || obj.title || obj.displayName
+			if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+			if (!name && self.name && self.name !== id) name = self.name
+			return name || id
+		},
+
+		/**
+		 * Load the picker options for a relation field from its target schema
+		 * (first 200 objects, labeled by display name).
+		 * @param {string} key Schema property key.
+		 * @return {Promise<void>}
+		 */
+		async loadRelationOptions(key) {
+			const prop = ((this.schema && this.schema.properties) || {})[key]
+			const rel = this.relationProp(prop)
+			if (!rel) return
+			const parts = String(rel.target || '').split('/')
+			if (parts.length < 2) return
+			this.relationOptionsLoading = true
+			try {
+				const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}', { reg: parts[0], sch: parts[1] })
+				const params = { _limit: 200 }
+				// Declarative option scoping: `x-relation-filter` on the schema
+				// property narrows the picker to objects that fit THIS object —
+				// e.g. case.status: { "caseType": "@object.caseType" } offers
+				// only the statuses of the case's own type. Values are
+				// token-resolved (@objectId / @object.<field>); entries whose
+				// token stays unresolved are dropped (unfiltered beats empty).
+				const rawFilter = prop['x-relation-filter']
+				if (rawFilter && typeof rawFilter === 'object') {
+					// Dirty values win: picking a new caseType must immediately
+					// scope the status options to it, before any save.
+					const objData = { ...(this.objectData || {}), ...this.dirtyFields }
+					const ctx = { objectId: ((this.objectData || {})['@self'] && (this.objectData || {})['@self'].id) || (this.objectData || {}).id, object: objData }
+					const filter = resolveFilterTokens(rawFilter, ctx)
+					for (const [fk, fv] of Object.entries(filter)) {
+						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (fv && typeof fv === 'object') {
+							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+						} else if (fv !== '' && fv !== null && fv !== undefined) {
+							params[fk] = fv
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
+				const rows = (res && res.data && res.data.results) || []
+				const opts = rows.map((o) => {
+					const id = (o['@self'] && o['@self'].id) || o.id
+					return { id, label: this.objectDisplayName(o, id) }
+				}).filter((o) => o.id)
+				this.$set(this.relationOptions, key, opts)
+				// Cache the labels so display resolution reuses them.
+				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.$set(this.relatedLabels, o.id, o.label) })
+			} catch (e) {
+				this.$set(this.relationOptions, key, [])
+			} finally {
+				this.relationOptionsLoading = false
+			}
+		},
+
+		/**
+		 * The currently selected picker option for a relation field.
+		 * @param {object} field Field descriptor.
+		 * @return {object|null} `{ id, label }` or null when unset.
+		 */
+		relationSelectedOption(field) {
+			const v = this.editData[field.key]
+			if (!v) return null
+			return { id: v, label: this.relatedLabels[v] || String(v) }
+		},
+
+		/**
+		 * Apply a relation picker choice: store the referenced object's ID
+		 * (the persisted value stays a uuid; only the display is a name).
+		 * @param {object} field Field descriptor.
+		 * @param {object|null} opt Chosen option or null (cleared).
+		 */
+		onRelationChange(field, opt) {
+			if (opt && opt.id) this.$set(this.relatedLabels, opt.id, opt.label)
+			this.updateField(field.key, opt ? opt.id : null)
 		},
 		/** Fetch related objects' display names into relatedLabels. */
 		async resolveRelations() {
+			// Collect every unresolved (target, id) pair first, then fetch them
+			// ALL in parallel — sequential lookups made names trail the page by
+			// seconds, leaving confusing placeholder values (ADR-062: names
+			// must arrive with the page, uuids never show).
 			const props = (this.schema && this.schema.properties) || {}
+			const jobs = []
 			for (const key of Object.keys(props)) {
 				const rel = this.relationProp(props[key])
 				if (!rel) continue
 				const parts = String(rel.target || '').split('/')
 				if (parts.length < 2) continue
-				const reg = parts[0]; const sch = parts[1]
 				const raw = (this.objectData || {})[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
-					if (!id || (id in this.relatedLabels)) continue
-					try {
-						const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
-						const res = await axios.get(url)
-						const d = (res && res.data) ? res.data : {}
-						const obj = (d.results && d.results[0]) ? d.results[0] : d
-						const self = obj['@self'] || {}
-						let name = obj.name || obj.title || obj.displayName
-						if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
-						if (!name && self.name && self.name !== id) name = self.name
-						this.$set(this.relatedLabels, id, name || id)
-					} catch (e) {
-						this.$set(this.relatedLabels, id, id)
-					}
+					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) continue
+					jobs.push({ reg: parts[0], sch: parts[1], id })
 				}
 			}
+			await Promise.all(jobs.map(async ({ reg, sch, id }) => {
+				try {
+					const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
+					const res = await axios.get(url)
+					const d = (res && res.data) ? res.data : {}
+					const obj = (d.results && d.results[0]) ? d.results[0] : d
+					this.$set(this.relatedLabels, id, this.objectDisplayName(obj, id))
+				} catch (e) {
+					this.$set(this.relatedLabels, id, id)
+				}
+			}))
 		},
 		/**
 		 * Check if a field is editable.
@@ -697,6 +897,14 @@ export default {
 				: (this.objectData || {})[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
+			// Relation fields edit through a name-labeled object picker.
+			// Options reload on every edit start: an `x-relation-filter` can
+			// depend on the object's CURRENT values (e.g. status options scoped
+			// to the just-changed caseType), so a per-field cache would serve
+			// stale sets.
+			if (this.isSingleRelationField(field.key)) {
+				this.loadRelationOptions(field.key)
+			}
 
 			this.$nextTick(() => {
 				// Focus the editor
@@ -938,6 +1146,26 @@ export default {
 	max-height: 160px;
 	border-radius: 8px;
 	object-fit: cover;
+}
+
+/* Shimmering placeholder while a relation's display name resolves. */
+.cn-object-data-widget__skeleton {
+	display: inline-block;
+	width: 90px;
+	height: 1em;
+	border-radius: 4px;
+	background: linear-gradient(90deg, var(--color-background-dark) 25%, var(--color-background-hover) 50%, var(--color-background-dark) 75%);
+	background-size: 200% 100%;
+	animation: cn-odw-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes cn-odw-shimmer {
+	from { background-position: 200% 0; }
+	to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-object-data-widget__skeleton { animation: none; }
 }
 
 .cn-object-data-widget__grid {

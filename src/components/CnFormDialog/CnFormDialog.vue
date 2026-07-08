@@ -303,6 +303,27 @@
 							</span>
 						</div>
 
+						<!-- Icon (widget: 'icon'): renders CnIconPicker, forwarding the field's icon config -->
+						<div v-else-if="field.widget === 'icon'" class="cn-form-dialog__icon-wrapper">
+							<label :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+								{{ field.label }}{{ field.required ? ' *' : '' }}
+							</label>
+							<CnIconPicker
+								:value="formData[field.key] != null ? String(formData[field.key]) : null"
+								:sources="field.iconSources || ['mdi']"
+								:catalogues="field.catalogues || {}"
+								:searchable="field.searchable !== false"
+								:allow-custom-svg="!!field.allowCustomSvg"
+								:clearable="!field.required"
+								@input="value => updateField(field.key, value)" />
+							<span
+								v-if="errors[field.key] || field.description"
+								class="cn-form-dialog__helper"
+								:class="{ 'cn-form-dialog__helper--error': errors[field.key] }">
+								{{ errors[field.key] || field.description }}
+							</span>
+						</div>
+
 						<!-- Fallback: text input -->
 						<NcTextField
 							v-else
@@ -346,6 +367,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcDialog, NcLo
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
@@ -418,6 +440,13 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * - `widget: 'code'` — Stores the raw string. Optional `field.language` chooses
  *   syntax highlighting (`'json'|'xml'|'html'|'text'|'auto'`, default `'auto'`).
  *
+ * ## Icon field
+ *
+ * - `widget: 'icon'` — Renders a `CnIconPicker`. Optional field config forwards to
+ *   the picker: `iconSources` (→ `sources`, default `['mdi']`), `catalogues`,
+ *   `searchable` (default on), and `allowCustomSvg`. formData holds the selected
+ *   icon value (registry key, source value, URL, or raw SVG).
+ *
  * The dialog does NOT perform the save itself — it emits a `confirm` event
  * with the form data. The parent performs the actual API call and calls
  * `setResult()` via a ref.
@@ -485,6 +514,7 @@ export default {
 		NcDateTimePickerNative,
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
+		CnIconPicker,
 		Plus,
 		ContentSaveOutline,
 	},
