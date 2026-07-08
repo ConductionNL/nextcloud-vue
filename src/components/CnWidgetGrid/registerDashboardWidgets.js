@@ -99,6 +99,28 @@ registerDashboardWidget('table', {
 	icon: 'ClipboardList',
 })
 
+// `object-list` MUST be registered inline here, not only via the bare
+// `import '../CnObjectListWidget/index.js'` side effect above: package.json
+// declares `sideEffects: ["**/*.css"]` (ADR-061 tree-shaking), which lets
+// rollup/webpack legally DROP bare imports of side-effect-free JS modules —
+// the dist bundle shipped without the object-list registration and every
+// manifest `type:"object-list"` widget rendered blank. Inline calls in this
+// module survive because consumers import live bindings from the registry.
+registerDashboardWidget('object-list', {
+	renderer: CnObjectListWidget2,
+	form: CnObjectListWidgetForm2,
+	defaultContent: {
+		register: '',
+		schema: '',
+		filter: {},
+		sort: { field: '', dir: 'asc' },
+		limit: 25,
+		columns: [{ key: 'title', label: 'Title' }],
+	},
+	displayName: 'Object list',
+	icon: 'ClipboardList',
+})
+
 registerDashboardWidget('related', {
 	renderer: CnRelatedObjectsWidget,
 	form: CnRelatedObjectsWidgetForm,
