@@ -56,6 +56,20 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await expect(page.getByTestId('icon-value')).toContainText('mdi')
 	})
 
+	test('source switcher shows tabs and swaps the grid per source', async ({ page }) => {
+		const sec = enriched(page)
+		const sources = sec.locator('.cn-icon-picker__sources')
+		await expect(sources.locator('button', { hasText: 'Material' })).toBeVisible()
+		await expect(sources.locator('button', { hasText: 'FontAwesome' })).toBeVisible()
+		await expect(sources.locator('button', { hasText: 'OpenGemeenten' })).toBeVisible()
+
+		await sources.locator('button', { hasText: 'FontAwesome' }).click()
+		await expect(sec.locator('.cn-icon-picker__icon[aria-label="House"]')).toBeVisible()
+
+		await sources.locator('button', { hasText: 'OpenGemeenten' }).click()
+		await expect(sec.locator('.cn-icon-picker__icon[aria-label="Paspoort"]')).toBeVisible()
+	})
+
 	test('placement toggle emits update:placement', async ({ page }) => {
 		const sec = enriched(page)
 		await expect(page.getByTestId('icon-placement')).toHaveText('left')
