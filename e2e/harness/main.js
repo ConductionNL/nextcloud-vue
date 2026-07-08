@@ -7,6 +7,9 @@
  * demo App.
  */
 import Vue from 'vue'
+// Nextcloud CSS custom properties so the harness reflects real theming
+// (the library styles everything with var(--color-*) tokens).
+import '../../styleguide/nextcloud-tokens.css'
 import App from './App.vue'
 
 // Minimal l10n shims so library components that call the global `t`/`n` render.
