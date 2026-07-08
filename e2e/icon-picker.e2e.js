@@ -83,6 +83,25 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		await expect(sec.locator('.cn-icon-picker__custom')).toBeVisible()
 		await expect(sec.locator('.cn-icon-picker__format')).toBeVisible()
 	})
+
+	test('custom-SVG round-trip: typed SVG emits via v-model, Format pretty-prints it', async ({ page }) => {
+		const sec = enriched(page)
+		await sec.locator('.cn-icon-picker__sources button', { hasText: 'Custom' }).click()
+		const editor = sec.locator('.cn-icon-picker__custom .cm-content')
+		await expect(editor).toBeVisible()
+		// insertText (not per-char typing) avoids CodeMirror's XML auto-close.
+		await editor.click()
+		await page.keyboard.press('ControlOrMeta+a')
+		await page.keyboard.insertText('<svg viewBox="0 0 24 24"><path d="M1 2 3 4"/></svg>')
+		// Raw SVG flows to v-model.
+		await expect(page.getByTestId('icon-value')).toContainText('<svg')
+		// Format pretty-prints it (indented, one node per line).
+		await sec.locator('.cn-icon-picker__format').click()
+		const value = await page.getByTestId('icon-value').textContent()
+		expect(value).toContain('<svg')
+		expect(value).toContain('<path')
+		expect(value.split('\n').length).toBeGreaterThan(1)
+	})
 })
 
 test.describe('CnIconPicker — legacy (real browser)', () => {
