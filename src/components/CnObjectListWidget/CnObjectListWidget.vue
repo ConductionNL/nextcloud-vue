@@ -24,14 +24,19 @@
 					@row-click="onRowClick" />
 			</div>
 			<!-- Fit-to-cell footer (ADR-062: the cell is the budget — rows adapt
-			     to the cell, the remainder is one click away, never a scrollbar). -->
+			     to the cell, the remainder is one click away, never a scrollbar).
+			     A navigating button when `viewAllRoute` is configured; a quiet
+			     "+N more" line otherwise. -->
 			<button
-				v-if="hiddenCount > 0"
+				v-if="hiddenCount > 0 && content.viewAllRoute"
 				type="button"
 				class="cn-object-list-widget__view-all"
 				@click="onViewAll">
 				{{ viewAllLabel }}
 			</button>
+			<p v-else-if="hiddenCount > 0" class="cn-object-list-widget__more">
+				{{ moreLabel }}
+			</p>
 		</template>
 		<p v-if="error" class="cn-object-list-widget__error">
 			{{ error }}
@@ -226,6 +231,10 @@ export default {
 		/** Pre-translated "View all (N)" footer label. */
 		viewAllLabel() {
 			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
+		},
+		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
+		moreLabel() {
+			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
 		},
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
@@ -446,6 +455,13 @@ export default {
 .cn-object-list-widget__view-all:hover,
 .cn-object-list-widget__view-all:focus-visible {
 	text-decoration: underline;
+}
+
+.cn-object-list-widget__more {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	margin: 4px 0 0;
+	padding: 4px;
 }
 
 .cn-object-list-widget__error {
