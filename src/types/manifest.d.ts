@@ -299,4 +299,23 @@ export interface TManifest {
 	 * OpenRegister's ManifestController — never hand-authored.
 	 */
 	runtime?: Record<string, unknown>
+	/**
+	 * Entity-scaffold page templates (manifest-entity-scaffold-templating).
+	 * A template declares one reusable index/detail page shape with
+	 * `{{param}}` placeholders; `utils/expandPageTemplates` materialises
+	 * `pageInstances[]` into concrete `pages[]`. See the `pageTemplate` $def
+	 * in the v2 schema for the full shape.
+	 */
+	pageTemplates?: Record<string, unknown>[]
+	/**
+	 * Per-entity template instantiations — each references a
+	 * `pageTemplates[]` entry by `templateRef` and supplies the varying
+	 * values. See the v2 schema `pageInstance` $def.
+	 */
+	pageInstances?: Record<string, unknown>[]
+	/**
+	 * Named, reusable field/column/sidebar sets referenced from templates
+	 * via `{{set:NAME}}` placeholders. Each value is arbitrary JSON.
+	 */
+	sets?: Record<string, unknown>
 }
