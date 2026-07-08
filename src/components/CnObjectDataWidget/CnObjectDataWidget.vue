@@ -611,16 +611,16 @@ export default {
 			if (!prop) return null
 			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
 			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
-			// Canonical OpenRegister shorthand: `$ref: "<schemaSlug>"` on a
-			// uuid-string property (or its array items) references a schema in
-			// the SAME register. Resolve the register from the detail-page
-			// object context so the label lookup can run (ADR-062: references
-			// display the target object's NAME, never a raw uuid).
-			const ref = (typeof prop.$ref === 'string' && prop.$ref)
-				|| (prop.items && typeof prop.items.$ref === 'string' && prop.items.$ref)
-				|| ''
-			if (ref) {
-				const slug = ref.split('/').pop().replace(/\.json$/, '')
+			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
+			// property (or its array items) references a schema in the SAME
+			// register. Authored as a slug ("caseType"), but the live schema
+			// API serves it REWRITTEN to the numeric schema id (e.g. 85) —
+			// accept both; the objects API resolves either in its path.
+			// Register comes from the detail-page object context (ADR-062:
+			// references display the target object's NAME, never a raw uuid).
+			const rawRef = prop.$ref != null ? prop.$ref : (prop.items ? prop.items.$ref : null)
+			if (rawRef != null && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
+				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
 				const reg = this.contextRegisterOf()
 				if (slug && reg) return { target: `${reg}/${slug}` }
 			}
