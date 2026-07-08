@@ -31,6 +31,7 @@
 - [x] 6.1 Tests for `CnIconPicker`: source-switcher visibility, adapter dedupe, MDI optional-dep fallback, search cap + selected-visible, custom-SVG format (valid/invalid), placement, and the unchanged default usage
 - [x] 6.2 Tests for `CnMarkdownEditor` (`wysiwyg` mount + lazy-load + v-model round-trip, default mode unchanged) and `CnFormDialog` `widget: 'icon'` (renders picker, updates formData)
 - [x] 6.3 Run `npm test`, `npm run check:docs`, `npm run check:jsdoc` (bump baselines only if coverage improved), and `npm run prebuild:docs`; commit regenerated partials — all green
+- [x] 6.4 Add a real-browser Playwright e2e harness (Vite + `@vitejs/plugin-vue2`) mounting the actual SFCs; specs drive the enriched picker (MDI lazy-load, search-filter, tile-select, placement, custom-SVG UI, legacy grid) and the Toast UI WYSIWYG (mount + typing round-trip); `npm run test:e2e` — 8/8 green in Chromium
 
 ## Acceptance criteria
 
