@@ -126,6 +126,22 @@
 							@input="updateField(field.key, $event.target.value)"
 							@keydown.escape="cancelEdit" />
 
+						<!-- Relation ($ref / x-openregister-relation): pick the
+						     referenced object by NAME — the raw uuid is never a
+						     user-facing value (ADR-062). Options load from the
+						     target schema on edit start. Array relations keep
+						     their generic editor for now. -->
+						<NcSelect
+							v-else-if="isSingleRelationField(field.key)"
+							ref="activeEditor"
+							:options="relationOptions[field.key] || []"
+							:value="relationSelectedOption(field)"
+							:loading="relationOptionsLoading"
+							label="label"
+							:clearable="!field.required"
+							@input="onRelationChange(field, $event)"
+							@close="commitEdit" />
+
 						<!-- Select -->
 						<NcSelect
 							v-else-if="field.widget === 'select'"
@@ -502,6 +518,10 @@ export default {
 			saving: false,
 			/** Resolved display labels for related-object fields, keyed by field key */
 			relatedLabels: {},
+			/** Name-labeled picker options per relation field key ({ id, label }[]). */
+			relationOptions: {},
+			/** Whether relation picker options are being fetched. */
+			relationOptionsLoading: false,
 		}
 	},
 
@@ -638,10 +658,97 @@ export default {
 		isRelationField(prop) {
 			return this.relationProp(prop) !== null
 		},
-		/** Display label(s) for a relation value, using resolved names. */
+		/**
+		 * Display label(s) for a relation value, using resolved names. While a
+		 * name lookup is still in flight the placeholder '…' shows — a raw
+		 * uuid must never flash before the name arrives (ADR-062). Failed
+		 * lookups land in relatedLabels as the id itself (terminal fallback).
+		 * @param {string|Array} raw The relation value(s).
+		 * @return {string} Resolved name(s), '…' while loading.
+		 */
 		relationLabel(raw) {
-			const one = (v) => this.relatedLabels[v] || (typeof v === 'string' && v.length > 12 ? (v.slice(0, 8) + '…') : String(v))
+			const one = (v) => this.relatedLabels[v] || '…'
 			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)
+		},
+
+		/**
+		 * Whether a field is a SINGLE-VALUE relation (edited through the
+		 * name-labeled object picker). Array relations keep the generic
+		 * editor for now.
+		 * @param {string} key Schema property key.
+		 * @return {boolean}
+		 */
+		isSingleRelationField(key) {
+			const prop = ((this.schema && this.schema.properties) || {})[key]
+			if (!prop || prop.type === 'array') return false
+			return this.relationProp(prop) !== null
+		},
+
+		/**
+		 * Best display name for a referenced object.
+		 * @param {object} obj The fetched object.
+		 * @param {string} id Fallback id.
+		 * @return {string}
+		 */
+		objectDisplayName(obj, id) {
+			const self = (obj && obj['@self']) || {}
+			let name = obj.name || obj.title || obj.displayName
+			if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+			if (!name && self.name && self.name !== id) name = self.name
+			return name || id
+		},
+
+		/**
+		 * Load the picker options for a relation field from its target schema
+		 * (first 200 objects, labeled by display name).
+		 * @param {string} key Schema property key.
+		 * @return {Promise<void>}
+		 */
+		async loadRelationOptions(key) {
+			const prop = ((this.schema && this.schema.properties) || {})[key]
+			const rel = this.relationProp(prop)
+			if (!rel) return
+			const parts = String(rel.target || '').split('/')
+			if (parts.length < 2) return
+			this.relationOptionsLoading = true
+			try {
+				const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}', { reg: parts[0], sch: parts[1] })
+				const res = await axios.get(url, { params: { _limit: 200 } })
+				const rows = (res && res.data && res.data.results) || []
+				const opts = rows.map((o) => {
+					const id = (o['@self'] && o['@self'].id) || o.id
+					return { id, label: this.objectDisplayName(o, id) }
+				}).filter((o) => o.id)
+				this.$set(this.relationOptions, key, opts)
+				// Cache the labels so display resolution reuses them.
+				opts.forEach((o) => { if (!(o.id in this.relatedLabels)) this.$set(this.relatedLabels, o.id, o.label) })
+			} catch (e) {
+				this.$set(this.relationOptions, key, [])
+			} finally {
+				this.relationOptionsLoading = false
+			}
+		},
+
+		/**
+		 * The currently selected picker option for a relation field.
+		 * @param {object} field Field descriptor.
+		 * @return {object|null} `{ id, label }` or null when unset.
+		 */
+		relationSelectedOption(field) {
+			const v = this.editData[field.key]
+			if (!v) return null
+			return { id: v, label: this.relatedLabels[v] || String(v) }
+		},
+
+		/**
+		 * Apply a relation picker choice: store the referenced object's ID
+		 * (the persisted value stays a uuid; only the display is a name).
+		 * @param {object} field Field descriptor.
+		 * @param {object|null} opt Chosen option or null (cleared).
+		 */
+		onRelationChange(field, opt) {
+			if (opt && opt.id) this.$set(this.relatedLabels, opt.id, opt.label)
+			this.updateField(field.key, opt ? opt.id : null)
 		},
 		/** Fetch related objects' display names into relatedLabels. */
 		async resolveRelations() {
@@ -729,6 +836,11 @@ export default {
 				: (this.objectData || {})[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
+			// Relation fields edit through a name-labeled object picker —
+			// load the target schema's options on demand (once per field).
+			if (this.isSingleRelationField(field.key) && !this.relationOptions[field.key]) {
+				this.loadRelationOptions(field.key)
+			}
 
 			this.$nextTick(() => {
 				// Focus the editor
