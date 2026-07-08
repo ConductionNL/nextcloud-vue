@@ -360,7 +360,7 @@
 						:documentation-url="getWidgetDocumentationUrl(item)"
 						@refresh="onWidgetRefresh(item)"
 						@request-feature="onWidgetRequestFeature(item)">
-						<template v-if="dateRangeEnabled && formatChartDateRange(item)" #title-meta>
+						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
 							<NcActions
 								:force-menu="true"
 								:open.sync="openChipPicker[item.widgetId]"
@@ -369,7 +369,7 @@
 								class="cn-dashboard-page__date-chip-trigger">
 								<template #icon>
 									<span class="cn-dashboard-page__date-chip" :title="dateChipTitle">
-										{{ formatChartDateRange(item) }}
+										{{ formatChartDateRange(item) || dashboardRangeChipLabel }}
 									</span>
 								</template>
 								<NcActionButton
