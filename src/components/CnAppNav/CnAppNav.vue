@@ -450,7 +450,22 @@ export default {
 			 * items (via `onItemClick`).
 			 */
 			openState: {},
+			/**
+			 * Whether the current user is a Nextcloud administrator. Set once
+			 * from `OC.isUserAdmin()` in `created()` (when OC is ready) rather
+			 * than a dependency-free computed, which could cache a stale value
+			 * read during the nav's early first render and never re-evaluate.
+			 * Gates the auto-included "Admin settings" entry.
+			 */
+			isAdmin: false,
 		}
+	},
+
+	created() {
+		this.isAdmin = typeof window !== 'undefined'
+			&& !!window.OC
+			&& typeof window.OC.isUserAdmin === 'function'
+			&& window.OC.isUserAdmin() === true
 	},
 
 	computed: {
@@ -587,22 +602,6 @@ export default {
 		 */
 		personalSettingsLabel() {
 			return t('nextcloud-vue', 'Personal settings')
-		},
-		/**
-		 * Whether the current user is a Nextcloud administrator. Gates the
-		 * auto-prepended "Admin settings" foldout entry — that entry opens
-		 * the app-level admin-settings dialog (organisation credential
-		 * broker and other admin-only surfaces), which non-admins should
-		 * never see the trigger for. Guarded for SSR/tests where `window`
-		 * or `OC` is unavailable.
-		 *
-		 * @return {boolean}
-		 */
-		isAdmin() {
-			return typeof window !== 'undefined'
-				&& !!window.OC
-				&& typeof window.OC.isUserAdmin === 'function'
-				&& window.OC.isUserAdmin() === true
 		},
 		/**
 		 * Label for the auto-prepended Admin-settings entry.
