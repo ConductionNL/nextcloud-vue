@@ -59,9 +59,11 @@
 						:aria-label="t('nextcloud-vue', 'Search icons')">
 
 					<div
+						ref="grid"
 						class="cn-icon-picker__grid"
 						role="listbox"
-						:aria-label="t('nextcloud-vue', 'Icon')">
+						:aria-label="t('nextcloud-vue', 'Icon')"
+						@scroll="onGridScroll">
 						<button
 							v-if="clearable"
 							type="button"
@@ -101,8 +103,8 @@
 								:alt="entry.label" />
 						</button>
 					</div>
-					<p v-if="searchable && !query" class="cn-icon-picker__hint">
-						{{ t('nextcloud-vue', 'Showing the first {n} icons — type to search all.', { n: displayLimit }) }}
+					<p v-if="searchable && !query && hasMore" class="cn-icon-picker__hint">
+						{{ t('nextcloud-vue', 'Showing {shown} of {total} — scroll for more, or type to search.', { shown: filteredEntries.length, total: activeCatalogue.length }) }}
 					</p>
 
 					<!-- Placement selector (opt-in: shown only when :placement is bound). -->
@@ -461,6 +463,15 @@ export default {
 			}
 			return sliced
 		},
+		/**
+		 * Whether the active catalogue has more (un-queried) entries than the
+		 * current display cap — drives the "scroll for more" hint and load-on-scroll.
+		 *
+		 * @return {boolean} true when more icons can be revealed by scrolling.
+		 */
+		hasMore() {
+			return !this.query && this.activeCatalogue.length > this.displayLimit
+		},
 	},
 
 	watch: {
@@ -501,7 +512,25 @@ export default {
 			}
 		},
 		/**
-		 * Switch the active source (and back to standard icon mode).
+		 * Reveal the next batch of icons when the grid is scrolled near its
+		 * bottom (infinite scroll), so the user can browse the whole catalogue
+		 * without searching. No-op while a search query is active.
+		 *
+		 * @param {Event} event the grid scroll event.
+		 * @return {void}
+		 */
+		onGridScroll(event) {
+			if (this.query || !this.hasMore) {
+				return
+			}
+			const el = event.target
+			if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+				this.displayLimit += 120
+			}
+		},
+		/**
+		 * Switch the active source (and back to standard icon mode). Resets the
+		 * display cap so the new source starts from the top.
 		 *
 		 * @param {string} source the source name.
 		 * @return {void}
@@ -510,6 +539,7 @@ export default {
 			this.activeSource = source
 			this.iconMode = 'standard'
 			this.query = ''
+			this.displayLimit = 120
 			if (source === 'mdi' && !this.catalogues.mdi && !this.mdiCatalogue) {
 				this.loadMdiCatalogue()
 			}
