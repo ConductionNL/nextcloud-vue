@@ -621,6 +621,9 @@ export default {
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+	/* Grow so the title hugs the (optional) title-icon on the left instead
+	   of centering between icon and actions (header is space-between). */
+	flex: 1 1 auto;
 }
 
 .cn-widget-wrapper__icon {
