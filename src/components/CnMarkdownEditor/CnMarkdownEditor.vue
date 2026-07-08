@@ -1,7 +1,7 @@
 <template>
 	<div class="cn-markdown-editor" data-testid="cn-markdown-editor" :class="modeClass">
-		<!-- Toolbar with formatting shortcuts. -->
-		<div v-if="!hideToolbar" class="cn-markdown-editor__toolbar" role="toolbar">
+		<!-- Toolbar with formatting shortcuts (textarea modes only; WYSIWYG has its own). -->
+		<div v-if="!hideToolbar && mode !== 'wysiwyg'" class="cn-markdown-editor__toolbar" role="toolbar">
 			<button v-for="tool in toolbar"
 				:key="tool.id"
 				type="button"
@@ -22,8 +22,8 @@
 			</button>
 		</div>
 
-		<!-- Pane layout: edit / preview / split. -->
-		<div class="cn-markdown-editor__panes" :data-mode="mode">
+		<!-- Pane layout: edit / preview / split (textarea + rendered preview). -->
+		<div v-if="mode !== 'wysiwyg'" class="cn-markdown-editor__panes" :data-mode="mode">
 			<textarea v-if="mode !== 'preview'"
 				ref="textarea"
 				class="cn-markdown-editor__textarea"
@@ -41,12 +41,28 @@
 				v-html="renderedHtml" />
 		</div>
 
+		<!-- WYSIWYG mode: lazily-mounted Toast UI editor. -->
+		<div v-else class="cn-markdown-editor__wysiwyg" data-testid="cn-markdown-wysiwyg">
+			<component
+				:is="toastEditorComponent"
+				v-if="toastEditorComponent"
+				ref="toast"
+				:initial-value="localValue"
+				:options="wysiwygOptions"
+				initial-edit-type="wysiwyg"
+				preview-style="tab"
+				:height="wysiwygHeight"
+				@change="onWysiwygChange" />
+			<p v-else class="cn-markdown-editor__hint">{{ t('nextcloud-vue', 'Loading editor…') }}</p>
+		</div>
+
 		<!-- Hint row. -->
 		<small v-if="hint" class="cn-markdown-editor__hint">{{ hint }}</small>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 
 /**
@@ -66,22 +82,35 @@ const DEFAULT_TOOLBAR = Object.freeze([
 	{ id: 'quote', label: '“”', prefix: '> ', suffix: '', placeholder: 'quote', tooltip: 'Quote', linePrefix: true },
 ])
 
-const MODES = ['edit', 'split', 'preview']
+const MODES = ['edit', 'split', 'preview', 'wysiwyg']
+
+/**
+ * Default Toast UI WYSIWYG toolbar layout — used only in `mode: 'wysiwyg'`.
+ *
+ * @type {Array<Array<string>>}
+ */
+const DEFAULT_WYSIWYG_TOOLBAR = Object.freeze([
+	['heading', 'bold', 'italic', 'strike'],
+	['hr', 'quote'],
+	['ul', 'ol', 'task', 'indent', 'outdent'],
+	['table', 'image', 'link'],
+	['code', 'codeblock'],
+])
 
 /**
  * CnMarkdownEditor — Markdown editor with a textarea + live HTML
- * preview, a formatting toolbar, and three layout modes (edit /
- * split / preview).
+ * preview, a formatting toolbar, and four layout modes (edit /
+ * split / preview / wysiwyg).
  *
- * Pragmatic MVP using a `<textarea>` + `cnRenderMarkdown` for the
- * preview. A richer TipTap-based WYSIWYG editor is tracked as a
- * follow-up; the contract here (props, events, methods) is
- * forward-compatible — when the WYSIWYG path lands consumers will
- * be able to opt-in via a `mode: 'wysiwyg'` value without touching
- * their `v-model` binding.
+ * The default path is a `<textarea>` + `cnRenderMarkdown` preview.
+ * Setting `mode: 'wysiwyg'` opts into a rich Toast UI WYSIWYG editor
+ * that is **lazily loaded** only when that mode is active — the
+ * textarea modes carry no editor dependency. The `v-model` contract
+ * is identical across all modes (`value` in, `input` out).
  *
  * ```vue
  * <CnMarkdownEditor v-model="article" placeholder="Write your article …" />
+ * <CnMarkdownEditor v-model="article" mode="wysiwyg" />
  * ```
  *
  * Toolbar buttons either wrap the current selection or insert a
@@ -135,10 +164,21 @@ export default {
 		toolbar: { type: Array, default: () => DEFAULT_TOOLBAR.slice() },
 		/** Optional helper text rendered under the editor. */
 		hint: { type: String, default: '' },
+		/**
+		 * WYSIWYG mode only: Toast UI toolbar layout (array of button groups).
+		 * Ignored in the textarea modes.
+		 *
+		 * @type {Array<Array<string>>}
+		 */
+		wysiwygToolbar: { type: Array, default: () => DEFAULT_WYSIWYG_TOOLBAR.map((g) => g.slice()) },
+		/** WYSIWYG mode only: editor height (any CSS length). */
+		wysiwygHeight: { type: String, default: '300px' },
 	},
 	data() {
 		return {
 			localValue: this.value,
+			// Lazily-loaded Toast UI Editor component (WYSIWYG mode only).
+			toastEditorComponent: null,
 		}
 	},
 	computed: {
@@ -168,6 +208,21 @@ export default {
 		currentModeLabel() {
 			return `▦ ${this.mode}`
 		},
+		/**
+		 * Toast UI editor options (WYSIWYG mode) — the configured toolbar plus
+		 * fixed WYSIWYG defaults.
+		 *
+		 * @return {object} The Toast UI options object.
+		 */
+		wysiwygOptions() {
+			return {
+				minHeight: '200px',
+				language: 'en-US',
+				hideModeSwitch: true,
+				toolbarItems: this.wysiwygToolbar,
+				initialEditType: 'wysiwyg',
+			}
+		},
 	},
 	watch: {
 		value(next) {
@@ -175,8 +230,59 @@ export default {
 				this.localValue = next
 			}
 		},
+		mode(next) {
+			if (next === 'wysiwyg') {
+				this.loadWysiwyg()
+			}
+		},
+	},
+	mounted() {
+		if (this.mode === 'wysiwyg') {
+			this.loadWysiwyg()
+		}
 	},
 	methods: {
+		t,
+		/**
+		 * Lazily import the Toast UI editor (and its CSS) the first time WYSIWYG
+		 * mode is entered. Keeps the ~200 KB editor out of the default textarea
+		 * path.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadWysiwyg() {
+			if (this.toastEditorComponent) {
+				return
+			}
+			try {
+				const [{ Editor }] = await Promise.all([
+					import('@toast-ui/vue-editor'),
+					import('@toast-ui/editor/dist/toastui-editor.css'),
+				])
+				this.toastEditorComponent = Editor
+			} catch (e) {
+				console.error('CnMarkdownEditor: failed to load the WYSIWYG editor', e)
+			}
+		},
+		/**
+		 * Toast UI change handler — read the current markdown and emit it via
+		 * v-model.
+		 *
+		 * @return {void}
+		 */
+		onWysiwygChange() {
+			const editor = this.$refs.toast
+			if (!editor || typeof editor.invoke !== 'function') {
+				return
+			}
+			const markdown = editor.invoke('getMarkdown')
+			this.localValue = markdown
+			/**
+			 * @event input v-model emit.
+			 * @type {string}
+			 */
+			this.$emit('input', markdown)
+		},
 		/**
 		 * Textarea input handler — pushes the new value upward via
 		 * v-model.
@@ -374,5 +480,38 @@ export default {
 .cn-markdown-editor__hint {
 	color: var(--color-text-maxcontrast);
 	padding: 0 10px 8px;
+}
+
+/* WYSIWYG (Toast UI) mode — themed with Nextcloud CSS variables. */
+.cn-markdown-editor__wysiwyg {
+	width: 100%;
+}
+
+.cn-markdown-editor__wysiwyg :deep(.toastui-editor-defaultUI) {
+	font-family: var(--font-face) !important;
+	background-color: var(--color-main-background) !important;
+	border: none !important;
+}
+
+.cn-markdown-editor__wysiwyg :deep(.toastui-editor-toolbar) {
+	background-color: var(--color-background-hover) !important;
+	border-bottom: 1px solid var(--color-border-dark) !important;
+}
+
+.cn-markdown-editor__wysiwyg :deep(.toastui-editor-toolbar-icons button) {
+	color: var(--color-main-text) !important;
+	background-color: transparent !important;
+	border: none !important;
+}
+
+.cn-markdown-editor__wysiwyg :deep(.toastui-editor-toolbar-icons button:hover) {
+	background-color: var(--color-background-dark) !important;
+}
+
+.cn-markdown-editor__wysiwyg :deep(.toastui-editor-contents),
+.cn-markdown-editor__wysiwyg :deep(.ProseMirror) {
+	color: var(--color-main-text) !important;
+	background-color: var(--color-main-background) !important;
+	font-family: var(--font-face) !important;
 }
 </style>

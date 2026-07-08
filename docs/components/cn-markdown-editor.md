@@ -34,7 +34,7 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | String | `''` | v-model. Markdown source. |
-| `mode` | `'edit'\|'split'\|'preview'` | `'split'` | Layout mode. Use `.sync` or `v-model:mode` to bind. |
+| `mode` | `'edit'\|'split'\|'preview'\|'wysiwyg'` | `'split'` | Layout mode. Use `.sync` or `v-model:mode` to bind. `wysiwyg` mounts a lazily-loaded Toast UI rich editor; the other modes use the textarea + preview. |
 | `placeholder` | String | `'Write Markdown…'` | Textarea placeholder. |
 | `ariaLabel` | String | `'Markdown editor input'` | Textarea aria-label. |
 | `rows` | Number | `10` | Minimum textarea rows. |
@@ -44,6 +44,16 @@ export default {
 | `modeSwitchTooltip` | String | `'Cycle layout …'` | Tooltip for the mode-cycle button. |
 | `toolbar` | `Array<{id,label,prefix,suffix?,placeholder?,tooltip?,linePrefix?}>` | default 8 | Custom toolbar entries. `linePrefix: true` prefixes the line instead of wrapping. |
 | `hint` | String | `''` | Helper text rendered under the editor. |
+| `wysiwygToolbar` | `Array<Array<string>>` | default groups | WYSIWYG mode only: Toast UI toolbar layout (array of button groups). Ignored in the textarea modes. |
+| `wysiwygHeight` | String | `'300px'` | WYSIWYG mode only: editor height (any CSS length). |
+
+## WYSIWYG mode
+
+Set `mode="wysiwyg"` to opt into a rich Toast UI editor. It is **lazily loaded** — `@toast-ui/editor` and its CSS are imported only when that mode is first active, so the textarea modes carry no editor dependency. The `v-model` contract is identical across all modes (`value` in, `input` out).
+
+```vue
+<CnMarkdownEditor v-model="article" mode="wysiwyg" />
+```
 
 ## Toolbar entry shape
 

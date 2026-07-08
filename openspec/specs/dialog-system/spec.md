@@ -1,8 +1,10 @@
 ---
-status: done
+status: in-progress
 ---
 
 # Dialog System — Components Spec
+
+**OpenSpec changes**: enrich-icon-picker-and-markdown-wysiwyg (in-progress — adds a schema-driven `widget: 'icon'` field renderer to CnFormDialog)
 
 ## Purpose
 Specifies the two-phase dialog pattern used by all 8 dialog components: CnDeleteDialog, CnCopyDialog, CnFormDialog, CnAdvancedFormDialog, CnMassDeleteDialog, CnMassCopyDialog, CnMassExportDialog, CnMassImportDialog.

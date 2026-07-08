@@ -392,6 +392,15 @@ export function fieldsFromSchema(schema, options = {}) {
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
+			// Icon picker (`widget: 'icon'`) config forwarded to CnIconPicker via
+			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
+			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
+			// supplied via a fieldOverride instead), and whether search / custom-SVG
+			// are enabled. Omitted keys fall back to CnIconPicker's own defaults.
+			iconSources: prop.iconSources || undefined,
+			catalogues: prop.catalogues || undefined,
+			allowCustomSvg: prop.allowCustomSvg || undefined,
+			searchable: prop.searchable,
 			required: requiredKeys.includes(key),
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,

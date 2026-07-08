@@ -115,4 +115,39 @@ describe('CnMarkdownEditor', () => {
 		await wrapper.vm.$nextTick()
 		expect(wrapper.vm.localValue).toBe('two')
 	})
+
+	describe('WYSIWYG mode', () => {
+		it('default (textarea) mode never loads the Toast UI editor', () => {
+			const wrapper = mount(CnMarkdownEditor)
+			expect(wrapper.vm.toastEditorComponent).toBeNull()
+			expect(wrapper.find('[data-testid="cn-markdown-wysiwyg"]').exists()).toBe(false)
+			expect(wrapper.find('textarea').exists()).toBe(true)
+		})
+
+		it('wysiwyg mode lazily mounts the editor and hides the textarea', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { mode: 'wysiwyg' } })
+			expect(wrapper.find('[data-testid="cn-markdown-wysiwyg"]').exists()).toBe(true)
+			expect(wrapper.find('textarea').exists()).toBe(false)
+			await wrapper.vm.loadWysiwyg()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.toastEditorComponent).not.toBeNull()
+			expect(wrapper.find('.toastui-editor-mock').exists()).toBe(true)
+		})
+
+		it('wysiwyg round-trips through v-model (initial value + input on change)', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { mode: 'wysiwyg', value: '# start' } })
+			await wrapper.vm.loadWysiwyg()
+			await wrapper.vm.$nextTick()
+			const editor = wrapper.vm.$refs.toast
+			expect(editor.initialValue).toBe('# start')
+			editor.__setMarkdown('# edited')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.emitted('input').pop()[0]).toBe('# edited')
+		})
+
+		it('wysiwyg mode uses the configured toolbar', async () => {
+			const wrapper = mount(CnMarkdownEditor, { propsData: { mode: 'wysiwyg', wysiwygToolbar: [['bold']] } })
+			expect(wrapper.vm.wysiwygOptions.toolbarItems).toEqual([['bold']])
+		})
+	})
 })

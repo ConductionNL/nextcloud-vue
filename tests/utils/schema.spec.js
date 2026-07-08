@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
