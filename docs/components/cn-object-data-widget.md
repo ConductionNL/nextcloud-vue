@@ -156,3 +156,21 @@ uuid** (ADR-062). Two property shapes are recognised:
 Names resolve via one `GET /api/objects/{register}/{schema}/{id}` per distinct
 id (cached per widget instance): `name` → `title` → `displayName` →
 `firstName lastName` → `@self.name` → the id itself.
+
+### Scoping picker options: `x-relation-filter`
+
+A relation property may declare `x-relation-filter` to narrow its edit-picker
+options to objects that fit the CURRENT object:
+
+```json
+"status": {
+  "type": "string", "format": "uuid", "$ref": "statusType",
+  "x-relation-filter": { "caseType": "@object.caseType" }
+}
+```
+
+Filter values are token-resolved (`@objectId` / `@object.<field>`), with the
+widget's **dirty values winning** — picking a new caseType immediately scopes
+the status options to it, before any save. Entries whose token stays
+unresolved are dropped (an unfiltered picker beats an empty one). Options
+reload on every edit start for the same reason.

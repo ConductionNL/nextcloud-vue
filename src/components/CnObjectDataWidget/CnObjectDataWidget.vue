@@ -299,6 +299,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { useObjectStore } from '../../store/index.js'
@@ -713,7 +714,30 @@ export default {
 			this.relationOptionsLoading = true
 			try {
 				const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}', { reg: parts[0], sch: parts[1] })
-				const res = await axios.get(url, { params: { _limit: 200 } })
+				const params = { _limit: 200 }
+				// Declarative option scoping: `x-relation-filter` on the schema
+				// property narrows the picker to objects that fit THIS object —
+				// e.g. case.status: { "caseType": "@object.caseType" } offers
+				// only the statuses of the case's own type. Values are
+				// token-resolved (@objectId / @object.<field>); entries whose
+				// token stays unresolved are dropped (unfiltered beats empty).
+				const rawFilter = prop['x-relation-filter']
+				if (rawFilter && typeof rawFilter === 'object') {
+					// Dirty values win: picking a new caseType must immediately
+					// scope the status options to it, before any save.
+					const objData = { ...(this.objectData || {}), ...this.dirtyFields }
+					const ctx = { objectId: ((this.objectData || {})['@self'] && (this.objectData || {})['@self'].id) || (this.objectData || {}).id, object: objData }
+					const filter = resolveFilterTokens(rawFilter, ctx)
+					for (const [fk, fv] of Object.entries(filter)) {
+						if (typeof fv === 'string' && fv.charAt(0) === '@') continue
+						if (fv && typeof fv === 'object') {
+							for (const [op, ov] of Object.entries(fv)) params[`${fk}[${op}]`] = ov
+						} else if (fv !== '' && fv !== null && fv !== undefined) {
+							params[fk] = fv
+						}
+					}
+				}
+				const res = await axios.get(url, { params })
 				const rows = (res && res.data && res.data.results) || []
 				const opts = rows.map((o) => {
 					const id = (o['@self'] && o['@self'].id) || o.id
@@ -836,9 +860,12 @@ export default {
 				: (this.objectData || {})[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
-			// Relation fields edit through a name-labeled object picker —
-			// load the target schema's options on demand (once per field).
-			if (this.isSingleRelationField(field.key) && !this.relationOptions[field.key]) {
+			// Relation fields edit through a name-labeled object picker.
+			// Options reload on every edit start: an `x-relation-filter` can
+			// depend on the object's CURRENT values (e.g. status options scoped
+			// to the just-changed caseType), so a per-field cache would serve
+			// stale sets.
+			if (this.isSingleRelationField(field.key)) {
 				this.loadRelationOptions(field.key)
 			}
 
