@@ -35,13 +35,19 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:available-view-modes="effectiveToggleModes"
 			:cards-label="cardsLabel"
 			:table-label="tableLabel"
+			:list-label="listLabel"
 			:cards-icon="cardsIcon"
 			:table-icon="tableIcon"
 			:show-map="showMapSegment"
 			:map-label="mapLabel"
 			:map-icon="mapIcon"
+			:list-icon="listIcon"
+			:show-sort-select="showSortSelect"
+			:sort-options="sortSelectOptions"
+			:sort-value="sortSelectValue"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
 			:search-placeholder="searchPlaceholder"
@@ -54,6 +60,7 @@
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
+			@sort-change="$emit('sort-change', $event)"
 			@add="onAddClick"
 			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
@@ -332,6 +339,58 @@
 					:auto-fit="true"
 					@marker-click="onMarkerClick" />
 
+				<!-- List view -->
+				<CnObjectList
+					v-else-if="currentViewMode === 'list'"
+					:objects="displayObjects"
+					:schema="effectiveSchema"
+					:config="listConfig"
+					:selectable="selectable"
+					:selected-ids="internalSelectedIds"
+					:row-key="rowKey"
+					:empty-text="emptyText"
+					@click="onRowClick"
+					@select="onSelect">
+					<!--
+						List-item slot resolution priority (highest first):
+						1. Parent-provided `#list-item` scoped slot — App.vue overrides win.
+						2. `listComponent` prop (or manifest `pages[].config.listComponent`)
+						   resolved against the customComponents registry.
+						3. CnObjectList's default CnObjectRow.
+					-->
+					<template v-if="$scopedSlots['list-item']" #list-item="{ object, selected }">
+						<slot name="list-item" :object="object" :selected="selected" />
+					</template>
+					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
+						<component
+							:is="resolvedListComponent"
+							:item="object"
+							:object="object"
+							:schema="effectiveSchema"
+							:register="register"
+							:selected="selected"
+							@click="onRowClick(object)"
+							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
+					</template>
+					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
+					     so an app can override just the leading icon or the badge
+					     while keeping the config-driven title/subtitle. -->
+					<template v-if="$scopedSlots['row-icon']" #row-icon="{ object }">
+						<slot name="row-icon" :object="object" />
+					</template>
+					<template v-if="$scopedSlots['row-badges']" #row-badges="{ object }">
+						<slot name="row-badges" :object="object" />
+					</template>
+					<template v-if="hasRowActions || $scopedSlots['row-actions']" #row-actions="{ object }">
+						<slot name="row-actions" :row="object">
+							<CnRowActions
+								:actions="mergedActions"
+								:row="object"
+								@action="onRowAction" />
+						</slot>
+					</template>
+				</CnObjectList>
+
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
@@ -443,6 +502,7 @@ import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
+import { CnObjectList } from '../CnObjectList/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
@@ -559,6 +619,7 @@ export default {
 		CnDataTable,
 		CnCardGrid,
 		CnMapWidget,
+		CnObjectList,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -761,13 +822,13 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards' or 'map'. Default 'table'. The 'map' mode
-		 * is only offered when the page opts in via `mapConfig` / `config.viewModes`.
+		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
+		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
 		},
 
 		/**
@@ -810,11 +871,24 @@ export default {
 		 * `pages[].config.viewModes`. When set it takes precedence over the
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
-		 * @type {Array<'table' | 'cards' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
 		 */
 		viewModes: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * Which view-mode toggle segments to expose (cards/table/list), in order.
+		 * Defaults to the historical Cards/Table pair; include `'list'` to offer the
+		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
+		 * Map is added separately via `mapConfig` / `viewModes`.
+		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 */
+		availableViewModes: {
+			type: Array,
+			default: () => ['cards', 'table'],
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -1097,6 +1171,54 @@ export default {
 			default: '',
 		},
 
+		/** Label for the list view-toggle option (manifest `config.listLabel`, e.g. "Rows") */
+		listLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Show a standalone sort dropdown in the actions bar (for card/list
+		 * views without sortable headers). Emits `@sort-change` with the value.
+		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 */
+		showSortSelect: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * @type {Array<{ value: string, label: string }>}
+		 */
+		sortSelectOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Selected value of the standalone sort dropdown (controlled). */
+		sortSelectValue: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the list view-toggle option (manifest `config.listIcon`) */
+		listIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Field mapping for the default list-view rows (CnObjectRow). Overrides
+		 * the schema-configuration defaults. Fed from the manifest as
+		 * `pages[].config.listConfig`.
+		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
+		 */
+		listConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
 		/**
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
@@ -1240,6 +1362,20 @@ export default {
 		 * @type {string}
 		 */
 		cardComponent: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Name of a custom row component for list view, resolved against the
+		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Same resolution priority as `cardComponent`: the `#list-item` slot
+		 * wins, then this component, then the default `CnObjectRow`. Unknown
+		 * names warn once and fall back to the default.
+		 *
+		 * @type {string}
+		 */
+		listComponent: {
 			type: String,
 			default: '',
 		},
@@ -1453,6 +1589,21 @@ export default {
 		showMapSegment() {
 			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
 			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * The base view-toggle segments (cards/table/list) passed to CnActionsBar.
+		 * Beta's explicit `viewModes` whitelist wins when set; otherwise the
+		 * `availableViewModes` list. Map is excluded here — it's added by the
+		 * actions bar via the `showMap` bridge driven by `showMapSegment`.
+		 *
+		 * @return {Array<string>} The ordered toggle segments minus 'map'.
+		 */
+		effectiveToggleModes() {
+			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
+				? this.viewModes
+				: this.availableViewModes
+			return list.filter((m) => m !== 'map')
 		},
 
 		/**
@@ -1812,6 +1963,25 @@ export default {
 			const resolved = this.effectiveCustomComponents[this.cardComponent]
 			if (!resolved) {
 				console.warn(`[CnIndexPage] cardComponent "${this.cardComponent}" not found in customComponents registry. Falling back to CnObjectCard.`)
+				return null
+			}
+			return resolved
+		},
+
+		/**
+		 * Custom list-row component resolved against the customComponents
+		 * registry, or `null` when `listComponent` is empty / unknown (default
+		 * `CnObjectRow` is used). Mirrors `resolvedCardComponent`.
+		 *
+		 * @return {?object} The resolved component, or null.
+		 */
+		resolvedListComponent() {
+			if (!this.listComponent) {
+				return null
+			}
+			const resolved = this.effectiveCustomComponents[this.listComponent]
+			if (!resolved) {
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
 				return null
 			}
 			return resolved

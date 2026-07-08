@@ -681,3 +681,20 @@ Set `documentationUrl` (and optionally `documentationLabel`) to surface a **Docu
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexPage.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexPage/CnIndexPage.vue) — props, events, and named slots — and update automatically whenever the component changes (see [CLAUDE.md "Documenting components"](https://github.com/ConductionNL/nextcloud-vue/blob/beta/CLAUDE.md#documenting-components-enforced)).
 
 <GeneratedRef />
+
+## List view & sorting
+
+The list view (`view-mode="list"`) and standalone sort dropdown add these props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `availableViewModes` | Array | `['cards','table']` | View-toggle segments; add `list` to offer the list view. |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
+| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+
+The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
