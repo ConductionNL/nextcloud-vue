@@ -2556,64 +2556,14 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-/* Date-range chip rendered in a chart widget's title bar via the
-   CnWidgetWrapper `#title-meta` slot. Wrapped in an NcActions trigger
-   so clicking opens a popover with preset + from/to inputs — same
-   controls as the global picker, just inline at the chart. */
-.cn-dashboard-page__date-chip-trigger {
-	/* Eat the default NcActions trigger button styling so the only
-	   visible chrome is the chip span itself. */
-	display: inline-flex;
-}
-
-.cn-dashboard-page__date-chip-trigger :deep(.action-item__menutoggle) {
-	min-width: 0;
-	min-height: 0;
-	padding: 0;
-	background: transparent;
-	border: none;
-}
-
-/* The chip text lives in NcActions' icon slot, whose default toggle is
-   sized for a single ~44px icon and clips wider content (the cause of the
-   "8 → 2" truncation). Let the toggle + its icon wrapper grow to the
-   chip's natural width so the full "18 May – 25 May" range reads. */
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue),
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue__wrapper),
-.cn-dashboard-page__date-chip-trigger :deep(.button-vue__icon) {
-	width: auto !important;
-	min-width: 0 !important;
-	overflow: visible !important;
-}
-
-.cn-dashboard-page__date-chip {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px 10px;
-	border-radius: 999px;
-	background: var(--color-background-hover);
-	color: var(--color-text-maxcontrast);
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
-	cursor: pointer;
-	transition: background 100ms ease;
-}
-
-.cn-dashboard-page__date-chip-trigger:hover .cn-dashboard-page__date-chip,
-.cn-dashboard-page__date-chip-trigger:focus-within .cn-dashboard-page__date-chip {
-	background: var(--color-primary-element-light, var(--color-background-darker));
-	color: var(--color-main-text);
-}
-
-/* Empty span used to keep preset NcActionButtons' label aligned with
-   the row that shows the current-selection CalendarRange icon. NcActionButton
-   icon slot is roughly 20px wide. */
-.cn-dashboard-page__date-chip-preset-spacer {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-}
+/* NOTE: the date-range chip's trigger/chip/preset-spacer rules live in the
+   UNSCOPED <style> block below, anchored on the trigger's `data-testid`, not
+   here. Consumers (pipelinq, …) split the library across webpack chunks with
+   no shared runtime chunk, so a rendered CnDashboardPage instance can carry a
+   different `data-v-*` scope id than the one baked into this scoped CSS — the
+   scoped chip rules then silently don't match and the chip collapses into
+   NcActions' ~30px icon slot (text wraps to "Last / 30 / days"). The
+   data-testid is stable across chunks, so those rules match regardless. */
 
 .cn-dashboard-page__header-actions {
 	display: flex;
@@ -2780,12 +2730,70 @@ export default {
 }
 </style>
 
-<!-- Unscoped: the chip's NcActions menu is teleported to <body> (container="body"),
-     so scoped :deep() can't reach it. NcActions forwards the trigger's data-testid
-     onto the popper, so we target it here to (a) give the custom From/To
-     datetime-local inputs comfortable width and (b) keep the menu content from
-     clipping the native picker. -->
+<!-- Unscoped, anchored on the stable `data-testid` NcActions renders on both
+     the trigger and (forwarded) the teleported <body> popper. Everything about
+     the date chip lives here rather than in scoped CSS because a consumer that
+     splits the library across webpack chunks (pipelinq) can render a
+     CnDashboardPage instance whose `data-v-*` scope id differs from the one
+     compiled into the scoped stylesheet — scoped rules then don't match and the
+     chip collapses into NcActions' ~30px icon slot. The data-testid is chunk-
+     stable, so these rules always match. Classes stay `cn-`-prefixed so the
+     unscoped rules can't collide with anything outside this widget. -->
 <style>
+/* Trigger: strip NcActions' default button chrome down to just the chip span. */
+[data-testid^="cn-dashboard-page-date-chip-"].cn-dashboard-page__date-chip-trigger {
+	display: inline-flex;
+}
+
+[data-testid^="cn-dashboard-page-date-chip-"] .action-item__menutoggle {
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	background: transparent;
+	border: none;
+}
+
+/* The chip text lives in NcActions' icon slot, whose default toggle is sized
+   for a single ~44px icon and clips/wraps wider content. Let the toggle + its
+   icon wrapper grow to the chip's natural width so "Last 30 days" reads on one
+   line. */
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue,
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue__wrapper,
+[data-testid^="cn-dashboard-page-date-chip-"] .button-vue__icon {
+	width: auto !important;
+	min-width: 0 !important;
+	overflow: visible !important;
+}
+
+.cn-dashboard-page__date-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 100ms ease;
+}
+
+[data-testid^="cn-dashboard-page-date-chip-"]:hover .cn-dashboard-page__date-chip,
+[data-testid^="cn-dashboard-page-date-chip-"]:focus-within .cn-dashboard-page__date-chip {
+	background: var(--color-primary-element-light, var(--color-background-darker));
+	color: var(--color-main-text);
+}
+
+/* Empty span keeping preset NcActionButtons' labels aligned with the row that
+   shows the current-selection CalendarRange icon (NcActionButton icon slot is
+   ~20px). Lives in the teleported popper, so it's unscoped too. */
+.cn-dashboard-page__date-chip-preset-spacer {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+
 .action-item__popper[data-testid^="cn-dashboard-page-date-chip-"] .v-popper__inner,
 [data-testid^="cn-dashboard-page-date-chip-"].v-popper__popper .v-popper__inner {
 	overflow: visible;

@@ -26,7 +26,10 @@
 		"l10n/"
 	],
 	"sideEffects": [
-		"**/*.css"
+		"**/*.css",
+		"**/CnWidgetGrid/registerDashboardWidgets.js",
+		"**/dashboardRegistration.js",
+		"**/Cn*Widget/index.js"
 	],
 	"scripts": {
 		"build:validators": "node scripts/build-validators.js",
