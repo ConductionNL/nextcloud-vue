@@ -577,8 +577,10 @@ export default {
 	font: inherit;
 	font-weight: 600;
 	/* Bleed through the host card's 16px content padding so the divider
-	   spans edge-to-edge, exactly like the integration leaves' footer. */
-	margin: auto -16px -16px;
+	   spans edge-to-edge, exactly like the integration leaves' footer.
+	   !important: Nextcloud server ships `#app-content button { margin:
+	   3px … }` — an id-selector rule no scoped class can outrank. */
+	margin: auto -16px -16px !important;
 	padding: 12px 8px;
 	text-align: center;
 }
