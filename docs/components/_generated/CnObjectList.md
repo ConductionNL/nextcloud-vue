@@ -15,10 +15,10 @@
 
 ### Events
 
-| Name     | Payload | Description                               |
-| -------- | ------- | ----------------------------------------- |
-| `click`  | —       |                                           |
-| `select` | —       | Emitted when the selected-id set changes. |
+| Name     | Payload | Description                                                |
+| -------- | ------- | ---------------------------------------------------------- |
+| `click`  | —       | Emitted when a non-selectable row is clicked (navigation). |
+| `select` | —       | Emitted when the selected-id set changes.                  |
 
 ### Slots
 

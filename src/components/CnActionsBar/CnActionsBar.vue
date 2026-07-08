@@ -17,48 +17,60 @@
 			</span>
 		</div>
 		<div class="cn-actions-bar__actions">
-			<!-- View mode toggle (Cards / Table) — segmented control with a
-			     sliding thumb that animates between the two segments. -->
-			<div v-if="showViewToggle"
+			<!-- View mode toggle (Cards / Table / List) — segmented control with
+			     a sliding thumb that animates between the N segments. -->
+			<div v-if="showViewToggle && viewSegments.length > 1"
 				class="cn-actions-bar__view-toggle"
 				role="group"
 				:aria-label="t('nextcloud-vue', 'View mode')">
-				<!-- Sliding pill that sits behind the active segment. -->
+				<!-- Sliding pill that sits behind the active segment. Width and
+				     offset are driven by the segment count so the same markup
+				     works for 2 or 3 segments. -->
 				<span
 					class="cn-actions-bar__view-toggle-thumb"
-					:class="{ 'cn-actions-bar__view-toggle-thumb--right': viewMode === 'table' }"
+					:style="thumbStyle"
 					aria-hidden="true" />
 				<!--
 					@event view-mode-change
-					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
-					@type {'cards' | 'table'}
+					@description User clicked one of the view-mode toggle buttons (Cards / Table / List). Payload is the selected mode string.
+					@type {'cards' | 'table' | 'list'}
 				-->
 				<button
+					v-for="seg in viewSegments"
+					:key="seg.mode"
 					type="button"
 					class="cn-actions-bar__view-toggle-btn"
-					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'cards' }"
-					:aria-pressed="viewMode === 'cards'"
-					@click="$emit('view-mode-change', 'cards')">
-					<CnIcon v-if="cardsIcon"
-						:name="cardsIcon"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === seg.mode }"
+					:aria-pressed="viewMode === seg.mode"
+					@click="$emit('view-mode-change', seg.mode)">
+					<CnIcon v-if="seg.icon"
+						:name="seg.icon"
 						:size="24"
 						class="cn-actions-bar__view-toggle-icon" />
-					<ViewGridOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
-					<span class="cn-actions-bar__view-toggle-label">{{ cardsLabel || t('nextcloud-vue', 'Cards') }}</span>
-				</button>
-				<button
-					type="button"
-					class="cn-actions-bar__view-toggle-btn"
-					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'table' }"
-					:aria-pressed="viewMode === 'table'"
-					@click="$emit('view-mode-change', 'table')">
-					<CnIcon v-if="tableIcon"
-						:name="tableIcon"
+					<component :is="seg.fallback"
+						v-else
 						:size="24"
 						class="cn-actions-bar__view-toggle-icon" />
-					<FormatListBulletedSquare v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
-					<span class="cn-actions-bar__view-toggle-label">{{ tableLabel || t('nextcloud-vue', 'Table') }}</span>
+					<span class="cn-actions-bar__view-toggle-label">{{ seg.label }}</span>
 				</button>
+			</div>
+
+			<!-- Sort select (opt-in). A standalone sort control for card/list
+			     views, which — unlike the table — have no sortable column
+			     headers. A leading sort icon replaces a visible "Sort by"
+			     label so the control stays on one line; the label is kept as
+			     the combobox's accessible name. -->
+			<div v-if="showSortSelect && sortOptions.length" class="cn-actions-bar__sort">
+				<SortVariant :size="20" class="cn-actions-bar__sort-icon" :aria-label="sortLabel" />
+				<NcSelect
+					class="cn-actions-bar__sort-select"
+					:model-value="selectedSortOption"
+					:options="sortOptions"
+					:reduce="opt => opt.value"
+					:clearable="false"
+					:aria-label-combobox="sortLabel"
+					label="label"
+					@update:model-value="onSortChange" />
 			</div>
 
 			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
@@ -230,7 +242,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
@@ -240,9 +252,11 @@ import Import from 'vue-material-design-icons/Import.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import SortVariant from 'vue-material-design-icons/SortVariant.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import ViewListOutline from 'vue-material-design-icons/ViewListOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -269,7 +283,9 @@ export default {
 		NcActionSeparator,
 		NcButton,
 		NcLoadingIcon,
+		NcSelect,
 		CnIcon,
+		SortVariant,
 		BookOpenVariantOutline,
 		Plus,
 		Refresh,
@@ -350,14 +366,25 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table' or 'cards' */
+		/** Current view mode: 'table', 'cards', or 'list' */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'list'].includes(v),
 		},
 
-		/** Whether to show the Cards/Table view toggle */
+		/**
+		 * Which view-mode segments to render, in order. Defaults to the
+		 * historical two-segment control; add `'list'` to expose the list view.
+		 * @type {Array<'cards' | 'table' | 'list'>}
+		 */
+		availableViewModes: {
+			type: Array,
+			default: () => ['cards', 'table'],
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list'].includes(m)),
+		},
+
+		/** Whether to show the view-mode toggle */
 		showViewToggle: {
 			type: Boolean,
 			default: true,
@@ -385,6 +412,45 @@ export default {
 		tableIcon: {
 			type: String,
 			default: '',
+		},
+
+		/** Label for the list view-toggle option (defaults to "List") */
+		listLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the list option (defaults to the built-in list icon). Resolved via CnIcon. */
+		listIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Show a standalone sort dropdown (useful in card/list views). */
+		showSortSelect: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Options for the sort dropdown.
+		 * @type {Array<{ value: string, label: string }>}
+		 */
+		sortOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The currently selected sort option value (controlled). */
+		sortValue: {
+			type: String,
+			default: '',
+		},
+
+		/** Accessible label for the sort dropdown. */
+		sortLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Sort by'),
 		},
 
 		/** Whether to show the inline search field on the left of the bar */
@@ -481,6 +547,36 @@ export default {
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 
+		/**
+		 * The view-toggle segments (label + icon) derived from `availableViewModes`.
+		 * `icon` is a CnIcon name (empty → the built-in `fallback` component).
+		 */
+		viewSegments() {
+			const defs = {
+				cards: { label: this.cardsLabel || t('nextcloud-vue', 'Cards'), icon: this.cardsIcon, fallback: ViewGridOutline },
+				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
+				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
+			}
+			return this.availableViewModes
+				.filter((mode) => defs[mode])
+				.map((mode) => ({ mode, ...defs[mode] }))
+		},
+
+		/** The full sort option object matching `sortValue` (for NcSelect). */
+		selectedSortOption() {
+			return this.sortOptions.find((o) => o.value === this.sortValue) || null
+		},
+
+		/** Sliding-thumb width + offset, driven by the active segment index. */
+		thumbStyle() {
+			const count = this.viewSegments.length || 1
+			const activeIndex = Math.max(0, this.viewSegments.findIndex((s) => s.mode === this.viewMode))
+			return {
+				width: `calc((100% - 8px) / ${count})`,
+				transform: `translateX(${activeIndex * 100}%)`,
+			}
+		},
+
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
@@ -525,6 +621,20 @@ export default {
 			 * @type {string}
 			 */
 			this.$emit('search', event.target.value)
+		},
+
+		/**
+		 * Forward the standalone sort dropdown's selection to the host.
+		 *
+		 * @param {string} value The chosen option's `value`.
+		 * @return {void}
+		 */
+		onSortChange(value) {
+			/**
+			 * @event sort-change Emitted when the user picks an option from the standalone sort dropdown.
+			 * @type {string} The chosen option's `value`.
+			 */
+			this.$emit('sort-change', value)
 		},
 
 		/**

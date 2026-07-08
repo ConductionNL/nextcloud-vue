@@ -24,7 +24,7 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `select` | —       |             |
-| `create` | —       |             |
+| Name     | Payload | Description                                    |
+| -------- | ------- | ---------------------------------------------- |
+| `select` | —       | Emitted when a folder (or "All") is chosen.    |
+| `create` | —       | Emitted when the New-folder button is clicked. |

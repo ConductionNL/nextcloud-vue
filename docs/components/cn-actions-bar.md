@@ -110,3 +110,10 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 |------|------|---------|-------------|
 | `showSidebarToggle` | Boolean | `false` | Whether to show the Search/Columns sidebar toggle button (lets the index sidebar default to closed and open on demand). |
 | `sidebarOpen` | Boolean | `false` | Current open state of the sidebar (controls the toggle button's pressed state). |
+| `availableViewModes` | Array | `['cards','table']` | Which view-mode segments to show, in order (add `list`). |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown (card/list views). |
+| `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortValue` | String | `''` | Selected sort option value (controlled). |
+| `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |

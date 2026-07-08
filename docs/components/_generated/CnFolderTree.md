@@ -9,6 +9,6 @@
 
 ### Events
 
-| Name     | Payload | Description |
-| -------- | ------- | ----------- |
-| `select` | —       |             |
+| Name     | Payload | Description                                                       |
+| -------- | ------- | ----------------------------------------------------------------- |
+| `select` | —       | Emitted when a folder (at this level or a descendant) is clicked. |

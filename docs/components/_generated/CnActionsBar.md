@@ -43,19 +43,19 @@
 
 ### Events
 
-| Name               | Payload | Description                                                                                                                      |
-| ------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `view-mode-change` | —       | User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.                           |
-| `sort-change`      | —       | Sort select (opt-in). A standalone sort control for card/list views, which — unlike the table — have no sortable column headers. |
-| `toggle-sidebar`   | —       | User clicked the Search/Columns sidebar toggle. No payload.                                                                      |
-| `add`              | —       | User clicked the primary Add button. No payload.                                                                                 |
-| `refresh`          | —       | User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list.                       |
-| `header-action`    | —       | User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.                                        |
-| `show-import`      | —       | User clicked the Import mass action. Host should open the import modal.                                                          |
-| `show-export`      | —       | User clicked the Export mass action. Host should open the export modal.                                                          |
-| `show-copy`        | —       | User clicked the Copy-selected mass action. Disabled while no row is selected.                                                   |
-| `show-delete`      | —       | User clicked the Delete-selected mass action. Disabled while no row is selected.                                                 |
-| `search`           | —       | Emitted when the user types in the inline search field.                                                                          |
+| Name               | Payload | Description                                                                                                |
+| ------------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `view-mode-change` | —       | User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.     |
+| `toggle-sidebar`   | —       | User clicked the Search/Columns sidebar toggle. No payload.                                                |
+| `add`              | —       | User clicked the primary Add button. No payload.                                                           |
+| `refresh`          | —       | User clicked the Refresh entry in the overflow Actions menu. The host should re-fetch the underlying list. |
+| `header-action`    | —       | User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.                  |
+| `show-import`      | —       | User clicked the Import mass action. Host should open the import modal.                                    |
+| `show-export`      | —       | User clicked the Export mass action. Host should open the export modal.                                    |
+| `show-copy`        | —       | User clicked the Copy-selected mass action. Disabled while no row is selected.                             |
+| `show-delete`      | —       | User clicked the Delete-selected mass action. Disabled while no row is selected.                           |
+| `search`           | —       | Emitted when the user types in the inline search field.                                                    |
+| `sort-change`      | —       | Emitted when the user picks an option from the standalone sort dropdown.                                   |
 
 ### Slots
 
