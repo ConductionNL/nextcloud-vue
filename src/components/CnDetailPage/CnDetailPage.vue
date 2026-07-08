@@ -314,6 +314,8 @@
 								:object-type="resolvedObjectType"
 								:store="effectiveObjectStore"
 								:overrides="widgetContentFor(item).overrides || {}"
+								:include="widgetContentFor(item).include || null"
+								:exclude="widgetContentFor(item).exclude || []"
 								:columns="widgetContentFor(item).columns || 3" />
 							<!-- `type: 'related'` widget: the related-objects widget,
 							     the second default body widget. Resolves this object's
@@ -337,10 +339,25 @@
 								:is="resolveIntegrationWidget(item)"
 								v-else-if="isIntegrationWidget(item) && resolveIntegrationWidget(item)"
 								v-bind="getIntegrationProps(item)" />
+							<!-- Content-only catalog widgets (object-list / table)
+							     render bare tables, so give them the titled
+							     CnWidgetWrapper card chrome (ADR-062: every body
+							     widget has chrome + its manifest title). -->
+							<CnWidgetWrapper
+								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
+								:title="findWidget(item).title || ''"
+								:show-refresh="false"
+								:show-request-feature="false"
+								class="cn-detail-page__catalog-card">
+								<component
+									:is="registryRendererFor(item)"
+									:content="widgetContentFor(item)"
+									v-bind="widgetContentFor(item)" />
+							</CnWidgetWrapper>
 							<!-- Fallback for content-driven catalog widgets
-							     (stat / chart / delta / gauge / object-list / …):
-							     render the registered renderer with the def's
-							     `content`. These self-fetch from OpenRegister. -->
+							     (stat / chart / delta / gauge / …): render the
+							     registered renderer with the def's `content`.
+							     These self-fetch from OpenRegister. -->
 							<component
 								:is="registryRendererFor(item)"
 								v-else-if="registryRendererFor(item)"
@@ -524,6 +541,7 @@ import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
+import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
@@ -634,6 +652,7 @@ export default {
 		CnObjectDataWidget,
 		CnRelatedObjectsWidget,
 		CnDashboardGrid,
+		CnWidgetWrapper,
 		CnLifecycleActions,
 		CnActionButtons,
 		CnSummaryAggregates,
@@ -1710,6 +1729,11 @@ export default {
 		// `effectiveObjectStore` relies on a live Pinia context, which
 		// is guaranteed by mounted() but not by created().
 		this.fetchObjectIfNeeded()
+		this.scheduleCellOverflowAudit()
+	},
+
+	updated() {
+		this.scheduleCellOverflowAudit()
 	},
 
 	beforeDestroy() {
@@ -1981,6 +2005,55 @@ export default {
 		isRelatedWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'related'
+		},
+
+		/**
+		 * Whether a grid item is a content-only catalog widget (a bare table
+		 * renderer with no chrome of its own). These get the titled
+		 * CnWidgetWrapper card in the grid (ADR-062); self-chromed catalog
+		 * widgets (stat / chart / gauge / tile / …) render bare.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true when the widget def's type is content-only.
+		 */
+		isContentOnlyWidget(item) {
+			const def = this.findWidget(item)
+			return Boolean(def) && ['object-list', 'table'].includes(def.type)
+		},
+
+		/**
+		 * Debounced dev-mode audit: warn when a grid widget's rendered content
+		 * overflows its fixed cell (ADR-062 — the cell is the budget; overflow
+		 * is a design bug, never a scroll surface). No-op in production builds.
+		 *
+		 * @return {void}
+		 */
+		scheduleCellOverflowAudit() {
+			if (process.env.NODE_ENV === 'production') return
+			clearTimeout(this._cellAuditTimer)
+			this._cellAuditTimer = setTimeout(() => this.auditCellOverflow(), 800)
+		},
+
+		/**
+		 * Measure every grid cell and console.warn the widget ids whose content
+		 * is taller than the cell. Dev aid only — called via
+		 * {@link scheduleCellOverflowAudit}.
+		 *
+		 * @return {void}
+		 */
+		auditCellOverflow() {
+			if (!this.$el || !this.$el.querySelectorAll) return
+			this.$el.querySelectorAll('.grid-stack-item').forEach((cell) => {
+				const content = cell.querySelector('.grid-stack-item-content')
+				if (!content) return
+				if (content.scrollHeight > content.clientHeight + 8) {
+					const inner = cell.querySelector('.cn-detail-page__grid-item')
+					const label = (inner && inner.getAttribute('aria-labelledby')) || cell.getAttribute('gs-id') || ''
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDetailPage] widget cell ${label || '(unlabelled)'} content overflows its gridHeight `
+						+ `(${content.scrollHeight}px in ${content.clientHeight}px) — enlarge the cell or scope the widget's content (ADR-062).`)
+				}
+			})
 		},
 
 		/**

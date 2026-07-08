@@ -98,6 +98,18 @@ The detail body is, at its core, a real drag/resize grid powered by
 - **Widget types** rendered by the grid: `data`, `related`, `integration`, and
   any registered content-driven catalog type (stat / chart / delta / gauge /
   object-list / …). A `#widget-<widgetId>` slot overrides any cell.
+- **Field-scoped data widgets (ADR-062).** A `data` widget's `content` accepts
+  `include` (field whitelist) / `exclude` (blacklist), forwarded to
+  `CnObjectDataWidget` — so one object can be presented as several purposeful
+  data widgets ("Core case data" / "Process"), each sized to its field count.
+- **Content-only catalog widgets get card chrome.** `object-list` / `table`
+  cells render on `CnWidgetWrapper` with the widget def's `title` (they have no
+  chrome of their own); self-chromed catalog widgets (stat / chart / …) render
+  bare, as before.
+- **Cell-overflow dev warning (ADR-062: the cell is the budget).** In
+  non-production builds the page console.warns any grid cell whose rendered
+  content is taller than its `gridHeight` — overflow is a design bug (enlarge
+  the cell or scope the widget's content), never a scroll surface.
 
 ## Sidebar config object
 

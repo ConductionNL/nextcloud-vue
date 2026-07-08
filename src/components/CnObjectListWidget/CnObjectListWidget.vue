@@ -7,14 +7,32 @@
 		<p v-if="waitingForContext" class="cn-object-list-widget__prompt">
 			{{ promptText }}
 		</p>
-		<CnDataTable
-			v-else
-			:columns="resolvedColumns"
-			:rows="rows"
-			:loading="loading"
-			:empty-text="emptyText"
-			borderless
-			@row-click="onRowClick" />
+		<!-- Compact empty state (ADR-062): one muted line, never a full-height
+		     void — an empty collection cell should be DESIGNED small, and this
+		     keeps whatever height it has quiet. -->
+		<p v-else-if="!loading && rows.length === 0" class="cn-object-list-widget__empty">
+			{{ emptyText }}
+		</p>
+		<template v-else>
+			<div class="cn-object-list-widget__table">
+				<CnDataTable
+					:columns="resolvedColumns"
+					:rows="visibleRows"
+					:loading="loading"
+					:empty-text="emptyText"
+					borderless
+					@row-click="onRowClick" />
+			</div>
+			<!-- Fit-to-cell footer (ADR-062: the cell is the budget — rows adapt
+			     to the cell, the remainder is one click away, never a scrollbar). -->
+			<button
+				v-if="hiddenCount > 0"
+				type="button"
+				class="cn-object-list-widget__view-all"
+				@click="onViewAll">
+				{{ viewAllLabel }}
+			</button>
+		</template>
 		<p v-if="error" class="cn-object-list-widget__error">
 			{{ error }}
 		</p>
@@ -74,8 +92,11 @@ export default {
 
 	props: {
 		/**
-		 * The widget's persisted configuration blob.
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string}}
+		 * The widget's persisted configuration blob. `limit` is a fetch cap
+		 * (default 25) — the rendered row count fits the host cell (ADR-062).
+		 * `viewAllRoute` / `viewAllQuery` configure the "View all (N)" footer
+		 * navigation; `viewAllQuery` values are token-resolved (`@objectId`).
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
 			type: Object,
@@ -88,6 +109,10 @@ export default {
 			rows: [],
 			loading: false,
 			error: '',
+			/** Server-side total for the resolved filter (drives "View all (N)"). */
+			total: 0,
+			/** Rows that fit the host cell; null = unconstrained (dashboards). */
+			fitRows: null,
 		}
 	},
 
@@ -174,9 +199,33 @@ export default {
 				return out
 			})
 		},
-		/** Empty-state text. */
+		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
-			return t('nextcloud-vue', 'No items')
+			return this.content.emptyText || t('nextcloud-vue', 'No items')
+		},
+		/**
+		 * The rows actually rendered: capped to what fits the host grid cell
+		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
+		 * Unconstrained on surfaces without a fixed-height cell (dashboards
+		 * measure null and render every fetched row, as before).
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleRows() {
+			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
+		},
+		/**
+		 * How many matching objects are NOT rendered (server total minus the
+		 * visible slice). Drives the "View all (N)" footer.
+		 *
+		 * @return {number}
+		 */
+		hiddenCount() {
+			return Math.max((this.total || this.rows.length) - this.visibleRows.length, 0)
+		},
+		/** Pre-translated "View all (N)" footer label. */
+		viewAllLabel() {
+			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
 		},
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
@@ -188,7 +237,7 @@ export default {
 				// watcher refetches when page-level state a token reads changes.
 				filter: this.resolvedFilter,
 				sort: c.sort || {},
-				limit: c.limit || 5,
+				limit: c.limit || 25,
 				objectId: this.objectCtx ? this.objectCtx.objectId : null,
 			})
 		},
@@ -202,6 +251,19 @@ export default {
 
 	mounted() {
 		this.fetchRows()
+		// Observe the host grid cell so the visible row count re-fits on
+		// resize/layout changes. Only detail-grid cells constrain height;
+		// on dashboards the closest() lookup misses and fitRows stays null.
+		const cell = this.$el.closest && this.$el.closest('.grid-stack-item-content')
+		if (cell && typeof ResizeObserver !== 'undefined') {
+			this._fitObserver = new ResizeObserver(() => this.measureFit())
+			this._fitObserver.observe(cell)
+		}
+		this.$nextTick(() => this.measureFit())
+	},
+
+	beforeDestroy() {
+		if (this._fitObserver) this._fitObserver.disconnect()
 	},
 
 	methods: {
@@ -237,7 +299,9 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: c.register, schema: c.schema },
 				)
-				const params = { _limit: c.limit || 5 }
+				// `limit` is a FETCH CAP (ADR-062), not a render promise — the
+				// visible count fits the cell; fetch enough to fill big cells.
+				const params = { _limit: c.limit || 25 }
 				if (c.sort && c.sort.field) {
 					params[`_order[${c.sort.field}]`] = (c.sort.dir === 'desc' ? 'desc' : 'asc')
 				}
@@ -256,11 +320,61 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
+				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
+				this.$nextTick(() => this.measureFit())
 			} catch (e) {
 				this.error = (e && e.message) || 'error'
 				this.rows = []
+				this.total = 0
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Fit the visible row count to the host grid cell (ADR-062 — the cell
+		 * is the budget). Measures the cell's remaining height below the table
+		 * top, reserves room for the "View all" footer, and derives the row
+		 * budget from the first rendered row's height. No-ops (fitRows null =
+		 * render all fetched rows) outside a fixed-height cell.
+		 *
+		 * @return {void}
+		 */
+		measureFit() {
+			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
+			if (!cell) { this.fitRows = null; return }
+			const table = this.$el.querySelector('.cn-object-list-widget__table table')
+			if (!table) return
+			const cellRect = cell.getBoundingClientRect()
+			const tableRect = table.getBoundingClientRect()
+			const firstRow = table.querySelector('tbody tr')
+			const rowH = (firstRow && firstRow.getBoundingClientRect().height) || 44
+			const head = table.querySelector('thead')
+			const headH = (head && head.getBoundingClientRect().height) || 40
+			const footerReserve = 36
+			const available = cellRect.bottom - tableRect.top - footerReserve
+			const fit = Math.floor((available - headH) / rowH)
+			this.fitRows = Math.max(fit, 1)
+		},
+
+		/**
+		 * "View all (N)" footer click: emits `view-all` and, when the content
+		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
+		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
+		 * current object scope into the target index page).
+		 *
+		 * @return {void}
+		 */
+		onViewAll() {
+			/**
+			 * @event view-all Emitted when the "View all (N)" footer is clicked.
+			 * @type {{ total: number }}
+			 */
+			this.$emit('view-all', { total: this.total })
+			const route = this.content.viewAllRoute
+			if (route && this.$router) {
+				const query = resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx)
+				this.$router.push({ name: route, query }).catch(() => {})
 			}
 		},
 
@@ -298,6 +412,40 @@ export default {
    stays plain. */
 .cn-object-list-widget {
 	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.cn-object-list-widget__table {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Compact empty state (ADR-062): one quiet line, never a tall void. */
+.cn-object-list-widget__empty {
+	color: var(--color-text-maxcontrast);
+	font-style: italic;
+	margin: 4px 0;
+	padding: 4px;
+}
+
+.cn-object-list-widget__view-all {
+	align-self: flex-start;
+	background: none;
+	border: none;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	margin-top: 4px;
+	padding: 4px;
+}
+
+.cn-object-list-widget__view-all:hover,
+.cn-object-list-widget__view-all:focus-visible {
+	text-decoration: underline;
 }
 
 .cn-object-list-widget__error {
