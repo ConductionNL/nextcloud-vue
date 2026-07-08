@@ -341,6 +341,15 @@
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
 					-->
+					<NcAppSettingsSection v-if="userSettingsOpen && isAdmin"
+						id="organisation-credentials"
+						:name="translate('Organisation credentials')">
+						<CnCredentials
+							scope="organisation"
+							:app-id="appId"
+							:app-name="appDisplayName || (manifest && manifest.name) || appId"
+							:app-credentials="(manifest && manifest.credentials) || []" />
+					</NcAppSettingsSection>
 					<NcAppSettingsSection v-if="walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
@@ -390,6 +399,7 @@ import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import { getCurrentUser } from '@nextcloud/auth'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import Vue, { computed, shallowRef, watch } from 'vue'
@@ -1237,6 +1247,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the current user is a Nextcloud administrator. Gates the
+		 * organisation-credentials admin surface client-side; the backend
+		 * independently enforces org-owner/admin authority on write.
+		 *
+		 * @return {boolean} True when the signed-in user is an admin.
+		 */
+		isAdmin() {
+			const user = getCurrentUser()
+			return !!(user && user.isAdmin)
+		},
 		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
