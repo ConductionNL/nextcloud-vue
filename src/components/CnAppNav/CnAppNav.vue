@@ -30,14 +30,18 @@
     foldout (opens the host app's NcAppSettingsDialog via
     cnOpenUserSettings); opt out with `nav.includePersonalSettings:
     false`. Right below it, an "Admin settings" entry is auto-prepended
-    for administrators only (opens the host app's SEPARATE admin-
-    settings NcAppSettingsDialog via cnOpenAdminSettings — see
-    CnAppRoot; this is where app-level, not per-user, configuration
-    such as the organisation credential broker lives). The foldout
-    mounts whenever there are settings items OR personal settings is
-    enabled — so every app shows a Settings gear with at least Personal
-    settings. It is only fully suppressed when there are no settings
-    items AND `nav.includePersonalSettings: false`.
+    for app OWNERS only — gated on the `isOwner` prop (computed by
+    CnAppRoot from `currentUserGroups` ∩ `permissions.owners`, and/or a
+    manifest `runtime.user` owner signal; NOT `OC.isUserAdmin()`) AND on
+    the manifest declaring at least one `adminSettings[]` entry. It
+    opens the host app's SEPARATE admin-settings NcAppSettingsDialog via
+    cnOpenAdminSettings — see CnAppRoot; this is where app-level, not
+    per-user, configuration such as the organisation credential broker
+    lives, rendered generically from `manifest.adminSettings[]`. The
+    foldout mounts whenever there are settings items OR personal
+    settings is enabled — so every app shows a Settings gear with at
+    least Personal settings. It is only fully suppressed when there are
+    no settings items AND `nav.includePersonalSettings: false`.
 
   Manifest and translate are injected from CnAppRoot by default but can
   also be passed as props for standalone use without CnAppRoot. Props
@@ -200,7 +204,7 @@
 						</template>
 					</NcAppNavigationItem>
 					<NcAppNavigationItem
-						v-if="isAdmin"
+						v-if="isOwner && hasAdminSettings"
 						:name="adminSettingsLabel"
 						data-testid="cn-nav-admin-settings"
 						@click="onAdminSettingsClick">
@@ -438,6 +442,22 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+		/**
+		 * Whether the current user is an OWNER of this app
+		 * (admin-settings-owner-gating capability). Computed by CnAppRoot
+		 * from `currentUserGroups` ∩ `permissions.owners` and/or a manifest
+		 * `runtime.user` owner signal — deliberately NOT `OC.isUserAdmin()`.
+		 * Gates the auto-included "Admin settings" entry together with
+		 * `hasAdminSettings`. Defaults to `false` so CnAppNav mounted
+		 * standalone (without a CnAppRoot ancestor computing the value)
+		 * never shows the entry.
+		 *
+		 * @type {boolean}
+		 */
+		isOwner: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -450,14 +470,6 @@ export default {
 			 * items (via `onItemClick`).
 			 */
 			openState: {},
-			/**
-			 * Whether the current user is a Nextcloud administrator. Set once
-			 * from `OC.isUserAdmin()` in `created()` (when OC is ready) rather
-			 * than a dependency-free computed, which could cache a stale value
-			 * read during the nav's early first render and never re-evaluate.
-			 * Gates the auto-included "Admin settings" entry.
-			 */
-			isAdmin: false,
 		}
 	},
 
@@ -605,6 +617,19 @@ export default {
 			return t('nextcloud-vue', 'Admin settings')
 		},
 		/**
+		 * Whether the manifest declares any `adminSettings` entries. Gates
+		 * the auto-included "Admin settings" nav entry together with
+		 * `isOwner` — an app with no (or empty) `adminSettings` shows no
+		 * admin nav entry at all, even for an owner (manifest-admin-settings
+		 * D4 backward-compat).
+		 *
+		 * @return {boolean}
+		 */
+		hasAdminSettings() {
+			const adminSettings = this.effectiveManifest?.adminSettings
+			return Array.isArray(adminSettings) && adminSettings.length > 0
+		},
+		/**
 		 * Route name of the menu item that best matches the current route.
 		 * A direct match (current route name IS a menu target) wins;
 		 * otherwise the current path is matched against each item's page
@@ -641,13 +666,6 @@ export default {
 			}
 			return best ?? routeName ?? null
 		},
-	},
-
-	created() {
-		this.isAdmin = typeof window !== 'undefined'
-			&& !!window.OC
-			&& typeof window.OC.isUserAdmin === 'function'
-			&& window.OC.isUserAdmin() === true
 	},
 
 	methods: {
@@ -1013,10 +1031,10 @@ export default {
 		},
 		/**
 		 * Click handler for the auto-prepended Admin-settings entry in the
-		 * settings foldout (visible only when `isAdmin` is true). Invokes
-		 * the injected `cnOpenAdminSettings` (provided by CnAppRoot →
-		 * opens the host's admin-settings NcAppSettingsDialog). No-op
-		 * inject when mounted standalone.
+		 * settings foldout (visible only when `isOwner && hasAdminSettings`
+		 * is true). Invokes the injected `cnOpenAdminSettings` (provided by
+		 * CnAppRoot → opens the host's admin-settings NcAppSettingsDialog).
+		 * No-op inject when mounted standalone.
 		 *
 		 * @return {void}
 		 */

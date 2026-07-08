@@ -280,6 +280,14 @@ export interface TManifest {
 	/** External-provider credentials via the OpenRegister broker. */
 	credentials?: TManifestCredential[]
 	/**
+	 * Admin-only settings sections rendered by CnAppRoot's generic admin
+	 * NcAppSettingsDialog, gated on app-owner-group membership. See the
+	 * `adminSettingsEntry` $def in the v2 schema for the full shape (a
+	 * built-in `type` — currently only `"organisation-credentials"` — or a
+	 * custom `component` resolved from the renderer registry).
+	 */
+	adminSettings?: Record<string, unknown>[]
+	/**
 	 * ADR-041: offer the OpenBuild in-app edit button on this app's pages.
 	 * Default true; set false to suppress (e.g. OpenBuild's own UI).
 	 */
@@ -299,4 +307,19 @@ export interface TManifest {
 	 * OpenRegister's ManifestController — never hand-authored.
 	 */
 	runtime?: Record<string, unknown>
+	/**
+	 * Entity-scaffold page templates (manifest-entity-scaffold-templating).
+	 * See the `pageTemplate` $def in the v2 schema for the full shape.
+	 */
+	pageTemplates?: Record<string, unknown>[]
+	/**
+	 * Per-entity template instantiations, each referencing a `pageTemplates[]`
+	 * entry by `templateRef`. See the `pageInstance` $def in the v2 schema.
+	 */
+	pageInstances?: Record<string, unknown>[]
+	/**
+	 * Named, reusable field/column/sidebar sets referenced from templates via
+	 * a `{{set:NAME}}` placeholder.
+	 */
+	sets?: Record<string, unknown>
 }

@@ -226,6 +226,11 @@
 			"items": { "$ref": "#/$defs/page" },
 			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by validateManifestV2 as a post-schema check."
 		},
+		"adminSettings": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/adminSettingsEntry" },
+			"description": "Admin-only settings sections rendered by CnAppRoot's generic admin NcAppSettingsDialog, gated on app-owner-group membership (not OC.isUserAdmin()). An absent key or an empty array yields no admin nav entry and no admin dialog. See the manifest-admin-settings and admin-settings-owner-gating capabilities."
+		},
 		"credentials": {
 			"type": "array",
 			"description": "External-provider credentials this app can use via the OpenRegister credential broker (github, gitlab, …). Each entry declares which provider, why, and at what scope; the app never receives the secret — the broker performs the outbound call on the user's behalf. See the credential-broker capability.",
@@ -2146,6 +2151,48 @@
 				"displayName": {
 					"type": "string",
 					"description": "Human-readable label for the linked object type."
+				}
+			}
+		},
+		"adminSettingsEntry": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"oneOf": [
+				{ "required": ["type"] },
+				{ "required": ["component"] }
+			],
+			"description": "One admin-only settings section rendered by CnAppRoot's generic admin NcAppSettingsDialog, sorted into the dialog by `order`. Exactly one of `type` (a built-in section) or `component` (a custom section resolved from the renderer registry) MUST be present.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this admin-settings entry; also the rendered NcAppSettingsSection id."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key (English source) resolved by the consuming app's t() function, shown as the section header."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["organisation-credentials"],
+					"description": "Built-in admin-settings section. Closed enum. 'organisation-credentials' renders CnCredentials with scope=\"organisation\" (the OpenRegister credential broker's organisation-scope pane). Mutually exclusive with `component`."
+				},
+				"component": {
+					"type": "string",
+					"description": "Registry key of a custom admin-settings section component, resolved from the CnAppRoot custom-components registry at render time. Mutually exclusive with `type`."
+				},
+				"order": {
+					"type": "integer",
+					"description": "Sort order of this section within the admin dialog. Entries without an order render last, in array position."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Optional permission string that further narrows visibility of this section WITHIN the already owner-gated admin dialog, reusing the existing per-item permission grammar. Narrow-only: it can never widen access to a caller who is not an owner of the app."
+				},
+				"props": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Props forwarded to a custom `component` entry. Ignored for built-in `type` entries."
 				}
 			}
 		}
