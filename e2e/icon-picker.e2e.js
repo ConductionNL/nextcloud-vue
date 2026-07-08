@@ -31,6 +31,22 @@ test.describe('CnIconPicker — enriched (real browser)', () => {
 		}).toBe(true)
 	})
 
+	test('infinite scroll reveals more icons past the 120 cap', async ({ page }) => {
+		const sec = enriched(page)
+		const grid = sec.locator('.cn-icon-picker__grid')
+		// Wait for the full MDI catalogue to load (well past the initial batch).
+		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(100)
+		const before = await grid.locator('.cn-icon-picker__icon').count()
+		// The hint reports "Showing N of M" while more remain.
+		await expect(sec.locator('.cn-icon-picker__hint')).toContainText('scroll for more')
+		// Scroll the grid to its bottom a few times to load further batches.
+		for (let i = 0; i < 3; i++) {
+			await grid.evaluate((el) => { el.scrollTop = el.scrollHeight })
+			await page.waitForTimeout(150)
+		}
+		await expect.poll(async () => grid.locator('.cn-icon-picker__icon').count()).toBeGreaterThan(before)
+	})
+
 	test('clicking a tile emits the MDI value into v-model', async ({ page }) => {
 		const sec = enriched(page)
 		await sec.locator('.cn-icon-picker__search').fill('home')

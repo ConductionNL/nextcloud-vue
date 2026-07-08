@@ -9,6 +9,14 @@
 -->
 <template>
 	<div class="harness">
+		<!-- Walkthrough harness (gated behind ?wt=1 so its full-screen overlay
+		     doesn't block the icon/markdown sections). -->
+		<template v-if="showWalkthrough">
+			<h2>Walkthrough</h2>
+			<CnWalkthrough app-id="harness" :manifest="wtManifest" seen-version="" />
+		</template>
+
+		<template v-else>
 		<section data-testid="section-icon-enriched">
 			<h2>Icon picker — enriched</h2>
 			<CnIconPicker
@@ -38,16 +46,20 @@
 			<CnMarkdownEditor v-model="plain" />
 			<pre data-testid="plain-value">{{ plain }}</pre>
 		</section>
+		</template>
 	</div>
 </template>
 
 <script>
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
+import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
+
+const wtStep = (id, title, body) => ({ id, sinceVersion: '1.0.0', placement: 'center', title, body, target: { kind: 'page', ref: 'harness' }, advanceOn: { type: 'manual' } })
 
 export default {
 	name: 'Harness',
-	components: { CnIconPicker, CnMarkdownEditor },
+	components: { CnIconPicker, CnMarkdownEditor, CnWalkthrough },
 	data() {
 		return {
 			icon: null,
@@ -55,6 +67,23 @@ export default {
 			legacyIcon: null,
 			wysiwyg: '# Hello',
 			plain: 'plain text',
+			showWalkthrough: (typeof window !== 'undefined' && window.location.search.includes('wt')),
+			wtManifest: {
+				version: '1.0.0',
+				walkthrough: {
+					enabled: true,
+					version: 1,
+					tours: [{
+						id: 'getting-started',
+						trigger: 'first-visit',
+						steps: [
+							wtStep('welcome', 'Welcome', 'First step — no Back, Next on the right.'),
+							wtStep('middle', 'Second', 'Middle step — Back on the left, Next on the right.'),
+							wtStep('done', 'Done', 'Last step — Finish on the right.'),
+						],
+					}],
+				},
+			},
 		}
 	},
 }
