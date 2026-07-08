@@ -53,6 +53,8 @@ function mountNav({
 	translate,
 	openUserSettings,
 	replayWalkthrough,
+	openAdminSettings,
+	isOwner,
 } = {}) {
 	const provide = useProps
 		? {}
@@ -61,9 +63,11 @@ function mountNav({
 			cnTranslate: translate ?? ((k) => k),
 			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
 			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+			...(openAdminSettings ? { cnOpenAdminSettings: openAdminSettings } : {}),
 		}
 	const propsData = {
 		permissions,
+		...(isOwner !== undefined ? { isOwner } : {}),
 		...(useProps
 			? {
 				manifest,
@@ -157,6 +161,46 @@ describe('CnAppNav', () => {
 			const c = wrapper.vm.visibleItems.find((i) => i.id === 'c')
 			const childIds = wrapper.vm.visibleChildren(c).map((ch) => ch.id)
 			expect(childIds).toEqual(['c1'])
+		})
+	})
+
+	describe('auto-included "Admin settings" nav entry (admin-settings-owner-gating)', () => {
+		const manifestWithAdminSettings = {
+			...baseManifest,
+			adminSettings: [{ id: 'org-credentials', type: 'organisation-credentials', label: 'Org credentials' }],
+		}
+
+		it('shows the entry when isOwner is true AND adminSettings is non-empty', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+		})
+
+		it('hides the entry when isOwner is false, even with adminSettings declared', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: false })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is absent', () => {
+			const wrapper = mountNav({ manifest: baseManifest, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is an empty array', () => {
+			const wrapper = mountNav({ manifest: { ...baseManifest, adminSettings: [] }, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('defaults isOwner to false when the prop is omitted (standalone mount)', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings })
+			expect(wrapper.vm.isOwner).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('invokes cnOpenAdminSettings when the entry is clicked', async () => {
+			const openAdminSettings = jest.fn()
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true, openAdminSettings })
+			await wrapper.find('[data-testid="cn-nav-admin-settings"]').trigger('click')
+			expect(openAdminSettings).toHaveBeenCalled()
 		})
 	})
 

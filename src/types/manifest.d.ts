@@ -280,6 +280,14 @@ export interface TManifest {
 	/** External-provider credentials via the OpenRegister broker. */
 	credentials?: TManifestCredential[]
 	/**
+	 * Admin-only settings sections rendered by CnAppRoot's generic admin
+	 * NcAppSettingsDialog, gated on app-owner-group membership. See the
+	 * `adminSettingsEntry` $def in the v2 schema for the full shape (a
+	 * built-in `type` — currently only `"organisation-credentials"` — or a
+	 * custom `component` resolved from the renderer registry).
+	 */
+	adminSettings?: Record<string, unknown>[]
+	/**
 	 * ADR-041: offer the OpenBuild in-app edit button on this app's pages.
 	 * Default true; set false to suppress (e.g. OpenBuild's own UI).
 	 */
