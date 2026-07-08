@@ -193,6 +193,17 @@
 	overflow: auto;
 }
 
+/* dashboard.css draws a square cell border + background around any grid cell
+   holding a CnWidgetWrapper — a DASHBOARD look. On detail pages the widget's
+   own rounded card (ADR-062) is the only chrome; the square cell outline
+   showed as a stray gray line behind the rounded corners. The doubled class
+   outranks the dashboard rule at equal source order. */
+.cn-dashboard-grid.cn-detail-page__grid .grid-stack-item-content:has(.cn-widget-wrapper) {
+	border: none;
+	background: transparent;
+	box-shadow: none;
+}
+
 .cn-detail-page__grid-item {
 	min-width: 0;
 	height: 100%;
