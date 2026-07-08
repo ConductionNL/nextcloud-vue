@@ -236,8 +236,8 @@
 					:selected-id="selectedFolderId"
 					:all-label="folderSidebar.allLabel || undefined"
 					:title="folderSidebar.title || ''"
-					:id-field="folderSidebar.idField || 'id'"
-					:name-field="folderSidebar.nameField || 'name'"
+					:id-field="folderPassthroughIdField"
+					:name-field="folderPassthroughNameField"
 					:allow-create="Boolean(folderSidebar.allowCreate)"
 					@select="onFolderSelect"
 					@create="$emit('folder-create', $event)" />
@@ -1675,6 +1675,27 @@ export default {
 			if (!this.folderSidebar) return []
 			if (this.folderSidebar.source === 'register') return this.folderRegisterList
 			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * id/name field names passed to CnFolderSidebar for the custom folder
+		 * list. The `register` source is pre-mapped to `{ id, name }` by
+		 * `loadFolderRegister`, so it uses the plain keys; a `custom` source
+		 * passes the objects through untouched and honours the config's fields.
+		 *
+		 * @return {string} The id field key.
+		 */
+		folderPassthroughIdField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'id'
+			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
+		},
+
+		/**
+		 * @return {string} The name field key for CnFolderSidebar's custom list.
+		 */
+		folderPassthroughNameField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'name'
+			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
 		},
 
 		/**
