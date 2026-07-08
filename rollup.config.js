@@ -31,6 +31,12 @@ export default {
 		/^@nextcloud\//,
 		'pinia',
 		/^vue-material-design-icons\//,
+		// Kept out of the bundle so they stay lazy at the consumer and the
+		// library ships no icon pack: the Toast UI WYSIWYG editor (loaded only
+		// in CnMarkdownEditor's `mode: 'wysiwyg'`) and the optional @mdi/js pack
+		// (loaded only by CnIconPicker's enriched MDI source).
+		/^@toast-ui\//,
+		'@mdi/js',
 	],
 	plugins: [
 		{
