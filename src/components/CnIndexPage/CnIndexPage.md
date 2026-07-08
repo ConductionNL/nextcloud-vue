@@ -630,3 +630,18 @@ The list view (`view-mode="list"`) and standalone sort dropdown add these props:
 | `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
 
 The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Folder sidebar
+
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+
+Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "procest", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "allLabel": "All cases"
+}
+```
+

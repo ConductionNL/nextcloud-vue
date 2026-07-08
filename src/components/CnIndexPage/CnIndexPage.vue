@@ -222,7 +222,27 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': folderSidebar }">
+			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
+			     config). Selecting a folder filters the list by the config's
+			     `filterField`; "All" clears it. -->
+			<div v-if="folderSidebar" class="cn-index-page__folder-pane">
+				<CnFolderSidebar
+					:source="folderSidebarSource"
+					:folders="folderSidebarFolders"
+					:objects="effectiveObjects"
+					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
+					:files-path="folderSidebar.filesPath || '/'"
+					:selected-id="selectedFolderId"
+					:all-label="folderSidebar.allLabel || undefined"
+					:title="folderSidebar.title || ''"
+					:id-field="folderSidebar.idField || 'id'"
+					:name-field="folderSidebar.nameField || 'name'"
+					:allow-create="Boolean(folderSidebar.allowCreate)"
+					@select="onFolderSelect"
+					@create="$emit('folder-create', $event)" />
+			</div>
+
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
 				<div v-if="effectiveLoading" class="cn-index-page__loading">
@@ -503,6 +523,7 @@ import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnObjectList } from '../CnObjectList/index.js'
+import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
@@ -620,6 +641,7 @@ export default {
 		CnCardGrid,
 		CnMapWidget,
 		CnObjectList,
+		CnFolderSidebar,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -1220,6 +1242,28 @@ export default {
 		},
 
 		/**
+		 * Opt-in folder navigation pane (rendered left of the list). Selecting a
+		 * folder filters the list by `filterField` (via the self-fetch filter);
+		 * "All" clears it. Fed from the manifest as `pages[].config.folderSidebar`.
+		 *
+		 * - `source` — `'register'` (fetch the folder list from an OpenRegister
+		 *   register/schema), `'field'` (distinct values of the current rows'
+		 *   `field`), `'custom'` (use `folders`), or `'files'` (NC folders).
+		 * - `register` / `schema` — the OR source for `source:'register'`.
+		 * - `idField` / `nameField` — which folder object props map to the folder
+		 *   id (the filter value) and display name. Dotted paths supported.
+		 * - `field` / `filterField` — the row field to group/filter by (filterField
+		 *   defaults to `field`).
+		 * - `folders` — explicit folder list for `source:'custom'`.
+		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * @type {object}
+		 */
+		folderSidebar: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
 		 * toggleable facet filters — a compact alternative to the facet sidebar.
@@ -1488,6 +1532,9 @@ export default {
 		return {
 			currentViewMode: this.viewMode,
 			internalSelectedIds: [...this.selectedIds],
+			// Folder-sidebar state: selected folder id + the register-fetched list.
+			selectedFolderId: null,
+			folderRegisterList: [],
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -1604,6 +1651,30 @@ export default {
 				? this.viewModes
 				: this.availableViewModes
 			return list.filter((m) => m !== 'map')
+		},
+
+		/**
+		 * The CnFolderSidebar source. A `register` source is fetched by this
+		 * component and handed to CnFolderSidebar as a `custom` folder list.
+		 *
+		 * @return {string} The resolved CnFolderSidebar source.
+		 */
+		folderSidebarSource() {
+			const s = this.folderSidebar && this.folderSidebar.source
+			return (s === 'register' || !s) ? 'custom' : s
+		},
+
+		/**
+		 * The folder list for CnFolderSidebar's custom source: register-fetched
+		 * objects (source:'register') or the explicit `folders` (source:'custom').
+		 * Empty for the field/files sources, which derive their own list.
+		 *
+		 * @return {Array<object>} The folder list.
+		 */
+		folderSidebarFolders() {
+			if (!this.folderSidebar) return []
+			if (this.folderSidebar.source === 'register') return this.folderRegisterList
+			return this.folderSidebar.folders || []
 		},
 
 		/**
@@ -2066,6 +2137,13 @@ export default {
 	mounted() {
 		this.publishHoistedSidebar()
 		this.pushAiContext()
+		if (this.folderSidebar) {
+			this.loadFolderRegister()
+			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
+			const key = this.folderSidebar.filterField || this.folderSidebar.field
+			const active = key && this.effectiveActiveFilters[key]
+			if (active) this.selectedFolderId = Array.isArray(active) ? active[0] : active
+		}
 	},
 
 	created() {
@@ -2267,6 +2345,56 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * Folder selection from the opt-in folder sidebar: filter the list by the
+		 * config's `filterField` (or `field`); a null id clears it.
+		 *
+		 * @param {(string|number|null)} folderId The selected folder id (null = All).
+		 * @return {void}
+		 */
+		onFolderSelect(folderId) {
+			this.selectedFolderId = folderId
+			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+			if (key) {
+				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
+			}
+			/**
+			 * @event folder-change Emitted when a folder is selected in the sidebar.
+			 * @type {(string|number|null)} The selected folder id (null = All).
+			 */
+			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Load the folder list from an OpenRegister register/schema for a
+		 * `folderSidebar.source === 'register'` config. Maps each object to
+		 * `{ id: <idField|@self.uuid>, name: <nameField|title> }`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFolderRegister() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) return
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
+				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
+				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const idField = cfg.idField || '@self.uuid'
+				const nameField = cfg.nameField || 'title'
+				this.folderRegisterList = rows
+					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
+					.filter((f) => f.id != null)
+					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
+			} catch (e) {
+				console.error('[CnIndexPage] failed to load folder register', e)
+				this.folderRegisterList = []
+			}
 		},
 
 		/**
