@@ -347,6 +347,7 @@
 							<CnWidgetWrapper
 								v-else-if="registryRendererFor(item) && isContentOnlyWidget(item)"
 								:title="findWidget(item).title || ''"
+								title-icon-position="left"
 								:show-refresh="false"
 								:show-request-feature="false"
 								class="cn-detail-page__catalog-card">

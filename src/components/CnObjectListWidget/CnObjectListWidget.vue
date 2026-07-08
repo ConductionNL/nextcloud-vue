@@ -528,12 +528,17 @@ export default {
 	overflow: hidden;
 }
 
-/* Compact empty state (ADR-062): one quiet line, never a tall void. */
+/* Compact empty state (ADR-062): one quiet centered line — matches the
+   integration leaves' "No meetings" look — never a tall void. */
 .cn-object-list-widget__empty {
 	color: var(--color-text-maxcontrast);
-	font-style: italic;
-	margin: 4px 0;
-	padding: 4px;
+	margin: 0;
+	padding: 24px 8px;
+	text-align: center;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .cn-object-list-widget__view-all {
@@ -559,16 +564,23 @@ export default {
 	padding: 4px;
 }
 
+/* Footer Add — same pattern as the integration leaves' footer action
+   ("Open in Calendar"): full-width, centered, divider-topped, pinned to
+   the card bottom. */
 .cn-object-list-widget__add {
-	align-self: flex-start;
+	align-self: stretch;
 	background: none;
 	border: none;
+	border-top: 1px solid var(--color-border);
 	color: var(--color-primary-element);
 	cursor: pointer;
 	font: inherit;
 	font-weight: 600;
-	margin-top: auto;
-	padding: 4px;
+	/* Bleed through the host card's 16px content padding so the divider
+	   spans edge-to-edge, exactly like the integration leaves' footer. */
+	margin: auto -16px -16px;
+	padding: 12px 8px;
+	text-align: center;
 }
 
 .cn-object-list-widget__add:hover,
