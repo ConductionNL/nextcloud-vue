@@ -50,6 +50,8 @@ const { valid, errors } = validateManifestV2(manifest)
 - `pages[].id` MUST be unique across the array.
 - For every `widgets[]` entry: `gridX + gridWidth ≤ 12` (only enforced on 12-column slots — `body`, `header-actions`, `footer`, `modal`, `tab:*`, `section:*`).
 - `@resolve:<key>` sentinels are REJECTED on registry-key and router-invariant paths: `pages[].id`, `pages[].route`, `pages[].component`, `pages[].headerComponent`, `pages[].actionsComponent`, `pages[].slots.*`, `menu[].id`, `menu[].route`, `dependencies[]`, `version`. Mirrors v1's behaviour.
+- `stats-block` widgets: exactly one of `dataSource` | `props.entries[]`.
+- Wave-2 endpoint binding (schema v2.14.0, `$defs/endpointSource`): exactly one data binding per widget — `stat`/`delta` `content.source` | `content.endpointSource` (an editor-seeded EMPTY source blob doesn't count), `chart` `dataSource` | `props.endpointSource`, `object-table` `props.source` | `props.endpointSource`. Enforced on BOTH the v2 `pages[].widgets[]` grid and the legacy `pages[].config.widgets[]` dashboard catalog. See [useEndpointSource](./composables/use-endpoint-source.md).
 
 ## Dispatch contract
 

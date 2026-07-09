@@ -21,8 +21,8 @@
 			</div>
 
 			<div class="cn-delta-widget__value-row">
-				<NcLoadingIcon v-if="loading" :size="22" />
-				<span v-else-if="error" class="cn-delta-widget__error" :title="error">—</span>
+				<NcLoadingIcon v-if="displayLoading" :size="22" />
+				<span v-else-if="displayError" class="cn-delta-widget__error" :title="displayError">—</span>
 				<template v-else>
 					<span class="cn-delta-widget__value">{{ formattedCurrent }}</span>
 					<span
@@ -35,7 +35,7 @@
 				</template>
 			</div>
 
-			<div v-if="!loading && !error && content.caption" class="cn-delta-widget__caption">
+			<div v-if="!displayLoading && !displayError && content.caption" class="cn-delta-widget__caption">
 				{{ content.caption }}
 			</div>
 		</div>
@@ -43,6 +43,7 @@
 </template>
 
 <script>
+import { inject, ref } from 'vue'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -50,6 +51,7 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
@@ -79,6 +81,27 @@ import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
  *     current: { filter: { status: 'won', closedAt: { gte: '@monthStart' } } },
  *     previous: { filter: { status: 'won', closedAt: { gte: '@monthStart-1mo', lt: '@monthStart' } } },
  *   },
+ * }
+ * ```
+ *
+ * ENDPOINT BINDING (Wave 2, #91) — instead of the two OpenRegister legs, the
+ * tile can read BOTH values from one app REST payload through the shared
+ * `useEndpointSource` engine (token-resolved params, request dedup + TTL
+ * cache, `cn:page:refresh` / `cn:widget:refresh` subscription). Exactly ONE
+ * of `source` | `endpointSource` may be configured (validator-enforced).
+ * The pipelinq `previousPeriod` overview contract:
+ * ```js
+ * content: {
+ *   label: 'Revenue',
+ *   format: { style: 'currency', currency: 'EUR', decimals: 0 },
+ *   endpointSource: {
+ *     url: '/apps/pipelinq/api/analytics/commercial',
+ *     params: { period: '@workspace.datePreset?' },
+ *   },
+ *   valueField: 'revenue',                    // current value (dot-path)
+ *   previousField: 'previousPeriod.revenue',  // previous value (dot-path)
+ *   // deltaField: 'revenueDeltaPct',         // OR a server-computed percent
+ *   goodDirection: 'up',
  * }
  * ```
  */
@@ -119,14 +142,48 @@ export default {
 	props: {
 		/**
 		 * The widget's persisted configuration blob. An optional `route`
-		 * (vue-router location) or `link` (external href) turns the whole
-		 * tile into a click-through target (see the widgetLink mixin).
-		 * @type {{label?: string, icon?: string, iconColor?: string, caption?: string, route?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, goodDirection?: ('up'|'down'), current?: {filter?: object}, previous?: {filter?: object}}}}
+		 * (vue-router location), `clickRoute` (Wave-2 alias), or `link`
+		 * (external href) turns the whole tile into a click-through target
+		 * (see the widgetLink mixin).
+		 *
+		 * Wave 2 (#91): `endpointSource` (`{ url, method?, params?,
+		 * responsePath? }`) reads BOTH legs from one app REST payload —
+		 * `valueField` plucks the current value, `previousField` the previous
+		 * value (the delta percent is computed client-side), or `deltaField`
+		 * supplies a server-computed percent directly. Exactly one of
+		 * `source` | `endpointSource`. `goodDirection` moves to the content
+		 * top level in endpoint mode (`source.goodDirection` still wins for
+		 * the OpenRegister form).
+		 * @type {{label?: string, icon?: string, iconColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {register?: string, schema?: string, metric?: string, field?: string, goodDirection?: ('up'|'down'), current?: {filter?: object}, previous?: {filter?: object}}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down')}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+	},
+
+	setup(props) {
+		// Endpoint binding (Wave 2): the shared useEndpointSource engine owns
+		// token resolution, request dedup + TTL caching, and the
+		// cn:page:refresh / cn:widget:refresh subscriptions. No-op while
+		// `content.endpointSource` is absent, so the two-leg OpenRegister
+		// path below is untouched. Injects re-read in setup (same resolution
+		// as the Options `inject` block — the CnChartWidget precedent).
+		const objectCtxRaw = inject('cnObjectContext', null)
+		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
+		const appConfigRaw = inject('cnAppConfig', ref({}))
+		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
+		const { data, loading, error, refetch } = useEndpointSource(
+			() => (props.content && props.content.endpointSource) || null,
+			{
+				ctx: () => ({
+					...(unwrap(objectCtxRaw) || {}),
+					workspace: unwrap(workspaceRaw) || {},
+					config: unwrap(appConfigRaw) || {},
+				}),
+			},
+		)
+		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
 	},
 
 	data() {
@@ -144,14 +201,75 @@ export default {
 			const color = this.content.iconColor || 'var(--color-primary-element)'
 			return { color, backgroundColor: this.tint(color) }
 		},
+		/**
+		 * Whether the tile is endpoint-bound (Wave 2): a `content.endpointSource`
+		 * with a `url` reads both legs from one shared payload instead of the
+		 * two OpenRegister aggregation legs. Exactly one of `source` |
+		 * `endpointSource` is allowed (validator-enforced); endpointSource
+		 * wins when both slip through.
+		 *
+		 * @return {boolean}
+		 */
+		endpointMode() {
+			const es = this.content.endpointSource
+			return !!(es && es.url)
+		},
+		/**
+		 * The current value for the active source: the payload value at
+		 * `content.valueField` in endpoint mode, else the OpenRegister
+		 * `current` leg.
+		 *
+		 * @return {*}
+		 */
+		effectiveCurrent() {
+			if (!this.endpointMode) return this.current
+			const v = getByPath(this.epData, this.content.valueField)
+			return v === undefined ? null : v
+		},
+		/**
+		 * The previous value for the active source: the payload value at
+		 * `content.previousField` in endpoint mode, else the OpenRegister
+		 * `previous` leg.
+		 *
+		 * @return {*}
+		 */
+		effectivePrevious() {
+			if (!this.endpointMode) return this.previous
+			const v = getByPath(this.epData, this.content.previousField)
+			return v === undefined ? null : v
+		},
+		/**
+		 * Loading state for the active source (endpoint or OpenRegister).
+		 *
+		 * @return {boolean}
+		 */
+		displayLoading() {
+			return this.endpointMode ? this.epLoading : this.loading
+		},
+		/**
+		 * Error message for the active source ('' = none).
+		 *
+		 * @return {string}
+		 */
+		displayError() {
+			return this.endpointMode ? this.epError : this.error
+		},
 		/** The current value, number-formatted per content.format. */
 		formattedCurrent() {
-			return this.formatNumber(this.current)
+			return this.formatNumber(this.effectiveCurrent)
 		},
-		/** Percentage change current vs previous, or null when not computable. */
+		/**
+		 * Percentage change current vs previous, or null when not computable.
+		 * In endpoint mode a `content.deltaField` (a server-computed percent
+		 * plucked from the payload) wins over the client-side computation.
+		 */
 		deltaPct() {
-			const prev = Number(this.previous)
-			const cur = Number(this.current)
+			if (this.endpointMode && this.content.deltaField) {
+				const v = Number(getByPath(this.epData, this.content.deltaField))
+				return Number.isFinite(v) ? v : null
+			}
+			const prev = Number(this.effectivePrevious)
+			const cur = Number(this.effectiveCurrent)
 			if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) return null
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
@@ -166,10 +284,15 @@ export default {
 			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) return 'TrendingNeutral'
 			return this.deltaPct > 0 ? 'TrendingUp' : 'TrendingDown'
 		},
-		/** Green when the change is in the configured good direction, else red. */
+		/**
+		 * Green when the change is in the configured good direction, else red.
+		 * `source.goodDirection` (the OpenRegister form) wins; endpoint-bound
+		 * tiles declare `content.goodDirection` at the top level.
+		 */
 		deltaColor() {
 			if (this.deltaPct === null || Math.abs(this.deltaPct) < 0.05) return 'var(--color-text-maxcontrast)'
-			const good = (this.content.source && this.content.source.goodDirection) || 'up'
+			const good = (this.content.source && this.content.source.goodDirection)
+				|| this.content.goodDirection || 'up'
 			const rising = this.deltaPct > 0
 			const isGood = good === 'up' ? rising : !rising
 			return isGood ? 'var(--color-success)' : 'var(--color-error)'
@@ -234,6 +357,14 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValues() {
+			// Endpoint-bound tiles are fetched by the shared useEndpointSource
+			// engine (see setup) — the two-leg OpenRegister path must not fire.
+			if (this.endpointMode) {
+				this.current = null
+				this.previous = null
+				this.error = ''
+				return
+			}
 			const s = this.content.source || {}
 			if (!s.register || !s.schema) {
 				this.current = null

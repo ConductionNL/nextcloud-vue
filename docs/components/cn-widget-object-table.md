@@ -74,6 +74,41 @@ re-implement fetching:
 - Externally supplied `rows` **always win** — passing `rows`/`columns`
   without a `source` behaves exactly as before.
 
+## Endpoint binding (Wave 2, #91)
+
+`endpointSource` (`{ url, method?, params?, responsePath? }`, default
+`null`) is the alternative to the OpenRegister `source` for rows an app
+REST endpoint computes (e.g. a per-source performance report):
+
+```json
+{
+  "props": {
+    "endpointSource": {
+      "url": "/apps/pipelinq/api/reports/source-performance",
+      "params": { "from": "@workspace.dateFrom?", "to": "@workspace.dateTo?" },
+      "responsePath": "report.sources"
+    },
+    "columns": [
+      { "key": "source", "label": "Source" },
+      { "key": "conversionRate", "label": "Conversion %" }
+    ],
+    "rowRoute": "lead-detail"
+  }
+}
+```
+
+- Rows come from the payload at `responsePath` (dot-path; the plucked
+  value must be an **array** — anything else renders as empty).
+- `params` use the shared filter-token grammar and re-resolve + refetch
+  when the page context changes; fetching goes through the shared
+  [`useEndpointSource`](../utilities/composables/use-endpoint-source.md)
+  engine (request dedup + short-TTL cache, `cn:page:refresh` /
+  `cn:widget:refresh` wiring on the widget's `widgetId`).
+- **Exactly one of `source` | `endpointSource`** (validator-enforced);
+  external `rows` still win over both (and suppress the request).
+- `columns` / formatters / `rowRoute` / `actions` apply unchanged on
+  top of endpoint rows.
+
 ## Declarative actions
 
 `actions[]` (default `[]`) takes the unified manifest action shape
@@ -100,6 +135,7 @@ re-implement fetching:
 | Prop | Type | Description |
 | --- | --- | --- |
 | `source` | `Object` | Declarative self-fetch source `{ register, schema, filter, order, limit }` (default `null`). |
+| `endpointSource` | `Object` | Endpoint-bound rows `{ url, method, params, responsePath }` (default `null`) — see [Endpoint binding](#endpoint-binding-wave-2-91). Exactly one of `source` \| `endpointSource`. |
 | `actions` | `Array` | Declarative actions (unified action shape incl. `object-op`, default `[]`). |
 | `register` | `String` | Register slug for self-fetch mode (legacy direct prop). |
 | `schema` | `String` | Schema slug for self-fetch mode (legacy direct prop). |
