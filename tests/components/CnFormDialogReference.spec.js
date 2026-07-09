@@ -142,6 +142,59 @@ describe('CnFormDialog — $ref object references', () => {
 		expect(wrapper.vm.formData.contacts).toEqual(['c1', 'c2'])
 	})
 
+	it('resolves options when $ref is served as a JSON-pointer path', async () => {
+		// OpenRegister may serve a `$ref` as '#/components/schemas/product' or a
+		// register-qualified 'pipelinq/product' rather than a bare slug — the
+		// picker must still fetch the right schema (was: empty dropdown).
+		const pathSchema = {
+			title: 'Lead product',
+			properties: {
+				product: { type: 'string', format: 'uuid', $ref: '#/components/schemas/product', title: 'Product', order: 1 },
+			},
+			required: ['product'],
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: pathSchema, item: null, register: 'pipelinq' },
+			stubs,
+		})
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'product')
+		expect(field.widget).toBe('select')
+		expect(field.reference.schema).toBe('product')
+		await flushPromises()
+		expect(mockStore.registerObjectType).toHaveBeenCalledWith('pipelinq-product', 'product', 'pipelinq')
+		expect(mockStore.fetchCollection).toHaveBeenCalled()
+	})
+
+	it('applies x-relation-filter tokens against the form values when fetching options', async () => {
+		const filterSchema = {
+			title: 'Lead product',
+			properties: {
+				lead: { type: 'string', format: 'uuid', $ref: 'lead', title: 'Lead', order: 1 },
+				product: {
+					type: 'string',
+					format: 'uuid',
+					$ref: 'product',
+					title: 'Product',
+					order: 2,
+					'x-relation-filter': { supplier: '@object.lead', active: true },
+				},
+			},
+			required: ['product'],
+		}
+		const wrapper = mount(CnFormDialog, {
+			propsData: { schema: filterSchema, item: null, register: 'pipelinq', initialData: { lead: 'lead-1' } },
+			stubs,
+		})
+		await flushPromises()
+		mockStore.fetchCollection.mockClear()
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'product')
+		await wrapper.vm.fetchReferenceOptions(field, '')
+		const params = mockStore.fetchCollection.mock.calls[mockStore.fetchCollection.mock.calls.length - 1][1]
+		// Resolved token (@object.lead → the seeded lead uuid) + literal scalar.
+		expect(params.supplier).toBe('lead-1')
+		expect(params.active).toBe(true)
+	})
+
 	it('falls back to a text widget when no register is provided', () => {
 		const wrapper = mount(CnFormDialog, {
 			propsData: { schema: refSchema, item: null, register: '' },

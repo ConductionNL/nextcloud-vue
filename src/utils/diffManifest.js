@@ -3,7 +3,8 @@
  *
  * `diffManifest(base, edited)` returns a delta such that
  * `mergeManifestDelta(base, diffManifest(base, edited)).manifest` reproduces
- * `edited` for every keyed array (`pages` / `widgets` / `menu`). It is the
+ * `edited` for every keyed array (`pages` / `widgets` / `menu` and a menu
+ * entry's nested `children`). It is the
  * inverse of {@link module:utils/mergeManifestDelta} and is what OpenBuilt's
  * editor persists when a user saves a built app — only the differences from
  * the base, not a frozen copy of the whole manifest.

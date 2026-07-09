@@ -36,7 +36,7 @@ HTTP fetcher. A direct in-memory overload eliminates the fragility and documents
 virtual-app-host pattern as a first-class consumer of the composable.
 
 This design adds the in-memory overload while preserving the legacy positional signature
-verbatim so no current consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash,
+verbatim so no current consumer (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad,
 decidesk, docudesk, larpingapp, softwarecatalog) requires any change.
 
 ## Goals / Non-Goals

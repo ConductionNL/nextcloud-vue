@@ -6,7 +6,9 @@
 <template>
 	<div class="cn-stat-widget-form">
 		<!-- Data source. -->
-		<h4 class="cn-stat-widget-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-stat-widget-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<div class="cn-stat-widget-form__row2">
 			<CnRegisterSchemaSelect
@@ -22,8 +24,12 @@
 			:input-label="t('nextcloud-vue', 'Source type')"
 			:clearable="false"
 			@input="updateField('kind', $event)">
-			<template #option="{ label: id }">{{ kindLabel(id) }}</template>
-			<template #selected-option="{ label: id }">{{ kindLabel(id) }}</template>
+			<template #option="{ label: id }">
+				{{ kindLabel(id) }}
+			</template>
+			<template #selected-option="{ label: id }">
+				{{ kindLabel(id) }}
+			</template>
 		</NcSelect>
 
 		<!-- Aggregate / Ratio share metric + field. Weighted uses field × weight. -->
@@ -76,10 +82,15 @@
 			<label class="cn-stat-widget-form__sublabel">{{ kind === 'computed' ? t('nextcloud-vue', 'Part B') : t('nextcloud-vue', 'Denominator (the whole)') }}</label>
 			<CnFilterRowsEditor :value="denominatorRows" :fields="availableFields" @input="onRows('denominatorRows', $event)" />
 		</template>
-		<CnFilterRowsEditor v-else :value="filterRows" :fields="availableFields" @input="onRows('filterRows', $event)" />
+		<CnFilterRowsEditor v-else
+			:value="filterRows"
+			:fields="availableFields"
+			@input="onRows('filterRows', $event)" />
 
 		<!-- Presentation. -->
-		<h4 class="cn-stat-widget-form__section">{{ t('nextcloud-vue', 'Display') }}</h4>
+		<h4 class="cn-stat-widget-form__section">
+			{{ t('nextcloud-vue', 'Display') }}
+		</h4>
 
 		<NcTextField
 			:value="label"
@@ -87,10 +98,9 @@
 			placeholder="Revenue"
 			@update:value="updateField('label', $event)" />
 
-		<NcSelect
+		<CnIconBrowser
 			:value="icon"
-			:options="iconOptions"
-			:input-label="t('nextcloud-vue', 'Icon')"
+			:label="t('nextcloud-vue', 'Icon')"
 			@input="updateField('icon', $event)" />
 
 		<NcTextField
@@ -119,7 +129,9 @@
 		</div>
 
 		<!-- Number format. -->
-		<h4 class="cn-stat-widget-form__section">{{ t('nextcloud-vue', 'Format') }}</h4>
+		<h4 class="cn-stat-widget-form__section">
+			{{ t('nextcloud-vue', 'Format') }}
+		</h4>
 
 		<div class="cn-stat-widget-form__row2">
 			<NcSelect
@@ -149,9 +161,9 @@ import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
-import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -178,7 +190,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
 
 	props: {
 		/**
@@ -244,15 +256,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Source-kind options. */
 		kindOptions() {
@@ -265,10 +268,6 @@ export default {
 		/** Number-format style options. */
 		styleOptions() {
 			return ['number', 'currency', 'percent']
-		},
-		/** Icon name options from the shared catalog. */
-		iconOptions() {
-			return Object.keys(DASHBOARD_ICONS)
 		},
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
@@ -317,6 +316,15 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 
@@ -325,7 +333,10 @@ export default {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
 
-		/** Human label for a source kind. */
+		/**
+		 * Human label for a source kind.
+		 * @param id
+		 */
 		kindLabel(id) {
 			if (id === 'ratio') return t('nextcloud-vue', 'Ratio (%)')
 			if (id === 'computed') return t('nextcloud-vue', 'Formula')
@@ -333,31 +344,51 @@ export default {
 			return t('nextcloud-vue', 'Aggregate')
 		},
 
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) {
 			this[field] = value
 			this.emitChange()
 		},
 
-		/** Set a format sub-field and emit. */
+		/**
+		 * Set a format sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateFormat(field, value) {
 			this.$set(this.format, field, value)
 			this.emitChange()
 		},
 
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) {
 			this.$set(this.source, field, value)
 			this.emitChange()
 		},
 
-		/** Set a weighted sub-field and emit. */
+		/**
+		 * Set a weighted sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateWeighted(field, value) {
 			this.$set(this.weighted, field, value)
 			this.emitChange()
 		},
 
-		/** Receive updated filter rows from a shared editor (by data key). */
+		/**
+		 * Receive updated filter rows from a shared editor (by data key).
+		 * @param key
+		 * @param rows
+		 */
 		onRows(key, rows) {
 			this[key] = rows
 			this.emitChange()

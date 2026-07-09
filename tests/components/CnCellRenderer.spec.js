@@ -81,6 +81,37 @@ describe('CnCellRenderer — column formatters', () => {
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
 	})
+
+	it('passes the column formatterOptions as the formatter\'s fourth argument', () => {
+		const seen = []
+		const wrapper = mountRenderer(
+			{
+				value: 1000,
+				property: { type: 'number' },
+				formatter: 'currency',
+				formatterOptions: { currency: 'USD', decimals: 0 },
+			},
+			{
+				cnFormatters: {
+					currency: (value, row, property, options) => {
+						seen.push(options)
+						return `${options.currency} ${value}`
+					},
+				},
+			},
+		)
+		expect(wrapper.text()).toBe('USD 1000')
+		expect(seen).toEqual([{ currency: 'USD', decimals: 0 }])
+	})
+
+	it('hands undefined options to a three-argument formatter (back-compat)', () => {
+		const seen = []
+		mountRenderer(
+			{ value: 'x', property: { type: 'string' }, formatter: 'plain' },
+			{ cnFormatters: { plain: (...args) => { seen.push(args); return 'ok' } } },
+		)
+		expect(seen[0][3]).toBeUndefined()
+	})
 })
 
 describe('CnCellRenderer — column widgets', () => {
@@ -133,6 +164,51 @@ describe('CnCellRenderer — column widgets', () => {
 	it('falls back to type-aware rendering when the widget id is unknown', () => {
 		const wrapper = mountRenderer({ value: 42, property: { type: 'integer' }, widget: 'nope' }, { cnCellWidgets: {} })
 		expect(wrapper.text()).toBe('42')
+	})
+
+	it('badge stays on the WIDGET mechanism: a formatter-shaped value feeds the badge label', () => {
+		// The pill needs a component (CnStatusBadge), which formatters (string
+		// returners) cannot produce — so `badge` is a widget, optionally fed by
+		// a formatter for its label.
+		const wrapper = mountRenderer(
+			{ value: -3, property: { type: 'integer' }, widget: 'badge', formatter: 'phrase', widgetProps: { variant: 'error' } },
+			{ cnFormatters: { phrase: (v) => `${Math.abs(v)} days overdue` } },
+		)
+		const badge = wrapper.findComponent(CnStatusBadge)
+		expect(badge.exists()).toBe(true)
+		expect(badge.props('label')).toBe('3 days overdue')
+		expect(badge.props('variant')).toBe('error')
+	})
+
+	it('renders the built-in "fkResolve" widget as a CnFkResolveCell with mapped config', () => {
+		const wrapper = mountRenderer({
+			value: 'uuid-1',
+			property: { type: 'string' },
+			widget: 'fkResolve',
+			widgetProps: { register: 'crm', schema: 'client', labelField: 'companyName' },
+		})
+		const cell = wrapper.findComponent({ name: 'CnFkResolveCell' })
+		expect(cell.exists()).toBe(true)
+		expect(cell.props('value')).toBe('uuid-1')
+		expect(cell.props('register')).toBe('crm')
+		expect(cell.props('schema')).toBe('client')
+		expect(cell.props('labelField')).toBe('companyName')
+	})
+
+	it('renders a dash for the built-in fkResolve when the value is empty', () => {
+		const wrapper = mountRenderer({ value: null, property: { type: 'string' }, widget: 'fkResolve' })
+		expect(wrapper.findComponent({ name: 'CnFkResolveCell' }).exists()).toBe(false)
+		expect(wrapper.text()).toBe('—')
+	})
+
+	it('a consumer-registered fkResolve override wins over the built-in', () => {
+		const Custom = { name: 'CustomFk', render(h) { return h('span', { attrs: { 'data-test': 'custom-fk' } }, 'custom') } }
+		const wrapper = mountRenderer(
+			{ value: 'uuid-1', property: { type: 'string' }, widget: 'fkResolve' },
+			{ cnCellWidgets: { fkResolve: Custom } },
+		)
+		expect(wrapper.find('[data-test="custom-fk"]').exists()).toBe(true)
+		expect(wrapper.findComponent({ name: 'CnFkResolveCell' }).exists()).toBe(false)
 	})
 })
 

@@ -9,12 +9,12 @@
 			</p>
 		</header>
 
-		<p v-if="nodes.length === 0" class="cn-tree-view__empty">
+		<p v-if="safeNodes.length === 0" class="cn-tree-view__empty">
 			{{ emptyLabel }}
 		</p>
 
 		<ul v-else class="cn-tree-view__root" role="tree">
-			<CnTreeNode v-for="node in nodes"
+			<CnTreeNode v-for="node in safeNodes"
 				:key="node[idKey]"
 				:node="node"
 				:depth="0"
@@ -80,9 +80,14 @@ export default {
 		 * `id`, `label`, `children` are configurable via the
 		 * `*Key` props.
 		 *
+		 * Defaults to an empty array and is null-guarded (see `safeNodes`)
+		 * so a parent that hasn't loaded its data yet — passing `undefined`
+		 * or `null` — renders the empty state instead of throwing on
+		 * `nodes.length` during render (ADR-062: never crash a detail page).
+		 *
 		 * @type {Array<object>}
 		 */
-		nodes: { type: Array, required: true },
+		nodes: { type: Array, default: () => [] },
 		/**
 		 * Set of currently-expanded node ids. Pass with `.sync`
 		 * (or `:expanded-ids` + `@update:expanded-ids`) to control
@@ -120,6 +125,18 @@ export default {
 	},
 	computed: {
 		/**
+		 * The `nodes` prop coerced to a real array. Guards against a parent
+		 * that passes `null` / `undefined` (or a non-array) while its data is
+		 * still loading — Vue only applies the prop default for `undefined`,
+		 * so an explicit `null` would otherwise reach `nodes.length` and throw
+		 * during render.
+		 *
+		 * @return {Array<object>}
+		 */
+		safeNodes() {
+			return Array.isArray(this.nodes) ? this.nodes : []
+		},
+		/**
 		 * `expandedIds[]` lifted to an object map for O(1) lookups
 		 * inside the recursive node.
 		 *
@@ -139,7 +156,7 @@ export default {
 				const cs = n[this.childrenKey]
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
-			this.nodes.forEach(walk)
+			this.safeNodes.forEach(walk)
 			/**
 			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */
@@ -197,7 +214,7 @@ export default {
 				const cs = n[this.childrenKey]
 				if (Array.isArray(cs)) cs.forEach(walk)
 			}
-			this.nodes.forEach(walk)
+			this.safeNodes.forEach(walk)
 			/**
 			 * @event update:expanded-ids `.sync` of `expandedIds`. Payload is the new full set.
 			 */

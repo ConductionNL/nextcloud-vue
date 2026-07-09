@@ -116,7 +116,7 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 | `label` | `string` | Translation key — passed through `translate(label)` |
 | `icon` | `string` | CSS class (e.g. `icon-checkmark`); the active-state filter only applies to `class*="icon-"` |
 | `route` | `string` | Vue Router named route. Resolved against `manifest.pages` for `exact` matching |
-| `href` | `string` | External link. Opens in a new tab with `noopener,noreferrer`. Mutually exclusive with `route` |
+| `href` | `string` | Destination URL. Renders the entry as a real anchor (visible on hover, native link cursor) instead of a router link. External URLs (`scheme://`) open in a new tab (`NcAppNavigationItem` adds `target="_blank"`); internal app paths (e.g. `/index.php/apps/foo/`) navigate in the same tab. Mutually exclusive with `route` |
 | `action` | `'user-settings'` | Built-in action. `user-settings` invokes the injected `cnOpenUserSettings()` (provided by [`CnAppRoot`](./cn-app-root.md)) and opens the host `NcAppSettingsDialog`. Both `route` and `href` are ignored when `action` is set |
 | `order` | `number` | Sort order (ascending). Items without `order` render after items with `order` |
 | `section` | `'main' \| 'footer' \| 'settings'` | Default `'main'`. `'footer'` = flat entry in the navigation's `#footer` region (outside the scroll list, always visible above the settings foldout); `'settings'` = inside the gear-icon foldout |
@@ -136,10 +136,10 @@ The host listens once at `CnAppRoot` (events bubble through `CnPageRenderer`):
 
 ```json
 {
-  "id": "view-in-mydash",
-  "label": "scholiq.nav.viewInMydash",
-  "href": "/index.php/apps/mydash#scholiq",
-  "visibleIf": { "appInstalled": "mydash" }
+  "id": "view-in-launchpad",
+  "label": "scholiq.nav.viewInLaunchpad",
+  "href": "/index.php/apps/launchpad#scholiq",
+  "visibleIf": { "appInstalled": "launchpad" }
 }
 ```
 
@@ -191,9 +191,9 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 {
   "id": "combined",
   "label": "scholiq.nav.combined",
-  "href": "/apps/mydash#scholiq",
+  "href": "/apps/launchpad#scholiq",
   "visibleIf": {
-    "appInstalled": "mydash",
+    "appInstalled": "launchpad",
     "user.primaryRole": { "in": ["compliance-officer"] }
   }
 }
@@ -218,7 +218,7 @@ The backend (OpenRegister) injects `manifest.runtime` when serving the manifest 
 
 ## Dynamic per-tenant menu entries
 
-The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue or organisation) populate the resolved list in their backend; CnAppNav renders whatever the merged manifest contains. See the [Dynamic per-tenant menu entries](../utilities/composables/use-app-manifest.md#dynamic-per-tenant-menu-entries) section for the contract.
+The menu CnAppNav renders is whatever [`useAppManifest`](../utilities/composables/use-app-manifest.md) ultimately resolves to — including `menu[]` arrays (and nested `children[]`) supplied by the backend `/api/manifest` endpoint. Apps that need per-tenant menu fan-out (e.g. one entry per catalogue, organisation, or case type) populate the resolved entries in their backend; CnAppNav renders whatever the merged manifest contains. See [Overriding an app's manifest at runtime](../manifest-runtime-override.md) for the full feature — the endpoint contract, the `deepMerge` vs `delta` strategies, and how nested children merge by `id`.
 
 ## Related
 

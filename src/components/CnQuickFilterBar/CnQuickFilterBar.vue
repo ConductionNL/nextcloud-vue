@@ -23,7 +23,10 @@
 			@input="onSelectInput" />
 	</div>
 	<!-- Chips mode (default): the clickable tab strip. -->
-	<div v-else class="cn-quick-filter-bar" :class="{ 'cn-quick-filter-bar--inline': inline }" role="tablist">
+	<div v-else
+		class="cn-quick-filter-bar"
+		:class="{ 'cn-quick-filter-bar--inline': inline }"
+		role="tablist">
 		<button
 			v-for="(tab, i) in tabs"
 			:key="tab.label + ':' + i"
@@ -180,7 +183,10 @@ export default {
 		isChipActive(i) {
 			return this.multiple ? this.selectedIndices.includes(i) : i === this.activeIndex
 		},
-		/** Whether a tab's `filter` map is absent/empty (the "All" tab). */
+		/**
+		 * Whether a tab's `filter` map is absent/empty (the "All" tab).
+		 * @param tab
+		 */
 		isEmptyFilter(tab) {
 			return !tab || !tab.filter || Object.keys(tab.filter).length === 0
 		},

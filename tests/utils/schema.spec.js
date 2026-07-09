@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
@@ -598,6 +612,23 @@ describe('fieldsFromSchema', () => {
 		const nameField = fields.find((f) => f.key === 'name')
 		expect(nameField.widget).toBe('textarea')
 		expect(nameField.label).toBe('Full Name')
+	})
+
+	it('hides a field via overrides[key].hidden (unified visibility)', () => {
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { email: { hidden: true } },
+		})
+		expect(fields.find((f) => f.key === 'email')).toBeUndefined()
+		expect(fields.find((f) => f.key === 'name')).toBeTruthy()
+	})
+
+	it('re-sorts by overrides[key].order over the schema order', () => {
+		// name=order1, email=order2 in the schema; override flips them.
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { name: { order: 10 }, email: { order: 1 } },
+		})
+		const keys = fields.map((f) => f.key)
+		expect(keys.indexOf('email')).toBeLessThan(keys.indexOf('name'))
 	})
 
 	// --- Widget resolution ---

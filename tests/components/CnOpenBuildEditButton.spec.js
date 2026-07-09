@@ -109,6 +109,33 @@ describe('CnOpenBuildEditButton', () => {
 		expect(wrapper.emitted('add-widget')).toBeTruthy()
 	})
 
+	it('shows Add widget on a detail page too', () => {
+		const wrapper = mountButton({ editor: makeEditor(true, [{ id: 'det', type: 'detail' }]), pageId: 'det' })
+		expect(btn(wrapper, 'Add widget')).not.toBeUndefined()
+	})
+
+	it('ejects the default Data + Related grid into a detail page config on entering edit mode', () => {
+		const page = { id: 'det', type: 'detail', config: { register: 'r', schema: 'dogs' } }
+		const wrapper = mountButton({ editor: makeEditor(false, [page]), pageId: 'det' })
+		// Enter edit mode via the Edit page toggle
+		btn(wrapper, 'Edit page').trigger('click')
+		const ejected = wrapper.vm.workingManifest.pages.find((p) => p.id === 'det')
+		expect(ejected.config.widgets.map((w) => w.widgetId)).toEqual(['data', 'related'])
+		expect(ejected.config.layout.map((l) => l.widgetId)).toEqual(['data', 'related'])
+		// data widget carries the page's register/schema so its property editor resolves
+		const dataDef = ejected.config.widgets.find((w) => w.widgetId === 'data')
+		expect(dataDef.content).toMatchObject({ register: 'r', schema: 'dogs' })
+	})
+
+	it('appends an added widget into the detail page config grid', () => {
+		const page = { id: 'det', type: 'detail', config: { register: 'r', schema: 'dogs', widgets: [], layout: [] } }
+		const wrapper = mountButton({ editor: makeEditor(true, [page]), pageId: 'det' })
+		wrapper.vm.onAddWidgetSubmit({ type: 'stat', content: { title: 'KPI' } })
+		const cfg = wrapper.vm.workingManifest.pages.find((p) => p.id === 'det').config
+		expect(cfg.widgets.some((w) => w.type === 'stat')).toBe(true)
+		expect(cfg.layout.length).toBe(cfg.widgets.length)
+	})
+
 	it('opens the menu and sidebar editor modals', async () => {
 		const wrapper = mountButton({ editor: makeEditor(true) })
 		await btn(wrapper, 'Edit menu').trigger('click')

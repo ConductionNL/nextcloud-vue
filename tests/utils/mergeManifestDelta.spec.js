@@ -76,4 +76,56 @@ describe('mergeManifestDelta', () => {
 		})
 		expect(manifest.pages.find((p) => p.id === 'a').__order).toBeUndefined()
 	})
+
+	// Nested menu children merge by child `id` (KEYED_ARRAYS.children) — the
+	// backend `/api/manifest` per-tenant / per-case-type menu fan-out relies on
+	// this so a group's children can be extended without clobbering the rest.
+	describe('nested menu children (keyed by id)', () => {
+		const menuBase = () => ({
+			menu: [
+				{
+					id: 'CasesGroup',
+					label: 'Cases',
+					children: [
+						{ id: 'AllCases', label: 'All cases', route: 'Cases' },
+					],
+				},
+			],
+		})
+
+		it('adds new children to a group without dropping the existing ones', () => {
+			const { manifest } = mergeManifestDelta(menuBase(), {
+				menu: [{
+					id: 'CasesGroup',
+					children: [
+						{ id: 'ct-bezwaar', label: 'Objections', route: 'Cases' },
+						{ id: 'ct-subsidie', label: 'Subsidies', route: 'Cases' },
+					],
+				}],
+			})
+			const group = manifest.menu.find((m) => m.id === 'CasesGroup')
+			expect(group.children.map((c) => c.id)).toEqual(['AllCases', 'ct-bezwaar', 'ct-subsidie'])
+		})
+
+		it('patches an existing child in place without touching siblings', () => {
+			const b = menuBase()
+			b.menu[0].children.push({ id: 'ct-x', label: 'Old', route: 'Cases' })
+			const { manifest } = mergeManifestDelta(b, {
+				menu: [{ id: 'CasesGroup', children: [{ id: 'ct-x', label: 'New' }] }],
+			})
+			const group = manifest.menu.find((m) => m.id === 'CasesGroup')
+			expect(group.children.find((c) => c.id === 'ct-x').label).toBe('New')
+			expect(group.children.find((c) => c.id === 'AllCases').label).toBe('All cases')
+		})
+
+		it('removes a single child via $op:"remove" leaving the rest', () => {
+			const b = menuBase()
+			b.menu[0].children.push({ id: 'ct-gone', label: 'Gone', route: 'Cases' })
+			const { manifest } = mergeManifestDelta(b, {
+				menu: [{ id: 'CasesGroup', children: [{ id: 'ct-gone', $op: 'remove' }] }],
+			})
+			const group = manifest.menu.find((m) => m.id === 'CasesGroup')
+			expect(group.children.map((c) => c.id)).toEqual(['AllCases'])
+		})
+	})
 })

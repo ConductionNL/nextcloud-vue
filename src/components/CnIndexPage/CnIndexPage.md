@@ -609,3 +609,39 @@ export default {
 	},
 }
 ```
+
+## Map view mode
+
+Alongside `table` and `cards`, CnIndexPage offers an opt-in `map` view mode — a view-toggle segment that plots the current filtered rows on a `CnMapWidget`. Opt in via the `mapConfig` prop (or manifest `config.map`), which carries the geometry mapping `{ latField, lngField, geoField?, popupField?, center? }`; coordinates are read from each object's metadata (typically the OpenRegister `@self` block). Customise the toggle segment with `mapLabel` and `mapIcon`. The map segment appears automatically when `mapConfig` is non-empty, or gate it explicitly with the `viewModes` whitelist (e.g. `["table", "cards", "map"]`). A marker click emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all view modes.
+
+## List view & sorting
+
+The list view (`view-mode="list"`) and standalone sort dropdown add these props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `availableViewModes` | Array | `['cards','table']` | View-toggle segments; add `list` to offer the list view. |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
+| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+
+The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Folder sidebar
+
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+
+Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "procest", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "allLabel": "All cases"
+}
+```
+

@@ -5,7 +5,7 @@ context: |
   Repo: ConductionNL/nextcloud-vue
   Type: Shared Vue 2 component library (npm package)
   Description: Higher-level components, Pinia store, and utilities for Conduction Nextcloud apps
-  Consumers: OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash
+  Consumers: OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad
 
   Architecture:
     Framework: Vue 2.7 (Options API)

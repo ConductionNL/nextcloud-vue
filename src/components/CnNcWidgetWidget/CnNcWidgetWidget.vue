@@ -266,27 +266,28 @@ export default {
 			this.mode = 'native'
 			this.$nextTick(() => {
 				const container = this.$refs.nativeContainer
-				if (container) {
-					const fallback = () => {
-						// Native callback failed — fall back to the API list.
-						this.mode = 'api'
-						this.loadApiItems()
+				if (!container) {
+					return
+				}
+				// Native callback failed — fall back to the API list.
+				const fallback = () => {
+					this.mode = 'api'
+					this.loadApiItems()
+				}
+				try {
+					// NC dashboard widgets are registered as
+					// `register(id, (el, { widget }) => …)` — the second argument
+					// MUST be the `{ widget }` envelope, not the bare metadata, or
+					// the widget destructures `widget` as undefined and throws on
+					// first use (e.g. `widget.title`).
+					const result = callback(container, { widget: this.widgetMeta || {} })
+					// Most widget callbacks are async; a synchronous try/catch
+					// can't see a rejected promise, so wire the fallback to it too.
+					if (result && typeof result.then === 'function') {
+						result.catch(fallback)
 					}
-					try {
-						// NC dashboard widgets are registered as
-						// `register(id, (el, { widget }) => …)` — the second
-						// argument MUST be the `{ widget }` envelope, not the bare
-						// metadata, or the widget destructures `widget` as
-						// undefined and throws on first use (e.g. `widget.title`).
-						const result = callback(container, { widget: this.widgetMeta || {} })
-						// Most widget callbacks are async; a synchronous try/catch
-						// can't see a rejected promise, so wire the fallback to it.
-						if (result && typeof result.then === 'function') {
-							result.catch(fallback)
-						}
-					} catch (e) {
-						fallback()
-					}
+				} catch (e) {
+					fallback()
 				}
 			})
 		},
@@ -301,7 +302,14 @@ export default {
 		async loadApiItems() {
 			this.loading = true
 			try {
-				const url = generateOcsUrl('/apps/dashboard/api/v1/widget-items')
+				// The v2 widget-items API returns the per-widget `{items}`
+				// envelope for modern `IAPIWidgetV2` providers (files-favorites,
+				// recommendations, etc.). The legacy v1 endpoint returns an
+				// empty list for those providers, so a v1 fetch makes every
+				// modern widget render "No items available" even when the
+				// dashboard has data. extractItems() already tolerates both the
+				// flat-array (older providers) and `{items}` (v2) shapes.
+				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
 					params: { widgets: [this.widgetId], limit: API_ITEM_LIMIT },
 				})
