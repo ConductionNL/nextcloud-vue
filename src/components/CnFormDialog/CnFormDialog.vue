@@ -191,8 +191,8 @@
 							{{ field.label }}{{ field.required ? ' *' : '' }}
 						</NcCheckboxRadioSwitch>
 
-						<!-- Select (enum, supports async function) -->
-						<div v-else-if="field.widget === 'select'" class="cn-form-dialog__select-wrapper">
+						<!-- Select (enum / $ref object reference / Nextcloud user, supports async function) -->
+						<div v-else-if="field.widget === 'select' || field.widget === 'user-select'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"
@@ -223,8 +223,8 @@
 							</span>
 						</div>
 
-						<!-- Multiselect (array with enum items, supports async function) -->
-						<div v-else-if="field.widget === 'multiselect'" class="cn-form-dialog__select-wrapper">
+						<!-- Multiselect (array enum items / $ref array / Nextcloud users, supports async function) -->
+						<div v-else-if="field.widget === 'multiselect' || field.widget === 'user-multiselect'" class="cn-form-dialog__select-wrapper">
 							<NcSelect
 								:input-id="'cn-form-' + field.key"
 								:input-label="field.label + (field.required ? ' *' : '')"
@@ -433,6 +433,7 @@ import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+import { searchNextcloudUsers, resolveNextcloudUser } from '../../utils/userAutocomplete.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { shouldShow } from '../../utils/fieldCondition.js'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
@@ -505,6 +506,24 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * NOT the full object. In edit mode the stored UUID is resolved to its label
  * so the current selection displays. When `register` is empty the field falls
  * back to a plain text input.
+ *
+ * ## Nextcloud user references
+ *
+ * A schema property marked as a Nextcloud user renders as a searchable
+ * dropdown of real Nextcloud users instead of a free-text box:
+ *
+ * - `{ type: 'string', referenceType: 'nextcloud-user' }` → single-select
+ *   (`format: 'user'` / `'username'` also work as markers)
+ * - `{ type: 'array', items: { referenceType: 'nextcloud-user' } }` → multi-select
+ *
+ * `fieldsFromSchema` tags the field as `field.userPicker = { multiple }`.
+ * Users are loaded from the core autocomplete OCS endpoint (available to every
+ * authenticated user), mapped to `{ label: <display name>, value: <uid> }`.
+ * The value stored in formData is the UID string (single) or array of UIDs
+ * (multiple) — never the display object. In edit mode the stored UID is
+ * resolved to its display name so the current selection shows. Needs no
+ * `register` prop. If the OCS call fails the picker fails soft (empty options;
+ * the stored UID still shows).
  *
  * ## JSON / code fields
  *
@@ -1109,7 +1128,7 @@ export default {
 						data[field.key] = field.default
 					} else if (field.widget === 'checkbox') {
 						data[field.key] = false
-					} else if (field.widget === 'tags' || field.widget === 'multiselect') {
+					} else if (field.widget === 'tags' || field.widget === 'multiselect' || field.widget === 'user-multiselect') {
 						data[field.key] = []
 					} else if (field.widget === 'code') {
 						data[field.key] = ''
@@ -1160,22 +1179,47 @@ export default {
 					if (Array.isArray(uuids)) {
 						for (const uuid of uuids) this.resolveReferenceLabel(field, uuid)
 					}
+				} else if (this.isUserField(field)) {
+					const uid = this.formData[field.key]
+					if (uid) this.resolveUserLabel(uid)
+				} else if (this.isUserArrayField(field)) {
+					const uids = this.formData[field.key]
+					if (Array.isArray(uids)) {
+						for (const uid of uids) this.resolveUserLabel(uid)
+					}
 				} else if (field.widget === 'user') {
 					const uid = this.formData[field.key]
-					if (uid) this.resolveUserLabel(String(uid))
+					if (uid) this.resolveUserWidgetLabel(String(uid))
 				}
 			}
 		},
 
 		/**
+		 * Resolve a single user UID to its display name (edit mode) and cache it
+		 * in `referenceLabels` so the select shows the name instead of the UID.
+		 * No-op once the label is cached. Fails soft — `resolveNextcloudUser`
+		 * falls back to the UID itself when the name can't be looked up.
+		 *
+		 * @param {string} uid The stored user UID.
+		 */
+		async resolveUserLabel(uid) {
+			if (!uid || this.referenceLabels[uid]) return
+			const option = await resolveNextcloudUser(uid)
+			if (option && option.id) {
+				this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
+			}
+		},
+
+		/**
 		 * Resolve a Nextcloud uid to its display name for a `format:"user"`
-		 * field in edit mode, caching it in `userLabels`. No-op when already
-		 * cached; degrades silently (the picker then shows the raw uid).
+		 * (`widget: "user"`) field in edit mode, caching it in `userLabels`.
+		 * No-op when already cached; degrades silently (the picker then shows
+		 * the raw uid).
 		 *
 		 * @param {string} uid The Nextcloud user id.
 		 * @return {Promise<void>}
 		 */
-		async resolveUserLabel(uid) {
+		async resolveUserWidgetLabel(uid) {
 			if (!uid || this.userLabels[uid]) return
 			try {
 				const [{ default: axios }, { generateOcsUrl }] = await Promise.all([
@@ -1535,26 +1579,52 @@ export default {
 		},
 
 		/**
+		 * Whether a field is a single-value Nextcloud user reference — a
+		 * property the schema marked with `referenceType: 'nextcloud-user'`
+		 * (or `format: 'user'`/`'username'`). Renders as a searchable dropdown
+		 * of real Nextcloud users (label = display name, value = UID). Needs no
+		 * `register` (users come from the core autocomplete OCS endpoint).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isUserField(field) {
+			return !!(field && field.userPicker && !field.userPicker.multiple)
+		},
+
+		/**
+		 * Whether a field is a multi-value Nextcloud user reference (an array
+		 * of users) → a searchable multi-select of real Nextcloud users.
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 */
+		isUserArrayField(field) {
+			return !!(field && field.userPicker && field.userPicker.multiple)
+		},
+
+		/**
 		 * Check if a field has an async enum (function instead of static array).
-		 * Object references (`$ref`) are treated as async so they reuse the
-		 * async-select load/search/loading machinery.
+		 * Object references (`$ref`) and Nextcloud user references are treated
+		 * as async so they reuse the async-select load/search/loading machinery.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncEnum(field) {
-			return typeof field.enum === 'function' || this.isReferenceField(field)
+			return typeof field.enum === 'function' || this.isReferenceField(field) || this.isUserField(field)
 		},
 
 		/**
 		 * Check if an array field has an async items enum. Multi-value object
-		 * references (`items.$ref`) are treated as async multiselects.
+		 * references (`items.$ref`) and multi-value user references are treated
+		 * as async multiselects.
 		 *
 		 * @param {object} field The field definition
 		 * @return {boolean}
 		 */
 		isAsyncItemsEnum(field) {
-			return !!(field.items && typeof field.items.enum === 'function') || this.isReferenceArrayField(field)
+			return !!(field.items && typeof field.items.enum === 'function') || this.isReferenceArrayField(field) || this.isUserArrayField(field)
 		},
 
 		/**
@@ -1887,6 +1957,18 @@ export default {
 				if (this.isReferenceField(field) || this.isReferenceArrayField(field)) {
 					// OpenRegister object reference — fetch the referenced objects.
 					results = await this.fetchReferenceOptions(field, query)
+				} else if (this.isUserField(field) || this.isUserArrayField(field)) {
+					// Nextcloud user reference — search real users via the core
+					// autocomplete OCS endpoint. Cache labels so the current
+					// selection still displays its display name.
+					results = await searchNextcloudUsers(query)
+					const labels = {}
+					for (const opt of results) {
+						if (opt && opt.id) labels[opt.id] = opt.label || String(opt.id)
+					}
+					if (Object.keys(labels).length > 0) {
+						this.referenceLabels = { ...this.referenceLabels, ...labels }
+					}
 				} else {
 					const enumFn = typeof field.enum === 'function' ? field.enum : field.items.enum
 					results = await enumFn(query)
@@ -1942,10 +2024,10 @@ export default {
 		 * @return {object|null}
 		 */
 		getEffectiveSelectedOption(field) {
-			if (this.isReferenceField(field)) {
-				// Reference fields store the UUID — resolve it to a display
-				// option `{ id, label }` (label from the resolved-labels cache,
-				// falling back to the UUID until it loads).
+			if (this.isReferenceField(field) || this.isUserField(field)) {
+				// Reference / user fields store the UUID/UID — resolve it to a
+				// display option `{ id, label }` (label from the resolved-labels
+				// cache, falling back to the id until it loads).
 				const uuid = this.formData[field.key]
 				if (uuid === null || uuid === undefined || uuid === '') return null
 				return { id: uuid, label: this.referenceLabels[uuid] || String(uuid) }
@@ -1964,9 +2046,9 @@ export default {
 		 * @param {object|null} option The selected option
 		 */
 		onEffectiveSelectChange(field, option) {
-			if (this.isReferenceField(field)) {
-				// Reference fields store the chosen object's UUID, not the
-				// full option. Cache its label so the selection still displays.
+			if (this.isReferenceField(field) || this.isUserField(field)) {
+				// Reference / user fields store the chosen id (UUID / UID),
+				// not the full option. Cache its label so the selection displays.
 				if (option && option.id) {
 					this.referenceLabels = { ...this.referenceLabels, [option.id]: option.label || String(option.id) }
 				}
@@ -2003,9 +2085,9 @@ export default {
 		 * @return {Array}
 		 */
 		getEffectiveSelectedArrayOptions(field) {
-			if (this.isReferenceArrayField(field)) {
-				// Reference arrays store an array of UUIDs — resolve each to a
-				// display option `{ id, label }`.
+			if (this.isReferenceArrayField(field) || this.isUserArrayField(field)) {
+				// Reference / user arrays store an array of ids (UUIDs / UIDs) —
+				// resolve each to a display option `{ id, label }`.
 				const uuids = this.formData[field.key]
 				if (!Array.isArray(uuids)) return []
 				return uuids.map((uuid) => ({ id: uuid, label: this.referenceLabels[uuid] || String(uuid) }))
@@ -2024,9 +2106,9 @@ export default {
 		 * @param {Array} options The selected options
 		 */
 		onEffectiveMultiSelectChange(field, options) {
-			if (this.isReferenceArrayField(field)) {
-				// Reference arrays store an array of UUIDs. Cache labels so the
-				// chips still display the human names.
+			if (this.isReferenceArrayField(field) || this.isUserArrayField(field)) {
+				// Reference / user arrays store an array of ids (UUIDs / UIDs).
+				// Cache labels so the chips still display the human names.
 				const list = options || []
 				const labels = {}
 				for (const o of list) {

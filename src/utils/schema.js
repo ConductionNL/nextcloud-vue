@@ -267,16 +267,21 @@ function truncateString(str, maxLength) {
  *    `'select'`; `array` + `items.$ref` → `'multiselect'`. The consuming
  *    surface (CnFormDialog) resolves the reference to a searchable dropdown
  *    of the referenced objects (label = human name, value = UUID).
- * 4. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
+ * 4. Nextcloud user reference: `referenceType: 'nextcloud-user'` (or
+ *    `format: 'user'`/`'username'`) → `'user-select'`; an array of such
+ *    properties → `'user-multiselect'`. CnFormDialog resolves these to a
+ *    searchable dropdown of real Nextcloud users (label = display name,
+ *    value = UID).
+ * 5. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
  *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
- * 5. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
+ * 6. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
  *    `email` → `'email'`, `uri`/`url` → `'url'`,
  *    `markdown`/`textarea` → `'textarea'`
- * 6. Long text: `maxLength > 255` → `'textarea'`
- * 7. Fallback → `'text'`
+ * 7. Long text: `maxLength > 255` → `'textarea'`
+ * 8. Fallback → `'text'`
  *
  * @param {object} prop The schema property definition (type, format, enum, widget, items, maxLength)
- * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
+ * @return {string} Widget identifier: 'text'|'email'|'url'|'number'|'checkbox'|'select'|'multiselect'|'user-select'|'user-multiselect'|'tags'|'textarea'|'date'|'datetime' or a custom string
  */
 /**
  * Normalise a JSON-Schema `$ref` value into an OpenRegister schema reference
@@ -328,6 +333,24 @@ export function referenceSchemaSlug(prop) {
 	return null
 }
 
+/**
+ * Whether a (single-value) schema property represents a Nextcloud user.
+ *
+ * A property is a user field when it declares `referenceType: 'nextcloud-user'`
+ * (preferred) OR `format: 'user'` / `format: 'username'`. The consuming surface
+ * (CnFormDialog) renders such a property as a searchable dropdown of real
+ * Nextcloud users (label = display name, value = UID) instead of a free-text box.
+ *
+ * @param {object} prop A schema property definition (or `items` for an array).
+ * @return {boolean} True when the property marks a Nextcloud user.
+ */
+function isUserProp(prop) {
+	if (!prop || typeof prop !== 'object') return false
+	if (prop.referenceType === 'nextcloud-user') return true
+	const format = prop.format || ''
+	return format === 'user' || format === 'username'
+}
+
 function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) return prop.widget
@@ -345,6 +368,14 @@ function resolveWidget(prop) {
 	// $ref: '<slug-or-id>' }` property renders as a dropdown, not a UUID box.
 	if (normalizeRef(prop.$ref) !== null) return 'select'
 	if (type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null) return 'multiselect'
+
+	// Nextcloud user reference (referenceType 'nextcloud-user' or
+	// format 'user'/'username'): a searchable dropdown of real Nextcloud
+	// users (label = display name, value = UID). An array of users is a
+	// multi-select. Checked before the plain type/format fallback so a
+	// user-marked property renders as a picker, not a free-text box.
+	if (isUserProp(prop)) return 'user-select'
+	if (type === 'array' && isUserProp(prop.items)) return 'user-multiselect'
 
 	// Boolean → switch/checkbox
 	if (type === 'boolean') return 'checkbox'
@@ -385,7 +416,7 @@ function resolveWidget(prop) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
- * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, validation: object, order: number}>}
+ * @return {Array<{key: string, label: string, description: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: *, enum: Array|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, validation: object, order: number}>}
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false } = options
@@ -486,6 +517,18 @@ export function fieldsFromSchema(schema, options = {}) {
 				? { schema: normalizeRef(prop.$ref), multiple: false }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
 					? { schema: normalizeRef(prop.items.$ref), multiple: true }
+					: null,
+			// Nextcloud user reference: when a property marks a NC user
+			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
+			// `'username'`), tag it so CnFormDialog renders a searchable
+			// dropdown of real Nextcloud users (label = display name,
+			// value = UID) instead of a free-text box. `multiple` is true
+			// for an array of users (`items` marks the user). `null` for
+			// non-user properties. Pure: no fetching happens here.
+			userPicker: isUserProp(prop)
+				? { multiple: false }
+				: (prop.type === 'array' && isUserProp(prop.items))
+					? { multiple: true }
 					: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
 			// property can declare it becomes read-only when another field on the
