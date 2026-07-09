@@ -463,10 +463,13 @@ export default {
 					const popupField = this.markers && this.markers.popupField
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
 					if (popupHtml) {
-						// Popup content comes from arbitrary GeoJSON feature
-						// properties (often an OR-backed data source). Sanitize
-						// it before Leaflet injects it into the DOM (C1) so a
-						// `<script>` / `onerror=` payload cannot execute.
+						// Security: marker data may come from an external URL
+						// (markers.dataSource.url) or arbitrary GeoJSON feature
+						// properties (often an OR-backed data source). Leaflet's
+						// bindPopup renders its string argument as HTML (innerHTML),
+						// so sanitize with the shared strict config (C1) before
+						// injecting — a `<script>` / `onerror=` payload cannot
+						// execute in the Nextcloud origin.
 						const safeHtml = DOMPurify.sanitize(String(popupHtml), SAFE_MARKDOWN_DOMPURIFY_CONFIG)
 						lyr.bindPopup(safeHtml)
 					}
