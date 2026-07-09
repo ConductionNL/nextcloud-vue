@@ -145,11 +145,27 @@ export function formatValue(value, property = {}, options = {}) {
 	if (type === 'array' || Array.isArray(value)) {
 		if (!Array.isArray(value)) return String(value)
 		if (value.length === 0) return '—'
+		// Stringify each entry so an array of OBJECTS never collapses to the
+		// useless "[object Object]" that `Array.prototype.join` produces — a
+		// nested object renders as compact JSON instead (ADR-062: a value cell
+		// must never show "[object Object]"). Rich array rendering (inline
+		// tables / chips) lives in CnObjectDataWidget; this is the flat-string
+		// fallback used by tables and truncated cells.
+		const parts = value.map((v) => {
+			if (v !== null && typeof v === 'object') {
+				try {
+					return JSON.stringify(v)
+				} catch {
+					return '[Object]'
+				}
+			}
+			return String(v)
+		})
 		// For short arrays, join values
-		if (value.length <= 3) {
-			return value.join(', ')
+		if (parts.length <= 3) {
+			return parts.join(', ')
 		}
-		return `${value.slice(0, 3).join(', ')} +${value.length - 3}`
+		return `${parts.slice(0, 3).join(', ')} +${parts.length - 3}`
 	}
 
 	// Object — render as JSON; tables truncate, multi-line value cells wrap with `<pre>`.

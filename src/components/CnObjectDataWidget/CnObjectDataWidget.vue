@@ -265,6 +265,57 @@
 							v-else-if="isRelationPending(field)"
 							class="cn-object-data-widget__skeleton"
 							:aria-label="t('nextcloud-vue', 'Loading')" />
+						<!-- Array of OBJECTS → compact inline table (union of the
+						     first rows' keys, capped at 5 columns / 5 rows) so a
+						     structured value renders legibly instead of
+						     "[object Object]" (ADR-062). -->
+						<div
+							v-else-if="fieldValueKind(field) === 'object-array'"
+							class="cn-object-data-widget__mini-table-wrap">
+							<table class="cn-object-data-widget__mini-table">
+								<thead>
+									<tr>
+										<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											{{ col }}
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(row, ri) in objectArrayRows(rawOf(field))" :key="ri">
+										<td v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											{{ stringifyCell(row && row[col]) }}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<div v-if="rawOf(field).length > 5" class="cn-object-data-widget__more">
+								{{ t('nextcloud-vue', '{count} more', { count: rawOf(field).length - 5 }) }}
+							</div>
+						</div>
+						<!-- Array of SCALARS → comma-separated chips. -->
+						<div
+							v-else-if="fieldValueKind(field) === 'scalar-array'"
+							class="cn-object-data-widget__chips">
+							<span
+								v-for="(v, ci) in rawOf(field)"
+								:key="ci"
+								class="cn-object-data-widget__chip">
+								{{ stringifyCell(v) }}
+							</span>
+						</div>
+						<!-- Single plain OBJECT → key: value definition list. -->
+						<dl
+							v-else-if="fieldValueKind(field) === 'object'"
+							class="cn-object-data-widget__deflist">
+							<template v-for="(pair, pi) in objectEntries(rawOf(field))">
+								<dt :key="'k' + pi">
+									{{ pair[0] }}
+								</dt>
+								<dd :key="'v' + pi">
+									{{ stringifyCell(pair[1]) }}
+								</dd>
+							</template>
+						</dl>
 						<template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
@@ -638,6 +689,86 @@ export default {
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
+		},
+		/**
+		 * Classify a field's raw value for display so the template can pick a
+		 * legible renderer (ADR-062: a structured value must never render as
+		 * "[object Object]"). Relation fields are excluded here — their
+		 * name-resolved label already flows through `displayValues`.
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @return {'object-array'|'scalar-array'|'object'|'scalar'} The value kind.
+		 */
+		fieldValueKind(field) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (this.isRelationField(prop)) return 'scalar'
+			const raw = this.rawOf(field)
+			if (Array.isArray(raw)) {
+				if (raw.length === 0) return 'scalar'
+				return raw.some((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
+					? 'object-array'
+					: 'scalar-array'
+			}
+			if (raw !== null && typeof raw === 'object') return 'object'
+			return 'scalar'
+		},
+		/**
+		 * Column keys for an array-of-objects inline table: the union of the
+		 * keys of the first three items, capped at five columns.
+		 *
+		 * @param {Array<object>} raw The array value.
+		 * @return {string[]} Up to five column keys.
+		 */
+		objectArrayColumns(raw) {
+			if (!Array.isArray(raw)) return []
+			const keys = []
+			for (const item of raw.slice(0, 3)) {
+				if (item && typeof item === 'object') {
+					for (const k of Object.keys(item)) {
+						if (!keys.includes(k)) keys.push(k)
+					}
+				}
+			}
+			return keys.slice(0, 5)
+		},
+		/**
+		 * The first five rows of an array-of-objects value (the table caps at
+		 * five rows + an "N more" affordance).
+		 *
+		 * @param {Array<object>} raw The array value.
+		 * @return {Array<object>} Up to five row objects.
+		 */
+		objectArrayRows(raw) {
+			return Array.isArray(raw) ? raw.slice(0, 5) : []
+		},
+		/**
+		 * `[key, value]` pairs of a single plain-object value, for the compact
+		 * definition-list renderer.
+		 *
+		 * @param {object} raw The object value.
+		 * @return {Array<[string, *]>} The entries.
+		 */
+		objectEntries(raw) {
+			return (raw && typeof raw === 'object') ? Object.entries(raw) : []
+		},
+		/**
+		 * Stringify a scalar cell value; a nested object/array collapses to
+		 * compact JSON (never "[object Object]").
+		 *
+		 * @param {*} v The cell value.
+		 * @return {string} The display string.
+		 */
+		stringifyCell(v) {
+			if (v === null || v === undefined || v === '') return '—'
+			if (typeof v === 'boolean') return v ? '✓' : '—'
+			if (typeof v === 'object') {
+				try {
+					return JSON.stringify(v)
+				} catch {
+					return '[Object]'
+				}
+			}
+			return String(v)
 		},
 		/** Whether a field should render as an image preview. */
 		isImageField(field) {
@@ -1266,6 +1397,70 @@ export default {
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
 	padding: calc(2 * var(--default-grid-baseline, 4px));
+}
+
+/* Compact inline table for array-of-objects values. Dense + unstyled-simple;
+   fits the card and participates in the whole-row overflow handling. */
+.cn-object-data-widget__mini-table-wrap {
+	max-width: 100%;
+}
+
+.cn-object-data-widget__mini-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+.cn-object-data-widget__mini-table th,
+.cn-object-data-widget__mini-table td {
+	text-align: start;
+	padding: 2px 8px 2px 0;
+	border-bottom: 1px solid var(--color-border);
+	vertical-align: top;
+	word-break: break-word;
+}
+
+.cn-object-data-widget__mini-table th {
+	color: var(--color-text-maxcontrast);
+	font-weight: 500;
+}
+
+.cn-object-data-widget__more {
+	margin-top: 2px;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Comma-less chip row for array-of-scalars values. */
+.cn-object-data-widget__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.cn-object-data-widget__chip {
+	padding: 1px 8px;
+	border-radius: 12px;
+	background: var(--color-background-dark);
+	font-size: 0.9em;
+}
+
+/* Key: value definition list for a single plain-object value. */
+.cn-object-data-widget__deflist {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px 8px;
+	margin: 0;
+}
+
+.cn-object-data-widget__deflist dt {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.cn-object-data-widget__deflist dd {
+	margin: 0;
+	word-break: break-word;
 }
 
 /* Responsive: collapse to single column on narrow widths */
