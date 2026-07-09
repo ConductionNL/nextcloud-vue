@@ -73,7 +73,7 @@ already in flight:
    on top of useAppManifest" — which is the local-resolver
    anti-pattern that `manifest-resolve-sentinel` already rejected.
 2. **Each app reinvents the loader** — without a documented path,
-   the next four apps (mydash, organisations-flavoured procest,
+   the next four apps (launchpad, organisations-flavoured procest,
    etc.) each draft their own runtime fan-out hook. Three such
    forks already exist as PR drafts.
 3. **Schema drifts toward Option B** — three Slack threads have

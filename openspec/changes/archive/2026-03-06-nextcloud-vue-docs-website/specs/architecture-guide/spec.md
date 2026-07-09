@@ -11,7 +11,7 @@ Explains the design philosophy and layered architecture of `@conduction/nextclou
 The docs site MUST include a `docs/architecture/overview.md` page with a Mermaid diagram showing the three-layer relationship:
 
 ```
-Layer 3: App (LarpingApp, Pipelinq, OpenCatalogi, Procest, MyDash, ...)
+Layer 3: App (LarpingApp, Pipelinq, OpenCatalogi, Procest, LaunchPad, ...)
 Layer 2: @conduction/nextcloud-vue (Cn* components, createObjectStore, composables)
 Layer 1: Nextcloud Vue (@nextcloud/vue — NcAppNavigation, NcAppContent, NcAppSidebar, NcButton, NcDialog, ...)
 ```

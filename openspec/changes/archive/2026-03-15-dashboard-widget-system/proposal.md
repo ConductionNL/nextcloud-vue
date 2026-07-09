@@ -2,11 +2,11 @@
 
 ## Summary
 
-Add a grid-based widget dashboard system to `@conduction/nextcloud-vue`, porting MyDash's GridStack layout logic to the shared library. This gives every Conduction app a configurable dashboard page type (alongside the existing `CnIndexPage` list page type) without requiring MyDash as a dependency. MyDash will later become a thin client consuming these shared components.
+Add a grid-based widget dashboard system to `@conduction/nextcloud-vue`, porting LaunchPad's GridStack layout logic to the shared library. This gives every Conduction app a configurable dashboard page type (alongside the existing `CnIndexPage` list page type) without requiring LaunchPad as a dependency. LaunchPad will later become a thin client consuming these shared components.
 
 ## Motivation
 
-Every Conduction app (procest, pipelinq, opencatalogi, etc.) has a dashboard page with KPIs, charts, and activity lists. Currently each app builds these dashboards from scratch with hardcoded layouts. Meanwhile, MyDash has a mature GridStack-based drag-and-drop grid system with widget wrappers, NC Dashboard API integration, and tile widgets — but requiring MyDash as a dependency is unacceptable for users who only want one app.
+Every Conduction app (procest, pipelinq, opencatalogi, etc.) has a dashboard page with KPIs, charts, and activity lists. Currently each app builds these dashboards from scratch with hardcoded layouts. Meanwhile, LaunchPad has a mature GridStack-based drag-and-drop grid system with widget wrappers, NC Dashboard API integration, and tile widgets — but requiring LaunchPad as a dependency is unacceptable for users who only want one app.
 
 By extracting the dashboard infrastructure into the shared library:
 
@@ -14,7 +14,7 @@ By extracting the dashboard infrastructure into the shared library:
 2. **Widgets become truly independent** — each widget fetches its own data, rendered via scoped slots
 3. **Cross-app widget reuse** — any widget slot can be reused across apps
 4. **NC Dashboard API integration** — apps can render any installed NC dashboard widget
-5. **MyDash migration path** — MyDash becomes a thin orchestration layer on top of these components
+5. **LaunchPad migration path** — LaunchPad becomes a thin orchestration layer on top of these components
 
 ## Affected Projects
 
@@ -37,15 +37,15 @@ By extracting the dashboard infrastructure into the shared library:
 
 ### Out of Scope
 
-- Widget style configuration UI (MyDash will add that layer later)
+- Widget style configuration UI (LaunchPad will add that layer later)
 - Widget marketplace or cross-app widget discovery
-- MyDash migration (separate follow-up)
+- LaunchPad migration (separate follow-up)
 - Layout storage backend (apps implement their own via `loadLayout`/`saveLayout` callbacks)
 - Widget permission system
 
 ## Approach
 
-Port MyDash's grid components to `@conduction/nextcloud-vue` as generic, app-agnostic components. Key design decisions:
+Port LaunchPad's grid components to `@conduction/nextcloud-vue` as generic, app-agnostic components. Key design decisions:
 
 1. **Scoped slot widget system** — `#widget-{widgetId}` pattern lets each app render custom content; widgets are independent and fetch their own data
 2. **Three widget types** — Custom (slot-based), NC Dashboard API (auto-rendered), Tile (quick-access links)
@@ -67,7 +67,7 @@ Port MyDash's grid components to `@conduction/nextcloud-vue` as generic, app-agn
 ## Decisions Made
 
 - **Scoped slots over component registry**: Widgets render via `#widget-{widgetId}` slots, not a global widget registry. Keeps widgets local to the app, avoids cross-app coupling.
-- **No style config**: Apps control their own widget styling. MyDash adds style configuration later.
+- **No style config**: Apps control their own widget styling. LaunchPad adds style configuration later.
 - **GridStack over CSS Grid**: GridStack provides drag/drop/resize with minimal code. CSS Grid would require reimplementing all interaction logic.
 - **Layout in app config, not OpenRegister**: Layout storage is an app concern. The composable accepts `loadLayout`/`saveLayout` callbacks.
 

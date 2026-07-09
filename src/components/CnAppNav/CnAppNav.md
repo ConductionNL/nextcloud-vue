@@ -91,7 +91,7 @@ export default {
 </script>
 ```
 
-In the example above, "View in launchpad" renders only when `launchpad` is detected in `OC.appswebroots` or the capabilities bootstrap. In a fresh Nextcloud without launchpad the item is hidden entirely; once launchpad is installed and enabled it appears automatically on the next page load (results are cached per load). This satisfies the `feedback_launchpad-no-or-dependency` guideline — cross-app links are runtime-conditional, not install-time dependencies.
+In the example above, "View in launchpad" renders only when `launchpad` is detected in `OC.appswebroots` or the capabilities bootstrap. In a fresh Nextcloud without launchpad the item is hidden entirely; once launchpad is installed and enabled it appears automatically on the next page load (results are cached per load). This satisfies the `feedback_mydash-no-or-dependency` guideline — cross-app links are runtime-conditional, not install-time dependencies.
 
 Primary action — render a "new" button or active-context switcher above the main list. The `primary-action` slot gives full control over dynamic content and click handling (use it when the label reflects live state, e.g. OpenRegister's active-organisation button); it takes precedence over a static `nav.primaryAction` ({ label, icon?, route?, href? }) manifest field. A page-scoped `pages[].primaryAction` for the active route wins over `nav.primaryAction`. Nothing renders when neither is provided.
 
