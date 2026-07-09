@@ -33,20 +33,42 @@ import '../CnPeopleWidget/index.js'
 import '../CnCalendarWidget/index.js'
 import '../CnNcWidgetWidget/index.js'
 import '../CnSpendAnalyticsWidget/index.js'
-import '../CnStatWidget/index.js'
-import '../CnDeltaWidget/index.js'
-import '../CnGaugeWidget/index.js'
 import '../CnObjectDataWidget/dashboardRegistration.js'
+import '../CnAuditTrailWidget/dashboardRegistration.js'
 import '../CnObjectListWidget/index.js'
 import '../CnKbSearchWidget/index.js'
 import '../CnInteractionFormWidget/index.js'
+import '../CnBannerWidget/index.js'
+import '../CnWorkspaceFilterWidget/index.js'
 
-// The `chart` type renders through CnDashboardPage's dedicated isChart() branch
-// (CnChartWidget), NOT the registry renderer — but registering it here gives the
-// cog CnWidgetStyleEditorModal + CnAddWidgetModal a config FORM for chart widgets.
+// Typed widgets registered with an explicit renderer + config FORM. chart /
+// stats-block render through CnDashboardPage's own isChart()/isStatsBlock()
+// branches and `related` through CnDetailPage's isRelatedWidget() branch — the
+// registry entry exists so the cog editor + Add-widget picker get a form (and,
+// for `related`, the detail-page surface). `table` aliases the object-list
+// renderer/form for legacy manifests using type:'table'.
+//
+// stat / delta / gauge / object-table MUST also be registered inline here
+// (via their exported registration entries) for the same reason object-list
+// is below: package.json `sideEffects: ["**/*.css", …]` lets rollup/webpack
+// DROP the bare `import '../CnStatWidget/index.js'` side-effect imports — the
+// globs never match a path in the single-file dist — so every manifest
+// `type:"stat"|"delta"|"gauge"|"object-table"` widget rendered the
+// "Widget not available" placeholder. Importing the live entry bindings and
+// calling registerDashboardWidget inline survives tree-shaking.
+import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
+import { statWidgetRegistration } from '../CnStatWidget/index.js'
+import { deltaWidgetRegistration } from '../CnDeltaWidget/index.js'
+import { gaugeWidgetRegistration } from '../CnGaugeWidget/index.js'
+import { objectTableWidgetRegistration } from '../CnWidgetObjectTable/dashboardRegistration.js'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnChartWidgetForm from '../CnChartWidgetForm/CnChartWidgetForm.vue'
-import { registerDashboardWidget } from './dashboardWidgetRegistry.js'
+import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
+import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
+import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
+import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnRelatedObjectsWidgetForm from '../CnRelatedObjectsWidgetForm/CnRelatedObjectsWidgetForm.vue'
 
 registerDashboardWidget('chart', {
 	renderer: CnChartWidget,
@@ -58,15 +80,6 @@ registerDashboardWidget('chart', {
 	displayName: 'Chart',
 	icon: 'ChartLine',
 })
-
-// `stats-block` (single-count KPI card) renders through CnDashboardPage's
-// isStatsBlock() branch (CnStatsBlockWidget) — registered here only so the cog
-// editor + Add-widget get a config FORM. `table` aliases the object-list
-// renderer/form for legacy manifests that use type:'table'.
-import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
-import CnStatsBlockWidgetForm from '../CnStatsBlockWidgetForm/CnStatsBlockWidgetForm.vue'
-import CnObjectListWidget2 from '../CnObjectListWidget/CnObjectListWidget.vue'
-import CnObjectListWidgetForm2 from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
 
 registerDashboardWidget('stats-block', {
 	renderer: CnStatsBlockWidget,
@@ -84,12 +97,57 @@ registerDashboardWidget('table', {
 	renderer: CnObjectListWidget2,
 	form: CnObjectListWidgetForm2,
 	defaultContent: {
-		register: '', schema: '', filter: {}, sort: { field: '', dir: 'asc' }, limit: 10,
+		register: '',
+		schema: '',
+		filter: {},
+		sort: { field: '', dir: 'asc' },
+		limit: 10,
 		columns: [{ key: 'title', label: 'Title' }],
 	},
 	displayName: 'Table',
 	icon: 'ClipboardList',
 })
+
+// `object-list` MUST be registered inline here, not only via the bare
+// `import '../CnObjectListWidget/index.js'` side effect above: package.json
+// declares `sideEffects: ["**/*.css"]` (ADR-061 tree-shaking), which lets
+// rollup/webpack legally DROP bare imports of side-effect-free JS modules —
+// the dist bundle shipped without the object-list registration and every
+// manifest `type:"object-list"` widget rendered blank. Inline calls in this
+// module survive because consumers import live bindings from the registry.
+registerDashboardWidget('object-list', {
+	renderer: CnObjectListWidget2,
+	form: CnObjectListWidgetForm2,
+	defaultContent: {
+		register: '',
+		schema: '',
+		filter: {},
+		sort: { field: '', dir: 'asc' },
+		limit: 25,
+		columns: [{ key: 'title', label: 'Title' }],
+	},
+	displayName: 'Object list',
+	icon: 'ClipboardList',
+})
+
+registerDashboardWidget('related', {
+	renderer: CnRelatedObjectsWidget,
+	form: CnRelatedObjectsWidgetForm,
+	defaultContent: { title: '', groups: [] },
+	displayName: 'Object relations',
+	icon: 'FileTreeOutline',
+	surfaces: ['detail-page'],
+	ownsTitle: true,
+})
+
+// KPI / card widgets — registered inline from their exported entries so the
+// registration survives tree-shaking of the bare side-effect imports (see the
+// note above the imports). Without these, dashboard KPI tiles and the built-in
+// object-table render the "Widget not available" placeholder.
+registerDashboardWidget('stat', statWidgetRegistration)
+registerDashboardWidget('delta', deltaWidgetRegistration)
+registerDashboardWidget('gauge', gaugeWidgetRegistration)
+registerDashboardWidget('object-table', objectTableWidgetRegistration)
 
 /**
  * Explicit no-op that guarantees this module (and therefore every widget's

@@ -14,6 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | --------------- | -------- | -------- | ------------------------------ | ------------------------------------------------------------ |
 | `editingWidget` | `object` |          | `null`                         | The placement being edited, or `null` in create mode.        |
 | `value`         | `object` |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values when not editing (registry defaults). |
+| `calendarsFetcher` | `Function` |       | `null`                         | Optional async fetcher returning the user's calendars (`[{key, name, color}]`). When provided, the internal-calendar free-text box is replaced by a multiselect picker. Supplied by the consuming app (which owns the calendar backend) via `CnAddWidgetModal`. |
 
 ### Events
 

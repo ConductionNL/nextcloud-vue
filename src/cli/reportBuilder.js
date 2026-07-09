@@ -81,6 +81,10 @@ function renderReport(items, opts = {}) {
 		'manual migration TODOs': items.filter((i) => i.kind === 'todo'),
 		'carried-forward fields': items.filter((i) => i.kind === 'carried-forward'),
 		'customComponents migrated': items.filter((i) => i.kind === 'custom-component-migrated'),
+		'dialect-B widgets converged': items.filter((i) => i.kind === 'converge-widgets'),
+		'data-binding keys renamed to dataSource': items.filter((i) => i.kind === 'rename-datasource'),
+		'sidebar tabs normalised to slot:sidebar': items.filter((i) => i.kind === 'normalize-sidebar'),
+		'custom dashboards promoted to type:dashboard': items.filter((i) => i.kind === 'promote-dashboard'),
 	}
 
 	lines.push('## Summary')
@@ -250,6 +254,14 @@ function formatItemMessage(item) {
 		return `TODO: ${item.reason || 'Manual migration required'}`
 	case 'carried-forward':
 		return `Carried forward ${item.data?.length || 0} verbatim field(s)`
+	case 'converge-widgets':
+		return `Converged ${item.data?.count || 0} dialect-B widget(s) to canonical widgets[]`
+	case 'rename-datasource':
+		return `Renamed ${item.data?.count || 0} data-binding key(s) to dataSource`
+	case 'normalize-sidebar':
+		return `Normalised ${item.data?.count || 0} sidebar tab widget(s) to slot "sidebar"`
+	case 'promote-dashboard':
+		return 'Promoted custom-dashboard page to type: "dashboard"'
 	default:
 		return item.message || String(item.kind)
 	}

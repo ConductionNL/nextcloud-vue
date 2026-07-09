@@ -60,4 +60,21 @@ describe('CnObjectListWidget — workspace context', () => {
 		await w.vm.$nextTick()
 		expect(w.vm.sourceKey).not.toBe(before)
 	})
+
+	it('passes presentation hints (format / widget / widgetProps / align) through to CnDataTable columns', () => {
+		const w = mount({
+			register: 'pipelinq',
+			schema: 'posTransactionLine',
+			columns: [
+				'description',
+				{ key: 'lineTotal', label: 'Total', format: 'currency', align: 'right' },
+				{ key: 'status', label: 'Status', widget: 'badge', widgetProps: { colorMap: { open: 'info' } } },
+			],
+		})
+		const cols = w.vm.resolvedColumns
+		// Columns default to sortable so a header click toggles the client-side sort.
+		expect(cols[0]).toEqual({ key: 'description', label: 'description', sortable: true })
+		expect(cols[1]).toMatchObject({ key: 'lineTotal', label: 'Total', format: 'currency', align: 'right' })
+		expect(cols[2]).toMatchObject({ key: 'status', widget: 'badge', widgetProps: { colorMap: { open: 'info' } } })
+	})
 })

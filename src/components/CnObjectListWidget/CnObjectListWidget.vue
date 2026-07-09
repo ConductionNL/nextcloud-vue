@@ -7,23 +7,127 @@
 		<p v-if="waitingForContext" class="cn-object-list-widget__prompt">
 			{{ promptText }}
 		</p>
-		<CnDataTable
-			v-else
-			:columns="resolvedColumns"
-			:rows="rows"
-			:loading="loading"
-			:empty-text="emptyText"
-			@row-click="onRowClick" />
-		<p v-if="error" class="cn-object-list-widget__error">
-			{{ error }}
+		<!-- A fetch failed: show ONE quiet line WITHOUT the raw axios status
+		     text ("Request failed with status code 404") — the real error is
+		     logged to the console (ADR-062: an error surface is never a leaked
+		     stack). Takes precedence over the empty state so the two never
+		     stack. -->
+		<p v-else-if="error" class="cn-object-list-widget__error">
+			{{ loadErrorLabel }}
 		</p>
+		<!-- Compact empty state (ADR-062): one muted line, never a full-height
+		     void — an empty collection cell should be DESIGNED small, and this
+		     keeps whatever height it has quiet. -->
+		<p v-else-if="!loading && rows.length === 0" class="cn-object-list-widget__empty">
+			{{ emptyText }}
+		</p>
+		<template v-else>
+			<div class="cn-object-list-widget__table">
+				<CnDataTable
+					:columns="resolvedColumns"
+					:rows="visibleRows"
+					:loading="loading"
+					:empty-text="emptyText"
+					:sort-key="sortKey"
+					:sort-order="sortDir"
+					borderless
+					@row-click="onRowClick"
+					@sort="onSort">
+					<!-- Row edit / reorder affordances (ADR-062: the row acts on
+					     itself). Rendered only when the content blob opts in
+					     (`allowEdit` and/or `orderField`). -->
+					<template v-if="hasRowActions" #row-actions="{ row }">
+						<NcActions :force-menu="true">
+							<NcActionButton
+								v-if="allowEdit"
+								:close-after-click="true"
+								:data-testid="`cn-object-list-edit-${rowId(row)}`"
+								@click="openEdit(row)">
+								<template #icon>
+									<Pencil :size="18" />
+								</template>
+								{{ editLabel }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="orderField"
+								:disabled="working || isFirstRow(row)"
+								@click="moveRow(row, -1)">
+								<template #icon>
+									<ArrowUp :size="18" />
+								</template>
+								{{ moveUpLabel }}
+							</NcActionButton>
+							<NcActionButton
+								v-if="orderField"
+								:disabled="working || isLastRow(row)"
+								@click="moveRow(row, 1)">
+								<template #icon>
+									<ArrowDown :size="18" />
+								</template>
+								{{ moveDownLabel }}
+							</NcActionButton>
+						</NcActions>
+					</template>
+				</CnDataTable>
+			</div>
+			<!-- Fit-to-cell footer (ADR-062: the cell is the budget — rows adapt
+			     to the cell, the remainder is one click away, never a scrollbar).
+			     A navigating button when `viewAllRoute` is configured; a quiet
+			     "+N more" line otherwise. -->
+			<button
+				v-if="hiddenCount > 0 && content.viewAllRoute"
+				type="button"
+				class="cn-object-list-widget__view-all"
+				@click="onViewAll">
+				{{ viewAllLabel }}
+			</button>
+			<p v-else-if="hiddenCount > 0" class="cn-object-list-widget__more">
+				{{ moreLabel }}
+			</p>
+		</template>
+		<!-- Create affordance (ADR-062): every collection carries its Add at
+		     the bottom of the widget; the host card's Actions menu calls the
+		     same openCreate() through the public method. -->
+		<button
+			v-if="allowCreate && !waitingForContext"
+			type="button"
+			class="cn-object-list-widget__add"
+			@click="openCreate">
+			+ {{ addLabel }}
+		</button>
+		<CnFormDialog
+			v-if="showCreate && createSchema"
+			ref="createDialog"
+			:schema="createSchema"
+			:item="null"
+			:register="content.register"
+			:initial-data="createInitialData"
+			:locked-fields="createLockedFields"
+			@confirm="onCreateConfirm"
+			@close="showCreate = false" />
+		<!-- Edit dialog (content.allowEdit) — the same CnFormDialog in EDIT mode
+		     for the clicked row; the list refreshes on save. -->
+		<CnFormDialog
+			v-if="showEdit && createSchema && editItem"
+			ref="editDialog"
+			:schema="createSchema"
+			:item="editItem"
+			:register="content.register"
+			@confirm="onEditConfirm"
+			@close="showEdit = false" />
 	</div>
 </template>
 
 <script>
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import { NcActions, NcActionButton } from '@nextcloud/vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ArrowUp from 'vue-material-design-icons/ArrowUp.vue'
+import ArrowDown from 'vue-material-design-icons/ArrowDown.vue'
 import { translate as t } from '@nextcloud/l10n'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { referenceSchemaSlug } from '../../utils/schema.js'
 
 /**
  * CnObjectListWidget — an abstract, manifest-configured object list / table.
@@ -50,7 +154,7 @@ import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable },
+	components: { CnDataTable, CnFormDialog, NcActions, NcActionButton, Pencil, ArrowUp, ArrowDown },
 
 	inject: {
 		/**
@@ -73,8 +177,11 @@ export default {
 
 	props: {
 		/**
-		 * The widget's persisted configuration blob.
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string}}
+		 * The widget's persisted configuration blob. `limit` is a fetch cap
+		 * (default 25) — the rendered row count fits the host cell (ADR-062).
+		 * `viewAllRoute` / `viewAllQuery` configure the "View all (N)" footer
+		 * navigation; `viewAllQuery` values are token-resolved (`@objectId`).
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}}
 		 */
 		content: {
 			type: Object,
@@ -87,6 +194,31 @@ export default {
 			rows: [],
 			loading: false,
 			error: '',
+			/** Server-side total for the resolved filter (drives "View all (N)"). */
+			total: 0,
+			/** Rows that fit the host cell; null = unconstrained (dashboards). */
+			fitRows: null,
+			/** Whether the create dialog is open. */
+			showCreate: false,
+			/** Target schema definition fetched for the create dialog. */
+			createSchema: null,
+			/**
+			 * The target schema's `properties` map, fetched once so relation
+			 * columns (a `$ref` uuid property) can auto-resolve their uuids to
+			 * display names (ADR-062: a value cell must never show a raw uuid).
+			 * Null until the schema loads.
+			 */
+			schemaProps: null,
+			/** Active client-side sort column key (null = server/default order). */
+			sortKey: null,
+			/** Active client-side sort direction ('asc' | 'desc' | null). */
+			sortDir: null,
+			/** Whether the edit dialog is open. */
+			showEdit: false,
+			/** The row being edited (passed to CnFormDialog in edit mode). */
+			editItem: null,
+			/** True while a row reorder is persisting (disables the move buttons). */
+			working: false,
 		}
 	},
 
@@ -138,6 +270,31 @@ export default {
 			return dropOptionalUnresolved(resolveFilterTokens(this.content.filter || {}, this.tokenCtx))
 		},
 		/**
+		 * Create-form seed values derived from the list's resolved filter: every
+		 * scalar filter entry (e.g. `{ lead: '<uuid>' }` on a detail-page related
+		 * list) pre-links a new child to the record the list is scoped to.
+		 *
+		 * @return {Record<string, string|number>}
+		 */
+		createInitialData() {
+			const out = {}
+			const f = this.resolvedFilter || {}
+			for (const key of Object.keys(f)) {
+				const v = f[key]
+				if (typeof v === 'string' || typeof v === 'number') out[key] = v
+			}
+			return out
+		},
+		/**
+		 * The seeded parent-reference keys, rendered read-only in the create form
+		 * so a child can't be repointed away from the record it was added under.
+		 *
+		 * @return {string[]}
+		 */
+		createLockedFields() {
+			return Object.keys(this.createInitialData)
+		},
+		/**
 		 * Whether a context-dependent filter token (e.g. `@workspace.selectedClient`)
 		 * is still unresolved — the page state this list depends on isn't set yet,
 		 * so the list renders a prompt instead of fetching the whole register.
@@ -147,20 +304,162 @@ export default {
 		waitingForContext() {
 			return hasUnresolvedTokens(this.resolvedFilter)
 		},
-		/** Prompt shown while a `@workspace.*`-bound list has no selection. */
+		/**
+		 * Prompt shown while a context-bound list has an unresolved REQUIRED
+		 * token. A `content.prompt` override always wins. Otherwise the default
+		 * is context-aware: the "Select an item to see related records"
+		 * master-detail copy only fits a DASHBOARD list waiting on a selection —
+		 * on a detail page (an object context is present) that copy is wrong, so
+		 * fall back to the neutral "Nothing here yet" (ADR-062).
+		 *
+		 * @return {string}
+		 */
 		promptText() {
-			return this.content.prompt || t('nextcloud-vue', 'Select an item to see related records')
+			if (this.content.prompt) return this.content.prompt
+			return this.objectCtx
+				? t('nextcloud-vue', 'Nothing here yet')
+				: t('nextcloud-vue', 'Select an item to see related records')
 		},
-		/** Column definitions normalised to `{ key, label }` for CnDataTable. */
+		/**
+		 * Quiet, status-code-free label shown when a fetch fails. The real
+		 * axios error is logged to the console, never rendered (ADR-062).
+		 *
+		 * @return {string}
+		 */
+		loadErrorLabel() {
+			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
+		},
+		/**
+		 * Column definitions normalised for CnDataTable. A string column becomes
+		 * `{ key, label }`; an object column keeps its key/label AND carries the
+		 * presentation hints CnDataTable forwards to CnCellRenderer — `format`
+		 * (currency / duration / number / percent / date / date-time), `widget`
+		 * (badge / link / swatch), `widgetProps`, `formatter`, `align`, and
+		 * `width`. Without this pass-through a `relatedCollections` column's
+		 * `format: 'currency'` / `'date'` would silently render as plain text.
+		 */
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			return cols.map((c) => (typeof c === 'string'
-				? { key: c, label: c }
-				: { key: c.key, label: c.label || c.key }))
+			return cols.map((c) => {
+				const out = (typeof c === 'string')
+					? { key: c, label: c }
+					: { key: c.key, label: c.label || c.key }
+				if (typeof c !== 'string') {
+					for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'sortable']) {
+						if (c[k] !== undefined) out[k] = c[k]
+					}
+				}
+				// Relation columns (a `$ref` uuid property on the schema) resolve
+				// their uuid(s) to the referenced object's display NAME via the
+				// built-in `fkResolve` cell widget — the same store-cached
+				// resolution CnObjectDataWidget uses (one request per distinct id,
+				// falls back to the uuid while loading). Only auto-applied when the
+				// column hasn't already declared its own widget/formatter/format,
+				// so an explicit config always wins.
+				const relSchema = this.relationTargetForColumn(out.key)
+				if (relSchema && !out.widget && !out.formatter && !out.format) {
+					out.widget = 'fkResolve'
+					out.widgetProps = {
+						register: this.content.register || '',
+						schema: String(relSchema),
+						labelField: (typeof c !== 'string' && c.labelField) || 'name',
+					}
+				}
+				// Columns are sortable by default so a header click toggles the
+				// client-side sort (ADR-062); a column can opt out with
+				// `sortable: false`.
+				if (out.sortable === undefined) out.sortable = true
+				return out
+			})
 		},
-		/** Empty-state text. */
+		/** Empty-state text (overridable via `content.emptyText`). */
 		emptyText() {
-			return t('nextcloud-vue', 'No items')
+			return this.content.emptyText || t('nextcloud-vue', 'No items')
+		},
+		/**
+		 * The rows actually rendered: capped to what fits the host grid cell
+		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
+		 * Unconstrained on surfaces without a fixed-height cell (dashboards
+		 * measure null and render every fetched row, as before).
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleRows() {
+			return this.fitRows ? this.displayRows.slice(0, this.fitRows) : this.displayRows
+		},
+		/**
+		 * The fetched rows with any active client-side sort applied (ADR-062:
+		 * a header click sorts in place). Unsorted → the fetched order.
+		 *
+		 * @return {Array<object>}
+		 */
+		displayRows() {
+			if (!this.sortKey || !this.sortDir) return this.rows
+			const key = this.sortKey
+			const factor = this.sortDir === 'desc' ? -1 : 1
+			return this.rows.slice().sort((a, b) => factor * this.compareValues(a[key], b[key]))
+		},
+		/**
+		 * The fetched rows ordered by `content.orderField` ascending — the frame
+		 * of reference for the up/down reorder actions (independent of any active
+		 * column sort). Falls back to the fetched order when no orderField is set.
+		 *
+		 * @return {Array<object>}
+		 */
+		orderedRows() {
+			if (!this.orderField) return this.rows
+			const key = this.orderField
+			return this.rows.slice().sort((a, b) => this.compareValues(a[key], b[key]))
+		},
+		/** Whether inline edit is enabled (`content.allowEdit`) and possible. */
+		allowEdit() {
+			const c = this.content || {}
+			return c.allowEdit === true && Boolean(c.register) && Boolean(c.schema)
+		},
+		/** The order field name when manual reordering is enabled, else ''. */
+		orderField() {
+			const c = this.content || {}
+			return (typeof c.orderField === 'string' && c.orderField) ? c.orderField : ''
+		},
+		/** Whether the trailing row-actions column renders at all. */
+		hasRowActions() {
+			return this.allowEdit || Boolean(this.orderField)
+		},
+		/** Pre-translated row-action labels. */
+		editLabel() {
+			return this.content.editLabel || t('nextcloud-vue', 'Edit')
+		},
+		moveUpLabel() {
+			return t('nextcloud-vue', 'Move up')
+		},
+		moveDownLabel() {
+			return t('nextcloud-vue', 'Move down')
+		},
+		/**
+		 * How many matching objects are NOT rendered (server total minus the
+		 * visible slice). Drives the "View all (N)" footer.
+		 *
+		 * @return {number}
+		 */
+		hiddenCount() {
+			return Math.max((this.total || this.rows.length) - this.visibleRows.length, 0)
+		},
+		/** Pre-translated "View all (N)" footer label. */
+		viewAllLabel() {
+			return t('nextcloud-vue', 'View all ({total})', { total: this.total || this.rows.length })
+		},
+		/** Pre-translated "+N more" footer label (no viewAllRoute configured). */
+		moreLabel() {
+			return t('nextcloud-vue', '+{count} more', { count: this.hiddenCount })
+		},
+		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
+		allowCreate() {
+			const c = this.content || {}
+			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+		/** Pre-translated Add label (overridable via `content.addLabel`). */
+		addLabel() {
+			return this.content.addLabel || t('nextcloud-vue', 'Add')
 		},
 		/** Stable signature of the query so the watcher only refetches on real change. */
 		sourceKey() {
@@ -172,7 +471,7 @@ export default {
 				// watcher refetches when page-level state a token reads changes.
 				filter: this.resolvedFilter,
 				sort: c.sort || {},
-				limit: c.limit || 5,
+				limit: c.limit || 25,
 				objectId: this.objectCtx ? this.objectCtx.objectId : null,
 			})
 		},
@@ -186,6 +485,24 @@ export default {
 
 	mounted() {
 		this.fetchRows()
+		// Load the schema so relation columns can resolve their uuids to names
+		// (best-effort — a schema-fetch failure never blocks the row render).
+		if (this.content && this.content.register && this.content.schema) {
+			this.loadSchema().catch(() => {})
+		}
+		// Observe the host grid cell so the visible row count re-fits on
+		// resize/layout changes. Only detail-grid cells constrain height;
+		// on dashboards the closest() lookup misses and fitRows stays null.
+		const cell = this.$el.closest && this.$el.closest('.grid-stack-item-content')
+		if (cell && typeof ResizeObserver !== 'undefined') {
+			this._fitObserver = new ResizeObserver(() => this.measureFit())
+			this._fitObserver.observe(cell)
+		}
+		this.$nextTick(() => this.measureFit())
+	},
+
+	beforeDestroy() {
+		if (this._fitObserver) this._fitObserver.disconnect()
 	},
 
 	methods: {
@@ -221,7 +538,9 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: c.register, schema: c.schema },
 				)
-				const params = { _limit: c.limit || 5 }
+				// `limit` is a FETCH CAP (ADR-062), not a render promise — the
+				// visible count fits the cell; fetch enough to fill big cells.
+				const params = { _limit: c.limit || 25 }
 				if (c.sort && c.sort.field) {
 					params[`_order[${c.sort.field}]`] = (c.sort.dir === 'desc' ? 'desc' : 'asc')
 				}
@@ -240,11 +559,156 @@ export default {
 				}
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
+				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
+				this.$nextTick(() => this.measureFit())
 			} catch (e) {
+				// Keep the raw message OUT of the template — log it for
+				// debugging, surface only the quiet `loadErrorLabel` line.
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load objects:', e)
 				this.error = (e && e.message) || 'error'
 				this.rows = []
+				this.total = 0
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Fit the visible row count to the host grid cell (ADR-062 — the cell
+		 * is the budget). Measures the cell's remaining height below the table
+		 * top, reserves room for the "View all" footer, and derives the row
+		 * budget from the first rendered row's height. No-ops (fitRows null =
+		 * render all fetched rows) outside a fixed-height cell.
+		 *
+		 * @return {void}
+		 */
+		measureFit() {
+			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
+			if (!cell) { this.fitRows = null; return }
+			const table = this.$el.querySelector('.cn-object-list-widget__table table')
+			if (!table) return
+			const cellRect = cell.getBoundingClientRect()
+			const tableRect = table.getBoundingClientRect()
+			const firstRow = table.querySelector('tbody tr')
+			const rowH = (firstRow && firstRow.getBoundingClientRect().height) || 44
+			const head = table.querySelector('thead')
+			const headH = (head && head.getBoundingClientRect().height) || 40
+			// Room for the "View all" footer AND the Add button (ADR-062).
+			const footerReserve = 68
+			const available = cellRect.bottom - tableRect.top - footerReserve
+			const fit = Math.floor((available - headH) / rowH)
+			this.fitRows = Math.max(fit, 1)
+		},
+
+		/**
+		 * Open the create dialog for the list's target schema. PUBLIC — the
+		 * host card's Actions-menu "Add" entry calls this through a ref, the
+		 * widget's own footer button calls it directly (ADR-062: both
+		 * affordances, one dialog).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async openCreate() {
+			const c = this.content || {}
+			if (!c.schema) return
+			try {
+				await this.loadSchema()
+				this.showCreate = true
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Fetch the target schema once (used both for the create/edit dialog and
+		 * to detect relation columns). Populates `createSchema` and its
+		 * `schemaProps` map; no-op once loaded. Returns the schema (or null).
+		 *
+		 * @return {Promise<object|null>}
+		 */
+		async loadSchema() {
+			const c = this.content || {}
+			if (!c.schema) return null
+			if (this.createSchema) return this.createSchema
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
+			const res = await axios.get(url)
+			this.createSchema = (res && res.data) || null
+			this.schemaProps = (this.createSchema && this.createSchema.properties) || null
+			return this.createSchema
+		},
+
+		/**
+		 * The target schema slug of a relation column (a `$ref` uuid property),
+		 * or null when the column isn't a relation (or the schema hasn't loaded).
+		 *
+		 * @param {string} key The column key.
+		 * @return {string|number|null}
+		 */
+		relationTargetForColumn(key) {
+			const props = this.schemaProps
+			if (!props || !key) return null
+			return referenceSchemaSlug(props[key])
+		},
+
+		/**
+		 * Persist the create-dialog form: the resolved scalar filter values
+		 * are merged in as defaults (an FK-scoped list creates PRE-LINKED
+		 * children — a task added on a case detail already carries the case).
+		 *
+		 * @param {object} formData Confirmed form values.
+		 * @return {Promise<void>}
+		 */
+		async onCreateConfirm(formData) {
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const payload = { ...formData }
+				const filter = this.resolvedFilter || {}
+				for (const [k, v] of Object.entries(filter)) {
+					if (v && typeof v !== 'object' && (payload[k] === undefined || payload[k] === null || payload[k] === '')) {
+						payload[k] = v
+					}
+				}
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
+				await axios.post(url, payload)
+				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ success: true })
+				/**
+				 * @event created Emitted after a successful create with the sent payload.
+				 * @type {object}
+				 */
+				this.$emit('created', payload)
+				this.fetchRows()
+			} catch (e) {
+				if (this.$refs.createDialog) this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * "View all (N)" footer click: emits `view-all` and, when the content
+		 * blob names a `viewAllRoute`, navigates there with `viewAllQuery`
+		 * (its values token-resolved, so `{"case": "@objectId"}` carries the
+		 * current object scope into the target index page).
+		 *
+		 * @return {void}
+		 */
+		onViewAll() {
+			/**
+			 * @event view-all Emitted when the "View all (N)" footer is clicked.
+			 * @type {{ total: number }}
+			 */
+			this.$emit('view-all', { total: this.total })
+			const route = this.content.viewAllRoute
+			if (route && this.$router) {
+				const query = resolveFilterTokens(this.content.viewAllQuery || {}, this.tokenCtx)
+				this.$router.push({ name: route, query }).catch(() => {})
 			}
 		},
 
@@ -268,24 +732,242 @@ export default {
 			 */
 			this.$emit('row-click', row)
 		},
+
+		/**
+		 * Apply a column-header sort toggle from CnDataTable (asc → desc → off).
+		 *
+		 * @param {{ key: string|null, order: 'asc'|'desc'|null }} payload The sort state.
+		 * @return {void}
+		 */
+		onSort(payload) {
+			this.sortKey = (payload && payload.key) || null
+			this.sortDir = (payload && payload.order) || null
+		},
+
+		/**
+		 * Compare two cell values for client-side sorting: numeric when both
+		 * parse as finite numbers, else a locale string compare. Empty values
+		 * sort last (before the direction factor is applied).
+		 *
+		 * @param {*} a First value.
+		 * @param {*} b Second value.
+		 * @return {number}
+		 */
+		compareValues(a, b) {
+			const ea = a === null || a === undefined || a === ''
+			const eb = b === null || b === undefined || b === ''
+			if (ea && eb) return 0
+			if (ea) return 1
+			if (eb) return -1
+			const na = Number(a)
+			const nb = Number(b)
+			if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb
+			return String(a).localeCompare(String(b))
+		},
+
+		/**
+		 * The stable id of a row (`id`, else `@self.id`).
+		 *
+		 * @param {object} row The row object.
+		 * @return {string|number|undefined}
+		 */
+		rowId(row) {
+			return row && (row.id || (row['@self'] && row['@self'].id))
+		},
+
+		/** Whether a row is first in the orderField ordering (up disabled). */
+		isFirstRow(row) {
+			const list = this.orderedRows
+			return list.length > 0 && this.rowId(list[0]) === this.rowId(row)
+		},
+
+		/** Whether a row is last in the orderField ordering (down disabled). */
+		isLastRow(row) {
+			const list = this.orderedRows
+			return list.length > 0 && this.rowId(list[list.length - 1]) === this.rowId(row)
+		},
+
+		/**
+		 * Open the edit dialog (CnFormDialog in edit mode) for a row. Loads the
+		 * schema first (shared with the create path).
+		 *
+		 * @param {object} row The row to edit.
+		 * @return {Promise<void>}
+		 */
+		async openEdit(row) {
+			try {
+				await this.loadSchema()
+				this.editItem = { ...row }
+				this.showEdit = true
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Persist the edit-dialog form via PUT, then refresh the list.
+		 *
+		 * @param {object} formData Confirmed form values (carries the object id).
+		 * @return {Promise<void>}
+		 */
+		async onEditConfirm(formData) {
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const id = this.rowId(formData) || (this.editItem && this.rowId(this.editItem))
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id })
+				await axios.put(url, formData)
+				if (this.$refs.editDialog) this.$refs.editDialog.setResult({ success: true })
+				/**
+				 * @event updated Emitted after a successful edit with the sent payload.
+				 * @type {object}
+				 */
+				this.$emit('updated', formData)
+				this.fetchRows()
+			} catch (e) {
+				if (this.$refs.editDialog) this.$refs.editDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * Swap a row's `orderField` value with its neighbour in the orderField
+		 * ordering (dir -1 = up, +1 = down), persisting BOTH objects, then
+		 * refresh. No-op at the ends of the list.
+		 *
+		 * @param {object} row The row to move.
+		 * @param {number} dir -1 (up) or +1 (down).
+		 * @return {Promise<void>}
+		 */
+		async moveRow(row, dir) {
+			const of = this.orderField
+			if (!of || this.working) return
+			const list = this.orderedRows
+			const id = this.rowId(row)
+			const idx = list.findIndex((r) => this.rowId(r) === id)
+			if (idx < 0) return
+			const neighbor = list[idx + dir]
+			if (!neighbor) return
+			const a = { ...list[idx] }
+			const b = { ...neighbor }
+			const av = a[of]
+			a[of] = b[of]
+			b[of] = av
+			this.working = true
+			try {
+				await Promise.all([this.persistRow(a), this.persistRow(b)])
+				await this.fetchRows()
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			} finally {
+				this.working = false
+			}
+		},
+
+		/**
+		 * PUT a single object back to OpenRegister (used by the reorder swap).
+		 *
+		 * @param {object} obj The full object to persist (carries its id).
+		 * @return {Promise<void>}
+		 */
+		async persistRow(obj) {
+			const c = this.content || {}
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			const id = this.rowId(obj)
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id })
+			await axios.put(url, obj)
+		},
 	},
 }
 </script>
 
 <style scoped>
+/* The widget already lives inside CnWidgetWrapper's padded card chrome. The
+   table is rendered `borderless` so CnDataTable drops its own border/shadow/
+   background AND its bottom margin (the `.cn-table-container--borderless`
+   modifier) — otherwise it reads as a card-in-a-card with dead space below.
+   Horizontal overflow is owned by `.cn-table-container` (overflow-x: auto); a
+   second scroll container here would produce a nested scrollbar, so this host
+   stays plain. */
 .cn-object-list-widget {
 	width: 100%;
-	overflow: auto;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 
-/* The widget already lives inside CnWidgetWrapper's card chrome, so strip the
-   CnDataTable container's own border/shadow/background — otherwise it reads as
-   a card-in-a-card ("widget in widget"). */
-.cn-object-list-widget :deep(.cn-table-container) {
+.cn-object-list-widget__table {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Compact empty state (ADR-062): one quiet centered line — matches the
+   integration leaves' "No meetings" look — never a tall void. */
+.cn-object-list-widget__empty {
+	color: var(--color-text-maxcontrast);
+	margin: 0;
+	padding: 24px 8px;
+	text-align: center;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cn-object-list-widget__view-all {
+	align-self: flex-start;
+	background: none;
 	border: none;
-	box-shadow: none;
-	border-radius: 0;
-	background: transparent;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	margin-top: 4px;
+	padding: 4px;
+}
+
+.cn-object-list-widget__view-all:hover,
+.cn-object-list-widget__view-all:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-object-list-widget__more {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	margin: 4px 0 0;
+	padding: 4px;
+}
+
+/* Footer Add — same pattern as the integration leaves' footer action
+   ("Open in Calendar"): full-width, centered, divider-topped, pinned to
+   the card bottom. */
+.cn-object-list-widget__add {
+	align-self: stretch;
+	background: none;
+	border: none;
+	border-top: 1px solid var(--color-border);
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+	/* Bleed through the host card's 16px content padding so the divider
+	   spans edge-to-edge, exactly like the integration leaves' footer.
+	   !important: Nextcloud server ships `#app-content button { margin:
+	   3px … }` — an id-selector rule no scoped class can outrank. */
+	margin: auto -16px -16px !important;
+	padding: 12px 8px;
+	text-align: center;
+}
+
+.cn-object-list-widget__add:hover,
+.cn-object-list-widget__add:focus-visible {
+	text-decoration: underline;
 }
 
 .cn-object-list-widget__error {

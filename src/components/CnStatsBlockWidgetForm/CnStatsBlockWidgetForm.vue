@@ -5,7 +5,9 @@
 
 <template>
 	<div class="cn-stats-block-form">
-		<h4 class="cn-stats-block-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-stats-block-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<NcTextField
 			:value="title"
@@ -39,7 +41,9 @@
 
 		<CnFilterRowsEditor :value="filterRows" :fields="availableFields" @input="onFilterRows" />
 
-		<h4 class="cn-stats-block-form__section">{{ t('nextcloud-vue', 'Display') }}</h4>
+		<h4 class="cn-stats-block-form__section">
+			{{ t('nextcloud-vue', 'Display') }}
+		</h4>
 
 		<div class="cn-stats-block-form__row2">
 			<NcTextField
@@ -126,15 +130,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Aggregation metric options. */
 		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
@@ -158,17 +153,37 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 		/** Resolve the schema's field names for the dropdowns. */
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
-		/** Receive updated filter rows. */
+		/**
+		 * Receive updated filter rows.
+		 * @param rows
+		 */
 		onFilterRows(rows) { this.filterRows = rows; this.emitChange() },
 		/** Emit the assembled content. */
 		emitChange() { this.$emit('update:content', this.assembledContent) },

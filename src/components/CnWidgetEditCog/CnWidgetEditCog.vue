@@ -19,14 +19,18 @@
 			:close-after-click="true"
 			data-testid="cn-widget-edit-cog-edit"
 			@click="onEdit">
-			<template #icon><Pencil :size="20" /></template>
+			<template #icon>
+				<Pencil :size="20" />
+			</template>
 			{{ editLabel }}
 		</NcActionButton>
 		<NcActionButton
 			:close-after-click="true"
 			data-testid="cn-widget-edit-cog-delete"
 			@click="onRemove">
-			<template #icon><Delete :size="20" /></template>
+			<template #icon>
+				<Delete :size="20" />
+			</template>
 			{{ deleteLabel }}
 		</NcActionButton>
 	</NcActions>

@@ -22,8 +22,12 @@
 				:input-label="t('nextcloud-vue', 'Operator')"
 				:clearable="false"
 				@input="update(i, 'op', $event)">
-				<template #option="{ label: opId }">{{ opLabel(opId) }}</template>
-				<template #selected-option="{ label: opId }">{{ opLabel(opId) }}</template>
+				<template #option="{ label: opId }">
+					{{ opLabel(opId) }}
+				</template>
+				<template #selected-option="{ label: opId }">
+					{{ opLabel(opId) }}
+				</template>
 			</NcSelect>
 			<NcTextField
 				:value="row.value"
@@ -34,11 +38,15 @@
 				type="tertiary"
 				:aria-label="t('nextcloud-vue', 'Remove filter')"
 				@click="remove(i)">
-				<template #icon><Close :size="18" /></template>
+				<template #icon>
+					<Close :size="18" />
+				</template>
 			</NcButton>
 		</div>
 		<NcButton type="tertiary" @click="add">
-			<template #icon><Plus :size="18" /></template>
+			<template #icon>
+				<Plus :size="18" />
+			</template>
 			{{ t('nextcloud-vue', 'Add filter') }}
 		</NcButton>
 	</div>
@@ -113,7 +121,10 @@ export default {
 	methods: {
 		t,
 
-		/** Human label (`=`, `≠`, …) for an operator id. */
+		/**
+		 * Human label (`=`, `≠`, …) for an operator id.
+		 * @param id
+		 */
 		opLabel(id) {
 			const op = FILTER_OPERATORS.find((o) => o.id === id)
 			return op ? op.label : id
@@ -125,13 +136,21 @@ export default {
 			this.emit()
 		},
 
-		/** Remove a row by index. */
+		/**
+		 * Remove a row by index.
+		 * @param i
+		 */
 		remove(i) {
 			this.rows.splice(i, 1)
 			this.emit()
 		},
 
-		/** Update one cell of a row and emit. */
+		/**
+		 * Update one cell of a row and emit.
+		 * @param i
+		 * @param cell
+		 * @param value
+		 */
 		update(i, cell, value) {
 			this.$set(this.rows[i], cell, value)
 			this.emit()

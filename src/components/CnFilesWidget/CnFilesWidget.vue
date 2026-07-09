@@ -167,6 +167,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -174,8 +175,8 @@ import { translate as t } from '@nextcloud/l10n'
  *
  * NC-INTEGRATION DEPENDENCY: this widget reads folder contents from a host
  * application's `/api/widgets/files/{placementId}/...` endpoints (the same
- * contract the launchpad backend served) and deep-links file rows into
- * the Nextcloud **Files** app (`/apps/files/?fileid=...`). The
+ * contract the launchpad/mydash backend served) and deep-links file rows into
+ * the Nextcloud **Files** app via the canonical `/f/{fileid}` permalink. The
  * `@nextcloud/axios` + `@nextcloud/router` helpers are imported LAZILY at call
  * time so the widget code never hard-couples to a network stack at module load
  * (keeps the no-op css transform path clean and lets a host without the backing
@@ -381,10 +382,7 @@ export default {
 			this.unavailable = false
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/contents`,
@@ -502,7 +500,13 @@ export default {
 			if (!fileId) {
 				return
 			}
-			const url = `/apps/files/?fileid=${encodeURIComponent(fileId)}`
+			// Canonical Nextcloud file permalink: `/f/{fileid}` resolves the id
+			// to its containing folder and opens the file. generateUrl adds the
+			// `index.php` prefix on instances without URL rewriting. The previous
+			// raw `/apps/files/?fileid=` both omitted that prefix (404 on those
+			// instances) and, on modern Nextcloud, only ever landed on the root
+			// folder instead of the file.
+			const url = generateUrl('/f/{fileid}', { fileid: fileId })
 			window.open(url, '_blank', 'noopener,noreferrer')
 		},
 
@@ -547,10 +551,7 @@ export default {
 				return
 			}
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/files/{fileId}`,
@@ -594,10 +595,7 @@ export default {
 			}
 
 			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
+				const { default: axios } = await import('@nextcloud/axios')
 
 				const url = generateUrl(
 					`${this.apiBase}/api/widgets/files/{placementId}/upload`,

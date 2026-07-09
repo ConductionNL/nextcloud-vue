@@ -577,6 +577,20 @@ describe('fieldsFromSchema', () => {
 		expect(configField.widget).toBe('json')
 	})
 
+	it('maps a widget:"icon" property to an icon field and forwards its config', () => {
+		const schemaWithIcon = {
+			title: 'MenuItem',
+			properties: {
+				icon: { type: 'string', title: 'Icon', widget: 'icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true, searchable: false },
+			},
+		}
+		const field = fieldsFromSchema(schemaWithIcon).find((f) => f.key === 'icon')
+		expect(field.widget).toBe('icon')
+		expect(field.iconSources).toEqual(['mdi', 'fontawesome'])
+		expect(field.allowCustomSvg).toBe(true)
+		expect(field.searchable).toBe(false)
+	})
+
 	it('applies exclude option', () => {
 		const fields = fieldsFromSchema(formSchema, { exclude: ['description', 'tags'] })
 		const keys = fields.map((f) => f.key)
@@ -598,6 +612,23 @@ describe('fieldsFromSchema', () => {
 		const nameField = fields.find((f) => f.key === 'name')
 		expect(nameField.widget).toBe('textarea')
 		expect(nameField.label).toBe('Full Name')
+	})
+
+	it('hides a field via overrides[key].hidden (unified visibility)', () => {
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { email: { hidden: true } },
+		})
+		expect(fields.find((f) => f.key === 'email')).toBeUndefined()
+		expect(fields.find((f) => f.key === 'name')).toBeTruthy()
+	})
+
+	it('re-sorts by overrides[key].order over the schema order', () => {
+		// name=order1, email=order2 in the schema; override flips them.
+		const fields = fieldsFromSchema(formSchema, {
+			overrides: { name: { order: 10 }, email: { order: 1 } },
+		})
+		const keys = fields.map((f) => f.key)
+		expect(keys.indexOf('email')).toBeLessThan(keys.indexOf('name'))
 	})
 
 	// --- Widget resolution ---
@@ -661,6 +692,64 @@ describe('fieldsFromSchema', () => {
 		const fields = fieldsFromSchema(formSchema)
 		const catField = fields.find((f) => f.key === 'categories')
 		expect(catField.widget).toBe('multiselect')
+	})
+
+	// --- OpenRegister object references ($ref) ---
+
+	const refSchema = {
+		title: 'Case',
+		properties: {
+			caseType: { type: 'string', format: 'uuid', $ref: 'caseType', title: 'Case type', order: 1 },
+			contacts: { type: 'array', items: { $ref: 'contact' }, title: 'Contacts', order: 2 },
+			plain: { type: 'string', title: 'Plain', order: 3 },
+			emptyRef: { type: 'string', $ref: '', title: 'Empty Ref', order: 4 },
+		},
+	}
+
+	it('resolves a string $ref property to a select widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+	})
+
+	it('resolves an array items.$ref property to a multiselect widget', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.widget).toBe('multiselect')
+	})
+
+	it('sets field.reference for a single $ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.reference).toEqual({ schema: 'caseType', multiple: false })
+	})
+
+	it('sets field.reference with multiple:true for an items.$ref property', () => {
+		const fields = fieldsFromSchema(refSchema)
+		const contactsField = fields.find((f) => f.key === 'contacts')
+		expect(contactsField.reference).toEqual({ schema: 'contact', multiple: true })
+	})
+
+	it('leaves reference null for non-reference and empty-$ref properties', () => {
+		const fields = fieldsFromSchema(refSchema)
+		expect(fields.find((f) => f.key === 'plain').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').reference).toBeNull()
+		expect(fields.find((f) => f.key === 'emptyRef').widget).not.toBe('select')
+	})
+
+	it('accepts a numeric $ref (OpenRegister serves the schema id, not the slug)', () => {
+		// OR authors `$ref` as a slug but persists/serves it as the numeric
+		// schema id (e.g. 85). The numeric form must still resolve to a select.
+		const numericRefSchema = {
+			title: 'Case',
+			properties: {
+				caseType: { type: 'string', format: 'uuid', $ref: 85, title: 'Case type' },
+			},
+		}
+		const fields = fieldsFromSchema(numericRefSchema)
+		const caseTypeField = fields.find((f) => f.key === 'caseType')
+		expect(caseTypeField.widget).toBe('select')
+		expect(caseTypeField.reference).toEqual({ schema: 85, multiple: false })
 	})
 
 	it('resolves uri format to url widget', () => {

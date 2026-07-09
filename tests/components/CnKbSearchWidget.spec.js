@@ -66,4 +66,57 @@ describe('CnKbSearchWidget', () => {
 		const long = 'x'.repeat(300)
 		expect(w.vm.snippet({ summary: long }).length).toBeLessThanOrEqual(140)
 	})
+
+	describe('pluggable provider (#91 Wave 3)', () => {
+		const mountWithProviders = (content, providers) => shallowMount(CnKbSearchWidget, {
+			propsData: { content },
+			provide: { cnKbSearchProviders: providers },
+		})
+
+		it('resolves content.provider against the injected registry and runs its search', async () => {
+			const xwiki = { search: jest.fn(() => Promise.resolve([{ title: 'From xWiki' }])), externalOpen: true }
+			const w = mountWithProviders(
+				{ provider: 'xwiki', space: 'Support', tags: ['printer'], limit: 4 },
+				{ default: { search: jest.fn() }, xwiki },
+			)
+			expect(w.vm.resolvedProvider).toBe(xwiki)
+			// externalOpen defaults from the provider.
+			expect(w.vm.externalOpen).toBe(true)
+
+			w.setData({ term: 'printer down' })
+			await w.vm.runSearch()
+			expect(xwiki.search).toHaveBeenCalledWith('printer down', expect.objectContaining({
+				space: 'Support', tags: ['printer'], limit: 4,
+			}))
+			expect(w.vm.results).toEqual([{ title: 'From xWiki' }])
+			expect(w.vm.unavailable).toBe(false)
+		})
+
+		it('falls back to the built-in default provider for an unknown key', () => {
+			const w = mountWithProviders({ provider: 'nope' }, { default: { search: jest.fn() } })
+			// Resolves to the injected default (registry default wins).
+			expect(typeof w.vm.resolvedProvider.search).toBe('function')
+		})
+
+		it('shows the unavailable fallback text when the provider rejects', async () => {
+			const failing = { search: jest.fn(() => Promise.reject(new Error('503'))) }
+			const w = mountWithProviders(
+				{ provider: 'x', unavailableFallback: 'KB is offline' },
+				{ default: { search: jest.fn() }, x: failing },
+			)
+			w.setData({ term: 'help' })
+			await w.vm.runSearch()
+			expect(w.vm.unavailable).toBe(true)
+			expect(w.vm.results).toEqual([])
+			expect(w.vm.unavailableLabel).toBe('KB is offline')
+		})
+
+		it('content.externalOpen overrides the provider default', () => {
+			const w = mountWithProviders(
+				{ provider: 'x', externalOpen: false },
+				{ default: { search: jest.fn() }, x: { search: jest.fn(), externalOpen: true } },
+			)
+			expect(w.vm.externalOpen).toBe(false)
+		})
+	})
 })

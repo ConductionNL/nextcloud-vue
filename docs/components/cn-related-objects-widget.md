@@ -33,10 +33,14 @@ Relation and file sections only render when the store exposes the matching actio
 | `object-type` | `String` | `''` | Registered object type slug (used for store fetches) |
 | `object-id` | `String\|Number` | `''` | The object's id |
 | `object-data` | `Object` | `{}` | The object data — used to derive id/type when not passed explicitly |
+| `schema` | `String` | `''` | OpenRegister schema slug. When omitted, derived from `objectData['@self'].schema`. Required (with `register`) for the tabbed self-fetch path. |
+| `layout` | `String` | `'tabs'` | Render mode. `'tabs'` (default) self-fetches from OpenRegister and renders a tab per non-empty group. `'list'` forces the legacy store-action list path. |
 | `store` | `Object` | `null` | Object store instance. When omitted, the widget tries Pinia auto-detection. |
 | `show-objects` | `Boolean` | `true` | Show the related-objects (uses/used/contracts) section |
 | `show-files` | `Boolean` | `true` | Show the files section |
+| `show-contracts` | `Boolean` | `false` | Include `/contracts` relations in the Objects group (opt-in). |
 | `show-integrations` | `Boolean` | `true` | Show the leaf-integration entry-point section |
+| `include-groups` | `Array` | `[]` | Whitelist of relation-group keys to display (tabbed path). When non-empty, ONLY these render (e.g. `['objects', 'files', 'mails']`); empty shows every non-empty group. Lets a detail page carry several Related widgets scoped to different relations. Keys: `objects`, `files`, and the leaf groups (mails, events, contacts, notes, tasks, deck, talk, forms, maps, polls, …). Configurable in-app via the widget's cog. |
 | `exclude-integrations` | `Array` | `[]` | Integration ids to omit from "Linked apps" (on top of the always-omitted core tabs) |
 | `extra-sections` | `Array` | `[]` | Extra related sections the store can't resolve generically. Each: `{ key, label, icon?, items: [] }` |
 | `documentation-url` | `String` | `''` | Documentation link for the overflow Actions menu |
@@ -44,6 +48,7 @@ Relation and file sections only render when the store exposes the matching actio
 | `objects-label` | `String` | `'Objects'` | Section heading for related objects |
 | `files-label` | `String` | `'Files'` | Section heading for files |
 | `linked-apps-label` | `String` | `'Linked apps'` | Section heading for leaf-integration entry points |
+| `open-in-sidebar-label` | `String` | `'Open in sidebar'` | Deprecated no-op label kept for backward compatibility. No longer rendered in tabbed mode. |
 | `empty-label` | `String` | `'Nothing related yet'` | Empty-state label shown when nothing is related |
 
 ## Events

@@ -172,7 +172,7 @@ export type MergedActions<T, ExtActions, F> =
 export type PluginContribution = { [key: string]: any }
 
 export type FullState<T, ExtState, F> =
-	BaseState<T> & ExtState & LoadingState<F> & ViewModeState<F> & PluginContribution
+	BaseState<T> & ExtState & LoadingState<F> & ViewModeState<F>
 
 export type FullGetters<ExtGetters, F> =
 	ExtGetters & LoadingGetters<F> & ViewModeGetters<F>

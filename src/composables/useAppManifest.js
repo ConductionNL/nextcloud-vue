@@ -1,9 +1,21 @@
 import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { validateManifest } from '../utils/validateManifest.js'
 import { resolveManifestSentinels } from '../utils/resolveManifestSentinels.js'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
+
+/**
+ * Lazily import the manifest validator. The validator plus its compiled Ajv
+ * artifact weigh ~340KB minified and most apps never validate at runtime —
+ * a static import makes every consumer bundle carry them. The dynamic import
+ * splits them into an async chunk fetched on first validation only.
+ *
+ * @return {Promise<Function>} The validateManifest function.
+ */
+function loadValidator() {
+	return import(/* webpackChunkName: "cn-manifest-validator" */ '../utils/validateManifest.js')
+		.then((mod) => mod.validateManifest)
+}
 
 /**
  * Composable that loads, resolves, and validates a Conduction app manifest.
@@ -147,15 +159,20 @@ function loadInMemory(input) {
 	const orphanedDeltaPaths = ref([])
 
 	if (input.validate === true) {
-		const result = validateManifest(input.manifest)
-		if (!result.valid) {
-			validationErrors.value = result.errors
-			// eslint-disable-next-line no-console
-			console.warn(
-				'[useAppManifest] In-memory manifest failed schema validation; manifest is mounted unchanged (validation is informational).',
-				result.errors,
-			)
-		}
+		// Fire-and-forget: validation here is informational (the manifest is
+		// mounted unchanged either way), so the lazy validator load may
+		// resolve after mount — validationErrors is a ref consumers watch.
+		loadValidator().then((validateManifest) => {
+			const result = validateManifest(input.manifest)
+			if (!result.valid) {
+				validationErrors.value = result.errors
+				// eslint-disable-next-line no-console
+				console.warn(
+					'[useAppManifest] In-memory manifest failed schema validation; manifest is mounted unchanged (validation is informational).',
+					result.errors,
+				)
+			}
+		})
 	}
 
 	return { manifest, isLoading, validationErrors, unresolvedSentinels, orphanedDeltaPaths }
@@ -234,6 +251,7 @@ function loadFromBackend(appId, bundledManifest, options) {
 
 			// Phase 3: validation. On failure, keep the bundled manifest
 			// (informational policy — never replace with an invalid doc).
+			const validateManifest = await loadValidator()
 			const result = validateManifest(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors

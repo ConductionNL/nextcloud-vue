@@ -43,6 +43,22 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `statsColumns` | Array | `[]` | Column defs for stats table: `[{ key: string, label: string, align?: 'left'\|'center'\|'right' }]` |
 | `statsRows` | Array | `[]` | Row data for stats table (objects keyed by column keys; set `indent: true` for sub-row styling) |
 | `maxWidth` | String | `'1200px'` | Maximum width of the page content |
+| `lifecycleActions` | Object \| null | `null` | **Declarative lifecycle/transition buttons.** When set, renders status-gated transition buttons in the page header driven by the object's `x-openregister-lifecycle`. `{ field?: 'status' }` fetches the allowed transitions live from OpenRegister's `/available-actions` endpoint; an explicit `{ transitions: [{ from, to, action, label, confirm?, variant? }] }` is filtered client-side by the object's current state. See [CnLifecycleActions](./cn-lifecycle-actions.md). |
+| `relatedCollections` | Array | `[]` | **Declarative related-object list sections** rendered below the detail body. Each entry `{ title?, register, schema, filter?, columns?, sort?, limit?, rowRoute? }` renders a titled `CnObjectListWidget` scoped to this object via `@objectId` / `@object.<field>` tokens. See [CnRelatedCollections](./cn-related-collections.md). |
+| `summaryAggregates` | Array | `[]` | **Declarative cross-schema summary chips** in the header. Each entry `{ label, register, schema, metric?, field?, filter?, format? }` runs one count/sum/avg over a related schema scoped to this object. See [CnSummaryAggregates](./cn-summary-aggregates.md). |
+| `relationLinks` | Array | `[]` | **Declarative relation-link actions.** Each entry `{ label?, register, schema, fkField, labelField?, allowCreate?, title?, selectLabel? }` renders a button that opens a search-and-link modal which patches a foreign key on this object. See [CnRelationLinkModal](./cn-relation-link-modal.md). |
+| `bodyWidgets` | Array | `[]` | **Declarative IN-BODY sections.** Each entry `{ id?, component, title?, props?, placement?, colSpan? }` renders a REGISTERED host-app component as a titled section in the page **body** (not the sidebar), with the object/page context injected. `component` is a registry name resolved from the app's v2 `registry` (any kind exposing a `.component`, e.g. `kind:"section"` / `kind:"widget"`) or the legacy `customComponents` map — **no sidebar tab is required**. `props` values are token-resolved (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`; unset optional `@…?` tokens are dropped). `placement` is `before-body` \| `after-data` \| `after-related` \| `end` (default `end`). `colSpan` (1–12) lays sections out on a grid when several share a placement. The loaded object + objectId are also `provide`d on `cnSectionContext` so a host component can inject them instead of taking props. A section whose component can't be resolved, or that throws while rendering, degrades to an inline error and never breaks the page. See [CnBodySections](./cn-body-sections.md). |
+| `appConfig` | Object | `{}` | **Page-level app config** exposed to declarative widget / section config via the **`@config.<key>` token** and `provide`d on `cnAppConfig`. Lets a stat widget's `format: { style: 'currency', currency: '@config.currency' }` format with a configured value (e.g. the reporting currency a setup wizard captures) instead of a hard-coded `EUR`, and an endpoint KPI's URL / params + filter values interpolate `@config.<key>`. A manifest renderer typically seeds it from `loadState(appId, 'config', {})`. Backwards-compatible: a literal `"EUR"` still works, and an unset required `@config.<key>` falls back to the format default. |
+
+## Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `transitioned` | `{ action, to, object }` | A declarative lifecycle transition (from `lifecycleActions`) succeeded on this page's object. |
+| `relation-linked` | `object` | A `relationLinks` action patched a foreign key on this page's object; payload is the updated object. |
+| `related-row-click` | `{ collection, row, index }` | A row in a `relatedCollections` section was clicked. |
+| `layout-change` | `Array` | A widget in the body grid was dragged or resized in edit mode. Payload is the updated layout array. The sibling `update:layout` event fires with the same payload so an explicit-layout page can use `:layout.sync`. |
+| `widget-config-change` | `object \| null` | A body-grid widget's config was saved via the cog editor (the widget def), or the widget was removed (`null`). |
 
 ## Slots
 
@@ -60,6 +76,40 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `#default` | — | Main content below the stats table |
 | `#sections` | — | Additional content below the default slot |
 | `#footer` | — | Footer content (separated by a border) |
+| `#widget-{widgetId}` | `{ item, widget }` | Per-widget slot in the body grid (name is `widget-<widgetId>`). Override the default render for one grid cell. `item` is the layout descriptor, `widget` the resolved definition. |
+
+## Body grid (adjustable Data + Related)
+
+The detail body is, at its core, a real drag/resize grid powered by
+[`CnDashboardGrid`](./cn-dashboard-grid.md) (GridStack):
+
+- **Default body.** In schema-driven mode (`register` + `schema` + `objectId`),
+  once the object loads the body is seeded with two default widgets — a `data`
+  widget ([`CnObjectDataWidget`](./cn-object-data-widget.md)) and a `related`
+  widget ([`CnRelatedObjectsWidget`](./cn-related-objects-widget.md)). Set
+  `showRelatedObjects: false` to seed only the data widget.
+- **Edit mode.** When the page is in OpenBuild edit mode (injected
+  `cnEditingBody`), widgets can be dragged, resized and configured (the per-widget
+  cog opens the registered config editor). Geometry changes emit `layout-change`
+  / `update:layout`.
+- **Explicit grid pages.** Passing `layout` + `widgets` props (a manifest grid
+  page) feeds the same engine, so hand-authored grid pages are draggable too. The
+  default body is only synthesized when no explicit `layout` is supplied.
+- **Widget types** rendered by the grid: `data`, `related`, `integration`, and
+  any registered content-driven catalog type (stat / chart / delta / gauge /
+  object-list / …). A `#widget-<widgetId>` slot overrides any cell.
+- **Field-scoped data widgets (ADR-062).** A `data` widget's `content` accepts
+  `include` (field whitelist) / `exclude` (blacklist), forwarded to
+  `CnObjectDataWidget` — so one object can be presented as several purposeful
+  data widgets ("Core case data" / "Process"), each sized to its field count.
+- **Content-only catalog widgets get card chrome.** `object-list` / `table`
+  cells render on `CnWidgetWrapper` with the widget def's `title` (they have no
+  chrome of their own); self-chromed catalog widgets (stat / chart / …) render
+  bare, as before.
+- **Cell-overflow dev warning (ADR-062: the cell is the budget).** In
+  non-production builds the page console.warns any grid cell whose rendered
+  content is taller than its `gridHeight` — overflow is a design bug (enlarge
+  the cell or scope the widget's content), never a scroll surface.
 
 ## Sidebar config object
 
@@ -289,7 +339,7 @@ See [`useObjectLock`](../utilities/composables/use-object-lock.md) for the lock 
 
 ## Built-in Actions menu
 
-The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Refresh and Request-a-feature are **on by default**; opt out per item with `:show-refresh="false"` / `:show-request-feature="false"`.
+The header carries the shared [`CnActionsMenu`](./cn-actions-menu) overflow `…` — **Refresh**, **Documentation**, and **Request a feature** — after any `#actions` slot content. Request-a-feature is **on by default**; **Refresh is shown only when it will do something** — `showRefresh` is tri-state (`true`/`false` force it; the default `null` is **auto**: shown when a consumer attached an `@refresh` listener *or* the page is in schema-driven mode and can self-fetch). A legacy `objectType`-mode page that never wires `@refresh` therefore shows no dead Refresh button. Force it with `:show-refresh="true"`/`false`; opt out of Request-a-feature with `:show-request-feature="false"`.
 
 - **Refresh** emits `@refresh` and, unless the host calls `event.preventDefault()`, fires the `cn:page:refresh` event-bus channel with `{ widgetId, title }`.
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
@@ -322,3 +372,12 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `showRelatedObjects` | Boolean | `true` | Whether to render the Related section beneath the data widget. Set `false` on pages that surface relations elsewhere (e.g. the sidebar) to drop the section. |
+
+### Widget icons (ADR-062)
+
+Every `config.widgets[]` def may carry `icon` (an MDI component name, e.g.
+`"CheckboxMarkedOutline"`). Data widgets forward it to their card header via
+`CnIcon`; content-only catalog widgets (object-list / table) render it in
+their `CnWidgetWrapper` title. Together with the shared
+`var(--border-radius-large, 8px)` card radius this keeps all detail-page
+widgets in one visual family.

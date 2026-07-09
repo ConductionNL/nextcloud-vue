@@ -8,10 +8,12 @@
  * OpenRegister.
  *
  * Supported tokens:
- *  - `@me`                → the current Nextcloud user id (`window.OC.currentUser`)
+ *  - `@me`                → the current Nextcloud user id (`getCurrentUser()` from
+ *                           `@nextcloud/auth`; `window.OC.currentUser` fallback)
  *  - `@now`               → the current instant, ISO-8601
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
- *  - `@today±Nd`          → N days from today (e.g. `@today-7d`, `@today+30d`)
+ *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
+ *                           from today (e.g. `@today-30d`, `@today+7d`)
  *  - `@monthStart`        → first day of the current month, `YYYY-MM-DD`
  *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
  *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
@@ -19,6 +21,7 @@
  *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
+ *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -29,8 +32,26 @@
  * context the tokens pass through unchanged — and an UNRESOLVED `@workspace.*`
  * token signals "no selection yet" to the caller (see {@link hasUnresolvedTokens}).
  *
+ * `@config.<key>` is an APP-CONFIG token: it resolves a key off `ctx.config` (the
+ * page-level app config a dashboard/detail page provides via `cnAppConfig` — e.g.
+ * a reporting `currency` captured by the setup wizard). Like `@workspace.<key>`, a
+ * trailing `?` marks it optional. An UNRESOLVED required `@config.<key>` passes
+ * through unchanged; this lets `format: { currency: '@config.currency' }` fall
+ * back to a literal default when the config is unset.
+ *
+ * IN-lists: a filter value MAY be an ARRAY (`{ status: ['open', 'pending'] }`,
+ * or the explicit operator form `{ status: { in: [...] } }`). Tokens inside the
+ * array are resolved item-by-item (`{ assignee: ['@me', 'shared'] }` works).
+ * OpenRegister expects an IN-list as repeated bracket params
+ * (`status[]=open&status[]=pending` — the same shape `buildQueryString` /
+ * `useObjectStore` send), so widget fetchers serialize a resolved array as
+ * repeated `field[]` params, never as a JSON blob or a single joined string.
+ *
  * @module utils/resolveFilterTokens
  */
+
+import { getCurrentUser } from '@nextcloud/auth'
+import { TODAY_DELTA_RE } from './sentinelTokens.js'
 
 /**
  * Format a Date as `YYYY-MM-DD` (local).
@@ -48,9 +69,10 @@ function ymd(d) {
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {*} v The candidate value.
- * @param {{objectId?: (string|number), object?: object, workspace?: object}} [ctx] Optional
- *   context for `@objectId` / `@object.<field>` (detail page) and
- *   `@workspace.<key>` (page-level workspace state) tokens.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ *   context for `@objectId` / `@object.<field>` (detail page),
+ *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
+ *   (page-level app config) tokens.
  * @return {*} The resolved value.
  */
 export function resolveFilterValue(v, ctx) {
@@ -76,8 +98,31 @@ export function resolveFilterValue(v, ctx) {
 		}
 		return v
 	}
+	if (v.startsWith('@config.')) {
+		// A trailing `?` marks the token OPTIONAL (same convention as
+		// `@workspace.<key>?`): an unset value lets the caller drop the key. A
+		// required `@config.<key>` that is unset passes through unchanged so a
+		// downstream consumer can fall back to a literal default (e.g.
+		// `format.currency` → `'EUR'`).
+		const raw = v.slice('@config.'.length)
+		const key = raw.endsWith('?') ? raw.slice(0, -1) : raw
+		if (ctx && ctx.config && key && ctx.config[key] !== undefined
+			&& ctx.config[key] !== null && ctx.config[key] !== '') {
+			return ctx.config[key]
+		}
+		return v
+	}
 	if (v === '@me') {
-		return (typeof window !== 'undefined' && window.OC && window.OC.currentUser) || ''
+		// Canonical source is @nextcloud/auth; window.OC is the fallback for
+		// environments where the auth package can't read the page state (jsdom).
+		let uid = null
+		try {
+			const user = getCurrentUser()
+			uid = user && user.uid
+		} catch (e) {
+			uid = null
+		}
+		return uid || (typeof window !== 'undefined' && window.OC && window.OC.currentUser) || ''
 	}
 	if (v === '@now') return now.toISOString()
 	if (v === '@today') {
@@ -97,7 +142,7 @@ export function resolveFilterValue(v, ctx) {
 	if (v === '@currentFiscalYear') {
 		return String(now.getFullYear())
 	}
-	const m = v.match(/^@today([+-]\d+)d$/)
+	const m = v.match(TODAY_DELTA_RE)
 	if (m) {
 		const d = new Date(now)
 		d.setHours(0, 0, 0, 0)
@@ -108,22 +153,26 @@ export function resolveFilterValue(v, ctx) {
 }
 
 /**
- * Whether a value is an UNRESOLVED OPTIONAL workspace token — a string still
- * shaped like `@workspace.<key>?` after token resolution (the `?` marks it as
- * "drop me when unset"). Callers strip such keys from the filter so the list
- * shows all rows rather than waiting for a selection.
+ * Whether a value is an UNRESOLVED OPTIONAL token — a string still shaped like
+ * `@workspace.<key>?` or `@config.<key>?` after token resolution (the `?` marks
+ * it as "drop me when unset"). Callers strip such keys from the filter so the
+ * list shows all rows rather than waiting for a selection / a config value.
  *
  * @param {*} v A (possibly resolved) filter value.
  * @return {boolean}
  */
 export function isOptionalUnresolved(v) {
-	return typeof v === 'string' && v.startsWith('@workspace.') && v.endsWith('?')
+	return typeof v === 'string'
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.'))
+		&& v.endsWith('?')
 }
 
 /**
  * Return a copy of a resolved filter map with every UNRESOLVED OPTIONAL
  * workspace token (`@workspace.<key>?` left as-is) removed. Required tokens and
- * concrete values are kept untouched.
+ * concrete values are kept untouched. Inside an IN-list array, unresolved
+ * optional ITEMS are dropped; a key whose array empties out is dropped whole
+ * (an empty IN-list means "no constraint", not "match nothing").
  *
  * @param {object} filter A filter map already passed through {@link resolveFilterTokens}.
  * @return {object} The filter without optional-unresolved keys.
@@ -133,10 +182,18 @@ export function dropOptionalUnresolved(filter) {
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {
 		if (isOptionalUnresolved(v)) continue
-		if (v && typeof v === 'object' && !Array.isArray(v)) {
+		if (Array.isArray(v)) {
+			const items = v.filter((item) => !isOptionalUnresolved(item))
+			if (items.length > 0) out[k] = items
+		} else if (v && typeof v === 'object') {
 			const inner = {}
 			for (const [op, ov] of Object.entries(v)) {
-				if (!isOptionalUnresolved(ov)) inner[op] = ov
+				if (Array.isArray(ov)) {
+					const items = ov.filter((item) => !isOptionalUnresolved(item))
+					if (items.length > 0) inner[op] = items
+				} else if (!isOptionalUnresolved(ov)) {
+					inner[op] = ov
+				}
 			}
 			if (Object.keys(inner).length > 0) out[k] = inner
 		} else {
@@ -162,11 +219,16 @@ export function dropOptionalUnresolved(filter) {
 export function hasUnresolvedTokens(filter) {
 	if (!filter || typeof filter !== 'object') return false
 	const blocking = (x) => typeof x === 'string' && x.charAt(0) === '@' && !isOptionalUnresolved(x)
-	for (const v of Object.values(filter)) {
+	const anyBlocking = (v) => {
 		if (blocking(v)) return true
+		if (Array.isArray(v)) return v.some(blocking)
+		return false
+	}
+	for (const v of Object.values(filter)) {
+		if (anyBlocking(v)) return true
 		if (v && typeof v === 'object' && !Array.isArray(v)) {
 			for (const ov of Object.values(v)) {
-				if (blocking(ov)) return true
+				if (anyBlocking(ov)) return true
 			}
 		}
 	}
@@ -174,24 +236,29 @@ export function hasUnresolvedTokens(filter) {
 }
 
 /**
- * Resolve every dynamic `@`-token in a filter map (equality + operator shapes).
+ * Resolve every dynamic `@`-token in a filter map (equality, operator, and
+ * IN-list array shapes). Array values resolve item-by-item so a list can mix
+ * tokens and literals (`{ assignee: ['@me', 'shared'] }`).
  *
- * @param {object} filter The filter map (`{ field: value | { op: value } }`).
- * @param {{objectId?: (string|number), object?: object}} [ctx] Optional
- *   detail-page object context forwarded to {@link resolveFilterValue} for
- *   `@objectId` / `@object.<field>` tokens.
+ * @param {object} filter The filter map (`{ field: value | value[] | { op: value | value[] } }`).
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ *   context forwarded to {@link resolveFilterValue} for `@objectId` /
+ *   `@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens.
  * @return {object} A new filter map with tokens resolved.
  */
 export function resolveFilterTokens(filter, ctx) {
 	if (!filter || typeof filter !== 'object') return filter
+	const resolveOne = (v) => (Array.isArray(v)
+		? v.map((item) => resolveFilterValue(item, ctx))
+		: resolveFilterValue(v, ctx))
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object' && !Array.isArray(v)) {
 			const inner = {}
-			for (const [op, ov] of Object.entries(v)) inner[op] = resolveFilterValue(ov, ctx)
+			for (const [op, ov] of Object.entries(v)) inner[op] = resolveOne(ov)
 			out[k] = inner
 		} else {
-			out[k] = resolveFilterValue(v, ctx)
+			out[k] = resolveOne(v)
 		}
 	}
 	return out
