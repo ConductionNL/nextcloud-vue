@@ -362,7 +362,71 @@ The dashboard header carries the shared [`CnActionsMenu`](./cn-actions-menu) ove
 - **Documentation** renders only when `documentationUrl` is set, opening it in a new tab.
 - **Request a feature** opens `CnSuggestFeatureModal` with `surface: "dashboard:<id>"` when mounted under `CnAppRoot`.
 
-Refresh and Request-a-feature are on by default; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
+Refresh and Request-a-feature are on by default for the page-level menu; opt out with `:show-refresh="false"` / `:show-request-feature="false"`. Set `:page-id` for a stable id/surface.
+
+### Per-widget Refresh
+
+Each widget's own overflow menu shows Refresh based on `widgetShowRefresh` (tri-state, default `null` = **auto**). For **custom-slot** widgets, auto shows Refresh only when the app attached a `@widget-refresh` listener that will handle it — so a dashboard that refreshes centrally by another route (e.g. a header button bumping a shared signal) gets no dead per-widget buttons. Force all custom widgets on/off with `:widget-show-refresh="true"`/`false`. Built-in **chart / NC / integration** widgets always show Refresh (they refresh via the `cn:widget:refresh` bus or their renderer).
+
+`:show-refresh="false"` (or `config.showRefresh: false` in a manifest) **also** drops the Refresh item from every **widget's** own overflow menu — handy for a read-only dashboard whose widgets have no refetch wired (Request-a-feature stays). A widget can override this individually with `showRefresh` / `hideRefresh` on its `widgets[]` definition or `layout[]` entry:
+
+```js
+// page Refresh off, but this one widget keeps it
+widgets: [{ id: 'live-feed', type: 'custom', showRefresh: true }]
+// page Refresh on, but drop it from a static section
+widgets: [{ id: 'revenue-over-time', type: 'custom', hideRefresh: true }]
+```
+
+Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolves to the widget def's own `documentationUrl` when set, otherwise it inherits the page-level `documentationUrl` — so a documented dashboard shows Documentation on every widget without per-widget config.
+
+## In-body sections (`bodyWidgets`)
+
+The `bodyWidgets` prop hosts **registered host-app section components** alongside the widget grid — the dashboard equivalent of [`CnDetailPage`'s `bodyWidgets`](./cn-detail-page#in-body-sections-bodywidgets). This is how a bespoke analytics dashboard (a custom funnel / time-series / channel-bar chart that reads its own REST endpoint) becomes a `type: "dashboard"` page **without rewriting the charts** — the chart stays a registered component and surfaces as an in-body section.
+
+Each section resolves its `component` from the v2 `cnRegistry` (any entry exposing a `.component`) first, then the legacy `cnCustomComponents` map — the same resolver `type: "custom"` pages use. No sidebar tab is required (unlike integration widgets). A name in neither registry renders an inline error; the page never breaks. Reuses [`CnBodySections`](./cn-body-sections).
+
+```jsonc
+{
+  "type": "dashboard",
+  "config": {
+    "bodyWidgets": [
+      { "id": "funnel", "component": "ConversionFunnel", "title": "Funnel",
+        "placement": "before-grid",
+        "props": { "period": "@workspace.period", "currency": "@config.currency" } },
+      { "id": "channels", "component": "ChannelBarChart", "placement": "after-grid", "colSpan": 6 }
+    ]
+  }
+}
+```
+
+- **`placement`** — `before-grid` (above the grid, renders even when there are no grid widgets), `after-grid` (below it), or `end` (the default; the last body content). Each section renders exactly once.
+- **`props`** — token-resolved against the page context: `@workspace.<key>` / `@page.<key>` (page-level workspace state, e.g. a `pageFilters` selection), `@config.<key>` (app config, see below), plus the time / `@me` / `@objectId` tokens. An unresolved optional token (`@workspace.<key>?`) is dropped so the child sees `undefined`.
+- **`colSpan`** — 1–12 grid span when sections at one placement share a row.
+
+The section context (`{ register, schema, objectId, workspace, config }`) is also `provide`d on `cnSectionContext`, so a section component can `inject('cnSectionContext')` instead of taking explicit props. The optional object scoping (`register` / `schema` / `objectId`) comes from `integrationContext`.
+
+## App config tokens (`@config.<key>`)
+
+The `appConfig` prop is a page-level config map exposed to declarative widget / section config via the **`@config.<key>` token**, and `provide`d to descendants on `cnAppConfig`. Its primary use is making a setup-wizard-captured value (e.g. the reporting **currency**) actually format the dashboards instead of a hard-coded `EUR`:
+
+```jsonc
+{
+  "id": "revenue", "type": "stat",
+  "content": {
+    "label": "Revenue",
+    "source": { "kind": "endpoint", "url": "/api/finance/revenue", "path": "total" },
+    "format": { "style": "currency", "currency": "@config.currency", "decimals": 0 }
+  }
+}
+```
+
+```vue
+<CnDashboardPage :widgets="WIDGETS" :layout="layout" :app-config="appConfig" />
+```
+
+A manifest renderer typically seeds `appConfig` from `loadState(appId, 'config', {})`. `@config.<key>` also interpolates into an endpoint source's URL / params and into OpenRegister filter values. It is **backwards-compatible**: a literal `"EUR"` still works, and a required `@config.<key>` that is unset falls back to the format's default (`EUR` for currency, empty for prefix/suffix) rather than rendering the raw token. A trailing `?` marks the token optional (dropped from filters when unset).
+
+Each **per-widget** menu also surfaces a **Documentation** item. Its URL resolves to the widget def's own `documentationUrl` when set, otherwise it inherits the page-level `documentationUrl` — so a documented dashboard shows Documentation on every widget without per-widget config.
 
 ## In-body sections (`bodyWidgets`)
 

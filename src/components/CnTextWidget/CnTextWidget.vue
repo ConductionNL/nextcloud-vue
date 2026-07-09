@@ -65,18 +65,17 @@
 
 <script>
 import DOMPurify from 'dompurify'
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import { translate as t } from '@nextcloud/l10n'
 import { isPlaceholderCell } from '../../utils/textTable.js'
 
-// Configure marked once at module-load time; `gfm: true` enables tables, and
-// `breaks: false` keeps CommonMark-strict newline behaviour. `headerIds` is
-// disabled to avoid leaking unsanitised slugged ids into the DOM.
-marked.setOptions({
+// Per-module `Marked` instance so configuration is scoped here and does NOT
+// mutate the global `marked` singleton (which would affect any other code in
+// the same app that imports `marked`). `gfm: true` enables tables; `breaks:
+// false` keeps CommonMark-strict newline behaviour.
+const markedInstance = new Marked({
 	gfm: true,
 	breaks: false,
-	headerIds: false,
-	mangle: false,
 })
 
 // DOMPurify allow-list hook: author-supplied `target=_blank` links survive
@@ -170,7 +169,7 @@ export default {
 			let html
 			if (this.contentMode === 'markdown') {
 				try {
-					html = marked.parse(this.text)
+					html = markedInstance.parse(this.text)
 					if (typeof html !== 'string') {
 						html = String(html)
 					}

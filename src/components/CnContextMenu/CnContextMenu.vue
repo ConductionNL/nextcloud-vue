@@ -200,12 +200,21 @@ export default {
 
 	mounted() {
 		// NcActions renders its own NcButton as the popover trigger; the menu
-		// opens only via right-click, so the button is offscreen-positioned
-		// (see the `.cn-context-menu` rule below). aria-hidden hides it from
-		// screen readers.
+		// opens only via right-click (via `:open.sync`), so the button is
+		// offscreen-positioned (see the `.cn-context-menu` rule below).
+		//
+		// Use `inert` rather than `aria-hidden`: when the menu is dismissed
+		// without picking an item, NcPopover's focus-trap restores focus to the
+		// trigger button. With `aria-hidden` that produces a "Blocked
+		// aria-hidden on an element because its descendant retained focus"
+		// warning (focused element must not be hidden from AT). `inert` both
+		// hides the button from the accessibility tree *and* makes it
+		// unfocusable, so the trap's focus restore falls back to <body> instead
+		// of landing on a hidden element. (The button never needs focus — the
+		// menu opens via `:open.sync`, not by focusing the trigger.)
 		const trigger = this.$el?.querySelector('.action-item__menutoggle')
 		if (trigger) {
-			trigger.setAttribute('aria-hidden', 'true')
+			trigger.setAttribute('inert', '')
 		}
 
 		// Silence NcPopover's dev-mode a11y warning for this specific instance.

@@ -135,6 +135,21 @@ describe('dialog-override slots', () => {
 	})
 })
 
+// ── Reference register threading ───────────────────────────────────────
+
+describe('register threading to CnFormDialog', () => {
+	it('passes its register through to the built-in CnFormDialog', async () => {
+		const wrapper = mountPage({ title: 'Items', register: 'zaken', schema: 's1' })
+		await wrapper.vm.$nextTick()
+		wrapper.vm.openFormDialog()
+		await wrapper.vm.$nextTick()
+		const dialog = wrapper.findComponent({ ref: 'formDialog' })
+		expect(dialog.exists()).toBe(true)
+		expect(dialog.props('register')).toBe('zaken')
+		wrapper.destroy()
+	})
+})
+
 // ── Save → collection refresh ──────────────────────────────────────────
 
 describe('save → collection refresh', () => {

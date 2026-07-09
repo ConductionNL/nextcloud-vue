@@ -27,6 +27,21 @@ import { mergePluginState, mergePluginGetters, mergePluginActions } from './plug
 const DEFAULT_STORE_ID = 'conduction-objects'
 const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 
+// Coalesces concurrent identical fetch-by-id requests into a single network
+// call: callers asking for an object already in flight share the pending
+// promise instead of firing a duplicate request. The entry clears once the
+// request settles. Module-scoped (not reactive state) so it never triggers
+// re-renders.
+//
+// The key is `${storeId}::${type}::${id}`, NOT the URL alone: the resolved
+// store write target is `objects[type][id]` on a specific store instance, and
+// each `_requestObject` writes only its own store. Coalescing across different
+// stores (e.g. the library default store vs an app's own createObjectStore)
+// or different type slugs would let one caller's request satisfy another whose
+// cache then never gets written — leaving that store's `objects[type][id]`
+// empty. Keying by (store, type, id) dedupes only truly-identical operations.
+const _inflightObjectFetches = new Map()
+
 // ── Base state ──────────────────────────────────────────────────────────
 
 function baseState(baseUrl = DEFAULT_BASE_URL) {
@@ -603,12 +618,39 @@ const baseActions = {
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
 	async fetchObject(type, id) {
+		const url = this._buildUrl(type, id)
+		// Share a single in-flight request across concurrent callers asking
+		// for the same object on this store, instead of firing a duplicate
+		// network call. Scoped to (store, type, id) so it never starves a
+		// different store's cache — see `_inflightObjectFetches` above.
+		const key = `${this.$id}::${type}::${id}`
+		const existing = _inflightObjectFetches.get(key)
+		if (existing) {
+			return existing
+		}
+		const request = this._requestObject(type, id, url)
+		_inflightObjectFetches.set(key, request)
+		try {
+			return await request
+		} finally {
+			_inflightObjectFetches.delete(key)
+		}
+	},
+
+	/**
+	 * Perform the actual fetch-by-id network request and cache the result.
+	 * Wrapped by `fetchObject`, which de-duplicates concurrent calls.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {string} url The pre-built request URL
+	 * @return {Promise<object|null>} The object or null on error
+	 */
+	async _requestObject(type, id, url) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type, id)
-
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: this._buildHeaders(),
@@ -875,6 +917,7 @@ const baseActions = {
  * @param {string} storeId Pinia store identifier
  * @param {Array} [plugins] Array of plugin definitions
  * @param {string} [baseUrl] Base API URL override
+ * @param extraOptions
  * @return {Function} Pinia store composable
  */
 function defineObjectStore(storeId, plugins = [], baseUrl = DEFAULT_BASE_URL, extraOptions = {}) {

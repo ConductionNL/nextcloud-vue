@@ -11,8 +11,8 @@ import CnEditPagesModal from '../../src/modals/CnEditPagesModal.vue'
 
 const CnPageTreeNodeStub = { name: 'CnPageTreeNode', props: ['list', 'parentId', 'depth', 'maxDepth'], template: '<div class="page-tree-stub" />' }
 
-function mountModal(working) {
-	return mount(CnEditPagesModal, { propsData: { working }, stubs: { CnPageTreeNode: CnPageTreeNodeStub } })
+function mountModal(working, provide = {}) {
+	return mount(CnEditPagesModal, { propsData: { working }, provide, stubs: { CnPageTreeNode: CnPageTreeNodeStub } })
 }
 
 describe('CnEditPagesModal', () => {
@@ -41,5 +41,40 @@ describe('CnEditPagesModal', () => {
 		const node = wrapper.findComponent(CnPageTreeNodeStub)
 		expect(node.props('list')).toBe(working.pages)
 		expect(node.props('maxDepth')).toBe(1)
+	})
+
+	// "Done = save": the primary button persists via the injected editor before
+	// closing, so an in-app edit isn't silently left unsaved (manifestModalDoneMixin).
+	it('Done persists via the injected editor, then closes', async () => {
+		let resolveSave
+		const save = jest.fn(() => new Promise((resolve) => { resolveSave = resolve }))
+		const wrapper = mountModal({ pages: [] }, { cnManifestEditor: { save } })
+
+		const done = wrapper.vm.onDone()
+		expect(save).toHaveBeenCalledTimes(1)
+		// saving flag is set while the persist is in flight; no close yet
+		expect(wrapper.vm.saving).toBe(true)
+		expect(wrapper.emitted('close')).toBeFalsy()
+
+		resolveSave()
+		await done
+		expect(wrapper.vm.saving).toBe(false)
+		expect(wrapper.emitted('close')).toHaveLength(1)
+	})
+
+	it('Done still closes even if the editor save rejects (edit stays in working copy)', async () => {
+		const save = jest.fn(() => Promise.reject(new Error('boom')))
+		const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		const wrapper = mountModal({ pages: [] }, { cnManifestEditor: { save } })
+		await wrapper.vm.onDone()
+		expect(wrapper.vm.saving).toBe(false)
+		expect(wrapper.emitted('close')).toHaveLength(1)
+		errSpy.mockRestore()
+	})
+
+	it('Done degrades to a plain close when no editor is injected', async () => {
+		const wrapper = mountModal({ pages: [] })
+		await wrapper.vm.onDone()
+		expect(wrapper.emitted('close')).toHaveLength(1)
 	})
 })

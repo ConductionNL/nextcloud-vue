@@ -5,7 +5,9 @@
 
 <template>
 	<div class="cn-delta-form">
-		<h4 class="cn-delta-form__section">{{ t('nextcloud-vue', 'Data source') }}</h4>
+		<h4 class="cn-delta-form__section">
+			{{ t('nextcloud-vue', 'Data source') }}
+		</h4>
 
 		<NcTextField
 			:value="label"
@@ -37,13 +39,19 @@
 				@update="updateField('field', $event)" />
 		</div>
 
-		<h4 class="cn-delta-form__section">{{ t('nextcloud-vue', 'Current period') }}</h4>
+		<h4 class="cn-delta-form__section">
+			{{ t('nextcloud-vue', 'Current period') }}
+		</h4>
 		<CnFilterRowsEditor :value="currentRows" :fields="availableFields" @input="onCurrentRows" />
 
-		<h4 class="cn-delta-form__section">{{ t('nextcloud-vue', 'Previous period') }}</h4>
+		<h4 class="cn-delta-form__section">
+			{{ t('nextcloud-vue', 'Previous period') }}
+		</h4>
 		<CnFilterRowsEditor :value="previousRows" :fields="availableFields" @input="onPreviousRows" />
 
-		<h4 class="cn-delta-form__section">{{ t('nextcloud-vue', 'Display') }}</h4>
+		<h4 class="cn-delta-form__section">
+			{{ t('nextcloud-vue', 'Display') }}
+		</h4>
 
 		<div class="cn-delta-form__row2">
 			<NcSelect
@@ -66,12 +74,10 @@
 				:value="String(decimals)"
 				:label="t('nextcloud-vue', 'Decimals')"
 				@update:value="updateField('decimals', Number($event))" />
-			<CnFieldPicker
+			<CnIconBrowser
 				:value="icon"
 				:label="t('nextcloud-vue', 'Icon')"
-				:options="iconOptions"
-				placeholder="Cash"
-				@update="updateField('icon', $event)" />
+				@input="updateField('icon', $event)" />
 		</div>
 	</div>
 </template>
@@ -81,9 +87,9 @@ import { NcTextField, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { rowsToFilter, filterToRows } from '../CnFilterRowsEditor/filterRows.js'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
-import { DASHBOARD_ICONS } from '../CnWidgetGrid/widgetIcons.js'
 
 const DEFAULT_CONTENT = Object.freeze({
 	label: '',
@@ -105,7 +111,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnDeltaWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnIconBrowser },
 
 	props: {
 		/** The placement being edited (pre-fills from `editingWidget.content`), or null. @type {{content: object}|null} */
@@ -143,15 +149,6 @@ export default {
 		}
 	},
 
-	watch: {
-		'source.register': 'loadFields',
-		'source.schema': 'loadFields',
-	},
-
-	mounted() {
-		this.loadFields()
-	},
-
 	computed: {
 		/** Aggregation metric options. */
 		metricOptions() { return ['count', 'sum', 'avg', 'min', 'max'] },
@@ -159,8 +156,6 @@ export default {
 		directionOptions() { return ['up', 'down'] },
 		/** Number-format styles. */
 		formatOptions() { return ['number', 'currency', 'percent'] },
-		/** Icon name options from the shared catalog. */
-		iconOptions() { return Object.keys(DASHBOARD_ICONS) },
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -180,19 +175,42 @@ export default {
 		},
 	},
 
+	watch: {
+		'source.register': 'loadFields',
+		'source.schema': 'loadFields',
+	},
+
+	mounted() {
+		this.loadFields()
+	},
+
 	methods: {
 		t,
 		/** Resolve the schema's field names for the dropdowns. */
 		async loadFields() {
 			this.availableFields = await fetchSchemaProperties(this.source.register, this.source.schema)
 		},
-		/** Set a top-level field and emit. */
+		/**
+		 * Set a top-level field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateField(field, value) { this[field] = value; this.emitChange() },
-		/** Set a source sub-field and emit. */
+		/**
+		 * Set a source sub-field and emit.
+		 * @param field
+		 * @param value
+		 */
 		updateSource(field, value) { this.$set(this.source, field, value); this.emitChange() },
-		/** Receive updated current-period filter rows. */
+		/**
+		 * Receive updated current-period filter rows.
+		 * @param rows
+		 */
 		onCurrentRows(rows) { this.currentRows = rows; this.emitChange() },
-		/** Receive updated previous-period filter rows. */
+		/**
+		 * Receive updated previous-period filter rows.
+		 * @param rows
+		 */
 		onPreviousRows(rows) { this.previousRows = rows; this.emitChange() },
 		/** Emit the assembled content. */
 		emitChange() { this.$emit('update:content', this.assembledContent) },

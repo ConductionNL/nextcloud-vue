@@ -131,3 +131,4 @@ export default {
 | `documentation-url` | String | `''` | Documentation link surfaced in the widget's overflow Actions menu (empty hides the Documentation item) |
 | `widget-id` | String | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`) |
 | `metadata-label` | String | `'Metadata'` | Label for the Metadata item in the overflow Actions menu |
+| `edit-label` | String | `'Edit'` | Label for the Edit action item that opens the full-form edit dialog |

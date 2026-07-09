@@ -184,7 +184,7 @@ The library SHALL move the widget style editor and the widget visibility-rules s
 - **WHEN** a catalog widget renders with header and actions in a consuming context
 - **THEN** it uses the library's existing `CnWidgetWrapper` for that chrome and no duplicate wrapper component is added
 
-### Requirement: LaunchPad/MyDash behaviour is preserved as a consumer
+### Requirement: LaunchPad behaviour is preserved as a consumer
 
 The change SHALL preserve LaunchPad's observable behaviour by having LaunchPad import the registry, `CnAddWidgetModal`, the widgets, the composable, and the modals from `@conduction/nextcloud-vue` instead of its local copies, supplying its spend-analytics data source via injection, with no breaking change to any existing library widget key.
 

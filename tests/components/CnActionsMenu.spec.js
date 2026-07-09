@@ -223,4 +223,19 @@ describe('CnActionsMenu — refresh spinner', () => {
 		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})
+
+	// Regression guard: the async CnSuggestFeatureModal factory must resolve to
+	// the (extensible) component options, not a module namespace. Under some
+	// webpack chunk layouts the resolved namespace is frozen and untagged, so
+	// Vue 2's ensureCtor calls Vue.extend() on it and throws "Cannot add
+	// property _Ctor, object is not extensible" — silently breaking the
+	// Request-a-feature modal. The `.then(m => m.default || m)` unwrap fixes it.
+	it('resolves the CnSuggestFeatureModal async factory to component options, not a module namespace', async () => {
+		const factory = CnActionsMenu.components.CnSuggestFeatureModal
+		expect(typeof factory).toBe('function')
+		const resolved = await factory()
+		// Must be the component definition itself (has a name), not a `{ default }` wrapper.
+		expect(resolved.default).toBeUndefined()
+		expect(resolved.name).toBe('CnSuggestFeatureModal')
+	})
 })

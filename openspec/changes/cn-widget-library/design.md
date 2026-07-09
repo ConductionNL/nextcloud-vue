@@ -1,6 +1,6 @@
 ## Context
 
-MyDash (App Store id `mydash`, repo `launchpad`) owns a complete dashboard widget catalog under `src/components/Widgets/` and `src/constants/widgetRegistry.js`:
+LaunchPad (App Store id `launchpad`, repo `launchpad`) owns a complete dashboard widget catalog under `src/components/Widgets/` and `src/constants/widgetRegistry.js`:
 
 - **`widgetRegistry.js`** — the single source of truth. Maps a `type` string to `{ renderer, form, defaultContent, displayName, icon, requires? }`. Helpers: `listWidgetTypes()` (form-bearing types only), `getWidgetTypeEntry()`, `getDefaultContent()`.
 - **`AddWidgetModal.vue`** — `NcModal` host with a type `<select>` + `<component :is>` sub-form, an `isValid`/`firstError` gate that re-runs on a `validationTick`, edit-mode pre-fill, and an `onSubmit` that emits `{type, content}` and does NO API or GridStack work.
@@ -10,7 +10,7 @@ MyDash (App Store id `mydash`, repo `launchpad`) owns a complete dashboard widge
 
 The library already has a parallel, narrower v2 widget system: `src/components/CnWidgetGrid/builtInWidgets.js` exposes `BUILT_IN_WIDGETS` (keys `object-table`, `form-renderer`, `map-viewer`, `card-grid`, `data`, `metadata`, `related`, `integration`) and `CnWidgetGrid` resolves a manifest `widgetKey` against `BUILT_IN_WIDGETS` then a consumer-supplied `cnRegistry` inject. `CnWidgetWrapper` already provides widget chrome (header + Actions overflow menu: Refresh / Documentation / Request a feature). The sibling change `cn-openbuild-edit-shell` adds an in-library edit mode that needs the Add-widget flow.
 
-Constraints: Vue 2.7 Options API only; `cn-` CSS prefix; Nextcloud CSS variables only (never `--nldesign-*`); barrel exports (`component/index.js → components/index.js → src/index.js`); `check:docs` requires a doc page per public export; `check:jsdoc` requires 100% coverage for new `Cn*`; modals isolated under `src/modals/`; i18n via the library's own `t()` (apps currently call `t('launchpad', …)` / `t('mydash', …)`).
+Constraints: Vue 2.7 Options API only; `cn-` CSS prefix; Nextcloud CSS variables only (never `--nldesign-*`); barrel exports (`component/index.js → components/index.js → src/index.js`); `check:docs` requires a doc page per public export; `check:jsdoc` requires 100% coverage for new `Cn*`; modals isolated under `src/modals/`; i18n via the library's own `t()` (apps currently call `t('launchpad', …)` / `t('launchpad', …)`).
 
 ## Goals / Non-Goals
 
@@ -63,7 +63,7 @@ LaunchPad's `WidgetWrapper.vue` is NOT moved as a new component — its header/t
 
 ### D8 — Modal isolation + i18n
 
-`CnAddWidgetModal`, `CnWidgetStyleEditorModal`, `CnWidgetVisibilityRulesModal` each live in their own file under `src/modals/` (modal-isolation rule). All user strings move from `t('launchpad', …)` / `t('mydash', …)` to the library's `t()` (per CLAUDE.md i18n). English source strings as keys.
+`CnAddWidgetModal`, `CnWidgetStyleEditorModal`, `CnWidgetVisibilityRulesModal` each live in their own file under `src/modals/` (modal-isolation rule). All user strings move from `t('launchpad', …)` / `t('launchpad', …)` to the library's `t()` (per CLAUDE.md i18n). English source strings as keys.
 
 ### D9 — Phasing the implementation in waves (spec covers all 21 at once)
 
@@ -79,7 +79,7 @@ The spec is complete (all 21 widgets), but implementation lands in dependency-or
 - **[Bundle size]** 42 components added to the library inflate the bundle for apps that import the barrel. → Keep every widget tree-shakeable (`sideEffects` honored; no top-level side effects beyond self-registration), lazy-load `@nextcloud/*` helpers inside fetch paths, and document that apps import widgets by name, not the whole catalog.
 - **[Registry self-registration order]** Import-time self-registration means import order affects which override wins. → Make resolution deterministic via the D1 ordered lookup (consumer `cnRegistry` always wins last), and warn on internal collisions (D2) so accidental double-registration is visible.
 - **[App-coupled widget leaks]** A careless move could leave a `import 'financeq/...'` or a `services/widgetBridge.js` import in a library file. → A CI/lint check (or the modal-isolation/hydra-gate sweep) MUST fail on any library import of a sibling-app path; spend-analytics and nc-widget have explicit decoupling requirements + scenarios.
-- **[i18n domain switch]** Moving strings from `launchpad`/`mydash` domain to the library `t()` could drop translations. → English source strings are the keys; library l10n picks them up; MyDash loses no behaviour because the library renders the same English fallback.
+- **[i18n domain switch]** Moving strings from `launchpad`/`launchpad` domain to the library `t()` could drop translations. → English source strings are the keys; library l10n picks them up; LaunchPad loses no behaviour because the library renders the same English fallback.
 - **[Config-shape drift]** Any change to a `defaultContent` shape would break persisted placements. → Spec pins each widget's config schema as "unchanged"; scenarios assert an existing placement renders identically.
 - **[Container recursion + gridstack]** The container widget hosts a recursive sub-grid via gridstack (already a lib dep); depth cap (3) is server-enforced in LaunchPad. → Library container renders whatever depth it is handed; it does not re-implement the server cap.
 

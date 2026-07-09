@@ -837,4 +837,42 @@ describe('CnFormDialog — referenceType (pluggable integration registry)', () =
 			spy.mockRestore()
 		})
 	})
+
+	// === Icon widget (widget: 'icon') ===
+
+	describe('icon widget', () => {
+		const iconStubs = {
+			...stubs,
+			CnIconPicker: {
+				props: ['value', 'sources', 'catalogues', 'searchable', 'allowCustomSvg', 'clearable'],
+				template: '<div class="stub-cn-icon-picker" @click="$emit(\'input\', \'mdiStar\')" />',
+			},
+		}
+
+		it('renders a CnIconPicker for a widget:"icon" field and forwards iconSources', () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon', iconSources: ['mdi', 'fontawesome'], allowCustomSvg: true }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			expect(wrapper.find('.stub-cn-icon-picker').exists()).toBe(true)
+			const child = wrapper.findComponent(iconStubs.CnIconPicker)
+			expect(child.props('sources')).toEqual(['mdi', 'fontawesome'])
+			expect(child.props('allowCustomSvg')).toBe(true)
+		})
+
+		it('updates formData when the picker emits an icon value', async () => {
+			const wrapper = mount(CnFormDialog, {
+				propsData: {
+					fields: [{ key: 'icon', widget: 'icon', label: 'Icon' }],
+					item: null,
+				},
+				stubs: iconStubs,
+			})
+			await wrapper.find('.stub-cn-icon-picker').trigger('click')
+			expect(wrapper.vm.formData.icon).toBe('mdiStar')
+		})
+	})
 })
