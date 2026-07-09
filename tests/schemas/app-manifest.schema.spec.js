@@ -592,7 +592,7 @@ describe('validateManifest — settings rich sections (manifest-settings-rich-se
 		expect(description).toContain('register-mapping')
 	})
 
-	it('REQ-MSRS-6: schema top-level version field is at 1.7.0 (1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds credentials[])', () => {
+	it('REQ-MSRS-6: schema top-level version field is at 1.7.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds top-level credentials[])', () => {
 		expect(schema.version).toBe('1.7.0')
 	})
 })

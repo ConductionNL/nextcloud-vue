@@ -1,4 +1,5 @@
 {
+  "CnActionButtons": 1,
   "CnActionsBar": 1,
   "CnActionsMenu": 1,
   "CnAdminSettingsShell": 1,
@@ -222,6 +223,7 @@
   "CnWidgetWrapper": 0.84,
   "CnWikiPage": 1,
   "CnWizardDialog": 1,
+  "CnWorkspaceFilterWidget": 1,
   "CnXwikiPageCreate": 1,
   "CnXwikiPagePicker": 1,
   "__schema__": {

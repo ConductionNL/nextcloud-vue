@@ -15,6 +15,7 @@ import { h } from 'vue'
 import CnObjectSidebar from '../../src/components/CnObjectSidebar/CnObjectSidebar.vue'
 import CnObjectDataWidget from '../../src/components/CnObjectDataWidget/CnObjectDataWidget.vue'
 import CnObjectMetadataWidget from '../../src/components/CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
+import CnWidgetObjectTable from '../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 const baseProps = {
 	objectType: 'lead',
@@ -203,6 +204,18 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 		expect(wrapper.findComponent({ name: 'CnAuditTrailTab' }).exists()).toBe(true)
 	})
 
+	it('resolves type:"object-table" → CnWidgetObjectTable (#89)', () => {
+		// Lets a detail page declare a related-object list sidebar tab (e.g. a
+		// zaak's besluiten) with the same widget key it uses for the body grid.
+		const wrapper = mountSidebar(
+			{ tabs: [{ id: 'besluiten', label: 'Besluiten', widgets: [{ type: 'object-table', props: { columns: ['title'], rows: [] } }] }] },
+			{ stubs: { CnDataTable: true, CnWidgetWrapper: true } },
+		)
+		expect(wrapper.findComponent(CnWidgetObjectTable).exists()).toBe(true)
+		// The resolver maps the key to the lib widget directly (built-in registry).
+		expect(wrapper.vm.resolveWidgetComponent('object-table')).toBe(CnWidgetObjectTable)
+	})
+
 	it('forwards shared object context (objectId, register, schema, apiBase) to widgets', () => {
 		const wrapper = mountSidebar({
 			tabs: [{
@@ -350,6 +363,43 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 			customComponents: { MyCustomTab },
 		})
 		expect(wrapper.vm.activeTab).toBe('first')
+	})
+})
+
+describe('CnObjectSidebar — object-table tab object context (#89)', () => {
+	const objectTableTab = {
+		id: 'besluiten',
+		label: 'Besluiten',
+		widgets: [{
+			type: 'object-table',
+			props: { source: { register: 'ztc', schema: 'besluit', filter: { zaak: '@objectId' } }, columns: ['title'] },
+		}],
+	}
+
+	it('provides the object token context so @objectId + register/schema resolve in the tab widget', () => {
+		const wrapper = mountSidebar(
+			{ tabs: [objectTableTab] },
+			{ stubs: { CnDataTable: true, CnWidgetWrapper: true } },
+		)
+		const w = wrapper.findComponent(CnWidgetObjectTable)
+		expect(w.exists()).toBe(true)
+		// Seeded from the sidebar's own props (objectId / register / schema).
+		expect(w.vm.objectCtx).toMatchObject({ objectId: 'abc-123', register: 'sales', schema: 'lead' })
+		// …so an `@objectId` token in the source filter resolves to the parent id.
+		expect(w.vm.resolvedFilter).toEqual({ zaak: 'abc-123' })
+	})
+
+	it('defers to an ancestor-provided cnObjectContext (CnDetailPage nesting) without clobbering it', () => {
+		// A CnDetailPage parent already supplies a richer context (with the
+		// loaded object for `@object.<field>`) — the sidebar must not shadow it.
+		const parentCtx = { objectId: 'parent-9', object: { title: 'Zaak X' }, register: 'zrc', schema: 'zaak' }
+		const wrapper = mountSidebar(
+			{ tabs: [objectTableTab] },
+			{ stubs: { CnDataTable: true, CnWidgetWrapper: true }, provide: { cnObjectContext: parentCtx } },
+		)
+		const w = wrapper.findComponent(CnWidgetObjectTable)
+		expect(w.vm.objectCtx).toMatchObject({ objectId: 'parent-9', object: { title: 'Zaak X' } })
+		expect(w.vm.resolvedFilter).toEqual({ zaak: 'parent-9' })
 	})
 })
 

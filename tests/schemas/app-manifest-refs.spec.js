@@ -141,7 +141,7 @@ function isPlainObject(value) {
 const configProps = schema.$defs.page.properties.config.properties
 
 describe('app-manifest.schema.json — manifest-config-refs $ref wiring', () => {
-	it('schema version is 1.7.0 (1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds top-level credentials[])', () => {
+	it('schema version is 1.7.0 (1.4.0 adds runtime+visibleIf; 1.5.0 adds menuItem.action; 1.6.0 adds layoutItem.dateChip; 1.7.0 adds top-level credentials[])', () => {
 		expect(schema.version).toBe('1.7.0')
 	})
 

@@ -35,13 +35,19 @@
 			:show-mass-delete="showMassDelete"
 			:view-mode="currentViewMode"
 			:show-view-toggle="showViewToggle"
+			:available-view-modes="effectiveToggleModes"
 			:cards-label="cardsLabel"
 			:table-label="tableLabel"
+			:list-label="listLabel"
 			:cards-icon="cardsIcon"
 			:table-icon="tableIcon"
 			:show-map="showMapSegment"
 			:map-label="mapLabel"
 			:map-icon="mapIcon"
+			:list-icon="listIcon"
+			:show-sort-select="showSortSelect"
+			:sort-options="sortSelectOptions"
+			:sort-value="sortSelectValue"
 			:show-search="inlineSearch"
 			:search-value="effectiveSearchValue"
 			:search-placeholder="searchPlaceholder"
@@ -54,6 +60,7 @@
 			:header-actions="mergedHeaderActions"
 			:documentation-url="documentationUrl"
 			:documentation-label="documentationLabel || undefined"
+			@sort-change="$emit('sort-change', $event)"
 			@add="onAddClick"
 			@toggle-sidebar="sidebarOpen = !sidebarOpen"
 			@refresh="onRefreshEvent"
@@ -215,7 +222,27 @@
 		</slot>
 
 		<!-- Body -->
-		<div class="cn-index-page__body">
+		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': folderSidebar }">
+			<!-- Optional folder navigation pane (opt-in via the `folderSidebar`
+			     config). Selecting a folder filters the list by the config's
+			     `filterField`; "All" clears it. -->
+			<div v-if="folderSidebar" class="cn-index-page__folder-pane">
+				<CnFolderSidebar
+					:source="folderSidebarSource"
+					:folders="folderSidebarFolders"
+					:objects="effectiveObjects"
+					:group-by="folderSidebar.groupBy || folderSidebar.field || ''"
+					:files-path="folderSidebar.filesPath || '/'"
+					:selected-id="selectedFolderId"
+					:all-label="folderSidebar.allLabel || undefined"
+					:title="folderSidebar.title || ''"
+					:id-field="folderPassthroughIdField"
+					:name-field="folderPassthroughNameField"
+					:allow-create="Boolean(folderSidebar.allowCreate)"
+					@select="onFolderSelect"
+					@create="$emit('folder-create', $event)" />
+			</div>
+
 			<div class="cn-index-page__main">
 				<!-- Loading state -->
 				<div v-if="effectiveLoading" class="cn-index-page__loading">
@@ -332,6 +359,58 @@
 					:auto-fit="true"
 					@marker-click="onMarkerClick" />
 
+				<!-- List view -->
+				<CnObjectList
+					v-else-if="currentViewMode === 'list'"
+					:objects="displayObjects"
+					:schema="effectiveSchema"
+					:config="listConfig"
+					:selectable="selectable"
+					:selected-ids="internalSelectedIds"
+					:row-key="rowKey"
+					:empty-text="emptyText"
+					@click="onRowClick"
+					@select="onSelect">
+					<!--
+						List-item slot resolution priority (highest first):
+						1. Parent-provided `#list-item` scoped slot — App.vue overrides win.
+						2. `listComponent` prop (or manifest `pages[].config.listComponent`)
+						   resolved against the customComponents registry.
+						3. CnObjectList's default CnObjectRow.
+					-->
+					<template v-if="$scopedSlots['list-item']" #list-item="{ object, selected }">
+						<slot name="list-item" :object="object" :selected="selected" />
+					</template>
+					<template v-else-if="resolvedListComponent" #list-item="{ object, selected }">
+						<component
+							:is="resolvedListComponent"
+							:item="object"
+							:object="object"
+							:schema="effectiveSchema"
+							:register="register"
+							:selected="selected"
+							@click="onRowClick(object)"
+							@select="onSelect(toggleIdInArray(internalSelectedIds, object[rowKey]))" />
+					</template>
+					<!-- Per-part row slots (list view only): forwarded to CnObjectRow
+					     so an app can override just the leading icon or the badge
+					     while keeping the config-driven title/subtitle. -->
+					<template v-if="$scopedSlots['row-icon']" #row-icon="{ object }">
+						<slot name="row-icon" :object="object" />
+					</template>
+					<template v-if="$scopedSlots['row-badges']" #row-badges="{ object }">
+						<slot name="row-badges" :object="object" />
+					</template>
+					<template v-if="hasRowActions || $scopedSlots['row-actions']" #row-actions="{ object }">
+						<slot name="row-actions" :row="object">
+							<CnRowActions
+								:actions="mergedActions"
+								:row="object"
+								@action="onRowAction" />
+						</slot>
+					</template>
+				</CnObjectList>
+
 				<!-- Card view -->
 				<CnCardGrid
 					v-else
@@ -443,6 +522,8 @@ import { multiKeySort } from '../../utils/multiKeySort.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
 import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
+import { CnObjectList } from '../CnObjectList/index.js'
+import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
 import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
@@ -559,6 +640,8 @@ export default {
 		CnDataTable,
 		CnCardGrid,
 		CnMapWidget,
+		CnObjectList,
+		CnFolderSidebar,
 		CnPagination,
 		CnRowActions,
 		CnMassDeleteDialog,
@@ -761,13 +844,13 @@ export default {
 		},
 
 		/**
-		 * View mode: 'table', 'cards' or 'map'. Default 'table'. The 'map' mode
-		 * is only offered when the page opts in via `mapConfig` / `config.viewModes`.
+		 * View mode: 'table', 'cards', 'list', or 'map'. Default 'table'. List is
+		 * opted in via `availableViewModes`; map via `mapConfig` / `config.viewModes`.
 		 */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'map'].includes(v),
+			validator: (v) => ['table', 'cards', 'list', 'map'].includes(v),
 		},
 
 		/**
@@ -810,11 +893,24 @@ export default {
 		 * `pages[].config.viewModes`. When set it takes precedence over the
 		 * inferred availability (map otherwise appears iff `mapConfig` is
 		 * non-empty). Cards/table always render regardless of this list.
-		 * @type {Array<'table' | 'cards' | 'map'>}
+		 * @type {Array<'table' | 'cards' | 'list' | 'map'>}
 		 */
 		viewModes: {
 			type: Array,
 			default: null,
+		},
+
+		/**
+		 * Which view-mode toggle segments to expose (cards/table/list), in order.
+		 * Defaults to the historical Cards/Table pair; include `'list'` to offer the
+		 * list view. Fed from the manifest as `pages[].config.availableViewModes`.
+		 * Map is added separately via `mapConfig` / `viewModes`.
+		 * @type {Array<'cards' | 'table' | 'list' | 'map'>}
+		 */
+		availableViewModes: {
+			type: Array,
+			default: () => ['cards', 'table'],
+			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'map'].includes(m)),
 		},
 
 		/** Current sort key */
@@ -1097,6 +1193,76 @@ export default {
 			default: '',
 		},
 
+		/** Label for the list view-toggle option (manifest `config.listLabel`, e.g. "Rows") */
+		listLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Show a standalone sort dropdown in the actions bar (for card/list
+		 * views without sortable headers). Emits `@sort-change` with the value.
+		 * Fed from the manifest as `pages[].config.showSortSelect`.
+		 */
+		showSortSelect: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Options for the standalone sort dropdown (manifest `config.sortSelectOptions`).
+		 * @type {Array<{ value: string, label: string }>}
+		 */
+		sortSelectOptions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Selected value of the standalone sort dropdown (controlled). */
+		sortSelectValue: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the list view-toggle option (manifest `config.listIcon`) */
+		listIcon: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Field mapping for the default list-view rows (CnObjectRow). Overrides
+		 * the schema-configuration defaults. Fed from the manifest as
+		 * `pages[].config.listConfig`.
+		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
+		 */
+		listConfig: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Opt-in folder navigation pane (rendered left of the list). Selecting a
+		 * folder filters the list by `filterField` (via the self-fetch filter);
+		 * "All" clears it. Fed from the manifest as `pages[].config.folderSidebar`.
+		 *
+		 * - `source` — `'register'` (fetch the folder list from an OpenRegister
+		 *   register/schema), `'field'` (distinct values of the current rows'
+		 *   `field`), `'custom'` (use `folders`), or `'files'` (NC folders).
+		 * - `register` / `schema` — the OR source for `source:'register'`.
+		 * - `idField` / `nameField` — which folder object props map to the folder
+		 *   id (the filter value) and display name. Dotted paths supported.
+		 * - `field` / `filterField` — the row field to group/filter by (filterField
+		 *   defaults to `field`).
+		 * - `folders` — explicit folder list for `source:'custom'`.
+		 * - `allLabel` / `title` / `allowCreate` — passed to CnFolderSidebar.
+		 * @type {object}
+		 */
+		folderSidebar: {
+			type: Object,
+			default: null,
+		},
+
 		/**
 		 * Show a filter menu (funnel button) in the table header, above the
 		 * row-actions column. Its menu lists every enum/badge column's values as
@@ -1245,6 +1411,20 @@ export default {
 		},
 
 		/**
+		 * Name of a custom row component for list view, resolved against the
+		 * customComponents registry (manifest `pages[].config.listComponent`).
+		 * Same resolution priority as `cardComponent`: the `#list-item` slot
+		 * wins, then this component, then the default `CnObjectRow`. Unknown
+		 * names warn once and fall back to the default.
+		 *
+		 * @type {string}
+		 */
+		listComponent: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Optional explicit customComponents registry. When set, this
 		 * overrides the registry injected from `CnAppRoot` via
 		 * `cnCustomComponents`. Provided primarily so unit tests can
@@ -1352,6 +1532,9 @@ export default {
 		return {
 			currentViewMode: this.viewMode,
 			internalSelectedIds: [...this.selectedIds],
+			// Folder-sidebar state: selected folder id + the register-fetched list.
+			selectedFolderId: null,
+			folderRegisterList: [],
 			// Mass action dialogs
 			showMassDeleteDialog: false,
 			showMassCopyDialog: false,
@@ -1453,6 +1636,66 @@ export default {
 		showMapSegment() {
 			if (Array.isArray(this.viewModes)) return this.viewModes.includes('map')
 			return Object.keys(this.mapConfig || {}).length > 0
+		},
+
+		/**
+		 * The base view-toggle segments (cards/table/list) passed to CnActionsBar.
+		 * Beta's explicit `viewModes` whitelist wins when set; otherwise the
+		 * `availableViewModes` list. Map is excluded here — it's added by the
+		 * actions bar via the `showMap` bridge driven by `showMapSegment`.
+		 *
+		 * @return {Array<string>} The ordered toggle segments minus 'map'.
+		 */
+		effectiveToggleModes() {
+			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
+				? this.viewModes
+				: this.availableViewModes
+			return list.filter((m) => m !== 'map')
+		},
+
+		/**
+		 * The CnFolderSidebar source. A `register` source is fetched by this
+		 * component and handed to CnFolderSidebar as a `custom` folder list.
+		 *
+		 * @return {string} The resolved CnFolderSidebar source.
+		 */
+		folderSidebarSource() {
+			const s = this.folderSidebar && this.folderSidebar.source
+			return (s === 'register' || !s) ? 'custom' : s
+		},
+
+		/**
+		 * The folder list for CnFolderSidebar's custom source: register-fetched
+		 * objects (source:'register') or the explicit `folders` (source:'custom').
+		 * Empty for the field/files sources, which derive their own list.
+		 *
+		 * @return {Array<object>} The folder list.
+		 */
+		folderSidebarFolders() {
+			if (!this.folderSidebar) return []
+			if (this.folderSidebar.source === 'register') return this.folderRegisterList
+			return this.folderSidebar.folders || []
+		},
+
+		/**
+		 * id/name field names passed to CnFolderSidebar for the custom folder
+		 * list. The `register` source is pre-mapped to `{ id, name }` by
+		 * `loadFolderRegister`, so it uses the plain keys; a `custom` source
+		 * passes the objects through untouched and honours the config's fields.
+		 *
+		 * @return {string} The id field key.
+		 */
+		folderPassthroughIdField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'id'
+			return (this.folderSidebar && this.folderSidebar.idField) || 'id'
+		},
+
+		/**
+		 * @return {string} The name field key for CnFolderSidebar's custom list.
+		 */
+		folderPassthroughNameField() {
+			if (this.folderSidebar && this.folderSidebar.source === 'register') return 'name'
+			return (this.folderSidebar && this.folderSidebar.nameField) || 'name'
 		},
 
 		/**
@@ -1816,6 +2059,25 @@ export default {
 			}
 			return resolved
 		},
+
+		/**
+		 * Custom list-row component resolved against the customComponents
+		 * registry, or `null` when `listComponent` is empty / unknown (default
+		 * `CnObjectRow` is used). Mirrors `resolvedCardComponent`.
+		 *
+		 * @return {?object} The resolved component, or null.
+		 */
+		resolvedListComponent() {
+			if (!this.listComponent) {
+				return null
+			}
+			const resolved = this.effectiveCustomComponents[this.listComponent]
+			if (!resolved) {
+				console.warn(`[CnIndexPage] listComponent "${this.listComponent}" not found in customComponents registry. Falling back to CnObjectRow.`)
+				return null
+			}
+			return resolved
+		},
 	},
 
 	watch: {
@@ -1896,6 +2158,13 @@ export default {
 	mounted() {
 		this.publishHoistedSidebar()
 		this.pushAiContext()
+		if (this.folderSidebar) {
+			this.loadFolderRegister()
+			// Reflect a deep-link filter (e.g. ?caseType=<id>) as the active folder.
+			const key = this.folderSidebar.filterField || this.folderSidebar.field
+			const active = key && this.effectiveActiveFilters[key]
+			if (active) this.selectedFolderId = Array.isArray(active) ? active[0] : active
+		}
 	},
 
 	created() {
@@ -2097,6 +2366,56 @@ export default {
 		onFilterEvent(payload) {
 			if (this.isSelfFetchMode && typeof this.list.onFilterChange === 'function') this.list.onFilterChange(payload.key, payload.values)
 			this.$emit('filter-change', payload)
+		},
+
+		/**
+		 * Folder selection from the opt-in folder sidebar: filter the list by the
+		 * config's `filterField` (or `field`); a null id clears it.
+		 *
+		 * @param {(string|number|null)} folderId The selected folder id (null = All).
+		 * @return {void}
+		 */
+		onFolderSelect(folderId) {
+			this.selectedFolderId = folderId
+			const key = (this.folderSidebar && (this.folderSidebar.filterField || this.folderSidebar.field)) || ''
+			if (key) {
+				this.onFilterEvent({ key, values: (folderId === null || folderId === undefined) ? [] : [folderId] })
+			}
+			/**
+			 * @event folder-change Emitted when a folder is selected in the sidebar.
+			 * @type {(string|number|null)} The selected folder id (null = All).
+			 */
+			this.$emit('folder-change', folderId)
+		},
+
+		/**
+		 * Load the folder list from an OpenRegister register/schema for a
+		 * `folderSidebar.source === 'register'` config. Maps each object to
+		 * `{ id: <idField|@self.uuid>, name: <nameField|title> }`.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFolderRegister() {
+			const cfg = this.folderSidebar
+			if (!cfg || cfg.source !== 'register' || !cfg.register || !cfg.schema) return
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: cfg.register, schema: cfg.schema })
+				const res = await axios.get(url, { params: { _limit: cfg.limit || 200 } })
+				const rows = (res && res.data && (res.data.results || res.data)) || []
+				const idField = cfg.idField || '@self.uuid'
+				const nameField = cfg.nameField || 'title'
+				this.folderRegisterList = rows
+					.map((row) => ({ id: this.getByPath(row, idField), name: this.getByPath(row, nameField) || this.getByPath(row, idField) }))
+					.filter((f) => f.id != null)
+					.sort((a, b) => String(a.name).localeCompare(String(b.name)))
+			} catch (e) {
+				console.error('[CnIndexPage] failed to load folder register', e)
+				this.folderRegisterList = []
+			}
 		},
 
 		/**

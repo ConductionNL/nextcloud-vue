@@ -1,0 +1,554 @@
+{
+	"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "0.2.0",
+	"dependencies": [
+		"openregister"
+	],
+	"menu": [
+		{
+			"id": "Chat",
+			"label": "Chat",
+			"icon": "icon-comment",
+			"route": "Chat",
+			"order": 8
+		},
+		{
+			"id": "AgentCatalog",
+			"label": "Agents",
+			"icon": "icon-category-integration",
+			"route": "AgentCatalog",
+			"order": 10
+		},
+		{
+			"id": "ApprovalInbox",
+			"label": "Approvals",
+			"icon": "icon-checkmark",
+			"route": "ApprovalInbox",
+			"order": 15
+		},
+		{
+			"id": "AgentMemory",
+			"label": "Memory",
+			"icon": "icon-category-monitoring",
+			"route": "AgentMemory",
+			"order": 17
+		},
+		{
+			"id": "AgentSessions",
+			"label": "Sessions",
+			"icon": "icon-comment",
+			"route": "AgentSessions",
+			"order": 18
+		},
+		{
+			"id": "SkillsCatalog",
+			"label": "Skills",
+			"icon": "icon-category-customization",
+			"route": "SkillsCatalog",
+			"order": 18
+		},
+		{
+			"id": "AiFeatureRegister",
+			"label": "AI features",
+			"icon": "icon-category-security",
+			"route": "AiFeatureRegister",
+			"order": 21
+		},
+		{
+			"id": "RunAnalytics",
+			"label": "Analytics",
+			"icon": "icon-category-monitoring",
+			"route": "RunAnalytics",
+			"order": 19
+		},
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 5
+		},
+		{
+			"id": "Examples",
+			"label": "Examples",
+			"icon": "icon-files",
+			"route": "Examples",
+			"order": 30
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://www.conduction.nl/academy",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 100
+		},
+		{
+			"id": "TenantOps",
+			"label": "Tenant ops",
+			"icon": "icon-category-security",
+			"route": "TenantOps",
+			"order": 20
+		},
+		{
+			"id": "McpTools",
+			"label": "MCP tools",
+			"icon": "icon-category-integration",
+			"route": "McpTools",
+			"order": 22
+		}
+	],
+	"pages": [
+		{
+			"id": "Chat",
+			"route": "/chat",
+			"type": "custom",
+			"component": "Chat",
+			"title": "Chat",
+			"_note": "Custom page: a streaming chat thread is genuinely custom — SSE token/tool-call consumption with a live assistant bubble, a conversation archive lifecycle driven by Hermiq's payload-marker soft delete, per-message feedback, and an agent-selector empty state are not expressible via the built-in index/detail/dashboard page types (agent-engine-port). Standard nav page — not a dashboard."
+		},
+		{
+			"id": "AgentCatalog",
+			"route": "/agents",
+			"type": "custom",
+			"component": "AgentCatalog",
+			"title": "Agents",
+			"_note": "Custom page: the agent catalog needs bespoke behaviour (createObjectStore agents in the hermiq register + schedule-attached/last-run derivation + create modal) that the built-in index page type cannot express. Standard nav page — not a dashboard."
+		},
+		{
+			"id": "AgentDetail",
+			"route": "/agents/:id",
+			"type": "custom",
+			"component": "AgentDetail",
+			"title": "Agent",
+			"_note": "Custom page: agent detail combines the createObjectStore agent object, schedule attach/edit (createObjectStore), the thin Run-now endpoint, and run history — not expressible via the built-in detail page type."
+		},
+		{
+			"id": "ApprovalInbox",
+			"route": "/approvals",
+			"type": "custom",
+			"component": "ApprovalInbox",
+			"title": "Approvals",
+			"_note": "Custom page: the reviewer inbox is reviewer-scoped (not owner-scoped OR objects) with guarded approve/deny actions and the org kill-switch — not expressible via the built-in index page type. Standard nav page — not a dashboard."
+		},
+		{
+			"id": "AgentMemory",
+			"route": "/memory",
+			"type": "custom",
+			"component": "AgentMemory",
+			"title": "Memory",
+			"_note": "Custom page: agent memory combines the createObjectStore agent collection (picker) with tenant-scoped Memory/Session objects, a char-budget bar, the consolidation nudge + manual consolidate, and OR-search recall — not expressible via the built-in index/detail page types. Standard nav page — not a dashboard."
+		},
+		{
+			"id": "AgentSessions",
+			"route": "/sessions",
+			"type": "custom",
+			"component": "AgentSessions",
+			"title": "Sessions",
+			"_note": "Custom page: conversation sessions are the OpenRegister agents resource (picker) plus tenant-scoped Session/SessionTurn objects served agent-scoped (/agents/{id}/sessions, /recall), not the generic objects/{register}/{schema} path, so the built-in index page type cannot express it. Split from Memory so chats are their own surface."
+		},
+		{
+			"id": "SkillsCatalog",
+			"route": "/skills",
+			"type": "custom",
+			"component": "SkillsCatalog",
+			"title": "Skills",
+			"_note": "Custom page: the skills catalog imports/exports agentskills.io packages (lossless SkillSerializer round-trip) and installs a skill onto an agent (installedOn association) — not expressible via the built-in index/detail page types. Standard nav page — not a dashboard."
+		},
+		{
+			"id": "AiFeatureRegister",
+			"route": "/ai-features",
+			"type": "custom",
+			"component": "AiFeatureRegister",
+			"title": "AI features",
+			"_note": "Custom page: the AI-feature governance register drives action-auth-gated DPO-acknowledgement + a declarative OpenRegister enable/disable lifecycle (enable is blocked until the DPO acknowledges) — governance actions not expressible via the built-in index/detail page types. Standard nav page — not a dashboard."
+		},
+		{
+			"id": "RunAnalytics",
+			"route": "/analytics",
+			"type": "dashboard",
+			"title": "Analytics",
+			"_note": "Dashboard page: run analytics as two custom widgets (KPIs + status/per-agent breakdown) over the computed /api/analytics endpoint. Runs are not OR-schema objects, so these are custom kind:widget components, not declarative stats-block dataSources.",
+			"widgets": [
+				{
+					"widgetKey": "analytics-kpis",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 2
+				},
+				{
+					"widgetKey": "analytics-breakdown",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 2,
+					"gridWidth": 12,
+					"gridHeight": 3
+				}
+			]
+		},
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Dashboard",
+			"config": {
+				"widgets": [
+					{
+						"id": "schedules",
+						"title": "Schedules",
+						"type": "stats-block",
+						"iconClass": "icon-category-monitoring",
+						"dataSource": {
+							"register": "hermiq",
+							"schema": "schedule",
+							"aggregate": "count"
+						},
+						"props": {
+							"countLabel": "schedules",
+							"variant": "primary"
+						}
+					},
+					{
+						"id": "skills",
+						"title": "Skills",
+						"type": "stats-block",
+						"iconClass": "icon-category-customization",
+						"dataSource": {
+							"register": "hermiq",
+							"schema": "agentskill",
+							"aggregate": "count"
+						},
+						"props": {
+							"countLabel": "skills",
+							"variant": "success"
+						}
+					},
+					{
+						"id": "approvals",
+						"title": "Approvals",
+						"type": "stats-block",
+						"iconClass": "icon-checkmark",
+						"dataSource": {
+							"register": "hermiq",
+							"schema": "approval",
+							"aggregate": "count"
+						},
+						"props": {
+							"countLabel": "approvals",
+							"variant": "warning"
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": 1,
+						"widgetId": "schedules",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 1
+					},
+					{
+						"id": 2,
+						"widgetId": "skills",
+						"gridX": 3,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 1
+					},
+					{
+						"id": 3,
+						"widgetId": "approvals",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 1
+					}
+				]
+			},
+			"widgets": []
+		},
+		{
+			"id": "Examples",
+			"route": "/examples",
+			"type": "index",
+			"title": "Examples",
+			"config": {
+				"register": "hermiq",
+				"schema": "example",
+				"columns": [
+					"title",
+					"status",
+					"updatedAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			},
+			"widgets": [
+				{
+					"widgetKey": "object-table",
+					"slot": "body",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 6
+				}
+			]
+		},
+		{
+			"id": "ExampleDetail",
+			"route": "/examples/:id",
+			"type": "detail",
+			"title": "Example",
+			"config": {
+				"register": "hermiq",
+				"schema": "example",
+				"sidebar": true
+			},
+			"widgets": [
+				{
+					"widgetKey": "object-data",
+					"slot": "sidebar",
+					"tabGroup": "data",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 1,
+					"gridHeight": 1
+				},
+				{
+					"widgetKey": "audit-trail",
+					"slot": "sidebar",
+					"tabGroup": "audit",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 1,
+					"gridHeight": 1
+				}
+			]
+		},
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "Settings",
+			"config": {
+				"saveEndpoint": "/index.php/apps/hermiq/api/settings",
+				"sections": [
+					{
+						"title": "Version",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": {
+									"appName": "Hermiq",
+									"showUpdateButton": false,
+									"isUpToDate": true,
+									"title": "Version Information",
+									"description": "Information about the current installation."
+								}
+							}
+						]
+					}
+				]
+			},
+			"widgets": [
+				{
+					"widgetKey": "version-info",
+					"slot": "section:version",
+					"gridX": 0,
+					"gridY": 0,
+					"gridWidth": 12,
+					"gridHeight": 1,
+					"props": {
+						"appName": "Hermiq",
+						"showUpdateButton": false,
+						"isUpToDate": true,
+						"title": "Version Information",
+						"description": "Information about the current installation."
+					}
+				}
+			]
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://hermiq.conduction.nl"
+			}
+		},
+		{
+			"id": "TenantOps",
+			"route": "/tenant-ops",
+			"type": "custom",
+			"component": "TenantOps",
+			"title": "Tenant ops",
+			"_note": "Custom page: per-org quota usage + EU AI Act audit export (download) over OpenRegister objects/AuditTrail, capability-gated to org owners/admins — not expressible via the built-in index/dashboard page types. Standard nav page."
+		},
+		{
+			"id": "McpTools",
+			"route": "/mcp-tools",
+			"type": "custom",
+			"component": "McpTools",
+			"title": "MCP tools",
+			"_note": "Custom page: catalogue of MCP tools available to agents, read from Hermiq's facade-backed /api/agents/tools endpoint (not register/schema objects), so the built-in index page type cannot express it. Read-only nav page."
+		}
+	],
+	"setup": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "setup_completed_version",
+		"steps": [
+			{
+				"id": "welcome",
+				"type": "info",
+				"title": "Welcome to Hermiq",
+				"body": "Hermiq runs autonomous agents against a local LLM. Point it at your Ollama host and test the connection once — agents can't run without a reachable model."
+			},
+			{
+				"id": "llm-endpoint",
+				"type": "config-fields",
+				"title": "LLM endpoint",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"llmendpoint": {
+							"type": "string",
+							"title": "LLM endpoint (Ollama)",
+							"default": "http://host.docker.internal:11434"
+						}
+					}
+				}
+			},
+			{
+				"id": "test-llm",
+				"type": "run-action",
+				"title": "Test connection",
+				"action": "test-llm",
+				"body": "Probe the endpoint and confirm Hermiq can reach your models. The first model discovered becomes the default."
+			},
+			{
+				"id": "done",
+				"type": "summary",
+				"title": "All set",
+				"healthCheck": true
+			}
+		]
+	},
+	"walkthrough": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "walkthrough_completed_version",
+		"tours": [
+			{
+				"id": "hermiq:getting-started",
+				"title": "Getting started",
+				"trigger": "first-visit",
+				"minAppVersion": "0.1.38",
+				"steps": [
+					{
+						"id": "welcome",
+						"sinceVersion": "0.1.38",
+						"placement": "center",
+						"title": "Welcome to Hermiq",
+						"body": "Let's take a quick tour. Hermiq lets you build autonomous AI agents, give them skills and tools, and run them on a schedule.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-agents",
+						"sinceVersion": "0.1.38",
+						"placement": "right",
+						"body": "Agents are the heart of Hermiq. Open Agents to see them and define your own.",
+						"task": "Click Agents in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "AgentCatalog"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "AgentCatalog"
+						}
+					},
+					{
+						"id": "agents-intro",
+						"sinceVersion": "0.1.38",
+						"placement": "center",
+						"allowManualNext": true,
+						"title": "Your agent catalog",
+						"body": "This is where your agents live. Use New to create one — give it a prompt, pick a model, and add optional tools and skills.",
+						"target": {
+							"kind": "page",
+							"ref": "AgentCatalog"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-skills",
+						"sinceVersion": "0.1.38",
+						"placement": "right",
+						"body": "Skills give agents new abilities. Browse the Skills catalog to see what you can add.",
+						"task": "Click Skills in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "SkillsCatalog"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "SkillsCatalog"
+						}
+					},
+					{
+						"id": "go-mcp",
+						"sinceVersion": "0.1.38",
+						"placement": "right",
+						"body": "MCP tools connect your agents to external systems over the Model Context Protocol.",
+						"task": "Click MCP tools in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "McpTools"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "McpTools"
+						}
+					},
+					{
+						"id": "done",
+						"sinceVersion": "0.1.38",
+						"placement": "center",
+						"title": "You're all set",
+						"body": "That's the tour. Open Settings any time to re-run this walkthrough or the setup wizard.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					}
+				]
+			}
+		]
+	}
+}

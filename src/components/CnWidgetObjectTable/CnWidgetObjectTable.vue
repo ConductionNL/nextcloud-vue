@@ -84,7 +84,9 @@ import { CnIcon } from '../CnIcon/index.js'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveFilterTokens, hasUnresolvedTokens, dropOptionalUnresolved } from '../../utils/resolveFilterTokens.js'
+import { readVisibleWhenPath, compareVisibleWhen } from '../../utils/visibleWhen.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
 // for why it lives in its own module).
@@ -124,6 +126,11 @@ import { CnWidgetHostShell } from './hostShell.js'
  * on `confirm: true`. Mutations dispatch via the shared object store —
  * the manifest declares intent only, OpenRegister RBAC is the authority,
  * and a rejected write surfaces as an error without local mutation.
+ *
+ * A declarative `rowClass` (#91) — `[{ when: { field, op?, value }, class }]` reusing
+ * the shared `visibleWhen` predicate grammar — is compiled into CnDataTable's
+ * `rowClass` function so overdue / at-risk rows can be highlighted from the manifest
+ * (a host-supplied `rowClass` FUNCTION still passes straight through).
  */
 export default {
 	name: 'CnWidgetObjectTable',
@@ -137,6 +144,14 @@ export default {
 		 * tokens in `source.filter`. Null on dashboards.
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
+		 * objectType, objectId, register, store } | null }`) provided by
+		 * CnPageRenderer — backfills the object token context so
+		 * `@objectId` / `@object.<field>` resolve on detail surfaces where
+		 * CnDetailPage is not an ancestor (#91 Wave 3).
+		 */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Page-level workspace context (reactive `ref({})`) provided by
 		 * CnDashboardPage — enables `@workspace.<key>` tokens in
@@ -224,9 +239,12 @@ export default {
 		 * `rows` are supplied, the widget resolves `filter` @-tokens and
 		 * drives CnDataTable's existing self-fetch with the resolved filter,
 		 * `order`, and `limit`. `register` MAY carry an `@resolve:` sentinel —
-		 * it is passed through unexpanded. Default `null` keeps the
-		 * pre-existing pass-through behaviour byte-for-byte.
-		 * @type {{register?: string, schema?: string, filter?: object, order?: object, limit?: number}|null}
+		 * it is passed through unexpanded. `extend` (#91 Wave 3) forwards
+		 * OpenRegister `_extend[]` values (e.g. `["calculations"]`) on the
+		 * fetch so virtual/declarative calc fields ride along and render as
+		 * ordinary columns. Default `null` keeps the pre-existing
+		 * pass-through behaviour byte-for-byte.
+		 * @type {{register?: string, schema?: string, filter?: object, order?: object, limit?: number, extend?: string[]}|null}
 		 */
 		source: {
 			type: Object,
@@ -319,6 +337,24 @@ export default {
 			type: [String, Function],
 			default: null,
 		},
+		/**
+		 * Per-row CSS class binding (#91). Two forms:
+		 *  - a FUNCTION `(row) => string` — passed straight through to
+		 *    CnDataTable's `rowClass` (the pre-existing host-supplied contract).
+		 *  - an ARRAY of declarative rules `[{ when: { field, op?, value }, class }]`
+		 *    compiled here into that function. Each rule adds its `class` to a
+		 *    row when the shared `visibleWhen` predicate holds against the row:
+		 *    `field` is a dot-path into the row, `op` is `eq|neq|gt|gte|lt|lte`
+		 *    (default `eq`), `value` is the literal right-hand side. Rules are
+		 *    evaluated in order and every matching `class` is space-joined, so an
+		 *    overdue / at-risk row can be highlighted declaratively from a
+		 *    manifest with no bespoke function. Default `null` = no row class.
+		 * @type {Function|Array<{when: {field: string, op?: string, value: *}, class: string}>|null}
+		 */
+		rowClass: {
+			type: [Function, Array],
+			default: null,
+		},
 	},
 
 	setup(props) {
@@ -330,6 +366,7 @@ export default {
 		// self-fetch path is untouched. Injects re-read in setup (same
 		// resolution as the Options `inject` block).
 		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref(null))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
@@ -340,7 +377,7 @@ export default {
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
-					...(unwrap(objectCtxRaw) || {}),
+					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 					workspace: unwrap(workspaceRaw) || {},
 					config: unwrap(appConfigRaw) || {},
 				}),
@@ -363,14 +400,13 @@ export default {
 
 	computed: {
 		/**
-		 * The unwrapped detail-page object context for token resolution, or
-		 * null on surfaces (dashboards) that don't provide one.
+		 * The merged detail-page object context for token resolution — both
+		 * detail-surface injects, holder fields backfilling (#91 Wave 3) —
+		 * or null on surfaces (dashboards) that don't provide one.
 		 * @return {object|null}
 		 */
 		objectCtx() {
-			const c = this.cnObjectContext
-			if (!c) return null
-			return (typeof c === 'object' && 'value' in c) ? c.value : c
+			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
 		/**
 		 * The unwrapped workspace context bag (or null). Vue 2.7 inject may
@@ -468,6 +504,14 @@ export default {
 			if (typeof src.limit === 'number' && src.limit > 0) {
 				params._limit = src.limit + 1
 			}
+			// `source.extend` (#91 Wave 3): forwarded as OR's repeated
+			// `_extend[]` param so virtual/declarative fields (e.g.
+			// `calculations` — procest daysOverdue) ride the fetch and are
+			// displayable as ordinary columns. Serialized by the shared
+			// query builder (array value → repeated `key[]`).
+			if (Array.isArray(src.extend) && src.extend.length > 0) {
+				params._extend = src.extend.filter((e) => typeof e === 'string' && e !== '')
+			}
 			const filter = this.resolvedFilter
 			if (filter && typeof filter === 'object') {
 				for (const [k, v] of Object.entries(filter)) {
@@ -504,10 +548,15 @@ export default {
 		 */
 		innerProps() {
 			// eslint-disable-next-line no-unused-vars
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) inner[k] = v
+			}
+			// `rowClass` is consumed here (function or declarative rules[]) and
+			// forwarded to CnDataTable as a compiled `(row) => class` function.
+			if (this.compiledRowClass) {
+				inner.rowClass = this.compiledRowClass
 			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
@@ -525,6 +574,38 @@ export default {
 				inner.rowClickRoute = this.rowRouteFn
 			}
 			return inner
+		},
+		/**
+		 * The effective `rowClass` function forwarded to CnDataTable. A
+		 * host-supplied FUNCTION passes straight through; a declarative
+		 * rules[] array is compiled into a `(row) => string` that space-joins
+		 * every rule whose shared `visibleWhen` predicate holds against the
+		 * row (`field` dot-path + `op` + `value`). Null when `rowClass` is
+		 * unset or an empty array — the widget then forwards nothing so
+		 * CnDataTable's own default applies.
+		 * @return {Function|null}
+		 */
+		compiledRowClass() {
+			const rc = this.rowClass
+			if (typeof rc === 'function') {
+				return rc
+			}
+			if (!Array.isArray(rc) || rc.length === 0) {
+				return null
+			}
+			const rules = rc
+			return (row) => {
+				const classes = []
+				for (const rule of rules) {
+					if (!rule || !rule.class) continue
+					const when = rule.when || {}
+					const actual = readVisibleWhenPath(row, when.field)
+					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
+						classes.push(rule.class)
+					}
+				}
+				return classes.join(' ')
+			}
 		},
 		/**
 		 * Row-click navigation function derived from the `rowRoute` route

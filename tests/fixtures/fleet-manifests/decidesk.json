@@ -1,0 +1,2244 @@
+{
+	"$schema": "https://codeberg.org/Conduction/nextcloud-vue/raw/branch/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "2.0.0",
+	"dependencies": [
+		"openregister"
+	],
+	"observability": {
+		"_note": "Decidesk adopts the OpenRegister AppHost observability engine (ADR-040 / ADR-006). The /api/health route is served by a thin GenericHealthController subclass (HealthController) that reshapes the engine result into the published REQ-API-004 body {status, baseUrl, version, openregister}; /api/metrics is aliased straight to GenericMetricsController. statusCodePolicy=always200 + cors=true reproduce the REQ-API-004 reverse-proxy probe contract (probes succeed even when degraded; CORS + OPTIONS preflight). The orAvailable check subsumes the former hand-rolled DI-container ObjectService lookup. No metrics[] descriptors: decidesk gains the implicit decidesk_info / decidesk_up gauges, a pure compliance upgrade over the no-metrics-endpoint baseline.",
+		"health": {
+			"statusCodePolicy": "always200",
+			"cors": true,
+			"checks": [
+				{
+					"id": "openregister",
+					"type": "orAvailable",
+					"severity": "critical"
+				}
+			]
+		}
+	},
+	"deepLinks": [
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "governance-body",
+			"urlTemplate": "/apps/decidesk/#/governance-bodies/{uuid}",
+			"displayName": "Governance body"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "meeting",
+			"urlTemplate": "/apps/decidesk/#/meetings/{uuid}",
+			"displayName": "Meeting"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "participant",
+			"urlTemplate": "/apps/decidesk/#/participants/{uuid}",
+			"displayName": "Participant"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "agenda-item",
+			"urlTemplate": "/apps/decidesk/#/agenda-items/{uuid}",
+			"displayName": "Agenda item"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "motion",
+			"urlTemplate": "/apps/decidesk/#/motions/{uuid}",
+			"displayName": "Motion"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "amendment",
+			"urlTemplate": "/apps/decidesk/#/amendments/{uuid}",
+			"displayName": "Amendment"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "voting-round",
+			"urlTemplate": "/apps/decidesk/#/voting-rounds/{uuid}",
+			"displayName": "Voting round"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "vote",
+			"urlTemplate": "/apps/decidesk/#/votes/{uuid}",
+			"displayName": "Vote"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "decision",
+			"urlTemplate": "/apps/decidesk/#/decisions/{uuid}",
+			"displayName": "Decision"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "action-item",
+			"urlTemplate": "/apps/decidesk/#/action-items/{uuid}",
+			"displayName": "Action item"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "minutes",
+			"urlTemplate": "/apps/decidesk/#/minutes/{uuid}",
+			"displayName": "Minutes"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "digital-document",
+			"urlTemplate": "/apps/decidesk/#/digital-documents/{uuid}",
+			"displayName": "Digital document"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "monetary-amount",
+			"urlTemplate": "/apps/decidesk/#/monetary-amounts/{uuid}",
+			"displayName": "Monetary amount"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "offer",
+			"urlTemplate": "/apps/decidesk/#/offers/{uuid}",
+			"displayName": "Offer"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "order",
+			"urlTemplate": "/apps/decidesk/#/orders/{uuid}",
+			"displayName": "Order"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "product",
+			"urlTemplate": "/apps/decidesk/#/products/{uuid}",
+			"displayName": "Product"
+		},
+		{
+			"registerSlug": "decidesk",
+			"schemaSlug": "report",
+			"urlTemplate": "/apps/decidesk/#/reports/{uuid}",
+			"displayName": "Report"
+		}
+	],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Meetings",
+			"label": "Meetings",
+			"icon": "icon-group",
+			"route": "Meetings",
+			"order": 20
+		},
+		{
+			"id": "Decisions",
+			"label": "Decisions",
+			"icon": "icon-checkmark",
+			"route": "Decisions",
+			"order": 30
+		},
+		{
+			"id": "ActionItems",
+			"label": "Action items",
+			"icon": "icon-checkmark",
+			"route": "ActionItems",
+			"order": 40
+		},
+		{
+			"id": "GovernanceBodies",
+			"label": "Bodies",
+			"icon": "icon-group",
+			"route": "GovernanceBodies",
+			"order": 60
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://decidesk.conduction.nl",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "SettingsMenu",
+			"label": "Settings",
+			"icon": "icon-settings",
+			"route": "Settings",
+			"section": "settings",
+			"order": 99
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 100
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "dashboard",
+			"title": "Dashboard",
+			"config": {
+				"widgets": [
+					{
+						"id": "active-decisions",
+						"type": "stat",
+						"title": "Decisions",
+						"content": {
+							"label": "Decisions",
+							"icon": "ScaleBalance",
+							"valueColor": "#1a4a72",
+							"route": {
+								"name": "Decisions"
+							},
+							"format": {
+								"style": "number"
+							},
+							"source": {
+								"register": "decidesk",
+								"schema": "decision",
+								"metric": "count",
+								"filter": {
+									"decisionDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "upcoming-meetings-kpi",
+						"type": "stat",
+						"title": "Upcoming meetings",
+						"content": {
+							"label": "Upcoming meetings",
+							"icon": "Calendar",
+							"valueColor": "#0082c9",
+							"route": {
+								"name": "Meetings"
+							},
+							"format": {
+								"style": "number"
+							},
+							"source": {
+								"register": "decidesk",
+								"schema": "meeting",
+								"metric": "count",
+								"filter": {
+									"lifecycle": "scheduled",
+									"scheduledDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "pending-votes-kpi",
+						"type": "custom",
+						"title": "Pending votes"
+					},
+					{
+						"id": "overdue-actions-kpi",
+						"type": "stat",
+						"title": "Open action items",
+						"content": {
+							"label": "Open action items",
+							"icon": "ClipboardList",
+							"valueColor": "#c7860c",
+							"route": {
+								"name": "ActionItems"
+							},
+							"format": {
+								"style": "number"
+							},
+							"source": {
+								"register": "decidesk",
+								"schema": "action-item",
+								"metric": "count",
+								"filter": {
+									"taskStatus": [
+										"open",
+										"in-progress"
+									],
+									"dueDate": {
+										"gte": "@workspace.dateFrom?",
+										"lte": "@workspace.dateTo?"
+									}
+								}
+							}
+						}
+					},
+					{
+						"id": "upcoming-meetings-list",
+						"type": "object-list",
+						"title": "Upcoming meetings",
+						"content": {
+							"register": "decidesk",
+							"schema": "meeting",
+							"filter": {
+								"lifecycle": "scheduled"
+							},
+							"sort": {
+								"field": "scheduledDate",
+								"dir": "asc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Meeting"
+								},
+								{
+									"key": "scheduledDate",
+									"label": "Date"
+								}
+							]
+						}
+					},
+					{
+						"id": "pending-votes-list",
+						"type": "custom",
+						"title": "Pending votes"
+					},
+					{
+						"id": "running-processes",
+						"type": "custom",
+						"title": "Running processes"
+					},
+					{
+						"id": "my-action-items",
+						"type": "custom",
+						"title": "My action items"
+					},
+					{
+						"id": "recent-decisions",
+						"type": "object-list",
+						"title": "Recent decisions",
+						"content": {
+							"register": "decidesk",
+							"schema": "decision",
+							"filter": {},
+							"sort": {
+								"field": "decisionDate",
+								"dir": "desc"
+							},
+							"limit": 6,
+							"columns": [
+								{
+									"key": "title",
+									"label": "Decision"
+								},
+								{
+									"key": "decisionDate",
+									"label": "Date"
+								}
+							]
+						}
+					},
+					{
+						"id": "dashboard-empty-state",
+						"type": "custom",
+						"title": "Welcome"
+					}
+				],
+				"dateRange": {
+					"enabled": true,
+					"showHeaderPicker": false,
+					"persistKey": "decidesk.dashboard.range",
+					"default": {
+						"preset": "all"
+					},
+					"presets": [
+						{
+							"id": "last-7",
+							"label": "7d",
+							"days": 7
+						},
+						{
+							"id": "last-30",
+							"label": "30d",
+							"days": 30
+						},
+						{
+							"id": "last-90",
+							"label": "90d",
+							"days": 90
+						},
+						{
+							"id": "all",
+							"label": "All",
+							"days": null
+						}
+					]
+				},
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "active-decisions",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "2",
+						"widgetId": "upcoming-meetings-kpi",
+						"gridX": 3,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "3",
+						"widgetId": "pending-votes-kpi",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "4",
+						"widgetId": "overdue-actions-kpi",
+						"gridX": 9,
+						"gridY": 0,
+						"gridWidth": 3,
+						"gridHeight": 2,
+						"showTitle": false,
+						"dateChip": true
+					},
+					{
+						"id": "5",
+						"widgetId": "upcoming-meetings-list",
+						"gridX": 0,
+						"gridY": 2,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"showTitle": true
+					},
+					{
+						"id": "6",
+						"widgetId": "pending-votes-list",
+						"gridX": 6,
+						"gridY": 2,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"showTitle": true
+					},
+					{
+						"id": "7",
+						"widgetId": "running-processes",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"showTitle": true
+					},
+					{
+						"id": "8",
+						"widgetId": "my-action-items",
+						"gridX": 6,
+						"gridY": 6,
+						"gridWidth": 6,
+						"gridHeight": 4,
+						"showTitle": true
+					},
+					{
+						"id": "9",
+						"widgetId": "recent-decisions",
+						"gridX": 0,
+						"gridY": 10,
+						"gridWidth": 12,
+						"gridHeight": 4,
+						"showTitle": true
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			},
+			"slots": {
+				"header-actions": "DashboardQuickActions",
+				"widget-pending-votes-kpi": "PendingVotesKpiWidget",
+				"widget-pending-votes-list": "PendingVotesListWidget",
+				"widget-running-processes": "RunningProcessesWidget",
+				"widget-running-processes-actions": "StartProcessAction",
+				"widget-my-action-items": "MyActionItemsWidget",
+				"widget-dashboard-empty-state": "DashboardEmptyState"
+			}
+		},
+		{
+			"id": "GovernanceBodies",
+			"route": "/governance-bodies",
+			"type": "index",
+			"title": "Governance bodies",
+			"config": {
+				"register": "decidesk",
+				"schema": "governance-body",
+				"columns": [
+					"name",
+					"bodyType",
+					"domain",
+					"termEnd"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "GovernanceBodyDetail",
+			"route": "/governance-bodies/:id",
+			"type": "detail",
+			"title": "Governance body",
+			"config": {
+				"register": "decidesk",
+				"schema": "governance-body",
+				"_note": "Governance body (council, committee, board) — the standing organiser that owns meetings, members and a process template. Bespoke layout: body details lead (mandate, quorum rule, voting default, term dates, hourly rate) 8-wide with the Members roster surfaced right (member management is the daily task on a body), then the body's meetings as a full-width object-list so a clerk sees the meeting cadence at a glance, and a Documents leaf for charters/standing orders. Process template, efficiency analytics, recording retention and audit trail are specialist/rare surfaces kept in sidebar tabs.",
+				"widgets": [
+					{
+						"id": "body-data",
+						"type": "data",
+						"title": "Body details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "body-members",
+						"type": "custom",
+						"component": "GovernanceBodyMembersTab",
+						"title": "Members"
+					},
+					{
+						"id": "body-meetings",
+						"type": "object-list",
+						"title": "Meetings",
+						"content": {
+							"register": "decidesk",
+							"schema": "meeting",
+							"filter": {
+								"governanceBody": "@objectId"
+							},
+							"sort": {
+								"field": "scheduledDate",
+								"dir": "desc"
+							},
+							"columns": [
+								{
+									"key": "title",
+									"label": "Meeting"
+								},
+								{
+									"key": "meetingType",
+									"label": "Type"
+								},
+								{
+									"key": "scheduledDate",
+									"label": "Date"
+								},
+								{
+									"key": "lifecycle",
+									"label": "Status"
+								}
+							],
+							"limit": 50,
+							"rowRoute": "MeetingDetail"
+						}
+					},
+					{
+						"id": "body-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "body-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "body-members",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 8
+					},
+					{
+						"id": "3",
+						"widgetId": "body-meetings",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "body-files",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "members",
+						"label": "Members",
+						"icon": "icon-group",
+						"component": "GovernanceBodyMembersTab",
+						"order": 20
+					},
+					{
+						"id": "template",
+						"label": "Process template",
+						"icon": "icon-category-workflow",
+						"component": "GovernanceBodyTemplateTab",
+						"order": 30
+					},
+					{
+						"id": "efficiency",
+						"label": "Efficiency",
+						"icon": "icon-category-monitoring",
+						"component": "GovernanceBodyEfficiencyTab",
+						"order": 35
+					},
+					{
+						"id": "retention",
+						"label": "Recording retention",
+						"icon": "icon-sound",
+						"component": "GovernanceBodyRetentionTab",
+						"order": 37
+					},
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "governance-body",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Meetings",
+			"route": "/meetings",
+			"type": "index",
+			"title": "Meetings",
+			"config": {
+				"register": "decidesk",
+				"schema": "meeting",
+				"columns": [
+					"title",
+					"meetingType",
+					"scheduledDate",
+					{
+						"key": "meetingMode",
+						"label": "Mode",
+						"widget": "badge"
+					},
+					"lifecycle"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "MeetingDetail",
+			"route": "/meetings/:id",
+			"type": "detail",
+			"title": "Meeting",
+			"config": {
+				"register": "decidesk",
+				"schema": "meeting",
+				"_note": "Meeting — the operational hub of the app: the event that runs an agenda, gathers participants, produces minutes and decisions. Bespoke meeting-workspace layout: meeting details (type, mode, schedule, location, chair, quorum, cost) lead 8-wide with the live Participants roster right (who is expected/attending is the first thing a clerk checks); the ordered Agenda (agenda-item children keyed on `meeting`) sits full-width as the working document; Decisions taken and Minutes drafted render below as the meeting's outputs; a Documents leaf holds packets/attachments. No comms leaf on the body (the meeting schema declares no email/calendar/talk linkedType; calendar/Talk stay in the Integrations surface). Recurring Series, Transcription, Votes aggregate, Publication and audit trail are specialist tabs.",
+				"widgets": [
+					{
+						"id": "meeting-data",
+						"type": "data",
+						"title": "Meeting details",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "meeting-participants",
+						"type": "custom",
+						"component": "MeetingParticipantsTab",
+						"title": "Participants"
+					},
+					{
+						"id": "meeting-agenda",
+						"type": "custom",
+						"component": "MeetingAgendaTab",
+						"title": "Agenda"
+					},
+					{
+						"id": "meeting-decisions",
+						"type": "custom",
+						"component": "MeetingDecisionsTab",
+						"title": "Decisions"
+					},
+					{
+						"id": "meeting-minutes",
+						"type": "custom",
+						"component": "MeetingMinutesTab",
+						"title": "Minutes"
+					},
+					{
+						"id": "meeting-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "meeting-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "meeting-participants",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 8
+					},
+					{
+						"id": "3",
+						"widgetId": "meeting-agenda",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 6
+					},
+					{
+						"id": "4",
+						"widgetId": "meeting-decisions",
+						"gridX": 0,
+						"gridY": 10,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "5",
+						"widgetId": "meeting-minutes",
+						"gridX": 6,
+						"gridY": 10,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "6",
+						"widgetId": "meeting-files",
+						"gridX": 0,
+						"gridY": 15,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "series",
+						"label": "Series",
+						"icon": "icon-history",
+						"component": "MeetingSeriesTab",
+						"order": 35
+					},
+					{
+						"id": "transcription",
+						"label": "Transcription",
+						"icon": "icon-sound",
+						"component": "MeetingTranscriptionTab",
+						"order": 45
+					},
+					{
+						"id": "votes",
+						"label": "Votes",
+						"icon": "icon-checkmark",
+						"component": "MeetingVotesTab",
+						"order": 60
+					},
+					{
+						"id": "publication",
+						"label": "Publication",
+						"icon": "icon-public",
+						"component": "AgendaPublicationTab",
+						"order": 70
+					},
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "MeetingIntegrations",
+			"route": "/meetings/:id/integrations",
+			"type": "detail",
+			"title": "Meeting integrations",
+			"config": {
+				"register": "decidesk",
+				"schema": "meeting",
+				"description": "External integrations linked to this meeting — the Action items board (Deck), Discussion (Talk), files and notes surface on the body; linked articles, tags and the audit trail remain in the sidebar.",
+				"widgets": [
+					{
+						"id": "mi-deck",
+						"type": "integration",
+						"integrationId": "deck",
+						"title": "Action items"
+					},
+					{
+						"id": "mi-talk",
+						"type": "integration",
+						"integrationId": "talk",
+						"title": "Discussion"
+					},
+					{
+						"id": "mi-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					},
+					{
+						"id": "mi-notes",
+						"type": "integration",
+						"integrationId": "notes",
+						"title": "Notes"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "mi-deck",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 6
+					},
+					{
+						"id": "2",
+						"widgetId": "mi-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 6
+					},
+					{
+						"id": "3",
+						"widgetId": "mi-talk",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "4",
+						"widgetId": "mi-notes",
+						"gridX": 8,
+						"gridY": 6,
+						"gridWidth": 4,
+						"gridHeight": 5
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "meeting",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			},
+			"_note": "Comms/collaboration workspace for a meeting — the ADR-019 integration surface, deliberately distinct from the MeetingDetail record page. The leaves promoted onto the body are exactly the providers bound to the meeting object through the registry: the Deck action-items board (migrate-action-items-to-deck-leaf), projecting the CalDAV VTODO ActionItems (ADR-002 source of truth) as cards and replacing the retired in-app TaskService/DelegationService board; Discussion (Talk); meeting Files and Notes. Comms leaves are legitimate here because these are the meeting's registry-bound integration providers. The useRegistry sidebar still lists every provider and hides each gracefully when its backing app is absent — action items then remain reachable via the Nextcloud Tasks app over the same VTODOs."
+		},
+		{
+			"id": "DecisionIntegrations",
+			"route": "/decisions/:id/integrations",
+			"type": "detail",
+			"title": "Decision integrations",
+			"component": "DecisionIntegrations",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"description": "External integrations linked to this decision dossier — linked Emails, the Action items board (Deck) and files surface on the body; notes, tags and the audit trail remain in the sidebar.",
+				"widgets": [
+					{
+						"id": "di-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "di-deck",
+						"type": "integration",
+						"integrationId": "deck",
+						"title": "Action items"
+					},
+					{
+						"id": "di-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "di-email",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "di-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "di-deck",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 5
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "decision",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			},
+			"_note": "Email linking is consumed from the ADR-019 Email integration leaf bound to the decision object (migrate-email-links-to-email-leaf), replacing the retired in-app EmailLink store. The Action items board is consumed from the ADR-019 Deck integration leaf bound to the decision object (migrate-action-items-to-deck-leaf), projecting CalDAV VTODO ActionItems (ADR-002) as cards and replacing the retired in-app TaskService/DelegationService board. The registry hides each tab gracefully when its backing app is absent — action items then remain reachable via the Nextcloud Tasks app over the same VTODOs."
+		},
+		{
+			"id": "AgendaItemIntegrations",
+			"route": "/agenda-items/:id/integrations",
+			"type": "detail",
+			"title": "Agenda item integrations",
+			"component": "AgendaItemIntegrations",
+			"config": {
+				"register": "decidesk",
+				"schema": "agenda-item",
+				"description": "External integrations linked to this agenda item — linked Emails, files and tasks surface on the body; notes, tags and the audit trail remain in the sidebar.",
+				"widgets": [
+					{
+						"id": "ai-email",
+						"type": "integration",
+						"integrationId": "email",
+						"title": "Emails"
+					},
+					{
+						"id": "ai-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					},
+					{
+						"id": "ai-tasks",
+						"type": "integration",
+						"integrationId": "tasks",
+						"title": "Tasks"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "ai-email",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "ai-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "ai-tasks",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "agenda-item",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			},
+			"_note": "Email linking is consumed from the ADR-019 Email integration leaf bound to the agenda-item object (migrate-email-links-to-email-leaf), replacing the retired in-app EmailLink store. Registry hides the Email tab gracefully when Mail is absent."
+		},
+		{
+			"id": "LiveMeeting",
+			"route": "/meetings/:id/live",
+			"type": "custom",
+			"title": "Live meeting",
+			"component": "LiveMeetingView",
+			"_note": "Realtime meeting shell — WebSocket subscriptions, frame-by-frame UI, per-vote-card animations. No typed primitive analogue; documented as the canonical example for a future type:realtime lib extension. See src/views/LiveMeeting.vue."
+		},
+		{
+			"id": "Participants",
+			"route": "/participants",
+			"type": "index",
+			"title": "Participants",
+			"config": {
+				"register": "decidesk",
+				"schema": "participant",
+				"columns": [
+					"displayName",
+					"role",
+					"party",
+					"email"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "ParticipantDetail",
+			"route": "/participants/:id",
+			"type": "detail",
+			"title": "Participant",
+			"config": {
+				"register": "decidesk",
+				"schema": "participant",
+				"_note": "Participant — a person archetype (name, role, party, email, voting weight, attendance, linked Nextcloud user, join/leave dates). Bespoke person layout: contact/role details lead 8-wide with Related right (the meetings, votes and decisions this person is linked to across the register); a Documents leaf holds credentials/mandate letters. Deliberately NO Email or Calendar body leaf: the participant schema declares no email/calendar linkedType (the email address is a plain data field, and correspondence lives on the meeting/decision integration surfaces, not per-participant), so per the comms-leaf hard rule they are omitted. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "participant-data",
+						"type": "data",
+						"title": "Participant",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "participant-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "participant-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "participant-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "participant-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 8
+					},
+					{
+						"id": "3",
+						"widgetId": "participant-files",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 8,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "participant",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "AgendaItems",
+			"route": "/agenda-items",
+			"type": "index",
+			"title": "Agenda items",
+			"config": {
+				"register": "decidesk",
+				"schema": "agenda-item",
+				"columns": [
+					"orderNumber",
+					"title",
+					"itemType",
+					"estimatedDuration",
+					"isRecurring"
+				],
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "icon-toggle",
+						"handler": "navigate",
+						"route": "AgendaItemDetail",
+						"primary": true
+					},
+					{
+						"id": "integrations",
+						"label": "Integrations",
+						"icon": "icon-mail",
+						"handler": "navigate",
+						"route": "AgendaItemIntegrations"
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "AgendaItemDetail",
+			"route": "/agenda-items/:id",
+			"type": "detail",
+			"title": "Agenda item",
+			"config": {
+				"register": "decidesk",
+				"schema": "agenda-item",
+				"_note": "Agenda item — one ordered line of a meeting's agenda (type, order number, estimated/actual duration, description, recurrence, parent item). Bespoke layout: item details lead 8-wide with a Documents leaf right for the supporting stukken (memo, annex) that back the item; the Motions tabled under this item (AgendaMotionsTab — decisions of decisionType=motion keyed on `agendaItem`) render full-width below because debating/voting motions is the whole point of an agenda item. Audit trail stays a sidebar tab; email/files linking lives on the dedicated AgendaItemIntegrations surface.",
+				"widgets": [
+					{
+						"id": "agenda-data",
+						"type": "data",
+						"title": "Agenda item",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "agenda-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					},
+					{
+						"id": "agenda-motions",
+						"type": "custom",
+						"component": "AgendaMotionsTab",
+						"title": "Motions"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "agenda-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "agenda-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "agenda-motions",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 6
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Motions",
+			"route": "/motions",
+			"type": "index",
+			"title": "Motions",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"filter": {
+					"decisionType": "motion"
+				},
+				"columns": [
+					"title",
+					"motionType",
+					"proposer",
+					"lifecycle",
+					"submittedAt"
+				],
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "icon-toggle",
+						"handler": "navigate",
+						"route": "MotionDetail",
+						"primary": true
+					},
+					{
+						"id": "integrations",
+						"label": "Discussion",
+						"icon": "icon-comment",
+						"handler": "navigate",
+						"route": "MotionIntegrations"
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "MotionDetail",
+			"route": "/motions/:id",
+			"type": "detail",
+			"title": "Motion",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"_note": "Motion — a deliberative proposal (a Decision of decisionType=motion): proposer, motion type, proposed text, lifecycle, co-signers, submission date. Bespoke deliberation layout: motion details/text lead 8-wide with a Documents leaf right for the tabled text and annexes; the Amendments proposed against it (MotionAmendmentsTab — decisions keyed on `parentMotion`) render full-width because processing amendments is the core motion workflow; the Votes result (MotionVotesTab, read-only post-ballot aggregate) sits below. The chair's amendment Voting order and the Voting round mechanics are procedural/rare and stay sidebar tabs, as does the audit trail. Discussion/Talk lives on the dedicated MotionIntegrations surface.",
+				"widgets": [
+					{
+						"id": "motion-data",
+						"type": "data",
+						"title": "Motion",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "motion-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					},
+					{
+						"id": "motion-amendments",
+						"type": "custom",
+						"component": "MotionAmendmentsTab",
+						"title": "Amendments"
+					},
+					{
+						"id": "motion-votes",
+						"type": "custom",
+						"component": "MotionVotesTab",
+						"title": "Votes"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "motion-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "motion-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "motion-amendments",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 6
+					},
+					{
+						"id": "4",
+						"widgetId": "motion-votes",
+						"gridX": 0,
+						"gridY": 11,
+						"gridWidth": 12,
+						"gridHeight": 5
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "amendmentOrder",
+						"label": "Voting order",
+						"icon": "icon-quota",
+						"component": "MotionAmendmentOrderTab",
+						"order": 25
+					},
+					{
+						"id": "votingRound",
+						"label": "Voting round",
+						"icon": "icon-checkmark",
+						"component": "MotionVotingRoundTab",
+						"order": 40
+					},
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "MotionIntegrations",
+			"route": "/motions/:id/integrations",
+			"type": "custom",
+			"title": "Motion integrations",
+			"component": "MotionIntegrations",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"description": "External integrations linked to this motion — open the sidebar for Discussion (Talk), files, notes, tags, tasks and the audit trail.",
+				"sidebar": {
+					"enabled": true,
+					"register": "decidesk",
+					"schema": "decision",
+					"useRegistry": true
+				}
+			},
+			"_note": "Discussion is consumed from the ADR-019 Talk integration leaf bound to the motion object (migrate-comments-to-talk-leaf), replacing the retired in-app CommentService. Registry hides the Talk tab gracefully when Talk is absent."
+		},
+		{
+			"id": "AmendmentDetail",
+			"route": "/amendments/:id",
+			"type": "detail",
+			"title": "Amendment",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"_note": "Amendment — a proposed text change to a parent motion (a Decision of decisionType=amendment): proposed text, proposer, parent motion reference, voting order. Bespoke amendment layout: the visual Text-changes diff against the parent motion (AmendmentDiffTab) is the reason this record exists, so it leads full-width; the amendment's own metadata (proposer, lifecycle, order) sits 8-wide below with the Parent motion link (AmendmentParentMotionTab) right so a clerk can jump back to the motion being amended. Audit trail stays a sidebar tab. No comms leaf — the amendment schema declares none; discussion happens on the parent motion.",
+				"widgets": [
+					{
+						"id": "amend-diff",
+						"type": "custom",
+						"component": "AmendmentDiffTab",
+						"title": "Text changes"
+					},
+					{
+						"id": "amend-data",
+						"type": "data",
+						"title": "Amendment",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "amend-parent",
+						"type": "custom",
+						"component": "AmendmentParentMotionTab",
+						"title": "Parent motion"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "amend-diff",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 12,
+						"gridHeight": 6
+					},
+					{
+						"id": "2",
+						"widgetId": "amend-data",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "amend-parent",
+						"gridX": 8,
+						"gridY": 6,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Minutes",
+			"route": "/minutes",
+			"type": "index",
+			"title": "Minutes",
+			"config": {
+				"register": "decidesk",
+				"schema": "minutes",
+				"columns": [
+					"title",
+					"lifecycle",
+					"version",
+					"approvedAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "MinutesDetail",
+			"route": "/minutes/:id",
+			"type": "detail",
+			"title": "Minutes detail",
+			"config": {
+				"register": "decidesk",
+				"schema": "minutes",
+				"_note": "Minutes — the formal document record of a meeting (title, lifecycle, content, version, signers, approval date, generated documents). Bespoke document archetype: minutes metadata leads 8-wide with the Approval workflow (MinutesApprovalTab — lifecycle timeline with guarded submit/approve/reject and correction suggestions) right, because getting minutes approved is the primary task on this record; the generated Documents (MinutesDocumentTab — PDF/notarial packages written into the meeting Files folder) render full-width below as the tangible output. Signers roster, Publication and audit trail are lower-frequency and stay sidebar tabs. No comms leaf — the minutes schema declares none.",
+				"widgets": [
+					{
+						"id": "minutes-data",
+						"type": "data",
+						"title": "Minutes",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "minutes-approval",
+						"type": "custom",
+						"component": "MinutesApprovalTab",
+						"title": "Approval"
+					},
+					{
+						"id": "minutes-documents",
+						"type": "custom",
+						"component": "MinutesDocumentTab",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "minutes-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "minutes-approval",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "minutes-documents",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 6
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "signers",
+						"label": "Signers",
+						"icon": "icon-user",
+						"component": "MinutesSignersTab",
+						"order": 20
+					},
+					{
+						"id": "publication",
+						"label": "Publication",
+						"icon": "icon-public",
+						"component": "MinutesPublicationTab",
+						"order": 70
+					},
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Decisions",
+			"route": "/decisions",
+			"type": "index",
+			"title": "Decisions",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"quickFilters": [
+					{
+						"label": "Decisions",
+						"filter": {},
+						"default": true
+					},
+					{
+						"label": "Motions",
+						"icon": "icon-comment",
+						"filter": {
+							"decisionType": "motion"
+						},
+						"page": "Motions",
+						"route": "Motions"
+					}
+				],
+				"_motionsFilterNote": "REQ-RMN-003 — Motions is one decisionType of the unified Decision supertype (ADR-005), not a sibling concept. This quick-filter surfaces Motions AS a filtered view of Decisions (decisionType=motion, a STORED/queryable field merged server-side into the OpenRegister fetch — no client-side derivation, unlike effectiveStatus per the _inForceFilterNote). The retained Motions index page (pages[] id `Motions`, route /motions) carries the same filter plus motion-specific columns/tabs; the `page`/`route` hints let the strip deep-link there. The standalone top-level Motions menu leaf was retired (REQ-RMN-001) so Motions is reachable through its parent Decisions surface rather than as a peer top-level item.",
+				"columns": [
+					{
+						"key": "title",
+						"label": "Title",
+						"widget": "link"
+					},
+					{
+						"key": "lifecycle",
+						"label": "Lifecycle",
+						"widget": "badge"
+					},
+					{
+						"key": "outcome",
+						"label": "Outcome",
+						"widget": "badge"
+					},
+					{
+						"key": "decisionDate",
+						"label": "Decision date",
+						"formatter": "date"
+					},
+					{
+						"key": "isPublished",
+						"label": "Publication",
+						"widget": "badge"
+					},
+					{
+						"key": "effectiveStatus",
+						"label": "Effective status",
+						"widget": "badge",
+						"computed": true
+					},
+					{
+						"key": "legalBasis",
+						"label": "Legal basis",
+						"hidden": true
+					}
+				],
+				"_inForceFilterNote": "DESIGN D3 — the in-force filter operates over the derived effectiveStatus, which (per design D2) is NOT a stored/queryable field: OpenRegister cannot express the inbound supersedes/repeals lookup as a materialised calculation, so effectiveStatus is computed client-side. A static manifest `filter` (the proven Motions decisionType pattern) and `quickFilters` both merge a filter map into the OpenRegister fetch and therefore only work over STORED fields — neither can server-filter on a client-derived value. The in-force / superseded / repealed state is instead surfaced per-decision via the effectiveStatus badge column (computed client-side) plus the banner and incoming-relation groups in RelatedDecisionsTab. A server-side in-force filter becomes available only if/when effectiveStatus is materialised by an OpenRegister inverse-relation calculation operator (D2 follow-up).",
+				"actions": [
+					{
+						"id": "view",
+						"label": "View",
+						"icon": "icon-toggle",
+						"handler": "navigate",
+						"route": "DecisionDetail",
+						"primary": true
+					},
+					{
+						"id": "integrations",
+						"label": "Integrations",
+						"icon": "icon-mail",
+						"handler": "navigate",
+						"route": "DecisionIntegrations"
+					},
+					{
+						"id": "publish",
+						"label": "Publish",
+						"icon": "icon-upload",
+						"handler": "emit",
+						"permission": "decidesk.decision.publish",
+						"confirm": true
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "DecisionDetail",
+			"route": "/decisions/:id",
+			"type": "detail",
+			"title": "Decision",
+			"config": {
+				"register": "decidesk",
+				"schema": "decision",
+				"_note": "Decision — the core governance dossier (title, text, outcome, decision date, legal basis, lifecycle, publication state, effectiveStatus). Bespoke dossier layout: decision details/text lead 8-wide with the Lifecycle state machine (DecisionLifecycleTab — the guarded transition buttons that advance the decision) right, because moving a decision through its states is the primary action; the Action items it spawns (ActionItemsSurface — the Deck-board projection of children keyed on `decision`, ADR-019/ADR-002) render full-width, then Related decisions (RelatedDecisionsTab — the supersedes/repeals graph driving the computed effectiveStatus banner) and a Documents leaf. Route (approval routing), Voting results, Publication and audit trail are lower-frequency and stay sidebar tabs. Email linking lives on the dedicated DecisionIntegrations surface (schema declares no comms linkedType).",
+				"widgets": [
+					{
+						"id": "decision-data",
+						"type": "data",
+						"title": "Decision",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "decision-lifecycle",
+						"type": "custom",
+						"component": "DecisionLifecycleTab",
+						"title": "Lifecycle"
+					},
+					{
+						"id": "decision-actions",
+						"type": "custom",
+						"component": "ActionItemsSurface",
+						"title": "Action items"
+					},
+					{
+						"id": "decision-related",
+						"type": "custom",
+						"component": "RelatedDecisionsTab",
+						"title": "Related decisions"
+					},
+					{
+						"id": "decision-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "decision-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 6
+					},
+					{
+						"id": "2",
+						"widgetId": "decision-lifecycle",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 6
+					},
+					{
+						"id": "3",
+						"widgetId": "decision-actions",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 12,
+						"gridHeight": 5
+					},
+					{
+						"id": "4",
+						"widgetId": "decision-related",
+						"gridX": 0,
+						"gridY": 11,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "5",
+						"widgetId": "decision-files",
+						"gridX": 8,
+						"gridY": 11,
+						"gridWidth": 4,
+						"gridHeight": 5
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "route",
+						"label": "Route",
+						"icon": "icon-projects",
+						"component": "DecisionRouteTab",
+						"order": 12
+					},
+					{
+						"id": "voting",
+						"label": "Voting results",
+						"icon": "icon-comment",
+						"component": "DecisionVotingTab",
+						"order": 30
+					},
+					{
+						"id": "publication",
+						"label": "Publication",
+						"icon": "icon-public",
+						"component": "DecisionPublicationTab",
+						"order": 70
+					},
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "ActionItems",
+			"route": "/action-items",
+			"type": "index",
+			"title": "Action items",
+			"config": {
+				"register": "decidesk",
+				"schema": "action-item",
+				"columns": [
+					"title",
+					"assignee",
+					"dueDate",
+					{
+						"key": "taskStatus",
+						"label": "Status",
+						"widget": "badge"
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "ActionItemDetail",
+			"route": "/action-items/:id",
+			"type": "detail",
+			"title": "Action item",
+			"config": {
+				"register": "decidesk",
+				"schema": "action-item",
+				"_note": "Action item — a task/case archetype spawned by a decision or meeting (title, description, assignee, due date, status, completion). Note the canonical store is a CalDAV VTODO (ADR-002) surfaced through the Deck leaf; this OR-backed detail shows the projected record. Bespoke task layout: task details (status, assignee, due date) lead 8-wide with a Documents leaf right for evidence/deliverables of completion, and Related below linking back to the originating decision/meeting. No comms leaf — the action-item schema declares none; assignment happens via the assignee field. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "action-data",
+						"type": "data",
+						"title": "Action item",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "action-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Documents"
+					},
+					{
+						"id": "action-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "action-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "action-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "action-related",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Workspaces",
+			"route": "/workspaces",
+			"type": "index",
+			"title": "Workspaces",
+			"config": {
+				"register": "decidesk",
+				"schema": "collaboration-workspace",
+				"columns": [
+					"name",
+					"type",
+					{
+						"key": "accessLevel",
+						"label": "Access",
+						"widget": "badge"
+					},
+					"createdAt"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "WorkspaceDetail",
+			"route": "/workspaces/:id",
+			"type": "detail",
+			"title": "Workspace",
+			"config": {
+				"register": "decidesk",
+				"schema": "collaboration-workspace",
+				"_note": "Collaboration workspace — a bounded faction/committee/task-group space (name, type, access level, created date). Per migrate-workspaces-to-collectives-leaf (ADR-022) the in-app WorkspaceService/CollaborationWorkspace store was retired: the real collaboration surface is a Nextcloud Collective bound through the ADR-019 registry, so the Collectives leaf leads the body (this is the whole point of the workspace) alongside a Files leaf for shared documents, with workspace metadata and Related below. The Collectives leaf is a declared, registry-bound integration for this entity, so it belongs on the body; the registry hides it gracefully when the Collectives app is absent. Audit trail stays a sidebar tab.",
+				"widgets": [
+					{
+						"id": "ws-collectives",
+						"type": "integration",
+						"integrationId": "collectives",
+						"title": "Collective"
+					},
+					{
+						"id": "ws-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Files"
+					},
+					{
+						"id": "ws-data",
+						"type": "data",
+						"title": "Workspace",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "ws-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "ws-collectives",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 6
+					},
+					{
+						"id": "2",
+						"widgetId": "ws-files",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 6
+					},
+					{
+						"id": "3",
+						"widgetId": "ws-data",
+						"gridX": 0,
+						"gridY": 6,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "ws-related",
+						"gridX": 8,
+						"gridY": 6,
+						"gridWidth": 4,
+						"gridHeight": 4
+					}
+				],
+				"sidebarTabs": [
+					{
+						"id": "audit",
+						"label": "Audit trail",
+						"icon": "icon-history",
+						"widgets": [
+							{
+								"type": "audit-trail"
+							}
+						],
+						"order": 90
+					}
+				],
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Engagement",
+			"route": "/engagement",
+			"type": "index",
+			"title": "Engagement",
+			"config": {
+				"register": "decidesk",
+				"schema": "engagement-record",
+				"columns": [
+					"meeting",
+					"participant",
+					"speakingDuration",
+					"engagementScore"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true,
+					"register": "decidesk",
+					"schema": "engagement-record",
+					"useRegistry": true
+				},
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		},
+		{
+			"id": "Settings",
+			"route": "/settings",
+			"type": "settings",
+			"title": "Settings",
+			"config": {
+				"saveEndpoint": "/index.php/apps/decidesk/api/settings",
+				"sections": [
+					{
+						"title": "Version",
+						"widgets": [
+							{
+								"type": "version-info",
+								"props": {
+									"appName": "Decidesk",
+									"showUpdateButton": true,
+									"isUpToDate": true,
+									"title": "Version Information",
+									"description": "Information about the current Decidesk installation"
+								}
+							}
+						]
+					},
+					{
+						"title": "Registers",
+						"widgets": [
+							{
+								"type": "register-mapping",
+								"props": {
+									"name": "Register Configuration",
+									"description": "Configure the OpenRegister schema mappings for all Decidesk object types.",
+									"showReimportButton": true,
+									"groups": [
+										{
+											"name": "Decidesk",
+											"types": [
+												{
+													"slug": "governance-body",
+													"label": "Governance Bodies"
+												},
+												{
+													"slug": "meeting",
+													"label": "Meetings"
+												},
+												{
+													"slug": "participant",
+													"label": "Participants"
+												},
+												{
+													"slug": "agenda-item",
+													"label": "Agenda Items"
+												},
+												{
+													"slug": "motion",
+													"label": "Motions"
+												},
+												{
+													"slug": "amendment",
+													"label": "Amendments"
+												},
+												{
+													"slug": "voting-round",
+													"label": "Voting Rounds"
+												},
+												{
+													"slug": "vote",
+													"label": "Votes"
+												},
+												{
+													"slug": "decision",
+													"label": "Decisions"
+												},
+												{
+													"slug": "action-item",
+													"label": "Action Items"
+												},
+												{
+													"slug": "minutes",
+													"label": "Minutes"
+												},
+												{
+													"slug": "digital-document",
+													"label": "Digital Documents"
+												},
+												{
+													"slug": "monetary-amount",
+													"label": "Monetary Amounts"
+												},
+												{
+													"slug": "offer",
+													"label": "Offers"
+												},
+												{
+													"slug": "order",
+													"label": "Orders"
+												},
+												{
+													"slug": "product",
+													"label": "Products"
+												},
+												{
+													"slug": "report",
+													"label": "Reports"
+												},
+												{
+													"slug": "task",
+													"label": "Tasks (archived — read-only)"
+												},
+												{
+													"slug": "delegation",
+													"label": "Delegations (archived — read-only)"
+												},
+												{
+													"slug": "comment",
+													"label": "Comments (archived — read-only)"
+												},
+												{
+													"slug": "notification-preference",
+													"label": "Notification Preferences"
+												},
+												{
+													"slug": "engagement-record",
+													"label": "Engagement Records"
+												},
+												{
+													"slug": "collaboration-workspace",
+													"label": "Collaboration Workspaces"
+												}
+											]
+										}
+									]
+								}
+							}
+						]
+					},
+					{
+						"title": "Advanced",
+						"fields": [
+							{
+								"key": "organisatie_modus",
+								"type": "select",
+								"label": "Organisation mode",
+								"help": "Controls mode-specific labels across the app (e.g. Bodies label). Default: gov.",
+								"options": [
+									{
+										"value": "gov",
+										"label": "Government (gov)"
+									},
+									{
+										"value": "corp",
+										"label": "Corporate (corp)"
+									},
+									{
+										"value": "assoc",
+										"label": "Association (assoc)"
+									},
+									{
+										"value": "ops",
+										"label": "Operations (ops)"
+									},
+									{
+										"value": "citizen",
+										"label": "Citizen portal (citizen)"
+									}
+								]
+							},
+							{
+								"key": "ori_endpoint",
+								"type": "string",
+								"label": "ORI endpoint",
+								"help": "ORI API endpoint URL for publishing voting results"
+							},
+							{
+								"key": "email_voting_enabled",
+								"type": "boolean",
+								"label": "Enable email voting",
+								"help": "Enable email reply voting"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://decidesk.conduction.nl"
+			}
+		}
+	]
+}

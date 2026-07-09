@@ -16,7 +16,8 @@ import { dispatchAction } from '@conduction/nextcloud-vue'
 ```ts
 function dispatchAction(
     action: {
-        type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op' | 'export',
+        type?: 'handler' | 'open-modal' | 'open-page' | 'navigate' | 'object-op'
+             | 'export' | 'open-form' | 'refresh' | 'api-call' | 'toggle',
         // type-specific fields:
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
@@ -28,6 +29,12 @@ function dispatchAction(
         entities?: { id, label }[], // type='export' — selectable entity types (optional)
         formats?: (string | { id, label })[],  // type='export' — offered formats (optional)
         description?: string,       // type='export' — pre-translated dialog description
+        url?: string,               // type='api-call' — app endpoint (token-interpolated)
+        method?: 'POST' | 'PUT',    // type='api-call' — default POST
+        params?: object,            // type='api-call' — JSON body (@-token grammar)
+        successMessage?: string,    // type='api-call' — success toast text
+        errorMessage?: string,      // type='api-call' — error toast text
+        refresh?: boolean,          // type='api-call' — bump cn:page:refresh (default true)
     },
     context: {
         router?: VueRouter,         // required for 'open-page' + 'navigate'
@@ -35,11 +42,13 @@ function dispatchAction(
         handlers?: Record<string, Function>,             // required for 'handler'
         openModal?: (key: string, props?: object) => void,  // required for 'open-modal'
         openExport?: (action: object) => void,  // required for 'export' (CnPageRenderer pre-binds it)
+        openForm?: (action: object) => void,    // required for 'open-form' (the header-actions surface provides it)
         objectStore?: ObjectStore,  // required for 'object-op' (useObjectStore shape)
         source?: { register, schema },  // required for 'object-op' — the widget's source
         row?: object,               // required for 'object-op' patch/delete (row-scoped)
+        tokenCtx?: object,          // 'api-call' — { objectId?, object?, workspace?, config? } for url/params tokens
     },
-): void | Promise<object | boolean | null>  // object-op returns the store call's promise
+): void | Promise<object | boolean | null>  // object-op / api-call return a promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
@@ -145,6 +154,81 @@ a dialog error — never a silent success.
   "handler": "exportReport"
 }
 ```
+
+### `open-form` (Wave 3, #91)
+
+Opens the schema-driven create dialog via `context.openForm(action)` —
+the header-actions surface ([`CnActionButtons`](../components/cn-action-buttons.md))
+provides `openForm` and mounts a `CnAdvancedFormDialog` for the action's
+`schema`, mirroring how `export` delegates to `CnMassExportDialog`. On
+save the surface optionally navigates to the action's `onSuccessRoute`.
+
+```jsonc
+{ "id": "new-lead", "label": "New lead", "type": "open-form", "schema": "lead", "onSuccessRoute": "Leads" }
+```
+
+**`onSuccessRoute` deep-linking (#91).** On a successful save the surface
+navigates via `buildOnSuccessRoute(onSuccessRoute, saved)`, which merges the
+saved object's id (`saved.id` → `saved.uuid` → `saved['@self'].id`) into the
+route params so the navigation can land on the created object's detail page.
+`onSuccessRoute` is either:
+
+- a **string** route NAME → `{ name, params: { id } }`. A route with no `:id`
+  segment simply ignores the extra param, so a bare name keeps working
+  unchanged (backward compatible).
+- an **object** `{ name, paramField?, objectParam? }` → the id lands under
+  `paramField` (default `id`), and — when `objectParam` is set — the whole
+  saved object is passed under that param key too (so a `props: true` detail
+  route renders the record without a refetch).
+
+```jsonc
+{
+  "id": "new-lead", "label": "New lead", "type": "open-form", "schema": "lead",
+  "onSuccessRoute": { "name": "LeadDetail", "paramField": "leadId" }
+}
+```
+
+### `refresh` (Wave 3, #91)
+
+Emits the page-level `cn:page:refresh` event-bus signal — every
+endpoint-bound / bus-subscribed widget on the page force-refetches past
+its short-TTL cache (the same signal the page overflow menu's Refresh
+item broadcasts). No context is required.
+
+```jsonc
+{ "id": "refresh", "label": "Refresh", "type": "refresh" }
+```
+
+### `api-call` (Wave 3, #91)
+
+POST/PUT a configured app endpoint, toast the outcome via
+`@nextcloud/dialogs` (`showSuccess` / `showError`), then — unless
+`refresh: false` — bump `cn:page:refresh`. The `url` interpolates
+`@objectId` / `@object.<field>` / `@workspace.<key>` / `@config.<key>`
+tokens and `params` run the shared filter-token grammar (optional `…?`
+tokens drop when unresolved; a required unresolved token skips the call).
+Returns a promise of `{ ok, data?, error? }`. `confirm` gating is the
+rendering surface's job (object-op precedent) — the dispatcher runs after
+any confirmation.
+
+```jsonc
+{
+  "id": "approve",
+  "label": "Approve run",
+  "type": "api-call",
+  "url": "/apps/shillinq/api/payment-runs/@objectId/approve",
+  "confirm": true,
+  "successMessage": "Payment run approved",
+  "visibleWhen": { "field": "state", "op": "eq", "value": "pending" }
+}
+```
+
+### `toggle` (Wave 3, #91) — not dispatched
+
+A `toggle` is a **stateful two-way control** (GET state on mount, write
+on click) rendered by the header-actions surface, not a one-shot action —
+`dispatchAction` warns and no-ops on it. See
+[`CnActionButtons`](../components/cn-action-buttons.md) for the config.
 
 ## When you'd call it directly
 

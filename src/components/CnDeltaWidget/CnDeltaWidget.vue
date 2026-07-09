@@ -52,6 +52,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { useEndpointSource, getByPath } from '../../composables/useEndpointSource.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 
@@ -125,6 +126,12 @@ export default {
 		 */
 		cnObjectContext: { default: null },
 		/**
+		 * v2 slot-grid detail context holder provided by CnPageRenderer —
+		 * backfills the object token context where CnDetailPage is not an
+		 * ancestor (#91 Wave 3).
+		 */
+		cnDetailObjectContext: { default: null },
+		/**
 		 * Page-level workspace context (a reactive `{ <key>: value }` map)
 		 * provided by CnDashboardPage. Drives `@workspace.<param>` token
 		 * resolution — e.g. the date-range pills publish `dateFrom` / `dateTo`,
@@ -170,6 +177,7 @@ export default {
 		// path below is untouched. Injects re-read in setup (same resolution
 		// as the Options `inject` block — the CnChartWidget precedent).
 		const objectCtxRaw = inject('cnObjectContext', null)
+		const detailCtxRaw = inject('cnDetailObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const unwrap = (v) => ((v && typeof v === 'object' && 'value' in v) ? v.value : v)
@@ -177,7 +185,7 @@ export default {
 			() => (props.content && props.content.endpointSource) || null,
 			{
 				ctx: () => ({
-					...(unwrap(objectCtxRaw) || {}),
+					...(resolveObjectTokenContext(objectCtxRaw, detailCtxRaw) || {}),
 					workspace: unwrap(workspaceRaw) || {},
 					config: unwrap(appConfigRaw) || {},
 				}),
@@ -301,10 +309,9 @@ export default {
 		sourceKey() {
 			return JSON.stringify(this.content.source || {})
 		},
-		/** Unwrapped detail-page object context (`{ objectId, object }`) or null. */
+		/** Merged detail-page object context (`{ objectId, object, register, schema }`) or null — both detail-surface injects (#91 Wave 3). */
 		objectCtx() {
-			const c = this.cnObjectContext
-			return (c && typeof c === 'object' && 'value' in c) ? c.value : c
+			return resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext)
 		},
 		/** Unwrapped page-level workspace context map (always an object). */
 		pageCtx() {

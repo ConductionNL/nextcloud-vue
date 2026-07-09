@@ -13,3 +13,7 @@ docusaurus/build
 # Styleguide build output
 styleguide/build
 .styleguide
+# Playwright e2e
+/test-results/
+/playwright-report/
+/e2e/harness/node_modules/

@@ -56,7 +56,7 @@ wrapper, and passes the `props` map through.
 
 ## Declarative source (self-fetch)
 
-`source` (`{ register, schema, filter, order, limit }`, default `null`)
+`source` (`{ register, schema, filter, order, limit, extend }`, default `null`)
 drives CnDataTable's existing self-fetch — the widget does not
 re-implement fetching:
 
@@ -65,12 +65,21 @@ re-implement fetching:
   `@objectId` / `@object.<field>` (on detail pages). A `?`-suffixed
   optional token that resolves to empty **drops its clause**
   (`dropOptionalUnresolved`) instead of failing the fetch; an unresolved
-  *required* token skips the fetch entirely.
+  *required* token skips the fetch entirely. Since Wave 3 the
+  `@objectId` / `@object.<field>` tokens resolve from **either** detail
+  surface: CnDetailPage's `cnObjectContext` ref (which wins per field)
+  or CnPageRenderer's v2 `cnDetailObjectContext` holder (which
+  backfills), so a ZGW-style sidebar tab widget works without a
+  CnDetailPage ancestor.
 - `register` MAY carry an `@resolve:` sentinel — the widget passes it
   through **unexpanded** (resolution is the host loader's job).
 - `order` becomes `_order[field]=asc|desc` fetch params; `limit` caps
   the rendered rows (the widget fetches `limit + 1` so the "View all"
   footer can detect that more rows exist).
+- `extend` (Wave 3, #91) — an array of OpenRegister `_extend[]` values
+  (e.g. `["calculations"]`) forwarded on the fetch, so virtual /
+  declarative calc fields (procest `daysOverdue` / `daysUntilDeadline`)
+  ride along and render as ordinary columns.
 - Externally supplied `rows` **always win** — passing `rows`/`columns`
   without a `source` behaves exactly as before.
 
@@ -149,6 +158,7 @@ REST endpoint computes (e.g. a per-source performance report):
 | `viewAllLabel` | `String` | Pre-translated "View all" label (CnDataTable default when unset). |
 | `emptyText` | `String` | Empty-state text (CnDataTable default when unset). |
 | `rowIcon` | `String \| Function` | Leading per-row icon: MDI name or `(row) => iconName` (default `null`). |
+| `rowClass` | `Function \| Array` | Per-row CSS class binding (default `null`) — a host-supplied `(row) => string` function (pass-through), or a declarative rules[] array compiled here into that function. See [Declarative rowClass](#declarative-rowclass-91). |
 | `title` | `String` | Widget title shown in the chrome header (default `'Table'`). |
 | `documentation-url` | `String` | Documentation link for the overflow Actions menu (default `''`). |
 | `widget-id` | `String` | Stable id forwarded to the widget chrome (default `''`). |
@@ -156,6 +166,37 @@ REST endpoint computes (e.g. a per-source performance report):
 
 All other props are forwarded to `CnDataTable` — see the
 [CnDataTable docs](./cn-data-table.md) for the full surface.
+
+## Declarative rowClass (#91)
+
+`rowClass` gives a declarative way to highlight rows from the manifest —
+overdue / at-risk rows get a CSS class without a bespoke render function.
+It accepts two forms:
+
+- a host-supplied **function** `(row) => string`, passed straight through
+  to CnDataTable's own `rowClass` (the pre-existing contract), or
+- an **array of rules** `[{ when: { field, op?, value }, class }]`,
+  compiled here into that function. Each rule adds its `class` to a row
+  when the shared `visibleWhen` predicate (LOCAL form) holds against the
+  row: `field` is a dot-path into the row, `op` is
+  `eq | neq | gt | gte | lt | lte` (default `eq`), `value` is the literal
+  right-hand side. Rules evaluate in order and every matching `class` is
+  space-joined.
+
+```json
+{
+  "props": {
+    "source": { "register": "procest", "schema": "case" },
+    "columns": [{ "key": "title", "label": "Case" }],
+    "rowClass": [
+      { "when": { "field": "status", "op": "eq", "value": "overdue" }, "class": "row--overdue" },
+      { "when": { "field": "daysUntilDeadline", "op": "lt", "value": 3 }, "class": "row--at-risk" }
+    ]
+  }
+}
+```
+
+The app styles `.row--overdue` / `.row--at-risk` in its own stylesheet.
 
 ## Dashboard registration (`type: "object-table"`)
 

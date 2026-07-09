@@ -36,6 +36,11 @@ export {
 	CnCellRenderer,
 	CnObjectCard,
 	CnCardGrid,
+	CnObjectRow,
+	CnObjectList,
+	CnFolderTree,
+	CnFolderSidebar,
+	fetchWebdavFolderTree,
 	CnFacetSidebar,
 	CnFederationStatus,
 	CnRowActions,
@@ -137,6 +142,7 @@ export {
 	CnTableWidget,
 	CnActionsBar,
 	CnActionsMenu,
+	CnActionButtons,
 	CnOpenBuildEditButton,
 	CnEditMenuModal,
 	CnEditPagesModal,
@@ -179,6 +185,7 @@ export {
 	CnSuggestFeatureModal,
 	CnSupportDialog,
 	CnNotificationPreferences,
+	CnCredentials,
 	CnDeckCardPicker,
 	CnDeckCardCreate,
 	registerIcons,
@@ -255,7 +262,9 @@ export {
 
 // Composables
 export { useAiContext, useAiChatStream } from './composables/index.js'
-export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability } from './composables/index.js'
+// AI Chat Companion backend config (single point for the chat backend app id)
+export { DEFAULT_CHAT_APP_ID, chatApiBase, chatStreamUrl, chatSendUrl, chatHealthUrl, conversationsUrl, conversationMessagesUrl } from './composables/index.js'
+export { useListView, useDetailView, useSubResource, useDashboardView, useContextMenu, clearContextMenuPositionDom, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, useAppManifest, useAppStatus, useSetupStatus, useWalkthrough, useGraphQL, useDataSource, selectByPath, buildCountQuery, buildBucketQuery, useBrokeredCall, useEndpointSource, fetchEndpointSource, invalidateEndpointSourceCache, useObjectSubscription, useObjectLock, LockConflictError, PermissionError, cnRenderMarkdown, useIntegrationRegistry, useRuntimeManifest, useSupportDialog, useClickDragGuard, useTenantContext, provideTenantContext, createTenantContext, TENANT_CONTEXT_KEY, useManifestEditor, useOpenBuildEditAvailability } from './composables/index.js'
 
 // Integration registry (pluggable integrations — sidebar tabs and widgets)
 export { integrations, createIntegrationRegistry, installIntegrationRegistry, registerIntegration, getSharedRegistry, sharedRegistryIfInstalled, VALID_SURFACES, builtinIntegrations, registerBuiltinIntegrations, leafIntegrations, registerLeafIntegrations, talkIntegration, fieldInspectionIntegration, registerIntegrationIcons, INTEGRATION_ICON_COMPONENTS } from './integrations/index.js'
@@ -286,13 +295,33 @@ export { columnsFromSchema, formatValue, filtersFromSchema, fieldsFromSchema, va
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
 export { resolveManifestSentinels, clearResolveCache } from './utils/resolveManifestSentinels.js'
 export { resolveRouteSentinels, clearRouteSentinelWarnings } from './utils/resolveRouteSentinels.js'
+export {
+	SENTINEL_TOKEN_PATTERNS,
+	SENTINEL_CONTEXTS,
+	SENTINEL_VOCABULARY,
+	SENTINEL_DEPRECATIONS,
+	looksLikeSentinel,
+	contextOf,
+	isKnownToken,
+	matchDeprecation,
+	classifyToken,
+	scanManifestTokens,
+} from './utils/sentinelTokens.js'
+export {
+	SENTINEL_RESOLVERS,
+	resolveManifestSubtree,
+	warnIfDeprecated,
+	clearDeprecationWarnings,
+} from './utils/resolveManifestTokens.js'
 export { filterWidgetsByVisibility, isWidgetVisible, getCurrentUserId, getCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
 export { dispatchAction } from './utils/actionsDispatcher.js'
 export { placeNewWidget, getDashboardColumnOpts } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
+export { fromMdiJs, fromFontAwesome, fromOpenGemeenten, dedupeCatalogue } from './components/CnIconPicker/index.js'
 export { mergeManifestDelta } from './utils/mergeManifestDelta.js'
 export { buildManifest, applyMenuLayout, mergeMenuItems, mergePages, applyMenuRelocations, applyMenuRemovals, applySettingsSection } from './utils/buildManifest.js'
+export { expandPageTemplates } from './utils/expandPageTemplates.js'
 export { diffManifest } from './utils/diffManifest.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.

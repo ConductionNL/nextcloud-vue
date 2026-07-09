@@ -502,15 +502,48 @@ export default {
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const manifest = this.effectiveManifest
-			if (!manifest || !Array.isArray(manifest.pages)) {
-				return null
-			}
 			const routeName = this.$route?.name
 			if (!routeName) {
 				return null
 			}
-			return manifest.pages.find((page) => page.id === routeName) ?? null
+			return this.pageById.get(routeName) ?? null
+		},
+		/**
+		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
+		 * computed until `effectiveManifest` changes), replacing per-recompute
+		 * linear `pages.find()` — O(n) per navigation on large manifests
+		 * (shillinq ships 223 pages). 2026-07-06 audit item 10.
+		 */
+		pageById() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (page && typeof page.id === 'string' && !index.has(page.id)) {
+						index.set(page.id, page)
+					}
+				}
+			}
+			return index
+		},
+		/**
+		 * `Map<"register schema", detailPage>` — the first detail page bound to
+		 * each register+schema pair. Backs the index→detail row-click wiring
+		 * without re-scanning all pages per index page and per row click.
+		 * Memoized on `effectiveManifest`.
+		 */
+		detailPageByRegisterSchema() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (!page || page.type !== 'detail') continue
+					const cfg = page.config || {}
+					const key = `${cfg.register} ${cfg.schema}`
+					if (!index.has(key)) index.set(key, page)
+				}
+			}
+			return index
 		},
 		/**
 		 * Remount key for the dispatched page component. Includes the data source
@@ -635,11 +668,7 @@ export default {
 			// page is selectable. Selection stays available via the checkbox.
 			// An explicit `config.rowClickToView` still wins (merged below).
 			if (isIndex) {
-				const allPages = this.effectiveManifest?.pages
-				const hasDetail = Array.isArray(allPages) && allPages.some((p) => p
-					&& p.type === 'detail'
-					&& (p.config || {}).register === config.register
-					&& (p.config || {}).schema === config.schema)
+				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
 				if (hasDetail) topLevel.rowClickToView = true
 			}
 			let normalizedConfig = config
@@ -974,12 +1003,7 @@ export default {
 				return
 			}
 			const cfg = page.config || {}
-			const pages = this.effectiveManifest?.pages
-			if (!Array.isArray(pages)) return
-			const detail = pages.find((p) => p
-				&& p.type === 'detail'
-				&& (p.config || {}).register === cfg.register
-				&& (p.config || {}).schema === cfg.schema)
+			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			if (!detail) return
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid

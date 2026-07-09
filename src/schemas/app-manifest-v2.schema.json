@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.15.0",
+	"version": "2.17.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -226,6 +226,11 @@
 			"items": { "$ref": "#/$defs/page" },
 			"description": "Page definitions dispatched by CnPageRenderer. Each page's id is also its vue-router route name. Ids MUST be unique across the array; uniqueness is enforced by validateManifestV2 as a post-schema check."
 		},
+		"adminSettings": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/adminSettingsEntry" },
+			"description": "Admin-only settings sections rendered by CnAppRoot's generic admin NcAppSettingsDialog, gated on app-owner-group membership (not OC.isUserAdmin()). An absent key or an empty array yields no admin nav entry and no admin dialog. See the manifest-admin-settings and admin-settings-owner-gating capabilities."
+		},
 		"credentials": {
 			"type": "array",
 			"description": "External-provider credentials this app can use via the OpenRegister credential broker (github, gitlab, …). Each entry declares which provider, why, and at what scope; the app never receives the secret — the broker performs the outbound call on the user's behalf. See the credential-broker capability.",
@@ -248,9 +253,150 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/deepLink" },
 			"description": "ADR-040: object deep-link descriptors consumed by the integration registry / cross-app linking, NOT by the Vue renderer. Optional and additive."
+		},
+		"pageTemplates": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageTemplate" },
+			"description": "Entity-scaffold page templates (manifest-entity-scaffold-templating). A template declares one reusable index/detail page shape ONCE, with `{{param}}` placeholders for the parts that vary per entity (register/schema binding, label, field/column subset) and a declared parameter list. The expander (utils/expandPageTemplates) materialises `pageInstances[]` into concrete `pages[]` at build/boot time, so CnPageRenderer only ever sees concrete pages and is unchanged by templating. Optional and additive: a manifest without pageTemplates is unaffected."
+		},
+		"pageInstances": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/pageInstance" },
+			"description": "Per-entity template instantiations. Each entry references a `pageTemplates[]` template by `templateRef` and supplies only the values that vary. The expander substitutes them into the referenced template and appends the resulting concrete pages to `pages[]`. Expansion FAILS (named error) on an unknown templateRef or a missing required template parameter. Optional and additive."
+		},
+		"sets": {
+			"type": "object",
+			"description": "Named, reusable field/column/sidebar sets referenced from templates via a `{{set:NAME}}` placeholder, so a repeated field/column/sidebar block is declared ONCE and shared across templates and pages instead of being re-listed. Each value is arbitrary JSON (typically an array of field/column defs or a sidebar object). Optional and additive.",
+			"additionalProperties": true
 		}
 	},
 	"$defs": {
+		"pageTemplate": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "page"],
+			"description": "A reusable page shape declared once and instantiated per entity. `page` is an ordinary v2 page object whose string values may contain `{{param}}` placeholders (and `{{set:NAME}}` set references); `params` declares which placeholders exist and which are required. Fixed structure lives in `page`; only declared params vary per instantiation.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique template identifier — the `templateRef` target. Uniqueness across pageTemplates[] is enforced by validateManifestV2 as a post-schema check."
+				},
+				"_note": {
+					"type": "string",
+					"description": "Free-form maintainer note; ignored by the expander."
+				},
+				"params": {
+					"type": "array",
+					"description": "Declared parameters. A placeholder `{{name}}` in `page` is substituted with the instantiation's value for `name`. A `required` param absent from an instantiation is an expansion error; an optional param absent from an instantiation causes its exact-match placeholder key to be omitted from the expanded page.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": { "type": "string", "description": "Parameter name, referenced as `{{name}}` in the template `page`." },
+							"required": { "type": "boolean", "default": false, "description": "When true, an instantiation omitting this parameter is an expansion error." },
+							"description": { "type": "string", "description": "Human-readable description of the parameter." }
+						}
+					}
+				},
+				"page": {
+					"type": "object",
+					"description": "The parameterised page shape. An ordinary v2 page whose string leaves may embed `{{param}}` placeholders and `{{set:NAME}}` set references. After substitution the result MUST be a valid concrete page (it is validated as part of the expanded pages[])."
+				}
+			}
+		},
+		"pageInstance": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["templateRef"],
+			"description": "A per-entity instantiation of a pageTemplate. Supplies only the values that vary. `register`, `schema` and `label` are first-class shortcuts folded into the parameter map (equivalent to listing them under `params`); `params` may carry any additional declared parameters (e.g. a field/column subset).",
+			"properties": {
+				"templateRef": {
+					"type": "string",
+					"description": "Id of the `pageTemplates[]` entry to instantiate. An unknown templateRef is an expansion error."
+				},
+				"register": { "type": "string", "description": "Shortcut for the `register` parameter." },
+				"schema": { "type": "string", "description": "Shortcut for the `schema` parameter." },
+				"label": { "type": "string", "description": "Shortcut for the `label` parameter." },
+				"params": {
+					"type": "object",
+					"description": "Parameter values keyed by the template's declared parameter names. Values may be any JSON type (a field/column subset is an array value). Overrides the register/schema/label shortcuts on conflict.",
+					"additionalProperties": true
+				},
+				"override": {
+					"type": "object",
+					"description": "Optional structural delta applied over the substituted page via the SAME base+delta merge semantics as mergeManifestDelta (layered-versioned-app-deltas alignment). Lets an instantiation patch a single widget/field without re-listing the page, and is where a per-user/app override sits on top of the template base. No second merge model is introduced.",
+					"additionalProperties": true
+				}
+			}
+		},
+		"sentinelFilterToken": {
+			"type": "string",
+			"pattern": "^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$",
+			"description": "Filter-value context: relative fetch-time tokens resolved by resolveFilterTokens (@me, @now, @today, @today±Nd, @monthStart, @quarterStart, @yearStart). Mirrors SENTINEL_TOKEN_PATTERNS.filter in src/utils/sentinelTokens.js (byte-equality enforced by a unit test)."
+		},
+		"sentinelConfigToken": {
+			"type": "string",
+			"pattern": "^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$",
+			"description": "Config context: IAppConfig-sourced values. @resolve:<key> resolved at manifest-load time; @config.<key> (trailing ? optional) at fetch time. Mirrors SENTINEL_TOKEN_PATTERNS.config."
+		},
+		"sentinelObjectToken": {
+			"type": "string",
+			"pattern": "^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$",
+			"description": "Object context: detail-page object tokens (@objectId, @object.<field>) resolved only when a { objectId, object } ctx is supplied. Mirrors SENTINEL_TOKEN_PATTERNS.object."
+		},
+		"sentinelWorkspaceToken": {
+			"type": "string",
+			"pattern": "^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$",
+			"description": "Workspace context: page-level workspace state (@workspace.<key>; trailing ? marks optional). Mirrors SENTINEL_TOKEN_PATTERNS.workspace."
+		},
+		"sentinelRouteToken": {
+			"type": "string",
+			"pattern": "^@route\\.[A-Za-z][A-Za-z0-9_-]*$",
+			"description": "Route context: vue-router param substitution (@route.<param>) resolved by resolveRouteSentinels. Mirrors SENTINEL_TOKEN_PATTERNS.route."
+		},
+		"sentinelDeclarativeToken": {
+			"type": "string",
+			"pattern": "^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$",
+			"description": "Declarative context (OpenRegister direction, resolved server-side): @self.<field> (the object's own field in a cross-object calc), @ref:<path>, @aggregate:<expr>. @ref/@aggregate are first-class members even though currently unused fleet-wide. Mirrors SENTINEL_TOKEN_PATTERNS.declarative."
+		},
+		"sentinelDeprecatedToken": {
+			"type": "string",
+			"pattern": "^@currentFiscalYear$|^@page\\.[A-Za-z][A-Za-z0-9_]*$|^@runtime(?:\\.[A-Za-z][A-Za-z0-9_]*)?$",
+			"description": "Deprecated single-app inventions kept in the union so deployed manifests still validate during the migration window. The hydra token-vocabulary gate downgrades these to a WARN (see SENTINEL_DEPRECATIONS): @currentFiscalYear → @config.fiscalYear, @page.<key> → @workspace.<key>, @runtime → removal. Mirrors SENTINEL_TOKEN_PATTERNS.deprecated."
+		},
+		"sentinelTokenAny": {
+			"$comment": "Union of every canonical context plus the deprecated-during-window overlay. Single source the shared resolver + gate import.",
+			"anyOf": [
+				{ "$ref": "#/$defs/sentinelFilterToken" },
+				{ "$ref": "#/$defs/sentinelConfigToken" },
+				{ "$ref": "#/$defs/sentinelObjectToken" },
+				{ "$ref": "#/$defs/sentinelWorkspaceToken" },
+				{ "$ref": "#/$defs/sentinelRouteToken" },
+				{ "$ref": "#/$defs/sentinelDeclarativeToken" },
+				{ "$ref": "#/$defs/sentinelDeprecatedToken" }
+			]
+		},
+		"sentinelTokenLeaf": {
+			"$comment": "A string leaf: either NOT a sentinel (does not start with @) or a member of the closed vocabulary. An @-prefixed out-of-vocabulary string FAILS here instead of passing through additionalProperties:true.",
+			"anyOf": [
+				{ "not": { "pattern": "^@" } },
+				{ "$ref": "#/$defs/sentinelTokenAny" }
+			]
+		},
+		"sentinelGuardedValue": {
+			"$comment": "Recursive guard applied (via allOf) to pages[].config and widgetEntry so every string leaf anywhere beneath is checked against the closed vocabulary. Additive + backward-compatible: only @-prefixed out-of-vocabulary strings newly fail; all other shapes are untouched.",
+			"if": { "type": "string" },
+			"then": { "$ref": "#/$defs/sentinelTokenLeaf" },
+			"else": {
+				"if": { "type": "array" },
+				"then": { "items": { "$ref": "#/$defs/sentinelGuardedValue" } },
+				"else": {
+					"if": { "type": "object" },
+					"then": { "additionalProperties": { "$ref": "#/$defs/sentinelGuardedValue" } }
+				}
+			}
+		},
 		"observability": {
 			"type": "object",
 			"additionalProperties": false,
@@ -441,8 +587,8 @@
 				},
 				"action": {
 					"type": "string",
-					"enum": ["user-settings", "replay-walkthrough"],
-					"description": "Built-in action to invoke when the entry is clicked. Closed enum. 'replay-walkthrough' re-runs the product walkthrough (ADR-043), optionally for a specific tourId."
+					"enum": ["user-settings", "admin-settings", "replay-walkthrough"],
+					"description": "Built-in action to invoke when the entry is clicked. Closed enum. 'admin-settings' opens the app-level admin-settings dialog (distinct from the per-user settings dialog). 'replay-walkthrough' re-runs the product walkthrough (ADR-043), optionally for a specific tourId."
 				},
 				"tourId": {
 					"type": "string",
@@ -500,7 +646,7 @@
 				"href": { "type": "string" },
 				"action": {
 					"type": "string",
-					"enum": ["user-settings", "replay-walkthrough"]
+					"enum": ["user-settings", "admin-settings", "replay-walkthrough"]
 				},
 				"tourId": {
 					"type": "string",
@@ -544,7 +690,7 @@
 			"type": "object",
 			"required": ["widgetKey", "slot", "gridX", "gridY", "gridWidth", "gridHeight"],
 			"additionalProperties": false,
-			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
+			"description": "A uniform widget placement entry used on every page type in v2. Replaces the v1 widgetDef + layoutItem pair with a single shape. Its props/dataSource/filter string leaves are guarded against the closed sentinel vocabulary via the sentinelGuardedValue allOf. The cross-field constraint gridX + gridWidth <= 12 CANNOT be expressed in JSON Schema (arithmetic over sibling fields) — it is documented here and enforced at runtime by validateManifestV2() as a post-schema check. Failure message: \"Widget '{widgetKey}' in slot '{slot}': gridX ({gridX}) + gridWidth ({gridWidth}) exceeds 12\".",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -604,6 +750,7 @@
 				}
 			},
 			"allOf": [
+				{ "$ref": "#/$defs/sentinelGuardedValue" },
 				{
 					"description": "sidebar slot: gridWidth MUST equal 1. The sidebar is a fixed-width panel; widgets always span the full width.",
 					"if": {
@@ -644,6 +791,29 @@
 										"type": "array",
 										"items": { "$ref": "#/$defs/action" },
 										"description": "Declarative row/widget actions rendered by CnWidgetObjectTable. object-op patch/delete render per row; object-op create renders as a widget-scoped footer affordance."
+									},
+									"rowClass": {
+										"type": "array",
+										"description": "#91: declarative per-row CSS class rules compiled into CnDataTable's rowClass function. Each rule { when: { field, op?, value }, class } adds `class` to a row when the shared visibleWhen predicate holds against that row (field = dot-path into the row, op = eq|neq|gt|gte|lt|lte default eq, value = literal). Rules evaluate in order and every matching class is space-joined — so overdue / at-risk rows can be highlighted from the manifest. A host-supplied rowClass FUNCTION (runtime-only) still passes straight through.",
+										"items": {
+											"type": "object",
+											"additionalProperties": false,
+											"required": ["when", "class"],
+											"properties": {
+												"when": {
+													"type": "object",
+													"additionalProperties": false,
+													"required": ["field", "value"],
+													"description": "The predicate evaluated against the row (shared visibleWhen grammar, LOCAL form).",
+													"properties": {
+														"field": { "type": "string", "description": "Dot-path into the row." },
+														"op": { "type": "string", "enum": ["eq", "neq", "gt", "gte", "lt", "lte"], "default": "eq", "description": "Comparison operator (default eq)." },
+														"value": { "description": "Literal right-hand side of the comparison." }
+													}
+												},
+												"class": { "type": "string", "description": "CSS class added to the row when `when` holds." }
+											}
+										}
 									}
 								}
 							}
@@ -890,6 +1060,135 @@
 						}
 					}
 				}
+				,
+				{
+					"description": "workspace-filter catalog widget (#91 Wave 3): a choice list whose selection writes into the page workspace context so sibling widgets refetch. The endpoint/OR-source binding keys of `props.content` are typed here; the rest stays free-form.",
+					"if": {
+						"properties": { "widgetKey": { "const": "workspace-filter" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"writes": {
+												"type": "string",
+												"description": "The workspace context key the selection writes (`@workspace.<key>` or a bare `<key>`). Sibling widgets whose declarative source interpolates `@workspace.<key>` refetch on change."
+											},
+											"style": {
+												"type": "string",
+												"enum": ["radio", "select"],
+												"default": "radio",
+												"description": "Choice style: 'radio' (default) list or 'select' dropdown."
+											},
+											"allLabel": {
+												"type": "string",
+												"description": "Optional leading 'All' option — writes the empty string so an optional sibling token (`@workspace.<key>?`) drops (unfiltered set)."
+											},
+											"showCounts": {
+												"type": "boolean",
+												"default": true,
+												"description": "Render per-option counts."
+											},
+											"options": {
+												"type": "array",
+												"description": "Static options — each { value, label, count? } (or { id, name } / bare strings, normalised).",
+												"items": { "type": ["object", "string", "number"] }
+											},
+											"source": {
+												"type": "object",
+												"additionalProperties": true,
+												"description": "OpenRegister /grouped facet source { register, schema, groupBy, filter? } — each distinct value becomes an option with its object count.",
+												"properties": {
+													"register": { "type": "string" },
+													"schema": { "type": "string" },
+													"groupBy": { "type": "string" },
+													"filter": { "type": "object", "additionalProperties": true }
+												}
+											},
+											"endpointSource": {
+												"$ref": "#/$defs/endpointSource",
+												"description": "App endpoint returning an array of { value, label, count? } options at responsePath."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"description": "kb-search catalog widget (#91 Wave 3): summary-driven knowledge-base search through a PLUGGABLE PROVIDER. The provider seam keys of `props.content` are typed here; the rest stays free-form.",
+					"if": {
+						"properties": { "widgetKey": { "const": "kb-search" } },
+						"required": ["widgetKey"]
+					},
+					"then": {
+						"properties": {
+							"props": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "object",
+										"additionalProperties": true,
+										"properties": {
+											"provider": {
+												"type": "string",
+												"description": "Provider registry key (default 'default' — the built-in endpoint search). An app registers bespoke providers (the xwiki proxy) on CnAppRoot's kbSearchProviders; the xwiki client stays app-side."
+											},
+											"space": {
+												"type": "string",
+												"description": "Provider-specific KB space filter (passed to provider.search)."
+											},
+											"tags": {
+												"description": "Provider-specific tag filter — a single tag or an array.",
+												"oneOf": [
+													{ "type": "string" },
+													{ "type": "array", "items": { "type": "string" } }
+												]
+											},
+											"endpoint": {
+												"type": "string",
+												"description": "The default provider's search endpoint (OpenRegister xWiki leaf by default)."
+											},
+											"queryParam": {
+												"type": "string",
+												"description": "The default provider's query parameter name (default 'q')."
+											},
+											"bindTo": {
+												"type": "string",
+												"description": "Workspace context key to auto-search on (default 'activeSummary')."
+											},
+											"minChars": {
+												"type": "integer",
+												"minimum": 0,
+												"description": "Minimum characters before a search fires (default 3)."
+											},
+											"limit": {
+												"type": "integer",
+												"minimum": 1,
+												"description": "Result cap passed to the provider (default 8)."
+											},
+											"externalOpen": {
+												"type": "boolean",
+												"description": "Whether result links open in a new tab (defaults to the provider's own externalOpen flag)."
+											},
+											"unavailableFallback": {
+												"type": "string",
+												"description": "Text shown when the provider rejects / is unavailable (replaces the default 'Knowledge base unavailable')."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
 			]
 		},
 		"fieldWidget": {
@@ -936,7 +1235,7 @@
 		},
 		"dataSource": {
 			"type": "object",
-			"description": "Declarative data binding for widgets. Two forms: (a) shorthand {register, schema, filter?, aggregate: 'count'} — the lib builds a count query and resolves to {count}. (b) raw {graphql: {query, variables?, selectors}} — the lib issues the query and runs selectors against the response. Carry-forward from v1.3.0 widgetDef.dataSource.",
+			"description": "Declarative data binding for widgets. Forms: (a) shorthand {register, schema, filter?, aggregate: 'count'} — the lib builds a count query and resolves to {count}. (b) raw {graphql: {query, variables?, selectors}} — the lib issues the query and runs selectors. (c) #91 Wave 3 chart aggregation — `aggregate` as an OBJECT {groupBy, metric?: count|sum, sumField?, topN?, otherBucket?, labelResolve?} grouped over the schema's objects via OpenRegister's /grouped facet (client-side collection fallback), plus an optional sibling `drilldown` {route, filterParam}. Carry-forward from v1.3.0 widgetDef.dataSource.",
 			"additionalProperties": true,
 			"properties": {
 				"register": {
@@ -953,9 +1252,45 @@
 					"additionalProperties": true
 				},
 				"aggregate": {
-					"type": "string",
-					"enum": ["count"],
-					"description": "Shorthand aggregation. Currently only count is supported."
+					"description": "Shorthand aggregation. The STRING 'count' builds a GraphQL count query resolving to {count}. The OBJECT form (#91 Wave 3) is a chart-only categorical group-by served by OpenRegister's /grouped facet.",
+					"oneOf": [
+						{ "type": "string", "enum": ["count"] },
+						{
+							"type": "object",
+							"required": ["groupBy"],
+							"additionalProperties": false,
+							"description": "#91 Wave 3 chart aggregation: group the schema's objects by `groupBy`, count (default) or sum `sumField`, keep the `topN` largest (sorted desc) and optionally fold the remainder into a translated 'Other' slice, resolving reference keys to labels/colours via `labelResolve`.",
+							"properties": {
+								"groupBy": { "type": "string", "description": "The categorical field grouped on." },
+								"metric": { "type": "string", "enum": ["count", "sum"], "default": "count", "description": "count (default) | sum. sum requires sumField." },
+								"sumField": { "type": "string", "description": "Numeric field summed when metric is 'sum' (required for sum)." },
+								"topN": { "type": "integer", "minimum": 1, "description": "Keep the N largest groups (sorted by value desc)." },
+								"otherBucket": { "type": "boolean", "description": "Fold the post-topN remainder into a single translated 'Other' slice (sum of the rest). The Other bucket never drilldown-navigates." },
+								"labelResolve": {
+									"type": "object",
+									"required": ["schema"],
+									"additionalProperties": false,
+									"description": "Resolve reference (uuid) group keys to the referenced objects' display labels (and optional per-category colours) through the shared object store — the fkResolve pattern.",
+									"properties": {
+										"register": { "type": "string", "description": "Register the reference points into (defaults to the dataSource register)." },
+										"schema": { "type": "string", "description": "Schema slug the reference points into." },
+										"labelField": { "type": "string", "description": "Property used as the display label (default 'name')." },
+										"colorField": { "type": "string", "description": "Optional property read as a per-category CSS colour (feeds the chart's colorMap path)." }
+									}
+								}
+							}
+						}
+					]
+				},
+				"drilldown": {
+					"type": "object",
+					"required": ["route", "filterParam"],
+					"additionalProperties": false,
+					"description": "#91 Wave 3 (chart only): a segment/bar click navigates to `route` with the clicked category's RAW key in the query ({ [filterParam]: rawKey }). A `/`-prefixed route is a path, otherwise a route name. Works with the OBJECT `aggregate` and the legacy `groupBy` forms; the folded 'Other' bucket never navigates.",
+					"properties": {
+						"route": { "type": "string", "description": "Destination route name, or a path when it starts with '/'." },
+						"filterParam": { "type": "string", "description": "Query-param name the clicked category's raw key is written to." }
+					}
 				},
 				"graphql": {
 					"type": "object",
@@ -985,7 +1320,7 @@
 			"type": "object",
 			"required": ["id", "label"],
 			"additionalProperties": false,
-			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
+			"description": "A typed page action with a discriminator field. The type field determines behaviour: handler (registry function), open-modal (modal by id), open-page (named route), navigate (URL), object-op (declarative OpenRegister mutation via useObjectStore), export (opens the shared CnMassExportDialog export launcher), open-form (schema-driven create dialog — CnActionButtons), refresh (bumps the cn:page:refresh signal), api-call (POST/PUT an app endpoint + toast + refresh — CnActionButtons/dispatchAction), toggle (two-way state button — CnActionButtons only, NOT dispatchable). When type is omitted, it defaults to 'handler' (back-compatibility with v1.3.0 action declarations). The Ajv instance is compiled with useDefaults: true so the default is applied during validation.",
 			"properties": {
 				"id": {
 					"type": "string",
@@ -997,9 +1332,9 @@
 				},
 				"type": {
 					"type": "string",
-					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export"],
+					"enum": ["handler", "open-modal", "open-page", "navigate", "object-op", "export", "open-form", "refresh", "api-call", "toggle"],
 					"default": "handler",
-					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
+					"description": "Action behaviour discriminator. Defaults to 'handler' when omitted (back-compat with v1.3.0). handler: calls a registry function; open-modal: opens a modal by target id; open-page: navigates to a named route; navigate: navigates to a URL; object-op: dispatches a declarative mutation (patch | delete | create) of an OpenRegister object via the shared object store; export: opens the shared CnMassExportDialog export launcher configured via entities[]/formats[] — the confirm payload ({format, entity?}) routes to the action's `handler` in the manifest actions map (the app's export service does the download). open-form (#91 Wave 3): CnActionButtons opens a schema-driven create dialog (CnAdvancedFormDialog) for the action's register/schema, saves + toasts + refreshes + optionally navigates to onSuccessRoute. refresh (#91 Wave 3): bumps the page-level cn:page:refresh event-bus signal so every endpoint-bound widget refetches. api-call (#91 Wave 3): POST/PUT the token-interpolated url with params (JSON body) + success/error toast + auto page-refresh (unless refresh:false); confirm gating is surface-consumed intent (object-op precedent). toggle (#91 Wave 3): a stateful two-way state button rendered by CnActionButtons (GET stateSource on mount, optimistic write on click) — NOT dispatchable through dispatchAction. object-op declares mutation INTENT only — authority is enforced server-side by OpenRegister RBAC (ADR-022/ADR-023); authorization-shaped fields have no client-side effect and are not accepted here."
 				},
 				"op": {
 					"type": "string",
@@ -1014,7 +1349,7 @@
 				"confirm": {
 					"type": "boolean",
 					"default": false,
-					"description": "object-op only: when true, patch/create present a confirmation dialog (CnConfirmDialog) before dispatch. delete ALWAYS confirms regardless of this flag."
+					"description": "Confirm-gating (object-op + #91 Wave 3 api-call / open-form): when true, the action presents a CnConfirmDialog before running (the dispatcher / CnActionButtons runs AFTER confirmation). object-op delete ALWAYS confirms regardless of this flag."
 				},
 				"target": {
 					"type": "string",
@@ -1071,6 +1406,85 @@
 				"description": {
 					"type": "string",
 					"description": "export only: pre-translated description shown above the export launcher's pickers."
+				},
+				"url": {
+					"type": "string",
+					"description": "api-call / toggle only: the app endpoint (POST/PUT). App-relative (routed through generateUrl) or absolute (http/https). May interpolate @objectId / @object.<field> / @workspace.<key> / @config.<key> tokens inline (unresolved tokens collapse to empty)."
+				},
+				"method": {
+					"type": "string",
+					"enum": ["POST", "PUT"],
+					"description": "api-call: HTTP method (default POST). toggle writeUrl: default PUT."
+				},
+				"params": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "api-call / toggle only: the JSON request body. Values run the shared filter-token grammar (@me, @today±Nd, @workspace.<key>/@config.<key> with a trailing `?` for optional values dropped when unresolved; a required unresolved token skips the call)."
+				},
+				"successMessage": {
+					"type": "string",
+					"description": "api-call / open-form / toggle: pre-translated success toast text (a library default applies when absent)."
+				},
+				"errorMessage": {
+					"type": "string",
+					"description": "api-call / toggle: pre-translated error toast text (falls back to the server's error/message, then a library default)."
+				},
+				"refresh": {
+					"type": "boolean",
+					"default": true,
+					"description": "api-call / toggle: bump the page-level cn:page:refresh signal after a successful call (default true; set false to skip)."
+				},
+				"register": {
+					"type": "string",
+					"description": "open-form only: OpenRegister register slug for the create dialog's schema (falls back to the page object context's register)."
+				},
+				"schema": {
+					"type": "string",
+					"description": "open-form only: OpenRegister schema slug — the create dialog fetches this schema and saves the new object against it."
+				},
+				"onSuccessRoute": {
+					"description": "open-form only: optional post-save navigation target (#91). A bare route NAME (string) navigates with the saved object's id merged into the route params under `id` (harmless when the route has no `:id` segment — backward compatible). The object form { name, paramField?, objectParam? } names the id param (`paramField`, default `id`) and, when `objectParam` is set, also passes the whole saved object under that param key (for a props:true detail route to render without a refetch). The id is read from saved.id, then saved.uuid, then saved['@self'].id.",
+					"oneOf": [
+						{ "type": "string" },
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["name"],
+							"properties": {
+								"name": { "type": "string", "description": "The vue-router route NAME pushed after a successful save." },
+								"paramField": { "type": "string", "default": "id", "description": "Route param name populated from the saved object's id (default `id`)." },
+								"objectParam": { "type": "string", "description": "When set, the whole saved object is passed under this route param (props:true detail routes render without a refetch)." }
+							}
+						}
+					]
+				},
+				"labelOn": {
+					"type": "string",
+					"description": "toggle only: button label rendered while the state is ON (true). Falls back to `label`."
+				},
+				"labelOff": {
+					"type": "string",
+					"description": "toggle only: button label rendered while the state is OFF (false). Falls back to `label`."
+				},
+				"stateSource": {
+					"$ref": "#/$defs/endpointSource",
+					"description": "toggle only: the endpoint the initial state is read from on mount (the shared endpointSource shape — url + token-resolved params + responsePath). The `field` dot-path picks the boolean off the payload."
+				},
+				"writeUrl": {
+					"type": "string",
+					"description": "toggle only: the endpoint the flipped state is written to on click (interpolates the same tokens as `url`)."
+				},
+				"field": {
+					"type": "string",
+					"description": "toggle only: the state field — read off the stateSource payload on mount AND sent (as the flipped boolean) in the write body under this key."
+				},
+				"variant": {
+					"type": "string",
+					"description": "CnActionButtons button variant (e.g. 'primary', 'secondary', 'error'). 'error' also styles the confirm dialog as destructive."
+				},
+				"visibleWhen": {
+					"$ref": "#/$defs/visibleWhen",
+					"description": "#91 Wave 3: an optional predicate gating whether the action renders — the shared banner shape ({ endpoint | source | field, op, value }). The `field`-only LOCAL form evaluates against the page object context (a detail action shown only in the right lifecycle state); endpoint / source forms fetch. Fail-safe: a broken predicate hides the action."
 				}
 			},
 			"allOf": [
@@ -1081,8 +1495,66 @@
 						"required": ["type"]
 					},
 					"then": { "required": ["op"] }
+				},
+				{
+					"description": "api-call actions MUST declare their endpoint via `url`.",
+					"if": {
+						"properties": { "type": { "const": "api-call" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["url"] }
+				},
+				{
+					"description": "open-form actions MUST declare the create schema via `schema`.",
+					"if": {
+						"properties": { "type": { "const": "open-form" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["schema"] }
+				},
+				{
+					"description": "toggle actions MUST declare their write endpoint via `writeUrl`.",
+					"if": {
+						"properties": { "type": { "const": "toggle" } },
+						"required": ["type"]
+					},
+					"then": { "required": ["writeUrl"] }
 				}
 			]
+		},
+		"visibleWhen": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "#91 Wave 3: the shared visibility predicate (the Wave-1 banner shape). THREE modes: `endpoint` (GET a JSON endpoint, `field` dot-paths into the body), `source` (an OpenRegister { register, schema, filter? } query — `field` into the first result, or omit / use @total for the collection total), or LOCAL (neither endpoint nor source — `field` dot-paths into the caller's object context, e.g. a detail-page record). `op` defaults to eq. Evaluation is FAIL-SAFE (any error → hidden).",
+			"properties": {
+				"endpoint": {
+					"type": "string",
+					"description": "A same-origin URL returning JSON; `field` is a dot-path into the body."
+				},
+				"source": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "An OpenRegister object query { register, schema, filter? } (filter supports the shared @-token grammar). `field` dot-paths into the first result; omit it (or use @total) to compare the collection total.",
+					"properties": {
+						"register": { "type": "string" },
+						"schema": { "type": "string" },
+						"filter": { "type": "object", "additionalProperties": true }
+					}
+				},
+				"field": {
+					"type": "string",
+					"description": "Dot-path to the compared value — into the endpoint body, the source's first result, or (LOCAL mode) the caller's object context."
+				},
+				"op": {
+					"type": "string",
+					"enum": ["eq", "neq", "gt", "gte", "lt", "lte"],
+					"default": "eq",
+					"description": "Comparison operator (default eq). eq/neq compare loosely-normalised primitives; ordering operators coerce both sides to Number."
+				},
+				"value": {
+					"description": "The literal right-hand side of the comparison."
+				}
+			}
 		},
 		"objectTableSource": {
 			"type": "object",
@@ -1112,6 +1584,11 @@
 					"type": "integer",
 					"minimum": 0,
 					"description": "Row cap. 0 (or omitted) shows all fetched rows; a positive value caps the rendered rows and enables the View-all footer when more rows exist."
+				},
+				"extend": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "OpenRegister `_extend[]` values forwarded on the fetch (e.g. [\"calculations\"]) so read-time virtual/derived fields are hydrated and available as columns. Each entry is passed through verbatim."
 				}
 			}
 		},
@@ -1313,8 +1790,9 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use two sentinel forms: `@resolve:<key>` (IAppConfig lookup, resolved by the loader at manifest-load time) and `@route.<param>` (vue-router param lookup, resolved by CnPageRenderer at render time). Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
+					"description": "Type-specific configuration. Shape varies by page type — see v1 schema for per-type config shapes (index, detail, dashboard, logs, settings, chat, files, form, map, custom). Config values under pages[].config may use the closed sentinel vocabulary (see $defs/sentinelTokenAny) — an out-of-vocabulary @-token FAILS validation via the sentinelGuardedValue allOf guard. Carry-forward from v1: register, schema, columns, actions, sidebar, sidebarProps, fields, sections, tabs, content, layout, widgets (dashboard only), cardComponent, columnGroups, etc.",
 					"additionalProperties": true,
+					"allOf": [{ "$ref": "#/$defs/sentinelGuardedValue" }],
 					"properties": {
 						"register": {
 							"type": "string",
@@ -1673,6 +2151,48 @@
 				"displayName": {
 					"type": "string",
 					"description": "Human-readable label for the linked object type."
+				}
+			}
+		},
+		"adminSettingsEntry": {
+			"type": "object",
+			"required": ["id", "label"],
+			"additionalProperties": false,
+			"oneOf": [
+				{ "required": ["type"] },
+				{ "required": ["component"] }
+			],
+			"description": "One admin-only settings section rendered by CnAppRoot's generic admin NcAppSettingsDialog, sorted into the dialog by `order`. Exactly one of `type` (a built-in section) or `component` (a custom section resolved from the renderer registry) MUST be present.",
+			"properties": {
+				"id": {
+					"type": "string",
+					"description": "Unique identifier for this admin-settings entry; also the rendered NcAppSettingsSection id."
+				},
+				"label": {
+					"type": "string",
+					"description": "i18n translation key (English source) resolved by the consuming app's t() function, shown as the section header."
+				},
+				"type": {
+					"type": "string",
+					"enum": ["organisation-credentials"],
+					"description": "Built-in admin-settings section. Closed enum. 'organisation-credentials' renders CnCredentials with scope=\"organisation\" (the OpenRegister credential broker's organisation-scope pane). Mutually exclusive with `component`."
+				},
+				"component": {
+					"type": "string",
+					"description": "Registry key of a custom admin-settings section component, resolved from the CnAppRoot custom-components registry at render time. Mutually exclusive with `type`."
+				},
+				"order": {
+					"type": "integer",
+					"description": "Sort order of this section within the admin dialog. Entries without an order render last, in array position."
+				},
+				"permission": {
+					"type": "string",
+					"description": "Optional permission string that further narrows visibility of this section WITHIN the already owner-gated admin dialog, reusing the existing per-item permission grammar. Narrow-only: it can never widen access to a caller who is not an owner of the app."
+				},
+				"props": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Props forwarded to a custom `component` entry. Ignored for built-in `type` entries."
 				}
 			}
 		}

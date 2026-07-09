@@ -150,9 +150,10 @@
 		<!-- OPEN-ENUM BRANCH: render the consumer-supplied `tabs` array.
 		     Each tab declares its content via `widgets` (resolved against
 		     the built-in widget registry — `data` → CnObjectDataWidget,
-		     `metadata` → CnObjectMetadataWidget — with the customComponents
-		     registry as the escape hatch) OR `component` (resolved against
-		     the customComponents registry directly). -->
+		     `metadata` → CnObjectMetadataWidget, `audit`/`audit-trail` →
+		     CnAuditTrailTab, `object-table` → CnWidgetObjectTable — with the
+		     customComponents registry as the escape hatch) OR `component`
+		     (resolved against the customComponents registry directly). -->
 		<template v-else>
 			<NcAppSidebarTab
 				v-for="(tab, idx) in tabs"
@@ -189,6 +190,7 @@
 </template>
 
 <script>
+import { inject, provide, ref, watch } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab } from '@nextcloud/vue'
 
@@ -209,12 +211,19 @@ import CnAuditTrailTab from './CnAuditTrailTab.vue'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
+import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.
- * - `data`     → CnObjectDataWidget (schema-driven editable grid)
- * - `metadata` → CnObjectMetadataWidget (read-only system metadata)
- * - `audit`    → CnAuditTrailTab (the object's change log / audit trail)
+ * - `data`         → CnObjectDataWidget (schema-driven editable grid)
+ * - `metadata`     → CnObjectMetadataWidget (read-only system metadata)
+ * - `audit`        → CnAuditTrailTab (the object's change log / audit trail)
+ * - `object-table` → CnWidgetObjectTable (a declarative list scoped to the
+ *   parent object — the full source / endpointSource / columns / actions
+ *   contract). Resolves `@objectId` / `@object.<field>` filter tokens against
+ *   the object context this sidebar `provide`s (see setup), so a detail
+ *   page's ZGW-style relation tab (e.g. a zaak's besluiten, filtered by
+ *   `{ zaak: "@objectId" }`) renders as a sidebar tab with no bespoke code.
  *
  * Any `widgets[].type` value not in this map falls back to the
  * customComponents registry (prop, then injected `cnCustomComponents`).
@@ -228,6 +237,10 @@ const BUILTIN_WIDGETS = {
 	// (the same key it uses for the detail-page body widget) and get the object's
 	// change log as a proper sidebar tab.
 	'audit-trail': CnAuditTrailTab,
+	// The declarative list widget (same key as the detail-page body widget), so
+	// a sidebar tab can render a related-object list scoped to the parent
+	// object via `@objectId` / `@object.<field>` tokens in its `source.filter`.
+	'object-table': CnWidgetObjectTable,
 }
 
 /**
@@ -429,8 +442,11 @@ export default {
 		 * - `icon` (string, optional) — MDI icon name resolved via CnIcon.
 		 * - `widgets` (array, optional) — list of widget specs `{ type, props? }`
 		 *   to render inside the tab. Built-in types: `data` → CnObjectDataWidget,
-		 *   `metadata` → CnObjectMetadataWidget. Any other `type` resolves
-		 *   against the customComponents registry.
+		 *   `metadata` → CnObjectMetadataWidget, `audit` / `audit-trail` →
+		 *   CnAuditTrailTab, `object-table` → CnWidgetObjectTable (a declarative
+		 *   list scoped to the parent object via `@objectId` / `@object.<field>`
+		 *   filter tokens). Any other `type` resolves against the customComponents
+		 *   registry.
 		 * - `component` (string, optional) — name resolved against the
 		 *   customComponents registry. Mutually exclusive with `widgets`
 		 *   (when both are set, `component` wins and a console.warn is logged).
@@ -484,6 +500,40 @@ export default {
 		// surfaced as `useNcFormBox(...)` undefined on cross-bundle
 		// registrations. See openregister#1958.
 		exposed.resolveRegistryTabComponent = resolveTab
+
+		// Object token context for sidebar-tab widgets that resolve `@objectId` /
+		// `@object.<field>` tokens — the `object-table` built-in in particular
+		// (e.g. a detail page's ZGW relation tab listing a zaak's besluiten,
+		// filtered by `{ zaak: "@objectId" }`). Mirrors the reactive
+		// `{ objectId, object, register, schema }` ref CnDetailPage provides.
+		//
+		// Provided ONLY when no ancestor already supplies `cnObjectContext`, so
+		// a CnDetailPage parent's richer context (which carries the loaded
+		// `object` for `@object.<field>`) keeps flowing through to the tab
+		// widgets unchanged. When the sidebar is mounted standalone (no detail
+		// page ancestor) it seeds the context from its own props — enough for
+		// `@objectId` + register/schema resolution.
+		const parentObjectContext = inject('cnObjectContext', null)
+		if (!parentObjectContext) {
+			const cnObjectContext = ref({
+				objectId: props.objectId || null,
+				object: null,
+				register: props.register || '',
+				schema: props.schema || '',
+			})
+			provide('cnObjectContext', cnObjectContext)
+			watch(
+				() => [props.objectId, props.register, props.schema],
+				() => {
+					cnObjectContext.value = {
+						objectId: props.objectId || null,
+						object: cnObjectContext.value.object || null,
+						register: props.register || '',
+						schema: props.schema || '',
+					}
+				},
+			)
+		}
 
 		// Auto-subscribe to live updates for the active object. No-op
 		// when `objectStore` is null (no Pinia active) or when the
@@ -632,11 +682,11 @@ export default {
 		},
 
 		/**
-		 * Resolve a widget type to a component. Built-in types
-		 * (`data`, `metadata`) map to CnObjectDataWidget /
-		 * CnObjectMetadataWidget. Any other type falls back to the
-		 * customComponents registry. Logs a console.warn and returns
-		 * null when nothing resolves.
+		 * Resolve a widget type to a component. Built-in types (`data`,
+		 * `metadata`, `audit` / `audit-trail`, `object-table`) map to their
+		 * lib component; any other type falls back to the customComponents
+		 * registry. Logs a console.warn and returns null when nothing
+		 * resolves.
 		 *
 		 * @param {string} type Widget type identifier
 		 * @return {object|null} Vue component, or null when unresolved
@@ -646,7 +696,7 @@ export default {
 			const reg = this.effectiveCustomComponents
 			if (reg && reg[type]) return reg[type]
 			// eslint-disable-next-line no-console
-			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata) and not in customComponents registry.`)
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
 			return null
 		},
 
