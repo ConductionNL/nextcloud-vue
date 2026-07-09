@@ -57,8 +57,18 @@
 							class="cn-detail-page__icon" />
 					</slot>
 					<div class="cn-detail-page__header-text">
-						<h2 v-if="title" class="cn-detail-page__title">
-							{{ title }}
+						<!-- Type name as a small eyebrow above the record name, so
+						     the header reads "the record" not "the kind of record"
+						     (ADR-062). Only shown once the object resolves to a
+						     display name that differs from the type label. -->
+						<p
+							v-if="typeEyebrow"
+							class="cn-detail-page__type-eyebrow"
+							data-testid="cn-detail-page-type-eyebrow">
+							{{ typeEyebrow }}
+						</p>
+						<h2 v-if="displayTitle" class="cn-detail-page__title">
+							{{ displayTitle }}
 						</h2>
 						<!--
 							@slot translation-badge
@@ -1467,6 +1477,55 @@ export default {
 			if (!store) return null
 			if (!this.objectType || !this.objectId) return null
 			return store.objects?.[this.objectType]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * The resolved record's human display name, drawn from the loaded
+		 * object via the same fallback chain the relation resolver uses:
+		 * `@self.name` → `name` / `title` / `displayName` → `firstName
+		 * lastName`. Empty string while the object is still loading or when no
+		 * name-like field exists (a raw id is never used as a name — ADR-062).
+		 *
+		 * @return {string}
+		 */
+		objectDisplayName() {
+			const obj = this.resolvedObject
+			if (!obj || typeof obj !== 'object') return ''
+			const self = obj['@self'] || {}
+			const id = this.objectId != null ? String(this.objectId) : ''
+			const candidates = [self.name, self.title, obj.name, obj.title, obj.displayName]
+			for (const c of candidates) {
+				if (c != null && c !== '' && String(c) !== id) return String(c)
+			}
+			const composed = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+			return composed || ''
+		},
+
+		/**
+		 * The header `<h2>` text. Prefers the resolved record's display name
+		 * so the header names the record ("ACME Corp") rather than its type
+		 * ("Case"); falls back to the `title` prop (the type/label) while the
+		 * object is loading or has no name field.
+		 *
+		 * @return {string}
+		 */
+		displayTitle() {
+			return this.objectDisplayName || this.title
+		},
+
+		/**
+		 * The small type-label eyebrow shown above the record name. Only
+		 * rendered once a record name is resolved AND it differs from the
+		 * `title` prop, so the type context ("Case", "Publication") is kept
+		 * without shadowing the record name. Empty while loading (the type
+		 * label is then the `<h2>` itself).
+		 *
+		 * @return {string}
+		 */
+		typeEyebrow() {
+			const name = this.objectDisplayName
+			if (!name || !this.title || name === this.title) return ''
+			return this.title
 		},
 
 		/**

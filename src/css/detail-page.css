@@ -55,6 +55,18 @@
 	min-width: 0;
 }
 
+.cn-detail-page__type-eyebrow {
+	margin: 0 0 2px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-detail-page__title {
 	margin: 0;
 	font-size: 22px;
