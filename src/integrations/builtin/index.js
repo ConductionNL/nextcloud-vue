@@ -53,6 +53,7 @@ import { flowIntegration } from './flow.js'
 import { formsIntegration } from './forms.js'
 import { timeTrackerIntegration } from './time-tracker.js'
 import { openprojectIntegration } from './openproject.js'
+import { fieldInspectionIntegration } from './field-inspection.js'
 import { xwikiIntegration } from './xwiki.js'
 
 /**
@@ -91,6 +92,7 @@ export const builtinIntegrations = [
 	flowIntegration,
 	formsIntegration,
 	timeTrackerIntegration,
+	fieldInspectionIntegration,
 	// external
 	openprojectIntegration,
 	xwikiIntegration,
@@ -149,6 +151,7 @@ export {
 	flowIntegration,
 	formsIntegration,
 	timeTrackerIntegration,
+	fieldInspectionIntegration,
 	openprojectIntegration,
 	xwikiIntegration,
 }

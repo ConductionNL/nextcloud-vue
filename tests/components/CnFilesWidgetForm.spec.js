@@ -24,6 +24,9 @@ describe('CnFilesWidgetForm', () => {
 
 	it('validate requires a folder path or folder id', () => {
 		const wrapper = mount(CnFilesWidgetForm)
+		// folderPath defaults to '/' (so a new Files widget shows root); clear it
+		// first to exercise the empty case.
+		wrapper.vm.updateField('folderPath', '')
 		expect(wrapper.vm.validate().length).toBeGreaterThan(0)
 		wrapper.vm.updateField('folderPath', '/Docs')
 		expect(wrapper.vm.validate()).toEqual([])

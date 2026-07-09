@@ -157,6 +157,22 @@ describe('CnAppRoot registry validation', () => {
 		warnSpy.mockRestore()
 	})
 
+	it('does NOT throw for a create-override handler entry', () => {
+		// `create-override` is a no-component handler kind CnPageRenderer resolves
+		// by name for CnIndexPage's createOverride prop; the mount-time validator
+		// must accept it (regression: it previously threw RegistryKindError).
+		expect(() => {
+			mountRoot({
+				registry: {
+					createClientContactAware: {
+						kind: 'create-override',
+						handler: async () => ({}),
+					},
+				},
+			})
+		}).not.toThrow()
+	})
+
 	it('provides cnRegistry to descendants', () => {
 		const registry = {
 			myModal: { kind: 'modal', component: MockModal, propsSchema: null },

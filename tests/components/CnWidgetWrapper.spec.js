@@ -64,6 +64,18 @@ const mountWrapper = (propsData = {}, opts = {}) => mount(CnWidgetWrapper, {
 	...opts,
 })
 
+describe('CnWidgetWrapper — chrome variant', () => {
+	it('defaults to the library chrome (no nc-dashboard class)', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.classes()).not.toContain('cn-widget-wrapper--nc-dashboard')
+	})
+
+	it('applies the nc-dashboard chrome class when chrome="nc-dashboard"', () => {
+		const wrapper = mountWrapper({ chrome: 'nc-dashboard' })
+		expect(wrapper.classes()).toContain('cn-widget-wrapper--nc-dashboard')
+	})
+})
+
 describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
@@ -73,20 +85,30 @@ describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 		jest.restoreAllMocks()
 	})
 
-	it('renders both built-ins by default', () => {
+	it('auto: hides Refresh by default (no @refresh listener), shows Request a feature', () => {
 		const wrapper = mountWrapper()
-		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').exists()).toBe(true)
 	})
 
-	it('hides Refresh when :show-refresh="false"', () => {
-		const wrapper = mountWrapper({ showRefresh: false })
+	it('auto: shows Refresh when a host attaches an @refresh listener', () => {
+		const wrapper = mountWrapper({}, { listeners: { refresh: () => {} } })
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(true)
+	})
+
+	it('explicit :show-refresh="true" shows Refresh even without a listener', () => {
+		const wrapper = mountWrapper({ showRefresh: true })
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(true)
+	})
+
+	it('hides Refresh when :show-refresh="false" (even with a listener)', () => {
+		const wrapper = mountWrapper({ showRefresh: false }, { listeners: { refresh: () => {} } })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').exists()).toBe(true)
 	})
 
 	it('hides Request a feature when :show-request-feature="false"', () => {
-		const wrapper = mountWrapper({ showRequestFeature: false })
+		const wrapper = mountWrapper({ showRequestFeature: false, showRefresh: true })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').exists()).toBe(true)
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-action-request-feature"]').exists()).toBe(false)
 	})
@@ -100,6 +122,47 @@ describe('CnWidgetWrapper — Actions menu visibility (widget-wrapper)', () => {
 		const wrapper = mountWrapper({ hideRefresh: true, hideRequestFeature: true })
 		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
 	})
+
+	it('renders the actions menu by default (showActions defaults true)', () => {
+		const wrapper = mountWrapper()
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(true)
+	})
+
+	it('hides the whole actions area when :show-actions="false" (compact KPI tile)', () => {
+		const wrapper = mountWrapper({ showActions: false })
+		expect(wrapper.find('[data-testid="cn-widget-wrapper-actions"]').exists()).toBe(false)
+		// Header + title still render — only the overflow menu is suppressed.
+		expect(wrapper.find('.cn-widget-wrapper__title').text()).toBe('Outgoing calls')
+	})
+})
+
+describe('CnWidgetWrapper — headerless floating title-meta (flush KPI date chip)', () => {
+	it('floats title-meta over the content when the header is hidden', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Turnover', showTitle: false },
+			stubs: baseStubs,
+			mocks: { $route: { name: 'Dashboard' } },
+			provide: { cnAppId: 'shillinq', cnFeatureRequestRepo: 'ConductionNL/shillinq' },
+			slots: { 'title-meta': '<span class="my-chip">12m</span>' },
+		})
+		const floating = wrapper.find('.cn-widget-wrapper__floating-meta')
+		expect(floating.exists()).toBe(true)
+		expect(floating.find('.my-chip').text()).toBe('12m')
+		// No header is rendered in headerless mode.
+		expect(wrapper.find('.cn-widget-wrapper__header').exists()).toBe(false)
+	})
+
+	it('keeps title-meta in the header (not floating) when the header is shown', () => {
+		const wrapper = mount(CnWidgetWrapper, {
+			propsData: { title: 'Turnover', showTitle: true },
+			stubs: baseStubs,
+			mocks: { $route: { name: 'Dashboard' } },
+			provide: { cnAppId: 'shillinq', cnFeatureRequestRepo: 'ConductionNL/shillinq' },
+			slots: { 'title-meta': '<span class="my-chip">12m</span>' },
+		})
+		expect(wrapper.find('.cn-widget-wrapper__floating-meta').exists()).toBe(false)
+		expect(wrapper.find('.cn-widget-wrapper__title-meta .my-chip').exists()).toBe(true)
+	})
 })
 
 describe('CnWidgetWrapper — default Refresh handler (widget-wrapper-actions)', () => {
@@ -112,7 +175,9 @@ describe('CnWidgetWrapper — default Refresh handler (widget-wrapper-actions)',
 	})
 
 	it('emits on cn:widget:refresh event-bus when no host listener', async () => {
-		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily' })
+		// Explicit show-refresh keeps the action visible without a listener
+		// (the bus-driven pattern used by CnRelatedObjectsWidget/CnChartWidget).
+		const wrapper = mountWrapper({ widgetId: 'outgoing-calls-daily', showRefresh: true })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
 		expect(emitOnBus).toHaveBeenCalledWith('cn:widget:refresh', {
 			widgetId: 'outgoing-calls-daily',
@@ -137,7 +202,7 @@ describe('CnWidgetWrapper — default Refresh handler (widget-wrapper-actions)',
 	})
 
 	it('falls back to slugified title when no widgetId is set', async () => {
-		const wrapper = mountWrapper({ title: 'Outgoing calls — daily' })
+		const wrapper = mountWrapper({ title: 'Outgoing calls — daily', showRefresh: true })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
 		const payload = emitOnBus.mock.calls[0][1]
 		expect(payload.widgetId).toBe('outgoing-calls-daily')
@@ -219,7 +284,7 @@ describe('CnWidgetWrapper — refresh spinner', () => {
 	})
 
 	it('does not spin on click alone — refreshing stays false until the host sets it', async () => {
-		const wrapper = mountWrapper({ widgetId: 'w1' })
+		const wrapper = mountWrapper({ widgetId: 'w1', showRefresh: true })
 		await wrapper.find('[data-testid="cn-widget-wrapper-action-refresh"]').trigger('click')
 		expect(menu(wrapper).props('refreshing')).toBe(false)
 	})

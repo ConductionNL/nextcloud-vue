@@ -38,7 +38,40 @@ export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
 export const NcAppSidebarTab = createStub('NcAppSidebarTab')
-export const NcPopover = createStub('NcPopover')
+// NcPopover needs more than the generic stub: the real component exposes ARIA
+// attrs to its #trigger via a SCOPED slot ({ attrs }), so a functional stub that
+// only renders non-scoped slots would drop a scoped trigger entirely. This stub
+// mirrors that contract (trigger scope + popupRole→aria-haspopup) while keeping
+// the generic behaviour for the default and other named slots.
+export const NcPopover = {
+	name: 'NcPopover',
+	props: {
+		shown: { type: Boolean, default: false },
+		popupRole: { type: String, default: undefined },
+	},
+	render(h) {
+		const vnodes = []
+		const triggerScope = {
+			attrs: {
+				'aria-haspopup': this.popupRole,
+				'aria-expanded': String(!!this.shown),
+			},
+		}
+		if (this.$scopedSlots.trigger) {
+			vnodes.push(this.$scopedSlots.trigger(triggerScope))
+		} else if (this.$slots.trigger) {
+			vnodes.push(this.$slots.trigger)
+		}
+		if (this.$slots.default) {
+			vnodes.push(this.$slots.default)
+		}
+		for (const name of Object.keys(this.$slots)) {
+			if (name === 'default' || name === 'trigger') continue
+			vnodes.push(this.$slots[name])
+		}
+		return h('div', { class: ['stub', 'NcPopover'] }, vnodes)
+	},
+}
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
 export const NcListItem = createStub('NcListItem')

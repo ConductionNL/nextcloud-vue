@@ -9,7 +9,6 @@
 		:value="value"
 		:options="options"
 		:input-label="label"
-		:aria-label-combobox="label"
 		:clearable="clearable"
 		@input="$emit('update', $event || '')" />
 	<NcTextField

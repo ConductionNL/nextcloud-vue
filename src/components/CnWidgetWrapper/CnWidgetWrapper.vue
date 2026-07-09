@@ -13,10 +13,11 @@
 		:class="{
 			'cn-widget-wrapper--borderless': borderless,
 			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header">
+		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="headerStyles">
 			<!-- Title icon — left: rendered before the title group -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 				class="cn-widget-wrapper__title-icon"
@@ -46,7 +47,7 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div class="cn-widget-wrapper__actions">
+			<div v-if="showActions" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -82,6 +83,17 @@
 				:style="titleIconColor ? { color: titleIconColor } : {}">
 				<slot name="title-icon" />
 			</div>
+		</div>
+
+		<!-- Headerless meta (e.g. a KPI date chip on a flush card). When the
+		     header is hidden but a `title-meta` chip is provided, float it in the
+		     top-right corner over the content instead of dropping it — so a
+		     compact flush KPI tile can carry a date-range chip without growing a
+		     full header bar. -->
+		<div
+			v-if="!showTitle && $slots['title-meta']"
+			class="cn-widget-wrapper__floating-meta">
+			<slot name="title-meta" />
 		</div>
 
 		<!-- Content -->
@@ -162,6 +174,25 @@ export default {
 			default: true,
 		},
 		/**
+		 * Chrome variant for the wrapper card.
+		 * - `'default'` — the library's own card chrome (opaque background,
+		 *   1px border, compact header).
+		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
+		 *   exactly using the same design tokens: translucent blurred
+		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
+		 *   header with a 20px/700 title and 32px leading icon, and content
+		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
+		 *   layer on top so a user can customise any token.
+		 *
+		 * @type {'default'|'nc-dashboard'}
+		 */
+		chrome: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'nc-dashboard'].includes(v),
+		},
+		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
 		 */
@@ -207,6 +238,16 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Whether the header's overflow action menu (Refresh / Documentation /
+		 * Request-a-feature + any `#action-items`) renders. Shown by default;
+		 * set `false` for compact surfaces — e.g. a KPI tile whose only header
+		 * affordance is a date chip — to drop the menu and free header width.
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+		/**
 		 * Style configuration for the wrapper.
 		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
@@ -235,17 +276,23 @@ export default {
 			default: false,
 		},
 		/**
-		 * Inverse of `hideRefresh`. Defaults to `true` so the action
-		 * renders. Set `:show-refresh="false"` to hide. Either `hideRefresh`
-		 * OR `!showRefresh` hides the action — the spec scenario in
-		 * `widget-wrapper` declares the show-prefixed form as canonical;
-		 * the `hide-` flags remain for back-compat.
+		 * Whether to show the built-in Refresh item. Tri-state:
+		 * - `true` / `false` — force the action on or off.
+		 * - `null` (the default) — **auto**: show the action only when a
+		 *   parent has attached an `@refresh` listener (i.e. something will
+		 *   actually handle the refresh). This keeps widgets that can't
+		 *   refresh — e.g. a prop-driven `CnObjectDataWidget` — from showing
+		 *   a dead button. Widgets that refresh themselves via the
+		 *   `cn:widget:refresh` event bus (with no `@refresh` listener)
+		 *   should set `:show-refresh="true"` explicitly.
 		 *
-		 * @type {boolean}
+		 * `hideRefresh` (or `:show-refresh="false"`) always wins.
+		 *
+		 * @type {boolean|null}
 		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
@@ -361,15 +408,18 @@ export default {
 		},
 
 		/**
-		 * Effective Refresh visibility. Either `hideRefresh: true` OR
-		 * `showRefresh: false` hides the action. The show-prefixed prop
-		 * is the spec-canonical form (per `widget-wrapper` scenario);
-		 * `hideRefresh` remains as a back-compat alias.
+		 * Effective Refresh visibility. `hideRefresh: true` (or
+		 * `:show-refresh="false"`) always hides it. When `showRefresh` is
+		 * left unset (`null`), auto-detect: show the action only when a
+		 * parent attached an `@refresh` listener — otherwise the refresh
+		 * would do nothing. `hideRefresh` remains a back-compat alias.
 		 *
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			return this.showRefresh && !this.hideRefresh
+			if (this.hideRefresh) return false
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners && this.$listeners.refresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
@@ -430,6 +480,29 @@ export default {
 
 			return styles
 		},
+
+		/**
+		 * Inline styles for the header bar, derived from
+		 * `styleConfig.headerStyle.{backgroundColor, textColor}`. Lets a host
+		 * give individual widgets a custom header colour without a per-app CSS
+		 * workaround. Empty object when no header style is configured.
+		 *
+		 * @return {object} the header style bindings.
+		 */
+		headerStyles() {
+			const hs = this.styleConfig.headerStyle
+			if (!hs || typeof hs !== 'object') {
+				return {}
+			}
+			const styles = {}
+			if (hs.backgroundColor) {
+				styles.backgroundColor = hs.backgroundColor
+			}
+			if (hs.textColor) {
+				styles.color = hs.textColor
+			}
+			return styles
+		},
 	},
 
 	methods: {
@@ -480,12 +553,24 @@ export default {
 
 <style scoped>
 .cn-widget-wrapper {
+	position: relative;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	/* NC design system: every content card is rounded — same token as
+	   CnDetailCard so detail pages read as ONE card family (ADR-062). */
+	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
+}
+
+/* Headerless date chip — floated over the top-right of a flush card. */
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
 }
 
 .cn-widget-wrapper__content {
@@ -514,6 +599,14 @@ export default {
 	padding: 0;
 }
 
+/*
+ * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
+ * (apps/dashboard) exactly, using the same design tokens so an un-customised
+ * widget is pixel-identical to a core dashboard panel. `styleConfig` inline
+ * overrides (wrapperStyles / headerStyles) still win over these class rules,
+ * so users can override any token. Combined selector raises specificity above
+ * the base `.cn-widget-wrapper` rules it supersedes.
+ */
 .cn-widget-wrapper__header {
 	display: flex;
 	align-items: center;
@@ -528,6 +621,9 @@ export default {
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+	/* Grow so the title hugs the (optional) title-icon on the left instead
+	   of centering between icon and actions (header is space-between). */
+	flex: 1 1 auto;
 }
 
 .cn-widget-wrapper__icon {
@@ -543,6 +639,39 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
+	background: var(--color-main-background-blur, var(--color-main-background));
+	-webkit-backdrop-filter: var(--filter-background-blur, none);
+	backdrop-filter: var(--filter-background-blur, none);
+	border: none;
+	border-radius: var(--border-radius-container-large, 16px);
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header {
+	padding: 16px;
+	border-bottom: none;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header-left {
+	gap: 16px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__icon {
+	width: 32px;
+	height: 32px;
+	background-size: 32px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
+	padding: 0 16px 16px;
 }
 
 .cn-widget-wrapper__title-meta {
@@ -565,6 +694,11 @@ export default {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	/* One icon color across the whole card family: the primary element color.
+	   Some leaf cards colored their icons primary while wrapper icons stayed
+	   text-colored — pages read as two design systems (audit 2026-07-09).
+	   A titleIconColor prop still overrides via inline style. */
+	color: var(--color-primary-element);
 }
 
 .cn-widget-wrapper__footer {

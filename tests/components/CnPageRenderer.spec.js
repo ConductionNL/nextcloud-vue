@@ -100,8 +100,24 @@ const sampleManifest = {
 				mode: 'public',
 			},
 		},
+		{
+			id: 'clients',
+			route: '/clients',
+			type: 'index',
+			title: 'app.clients',
+			config: { register: 'pipelinq', schema: 'client', createOverride: 'createClientContactAware' },
+		},
+		{
+			id: 'clients-bad-override',
+			route: '/clients-bad',
+			type: 'index',
+			title: 'app.clients',
+			config: { register: 'pipelinq', schema: 'client', createOverride: 'doesNotExist' },
+		},
 	],
 }
+
+const createClientContactAware = jest.fn().mockResolvedValue({ id: 'c-1' })
 
 const defaultRegistry = () => ({
 	SettingsPage: SettingsPageStub,
@@ -109,6 +125,7 @@ const defaultRegistry = () => ({
 	MyActions: ActionsStub,
 	CreateDialog: CreateDialogStub,
 	FormFields: FormFieldsStub,
+	createClientContactAware,
 })
 
 function mountRenderer(routeName, {
@@ -350,12 +367,12 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.resolvedSlotEntries.find((e) => e.name === 'main')?.component).toBe(MainStub)
 		})
 
-		it('keys the v2-branch page component by currentPage.id so a route change re-mounts it', () => {
-			// Regression guard: the v2 render branch MUST carry
-			// :key="currentPage.id" on the resolved page component. Without it
-			// Vue reuses the same instance across route changes and the page
-			// keeps showing stale data / fetches / sidebar (this bug has
-			// regressed twice — the v1 branch kept its key, the v2 branch lost it).
+		it('keys the v2-branch page component by id+data-source so route AND schema changes re-mount it', () => {
+			// Regression guard: the v2 render branch MUST carry a key that includes
+			// both the page id (route change) AND the data source (register+schema)
+			// on the resolved page component. Without the id Vue reused the instance
+			// across route changes (stale data); without the data source a schema
+			// change in the page-config modal left the old columns/form/Add label.
 			const PageStub = {
 				name: 'PageStub',
 				template: '<section data-stub="v2-page" />',
@@ -382,7 +399,26 @@ describe('CnPageRenderer', () => {
 			expect(wrapper.vm.isV2Manifest).toBe(true)
 			const page = wrapper.findComponent(PageStub)
 			expect(page.exists()).toBe(true)
-			expect(page.vm.$vnode.key).toBe('leads')
+			// id + (empty) register + (empty) schema for a config-less custom page.
+			expect(page.vm.$vnode.key).toBe('leads::')
+		})
+
+		it('pageRenderKey encodes the data source so a schema change remounts the page', () => {
+			// A custom page (no CnIndexPage mount → no Pinia needed) still exercises
+			// the computed, which reads config.register/schema regardless of type.
+			const PageStub = { name: 'PageStub', template: '<section />' }
+			const mountWith = (schema) => shallowMount(CnPageRenderer, {
+				propsData: {},
+				provide: {
+					cnManifest: { pages: [{ id: 'dogs', route: '/dogs', type: 'custom', title: 'Dogs', component: 'DogsPage', config: { register: 'app', schema } }] },
+					cnRegistry: { DogsPage: { kind: 'page', component: PageStub } },
+					cnTranslate: (k) => k,
+				},
+				mocks: { $route: { name: 'dogs' } },
+			})
+			// Same id + register, different schema → different key → remount.
+			expect(mountWith('hello').vm.pageRenderKey).toBe('dogs:app:hello')
+			expect(mountWith('dog').vm.pageRenderKey).toBe('dogs:app:dog')
 		})
 
 		it('falls back to legacy customComponents when the v2 registry has no kind:"page" entry for the name', () => {
@@ -833,6 +869,52 @@ describe('CnPageRenderer', () => {
 			expect(props.showAdd).toBeUndefined()
 			expect(props.selectable).toBeUndefined()
 			expect(props.register).toBe('x')
+		})
+	})
+
+	describe('config.createOverride name resolution', () => {
+		// Stub the `index` page type so reading resolvedProps doesn't mount the
+		// real CnIndexPage (which boots a pinia store in self-fetch mode).
+		const IndexStub = { name: 'IndexStub', template: '<div class="index-stub" />' }
+
+		function mountClients(routeName) {
+			return shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: sampleManifest,
+					customComponents: defaultRegistry(),
+					translate: (k) => k,
+					pageTypes: { index: IndexStub },
+				},
+				mocks: { $route: { name: routeName, params: {} } },
+			})
+		}
+
+		it('resolves a string config.createOverride to a function-valued customComponents entry', () => {
+			const props = mountClients('clients').vm.resolvedProps
+			expect(typeof props.createOverride).toBe('function')
+			expect(props.createOverride).toBe(createClientContactAware)
+		})
+
+		it('resolves a string config.createOverride from a v2 registry kind:create-override entry (.handler)', () => {
+			const handler = jest.fn().mockResolvedValue({ id: 'c-2' })
+			const wrapper = shallowMount(CnPageRenderer, {
+				propsData: {
+					manifest: sampleManifest,
+					translate: (k) => k,
+					pageTypes: { index: IndexStub },
+				},
+				provide: {
+					cnRegistry: { createClientContactAware: { kind: 'create-override', handler } },
+				},
+				mocks: { $route: { name: 'clients', params: {} } },
+			})
+			expect(wrapper.vm.resolvedProps.createOverride).toBe(handler)
+		})
+
+		it('drops an unresolved createOverride name (with a warn) instead of forwarding the string', () => {
+			const props = mountClients('clients-bad-override').vm.resolvedProps
+			expect(props.createOverride).toBeUndefined()
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('createOverride'))
 		})
 	})
 

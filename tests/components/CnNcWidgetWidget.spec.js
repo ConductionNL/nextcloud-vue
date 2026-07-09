@@ -23,7 +23,30 @@ describe('CnNcWidgetWidget renderer', () => {
 	})
 
 	it('mounts natively when OCA.Dashboard exposes a callback', async () => {
+		const meta = { title: 'Calls' }
 		const callback = jest.fn()
+		meta.callback = callback
+		global.window.OCA = {
+			Dashboard: {
+				getWidget: () => meta,
+			},
+		}
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.mode).toBe('native')
+		expect(callback).toHaveBeenCalled()
+		// Nextcloud's OCA.Dashboard callback signature is `(el, { widget })`:
+		// the DOM element first, then the metadata wrapped in a `{ widget }`
+		// envelope (NOT passed bare) so consumers can destructure `{ widget }`
+		// and read e.g. `widget.title`, or real widgets throw on `widget.title`.
+		const [el, ctx] = callback.mock.calls[0]
+		expect(el).toBeInstanceOf(global.window.HTMLElement)
+		expect(ctx).toEqual({ widget: meta })
+		expect(wrapper.text()).toContain('Calls')
+	})
+
+	it('falls back to the API list when an async native callback rejects', async () => {
+		const callback = jest.fn(() => Promise.reject(new Error('boom')))
 		global.window.OCA = {
 			Dashboard: {
 				getWidget: () => ({ title: 'Calls', callback }),
@@ -31,9 +54,10 @@ describe('CnNcWidgetWidget renderer', () => {
 		}
 		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
 		await wrapper.vm.$nextTick()
-		expect(wrapper.vm.mode).toBe('native')
-		expect(callback).toHaveBeenCalled()
-		expect(wrapper.text()).toContain('Calls')
+		// let the rejected promise settle
+		await Promise.resolve()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.mode).toBe('api')
 	})
 })
 

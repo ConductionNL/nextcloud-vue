@@ -2,12 +2,14 @@
 
 ### Props
 
-| Name      | Type                                                                                                                                               | Required | Default | Description                                |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ------------------------------------------ |
-| `content` | `{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string}` |          | `\{\}`  | The widget's persisted configuration blob. |
+| Name      | Type                                                                                                                                                                                                                                  | Required | Default | Description                                                                                                                                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content` | `{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, columns?: Array, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object}` |          | `\{\}`  | The widget's persisted configuration blob. `limit` is a fetch cap (default 25) — the rendered row count fits the host cell (ADR-062). `viewAllRoute` / `viewAllQuery` configure the "View all (N)" footer navigation; `viewAllQuery` values are token-resolved (`@objectId`). |
 
 ### Events
 
 | Name        | Payload | Description                                                                            |
 | ----------- | ------- | -------------------------------------------------------------------------------------- |
+| `created`   | —       | Emitted after a successful create with the sent payload.                               |
+| `view-all`  | —       | Emitted when the "View all (N)" footer is clicked.                                     |
 | `row-click` | —       | Emitted with the clicked object (for hosts that want to handle navigation themselves). |

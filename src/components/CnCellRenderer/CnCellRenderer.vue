@@ -19,6 +19,19 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
+		     object's display label via the object store (per-schema caching).
+		     Config: widgetProps { register, schema, labelField }. -->
+		<template v-else-if="widget === 'fkResolve'">
+			<CnFkResolveCell
+				v-if="hasValue"
+				:value="value"
+				:register="(widgetProps && widgetProps.register) || ''"
+				:schema="(widgetProps && widgetProps.schema) || ''"
+				:label-field="(widgetProps && widgetProps.labelField) || 'name'" />
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
 		     as a router-link (when widgetProps.route is a manifest page id) or an
 		     external anchor (when widgetProps.href is set). Falls back to plain
@@ -44,6 +57,24 @@
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
 		<template v-else-if="hasFormatter">
 			<span :title="rawTitle">{{ formattedValue }}</span>
+		</template>
+
+		<!-- Declarative swatch — a colour dot (from a sibling row field) + text -->
+		<template v-else-if="isSwatch">
+			<span class="cn-cell-renderer__swatch-wrap">
+				<span
+					v-if="swatchColor"
+					class="cn-cell-renderer__swatch-dot"
+					:style="{ backgroundColor: swatchColor }"
+					aria-hidden="true" />
+				<span v-if="hasValue" :title="rawTitle">{{ formattedValue }}</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</span>
+		</template>
+
+		<!-- Declarative built-in format (currency / duration / number / percent) -->
+		<template v-else-if="hasBuiltinFormat">
+			<span :title="rawTitle" class="cn-cell-renderer--number">{{ formattedValue }}</span>
 		</template>
 
 		<!-- Date / date-time: dynamic NcDateTime (relative time, absolute on hover) -->
@@ -98,7 +129,9 @@ import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
+import { safeCurrencyCode, resolveConfigFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
+import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 
 /**
  * Module-level set of column keys already warned about for a
@@ -123,6 +156,7 @@ export default {
 
 	components: {
 		CnStatusBadge,
+		CnFkResolveCell,
 		CheckBold,
 		NcDateTime,
 	},
@@ -142,6 +176,14 @@ export default {
 		 * Defaults to an empty object.
 		 */
 		cnCellWidgets: { default: () => ({}) },
+		/**
+		 * Page-level app-config map, provided by CnAppRoot / CnDashboardPage
+		 * (`cnAppConfig`). Lets a column's `format.currency` (or `prefix` /
+		 * `suffix`) be a `@config.<key>` token — resolved here exactly as the
+		 * stat widgets resolve it on a dashboard, so a KPI tile and a table
+		 * column read the same currency. Defaults to `{}` (standalone use).
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -158,21 +200,34 @@ export default {
 		/**
 		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
 		 * When set and resolvable in the injected `cnFormatters` registry,
-		 * the cell renders `cnFormatters[formatter](value, row, property)`
-		 * as text — an explicit override of the type-aware rendering below.
+		 * the cell renders `cnFormatters[formatter](value, row, property,
+		 * formatterOptions)` as text — an explicit override of the type-aware
+		 * rendering below.
 		 */
 		formatter: {
 			type: String,
 			default: null,
 		},
 		/**
+		 * Declarative options map passed as the formatter's fourth argument
+		 * (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter,
+		 * or `{ negative, zero, positive }` phrases for `conditionalPhrase`).
+		 * Undefined-safe: three-argument formatters simply ignore it.
+		 */
+		formatterOptions: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
 		 * name). When it resolves in `cnCellWidgets` the cell renders that
 		 * component with `{ value, row, property, formatted, ...widgetProps }`;
-		 * the built-in id `"badge"` renders `CnStatusBadge`. Takes precedence
-		 * over `formatter`/the type-aware rendering, but the value handed to
-		 * the widget is the formatter-shaped `formatted` when `formatter` is
-		 * also set.
+		 * the built-in id `"badge"` renders `CnStatusBadge` and the built-in
+		 * id `"fkResolve"` renders `CnFkResolveCell` (uuid → related object
+		 * label, config via `widgetProps { register, schema, labelField }`).
+		 * Takes precedence over `formatter`/the type-aware rendering, but the
+		 * value handed to the widget is the formatter-shaped `formatted` when
+		 * `formatter` is also set.
 		 */
 		widget: {
 			type: String,
@@ -182,6 +237,31 @@ export default {
 		widgetProps: {
 			type: Object,
 			default: () => ({}),
+		},
+		/**
+		 * Optional declarative cell-format spec — a no-code alternative to a
+		 * registry `formatter`. Recognised `style` values:
+		 *
+		 * - `'currency'` → `Intl.NumberFormat` currency (e.g. `€ 1.234,56`),
+		 *   honouring `currency` (ISO code, default `'EUR'`) and `decimals`
+		 *   (default 2).
+		 * - `'number'` / `'percent'` → localized number (percent appends `%`),
+		 *   honouring `decimals` (default 0).
+		 * - `'duration'` → a seconds value rendered compact (`1u 23m`, `45m 10s`,
+		 *   `12s`); pass `unit: 'minutes'` / `'hours'` when the raw value is not
+		 *   in seconds.
+		 * - `'swatch'` → a colour dot read from a sibling row field named by
+		 *   `colorField` (the value renders as the cell text beside it).
+		 *
+		 * `prefix` / `suffix` are prepended/appended to the numeric styles.
+		 * Resolved AFTER `formatter` / `widget` (those win), but BEFORE the
+		 * type-aware rendering, so a manifest column can opt into currency or a
+		 * colour swatch without registering a function.
+		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 */
+		format: {
+			type: Object,
+			default: null,
 		},
 		/**
 		 * The full row object — passed so a formatter can be a function of
@@ -357,14 +437,53 @@ export default {
 			return this.formatterFn !== null
 		},
 
+		/**
+		 * The declarative format `style`, or null when no (recognised) `format`
+		 * spec is set. Drives the built-in currency / duration / number / percent
+		 * / swatch rendering paths.
+		 *
+		 * @return {string|null}
+		 */
+		formatStyle() {
+			const s = this.format && this.format.style
+			return typeof s === 'string' ? s : null
+		},
+
+		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		hasBuiltinFormat() {
+			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+		},
+
+		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
+		isSwatch() {
+			return this.formatStyle === 'swatch'
+		},
+
+		/**
+		 * The swatch colour — read from the sibling row field named by
+		 * `format.colorField` (default `'color'`). Returns null when no usable
+		 * colour string is present (the dot is then omitted).
+		 *
+		 * @return {string|null}
+		 */
+		swatchColor() {
+			if (!this.isSwatch) return null
+			const field = (this.format && this.format.colorField) || 'color'
+			const c = this.row && this.row[field]
+			return (typeof c === 'string' && c.trim() !== '') ? c : null
+		},
+
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
-					return this.formatterFn(this.value, this.row, this.property)
+					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined)
 				} catch (e) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
 				}
+			}
+			if (this.hasBuiltinFormat) {
+				return this.applyBuiltinFormat()
 			}
 			return formatValue(this.value, this.property, { truncate: this.truncate })
 		},
@@ -413,6 +532,83 @@ export default {
 			}
 		}
 	},
+
+	methods: {
+		/**
+		 * Render the cell value per the declarative `format` spec (currency /
+		 * number / percent / duration). Mirrors CnStatWidget's formatting so a
+		 * KPI tile and a table column read identically. Non-numeric values fall
+		 * back to `formatValue`; an empty value renders an em-dash.
+		 *
+		 * @return {string}
+		 */
+		applyBuiltinFormat() {
+			if (!this.hasValue) return '—'
+			// Resolve `@config.<key>` tokens (currency / prefix / suffix) against
+			// the injected app-config, mirroring the stat widgets — so a column
+			// passing `format.currency: "@config.currency"` renders the app's
+			// configured currency instead of silently falling back to EUR.
+			const fmt = resolveConfigFormat(this.format || {}, unwrapAppConfig(this.cnAppConfig))
+			if (fmt.style === 'duration') return this.formatDuration()
+			const num = Number(this.value)
+			if (!Number.isFinite(num)) {
+				return formatValue(this.value, this.property, { truncate: this.truncate })
+			}
+			const decimals = Number.isFinite(fmt.decimals)
+				? fmt.decimals
+				: (fmt.style === 'currency' ? 2 : 0)
+			let body
+			if (fmt.style === 'currency') {
+				body = new Intl.NumberFormat(undefined, {
+					style: 'currency',
+					currency: safeCurrencyCode(fmt.currency),
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			} else if (fmt.style === 'percent') {
+				// Values are stored as the literal percent (83.3), not a 0–1 ratio.
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num) + '%'
+			} else {
+				body = new Intl.NumberFormat(undefined, {
+					minimumFractionDigits: decimals,
+					maximumFractionDigits: decimals,
+				}).format(num)
+			}
+			return `${fmt.prefix || ''}${body}${fmt.suffix || ''}`
+		},
+		/**
+		 * Render a numeric duration compactly (`1u 23m`, `45m 10s`, `12s`). The
+		 * raw value is seconds unless `format.unit` is `'minutes'` / `'hours'`.
+		 * The hour suffix is `u` (uur) to read naturally under NL theming while
+		 * staying digit-led for other locales.
+		 *
+		 * @return {string}
+		 */
+		formatDuration() {
+			const fmt = this.format || {}
+			let secs = Number(this.value)
+			if (!Number.isFinite(secs)) {
+				return formatValue(this.value, this.property, { truncate: this.truncate })
+			}
+			if (fmt.unit === 'minutes') secs *= 60
+			else if (fmt.unit === 'hours') secs *= 3600
+			secs = Math.round(secs)
+			const sign = secs < 0 ? '-' : ''
+			secs = Math.abs(secs)
+			const h = Math.floor(secs / 3600)
+			const m = Math.floor((secs % 3600) / 60)
+			const s = secs % 60
+			const parts = []
+			if (h > 0) parts.push(`${h}u`)
+			if (m > 0) parts.push(`${m}m`)
+			if (s > 0 && h === 0) parts.push(`${s}s`)
+			if (parts.length === 0) parts.push('0s')
+			return `${fmt.prefix || ''}${sign}${parts.join(' ')}${fmt.suffix || ''}`
+		},
+	},
 }
 </script>
 
@@ -437,5 +633,20 @@ export default {
 
 .cn-cell-renderer__icon--success {
 	color: var(--color-success);
+}
+
+.cn-cell-renderer__swatch-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-cell-renderer__swatch-dot {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	border: 1px solid var(--color-border-dark);
 }
 </style>

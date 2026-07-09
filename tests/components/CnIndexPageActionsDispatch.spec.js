@@ -146,6 +146,32 @@ describe('CnIndexPage — manifest-actions-dispatch (REQ-MAD-3..7)', () => {
 			expect(merged.find((a) => a.id === 'view').handler).toBeUndefined()
 			expect(warnSpy).toHaveBeenCalledTimes(1)
 		})
+
+		it('merges literal params over the default row-id param ("New X" → id:"new")', () => {
+			const push = jest.fn()
+			const wrapper = mountIndexPage(
+				{ actions: [{ id: 'new', label: 'New', handler: 'navigate', route: 'ResourceDetail', params: { id: 'new' } }] },
+				{ $router: { push } },
+			)
+			wrapper.vm.mergedActions.find((a) => a.id === 'new').handler({ id: 'abc-123' })
+			expect(push).toHaveBeenCalledWith({
+				name: 'ResourceDetail',
+				params: { id: 'new' },
+			})
+		})
+
+		it('keeps the row-id default and adds extra literal params alongside it', () => {
+			const push = jest.fn()
+			const wrapper = mountIndexPage(
+				{ actions: [{ id: 'view', label: 'View', handler: 'navigate', route: 'ResourceDetail', params: { mode: 'edit' } }] },
+				{ $router: { push } },
+			)
+			wrapper.vm.mergedActions.find((a) => a.id === 'view').handler({ id: 'abc-123' })
+			expect(push).toHaveBeenCalledWith({
+				name: 'ResourceDetail',
+				params: { id: 'abc-123', mode: 'edit' },
+			})
+		})
 	})
 
 	describe('REQ-MAD-5 — handler:"emit"', () => {

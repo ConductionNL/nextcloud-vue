@@ -22,13 +22,14 @@ The view defaults to **Features**. The view-toggle switches to **Roadmap**
 and back; the page title (`Features` / `Roadmap`) reflects the active
 view. The sidebar starts closed; the info toggle opens it as a right-edge
 slide-in panel. Roadmap cards are fully clickable — anywhere on the card
-opens the corresponding GitHub issue in a new tab.
+opens the corresponding issue in a new tab.
 
 ## Props
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `repo` | String | Yes | `<owner>/<repo>` slug of the app's GitHub repository. Passed through to `CnRoadmapTab` and `CnSuggestFeatureModal`. |
+| `repo` | String | Yes | `<owner>/<repo>` slug of the app's repository on the forge. Passed through to `CnRoadmapTab` and `CnSuggestFeatureModal`. |
+| `forge` | Object | No | `{ type, baseUrl? }` target forge for the feature-request deep-link, forwarded to `CnSuggestFeatureModal` and used to derive the support dialog's feature-request URL. Defaults to Codeberg. See [CnSuggestFeatureModal](cn-suggest-feature-modal.md#forge-configuration). |
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |
 | `disabled` | Boolean | No | When `true`, the view collapses to a single "disabled by your administrator" empty state. |
 | `openbuiltUrl` | String | No | Override the OpenBuilt sidebar CTA target. Pass an absolute URL or a Nextcloud-relative path. Defaults to the in-instance OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`). |
@@ -47,7 +48,7 @@ registration + `type: "custom"` declaration the older pattern required:
   "type": "roadmap",
   "title": "Features & roadmap",
   "config": {
-    "repo": "ConductionNL/<appid>",
+    "repo": "Conduction/<appid>",
     "features": [],
     "disabled": false
   }
@@ -81,7 +82,7 @@ and the Suggest modal POSTs to the same endpoint. Full backend contract:
 | `suggestUrl` | String | `''` | Optional override for the "Suggest a feature" CTA target. |
 | `documentationUrl` | String | `''` | Per-app documentation site URL shown in the docs info card. |
 | `appName` | String | `''` | Human app name used in the feature-request copy. |
-| `appSlug` | String | `''` | App slug used to build the GitHub feature-request deep-link repo. |
+| `appSlug` | String | `''` | App slug used to build the feature-request deep-link repo. |
 | `appStoreUrl` | String | `''` | Nextcloud app-store URL for the app. |
 | `featureRequestUrl` | String | `''` | Explicit feature-request URL override. |
 | `donateUrl` | String | `''` | Donation/support link. |

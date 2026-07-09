@@ -1,14 +1,33 @@
 <template>
-	<div class="cn-table-container" data-testid="cn-object-list" :class="{ 'cn-table-container--scrollable': scrollable }">
+	<div
+		class="cn-table-container"
+		data-testid="cn-object-list"
+		:class="{
+			'cn-table-container--scrollable': scrollable,
+			'cn-table-container--borderless': borderless,
+			'cn-table-container--fill': fillHeight,
+		}">
+		<!-- Optional card header (folded from the retired CnTableWidget): a title
+		     + total-count badge. Only rendered when `title` is set; bare table
+		     usage is unchanged. -->
+		<div v-if="title" class="cn-data-table__header">
+			<h3 class="cn-data-table__title">
+				{{ title }}
+			</h3>
+			<span v-if="totalRowCount > 0" class="cn-data-table__count">
+				{{ totalRowCount }}
+			</span>
+		</div>
+
 		<!-- Loading State -->
-		<div v-if="loading" class="cn-table-loading" data-testid="cn-object-list-loading">
+		<div v-if="isLoading" class="cn-table-loading" data-testid="cn-object-list-loading">
 			<NcLoadingIcon :size="32" />
 			<p>{{ loadingText }}</p>
 		</div>
 
 		<!-- Table -->
 		<table v-else class="cn-data-table" data-testid="cn-object-list-table">
-			<thead>
+			<thead v-if="!hideHeader">
 				<tr>
 					<!-- Checkbox column -->
 					<th v-if="selectable" class="cn-table-col--checkbox">
@@ -42,6 +61,7 @@
 
 					<!-- Actions column -->
 					<th v-if="$scopedSlots['row-actions']" class="cn-table-col--actions">
+						<!-- @slot Header cell content above the row-actions column (blank by default). -->
 						<slot name="actions-header" />
 					</th>
 				</tr>
@@ -49,8 +69,9 @@
 
 			<tbody>
 				<!-- Empty state -->
-				<tr v-if="rows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
+				<tr v-if="effectiveRows.length === 0" class="cn-table-empty" data-testid="cn-object-list-empty">
 					<td :colspan="totalColumns">
+						<!-- @slot Empty-state content shown when there are no rows (defaults to `emptyText`). -->
 						<slot name="empty">
 							{{ emptyText }}
 						</slot>
@@ -59,7 +80,7 @@
 
 				<!-- Data rows -->
 				<tr
-					v-for="row in rows"
+					v-for="row in effectiveRows"
 					v-else
 					:key="row[rowKey]"
 					class="cn-table-row"
@@ -71,7 +92,7 @@
 					]"
 					@mousedown="onPointerDown"
 					@click="onRowClick(row, $event)"
-					@contextmenu.prevent="$emit('row-context-menu', { row, event: $event })">
+					@contextmenu.prevent="onRowContextMenu(row, $event)">
 					<!-- Checkbox -->
 					<td v-if="selectable" class="cn-table-col--checkbox" @click.stop>
 						<NcCheckboxRadioSwitch
@@ -91,6 +112,7 @@
 						:key="col.key"
 						:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '']"
 						:style="col.width ? { maxWidth: col.width } : {}">
+						<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
 						<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
 							<!-- Every column renders through CnCellRenderer: it resolves
 							     col.formatter / col.widget against the injected registries
@@ -103,8 +125,10 @@
 								:value="cellValue(row, col)"
 								:property="columnProperty(col)"
 								:formatter="col.formatter || null"
+								:formatter-options="col.formatterOptions || null"
 								:widget="col.widget || null"
 								:widget-props="col.widgetProps || undefined"
+								:format="col.format || null"
 								:row="row"
 								:row-key="rowKey" />
 						</slot>
@@ -112,11 +136,31 @@
 
 					<!-- Row actions -->
 					<td v-if="$scopedSlots['row-actions']" :class="['cn-table-col--actions', cellClass ? cellClass(row, { key: 'actions' }) : '']" @click.stop>
+						<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
 						<slot name="row-actions" :row="row" />
 					</td>
 				</tr>
 			</tbody>
 		</table>
+
+		<!-- Optional footer. A `#footer` scoped slot lets a host render its own
+		     footer link (e.g. a "+ New" create action or an always-shown
+		     "View all") with its own click handler — useful when the widget runs
+		     outside a vue-router context (the built-in link uses $router). When
+		     no slot is given, the built-in "View all" link (folded from the
+		     retired CnTableWidget) is shown for a `limit`-ed subset. -->
+		<div
+			v-if="$scopedSlots.footer || (viewAllRoute && totalRowCount > effectiveRows.length)"
+			class="cn-data-table__footer">
+			<!-- @slot Custom footer content, scoped with { total, shown } (defaults to the built-in "View all" link). -->
+			<slot name="footer" :total="totalRowCount" :shown="effectiveRows.length">
+				<a
+					class="cn-data-table__view-all"
+					@click.prevent="onViewAll">
+					{{ viewAllLabel }}
+				</a>
+			</slot>
+		</div>
 	</div>
 </template>
 
@@ -309,6 +353,121 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Select row'),
 		},
+		/**
+		 * Optional card title rendered in a header above the table. When set, the
+		 * table reads as a self-contained card (the container's own border/radius
+		 * is the card chrome). Folded in from the retired CnTableWidget.
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+		/**
+		 * Drop the container's card chrome (border, radius, shadow) so the table
+		 * sits flush inside a parent that already provides a card (e.g. a
+		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
+		 */
+		borderless: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Fill the height of the parent (a flex-column card / widget content
+		 * area) so the optional `#footer` is pushed to the bottom instead of
+		 * floating directly under a short list. When the list is long enough to
+		 * overflow, the footer stays pinned via its sticky rule. No-op outside a
+		 * height-constrained parent. Opt-in so ordinary in-flow tables are
+		 * unaffected.
+		 */
+		fillHeight: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Hide the column-header row (`<thead>`). Useful for compact dashboard
+		 * list widgets that want a plain bordered-row list without column labels.
+		 */
+		hideHeader: {
+			type: Boolean,
+			default: false,
+		},
+		/**
+		 * Max number of rows to display. When the total exceeds it, only the first
+		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
+		 * 0 = show all. Folded in from CnTableWidget.
+		 */
+		limit: {
+			type: Number,
+			default: 0,
+		},
+		/**
+		 * vue-router route object for the "View all" footer link. The footer only
+		 * shows when set AND the rows are a `limit`-ed subset. Folded in from CnTableWidget.
+		 * @type {object|null}
+		 */
+		viewAllRoute: {
+			type: Object,
+			default: null,
+		},
+		/** Pre-translated "View all" footer label. */
+		viewAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'View all'),
+		},
+		/**
+		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister register
+		 * id/slug. When `register` + `schemaId` are set and no `rows` are passed,
+		 * the table fetches `/apps/openregister/api/objects/{register}/{schemaId}`.
+		 * @type {string|number|null}
+		 */
+		register: {
+			type: [String, Number],
+			default: null,
+		},
+		/**
+		 * Self-fetch mode (folded from CnTableWidget): the OpenRegister schema
+		 * id used together with `register`. (Distinct from the `schema` prop,
+		 * which is a JSON Schema object for column generation.)
+		 * @type {string|number|null}
+		 */
+		schemaId: {
+			type: [String, Number],
+			default: null,
+		},
+		/**
+		 * Extra query parameters sent with the self-fetch request (register +
+		 * schemaId mode) — e.g. a resolved filter map, `_order[field]` ordering,
+		 * or `_limit`. Changing it re-triggers the self-fetch, so a host widget
+		 * (CnWidgetObjectTable's declarative `source`) can drive filtering and
+		 * ordering without re-implementing the fetch. Ignored when external
+		 * `rows` are supplied.
+		 * @type {object|null}
+		 */
+		fetchParams: {
+			type: Object,
+			default: null,
+		},
+		/**
+		 * Convenience navigation (folded from CnTableWidget): a function that
+		 * receives the clicked row and returns a vue-router route to push. When
+		 * set, a row click navigates there (the `row-click` event still fires).
+		 * @type {Function|null}
+		 */
+		rowClickRoute: {
+			type: Function,
+			default: null,
+		},
+		/**
+		 * When true, a row-body click emits `row-click` (for navigation) even
+		 * while `selectable` — selection then happens only via the checkbox
+		 * column. Lets "click row = open, tick box = select" coexist. Default
+		 * false keeps the legacy behaviour (selectable rows select on body click).
+		 * @type {boolean}
+		 */
+		rowClickToView: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	setup() {
@@ -330,10 +489,54 @@ export default {
 			aggregateLoading: false,
 			/** Monotonic id used to discard a stale aggregate batch when `rows` changes mid-flight. */
 			aggregateRequestId: 0,
+			/** Rows fetched in self-fetch mode (register + schemaId). */
+			fetchedRows: [],
+			/** True while a self-fetch request is in flight. */
+			selfFetchLoading: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The row source: external `rows` when provided, else the self-fetched
+		 * rows (register + schemaId mode). External rows always win.
+		 *
+		 * @return {Array<object>}
+		 */
+		sourceRows() {
+			if (this.rows && this.rows.length > 0) return this.rows
+			if (this.register != null && this.schemaId != null) return this.fetchedRows
+			return this.rows
+		},
+
+		/**
+		 * The rows actually rendered — `sourceRows` capped to `limit` (0 = all).
+		 *
+		 * @return {Array<object>}
+		 */
+		effectiveRows() {
+			return this.limit > 0 ? this.sourceRows.slice(0, this.limit) : this.sourceRows
+		},
+
+		/**
+		 * Total row count before the `limit` cap (drives the count badge + the
+		 * "View all" footer condition).
+		 *
+		 * @return {number}
+		 */
+		totalRowCount() {
+			return this.sourceRows.length
+		},
+
+		/**
+		 * Whether to show the loading state — the external `loading` prop OR a
+		 * self-fetch in flight.
+		 *
+		 * @return {boolean}
+		 */
+		isLoading() {
+			return this.loading || this.selfFetchLoading
+		},
 		/**
 		 * Effective columns: schema-generated or manually provided.
 		 * Schema columns take precedence when schema is provided and no manual columns given.
@@ -367,13 +570,27 @@ export default {
 			return count
 		},
 
+		/**
+		 * Stable signature of the self-fetch inputs so the watcher refetches
+		 * only on a real change (register / schemaId / fetchParams).
+		 *
+		 * @return {string}
+		 */
+		selfFetchKey() {
+			return JSON.stringify({
+				register: this.register,
+				schemaId: this.schemaId,
+				fetchParams: this.fetchParams || null,
+			})
+		},
+
 		allSelected() {
-			return this.rows.length > 0
-				&& this.rows.every((row) => this.selectedIds.includes(row[this.rowKey]))
+			return this.effectiveRows.length > 0
+				&& this.effectiveRows.every((row) => this.selectedIds.includes(row[this.rowKey]))
 		},
 
 		someSelected() {
-			return this.rows.some((row) => this.selectedIds.includes(row[this.rowKey]))
+			return this.effectiveRows.some((row) => this.selectedIds.includes(row[this.rowKey]))
 		},
 	},
 
@@ -385,13 +602,63 @@ export default {
 			handler() { this.loadAggregates() },
 			deep: false,
 		},
+		/**
+		 * Re-run the self-fetch when its inputs (register, schemaId, or the
+		 * host-driven `fetchParams`) change — a token-resolved filter (e.g.
+		 * `@workspace.*`) can change after mount. External rows still win.
+		 */
+		selfFetchKey() {
+			if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+				this.fetchData()
+			}
+		},
 	},
 
 	mounted() {
 		this.loadAggregates()
+		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
+		// are given and no external rows were passed (folded from CnTableWidget).
+		if ((!this.rows || this.rows.length === 0) && this.register != null && this.schemaId != null) {
+			this.fetchData()
+		}
 	},
 
 	methods: {
+		/**
+		 * Self-fetch rows from OpenRegister (register + schemaId mode). Best-effort:
+		 * any failure leaves the fetched rows empty. Folded from CnTableWidget.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchData() {
+			this.selfFetchLoading = true
+			try {
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schemaId}', {
+					register: String(this.register),
+					schemaId: String(this.schemaId),
+				})
+				const { data } = await axios.get(url, {
+					headers: { 'OCS-APIREQUEST': 'true' },
+					...(this.fetchParams ? { params: this.fetchParams } : {}),
+				})
+				this.fetchedRows = (data && data.results) || (Array.isArray(data) ? data : [])
+			} catch (e) {
+				this.fetchedRows = []
+			} finally {
+				this.selfFetchLoading = false
+			}
+		},
+
+		/**
+		 * Navigate to the "View all" footer route.
+		 *
+		 * @return {void}
+		 */
+		onViewAll() {
+			if (this.viewAllRoute && this.$router) {
+				this.$router.push(this.viewAllRoute).catch(() => {})
+			}
+		},
 		/**
 		 * Resolve the leading-row icon name for a row. Returns the static
 		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
@@ -569,16 +836,37 @@ export default {
 		 * @param {MouseEvent} [event] The originating click event.
 		 */
 		onRowClick(row, event) {
-			if (this.selectable) {
-				if (this.wasDrag(event)) return
+			if (this.wasDrag(event)) return
+			if (this.selectable && !this.rowClickToView) {
 				this.toggleSelect(row)
 				return
 			}
 			/**
-			 * @event row-click Emitted when a non-selectable row is clicked. Only fires when `selectable` is false; selectable rows toggle selection instead.
+			 * @event row-click Emitted on a row-body click for navigation. Fires when `selectable` is false, OR when `rowClickToView` is set (selection then happens via the checkbox column).
 			 * @type {object} The clicked row object.
 			 */
 			this.$emit('row-click', row)
+			// Convenience navigation folded from CnTableWidget: a rowClickRoute
+			// function maps the row to a route to push (the event still fires).
+			if (this.rowClickRoute && this.$router) {
+				const route = this.rowClickRoute(row)
+				if (route) this.$router.push(route).catch(() => {})
+			}
+		},
+
+		/**
+		 * Row right-click: forward the row + originating event so a host can
+		 * open a context menu (the browser default is prevented).
+		 *
+		 * @param {object} row The right-clicked row object.
+		 * @param {MouseEvent} event The originating contextmenu event.
+		 */
+		onRowContextMenu(row, event) {
+			/**
+			 * @event row-context-menu Emitted on a row right-click (contextmenu) for hosts that render a context menu.
+			 * @type {{ row: object, event: MouseEvent }}
+			 */
+			this.$emit('row-context-menu', { row, event })
 		},
 
 		/**

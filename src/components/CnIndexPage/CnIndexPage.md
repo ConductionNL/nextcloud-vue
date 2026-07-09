@@ -346,9 +346,11 @@ export default {
 | `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
 | `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` (to open/navigate) on a row/card click even while `selectable` — selection then via the checkbox only. Set automatically by CnPageRenderer when a matching detail page exists |
 | `selectedIds` | Array | `[]` | Currently selected row IDs (controlled) |
 | `sortKey` | String | `null` | Current sort key |
 | `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |
+| `defaultSort` | Array | `[]` | Default multi-key client-side sort (`[{ field, order }]`) applied while no explicit `sortKey` is active; suppressed once the user sorts a column. |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding. When the bound organisation entity changes, the page calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps `X-OpenRegister-Organisation: <uuid>` and the in-memory list caches are cleared. Wire this from a tenant-switcher higher in the tree; leave `null` for single-tenant pages. |
 | `excludeColumns` | Array | `[]` | Column keys to hide in schema mode |
@@ -367,6 +369,7 @@ export default {
 | `importOptions` | Array | `[]` | Import option definitions for the import dialog |
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
+| `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
@@ -397,6 +400,8 @@ export default {
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. With `schema` set and no `objects` prop it also activates **self-fetch mode** (see below). |
 | `filter` | Object | `null` | Self-fetch mode only — a base filter applied to every fetch as a *fixed* filter. String values `"@route.<name>"` / `":<name>"` resolve to `$route.params[<name>]`; others pass through. Fed from `pages[].config.filter`. No effect when `objects` is supplied. |
 | `quickFilters` | Array | `null` | Self-fetch mode only — `{label, filter, default?, icon?}` tabs rendered above the table (see `CnQuickFilterBar`). The active tab's `filter` is merged into every fetch after `filter` (so the tab wins) and before user `activeFilters`. First entry with `default:true` (else index 0) is active on mount; switching tabs emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
+| `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
+| `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
@@ -604,3 +609,39 @@ export default {
 	},
 }
 ```
+
+## Map view mode
+
+Alongside `table` and `cards`, CnIndexPage offers an opt-in `map` view mode — a view-toggle segment that plots the current filtered rows on a `CnMapWidget`. Opt in via the `mapConfig` prop (or manifest `config.map`), which carries the geometry mapping `{ latField, lngField, geoField?, popupField?, center? }`; coordinates are read from each object's metadata (typically the OpenRegister `@self` block). Customise the toggle segment with `mapLabel` and `mapIcon`. The map segment appears automatically when `mapConfig` is non-empty, or gate it explicitly with the `viewModes` whitelist (e.g. `["table", "cards", "map"]`). A marker click emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all view modes.
+
+## List view & sorting
+
+The list view (`view-mode="list"`) and standalone sort dropdown add these props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `availableViewModes` | Array | `['cards','table']` | View-toggle segments; add `list` to offer the list view. |
+| `listLabel` | String | `''` | Label for the list view-toggle option. |
+| `listIcon` | String | `''` | MDI icon for the list view-toggle option. |
+| `listConfig` | Object | `{}` | Field mapping for the default list rows (`CnObjectRow`). |
+| `listComponent` | String | `''` | Custom row component (customComponents registry). |
+| `showSortSelect` | Boolean | `false` | Show a standalone sort dropdown in the actions bar. |
+| `sortSelectOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
+| `sortSelectValue` | String | `''` | Selected sort dropdown value (controlled). |
+
+The `#list-item`, `#row-icon`, `#row-badges`, and `#row-actions` slots override the list rows (see [CnObjectList](./cn-object-list.md)). Emits `@sort-change` with the chosen sort value.
+
+## Folder sidebar
+
+Set the `folderSidebar` config to render a folder navigation pane left of the list. Selecting a folder filters the list by the config's `filterField` (via the self-fetch filter); "All" clears it. Emits `@folder-change` with the selected id (and `@folder-create` when the opt-in New-folder button is used).
+
+Sources: `register` (fetch the folder list from an OpenRegister `register`/`schema`, mapping `idField`/`nameField`), `field` (distinct values of the current rows' `field`), `custom` (explicit `folders`), or `files` (Nextcloud folders). Example — case types as folders that filter cases:
+
+```json
+"folderSidebar": {
+  "source": "register", "register": "procest", "schema": "caseType",
+  "idField": "@self.uuid", "nameField": "title",
+  "filterField": "caseType", "allLabel": "All cases"
+}
+```
+

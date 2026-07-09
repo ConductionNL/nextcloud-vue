@@ -56,6 +56,29 @@ describe('CnContextMenu visible predicate', () => {
 	})
 })
 
+describe('CnContextMenu trigger accessibility', () => {
+	it('marks the offscreen NcActions trigger inert (not aria-hidden)', () => {
+		// The global @nextcloud/vue mock stubs NcActions without its trigger
+		// button, so override it locally with one that renders the real
+		// `.action-item__menutoggle` class CnContextMenu's mounted() hook targets.
+		const wrapper = mount(CnContextMenu, {
+			propsData: { actions: [{ label: 'Edit' }] },
+			stubs: {
+				NcActions: {
+					name: 'NcActions',
+					template: '<div><button class="action-item__menutoggle">…</button><slot /></div>',
+				},
+			},
+		})
+		const trigger = wrapper.element.querySelector('.action-item__menutoggle')
+		expect(trigger).not.toBeNull()
+		// `inert` hides it from AT *and* keeps focus-trap from restoring focus
+		// onto a hidden element when the menu is dismissed without a click.
+		expect(trigger.hasAttribute('inert')).toBe(true)
+		expect(trigger.hasAttribute('aria-hidden')).toBe(false)
+	})
+})
+
 describe('CnContextMenu panels API', () => {
 	it('renders the default NcActions path when activePanel is null', () => {
 		const wrapper = mount(CnContextMenu, {

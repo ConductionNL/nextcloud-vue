@@ -2,6 +2,15 @@ export { useManifestEditor } from './useManifestEditor.js'
 export { useOpenBuildEditAvailability } from './useOpenBuildEditAvailability.js'
 export { useAiContext, CN_AI_CONTEXT_KEY } from './useAiContext.js'
 export { useAiChatStream } from './useAiChatStream.js'
+export {
+	DEFAULT_CHAT_APP_ID,
+	chatApiBase,
+	chatStreamUrl,
+	chatSendUrl,
+	chatHealthUrl,
+	conversationsUrl,
+	conversationMessagesUrl,
+} from './aiChatConfig.js'
 export { useListView } from './useListView.js'
 export { useDetailView } from './useDetailView.js'
 export { useSubResource } from './useSubResource.js'
@@ -15,8 +24,27 @@ export {
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
 export { useAppStatus } from './useAppStatus.js'
+export { useSetupStatus } from './useSetupStatus.js'
+export { useWalkthrough, compareSemver, interpolateTokens } from './useWalkthrough.js'
 export { useGraphQL, selectByPath } from './useGraphQL.js'
 export { useDataSource, buildCountQuery, buildBucketQuery } from './useDataSource.js'
+export {
+	useBrokeredCall,
+	brokerSessionRequestUrl,
+	buildBrokerPath,
+	parseBrokeredBody,
+	OPENREGISTER_SESSION_REQUEST_PATH,
+} from './useBrokeredCall.js'
+export {
+	useEndpointSource,
+	fetchEndpointSource,
+	resolveEndpointRequest,
+	interpolateUrlTokens,
+	endpointCacheKey,
+	invalidateEndpointSourceCache,
+	getByPath,
+	ENDPOINT_SOURCE_TTL_MS,
+} from './useEndpointSource.js'
 export { useObjectSubscription } from './useObjectSubscription.js'
 export { useObjectLock, LockConflictError, PermissionError } from './useObjectLock.js'
 export { cnRenderFormField } from './cnFormFieldRenderer.js'

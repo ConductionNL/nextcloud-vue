@@ -67,7 +67,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object for auto-generating columns from its `properties` map |
-| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, formatter?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
+| `columns` | Array | `[]` | Column definitions: `[{ key, label, sortable?, width?, align?, class?, cellClass?, formatter?, formatterOptions?, widget?, widgetProps?, aggregate? }]`. `formatter`/`widget`/`widgetProps` resolve against the app's `cnFormatters`/`cnCellWidgets` registries (provided by `CnAppRoot`); `formatterOptions` is passed as the formatter's fourth argument (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter, or the `{ negative, zero, positive }` phrases for `conditionalPhrase`) — see [migrating-to-manifest → Column formatters / Column widgets](../migrating-to-manifest.md#column-formatters). `aggregate` (`{ register?, schema, op:"count", where }`) renders the cell as a count of related OpenRegister objects (one `_limit=0` request per row; `@self.<path>` in `where` interpolated per-row; `…` while loading, `—` on failure) — see [migrating-to-manifest → Aggregate columns](../migrating-to-manifest.md#aggregate-columns). The `#column-{key}` scoped slot still overrides everything. |
 | `rowIcon` | String \| Function | `null` | Optional leading icon at the start of every row. A static MDI icon name (PascalCase, e.g. `'FileDocumentOutline'`) applied to all rows, or `(row) => iconName` to vary it per row. Resolved through the shared `CnIcon` registry. Unset = no icon column. |
 | `columnOverrides` | Object | `{}` | Per-column overrides applied on top of schema-generated columns; keyed by column key |
 | `excludeColumns` | Array | `[]` | Column keys to hide when using schema auto-generation |
@@ -78,6 +78,7 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `sortKey` | String | `null` | Currently sorted column key; controls the ▲/▼ indicator. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | Current sort direction — `'asc'`, `'desc'`, or `null` (no sort) |
 | `selectable` | Boolean | `false` | Enables the checkbox column for multi-row selection |
+| `rowClickToView` | Boolean | `false` | When true, a row-body click emits `row-click` (for navigation) even while `selectable` — selection then happens only via the checkbox column ("click row = open, tick box = select") |
 | `selectedIds` | Array | `[]` | Array of currently selected row IDs (controlled) |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `emptyText` | String | `'No items found'` | Message shown when `rows` is empty and no `#empty` slot is provided |
@@ -86,6 +87,8 @@ Sortable data table with row selection, loading states, and schema-driven column
 | `scrollable` | Boolean | `false` | Enables horizontal scrolling for wide tables |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the select-all checkbox in the header row, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`). Useful for compact dashboard list widgets that want a plain bordered-row list without column labels. |
+| `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in so ordinary in-flow tables are unaffected. |
 
 ### Events
 
@@ -111,3 +114,23 @@ Sortable data table with row selection, loading states, and schema-driven column
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnDataTable.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnDataTable/CnDataTable.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Card / widget mode (folded from CnTableWidget)
+
+CnDataTable is now the single table component — the deprecated `CnTableWidget`'s
+features are folded in here as opt-in props (bare-table usage is unchanged):
+
+- `title` — render a card header (title + total-count badge) above the table.
+- `borderless` — drop the container's card chrome so the table sits flush inside
+  a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
+- `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
+- `fetchParams` — extra query params for the self-fetch (a resolved filter map,
+  `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
+  `CnWidgetObjectTable`'s declarative `source`.
+- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.
+- `hideHeader` — drop the column-label row for a compact list widget.
+- `#footer` slot (`{ total, shown }`) — supply a custom footer link (e.g. "+ New"
+  or an always-shown "View all") with its own handler; works outside a
+  vue-router context.

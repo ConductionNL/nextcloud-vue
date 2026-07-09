@@ -24,7 +24,8 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `store` | `Object` | `null` | Optional objectStore instance. When provided, used directly for saving instead of auto-detecting via Pinia. |
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
-| `editable` | `Boolean` | `true` | Whether inline editing is enabled globally |
+| `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
+| `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
 | `exclude` | `Array` | `[]` | Property keys to hide from display |
 | `include` | `Array` | `null` | Property keys to show (whitelist — all others hidden) |
 | `save-label` | `String` | `'Save'` | Label for the save button |
@@ -50,6 +51,16 @@ Schema-driven editable data grid widget. Displays object properties in a CSS gri
 | `@save-error` | error message | Emitted when the objectStore save fails |
 | `@save` | merged data object | Emitted when no `objectType` is set — lets the parent handle the save |
 | `@discard` | — | Emitted when the user clicks the discard button |
+
+## One config, two surfaces (display + edit modal)
+
+The `overrides` / `exclude` / `include` props drive a **single** [`fieldsFromSchema`](../../src/utils/schema.js) pipeline that both the inline display **and** the full-form **Edit** modal ([`CnFormDialog`](./cn-form-dialog.md)) consume. So a property hidden via `overrides.id.hidden = true` is hidden in the widget grid *and* dropped from the edit form; an `order` set on a property reorders both. `gridColumn`/`gridRow` (span) are display-only; the modal is single-column (stacked).
+
+`fieldsFromSchema` honors, per property: `hidden` (drop the field), `order` (wins over the schema's own `order` for sorting), `readOnly: false` (un-skip a schema-readonly field), plus any field props to merge (`label`, `widget`, `enum`, …).
+
+### Configuring it in-app
+
+On a detail page in OpenBuild edit mode, the widget's cog opens [`CnObjectDataWidgetForm`](../../src/components/CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue): it lists the schema's properties (resolved from the widget's `register`/`schema`, or the page's injected `cnObjectContext` when the widget inherits them) and lets you, per property, toggle **visibility**, set a **label**, **span**, **editor** type and **editable**, **drag to reorder**, and pick a **layout preset** (Stacked / 2-col / 3-col → the `columns` value). The form emits a minimal `overrides` map persisted on the widget's `content.overrides`.
 
 ## Property overrides
 
@@ -103,3 +114,63 @@ The widget auto-detects the editor based on the JSON Schema property type:
     internalNotes: { hidden: true },
   }" />
 ```
+
+## Conditional immutability (`x-openregister-readonly-when`)
+
+A schema property can declare that it becomes **read-only when another field on
+the same object holds a given value** — the widget evaluates the rule against the
+live object data and renders the field locked (shown, not hidden). This is the
+declarative way to express identity fields that must not be edited in a
+particular state (e.g. a hybrid app's `slug`/`name`/`description`/
+`productionVersion`, which mirror the installed app it customizes).
+
+```jsonc
+// In the OpenRegister schema property:
+"slug": {
+  "type": "string",
+  "x-openregister-readonly-when": { "field": "appType", "equals": "hybrid" }
+}
+// or match a set of values:
+"slug": { "type": "string", "x-openregister-readonly-when": { "field": "appType", "in": ["hybrid", "managed"] } }
+```
+
+An unconditional `"readOnly": true` on the property locks the field in every
+state (still shown, never editable). Both are honoured by `isEditable`; a
+per-field `overrides[key].editable` still takes priority. Read-only here is a UI
+affordance — pair it with server-side enforcement (an OpenRegister write guard /
+listener) for the authoritative boundary.
+
+## Reference (relation) display
+
+Relation properties display the referenced object's **name, never its raw
+uuid** (ADR-062). Two property shapes are recognised:
+
+- `x-openregister-relation: { target: "<register>/<schema>" }` (explicit,
+  works on every surface), and
+- the canonical OpenRegister shorthand `"$ref": "<schemaSlug>"` on a
+  uuid-string property or its array `items` — the slug resolves against the
+  **same register**, taken from the detail-page object context
+  (`cnObjectContext` inject). On surfaces without that context the shorthand
+  falls back to the shortened-id display.
+
+Names resolve via one `GET /api/objects/{register}/{schema}/{id}` per distinct
+id (cached per widget instance): `name` → `title` → `displayName` →
+`firstName lastName` → `@self.name` → the id itself.
+
+### Scoping picker options: `x-relation-filter`
+
+A relation property may declare `x-relation-filter` to narrow its edit-picker
+options to objects that fit the CURRENT object:
+
+```json
+"status": {
+  "type": "string", "format": "uuid", "$ref": "statusType",
+  "x-relation-filter": { "caseType": "@object.caseType" }
+}
+```
+
+Filter values are token-resolved (`@objectId` / `@object.<field>`), with the
+widget's **dirty values winning** — picking a new caseType immediately scopes
+the status options to it, before any save. Entries whose token stays
+unresolved are dropped (an unfiltered picker beats an empty one). Options
+reload on every edit start for the same reason.

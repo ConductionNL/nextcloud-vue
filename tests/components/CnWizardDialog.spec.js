@@ -170,4 +170,28 @@ describe('CnWizardDialog', () => {
 		expect(wrapper.vm.result).toBeNull()
 		expect(wrapper.emitted('close')).toBeTruthy()
 	})
+
+	it('setError surfaces a recoverable error without entering the result phase', async () => {
+		const wrapper = mount(CnWizardDialog, { propsData: { steps }, scopedSlots: buildSlots(), stubs })
+		await wrapper.vm.submit()
+		expect(wrapper.vm.loading).toBe(true)
+		wrapper.vm.setError('Slug already taken.')
+		await wrapper.vm.$nextTick()
+		// Stays in the wizard phase (still editable), spinner cleared, error shown.
+		expect(wrapper.vm.result).toBeNull()
+		expect(wrapper.vm.loading).toBe(false)
+		expect(wrapper.text()).toContain('Slug already taken.')
+		expect(wrapper.find('[data-testid-phase="form"]').exists()).toBe(true)
+	})
+
+	it('marks completed steps with a checkmark and renders connectors', async () => {
+		const wrapper = mount(CnWizardDialog, { propsData: { steps }, scopedSlots: buildSlots(), stubs })
+		await wrapper.vm.next()
+		const done = wrapper.findAll('.cn-wizard-dialog__progress-item--done')
+		expect(done.length).toBe(1)
+		expect(done.at(0).find('.cn-wizard-dialog__progress-check').exists()).toBe(true)
+		// One connector per gap between the three steps.
+		expect(wrapper.findAll('.cn-wizard-dialog__progress-connector').length).toBe(2)
+		expect(wrapper.findAll('.cn-wizard-dialog__progress-connector--done').length).toBe(1)
+	})
 })

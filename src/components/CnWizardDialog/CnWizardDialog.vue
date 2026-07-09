@@ -40,8 +40,15 @@
 					role="tab"
 					:aria-selected="idx === currentIndex"
 					@click="allowJumpBack && idx < currentIndex ? jumpTo(step.id) : null">
-					<span class="cn-wizard-dialog__progress-dot">{{ idx + 1 }}</span>
+					<span class="cn-wizard-dialog__progress-dot">
+						<span v-if="idx < currentIndex" class="cn-wizard-dialog__progress-check" aria-hidden="true">✓</span>
+						<span v-else>{{ idx + 1 }}</span>
+					</span>
 					<span class="cn-wizard-dialog__progress-label">{{ step.label }}</span>
+					<span v-if="idx < steps.length - 1"
+						class="cn-wizard-dialog__progress-connector"
+						:class="{ 'cn-wizard-dialog__progress-connector--done': idx < currentIndex }"
+						aria-hidden="true" />
 				</li>
 			</ol>
 
@@ -422,6 +429,22 @@ export default {
 			this.result = result || { success: true }
 			this.loading = false
 		},
+
+		/**
+		 * Public method for a NON-terminal submit failure: stops the
+		 * loading spinner and surfaces `message` as the error banner above
+		 * the (still-editable) current step, WITHOUT entering the result
+		 * phase — so the user can correct the input and resubmit. Use this
+		 * instead of `setResult({ error })` when the failure is recoverable
+		 * (e.g. a taken slug, a validation conflict).
+		 *
+		 * @param {string} message The error to show above the step body.
+		 * @return {void}
+		 */
+		setError(message) {
+			this.loading = false
+			this.validationError = message || ''
+		},
 		/**
 		 * Close-button handler. Resets local state so the next open
 		 * starts fresh and emits `@close`.
@@ -446,63 +469,99 @@ export default {
 <style scoped>
 .cn-wizard-dialog__progress {
 	display: flex;
-	gap: 8px;
-	padding: 0;
-	margin: 0 0 16px;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 0;
+	padding: 8px 0 4px;
+	margin: 0 0 20px;
 	list-style: none;
-	overflow-x: auto;
 }
 
 .cn-wizard-dialog__progress-item {
+	position: relative;
 	flex: 1 1 0;
+	min-width: 0;
+	max-width: 180px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
-	padding: 8px 4px;
-	border-bottom: 2px solid var(--color-border);
+	gap: 6px;
+	text-align: center;
 	color: var(--color-text-maxcontrast);
-	font-size: 0.85em;
-}
-
-.cn-wizard-dialog__progress-item--active {
-	border-bottom-color: var(--color-primary-element);
-	color: var(--color-main-text);
-	font-weight: 600;
-}
-
-.cn-wizard-dialog__progress-item--done {
-	border-bottom-color: var(--color-primary-element-light);
-	color: var(--color-main-text);
+	font-size: 0.8125rem;
 }
 
 .cn-wizard-dialog__progress-item--clickable {
 	cursor: pointer;
 }
 
-.cn-wizard-dialog__progress-item--clickable:hover {
-	color: var(--color-primary-element);
-}
-
+/* Marker circle */
 .cn-wizard-dialog__progress-dot {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
+	width: 34px;
+	height: 34px;
 	border-radius: 50%;
-	background: var(--color-background-dark);
+	border: 2px solid var(--color-border-dark);
+	background: var(--color-main-background);
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
 	font-weight: 600;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+	z-index: 1;
 }
 
+.cn-wizard-dialog__progress-check {
+	font-size: 16px;
+	line-height: 1;
+}
+
+.cn-wizard-dialog__progress-label {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Connector line between this marker and the next, centered on the marker. */
+.cn-wizard-dialog__progress-connector {
+	position: absolute;
+	top: 17px;
+	left: calc(50% + 21px);
+	right: calc(-50% + 21px);
+	height: 2px;
+	background: var(--color-border-dark);
+}
+
+.cn-wizard-dialog__progress-connector--done {
+	background: var(--color-primary-element);
+}
+
+/* States */
 .cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-dot {
+	border-color: var(--color-primary-element);
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text, #fff);
 }
 
+.cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-label {
+	color: var(--color-main-text);
+	font-weight: 600;
+}
+
 .cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-dot {
-	background: var(--color-primary-element-light);
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element);
 	color: var(--color-primary-element-text, #fff);
+}
+
+.cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-label {
+	color: var(--color-main-text);
+}
+
+.cn-wizard-dialog__progress-item--clickable:hover .cn-wizard-dialog__progress-label {
+	color: var(--color-primary-element);
 }
 
 .cn-wizard-dialog__step-body {

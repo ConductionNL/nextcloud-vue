@@ -84,11 +84,47 @@ describe('CnAddWidgetModal', () => {
 		expect(values).not.toContain('renderer-only')
 	})
 
+	it('hides the chrome title controls when the active type owns its title', async () => {
+		// Use the real (non-isolated) registry + modal so the modal's imported
+		// getWidgetTypeEntry and the registration below share one instance.
+		const registry = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+		const Modal = require('../../src/modals/CnAddWidgetModal.vue').default
+		registry.registerDashboardWidget('owns-title-test', {
+			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Owns title', icon: 'Star', ownsTitle: true,
+		})
+		registry.registerDashboardWidget('plain-title-test', {
+			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Plain', icon: 'Star',
+		})
+		const wrapper = mount(Modal, { propsData: { show: true } })
+		wrapper.vm.state.type = 'owns-title-test'
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.activeTypeOwnsTitle).toBe(true)
+		wrapper.vm.state.type = 'plain-title-test'
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.activeTypeOwnsTitle).toBe(false)
+	})
+
 	it('mounts the first available type\'s sub-form on open', () => {
 		const { CnAddWidgetModal } = loadModal({ label: { displayName: 'Label' } })
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
 		expect(wrapper.find('.fake-form').exists()).toBe(true)
 		expect(wrapper.vm.state.type).toBe('label')
+	})
+
+	it('offers a detail-only type only when surface="detail-page"', () => {
+		const { CnAddWidgetModal, registry } = loadModal({ label: { displayName: 'Label' } })
+		// A detail-only type (mirrors the real `data` widget).
+		registry.registerDashboardWidget('data', {
+			renderer: { name: 'R' }, form: fakeForm(), defaultContent: {}, displayName: 'Object data', icon: 'Star', surfaces: ['detail-page'],
+		})
+		// Default (dashboard) surface excludes it.
+		const dash = mount(CnAddWidgetModal, { propsData: { show: true } })
+		expect(dash.findAll('option').wrappers.map((o) => o.attributes('value'))).not.toContain('data')
+		// Detail surface includes it (alongside the universal type).
+		const detail = mount(CnAddWidgetModal, { propsData: { show: true, surface: 'detail-page' } })
+		const values = detail.findAll('option').wrappers.map((o) => o.attributes('value'))
+		expect(values).toContain('data')
+		expect(values).toContain('label')
 	})
 
 	it('disables submit while the sub-form is invalid and shows the first error', async () => {
@@ -122,7 +158,46 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.vm.isValid).toBe(true)
 		wrapper.find('[data-testid="add-widget-save"]').trigger('click')
 		expect(wrapper.emitted('submit')).toBeTruthy()
-		expect(wrapper.emitted('submit')[0][0]).toEqual({ type: 'label', content: { text: 'hi' } })
+		expect(wrapper.emitted('submit')[0][0]).toEqual({
+			type: 'label',
+			content: { text: 'hi' },
+			chrome: { showTitle: true, customTitle: '', customIcon: '', backgroundColor: '' },
+		})
+	})
+
+	it('carries the edited Appearance chrome in the submit payload', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.vm.$nextTick()
+		// edit the chrome as the user would via the Appearance controls
+		wrapper.vm.chrome.showTitle = true
+		wrapper.vm.chrome.customTitle = 'My widget'
+		wrapper.vm.chrome.customIcon = 'icon-star'
+		wrapper.vm.chrome.backgroundColor = '#ff0000'
+		wrapper.find('[data-testid="add-widget-save"]').trigger('click')
+		expect(wrapper.emitted('submit')[0][0].chrome).toEqual({
+			showTitle: true,
+			customTitle: 'My widget',
+			customIcon: 'icon-star',
+			backgroundColor: '#ff0000',
+		})
+	})
+
+	it('seeds the chrome from an edited placement (round-trip)', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { form: fakeForm({ errors: [], assembled: { text: 'hi' } }) },
+		})
+		const editingWidget = { type: 'label', content: { text: 'hi' }, showTitle: 0, customTitle: 'Seeded', customIcon: 'icon-files', styleConfig: { backgroundColor: '#00ff00' } }
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true, editingWidget } })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.chrome).toEqual({
+			showTitle: false,
+			customTitle: 'Seeded',
+			customIcon: 'icon-files',
+			backgroundColor: '#00ff00',
+		})
 	})
 
 	it('preselectedType hides the picker and opens directly on that type', () => {

@@ -4,7 +4,9 @@
  * `@action`-event-only path.
  *
  * Reserved keywords:
- *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`.
+ *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`,
+ *     merged with the literal `action.params` map (literals win — so a
+ *     "New X" action can navigate to a detail route with `{ id: "new" }`).
  *   - `emit` → null (page still bubbles `@action`).
  *   - `none` → no-op handler. Caller must also suppress the `@action` emit
  *     (handled via the `_dispatchSuppress` flag set in dispatchAction).
@@ -25,8 +27,12 @@ export function resolveActionHandler(action, ctx) {
 				+ 'but route is missing; falling back to @action-only.')
 			return null
 		}
+		// Literal params (e.g. `{ id: "new" }`) override the default row-id
+		// param, so "New X → detail with id:'new'" is expressible declaratively.
+		const literalParams = (action.params && typeof action.params === 'object') ? action.params : null
 		return (row) => {
-			ctx.router.push({ name: route, params: { id: row[ctx.rowKey] } })
+			const params = { id: row[ctx.rowKey], ...(literalParams || {}) }
+			ctx.router.push({ name: route, params })
 		}
 	}
 
