@@ -7,6 +7,14 @@
 		<p v-if="waitingForContext" class="cn-object-list-widget__prompt">
 			{{ promptText }}
 		</p>
+		<!-- A fetch failed: show ONE quiet line WITHOUT the raw axios status
+		     text ("Request failed with status code 404") — the real error is
+		     logged to the console (ADR-062: an error surface is never a leaked
+		     stack). Takes precedence over the empty state so the two never
+		     stack. -->
+		<p v-else-if="error" class="cn-object-list-widget__error">
+			{{ loadErrorLabel }}
+		</p>
 		<!-- Compact empty state (ADR-062): one muted line, never a full-height
 		     void — an empty collection cell should be DESIGNED small, and this
 		     keeps whatever height it has quiet. -->
@@ -38,9 +46,6 @@
 				{{ moreLabel }}
 			</p>
 		</template>
-		<p v-if="error" class="cn-object-list-widget__error">
-			{{ error }}
-		</p>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
 		     same openCreate() through the public method. -->
@@ -200,9 +205,30 @@ export default {
 		waitingForContext() {
 			return hasUnresolvedTokens(this.resolvedFilter)
 		},
-		/** Prompt shown while a `@workspace.*`-bound list has no selection. */
+		/**
+		 * Prompt shown while a context-bound list has an unresolved REQUIRED
+		 * token. A `content.prompt` override always wins. Otherwise the default
+		 * is context-aware: the "Select an item to see related records"
+		 * master-detail copy only fits a DASHBOARD list waiting on a selection —
+		 * on a detail page (an object context is present) that copy is wrong, so
+		 * fall back to the neutral "Nothing here yet" (ADR-062).
+		 *
+		 * @return {string}
+		 */
 		promptText() {
-			return this.content.prompt || t('nextcloud-vue', 'Select an item to see related records')
+			if (this.content.prompt) return this.content.prompt
+			return this.objectCtx
+				? t('nextcloud-vue', 'Nothing here yet')
+				: t('nextcloud-vue', 'Select an item to see related records')
+		},
+		/**
+		 * Quiet, status-code-free label shown when a fetch fails. The real
+		 * axios error is logged to the console, never rendered (ADR-062).
+		 *
+		 * @return {string}
+		 */
+		loadErrorLabel() {
+			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
 		},
 		/**
 		 * Column definitions normalised for CnDataTable. A string column becomes
@@ -363,6 +389,10 @@ export default {
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
 				this.$nextTick(() => this.measureFit())
 			} catch (e) {
+				// Keep the raw message OUT of the template — log it for
+				// debugging, surface only the quiet `loadErrorLabel` line.
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load objects:', e)
 				this.error = (e && e.message) || 'error'
 				this.rows = []
 				this.total = 0
