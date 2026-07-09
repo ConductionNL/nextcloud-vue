@@ -68,6 +68,7 @@
 <script>
 import { BUILT_IN_WIDGETS } from './builtInWidgets.js'
 import { getWidgetTypeEntry } from './dashboardWidgetRegistry.js'
+import CnUnknownWidget from './CnUnknownWidget.vue'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { resolveSlotColumns } from '../../utils/resolveSlotColumns.js'
 import { initGridStack, readGridGeometry } from '../../utils/gridStack.js'
@@ -255,6 +256,19 @@ export default {
 						`[CnWidgetGrid] Unknown widgetKey "${key}" in slot "${this.slotName}". `
 						+ 'Register it in the built-in registry or pass it via the CnAppRoot registry prop.',
 					)
+					// Render a visible, designed placeholder instead of silently
+					// skipping — a page whose widgets ALL fail to resolve must not
+					// leave a blank pane (2026-07-06 audit: petstore dashboard).
+					result.push({
+						id: widget.id ?? `unknown-${key}-${result.length}`,
+						widgetKey: key,
+						component: CnUnknownWidget,
+						props: { widgetKey: key },
+						gridX: widget.gridX,
+						gridY: widget.gridY,
+						gridWidth: typeof widget.gridWidth === 'number' ? widget.gridWidth : columns,
+						gridHeight: widget.gridHeight,
+					})
 					continue
 				}
 
@@ -329,7 +343,11 @@ export default {
 		// Expose the shared grid helpers to the template.
 		cnGridCellStyle,
 		hasGridRow,
-		/** Stable GridStack id for a widget entry (its id, else its index). */
+		/**
+		 * Stable GridStack id for a widget entry (its id, else its index).
+		 * @param {object} widget The resolved widget entry.
+		 * @param {number} index The entry's position in the slot.
+		 */
 		gsId(widget, index) {
 			return widget.id != null ? widget.id : `idx-${index}`
 		},

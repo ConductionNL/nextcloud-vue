@@ -495,10 +495,6 @@ export default {
 	cursor: pointer;
 }
 
-.cn-wizard-dialog__progress-item--clickable:hover .cn-wizard-dialog__progress-label {
-	color: var(--color-primary-element);
-}
-
 /* Marker circle */
 .cn-wizard-dialog__progress-dot {
 	display: inline-flex;
@@ -562,6 +558,10 @@ export default {
 
 .cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-label {
 	color: var(--color-main-text);
+}
+
+.cn-wizard-dialog__progress-item--clickable:hover .cn-wizard-dialog__progress-label {
+	color: var(--color-primary-element);
 }
 
 .cn-wizard-dialog__step-body {

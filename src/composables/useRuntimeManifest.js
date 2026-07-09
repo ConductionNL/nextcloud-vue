@@ -22,8 +22,20 @@
 import { ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { validateManifest } from '../utils/validateManifest.js'
 import { mergeManifestDelta } from '../utils/mergeManifestDelta.js'
+
+/**
+ * Lazily import the manifest validator. The validator plus its compiled Ajv
+ * artifact weigh ~340KB minified and most apps never validate at runtime —
+ * a static import makes every consumer bundle carry them. The dynamic import
+ * splits them into an async chunk fetched on first validation only.
+ *
+ * @return {Promise<Function>} The validateManifest function.
+ */
+function loadValidator() {
+	return import(/* webpackChunkName: "cn-manifest-validator" */ '../utils/validateManifest.js')
+		.then((mod) => mod.validateManifest)
+}
 
 /**
  * Load a v2 manifest at runtime.
@@ -69,6 +81,7 @@ export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 				orphanedDeltaPaths.value = merged.orphanedDeltaPaths
 			}
 
+			const validateManifest = await loadValidator()
 			const result = validateManifest(resolved)
 
 			if (!result.valid) {

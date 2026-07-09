@@ -65,4 +65,15 @@ describe('CnPageRenderer.onRowOpen', () => {
 		wrapper.vm.onRowOpen({ id: 'abc-123' })
 		expect(push).not.toHaveBeenCalled()
 	})
+
+	it('resolvedProps sets rowClickToView on an index page that has a detail page', () => {
+		const { wrapper } = mountAt('Meetings')
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBe(true)
+	})
+
+	it('resolvedProps omits rowClickToView when no matching detail page exists', () => {
+		const noDetail = { ...manifest, pages: manifest.pages.filter(p => p.type !== 'detail') }
+		const { wrapper } = mountAt('Meetings', noDetail)
+		expect(wrapper.vm.resolvedProps.rowClickToView).toBeUndefined()
+	})
 })

@@ -11,7 +11,8 @@
 
     1. Explicit `pages[].config.<key>` from the manifest.
     2. `loadState(appId, 'features_roadmap_<key>', <fallback>)`.
-    3. Hardcoded fallback (only `repo` has one: `ConductionNL/<appId>`).
+    3. Hardcoded fallback (`repo` → `Conduction/<appId>` on Codeberg;
+       `forge` → the `cnFeatureRequestForge` inject, else Codeberg).
 
   `appId` comes from the `cnAiContext` inject that CnAppRoot already
   provides; consumers can override it explicitly via the prop for tests.
@@ -21,6 +22,7 @@
 <template>
 	<CnFeaturesAndRoadmapView
 		:repo="resolvedRepo"
+		:forge="resolvedForge"
 		:features="resolvedFeatures"
 		:disabled="resolvedDisabled"
 		:openbuilt-url="resolvedOpenbuiltUrl"
@@ -31,6 +33,7 @@
 
 <script>
 import CnFeaturesAndRoadmapView from '../CnFeaturesAndRoadmapView/CnFeaturesAndRoadmapView.vue'
+import { DEFAULT_FORGE } from '../../utils/forge.js'
 
 /**
  * Read a key from `@nextcloud/initial-state`. `@nextcloud/initial-state`
@@ -67,17 +70,35 @@ export default {
 		cnAiContext: {
 			default: () => ({ appId: 'unknown' }),
 		},
+		/**
+		 * Forge config provided by CnAppRoot from `manifest.nav.forge`.
+		 * Used as the fallback for `resolvedForge` so the whole app shares
+		 * one forge setting. Defaults to Codeberg when no ancestor.
+		 */
+		cnFeatureRequestForge: {
+			default: () => ({ ...DEFAULT_FORGE }),
+		},
 	},
 
 	props: {
 		/**
-		 * `<owner>/<repo>` of the app's GitHub repository. When
+		 * `<owner>/<repo>` of the app's repository on the forge. When
 		 * omitted, falls back to the loadState value, then to
-		 * `ConductionNL/<appId>`.
+		 * `Conduction/<appId>`.
 		 */
 		repo: {
 			type: String,
 			default: '',
+		},
+		/**
+		 * Target forge for the feature-request deep-link. Manifest config
+		 * > initialState > the `cnFeatureRequestForge` inject (CnAppRoot)
+		 * > Codeberg.
+		 * @type {{type: 'codeberg'|'forgejo'|'gitea'|'github', baseUrl?: string}|null}
+		 */
+		forge: {
+			type: Object,
+			default: null,
 		},
 		/**
 		 * Build-time feature manifest. When omitted, falls back to
@@ -169,7 +190,24 @@ export default {
 			return readInitialState(
 				this.effectiveAppId,
 				'features_roadmap_repo',
-				`ConductionNL/${this.effectiveAppId}`,
+				`Conduction/${this.effectiveAppId}`,
+			)
+		},
+
+		/**
+		 * Effective forge. Manifest config > initialState >
+		 * `cnFeatureRequestForge` inject (CnAppRoot) > Codeberg.
+		 *
+		 * @return {{type: string, baseUrl?: string}}
+		 */
+		resolvedForge() {
+			if (this.forge) {
+				return this.forge
+			}
+			return readInitialState(
+				this.effectiveAppId,
+				'features_roadmap_forge',
+				this.cnFeatureRequestForge || { ...DEFAULT_FORGE },
 			)
 		},
 

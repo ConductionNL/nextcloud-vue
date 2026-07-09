@@ -111,10 +111,10 @@
 							</small>
 						</td>
 						<td>
-							<CnIconPicker
-								compact
+							<CnIconBrowser
 								:value="link.icon"
-								@input="updateLinkIcon(link, $event)" />
+								allow-url
+								@input="(v) => { link.icon = v; onContentChange() }" />
 						</td>
 						<td v-if="showColorColumn">
 							<input
@@ -166,8 +166,8 @@
 <script>
 import { NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { sanitiseUrl, validateUrl } from '../../utils/widgetUrl.js'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
 	links: [],
@@ -195,7 +195,7 @@ export default {
 
 	components: {
 		NcSelect,
-		CnIconPicker,
+		CnIconBrowser,
 	},
 
 	props: {

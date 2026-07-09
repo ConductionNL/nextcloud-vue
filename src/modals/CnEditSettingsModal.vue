@@ -22,7 +22,6 @@
 			</p>
 
 			<CnMenuTreeNode :list="menu"
-				:depth="0"
 				:max-depth="1"
 				:pages="pageOptions"
 				section="settings" />
@@ -57,8 +56,11 @@
 					</template>
 					{{ t('nextcloud-vue', 'Add settings item') }}
 				</NcButton>
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -66,15 +68,18 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMenuTreeNode from '../components/CnMenuTreeNode/CnMenuTreeNode.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditSettingsModal',
 
-	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, Plus, CnMenuTreeNode },
+	components: { NcModal, NcButton, NcTextField, NcCheckboxRadioSwitch, NcEmptyContent, NcLoadingIcon, Plus, CnMenuTreeNode },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -143,11 +148,17 @@ export default {
 			if (!this.working.nav || typeof this.working.nav !== 'object') this.$set(this.working, 'nav', {})
 			return this.working.nav
 		},
-		/** Toggle the auto personal-settings entry. */
+		/**
+		 * Toggle the auto personal-settings entry.
+		 * @param checked
+		 */
 		setIncludePersonalSettings(checked) {
 			this.$set(this.ensureNav(), 'includePersonalSettings', Boolean(checked))
 		},
-		/** Set the settings foldout label. */
+		/**
+		 * Set the settings foldout label.
+		 * @param value
+		 */
 		setSettingsLabel(value) {
 			this.$set(this.ensureNav(), 'settingsLabel', value)
 		},

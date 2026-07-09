@@ -1,9 +1,14 @@
 /**
  * TypeScript type definitions for the Conduction app manifest.
  *
- * The shape mirrors `src/schemas/app-manifest.schema.json` (JSON Schema
- * draft 2020-12). Apps consume these types when authoring their
+ * The shape tracks the canonical v2 schema
+ * `src/schemas/app-manifest-v2.schema.json` (JSON Schema draft 2020-12), not
+ * the legacy v1 schema. Apps consume these types when authoring their
  * `src/manifest.json` and when interacting with `useAppManifest`.
+ *
+ * These types are hand-authored for ergonomics; the drift guard in
+ * `tests/types/manifest-types-schema-sync.spec.js` fails CI if the v2 schema
+ * grows a top-level property or page type this file does not reflect.
  *
  * @example
  * import type { TManifest, TManifestPage } from '@conduction/nextcloud-vue'
@@ -20,7 +25,10 @@
  * pageTypes map and may extend this string union locally for type
  * safety.
  */
-export type TPageType = 'index' | 'detail' | 'dashboard' | 'custom' | (string & {})
+export type TPageType =
+	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
+	| 'files' | 'form' | 'map' | 'roadmap' | 'search' | 'wiki' | 'custom'
+	| (string & {})
 
 /** Where a menu entry renders inside CnAppNav. */
 export type TManifestMenuSection = 'main' | 'footer' | 'settings'
@@ -184,11 +192,168 @@ export interface TManifestNav {
 	primaryAction?: TManifestPrimaryAction
 }
 
+/**
+ * A declarative health check descriptor (ADR-040). The OpenRegister AppHost
+ * observability engine renders these as the `{status, app, version, checks}`
+ * health response.
+ */
+export interface TManifestHealthCheck {
+	id: string
+	type: 'database' | 'filesystem' | 'appEnabled' | 'appConfig' | 'orAvailable'
+	severity?: 'critical' | 'degraded'
+	/** App id — for the `appEnabled` check. */
+	app?: string
+	/** Config key — for the `appConfig` check. */
+	key?: string
+}
+
+/**
+ * A declarative Prometheus metric descriptor (ADR-040). The `{app}_` prefix,
+ * exposition format, and implicit `{app}_info` / `{app}_up` gauges are
+ * engine-owned; `source.kind` is one of the closed metric-source kinds.
+ */
+export interface TManifestMetric {
+	name: string
+	type: 'gauge' | 'counter'
+	help?: string
+	source: {
+		kind: 'tableCount' | 'objectCount' | 'objectSum' | 'appConfig' | 'provider'
+		[key: string]: unknown
+	}
+}
+
+/**
+ * ADR-040 AppHost observability block. Rendered by OpenRegister's generic
+ * health/metrics controllers — health public, metrics admin-only. An
+ * observability-only manifest (no `pages`) is valid as of schema v2.13.0.
+ */
+export interface TManifestObservability {
+	_note?: string
+	health?: {
+		statusCodePolicy?: 'adr006' | 'always200'
+		checks?: TManifestHealthCheck[]
+		/** ADR-040: emit permissive CORS headers on `/api/health`. */
+		cors?: boolean
+	}
+	metrics?: TManifestMetric[]
+}
+
+/**
+ * ADR-040 deep-link descriptor. The generic listener resolves the template at
+ * event time so a register/schema object gets a routable in-app URL.
+ */
+export interface TManifestDeepLink {
+	registerSlug: string
+	schemaSlug: string
+	urlTemplate: string
+	displayName?: string
+}
+
+/**
+ * External-provider credential declaration (credential-broker capability).
+ * The app never receives the secret — OpenRegister's broker performs the
+ * outbound call on the user's behalf; the app only declares which provider,
+ * why, and at what scope.
+ */
+export interface TManifestCredential {
+	provider: string
+	reason?: string
+	scopes?: string[]
+}
+
+/**
+ * Declarative scheduled-task descriptor (apphost-scheduling capability).
+ * The OpenRegister AppHost schedule-reconciler turns each entry into an
+ * OpenConnector job that runs on the existing background-job path, so a
+ * manifest-driven app (including a pure-virtual OpenBuild app) can own its
+ * cadence without shipping a PHP TimedJob. Consumed by the OpenRegister
+ * engine, never by the Vue renderer. Exactly one of `interval` or `cron`
+ * must be set.
+ */
+export interface TManifestSchedule {
+	/** Stable id, unique within the manifest — the reconciled job is keyed on applicationId + this id. */
+	id: string
+	/** Run cadence in seconds. Exactly one of `interval` or `cron`. */
+	interval?: number
+	/** 5-field cron expression; the reconciler computes nextRun from it. Exactly one of `interval` or `cron`. */
+	cron?: string
+	/**
+	 * A server-allow-listed generic action type (e.g. `"openconnector:synchronization"`),
+	 * NOT a PHP class name. The reconciler maps the type to a trusted jobClass;
+	 * a manifest-supplied class name is never executed. Non-allow-listed → rejected + logged.
+	 */
+	action: string
+	/** Free-form arguments passed to the vetted action (e.g. a synchronization ref). */
+	arguments?: Record<string, unknown>
+	/** Whether the schedule is active (default true). `false` disables the job, preserving run history. */
+	enabled?: boolean
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
 	dependencies?: string[]
 	nav?: TManifestNav
-	menu: TManifestMenuItem[]
-	pages: TManifestPage[]
+	/**
+	 * Required for a UI manifest. Omitted only by an observability-only
+	 * manifest (an ADR-040 Tier-0 adopter with no manifest-driven UI —
+	 * then `observability` is required instead). See schema v2.13.0.
+	 */
+	menu?: TManifestMenuItem[]
+	pages?: TManifestPage[]
+	/** ADR-040 AppHost observability engine config. */
+	observability?: TManifestObservability
+	/** ADR-040 deep links. */
+	deepLinks?: TManifestDeepLink[]
+	/** External-provider credentials via the OpenRegister broker. */
+	credentials?: TManifestCredential[]
+	/** Declarative scheduled tasks (apphost-scheduling) reconciled into OpenConnector jobs. */
+	schedules?: TManifestSchedule[]
+	/**
+	 * Admin-only settings sections rendered by CnAppRoot's generic admin
+	 * NcAppSettingsDialog, gated on app-owner-group membership. See the
+	 * `adminSettingsEntry` $def in the v2 schema for the full shape (a
+	 * built-in `type` — currently only `"organisation-credentials"` — or a
+	 * custom `component` resolved from the renderer registry).
+	 */
+	adminSettings?: Record<string, unknown>[]
+	/**
+	 * ADR-041: offer the OpenBuild in-app edit button on this app's pages.
+	 * Default true; set false to suppress (e.g. OpenBuild's own UI).
+	 */
+	openbuildEditable?: boolean
+	/**
+	 * First-time setup wizard descriptor (ADR-042). See the `setup` $def in
+	 * the v2 schema for the full shape.
+	 */
+	setup?: Record<string, unknown>
+	/**
+	 * Product walkthrough descriptor (ADR-043). See the `walkthrough` $def in
+	 * the v2 schema for the full shape.
+	 */
+	walkthrough?: Record<string, unknown>
+	/**
+	 * Server-injected runtime context (e.g. `runtime.user`), added by
+	 * OpenRegister's ManifestController — never hand-authored.
+	 */
+	runtime?: Record<string, unknown>
+	/**
+	 * Entity-scaffold page templates (manifest-entity-scaffold-templating).
+	 * A template declares one reusable index/detail page shape with
+	 * `{{param}}` placeholders; `utils/expandPageTemplates` materialises
+	 * `pageInstances[]` into concrete `pages[]`. See the `pageTemplate` $def
+	 * in the v2 schema for the full shape.
+	 */
+	pageTemplates?: Record<string, unknown>[]
+	/**
+	 * Per-entity template instantiations — each references a
+	 * `pageTemplates[]` entry by `templateRef` and supplies the varying
+	 * values. See the v2 schema `pageInstance` $def.
+	 */
+	pageInstances?: Record<string, unknown>[]
+	/**
+	 * Named, reusable field/column/sidebar sets referenced from templates
+	 * via `{{set:NAME}}` placeholders. Each value is arbitrary JSON.
+	 */
+	sets?: Record<string, unknown>
 }

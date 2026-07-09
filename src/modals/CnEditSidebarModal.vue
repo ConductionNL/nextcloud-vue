@@ -22,28 +22,46 @@
 					{{ t('nextcloud-vue', 'Tabs') }}
 				</h3>
 				<ul class="cn-edit-sidebar__tabs">
-					<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab-row">
-						<NcCheckboxRadioSwitch
-							:checked="!isHidden(tab.id)"
-							:aria-label="t('nextcloud-vue', 'Visible')"
-							@update:checked="(v) => setTabVisible(tab.id, v)" />
-						<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
-						<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
-						<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
-							<template #icon><Delete :size="20" /></template>
-						</NcButton>
+					<li v-for="(tab, index) in editableTabs" :key="tab.id || index" class="cn-edit-sidebar__tab">
+						<div class="cn-edit-sidebar__tab-row">
+							<NcCheckboxRadioSwitch
+								:checked="!isHidden(tab.id)"
+								:aria-label="t('nextcloud-vue', 'Visible')"
+								@update:checked="(v) => setTabVisible(tab.id, v)" />
+							<NcTextField :value.sync="tab.label" :label="t('nextcloud-vue', 'Tab label')" :label-visible="true" />
+							<NcTextField :value.sync="tab.id" :label="t('nextcloud-vue', 'Tab id')" :label-visible="true" />
+							<NcButton type="tertiary" :aria-label="t('nextcloud-vue', 'Remove')" @click="removeTab(index)">
+								<template #icon>
+									<Delete :size="20" />
+								</template>
+							</NcButton>
+						</div>
+						<label class="cn-edit-sidebar__content">
+							<span>{{ t('nextcloud-vue', 'Content') }}</span>
+							<NcSelect :value="selectedContent(tab)"
+								:options="contentOptions"
+								:clearable="false"
+								label="label"
+								:input-label="t('nextcloud-vue', 'Tab content')"
+								@input="(o) => setContent(tab, o)" />
+						</label>
 					</li>
 				</ul>
 				<NcButton type="secondary" @click="addTab">
-					<template #icon><Plus :size="20" /></template>
+					<template #icon>
+						<Plus :size="20" />
+					</template>
 					{{ t('nextcloud-vue', 'Add tab') }}
 				</NcButton>
 			</template>
 			<NcEmptyContent v-else :name="t('nextcloud-vue', 'No editable page')" />
 
 			<div class="cn-edit-sidebar__footer">
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -51,15 +69,18 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField } from '@nextcloud/vue'
+import { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditSidebarModal',
 
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, Plus, Delete },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcTextField, NcLoadingIcon, NcSelect, Plus, Delete },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -91,9 +112,13 @@ export default {
 		/** The page's normalised sidebar config object (ensured to exist). */
 		sidebar() {
 			if (!this.page) return null
+			// Normalise the working page in place so the editor can bind to it —
+			// the working manifest is ours to mutate by design (see CnEditPagesModal).
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!this.page.config || typeof this.page.config !== 'object') this.$set(this.page, 'config', {})
 			const cfg = this.page.config
 			if (typeof cfg.sidebar !== 'object' || cfg.sidebar === null) {
+				// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 				this.$set(cfg, 'sidebar', typeof cfg.sidebar === 'boolean' ? { show: cfg.sidebar } : {})
 			}
 			return cfg.sidebar
@@ -116,6 +141,7 @@ export default {
 		editableTabs() {
 			const s = this.sidebar
 			if (!s) return []
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.tabs)) this.$set(s, 'tabs', [])
 			return s.tabs
 		},
@@ -123,18 +149,63 @@ export default {
 		hiddenTabs() {
 			const s = this.sidebar
 			if (!s) return []
+			// eslint-disable-next-line vue/no-side-effects-in-computed-properties
 			if (!Array.isArray(s.hiddenTabs)) this.$set(s, 'hiddenTabs', [])
 			return s.hiddenTabs
+		},
+		/** Selectable content types for a tab (mapped to a built-in widget). */
+		contentOptions() {
+			return [
+				{ id: '', label: t('nextcloud-vue', 'No content (empty tab)') },
+				{ id: 'data', label: t('nextcloud-vue', 'Object data') },
+				{ id: 'metadata', label: t('nextcloud-vue', 'Metadata') },
+				{ id: 'audit', label: t('nextcloud-vue', 'Audit log') },
+			]
 		},
 	},
 
 	methods: {
 		t,
-		/** Whether a tab id is currently hidden. */
+		/**
+		 * The currently selected content option for a tab (reads its first widget).
+		 *
+		 * @param {object} tab The tab object.
+		 * @return {object} The matching content option.
+		 */
+		selectedContent(tab) {
+			const type = (Array.isArray(tab.widgets) && tab.widgets[0]) ? tab.widgets[0].type : ''
+			return this.contentOptions.find((o) => o.id === type) || this.contentOptions[0]
+		},
+		/**
+		 * Set a tab's content widget from the chosen option. An empty choice
+		 * clears the widgets (a plain labelled tab).
+		 *
+		 * @param {object} tab The tab to mutate.
+		 * @param {object} option The selected content option.
+		 */
+		setContent(tab, option) {
+			const type = option ? option.id : ''
+			if (type === '') {
+				this.$set(tab, 'widgets', [])
+			} else {
+				this.$set(tab, 'widgets', [{ type }])
+			}
+		},
+		/**
+		 * Whether a tab id is currently hidden.
+		 *
+		 * @param {string} id The tab id.
+		 * @return {boolean} True when the tab is in hiddenTabs.
+		 */
 		isHidden(id) {
 			return this.hiddenTabs.includes(id)
 		},
-		/** Show or hide a tab by id, mutating the working copy's hiddenTabs. */
+		/**
+		 * Show or hide a tab by id, mutating the working copy's hiddenTabs.
+		 *
+		 * @param {string} id The tab id.
+		 * @param {boolean} visible Whether the tab should be visible.
+		 */
 		setTabVisible(id, visible) {
 			const idx = this.hiddenTabs.indexOf(id)
 			if (visible && idx !== -1) this.hiddenTabs.splice(idx, 1)
@@ -145,7 +216,11 @@ export default {
 			if (this.sidebar) this.$set(this.sidebar, 'show', true)
 			this.editableTabs.push({ id: `tab-${this.editableTabs.length + 1}`, label: '', widgets: [] })
 		},
-		/** Remove the tab at `index`. */
+		/**
+		 * Remove the tab at `index`.
+		 *
+		 * @param {number} index The tab index to remove.
+		 */
 		removeTab(index) {
 			this.editableTabs.splice(index, 1)
 		},
@@ -170,6 +245,30 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.cn-edit-sidebar__tab {
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.cn-edit-sidebar__tab-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.cn-edit-sidebar__content {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .cn-edit-sidebar__footer {

@@ -63,10 +63,11 @@
 							:value="link.url"
 							:placeholder="t('nextcloud-vue', 'URL')"
 							@input="updateLink(sIdx, lIdx, 'url', $event.target.value)">
-						<CnIconPicker
-							compact
+						<CnIconBrowser
+							class="cn-links-form__icon"
 							:value="link.icon"
-							@input="updateLink(sIdx, lIdx, 'icon', $event || '')" />
+							allow-url
+							@input="updateLink(sIdx, lIdx, 'icon', $event)" />
 						<input
 							v-if="showLinkDescriptions"
 							type="text"
@@ -185,7 +186,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnIconPicker from '../CnIconPicker/CnIconPicker.vue'
+import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 
 const VALID_LAYOUTS = Object.freeze(['card', 'inline', 'icon-only'])
 const VALID_SIZES = Object.freeze(['small', 'medium', 'large'])
@@ -256,7 +257,7 @@ export default {
 	name: 'CnLinksWidgetForm',
 
 	components: {
-		CnIconPicker,
+		CnIconBrowser,
 	},
 
 	props: {

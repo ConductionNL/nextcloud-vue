@@ -133,10 +133,10 @@ export default {
 		 * Optional override for the Suggest CTA. When set, the CTA renders
 		 * as an anchor pointing at this URL — appropriate when the app
 		 * routes feature suggestions through a public form, a Discord
-		 * channel, or any non-GitHub target. When empty (default) the CTA
+		 * channel, or any non-forge target. When empty (default) the CTA
 		 * is a button that emits `@suggest`, which the parent view binds
-		 * to `CnSuggestFeatureModal` and the GitHub-issues proxy. External
-		 * URLs (matching `^https?://`) open in a new tab.
+		 * to `CnSuggestFeatureModal`'s forge deep-link. External URLs
+		 * (matching `^https?://`) open in a new tab.
 		 * @type {string}
 		 */
 		suggestUrl: {
@@ -153,7 +153,7 @@ export default {
 		sidebarSubtitle() { return t('nextcloud-vue', 'Four ways to ship what you need') },
 
 		suggestTitle() { return t('nextcloud-vue', 'Hit a wall? Tell us.') },
-		suggestBody() { return t('nextcloud-vue', 'Anything that wastes your time is gold to us. Every suggestion becomes a public GitHub issue, others can back it, and we triage within 24 hours. You watch it move on this roadmap and get credit on the merge.') },
+		suggestBody() { return t('nextcloud-vue', 'Anything that wastes your time is gold to us. Every suggestion becomes a public issue, others can back it, and we triage within 24 hours. You watch it move on this roadmap and get credit on the merge.') },
 		suggestCta() { return t('nextcloud-vue', 'Suggest a feature') },
 
 		openbuiltTitle() { return t('nextcloud-vue', 'Tweak it yourself') },

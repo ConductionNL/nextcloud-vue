@@ -30,7 +30,9 @@
 					:editing-widget="widget"
 					@update:content="draftContent = $event" />
 				<ul v-if="contentErrors.length" class="cn-widget-style-editor__errors">
-					<li v-for="(err, i) in contentErrors" :key="i">{{ err }}</li>
+					<li v-for="(err, i) in contentErrors" :key="i">
+						{{ err }}
+					</li>
 				</ul>
 			</div>
 

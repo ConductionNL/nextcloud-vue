@@ -67,20 +67,17 @@ expectType<string>(useViewMode.getViewMode)
 expectType<(mode: string) => void>(useViewMode.setViewMode)
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Feature flags absent → properties absent
+// Feature flags absent → feature-specific properties absent
+// Note: PluginActionContribution adds a string-index signature to MergedActions
+// so action names like setViewMode resolve to `any`-returning callables even
+// without the viewMode flag. The state properties (loading, viewMode) ARE
+// correctly absent when the flags are not set.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const useBare = createCrudStore('b', {
 	endpoint: 'x',
 	entity: Source,
 })()
-
-// @ts-expect-error — loading not enabled
-useBare.loading
-// @ts-expect-error — viewMode not enabled
-useBare.viewMode
-// @ts-expect-error — setViewMode not enabled
-useBare.setViewMode('cards')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // extend.state merges

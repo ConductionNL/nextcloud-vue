@@ -276,17 +276,23 @@ export default {
 			default: false,
 		},
 		/**
-		 * Inverse of `hideRefresh`. Defaults to `true` so the action
-		 * renders. Set `:show-refresh="false"` to hide. Either `hideRefresh`
-		 * OR `!showRefresh` hides the action — the spec scenario in
-		 * `widget-wrapper` declares the show-prefixed form as canonical;
-		 * the `hide-` flags remain for back-compat.
+		 * Whether to show the built-in Refresh item. Tri-state:
+		 * - `true` / `false` — force the action on or off.
+		 * - `null` (the default) — **auto**: show the action only when a
+		 *   parent has attached an `@refresh` listener (i.e. something will
+		 *   actually handle the refresh). This keeps widgets that can't
+		 *   refresh — e.g. a prop-driven `CnObjectDataWidget` — from showing
+		 *   a dead button. Widgets that refresh themselves via the
+		 *   `cn:widget:refresh` event bus (with no `@refresh` listener)
+		 *   should set `:show-refresh="true"` explicitly.
 		 *
-		 * @type {boolean}
+		 * `hideRefresh` (or `:show-refresh="false"`) always wins.
+		 *
+		 * @type {boolean|null}
 		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
@@ -402,15 +408,18 @@ export default {
 		},
 
 		/**
-		 * Effective Refresh visibility. Either `hideRefresh: true` OR
-		 * `showRefresh: false` hides the action. The show-prefixed prop
-		 * is the spec-canonical form (per `widget-wrapper` scenario);
-		 * `hideRefresh` remains as a back-compat alias.
+		 * Effective Refresh visibility. `hideRefresh: true` (or
+		 * `:show-refresh="false"`) always hides it. When `showRefresh` is
+		 * left unset (`null`), auto-detect: show the action only when a
+		 * parent attached an `@refresh` listener — otherwise the refresh
+		 * would do nothing. `hideRefresh` remains a back-compat alias.
 		 *
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			return this.showRefresh && !this.hideRefresh
+			if (this.hideRefresh) return false
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners && this.$listeners.refresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
@@ -550,6 +559,9 @@ export default {
 	flex-direction: column;
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
+	/* NC design system: every content card is rounded — same token as
+	   CnDetailCard so detail pages read as ONE card family (ADR-062). */
+	border-radius: var(--border-radius-large, 8px);
 	overflow: hidden;
 }
 
@@ -595,6 +607,40 @@ export default {
  * so users can override any token. Combined selector raises specificity above
  * the base `.cn-widget-wrapper` rules it supersedes.
  */
+.cn-widget-wrapper__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__header-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	/* Grow so the title hugs the (optional) title-icon on the left instead
+	   of centering between icon and actions (header is space-between). */
+	flex: 1 1 auto;
+}
+
+.cn-widget-wrapper__icon {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__title {
+	font-weight: 600;
+	font-size: 14px;
+	margin: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
 	background: var(--color-main-background-blur, var(--color-main-background));
 	-webkit-backdrop-filter: var(--filter-background-blur, none);
@@ -628,37 +674,6 @@ export default {
 	padding: 0 16px 16px;
 }
 
-.cn-widget-wrapper__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--color-border);
-	flex-shrink: 0;
-}
-
-.cn-widget-wrapper__header-left {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	min-width: 0;
-}
-
-.cn-widget-wrapper__icon {
-	width: 24px;
-	height: 24px;
-	flex-shrink: 0;
-}
-
-.cn-widget-wrapper__title {
-	font-weight: 600;
-	font-size: 14px;
-	margin: 0;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
 .cn-widget-wrapper__title-meta {
 	display: flex;
 	align-items: center;
@@ -679,6 +694,11 @@ export default {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	/* One icon color across the whole card family: the primary element color.
+	   Some leaf cards colored their icons primary while wrapper icons stayed
+	   text-colored — pages read as two design systems (audit 2026-07-09).
+	   A titleIconColor prop still overrides via inline style. */
+	color: var(--color-primary-element);
 }
 
 .cn-widget-wrapper__footer {

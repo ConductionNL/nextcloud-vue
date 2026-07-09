@@ -11,6 +11,9 @@
 // Mock `@nextcloud/capabilities` before loading CnAppNav so that the
 // `isAppInstalled` utility (imported by CnAppNav) can have its
 // `getCapabilities` call intercepted.
+import { mount } from '@vue/test-utils'
+import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
+
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
 }))
@@ -19,9 +22,6 @@ const { getCapabilities } = require('@nextcloud/capabilities')
 
 // Import the cache-reset helper so each test starts with a clean slate.
 const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
-
-import { mount } from '@vue/test-utils'
-import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
 
 const baseManifest = {
 	version: '1.0.0',
@@ -49,32 +49,55 @@ function mountNav({
 	permissions = [],
 	useProps = false,
 	routeName = 'a',
+	routePath,
 	translate,
 	openUserSettings,
+	replayWalkthrough,
+	openAdminSettings,
+	isOwner,
 } = {}) {
 	const provide = useProps
 		? {}
 		: {
-				cnManifest: manifest,
-				cnTranslate: translate ?? ((k) => k),
-				...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
-			}
+			cnManifest: manifest,
+			cnTranslate: translate ?? ((k) => k),
+			...(openUserSettings ? { cnOpenUserSettings: openUserSettings } : {}),
+			...(replayWalkthrough ? { cnReplayWalkthrough: replayWalkthrough } : {}),
+			...(openAdminSettings ? { cnOpenAdminSettings: openAdminSettings } : {}),
+		}
 	const propsData = {
 		permissions,
+		...(isOwner !== undefined ? { isOwner } : {}),
 		...(useProps
 			? {
-					manifest,
-					translate: translate ?? ((k) => k),
-				}
+				manifest,
+				translate: translate ?? ((k) => k),
+			}
 			: {}),
 	}
 	return mount(CnAppNav, {
 		propsData,
 		provide,
 		mocks: {
-			$route: { name: routeName },
+			$route: { name: routeName, path: routePath },
 		},
 	})
+}
+
+// Manifest with two independent, prefix-sharing namespaces (`/pos` and
+// `/pos/tender-types`) plus a detail route under `/pos`, to exercise
+// active-route disambiguation.
+const posManifest = {
+	version: '1.0.0',
+	pages: [
+		{ id: 'pos', route: '/pos' },
+		{ id: 'posTenderTypes', route: '/pos/tender-types' },
+		{ id: 'posDetail', route: '/pos/:id' },
+	],
+	menu: [
+		{ id: 'pos', label: 'POS', route: 'pos', order: 1 },
+		{ id: 'posTenderTypes', label: 'Tender types', route: 'posTenderTypes', order: 2 },
+	],
 }
 
 describe('CnAppNav', () => {
@@ -141,6 +164,46 @@ describe('CnAppNav', () => {
 		})
 	})
 
+	describe('auto-included "Admin settings" nav entry (admin-settings-owner-gating)', () => {
+		const manifestWithAdminSettings = {
+			...baseManifest,
+			adminSettings: [{ id: 'org-credentials', type: 'organisation-credentials', label: 'Org credentials' }],
+		}
+
+		it('shows the entry when isOwner is true AND adminSettings is non-empty', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(true)
+		})
+
+		it('hides the entry when isOwner is false, even with adminSettings declared', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: false })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is absent', () => {
+			const wrapper = mountNav({ manifest: baseManifest, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('hides the entry when isOwner is true but adminSettings is an empty array', () => {
+			const wrapper = mountNav({ manifest: { ...baseManifest, adminSettings: [] }, isOwner: true })
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('defaults isOwner to false when the prop is omitted (standalone mount)', () => {
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings })
+			expect(wrapper.vm.isOwner).toBe(false)
+			expect(wrapper.find('[data-testid="cn-nav-admin-settings"]').exists()).toBe(false)
+		})
+
+		it('invokes cnOpenAdminSettings when the entry is clicked', async () => {
+			const openAdminSettings = jest.fn()
+			const wrapper = mountNav({ manifest: manifestWithAdminSettings, isOwner: true, openAdminSettings })
+			await wrapper.find('[data-testid="cn-nav-admin-settings"]').trigger('click')
+			expect(openAdminSettings).toHaveBeenCalled()
+		})
+	})
+
 	describe('active route', () => {
 		it('marks the item whose route equals $route.name as active', () => {
 			const wrapper = mountNav({ routeName: 'b' })
@@ -151,6 +214,56 @@ describe('CnAppNav', () => {
 		it('returns false when item has no route', () => {
 			const wrapper = mountNav()
 			expect(wrapper.vm.isActive({ id: 'noroute' })).toBe(false)
+		})
+
+		// Regression: an ancestor-namespace entry (`/pos`) must NOT light up
+		// when a sibling route that merely shares its prefix is active
+		// (`/pos/tender-types`), since they are independent menu items.
+		it('does not mark a prefix-sharing sibling namespace as active', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posTenderTypes',
+				routePath: '/pos/tender-types',
+			})
+			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(true)
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(false)
+		})
+
+		// A genuine nested detail route (no menu entry of its own) still lights
+		// up its index entry via the longest-prefix `activeRouteName` resolution.
+		it('marks the index entry active for its own nested detail route', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posDetail',
+				routePath: '/pos/42',
+			})
+			expect(wrapper.vm.isActive({ route: 'pos' })).toBe(true)
+			expect(wrapper.vm.isActive({ route: 'posTenderTypes' })).toBe(false)
+		})
+
+		// An ancestor entry overruled by a more specific sibling owner must use
+		// exact matching so the router-link's inclusive active state can't
+		// independently light it up.
+		it('forces exact matching on an ancestor namespace owned by a more specific sibling', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posTenderTypes',
+				routePath: '/pos/tender-types',
+			})
+			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(true)
+			// The owner itself keeps inclusive matching.
+			expect(wrapper.vm.isExact({ route: 'posTenderTypes' })).toBe(false)
+		})
+
+		// Backwards compatible: an index entry on its OWN nested route (no
+		// dedicated menu entry) keeps inclusive matching so it still lights up.
+		it('keeps inclusive matching for an index entry on its own nested detail route', () => {
+			const wrapper = mountNav({
+				manifest: posManifest,
+				routeName: 'posDetail',
+				routePath: '/pos/42',
+			})
+			expect(wrapper.vm.isExact({ route: 'pos' })).toBe(false)
 		})
 	})
 
@@ -507,6 +620,50 @@ describe('CnAppNav', () => {
 		})
 	})
 
+	describe('action: "replay-walkthrough"', () => {
+		const replayManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+				{
+					id: 'restart-tutorial',
+					label: 'app.restart',
+					action: 'replay-walkthrough',
+					tourId: 'pipelinq:getting-started',
+					section: 'settings',
+					order: 99,
+				},
+			],
+		}
+
+		it('invokes the injected cnReplayWalkthrough with the item tourId and prevents default', () => {
+			const replayWalkthrough = jest.fn()
+			const wrapper = mountNav({
+				manifest: replayManifest,
+				replayWalkthrough,
+				routeName: 'home',
+			})
+			const event = { preventDefault: jest.fn() }
+			wrapper.vm.onItemClick(replayManifest.menu[1], event)
+			expect(replayWalkthrough).toHaveBeenCalledTimes(1)
+			expect(replayWalkthrough).toHaveBeenCalledWith('pipelinq:getting-started')
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
+		})
+
+		it('returns null for itemTo so vue-router does not navigate', () => {
+			const wrapper = mountNav({ manifest: replayManifest, routeName: 'home' })
+			expect(wrapper.vm.itemTo(replayManifest.menu[1])).toBeNull()
+		})
+
+		it('falls back to a no-op when no cnReplayWalkthrough inject is provided', () => {
+			const wrapper = mountNav({ manifest: replayManifest, routeName: 'home' })
+			const event = { preventDefault: jest.fn() }
+			expect(() => wrapper.vm.onItemClick(replayManifest.menu[1], event)).not.toThrow()
+			expect(event.preventDefault).toHaveBeenCalledTimes(1)
+		})
+	})
+
 	describe('action: "user-settings"', () => {
 		const actionManifest = {
 			version: '1.0.0',
@@ -566,6 +723,61 @@ describe('CnAppNav', () => {
 			wrapper.vm.onItemClick(item, { preventDefault: jest.fn() })
 			expect(window.open).not.toHaveBeenCalled()
 			expect(openUserSettings).toHaveBeenCalledTimes(1)
+			window.open = originalOpen
+		})
+
+		it('returns null for itemHref so the anchor stays a router-link / button', () => {
+			const wrapper = mountNav({ manifest: actionManifest, routeName: 'home' })
+			expect(wrapper.vm.itemHref(actionManifest.menu[1])).toBeNull()
+		})
+	})
+
+	describe('href menu items', () => {
+		const hrefManifest = {
+			version: '1.0.0',
+			pages: [],
+			menu: [
+				{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+				{ id: 'docs', label: 'app.docs', href: 'https://docs.example.org/', order: 2 },
+				{ id: 'shillinq', label: 'app.shillinq', href: '/index.php/apps/shillinq/', order: 3 },
+			],
+		}
+
+		it('itemHref returns the href for an href item and null for a route item', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			expect(wrapper.vm.itemHref(hrefManifest.menu[1])).toBe('https://docs.example.org/')
+			expect(wrapper.vm.itemHref(hrefManifest.menu[0])).toBeNull()
+		})
+
+		it('itemTo returns null for href items so vue-router does not navigate', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			expect(wrapper.vm.itemTo(hrefManifest.menu[1])).toBeNull()
+		})
+
+		// NcAppNavigationItem is stubbed in this suite, so the rendered
+		// anchor (and its `target="_blank"` derivation for external URLs)
+		// belongs to that component's own contract. Here we assert only
+		// that CnAppNav forwards the real `href` through to it — the stub
+		// reflects props as attributes — for both external and internal
+		// destinations.
+		it('forwards an external URL as the entry href', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const entry = wrapper.find('[data-testid="cn-nav-entry-docs"]')
+			expect(entry.attributes('href')).toBe('https://docs.example.org/')
+		})
+
+		it('forwards an internal app path as the entry href', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const entry = wrapper.find('[data-testid="cn-nav-entry-shillinq"]')
+			expect(entry.attributes('href')).toBe('/index.php/apps/shillinq/')
+		})
+
+		it('does not intercept the click with window.open (native navigation)', () => {
+			const wrapper = mountNav({ manifest: hrefManifest, routeName: 'home' })
+			const originalOpen = window.open
+			window.open = jest.fn()
+			wrapper.vm.onItemClick(hrefManifest.menu[1], { preventDefault: jest.fn() })
+			expect(window.open).not.toHaveBeenCalled()
 			window.open = originalOpen
 		})
 	})
@@ -1050,7 +1262,7 @@ describe('CnAppNav', () => {
 	})
 
 	describe('per-item actions slot pass-through', () => {
-		it('renders content from item-${id}-actions slot inside the NcAppNavigationItem #actions slot', () => {
+		it('renders content from the item-<id>-actions slot inside the NcAppNavigationItem #actions slot', () => {
 			const wrapper = mount(CnAppNav, {
 				propsData: {
 					manifest: {
@@ -1064,6 +1276,49 @@ describe('CnAppNav', () => {
 				scopedSlots: { 'item-a-actions': '<button class="host-action">Do</button>' },
 			})
 			expect(wrapper.find('.host-action').exists()).toBe(true)
+		})
+	})
+
+	// A menu entry (or a backend-merged child) may carry `query` params so it
+	// deep-links to a pre-filtered index page, e.g. one entry per case type →
+	// Cases?caseType=<uuid>. itemTo() must fold them into the router target.
+	describe('menu-item query params', () => {
+		it('includes query in the router target when item.query is set', () => {
+			const wrapper = mountNav({})
+			const to = wrapper.vm.itemTo({ id: 'x', route: 'Cases', query: { caseType: 'abc' } })
+			expect(to).toEqual({ name: 'Cases', query: { caseType: 'abc' } })
+			wrapper.destroy()
+		})
+
+		it('omits query when item.query is absent (unchanged behaviour)', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Cases' })).toEqual({ name: 'Cases' })
+			wrapper.destroy()
+		})
+
+		it('returns null (no route) for action/href items regardless of query', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', query: { a: 1 } })).toBeNull()
+			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', query: { a: 1 } })).toBeNull()
+			wrapper.destroy()
+		})
+
+		it('renders a per-case-type child link carrying its query', () => {
+			const manifest = {
+				version: '1.0.0',
+				pages: [{ id: 'Cases', route: '/cases' }],
+				menu: [{
+					id: 'CasesGroup',
+					label: 'Cases',
+					order: 1,
+					open: true,
+					children: [{ id: 'ct-1', label: 'Objections', route: 'Cases', query: { caseType: 'uuid-1' } }],
+				}],
+			}
+			const wrapper = mountNav({ manifest })
+			const child = wrapper.vm.itemTo({ id: 'ct-1', route: 'Cases', query: { caseType: 'uuid-1' } })
+			expect(child.query.caseType).toBe('uuid-1')
+			wrapper.destroy()
 		})
 	})
 })

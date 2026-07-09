@@ -19,6 +19,19 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
+		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
+		     object's display label via the object store (per-schema caching).
+		     Config: widgetProps { register, schema, labelField }. -->
+		<template v-else-if="widget === 'fkResolve'">
+			<CnFkResolveCell
+				v-if="hasValue"
+				:value="value"
+				:register="(widgetProps && widgetProps.register) || ''"
+				:schema="(widgetProps && widgetProps.schema) || ''"
+				:label-field="(widgetProps && widgetProps.labelField) || 'name'" />
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "link" widget — renders the (possibly formatter-shaped) value
 		     as a router-link (when widgetProps.route is a manifest page id) or an
 		     external anchor (when widgetProps.href is set). Falls back to plain
@@ -116,7 +129,9 @@ import { NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue } from '../../utils/schema.js'
+import { safeCurrencyCode, resolveConfigFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
+import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 
 /**
  * Module-level set of column keys already warned about for a
@@ -141,6 +156,7 @@ export default {
 
 	components: {
 		CnStatusBadge,
+		CnFkResolveCell,
 		CheckBold,
 		NcDateTime,
 	},
@@ -160,6 +176,14 @@ export default {
 		 * Defaults to an empty object.
 		 */
 		cnCellWidgets: { default: () => ({}) },
+		/**
+		 * Page-level app-config map, provided by CnAppRoot / CnDashboardPage
+		 * (`cnAppConfig`). Lets a column's `format.currency` (or `prefix` /
+		 * `suffix`) be a `@config.<key>` token — resolved here exactly as the
+		 * stat widgets resolve it on a dashboard, so a KPI tile and a table
+		 * column read the same currency. Defaults to `{}` (standalone use).
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	props: {
@@ -176,21 +200,34 @@ export default {
 		/**
 		 * Optional cell-formatter id (e.g. `currency`, `automationTrigger`).
 		 * When set and resolvable in the injected `cnFormatters` registry,
-		 * the cell renders `cnFormatters[formatter](value, row, property)`
-		 * as text — an explicit override of the type-aware rendering below.
+		 * the cell renders `cnFormatters[formatter](value, row, property,
+		 * formatterOptions)` as text — an explicit override of the type-aware
+		 * rendering below.
 		 */
 		formatter: {
 			type: String,
 			default: null,
 		},
 		/**
+		 * Declarative options map passed as the formatter's fourth argument
+		 * (e.g. `{ currency: 'USD' }` for the built-in `currency` formatter,
+		 * or `{ negative, zero, positive }` phrases for `conditionalPhrase`).
+		 * Undefined-safe: three-argument formatters simply ignore it.
+		 */
+		formatterOptions: {
+			type: Object,
+			default: null,
+		},
+		/**
 		 * Optional cell-widget id (e.g. `badge`, or a consumer-registered
 		 * name). When it resolves in `cnCellWidgets` the cell renders that
 		 * component with `{ value, row, property, formatted, ...widgetProps }`;
-		 * the built-in id `"badge"` renders `CnStatusBadge`. Takes precedence
-		 * over `formatter`/the type-aware rendering, but the value handed to
-		 * the widget is the formatter-shaped `formatted` when `formatter` is
-		 * also set.
+		 * the built-in id `"badge"` renders `CnStatusBadge` and the built-in
+		 * id `"fkResolve"` renders `CnFkResolveCell` (uuid → related object
+		 * label, config via `widgetProps { register, schema, labelField }`).
+		 * Takes precedence over `formatter`/the type-aware rendering, but the
+		 * value handed to the widget is the formatter-shaped `formatted` when
+		 * `formatter` is also set.
 		 */
 		widget: {
 			type: String,
@@ -439,7 +476,7 @@ export default {
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
-					return this.formatterFn(this.value, this.row, this.property)
+					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined)
 				} catch (e) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
@@ -507,7 +544,11 @@ export default {
 		 */
 		applyBuiltinFormat() {
 			if (!this.hasValue) return '—'
-			const fmt = this.format || {}
+			// Resolve `@config.<key>` tokens (currency / prefix / suffix) against
+			// the injected app-config, mirroring the stat widgets — so a column
+			// passing `format.currency: "@config.currency"` renders the app's
+			// configured currency instead of silently falling back to EUR.
+			const fmt = resolveConfigFormat(this.format || {}, unwrapAppConfig(this.cnAppConfig))
 			if (fmt.style === 'duration') return this.formatDuration()
 			const num = Number(this.value)
 			if (!Number.isFinite(num)) {
@@ -520,7 +561,7 @@ export default {
 			if (fmt.style === 'currency') {
 				body = new Intl.NumberFormat(undefined, {
 					style: 'currency',
-					currency: fmt.currency || 'EUR',
+					currency: safeCurrencyCode(fmt.currency),
 					minimumFractionDigits: decimals,
 					maximumFractionDigits: decimals,
 				}).format(num)

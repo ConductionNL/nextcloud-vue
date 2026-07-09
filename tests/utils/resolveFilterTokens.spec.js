@@ -113,6 +113,85 @@ describe('resolveFilterTokens', () => {
 		})
 	})
 
+	describe('@me via @nextcloud/auth', () => {
+		afterEach(() => {
+			jest.resetModules()
+			jest.dontMock('@nextcloud/auth')
+		})
+
+		it('prefers getCurrentUser() from @nextcloud/auth over window.OC', () => {
+			jest.isolateModules(() => {
+				jest.doMock('@nextcloud/auth', () => ({ getCurrentUser: () => ({ uid: 'auth-user' }) }))
+				const { resolveFilterValue: resolve } = require('../../src/utils/resolveFilterTokens.js')
+				global.window.OC = { currentUser: 'oc-user' }
+				expect(resolve('@me')).toBe('auth-user')
+			})
+		})
+
+		it('falls back to window.OC.currentUser when the auth package has no user (jsdom)', () => {
+			global.window.OC = { currentUser: 'oc-user' }
+			expect(resolveFilterValue('@me')).toBe('oc-user')
+		})
+
+		it('resolves to an empty string when no user source is available', () => {
+			jest.isolateModules(() => {
+				jest.doMock('@nextcloud/auth', () => ({ getCurrentUser: () => null }))
+				const { resolveFilterValue: resolve } = require('../../src/utils/resolveFilterTokens.js')
+				delete global.window.OC
+				expect(resolve('@me')).toBe('')
+			})
+		})
+	})
+
+	describe('relative-date arithmetic (@today±Nd)', () => {
+		it('resolves @today+7d and @today-30d at day granularity', () => {
+			const shift = (days) => {
+				const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days)
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+			}
+			expect(resolveFilterValue('@today+7d')).toBe(shift(7))
+			expect(resolveFilterValue('@today-30d')).toBe(shift(-30))
+		})
+
+		it('passes through malformed date arithmetic unchanged', () => {
+			expect(resolveFilterValue('@today-2w')).toBe('@today-2w')
+			expect(resolveFilterValue('@todayish')).toBe('@todayish')
+		})
+	})
+
+	describe('IN-list arrays', () => {
+		it('resolves tokens item-by-item inside an array filter value', () => {
+			global.window.OC = { currentUser: 'alice' }
+			const out = resolveFilterTokens({ assignee: ['@me', 'shared'] })
+			expect(out.assignee).toEqual(['alice', 'shared'])
+		})
+
+		it('resolves tokens inside an operator-form { in: [...] } array', () => {
+			const out = resolveFilterTokens(
+				{ client: { in: ['@workspace.selectedClient', 'c-2'] } },
+				{ workspace: { selectedClient: 'c-1' } },
+			)
+			expect(out.client.in).toEqual(['c-1', 'c-2'])
+		})
+
+		it('hasUnresolvedTokens flags a blocking token inside an array', () => {
+			expect(hasUnresolvedTokens({ client: ['@workspace.selectedClient'] })).toBe(true)
+			expect(hasUnresolvedTokens({ client: { in: ['@workspace.selectedClient'] } })).toBe(true)
+			expect(hasUnresolvedTokens({ client: ['c-1', 'c-2'] })).toBe(false)
+		})
+
+		it('dropOptionalUnresolved drops optional-unresolved items and empty arrays', () => {
+			const out = dropOptionalUnresolved({
+				status: ['open', '@workspace.extraStatus?'],
+				client: ['@workspace.selectedClient?'],
+				tag: { in: ['@config.tag?'] },
+			})
+			expect(out.status).toEqual(['open'])
+			expect(out.client).toBeUndefined()
+			expect(out.tag).toBeUndefined()
+		})
+	})
+
 	describe('hasUnresolvedTokens', () => {
 		it('detects an unresolved token in equality and operator shapes', () => {
 			expect(hasUnresolvedTokens({ client: '@workspace.selectedClient' })).toBe(true)

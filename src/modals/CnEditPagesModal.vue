@@ -24,9 +24,9 @@
 
 			<CnPageTreeNode v-else
 				:list="pages"
-				:parent-id="''"
-				:depth="0"
-				:max-depth="1" />
+				:menu="working && Array.isArray(working.menu) ? working.menu : null"
+				:max-depth="1"
+				@navigate="onNavigate" />
 
 			<div class="cn-edit-pages__footer">
 				<NcButton type="secondary" @click="add">
@@ -35,8 +35,11 @@
 					</template>
 					{{ t('nextcloud-vue', 'Add page') }}
 				</NcButton>
-				<NcButton type="primary" @click="$emit('close')">
-					{{ t('nextcloud-vue', 'Done') }}
+				<NcButton type="primary" :disabled="saving" @click="onDone">
+					<template v-if="saving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ saving ? t('nextcloud-vue', 'Saving…') : t('nextcloud-vue', 'Done') }}
 				</NcButton>
 			</div>
 		</div>
@@ -44,15 +47,18 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcModal, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { translate as t } from '@nextcloud/l10n'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPageTreeNode from '../components/CnPageTreeNode/CnPageTreeNode.vue'
+import manifestModalDoneMixin from '../mixins/manifestModalDoneMixin.js'
 
 export default {
 	name: 'CnEditPagesModal',
 
-	components: { NcModal, NcButton, NcEmptyContent, Plus, CnPageTreeNode },
+	components: { NcModal, NcButton, NcEmptyContent, NcLoadingIcon, Plus, CnPageTreeNode },
+
+	mixins: [manifestModalDoneMixin],
 
 	props: {
 		/**
@@ -88,6 +94,16 @@ export default {
 			while (ids.has(`page-${n}`)) n++
 			const id = `page-${n}`
 			this.pages.push({ id, route: `/${id}`, type: 'custom', title: '', config: {} })
+		},
+		/**
+		 * Navigate the app to a page's route (from a row's "Go to page" button)
+		 * and close the modal. Uses the host's vue-router when present.
+		 * @param {string} route The route path to open.
+		 * @return {void}
+		 */
+		onNavigate(route) {
+			if (route && this.$router) this.$router.push(route).catch(() => {})
+			this.$emit('close')
 		},
 	},
 }

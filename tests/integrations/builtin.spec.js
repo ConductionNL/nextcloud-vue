@@ -48,6 +48,7 @@ const BESPOKE_LEAF_IDS = [
 	'flow',
 	'forms',
 	'time-tracker',
+	'field-inspection',
 	// external
 	'openproject',
 	'xwiki',
@@ -84,6 +85,7 @@ const SORTED_IDS = [
 	'forms', // 65
 	'polls', // 66
 	'time-tracker', // 67
+	'field-inspection', // 68
 ]
 
 describe('builtinIntegrations', () => {
