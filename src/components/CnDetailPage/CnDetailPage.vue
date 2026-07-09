@@ -557,6 +557,20 @@
 
 		<!-- Relation-link modal (manifest `config.relationLinks`): async-search a
 		     target schema and patch a FK on the current object. -->
+		<!-- Create archetype (ADR-062): a schema-bound `type:"detail"` page with
+		     no object id renders an empty create form for its schema instead of a
+		     blank page. Save POSTs the object and navigates to its detail route
+		     (or back); prefill comes from the route query. -->
+		<CnFormDialog
+			v-if="isCreateMode && currentSchema"
+			ref="createFormDialog"
+			:schema="currentSchema"
+			:item="createPrefill"
+			:register="register"
+			:dialog-title="title || undefined"
+			@confirm="onCreateFormConfirm"
+			@close="onCreateFormClose" />
+
 		<CnRelationLinkModal
 			v-if="activeRelationLink"
 			:title="activeRelationLink.title || undefined"
@@ -586,6 +600,7 @@ import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
@@ -698,6 +713,7 @@ export default {
 		CnOpenBuildEditButton,
 		CnLockedBanner,
 		CnObjectDataWidget,
+		CnFormDialog,
 		CnRelatedObjectsWidget,
 		CnDashboardGrid,
 		CnWidgetWrapper,
@@ -1198,6 +1214,20 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Vue-router route NAME to navigate to after a create-form save (the
+		 * create archetype: a `type:"detail"` page whose route carries no `:id`).
+		 * The created object's id is passed as the `id` route param. When empty
+		 * (the default) the page navigates back in history after a successful
+		 * create instead. See `isCreateMode`.
+		 *
+		 * @type {string}
+		 */
+		createRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Page-level app config map exposed to declarative widget / section
 		 * config via the `@config.<key>` token (e.g. the reporting `currency`
 		 * the setup wizard captures). Provided to descendants on `cnAppConfig`,
@@ -1417,6 +1447,38 @@ export default {
 		},
 
 		/**
+		 * The create archetype: a schema-bound page (`register` + `schema`) whose
+		 * route carries NO object id, and which has no hand-authored body of its
+		 * own. Instead of rendering a blank page (procest `/tasks/new`), the page
+		 * shows an empty create form for the schema (ADR-062). Suppressed when a
+		 * default slot or an explicit grid `layout` supplies the body.
+		 *
+		 * @return {boolean}
+		 */
+		isCreateMode() {
+			return Boolean(this.register && this.schema) && !this.objectId
+				&& !this.hasDefaultSlotContent && !this.hasGridLayout
+		},
+
+		/**
+		 * Create-form prefill drawn from the route query, filtered to the
+		 * schema's own properties (e.g. `?caseId=x` seeds the `caseId` field so
+		 * a child created from a parent is pre-linked). Null when nothing
+		 * applies (true empty create).
+		 *
+		 * @return {object|null}
+		 */
+		createPrefill() {
+			const q = (this.$route && this.$route.query) || {}
+			const props = (this.currentSchema && this.currentSchema.properties) || {}
+			const out = {}
+			for (const [k, v] of Object.entries(q)) {
+				if (Object.prototype.hasOwnProperty.call(props, k)) out[k] = v
+			}
+			return Object.keys(out).length ? out : null
+		},
+
+		/**
 		 * Effective Refresh visibility for the page header. An explicit
 		 * `showRefresh` prop wins; when unset (`null`), show Refresh only if
 		 * it will do something — a consumer attached an `@refresh` listener,
@@ -1443,7 +1505,7 @@ export default {
 			if (this.objectStore) {
 				return this.objectStore
 			}
-			if (!this.hasSchemaDrivenFetch) {
+			if (!this.hasSchemaDrivenFetch && !this.isCreateMode) {
 				return null
 			}
 			try {
@@ -1988,7 +2050,12 @@ export default {
 		 * place so the request lifecycle stays predictable.
 		 */
 		async fetchObjectIfNeeded() {
-			if (!this.hasSchemaDrivenFetch) return
+			// Create archetype: no object to fetch, but the create form needs
+			// the schema — register the type and fetch its schema, then stop.
+			if (!this.hasSchemaDrivenFetch) {
+				if (this.isCreateMode) await this.fetchSchemaForCreate()
+				return
+			}
 			const store = this.effectiveObjectStore
 			if (!store) return
 			const type = this.resolvedObjectType
@@ -2035,6 +2102,84 @@ export default {
 		 * @param {object} item Layout item
 		 * @return {boolean} true when the matching widget def is an integration widget
 		 */
+		/**
+		 * Register the type and fetch ONLY its schema, for the create archetype
+		 * (no object id to fetch). Populates `currentSchema` so the inline create
+		 * form can auto-generate its fields.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchSchemaForCreate() {
+			const store = this.effectiveObjectStore
+			if (!store) return
+			const type = this.resolvedObjectType
+			if (typeof store.registerObjectType === 'function'
+				&& !store.objectTypeRegistry?.[type]) {
+				store.registerObjectType(
+					type,
+					this.schema,
+					this.register,
+					{ registerSlug: this.register, schemaSlug: this.schema },
+				)
+			}
+			try {
+				if (typeof store.fetchSchema === 'function') await store.fetchSchema(type)
+			} catch (err) {
+				console.error('[CnDetailPage] create-mode schema fetch failed:', err)
+			}
+		},
+
+		/**
+		 * Persist the create form: POST the new object to OpenRegister, then
+		 * navigate to the created object's detail route (`createRoute` with its
+		 * id) — or back in history when no route is configured.
+		 *
+		 * @param {object} formData The confirmed form values.
+		 * @return {Promise<void>}
+		 */
+		async onCreateFormConfirm(formData) {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl(
+					'/apps/openregister/api/objects/{register}/{schema}',
+					{ register: this.register, schema: this.schema },
+				)
+				const res = await axios.post(url, formData)
+				const created = (res && res.data) ? res.data : {}
+				const newId = (created['@self'] && created['@self'].id) || created.id
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ success: true })
+				/**
+				 * @event created Emitted after a successful create-form save.
+				 * @type {object}
+				 */
+				this.$emit('created', created)
+				if (this.createRoute && newId && this.$router) {
+					this.$router.push({ name: this.createRoute, params: { id: String(newId) } }).catch(() => {})
+				} else if (this.$router) {
+					this.$router.back()
+				}
+			} catch (e) {
+				if (this.$refs.createFormDialog) this.$refs.createFormDialog.setResult({ error: (e && e.message) || 'error' })
+			}
+		},
+
+		/**
+		 * The create form was dismissed without saving — navigate back so the
+		 * user is not stranded on an id-less page.
+		 *
+		 * @return {void}
+		 */
+		onCreateFormClose() {
+			/**
+			 * @event create-cancel Emitted when the create form is dismissed.
+			 */
+			this.$emit('create-cancel')
+			if (this.$router) this.$router.back()
+		},
+
 		isIntegrationWidget(item) {
 			const def = this.findWidget(item)
 			return Boolean(def) && def.type === 'integration' && typeof def.integrationId === 'string'
