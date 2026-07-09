@@ -261,6 +261,34 @@ export interface TManifestCredential {
 	scopes?: string[]
 }
 
+/**
+ * Declarative scheduled-task descriptor (apphost-scheduling capability).
+ * The OpenRegister AppHost schedule-reconciler turns each entry into an
+ * OpenConnector job that runs on the existing background-job path, so a
+ * manifest-driven app (including a pure-virtual OpenBuild app) can own its
+ * cadence without shipping a PHP TimedJob. Consumed by the OpenRegister
+ * engine, never by the Vue renderer. Exactly one of `interval` or `cron`
+ * must be set.
+ */
+export interface TManifestSchedule {
+	/** Stable id, unique within the manifest — the reconciled job is keyed on applicationId + this id. */
+	id: string
+	/** Run cadence in seconds. Exactly one of `interval` or `cron`. */
+	interval?: number
+	/** 5-field cron expression; the reconciler computes nextRun from it. Exactly one of `interval` or `cron`. */
+	cron?: string
+	/**
+	 * A server-allow-listed generic action type (e.g. `"openconnector:synchronization"`),
+	 * NOT a PHP class name. The reconciler maps the type to a trusted jobClass;
+	 * a manifest-supplied class name is never executed. Non-allow-listed → rejected + logged.
+	 */
+	action: string
+	/** Free-form arguments passed to the vetted action (e.g. a synchronization ref). */
+	arguments?: Record<string, unknown>
+	/** Whether the schedule is active (default true). `false` disables the job, preserving run history. */
+	enabled?: boolean
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
@@ -279,6 +307,8 @@ export interface TManifest {
 	deepLinks?: TManifestDeepLink[]
 	/** External-provider credentials via the OpenRegister broker. */
 	credentials?: TManifestCredential[]
+	/** Declarative scheduled tasks (apphost-scheduling) reconciled into OpenConnector jobs. */
+	schedules?: TManifestSchedule[]
 	/**
 	 * Admin-only settings sections rendered by CnAppRoot's generic admin
 	 * NcAppSettingsDialog, gated on app-owner-group membership. See the

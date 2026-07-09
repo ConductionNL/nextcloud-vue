@@ -245,6 +245,27 @@
 				}
 			}
 		},
+		"schedules": {
+			"type": "array",
+			"description": "Declarative scheduled tasks (apphost-scheduling capability). Each entry declares a recurring task the OpenRegister AppHost schedule-reconciler turns into an OpenConnector job that runs on the existing background-job path — so a manifest-driven app (including a pure-virtual OpenBuild app with no PHP on disk) can own its ingestion/maintenance cadence without shipping a TimedJob. The temporal peer of `credentials`/`observability`: consumed by the OpenRegister engine, NOT by the Vue renderer. Optional and additive.",
+			"items": {
+				"type": "object",
+				"required": ["id", "action"],
+				"additionalProperties": false,
+				"oneOf": [
+					{ "required": ["interval"], "not": { "required": ["cron"] } },
+					{ "required": ["cron"], "not": { "required": ["interval"] } }
+				],
+				"properties": {
+					"id": { "type": "string", "description": "Stable identifier for this schedule, unique within the manifest. The reconciled job is keyed on applicationId + this id, so renaming it creates a new job and orphans the old one (which is then garbage-collected)." },
+					"interval": { "type": "integer", "minimum": 1, "description": "Run cadence in seconds (e.g. 604800 = weekly). Exactly one of `interval` or `cron` must be set." },
+					"cron": { "type": "string", "description": "Standard 5-field cron expression (e.g. \"0 3 * * 1\"). The reconciler computes the job's nextRun from it. Exactly one of `interval` or `cron` must be set." },
+					"action": { "type": "string", "pattern": "^[a-z0-9]+:[a-z0-9-]+$", "description": "A server-allow-listed generic action type, NOT a PHP class name. Only vetted types are accepted (v1: \"openconnector:synchronization\"); the reconciler maps the type to a trusted jobClass — a manifest-supplied class name is never executed. A non-allow-listed action is rejected and logged." },
+					"arguments": { "type": "object", "description": "Free-form arguments passed to the action (e.g. the synchronization id/ref). Interpreted by the vetted action, not by the reconciler.", "additionalProperties": true },
+					"enabled": { "type": "boolean", "description": "Whether this schedule is active. Defaults to true. Setting false disables the reconciled job (preserving its run history) rather than deleting it." }
+				}
+			}
+		},
 		"observability": {
 			"$ref": "#/$defs/observability",
 			"description": "Declarative observability block (ADR-040). Consumed at request time by the OpenRegister AppHost observability engine (GenericHealthController + GenericMetricsController), NOT by the Vue renderer. Declares the app's health checks and Prometheus metric descriptors so adopting apps ship zero hand-written observability PHP while keeping their /api/health + /api/metrics URLs and the ADR-006 contract."
