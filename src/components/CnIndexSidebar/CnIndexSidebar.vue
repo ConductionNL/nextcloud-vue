@@ -21,7 +21,7 @@
 			:name="searchTabLabel"
 			:order="1">
 			<template #icon>
-				<Magnify :size="20" />
+				<FilterOutline :size="20" />
 			</template>
 
 			<div class="cn-index-sidebar__tab-content">
@@ -68,6 +68,7 @@
 							placeholder="Select..."
 							:input-label="filter.label"
 							:multiple="true"
+							:keep-open="true"
 							:clearable="true"
 							@input="onFilterChange(filter.key, $event)" />
 					</div>
@@ -83,7 +84,7 @@
 			:name="columnsTabLabel"
 			:order="2">
 			<template #icon>
-				<FormatColumns :size="20" />
+				<ViewColumnOutline :size="20" />
 			</template>
 
 			<div class="cn-index-sidebar__tab-content">
@@ -164,8 +165,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAppSidebar, NcAppSidebarTab, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcPopover, NcButton } from '@nextcloud/vue'
-import Magnify from 'vue-material-design-icons/Magnify.vue'
-import FormatColumns from 'vue-material-design-icons/FormatColumns.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -198,8 +199,8 @@ export default {
 		NcPopover,
 		NcButton,
 		CnIcon,
-		Magnify,
-		FormatColumns,
+		FilterOutline,
+		ViewColumnOutline,
 		ChevronDown,
 		ChevronRight,
 		InformationOutline,

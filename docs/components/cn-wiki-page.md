@@ -85,6 +85,31 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 }
 ```
 
+### Manifest config reference
+
+Every `config` key maps 1:1 to a `CnWikiPage` prop. `register` and
+`schema` are **required**; the rest are optional and fall back to the
+component defaults when omitted. As of schema v2.9.0 the validator
+type-checks each optional field — a non-string value emits
+`/pages/<N>/config/<field>: must be a string when set`. Unknown keys
+pass for forward-compatibility.
+
+| `config` key | CnWikiPage prop | Type | Required | Default |
+|--------------|-----------------|------|----------|---------|
+| `register` | `register` | String | yes | — |
+| `schema` | `schema` | String | yes | — |
+| `contentField` | `contentField` | String | no | `'body'` |
+| `titleField` | `titleField` | String | no | `'title'` |
+| `idParam` | `idParam` | String | no | `'id'` |
+| `treeField` | `treeField` | String | no | `'children'` |
+| `sidebarTitleField` | `sidebarTitleField` | String | no | `titleField` |
+| `sidebarRegister` | `sidebarRegister` | String | no | `register` |
+| `sidebarSchema` | `sidebarSchema` | String | no | `''` (no sidebar) |
+| `emptyText` | `emptyText` | String | no | `'Article not found'` |
+| `emptyDescription` | `emptyDescription` | String | no | (translated) |
+| `emptyBodyText` | `emptyBodyText` | String | no | `'No content'` |
+| `emptyBodyDescription` | `emptyBodyDescription` | String | no | (translated) |
+
 ## Data fetching
 
 CnWikiPage is **stateless** — it does not fetch its own data. The consumer passes `article` and `tree` as props, typically from a register-backed store. This mirrors `CnFilesPage` and keeps the lib zero-dep on a particular OpenRegister fetcher.

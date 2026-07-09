@@ -97,6 +97,8 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `flush` | Boolean | `false` | Remove content padding so content goes edge-to-edge |
+| `chrome` | String | `'default'` | Card chrome variant — `'default'` (library card) or `'nc-dashboard'` (native Nextcloud Dashboard panel look) |
+| `showActions` | Boolean | `true` | Whether the header's overflow action menu renders; set `false` on compact surfaces to free header width |
 | `iconUrl` | String | `null` | URL of an image icon shown left of the title |
 | `iconClass` | String | `null` | CSS class for a Nextcloud icon shown left of the title |
 | `titleIconPosition` | String | `'right'` | Where to render the `title-icon` slot: `'left'` (before title) or `'right'` (after actions) |
@@ -122,8 +124,7 @@ export default {
 | `showRequestFeature` | Boolean | `true` | Show the built-in Request-a-feature action. |
 | `widgetId` | String | `''` | Stable widget id used in the `cn:widget:refresh` event-bus payload and the `surface: "widget:<id>"` feature-request context. |
 | `specRef` | String | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal. |
-| `refreshing` | Boolean | `false` | When bound, the Refresh icon spins while true (host-driven). |
-| `optimisticSpinMs` | Number | `800` | Optimistic Refresh-icon spin duration (ms) when `refreshing` is not bound. |
+| `refreshing` | Boolean | `false` | While true, the Refresh item is disabled and shows a loading spinner for as long as this stays true (host-driven, reflects the real refresh time). |
 | `refreshLabel` | String | `t('Refresh')` | Pre-translated Refresh label. |
 | `requestFeatureLabel` | String | `t('Request a feature')` | Pre-translated Request-a-feature label. |
 | `actionsMenuLabel` | String | `t('Actions')` | Pre-translated overflow-menu trigger label. |

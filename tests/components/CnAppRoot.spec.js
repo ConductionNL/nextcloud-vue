@@ -14,6 +14,15 @@ import { mount } from '@vue/test-utils'
 jest.mock('@nextcloud/capabilities', () => ({
 	getCapabilities: jest.fn(),
 }))
+// Mock @nextcloud/axios so the batched menu-count hydration
+// (POST /api/objects/counts, audit item 26) is controlled per-test and
+// never issues a real request on mount. Default: reject so mounts without
+// an explicit resolution fall back to the per-entry path harmlessly.
+jest.mock('@nextcloud/axios', () => ({
+	__esModule: true,
+	default: { post: jest.fn().mockRejectedValue(new Error('no batch route')) },
+}))
+const axios = require('@nextcloud/axios').default
 const { getCapabilities } = require('@nextcloud/capabilities')
 const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
 const CnAppRoot = require('../../src/components/CnAppRoot/CnAppRoot.vue').default
@@ -31,6 +40,13 @@ const baseManifest = {
  * interfere with the existing manifest-dependency / phase tests — those
  * scenarios are independent of the capabilities-API guard. Tests that
  * exercise the guard explicitly opt in via `requiresApps`.
+ * @param root0
+ * @param root0.manifest
+ * @param root0.isLoading
+ * @param root0.slots
+ * @param root0.customComponents
+ * @param root0.t
+ * @param root0.requiresApps
  */
 function mountRoot({
 	manifest = baseManifest,
@@ -55,7 +71,16 @@ function mountRoot({
 describe('CnAppRoot', () => {
 	beforeEach(() => {
 		getCapabilities.mockReset()
+		// Reset the shared batched-counts axios mock each test, restoring the
+		// default reject (no batch route) so per-test call counts are isolated.
+		axios.post.mockReset()
+		axios.post.mockRejectedValue(new Error('no batch route'))
 		__resetAppStatusCacheForTests()
+		// Define a clean appswebroots each test. CnAppRoot's in-app edit shell
+		// (ADR-041) calls useAppStatus('openbuild'); without OpenBuild present it
+		// is inert (availability false, no edit toolbar).
+		global.OC = global.OC || {}
+		global.OC.appswebroots = {}
 	})
 
 	describe('phase orchestration (REQ-JMR-013)', () => {
@@ -89,6 +114,22 @@ describe('CnAppRoot', () => {
 		it('renders the shell phase when manifest declares no dependencies', () => {
 			const wrapper = mountRoot()
 			expect(wrapper.vm.phase).toBe('shell')
+		})
+	})
+
+	describe('OpenBuild edit-button gating (openbuildEditable)', () => {
+		it('is available when OpenBuild is enabled and the manifest does not opt out', () => {
+			getCapabilities.mockReturnValue({})
+			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
+			const wrapper = mountRoot({ manifest: { ...baseManifest } })
+			expect(wrapper.vm.openBuildAvailable).toBe(true)
+		})
+
+		it('is suppressed when the manifest sets openbuildEditable:false', () => {
+			getCapabilities.mockReturnValue({})
+			global.OC.appswebroots = { openbuild: '/index.php/apps/openbuild' }
+			const wrapper = mountRoot({ manifest: { ...baseManifest, openbuildEditable: false } })
+			expect(wrapper.vm.openBuildAvailable).toBe(false)
 		})
 	})
 
@@ -303,6 +344,11 @@ describe('CnAppRoot', () => {
 		 * Mount helper that exercises the guard. Unlike mountRoot above,
 		 * this one defaults `requiresApps` to its production default
 		 * `['openregister']` so the test asserts the as-shipped behaviour.
+		 * @param root0
+		 * @param root0.manifest
+		 * @param root0.requiresApps
+		 * @param root0.slots
+		 * @param root0.t
 		 */
 		function mountWithGuard({
 			manifest = baseManifest,
@@ -375,6 +421,10 @@ describe('CnAppRoot', () => {
 
 		// REQ-OR-5: empty array short-circuits the entire guard (no capabilities call).
 		it('skips the guard when :requires-apps="[]" and renders immediately (REQ-OR-5)', async () => {
+			// Mark OpenBuild reachable so the edit-shell availability probe
+			// short-circuits via appswebroots and does not call getCapabilities;
+			// this keeps the assertion below about the GUARD not running.
+			global.OC.appswebroots = { openbuild: true }
 			const wrapper = mountWithGuard({ requiresApps: [] })
 			await wrapper.vm.$nextTick()
 			expect(getCapabilities).not.toHaveBeenCalled()
@@ -468,6 +518,59 @@ describe('CnAppRoot', () => {
 		})
 	})
 
+	describe('restart-walkthrough section in user settings (ADR-043)', () => {
+		const { useWalkthrough, __resetWalkthroughCacheForTests } = require('../../src/composables/useWalkthrough.js')
+		const walkthroughManifest = {
+			...baseManifest,
+			walkthrough: {
+				enabled: true,
+				tours: [{ id: 'getting-started', steps: [{ id: 's1', title: 'Hi' }] }],
+			},
+		}
+
+		beforeEach(() => {
+			__resetWalkthroughCacheForTests()
+		})
+
+		it('renders the gated section only when walkthroughEnabled', () => {
+			const noWt = mountRoot()
+			expect(noWt.find('#cn-walkthrough').exists()).toBe(false)
+
+			const withWt = mountRoot({ manifest: walkthroughManifest })
+			withWt.vm.userSettingsOpen = true
+			expect(withWt.vm.walkthroughEnabled).toBe(true)
+			expect(withWt.find('#cn-walkthrough').exists()).toBe(true)
+		})
+
+		it('closes the dialog and restarts the first tour when the button handler runs', () => {
+			jest.useFakeTimers()
+			const wrapper = mountRoot({ manifest: walkthroughManifest })
+			wrapper.vm.userSettingsOpen = true
+
+			// Same per-appId cached entry the component resolves at click time.
+			const entry = useWalkthrough('myapp', walkthroughManifest)
+			const restartSpy = jest.spyOn(entry, 'restart').mockImplementation(() => {})
+
+			wrapper.vm.restartWalkthroughFromSettings()
+			expect(wrapper.vm.userSettingsOpen).toBe(false)
+
+			jest.runOnlyPendingTimers()
+			expect(restartSpy).toHaveBeenCalledWith('getting-started')
+			jest.useRealTimers()
+		})
+
+		it('does not restart when no walkthrough is enabled', () => {
+			jest.useFakeTimers()
+			const wrapper = mountRoot()
+			wrapper.vm.userSettingsOpen = true
+			wrapper.vm.restartWalkthroughFromSettings()
+			expect(wrapper.vm.userSettingsOpen).toBe(false)
+			// No tour to fire; simply advancing timers must not throw.
+			expect(() => jest.runOnlyPendingTimers()).not.toThrow()
+			jest.useRealTimers()
+		})
+	})
+
 	describe('cnMenuCounts hydration (count:"auto")', () => {
 		it('provides an empty cnMenuCounts map by default', () => {
 			const wrapper = mountRoot()
@@ -533,6 +636,123 @@ describe('CnAppRoot', () => {
 			const wrapper = mountRoot()
 			await wrapper.vm._fetchAndCacheCount(fakeStore, 'foo-bar', 'foo', 'bar')
 			expect(wrapper.vm.cnMenuCounts).toEqual({})
+		})
+
+		it('hydrates all counts with ONE POST /api/objects/counts (audit item 26)', async () => {
+			axios.post.mockResolvedValueOnce({
+				data: { results: [
+					{ register: 'decisions', schema: 'decision', count: 17 },
+					{ register: 'meetings', schema: 'meeting', count: 5 },
+				] },
+			})
+			const wrapper = mountRoot()
+			await wrapper.vm._hydrateMenuCountsBatched([
+				{ register: 'decisions', schema: 'decision' },
+				{ register: 'meetings', schema: 'meeting' },
+			])
+			expect(axios.post).toHaveBeenCalledTimes(1)
+			const [url, body] = axios.post.mock.calls[0]
+			expect(url).toContain('/apps/openregister/api/objects/counts')
+			expect(body).toEqual({ counts: [
+				{ register: 'decisions', schema: 'decision' },
+				{ register: 'meetings', schema: 'meeting' },
+			] })
+			expect(wrapper.vm.cnMenuCounts).toEqual({
+				decisions: { decision: 17 },
+				meetings: { meeting: 5 },
+			})
+		})
+
+		it('falls back to per-entry fetches when the batch endpoint 404s', async () => {
+			axios.post.mockRejectedValueOnce(Object.assign(new Error('not found'), { response: { status: 404 } }))
+			const wrapper = mountRoot()
+			const perEntry = jest.spyOn(wrapper.vm, '_hydrateMenuCountsPerEntry').mockImplementation(() => {})
+			// Drive the top-level hydrator with count:"auto" pairs present.
+			wrapper.setData({}) // no-op to ensure vm ready
+			await wrapper.vm._hydrateMenuCountsBatched([{ register: 'r', schema: 's' }]).catch(() => {
+				wrapper.vm._hydrateMenuCountsPerEntry([{ register: 'r', schema: 's' }])
+			})
+			expect(perEntry).toHaveBeenCalledWith([{ register: 'r', schema: 's' }])
+		})
+
+		it('rejects a malformed batch response so the caller can fall back', async () => {
+			axios.post.mockResolvedValueOnce({ data: { notResults: true } })
+			const wrapper = mountRoot()
+			await expect(wrapper.vm._hydrateMenuCountsBatched([{ register: 'r', schema: 's' }])).rejects.toThrow()
+		})
+	})
+
+	// The default <CnAppNav> receives the manifest as a REACTIVE prop
+	// (`menuManifest`), not via the non-reactive provide/inject fallback — so an
+	// async manifest update (e.g. a backend /api/manifest delta merged in by
+	// useAppManifest) reaches the nav without a reload. Regression guard for the
+	// per-case-type dynamic-menu path.
+	describe('reactive menu manifest (default CnAppNav)', () => {
+		it('passes the manifest to the default CnAppNav as a prop', () => {
+			const wrapper = mountRoot()
+			const nav = wrapper.findComponent({ name: 'CnAppNav' })
+			expect(nav.exists()).toBe(true)
+			expect(nav.props('manifest')).toBe(wrapper.props('manifest'))
+			wrapper.destroy()
+		})
+
+		it('updates the CnAppNav manifest prop when the manifest prop changes', async () => {
+			const wrapper = mountRoot()
+			const merged = {
+				version: '1.0.0',
+				dependencies: [],
+				pages: [{ id: 'home', route: '/', type: 'index', title: 'app.home' }],
+				menu: [{
+					id: 'CasesGroup',
+					label: 'Cases',
+					children: [{ id: 'ct-1', label: 'Objections', route: 'home', query: { caseType: 'u1' } }],
+				}],
+			}
+			await wrapper.setProps({ manifest: merged })
+			const nav = wrapper.findComponent({ name: 'CnAppNav' })
+			expect(nav.props('manifest')).toBe(merged)
+			expect(nav.props('manifest').menu[0].children[0].query.caseType).toBe('u1')
+			wrapper.destroy()
+		})
+	})
+
+	describe('AI companion opt-in (aiCompanion prop)', () => {
+		/**
+		 * Mount into the shell phase with CnAiCompanion stubbed (the real one
+		 * fires a backend health probe). Omit aiCompanion to test the default.
+		 *
+		 * @param {boolean|undefined} aiCompanion The opt-in prop value.
+		 * @return {object} The mounted wrapper.
+		 */
+		function mountWithCompanion(aiCompanion) {
+			const propsData = { manifest: baseManifest, appId: 'myapp', translate: (k) => k, requiresApps: [] }
+			if (aiCompanion !== undefined) {
+				propsData.aiCompanion = aiCompanion
+			}
+			return mount(CnAppRoot, {
+				propsData,
+				mocks: { $route: { name: 'home' } },
+				stubs: {
+					'router-view': { template: '<div class="router-view-stub" />' },
+					CnAiCompanion: { template: '<div class="cn-ai-companion-stub" />' },
+				},
+			})
+		}
+
+		it('does NOT mount the AI companion by default (opt-in off)', () => {
+			const wrapper = mountWithCompanion(undefined)
+			expect(wrapper.vm.phase).toBe('shell')
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+		})
+
+		it('does NOT mount the AI companion when aiCompanion is false', () => {
+			const wrapper = mountWithCompanion(false)
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(false)
+		})
+
+		it('mounts the AI companion when aiCompanion is true', () => {
+			const wrapper = mountWithCompanion(true)
+			expect(wrapper.find('.cn-ai-companion-stub').exists()).toBe(true)
 		})
 	})
 })

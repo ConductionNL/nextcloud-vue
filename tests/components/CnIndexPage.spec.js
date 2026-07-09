@@ -135,6 +135,21 @@ describe('dialog-override slots', () => {
 	})
 })
 
+// ── Reference register threading ───────────────────────────────────────
+
+describe('register threading to CnFormDialog', () => {
+	it('passes its register through to the built-in CnFormDialog', async () => {
+		const wrapper = mountPage({ title: 'Items', register: 'zaken', schema: 's1' })
+		await wrapper.vm.$nextTick()
+		wrapper.vm.openFormDialog()
+		await wrapper.vm.$nextTick()
+		const dialog = wrapper.findComponent({ ref: 'formDialog' })
+		expect(dialog.exists()).toBe(true)
+		expect(dialog.props('register')).toBe('zaken')
+		wrapper.destroy()
+	})
+})
+
 // ── Save → collection refresh ──────────────────────────────────────────
 
 describe('save → collection refresh', () => {
@@ -270,8 +285,88 @@ describe('search and filter parameter forwarding', () => {
 	it('renders self-fetch mode and calls fetchCollection on mount', async () => {
 		mountPage({ title: 'Items', register: 'r1', schema: 's1' })
 		// Give the async created() chain time to run
-		await new Promise((r) => setTimeout(r, 10))
+		await new Promise((resolve) => setTimeout(resolve, 10))
 		// In self-fetch mode the store is consulted
 		expect(mockStore.registerObjectType).toHaveBeenCalled()
+	})
+})
+
+// ── Per-schema create-override hook ────────────────────────────────────
+
+describe('createOverride hook', () => {
+	it('routes a create through createOverride INSTEAD of saveObject and uses its result', async () => {
+		const created = { id: 'c-1', '@self': { id: 'c-1' }, name: 'Acme', contactsUid: 'card-42' }
+		const override = jest.fn().mockResolvedValue(created)
+
+		const wrapper = mountPage({ store: mockStore, objectType: 'crm-client', createOverride: override })
+		await wrapper.vm.$nextTick()
+
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ name: 'Acme' })
+
+		// The override owns persistence; the store's saveObject is bypassed.
+		expect(override).toHaveBeenCalledTimes(1)
+		expect(override.mock.calls[0][0]).toEqual({ name: 'Acme' })
+		// ctx carries schema-routing info.
+		expect(override.mock.calls[0][1]).toMatchObject({ objectType: 'crm-client' })
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+		expect(showResult).toHaveBeenCalledWith({ success: true })
+		// @create is emitted with the override's returned object, not the form data.
+		expect(wrapper.emitted('create')).toBeTruthy()
+		expect(wrapper.emitted('create')[0][0]).toBe(created)
+		wrapper.destroy()
+	})
+
+	it('falls back to saveObject when no createOverride is provided', async () => {
+		const wrapper = mountPage({ store: mockStore, objectType: 'crm-client' })
+		await wrapper.vm.$nextTick()
+
+		await wrapper.vm.onFormConfirm({ name: 'Acme' })
+
+		expect(mockStore.saveObject).toHaveBeenCalledWith('crm-client', { name: 'Acme' })
+		wrapper.destroy()
+	})
+
+	it('does NOT route an EDIT through createOverride (create-only)', async () => {
+		const override = jest.fn().mockResolvedValue({ id: 'c-1' })
+		const wrapper = mountPage({ store: mockStore, objectType: 'crm-client', createOverride: override })
+		await wrapper.vm.$nextTick()
+
+		// Put the page into edit mode (editItem set) then confirm.
+		wrapper.vm.editItem = { id: 'c-1', name: 'Existing' }
+		await wrapper.vm.onFormConfirm({ id: 'c-1', name: 'Existing Renamed' })
+
+		expect(override).not.toHaveBeenCalled()
+		expect(mockStore.saveObject).toHaveBeenCalledWith('crm-client', { id: 'c-1', name: 'Existing Renamed' })
+		wrapper.destroy()
+	})
+
+	it('surfaces a terminal error when createOverride throws', async () => {
+		const override = jest.fn().mockRejectedValue(new Error('contact resolve failed'))
+		const wrapper = mountPage({ store: mockStore, objectType: 'crm-client', createOverride: override })
+		await wrapper.vm.$nextTick()
+
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ name: 'Acme' })
+
+		expect(showResult).toHaveBeenCalledWith({ error: 'contact resolve failed' })
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+		wrapper.destroy()
+	})
+
+	it('surfaces a failure when createOverride returns falsy', async () => {
+		const override = jest.fn().mockResolvedValue(null)
+		const wrapper = mountPage({ store: mockStore, objectType: 'crm-client', createOverride: override })
+		await wrapper.vm.$nextTick()
+
+		const showResult = jest.spyOn(wrapper.vm, 'setFormResult').mockImplementation(() => {})
+
+		await wrapper.vm.onFormConfirm({ name: 'Acme' })
+
+		expect(showResult).toHaveBeenCalledWith({ error: 'Save failed' })
+		expect(wrapper.emitted('create')).toBeFalsy()
+		wrapper.destroy()
 	})
 })

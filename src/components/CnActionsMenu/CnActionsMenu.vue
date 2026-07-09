@@ -9,68 +9,82 @@
   surfaces stay in lockstep.
 -->
 <template>
-	<NcActions
-		v-if="hasOverflowMenu"
-		:force-name="true"
-		:menu-name="actionsMenuLabel"
-		:data-testid="`${testidBase}-actions`">
-		<template #icon>
-			<DotsHorizontal :size="20" />
-		</template>
-		<NcActionButton
-			v-if="showRefresh"
-			:data-testid="`${testidBase}-action-refresh`"
-			@click="onRefreshClick">
+	<!-- Fragment (renders no DOM node) so NcActions stays in its host's
+	     flex/grid flow while the modal mounts as a SIBLING of NcActions,
+	     not inside it. The NcActions default slot is the floating-vue
+	     popover, which unmounts the instant the menu closes on an
+	     action-item click — mounting the modal there would destroy the
+	     dialog the moment it opens. -->
+	<Fragment v-if="hasOverflowMenu">
+		<NcActions
+			:force-name="true"
+			:menu-name="actionsMenuLabel"
+			:data-testid="`${testidBase}-actions`">
 			<template #icon>
-				<Refresh
-					:size="20"
-					:class="{ 'cn-actions-menu__refresh-icon--spinning': isRefreshing }" />
+				<DotsHorizontal :size="20" />
 			</template>
-			{{ refreshLabel }}
-		</NcActionButton>
-		<NcActionLink
-			v-if="documentationUrl"
-			:href="documentationUrl"
-			target="_blank"
-			rel="noopener noreferrer"
-			:data-testid="`${testidBase}-action-documentation`">
-			<template #icon>
-				<BookOpenVariant :size="20" />
-			</template>
-			{{ documentationLabel }}
-		</NcActionLink>
-		<NcActionButton
-			v-if="showRequestFeature"
-			:data-testid="`${testidBase}-action-request-feature`"
-			@click="onRequestFeatureClick">
-			<template #icon>
-				<LightbulbOutline :size="20" />
-			</template>
-			{{ requestFeatureLabel }}
-		</NcActionButton>
-		<!-- @slot action-items Additional NcActionButton-family items
-		     rendered inside the overflow menu, after the built-in
-		     Refresh / Documentation / Request-a-feature group. -->
-		<slot name="action-items" />
+			<NcActionButton
+				v-if="showRefresh"
+				:data-testid="`${testidBase}-action-refresh`"
+				:disabled="refreshing"
+				:close-after-click="true"
+				@click="onRefreshClick">
+				<template #icon>
+					<NcLoadingIcon v-if="refreshing" :size="20" />
+					<Refresh v-else :size="20" />
+				</template>
+				{{ refreshLabel }}
+			</NcActionButton>
+			<NcActionLink
+				v-if="documentationUrl"
+				:href="documentationUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				:data-testid="`${testidBase}-action-documentation`"
+				:close-after-click="true">
+				<template #icon>
+					<BookOpenVariant :size="20" />
+				</template>
+				{{ documentationLabel }}
+			</NcActionLink>
+			<NcActionButton
+				v-if="showRequestFeature"
+				:data-testid="`${testidBase}-action-request-feature`"
+				:close-after-click="true"
+				@click="onRequestFeatureClick">
+				<template #icon>
+					<LightbulbOutline :size="20" />
+				</template>
+				{{ requestFeatureLabel }}
+			</NcActionButton>
+			<!-- @slot action-items Additional NcActionButton-family items
+			     rendered inside the overflow menu, after the built-in
+			     Refresh / Documentation / Request-a-feature group. -->
+			<slot name="action-items" />
+		</NcActions>
 
 		<!-- Auto-mounted feature-request modal. Lazy-loaded so the modal
 		     bundle only ships when a surface renders the menu. Suppressed
-		     when the host calls preventDefault on @request-feature. -->
+		     when the host calls preventDefault on @request-feature.
+		     Mounted as a sibling of NcActions (NOT inside its popover slot)
+		     so closing the overflow menu doesn't tear the dialog down. -->
 		<CnSuggestFeatureModal
 			v-if="featureRequestModalOpen"
 			:repo="cnFeatureRequestRepo"
+			:forge="cnFeatureRequestForge"
 			:spec-ref="specRef"
 			:app="cnAppId"
 			:page="$route ? ($route.name || '') : ''"
 			:surface="surface"
 			:conduction-submit-enabled="false"
 			@close="onFeatureRequestModalClose" />
-	</NcActions>
+	</Fragment>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActions, NcActionButton, NcActionLink } from '@nextcloud/vue'
+import { Fragment } from 'vue-frag'
+import { NcActions, NcActionButton, NcActionLink, NcLoadingIcon } from '@nextcloud/vue'
 import { emit as emitOnBus } from '@nextcloud/event-bus'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
@@ -119,14 +133,22 @@ export default {
 	name: 'CnActionsMenu',
 
 	components: {
+		Fragment,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
+		NcLoadingIcon,
 		DotsHorizontal,
 		Refresh,
 		LightbulbOutline,
 		BookOpenVariant,
-		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue'),
+		// Unwrap `.default` explicitly: under some webpack chunk layouts the
+		// resolved module namespace is frozen AND carries neither `__esModule`
+		// nor `Symbol.toStringTag === 'Module'`, so Vue 2's `ensureCtor` skips
+		// its own unwrap and calls `Vue.extend()` on the frozen namespace —
+		// throwing "Cannot add property _Ctor, object is not extensible" and
+		// silently swallowing the Request-a-feature modal.
+		CnSuggestFeatureModal: () => import('../CnSuggestFeatureModal/CnSuggestFeatureModal.vue').then(m => m.default || m),
 	},
 
 	inject: {
@@ -138,14 +160,21 @@ export default {
 		 */
 		cnAppId: { default: () => '' },
 		/**
-		 * Repo slug used as the GitHub deep-link target on the auto-mounted
-		 * CnSuggestFeatureModal (e.g. `ConductionNL/pipelinq`). Provided by
+		 * Repo slug used as the forge deep-link target on the auto-mounted
+		 * CnSuggestFeatureModal (e.g. `Conduction/pipelinq`). Provided by
 		 * CnAppRoot from the manifest's `nav.featureRequestRepo` field (with
-		 * fallback to `ConductionNL/<appId>`). Empty when no ancestor — the
+		 * fallback to `Conduction/<appId>`). Empty when no ancestor — the
 		 * default handler warns and skips opening rather than open a broken
 		 * link.
 		 */
 		cnFeatureRequestRepo: { default: () => '' },
+		/**
+		 * Forge config (`{type, baseUrl}`) forwarded to the auto-mounted
+		 * CnSuggestFeatureModal so its "Continue on …" deep-link targets the
+		 * right forge. Provided by CnAppRoot from `manifest.nav.forge`.
+		 * Defaults to Codeberg when no CnAppRoot ancestor exists.
+		 */
+		cnFeatureRequestForge: { default: () => ({ type: 'codeberg', baseUrl: 'https://codeberg.org' }) },
 	},
 
 	props: {
@@ -232,26 +261,15 @@ export default {
 			default: '',
 		},
 		/**
-		 * Whether a refresh is currently in flight. When bound by the host,
-		 * the Refresh icon spins for exactly as long as this stays true.
-		 * When left `false`, clicking Refresh spins optimistically for
-		 * `optimisticSpinMs`.
+		 * Whether a refresh is currently in flight. While true, the Refresh
+		 * item is disabled and shows a loading spinner for exactly as long as
+		 * this stays true — so the spinner reflects the real refresh time.
 		 *
 		 * @type {boolean}
 		 */
 		refreshing: {
 			type: Boolean,
 			default: false,
-		},
-		/**
-		 * Duration (ms) of the optimistic spin shown on Refresh click when
-		 * the host has NOT bound `:refreshing`. Set to 0 to disable.
-		 *
-		 * @type {number}
-		 */
-		optimisticSpinMs: {
-			type: Number,
-			default: 800,
 		},
 		/**
 		 * Event-bus channel the default Refresh handler emits on when no
@@ -297,27 +315,10 @@ export default {
 			 * the host did not `preventDefault()` on `@request-feature`.
 			 */
 			featureRequestModalOpen: false,
-			/**
-			 * Optimistic-spin flag. Set true on Refresh click when the host
-			 * hasn't bound `:refreshing`, then auto-cleared after
-			 * `optimisticSpinMs`. OR-ed with `refreshing` by `isRefreshing`.
-			 */
-			optimisticSpinning: false,
 		}
 	},
 
 	computed: {
-		/**
-		 * Whether the Refresh icon should spin. True while the host's bound
-		 * `:refreshing` is true OR during the short optimistic window after
-		 * a click when no prop is bound.
-		 *
-		 * @return {boolean}
-		 */
-		isRefreshing() {
-			return this.refreshing || this.optimisticSpinning
-		},
-
 		/**
 		 * Whether the overflow `…` menu renders at all. True when at least
 		 * one built-in item is visible OR the caller provided an
@@ -333,13 +334,6 @@ export default {
 		},
 	},
 
-	beforeDestroy() {
-		if (this._optimisticSpinTimer) {
-			clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = null
-		}
-	},
-
 	methods: {
 		/**
 		 * Refresh click — emits `@refresh`, then runs the built-in default
@@ -349,7 +343,6 @@ export default {
 		 * @return {void}
 		 */
 		onRefreshClick() {
-			this.startOptimisticSpin()
 			const ev = createSyntheticEvent()
 			/**
 			 * @event refresh User clicked the Refresh item. Payload:
@@ -364,24 +357,6 @@ export default {
 				widgetId: this.widgetId,
 				title: this.title,
 			})
-		},
-
-		/**
-		 * Spin the Refresh icon optimistically for `optimisticSpinMs`, but
-		 * only when the host has not bound `:refreshing`. No-op when
-		 * `optimisticSpinMs` is 0.
-		 *
-		 * @return {void}
-		 */
-		startOptimisticSpin() {
-			if (this.refreshing) return
-			if (!this.optimisticSpinMs || this.optimisticSpinMs <= 0) return
-			this.optimisticSpinning = true
-			if (this._optimisticSpinTimer) clearTimeout(this._optimisticSpinTimer)
-			this._optimisticSpinTimer = setTimeout(() => {
-				this.optimisticSpinning = false
-				this._optimisticSpinTimer = null
-			}, this.optimisticSpinMs)
 		},
 
 		/**
@@ -424,23 +399,3 @@ export default {
 	},
 }
 </script>
-
-<style scoped>
-/* Refresh icon spin — driven by the `isRefreshing` class binding. One
-   full rotation per 400ms, so the default 800ms optimistic window reads
-   as ~2 turns. Disabled under prefers-reduced-motion. */
-.cn-actions-menu__refresh-icon--spinning {
-	animation: cn-actions-menu-spin 400ms linear infinite;
-}
-
-@keyframes cn-actions-menu-spin {
-	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.cn-actions-menu__refresh-icon--spinning {
-		animation: none;
-	}
-}
-</style>

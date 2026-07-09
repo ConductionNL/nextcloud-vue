@@ -54,8 +54,7 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 | `refreshLabel` | `t('Refresh')` | Pre-translated label for the Refresh item. |
 | `requestFeatureLabel` | `t('Request a feature')` | Pre-translated label for the Request-a-feature item. |
 | `actionsMenuLabel` | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow trigger. |
-| `refreshing` | `false` | When bound, the Refresh icon spins while true. |
-| `optimisticSpinMs` | `800` | Optimistic Refresh-icon spin duration when `refreshing` is unbound. |
+| `refreshing` | `false` | While true, the Refresh item is disabled and shows a loading spinner — for exactly as long as this stays true, so it reflects the real refresh time. |
 | `specRef` | `''` | Forwarded to the auto-mounted CnSuggestFeatureModal. |
 
 ## Reference (auto-generated)

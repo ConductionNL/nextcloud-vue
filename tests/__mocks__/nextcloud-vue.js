@@ -20,12 +20,14 @@ const createStub = (name) => ({
 })
 
 export const NcDialog = createStub('NcDialog')
+export const NcModal = createStub('NcModal')
 export const NcButton = createStub('NcButton')
 export const NcNoteCard = createStub('NcNoteCard')
 export const NcLoadingIcon = createStub('NcLoadingIcon')
 export const NcTextField = createStub('NcTextField')
 export const NcTextArea = createStub('NcTextArea')
 export const NcCheckboxRadioSwitch = createStub('NcCheckboxRadioSwitch')
+export const NcColorPicker = createStub('NcColorPicker')
 export const NcAppNavigation = createStub('NcAppNavigation')
 export const NcAppNavigationItem = createStub('NcAppNavigationItem')
 export const NcContent = createStub('NcContent')
@@ -36,7 +38,40 @@ export const NcSelect = createStub('NcSelect')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
 export const NcAppSidebarTab = createStub('NcAppSidebarTab')
-export const NcPopover = createStub('NcPopover')
+// NcPopover needs more than the generic stub: the real component exposes ARIA
+// attrs to its #trigger via a SCOPED slot ({ attrs }), so a functional stub that
+// only renders non-scoped slots would drop a scoped trigger entirely. This stub
+// mirrors that contract (trigger scope + popupRole→aria-haspopup) while keeping
+// the generic behaviour for the default and other named slots.
+export const NcPopover = {
+	name: 'NcPopover',
+	props: {
+		shown: { type: Boolean, default: false },
+		popupRole: { type: String, default: undefined },
+	},
+	render(h) {
+		const vnodes = []
+		const triggerScope = {
+			attrs: {
+				'aria-haspopup': this.popupRole,
+				'aria-expanded': String(!!this.shown),
+			},
+		}
+		if (this.$scopedSlots.trigger) {
+			vnodes.push(this.$scopedSlots.trigger(triggerScope))
+		} else if (this.$slots.trigger) {
+			vnodes.push(this.$slots.trigger)
+		}
+		if (this.$slots.default) {
+			vnodes.push(this.$slots.default)
+		}
+		for (const name of Object.keys(this.$slots)) {
+			if (name === 'default' || name === 'trigger') continue
+			vnodes.push(this.$slots[name])
+		}
+		return h('div', { class: ['stub', 'NcPopover'] }, vnodes)
+	},
+}
 export const NcRichText = createStub('NcRichText')
 export const NcAppContent = createStub('NcAppContent')
 export const NcListItem = createStub('NcListItem')
@@ -54,7 +89,9 @@ export const NcDateTime = {
 		const ts = props && props.timestamp
 		// A Date instance is rendered as its ISO string (the real NcDateTime
 		// emits a <time> element); other primitives are stringified as-is so
-		// relative-time rows keep observable text.
+		// relative-time rows keep observable text. The `nc-date-time` class
+		// hook (below) matches the real component so specs can target
+		// `time.nc-date-time`.
 		const text = ts === undefined || ts === null
 			? ''
 			: (ts instanceof Date ? ts.toISOString() : String(ts))
@@ -64,12 +101,14 @@ export const NcDateTime = {
 
 export default {
 	NcDialog,
+	NcModal,
 	NcButton,
 	NcNoteCard,
 	NcLoadingIcon,
 	NcTextField,
 	NcTextArea,
 	NcCheckboxRadioSwitch,
+	NcColorPicker,
 	NcAppNavigation,
 	NcAppNavigationItem,
 	NcContent,

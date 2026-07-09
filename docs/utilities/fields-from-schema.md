@@ -21,8 +21,8 @@ const fields = fieldsFromSchema(schema, {
 | `schema` | `object` | — | Must have a `properties` object; otherwise `[]`. |
 | `options.exclude` | `string[]` | `[]` | Keys to drop. |
 | `options.include` | `string[] \| null` | `null` | Whitelist. |
-| `options.overrides` | `object` | `{}` | Per-key overrides merged onto the descriptor. |
-| `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped. |
+| `options.overrides` | `object` | `{}` | Per-key overrides merged onto the descriptor. A `{ readOnly: false }` override on a schema-`readOnly` key also **un-skips** it (surfacing a single read-only field as editable — e.g. a denormalised name editable only on create — without flipping the whole form to `includeReadOnly`). |
+| `options.includeReadOnly` | `boolean` | `false` | When `false`, properties with `readOnly: true` are dropped (except a key whose override sets `readOnly: false`). |
 
 ## Returns
 

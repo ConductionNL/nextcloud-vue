@@ -46,6 +46,7 @@ In manifests:
 |------|------|---------|-------------|
 | `tabs` | Array | *(required)* | Tab definitions. Each entry is `{ label, filter, default?, icon? }`. `filter` is consumed by the *parent* (CnIndexPage merges it into the fetch), not by this component. |
 | `activeIndex` | Number | `null` | Zero-based index of the currently active tab, or `null` for none active. Usable as `v-model:active-index` (default Vue 2.6+ model). |
+| `inline` | Boolean | `false` | Render bare (no padding / bottom border / background) for embedding inline inside another bar — e.g. the `#filters` slot of `CnActionsBar`, so the tabs sit beside the view toggle instead of as a separate row. |
 
 ## Events
 
@@ -62,6 +63,10 @@ None — labels and icons are declarative via the `tabs` prop.
 Pill-shaped buttons. Active state uses `--color-primary-element` / `--color-primary-element-text` (NL Design + dark/light themes work out of the box). Tab strip uses `--color-main-background` with a bottom border (`--color-border`).
 
 Override via your app's CSS if needed — the component exposes `.cn-quick-filter-bar`, `.cn-quick-filter-bar__tab`, `.cn-quick-filter-bar__tab--active`, `.cn-quick-filter-bar__label`, `.cn-quick-filter-bar__icon` class names.
+
+## Dropdown & multi-select
+
+Set `mode="dropdown"` to render a single `NcSelect` instead of the chip strip (the empty-filter "All" tab is dropped — an empty selection means all). Set `multiple` to allow several filters active at once; the selection is exposed via the `selectedIndices` array prop + `update:selected-indices` event (the host ORs the selected tabs' filters into one fetch). `selectLabel` / `placeholder` label the dropdown. On a manifest `type:"index"` page, drive both from `config.quickFilterMode` and `config.quickFilterMultiple`.
 
 ## See also
 

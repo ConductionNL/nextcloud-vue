@@ -7,7 +7,8 @@
  * Covers: item visibility + the testidBase prefix, the Documentation
  * new-tab link, default Refresh handler (event-bus emit on the configured
  * channel) with preventDefault suppression, default Request-a-feature
- * handler (modal mount / repo-missing warn), and the optimistic spin.
+ * handler (modal mount / repo-missing warn), and the refresh spinner
+ * (disabled + loading icon driven solely by `:refreshing`).
  */
 
 import { mount } from '@vue/test-utils'
@@ -176,38 +177,65 @@ describe('CnActionsMenu — default Request-a-feature handler', () => {
 	})
 })
 
-describe('CnActionsMenu — optimistic spin', () => {
+describe('CnActionsMenu — refresh spinner', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		jest.useFakeTimers()
 		jest.spyOn(console, 'warn').mockImplementation(() => {})
 	})
-	afterEach(() => {
-		jest.runOnlyPendingTimers()
-		jest.useRealTimers()
-		jest.restoreAllMocks()
+	afterEach(() => jest.restoreAllMocks())
+
+	// Stubs that render the #icon slot and expose `disabled`, so we can
+	// assert the icon swap + disabled state the host can't see otherwise.
+	const iconStubs = () => {
+		const ActionButtonIconStub = {
+			name: 'NcActionButton',
+			inheritAttrs: false,
+			props: ['disabled'],
+			template: '<button :data-testid="$attrs[\'data-testid\']" :disabled="disabled" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></button>',
+		}
+		return { ...baseStubs, NcActionButton: ActionButtonIconStub, Refresh: { name: 'Refresh', template: '<span class="refresh-icon-stub" />' }, NcLoadingIcon: { name: 'NcLoadingIcon', template: '<span class="loading-icon-stub" />' } }
+	}
+	const mountWithIcons = (propsData = {}) => mount(CnActionsMenu, {
+		propsData: { widgetId: 'w1', title: 'My widget', surface: 'widget:w1', ...propsData },
+		stubs: iconStubs(),
+		mocks: { $route: { name: 'Dashboard' } },
+		provide: { cnAppId: 'pipelinq', cnFeatureRequestRepo: 'ConductionNL/pipelinq' },
 	})
 
-	it('spins optimistically on click then stops after optimisticSpinMs', async () => {
-		const wrapper = mountMenu({ optimisticSpinMs: 800 })
-		expect(wrapper.vm.isRefreshing).toBe(false)
-		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
-		expect(wrapper.vm.isRefreshing).toBe(true)
-		jest.advanceTimersByTime(800)
-		await wrapper.vm.$nextTick()
-		expect(wrapper.vm.isRefreshing).toBe(false)
+	it('does NOT spin or disable on click alone — the spinner only follows :refreshing', async () => {
+		const wrapper = mountWithIcons()
+		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
+		await refreshBtn.trigger('click')
+		expect(refreshBtn.attributes('disabled')).toBeFalsy()
+		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
+		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
 	})
 
-	it('does not optimistically spin when optimisticSpinMs is 0', async () => {
-		const wrapper = mountMenu({ optimisticSpinMs: 0 })
-		await wrapper.find('[data-testid="cn-actions-menu-action-refresh"]').trigger('click')
-		expect(wrapper.vm.isRefreshing).toBe(false)
-	})
+	it('while :refreshing the Refresh item is disabled and shows the loading spinner (not the static icon)', async () => {
+		const wrapper = mountWithIcons({ refreshing: true })
+		const refreshBtn = wrapper.find('[data-testid="cn-actions-menu-action-refresh"]')
+		expect(refreshBtn.attributes('disabled')).toBeTruthy()
+		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(true)
+		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(false)
 
-	it('spins for as long as :refreshing is true (host-driven)', async () => {
-		const wrapper = mountMenu({ refreshing: true })
-		expect(wrapper.vm.isRefreshing).toBe(true)
 		await wrapper.setProps({ refreshing: false })
-		expect(wrapper.vm.isRefreshing).toBe(false)
+		expect(refreshBtn.attributes('disabled')).toBeFalsy()
+		expect(wrapper.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(false)
+		expect(wrapper.findComponent({ name: 'Refresh' }).exists()).toBe(true)
+	})
+
+	// Regression guard: the async CnSuggestFeatureModal factory must resolve to
+	// the (extensible) component options, not a module namespace. Under some
+	// webpack chunk layouts the resolved namespace is frozen and untagged, so
+	// Vue 2's ensureCtor calls Vue.extend() on it and throws "Cannot add
+	// property _Ctor, object is not extensible" — silently breaking the
+	// Request-a-feature modal. The `.then(m => m.default || m)` unwrap fixes it.
+	it('resolves the CnSuggestFeatureModal async factory to component options, not a module namespace', async () => {
+		const factory = CnActionsMenu.components.CnSuggestFeatureModal
+		expect(typeof factory).toBe('function')
+		const resolved = await factory()
+		// Must be the component definition itself (has a name), not a `{ default }` wrapper.
+		expect(resolved.default).toBeUndefined()
+		expect(resolved.name).toBe('CnSuggestFeatureModal')
 	})
 })

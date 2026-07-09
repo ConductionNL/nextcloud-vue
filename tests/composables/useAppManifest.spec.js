@@ -31,10 +31,13 @@ const validBundled = {
 	],
 }
 
-/** Wait one microtask for the IIFE inside useAppManifest to resolve. */
+/**
+ * Drain the async work inside useAppManifest before asserting. A macrotask
+ * tick drains the whole resolved-microtask chain — including the lazy
+ * validator import the composable awaits since the bundle-size split.
+ */
 async function flush() {
-	await nextTick()
-	await Promise.resolve()
+	await new Promise((resolve) => setTimeout(resolve, 0))
 	await nextTick()
 }
 
@@ -309,6 +312,61 @@ describe('useAppManifest', () => {
 	})
 
 	// -----------------------------------------------------------------
+	// Bug fix: sentinel resolution must NOT depend on a successful
+	// /api/manifest backend fetch. Most apps don't serve that endpoint
+	// (Nextcloud returns SPA HTML with a 200), yet their BUNDLED manifest
+	// still carries @resolve: sentinels that must resolve from
+	// initial-state / /api/configs.
+	// -----------------------------------------------------------------
+	describe('sentinels resolve from the bundled manifest independent of /api/manifest', () => {
+		const bundledWithSentinel = {
+			version: '1.0.0',
+			menu: validBundled.menu,
+			pages: [
+				{ id: 'home', route: '/', type: 'index', title: 'app.home', config: { register: '@resolve:voorzieningen_register', schema: 'voorziening' } },
+			],
+		}
+
+		it('resolves bundled sentinels when the backend fetch 404s', async () => {
+			axios.get.mockRejectedValue({ response: { status: 404 } })
+			const { manifest, unresolvedSentinels, validationErrors } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async (_, key) => (key === 'voorzieningen_register' ? 'voorzieningen' : null) },
+			)
+			await flush()
+			expect(manifest.value.pages[0].config.register).toBe('voorzieningen')
+			expect(unresolvedSentinels.value).toEqual([])
+			expect(validationErrors.value).toBeNull()
+		})
+
+		it('resolves bundled sentinels when /api/manifest returns SPA HTML (200, non-object body)', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: '<!DOCTYPE html><html></html>' })
+			const { manifest, unresolvedSentinels } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async (_, key) => (key === 'voorzieningen_register' ? 'voorzieningen' : null) },
+			)
+			await flush()
+			// SPA HTML is NOT merged; the bundled manifest's sentinel still resolves.
+			expect(manifest.value.pages[0].config.register).toBe('voorzieningen')
+			expect(unresolvedSentinels.value).toEqual([])
+		})
+
+		it('surfaces unresolved keys from a bundled sentinel when the fetch fails and the key is unset', async () => {
+			axios.get.mockRejectedValue(new Error('network'))
+			const { manifest, unresolvedSentinels } = useAppManifest(
+				'softwarecatalog',
+				bundledWithSentinel,
+				{ getAppConfigValue: async () => null },
+			)
+			await flush()
+			expect(manifest.value.pages[0].config.register).toBeNull()
+			expect(unresolvedSentinels.value).toEqual(['voorzieningen_register'])
+		})
+	})
+
+	// -----------------------------------------------------------------
 	// manifest-dynamic-menu — backend-populated `menu[]` contract
 	// -----------------------------------------------------------------
 	// Locks the lib-side contract documented in
@@ -484,21 +542,24 @@ describe('useAppManifest', () => {
 			warnSpy.mockRestore()
 		})
 
-		it('runs validateManifest on `validate: true` with a valid manifest and emits no warning', () => {
-			// REQ-IMM-003 happy path.
+		it('runs validateManifest on `validate: true` with a valid manifest and emits no warning', async () => {
+			// REQ-IMM-003 happy path. Validation is informational and runs
+			// after the lazy validator import resolves — flush before
+			// asserting the (absent) warning.
 			const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 			const { manifest, validationErrors, isLoading } = useAppManifest({
 				manifest: validBundled,
 				validate: true,
 			})
 			expect(manifest.value).toBe(validBundled)
-			expect(validationErrors.value).toBeNull()
 			expect(isLoading.value).toBe(false)
+			await flush()
+			expect(validationErrors.value).toBeNull()
 			expect(warnSpy).not.toHaveBeenCalled()
 			warnSpy.mockRestore()
 		})
 
-		it('populates validationErrors and warns on `validate: true` with an invalid manifest', () => {
+		it('populates validationErrors and warns on `validate: true` with an invalid manifest', async () => {
 			// REQ-IMM-003 failure path: validation is informational —
 			// manifest ref MUST still hold the input value, isLoading MUST
 			// still be false, console.warn MUST be emitted with the
@@ -516,9 +577,11 @@ describe('useAppManifest', () => {
 				manifest: invalidManifest,
 				validate: true,
 			})
-			// Validation populated but manifest is mounted unchanged.
+			// Validation populated but manifest is mounted unchanged. The
+			// lazy validator import resolves a tick later — flush first.
 			expect(manifest.value).toBe(invalidManifest)
 			expect(isLoading.value).toBe(false)
+			await flush()
 			expect(validationErrors.value).not.toBeNull()
 			expect(Array.isArray(validationErrors.value)).toBe(true)
 			expect(validationErrors.value.some((e) => e.includes('unique'))).toBe(true)

@@ -1,39 +1,104 @@
 <template>
 	<div class="cn-actions-bar" data-testid="cn-actions-bar">
 		<div class="cn-actions-bar__info">
-			<span v-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
+			<!-- Inline search field (opt-in) -->
+			<div v-if="showSearch" class="cn-actions-bar__search">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					@input="onSearchInput">
+			</div>
+			<span v-else-if="pagination && pagination.total > 0" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 		</div>
 		<div class="cn-actions-bar__actions">
-			<!-- View mode toggle (Cards / Table) -->
-			<div v-if="showViewToggle" class="cn-actions-bar__view-toggle">
+			<!-- View mode toggle (Cards / Table) — segmented control with a
+			     sliding thumb that animates between the two segments. -->
+			<div v-if="showViewToggle"
+				class="cn-actions-bar__view-toggle"
+				:class="{ 'cn-actions-bar__view-toggle--three': showMap }"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'View mode')">
+				<!-- Sliding pill that sits behind the active segment. Its horizontal
+				     position is a `--pos-N` class derived from the active segment's
+				     index (0 = cards, 1 = table, 2 = map), so the same markup drives
+				     both the two- and three-segment layouts. -->
+				<span
+					class="cn-actions-bar__view-toggle-thumb"
+					:class="viewToggleThumbClass"
+					aria-hidden="true" />
 				<!--
 					@event view-mode-change
-					@description User clicked one of the view-mode toggle buttons (Cards / Table). Payload is the selected mode string.
-					@type {'cards' | 'table'}
+					@description User clicked one of the view-mode toggle buttons (Cards / Table / Map). Payload is the selected mode string.
+					@type {'cards' | 'table' | 'map'}
 				-->
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="cards"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'cards')">
-					{{ t('nextcloud-vue', 'Cards') }}
-				</NcCheckboxRadioSwitch>
-				<NcCheckboxRadioSwitch
-					:model-value="viewMode"
-					:button-variant="true"
-					value="table"
-					name="cn_view_mode"
-					type="radio"
-					button-variant-grouped="horizontal"
-					@update:model-value="$emit('view-mode-change', 'table')">
-					{{ t('nextcloud-vue', 'Table') }}
-				</NcCheckboxRadioSwitch>
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'cards' }"
+					:aria-pressed="viewMode === 'cards'"
+					@click="$emit('view-mode-change', 'cards')">
+					<CnIcon v-if="cardsIcon"
+						:name="cardsIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<ViewGridOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ cardsLabel || t('nextcloud-vue', 'Cards') }}</span>
+				</button>
+				<button
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'table' }"
+					:aria-pressed="viewMode === 'table'"
+					@click="$emit('view-mode-change', 'table')">
+					<CnIcon v-if="tableIcon"
+						:name="tableIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<FormatListBulletedSquare v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ tableLabel || t('nextcloud-vue', 'Table') }}</span>
+				</button>
+				<button
+					v-if="showMap"
+					type="button"
+					class="cn-actions-bar__view-toggle-btn"
+					:class="{ 'cn-actions-bar__view-toggle-btn--active': viewMode === 'map' }"
+					:aria-pressed="viewMode === 'map'"
+					@click="$emit('view-mode-change', 'map')">
+					<CnIcon v-if="mapIcon"
+						:name="mapIcon"
+						:size="24"
+						class="cn-actions-bar__view-toggle-icon" />
+					<MapMarkerOutline v-else :size="24" class="cn-actions-bar__view-toggle-icon" />
+					<span class="cn-actions-bar__view-toggle-label">{{ mapLabel || t('nextcloud-vue', 'Map') }}</span>
+				</button>
 			</div>
+
+			<!-- @slot filters Inline filter controls rendered inside the action bar, between the view toggle and the add/actions (e.g. a CnQuickFilterBar segmented toggle). -->
+			<slot name="filters" />
+
+			<!-- Search / Columns sidebar toggle (opt-in). Icon-only; reflects the
+			     open state via aria-pressed so the index sidebar can default
+			     closed and be opened on demand. -->
+			<!--
+				@event toggle-sidebar
+				@description User clicked the Search/Columns sidebar toggle. No payload — the host flips the sidebar open state.
+			-->
+			<NcButton v-if="showSidebarToggle"
+				variant="tertiary"
+				:aria-label="t('nextcloud-vue', 'Search and columns')"
+				:title="t('nextcloud-vue', 'Search and columns')"
+				:pressed="sidebarOpen"
+				@click="$emit('toggle-sidebar')">
+				<template #icon>
+					<Tune :size="20" />
+				</template>
+			</NcButton>
 
 			<!-- Add button (primary) -->
 			<!--
@@ -44,6 +109,7 @@
 				variant="primary"
 				:disabled="addDisabled"
 				data-testid="cn-cta-primary"
+				data-walkthrough-id="index-add"
 				@click="$emit('add')">
 				<template #icon>
 					<CnIcon v-if="addIcon" :name="addIcon" :size="20" />
@@ -57,6 +123,9 @@
 				@description Custom buttons rendered between the Add button and the overflow Actions menu.
 			-->
 			<slot name="actions" />
+
+			<!-- In-app edit button (ADR-041): icon-only, self-wires from CnAppRoot. -->
+			<CnOpenBuildEditButton />
 
 			<!-- Actions menu (Refresh, Import, Export, mass actions) -->
 			<NcActions
@@ -179,14 +248,20 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcActionSeparator, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CnOpenBuildEditButton from '../CnOpenBuildEditButton/CnOpenBuildEditButton.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import Export from 'vue-material-design-icons/Export.vue'
+import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
 import Import from 'vue-material-design-icons/Import.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import Tune from 'vue-material-design-icons/Tune.vue'
+import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import MapMarkerOutline from 'vue-material-design-icons/MapMarkerOutline.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -206,12 +281,12 @@ export default {
 	name: 'CnActionsBar',
 
 	components: {
+		CnOpenBuildEditButton,
 		NcActions,
 		NcActionButton,
 		NcActionLink,
 		NcActionSeparator,
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		CnIcon,
 		BookOpenVariantOutline,
@@ -221,6 +296,11 @@ export default {
 		TrashCanOutline,
 		Import,
 		Export,
+		Magnify,
+		Tune,
+		ViewGridOutline,
+		FormatListBulletedSquare,
+		MapMarkerOutline,
 	},
 
 	props: {
@@ -290,17 +370,77 @@ export default {
 			default: true,
 		},
 
-		/** Current view mode: 'table' or 'cards' */
+		/** Current view mode: 'table', 'cards' or 'map' */
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards'].includes(v),
+			validator: (v) => ['table', 'cards', 'map'].includes(v),
 		},
 
 		/** Whether to show the Cards/Table view toggle */
 		showViewToggle: {
 			type: Boolean,
 			default: true,
+		},
+
+		/** Label for the cards/grid view-toggle option (defaults to "Cards") */
+		cardsLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Label for the table/list view-toggle option (defaults to "Table") */
+		tableLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the cards option (defaults to the built-in grid icon). Resolved via CnIcon. */
+		cardsIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the table option (defaults to the built-in list icon). Resolved via CnIcon. */
+		tableIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether to render the third "Map" segment in the view toggle. Off by default so existing two-segment consumers are unchanged. */
+		showMap: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap`. */
+		mapLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via CnIcon. */
+		mapIcon: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether to show the inline search field on the left of the bar */
+		showSearch: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Current value of the inline search field (controlled) */
+		searchValue: {
+			type: String,
+			default: '',
+		},
+
+		/** Placeholder / accessible label for the inline search field */
+		searchPlaceholder: {
+			type: String,
+			default: '',
 		},
 
 		/** Whether the refresh action is currently in progress */
@@ -325,6 +465,21 @@ export default {
 		showAdd: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Whether to show the Search/Columns sidebar toggle button. Lets the
+		 * index sidebar default to closed and be opened on demand.
+		 */
+		showSidebarToggle: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Current open state of the sidebar (controls the toggle's pressed state). */
+		sidebarOpen: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -364,6 +519,23 @@ export default {
 			return t('nextcloud-vue', 'Showing {count} of {total}', { count: this.objectCount, total: this.pagination.total })
 		},
 
+		/**
+		 * Position class for the sliding thumb, derived from the active segment's
+		 * index in the ordered mode list (cards, table, [map]). `--pos-1` shifts it
+		 * one segment right (table), `--pos-2` two (map); index 0 (cards) needs no
+		 * class. Works for both the two- and three-segment layouts because the
+		 * thumb width scales with segment count, so one translate step always
+		 * equals one segment.
+		 */
+		viewToggleThumbClass() {
+			const modes = this.showMap ? ['cards', 'table', 'map'] : ['cards', 'table']
+			const idx = Math.max(0, modes.indexOf(this.viewMode))
+			return {
+				'cn-actions-bar__view-toggle-thumb--pos-1': idx === 1,
+				'cn-actions-bar__view-toggle-thumb--pos-2': idx === 2,
+			}
+		},
+
 		hasMassActions() {
 			return this.showMassImport || this.showMassExport || this.showMassCopy || this.showMassDelete
 		},
@@ -396,6 +568,20 @@ export default {
 
 	methods: {
 		t,
+		/**
+		 * Forward the inline search field's input to the host.
+		 *
+		 * @param {Event} event The native input event.
+		 * @return {void}
+		 */
+		onSearchInput(event) {
+			/**
+			 * @event search Emitted when the user types in the inline search field.
+			 * @type {string}
+			 */
+			this.$emit('search', event.target.value)
+		},
+
 		/**
 		 * Heuristic: a "plain" name like `History` is an MDI Vue
 		 * component name (rendered via `CnIcon`). A name like
@@ -453,6 +639,10 @@ export default {
 			 * @event header-action User clicked a manifest-declared page-level header action. Payload: `{ action: id, id }`.
 			 */
 			this.$emit('header-action')
+			/**
+			 * @event toggle-sidebar User clicked the Search/Columns sidebar toggle. No payload.
+			 */
+			this.$emit('toggle-sidebar')
 		},
 	},
 }

@@ -1,0 +1,1025 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "2.5.0",
+	"dependencies": [
+		"openregister"
+	],
+	"setup": {
+		"enabled": true,
+		"version": 2,
+		"completionConfigKey": "onboarding_completed_version",
+		"steps": [
+			{
+				"id": "welcome",
+				"type": "info",
+				"title": "Welcome to OpenCatalogi",
+				"body": "A couple of quick steps to get you publishing. OpenCatalogi turns your catalogs into open, discoverable publications — let's create your first catalog and connect you to the federated network."
+			},
+			{
+				"id": "config-check",
+				"type": "run-action",
+				"action": "reload-settings",
+				"title": "Publishing prerequisites",
+				"required": true,
+				"body": "OpenCatalogi publishes from OpenRegister. The catalog, publication and listing registers are configured automatically on install — this just verifies them. If OpenRegister was enabled after OpenCatalogi, running this re-imports the configuration."
+			},
+			{
+				"id": "catalog-scope",
+				"type": "choice",
+				"title": "Default catalog scope",
+				"required": true,
+				"configKey": "default_catalog_scope",
+				"body": "Publishing in OpenCatalogi is governed by schema-RBAC (not a per-object published flag), and every catalog needs a scope. Pick the default visibility for the catalog you're about to create — you can still tighten or widen it later.",
+				"options": [
+					{
+						"value": "public",
+						"label": "Public (anyone can discover and read)"
+					},
+					{
+						"value": "internal",
+						"label": "Internal (signed-in users only)"
+					},
+					{
+						"value": "private",
+						"label": "Private (explicitly granted groups only)"
+					}
+				]
+			},
+			{
+				"id": "create-catalog",
+				"type": "run-action",
+				"action": "create-first-catalog",
+				"title": "Create your first catalog",
+				"required": true,
+				"body": "A catalog is the container your publications live in. We'll create your first one using the scope you just chose — you can rename it and add publications afterwards."
+			},
+			{
+				"id": "connect-federation",
+				"type": "run-action",
+				"action": "connect-federation",
+				"title": "Connect to the federated network",
+				"body": "OpenCatalogi is a federated network: instances share their published catalogs so they can be discovered together. Connect to the national directory now to see federated catalogs in your Directory — or skip this and it will sync automatically later."
+			},
+			{
+				"id": "done",
+				"type": "summary",
+				"title": "All set",
+				"healthCheck": true,
+				"body": "OpenCatalogi is ready. Open Catalogs to manage what you publish, or the Directory to discover federated catalogs."
+			}
+		]
+	},
+	"walkthrough": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "walkthrough_seen_version",
+		"tours": [
+			{
+				"id": "opencatalogi:getting-started",
+				"title": "Getting started",
+				"trigger": "first-visit",
+				"minAppVersion": "2.4.0",
+				"steps": [
+					{
+						"id": "welcome",
+						"placement": "center",
+						"sinceVersion": "2.4.0",
+						"title": "Welcome to OpenCatalogi",
+						"body": "Let's walk the publishing journey together — from an empty install to a catalog the world can discover. You'll create each record yourself, in your own workspace.",
+						"target": {
+							"kind": "page",
+							"ref": "Catalogs"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-catalogs",
+						"sinceVersion": "2.4.0",
+						"placement": "right",
+						"body": "Everything you publish lives in a catalog. Open Catalogs from the menu.",
+						"task": "Open Catalogs",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Catalogs"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Catalogs"
+						}
+					},
+					{
+						"id": "create-catalog",
+						"sinceVersion": "2.4.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Create your first catalog — it's the container your publications will live in.",
+						"task": "Create your first catalog",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "publication",
+							"schema": "catalog",
+							"capture": {
+								"catalogId": ":id"
+							}
+						}
+					},
+					{
+						"id": "open-catalog",
+						"sinceVersion": "2.4.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Open the catalog you just created to manage what it publishes — its publications open inside it.",
+						"task": "Open your catalog and view its Publications",
+						"target": {
+							"kind": "page",
+							"ref": "CatalogDetail"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Publications"
+						}
+					},
+					{
+						"id": "add-publication",
+						"sinceVersion": "2.4.0",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "A publication is a single thing you make open — a document, dataset or record. Add your first one.",
+						"task": "Add a publication",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "publication",
+							"schema": "publication",
+							"capture": {
+								"publicationId": ":id"
+							}
+						}
+					},
+					{
+						"id": "publish",
+						"sinceVersion": "2.4.0",
+						"placement": "auto",
+						"allowManualNext": true,
+						"title": "Publishing is access-controlled",
+						"body": "OpenCatalogi has no separate 'publish' switch — visibility is governed by schema-RBAC and the catalog's scope. Grant the public (or a group) read access on the publication schema, within the catalog scope you chose, and the publication becomes discoverable.",
+						"target": {
+							"kind": "page",
+							"ref": "Publications"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "discover",
+						"sinceVersion": "2.4.0",
+						"placement": "right",
+						"body": "Published catalogs are found through the Directory — your own and federated ones. Open it to see the discovery side.",
+						"task": "Open the Directory",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Directory"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Directory"
+						}
+					},
+					{
+						"id": "done",
+						"sinceVersion": "2.4.0",
+						"placement": "center",
+						"title": "You're publishing",
+						"body": "That's the full loop: catalog → publication → schema-RBAC publishing → discovery. Externally, your published catalogs are harvested as DCAT-AP, so registers and portals can find and re-list your publications automatically.",
+						"target": {
+							"kind": "page",
+							"ref": "Directory"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					}
+				]
+			}
+		]
+	},
+	"observability": {
+		"_note": "ADR-040 declarative observability. OpenCatalogi adopts OpenRegister's AppHost engine: the /api/health and /api/metrics routes are aliased to AppHost\\Controller\\GenericHealth#index / GenericMetrics#index in appinfo/routes.php, and the engine reads this block at request time. The hand-written HealthController + MetricsController were deleted. Parity vs the pre-adoption contract: the two health checks (database critical, filesystem degraded) and search_requests_total map 1:1 to declarative descriptors; the JSON-field-grouped domain metrics (publications/catalogs/listings by status+catalog, directory entries, and the usageCounter view/download sums by catalog) are reproduced byte-for-byte by OpenCatalogiMetricsProvider via the {kind:provider} escape hatch, which runs the exact same OpenRegister-backed queries the deleted controller ran. Documented intentional improvements (matching OpenRegister's own adoption): the health JSON now carries an `app` field; the implicit opencatalogi_up gauge is engine-owned (always 1 once the request is served) rather than mirroring the DB check.",
+		"health": {
+			"statusCodePolicy": "adr006",
+			"checks": [
+				{
+					"id": "database",
+					"type": "database",
+					"severity": "critical"
+				},
+				{
+					"id": "filesystem",
+					"type": "filesystem",
+					"severity": "degraded"
+				}
+			]
+		},
+		"metrics": [
+			{
+				"name": "search_requests_total",
+				"type": "counter",
+				"help": "Total search requests",
+				"source": {
+					"kind": "tableCount",
+					"table": "openregister_metrics",
+					"filter": {
+						"metric_type": {
+							"like": "search_%"
+						}
+					}
+				}
+			},
+			{
+				"name": "domain",
+				"type": "gauge",
+				"help": "OpenCatalogi domain metrics (publications, catalogs, listings, directory entries, usage view/download totals) reproduced via the provider escape hatch with the same OpenRegister-backed queries as the pre-adoption MetricsController.",
+				"source": {
+					"kind": "provider"
+				}
+			}
+		]
+	},
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Search",
+			"label": "Search",
+			"icon": "icon-search",
+			"route": "Search",
+			"order": 30
+		},
+		{
+			"id": "CatalogueGroup",
+			"label": "Catalogue",
+			"icon": "icon-files",
+			"order": 40,
+			"children": [
+				{
+					"id": "CatalogsMenu",
+					"label": "Catalogs",
+					"icon": "icon-files",
+					"route": "Catalogs",
+					"order": 92
+				},
+				{
+					"id": "GlossaryMenu",
+					"label": "Glossary",
+					"icon": "icon-toggle-filelist",
+					"route": "Glossary",
+					"order": 93
+				},
+				{
+					"id": "ThemesMenu",
+					"label": "Themes",
+					"icon": "icon-category-customization",
+					"route": "Themes",
+					"order": 94
+				},
+				{
+					"id": "PagesMenu",
+					"label": "Pages",
+					"icon": "icon-category-files",
+					"route": "Pages",
+					"order": 95
+				},
+				{
+					"id": "MenusMenu",
+					"label": "Menus",
+					"icon": "icon-category-customization",
+					"route": "Menus",
+					"order": 96
+				},
+				{
+					"id": "WooBatchesMenu",
+					"label": "WOO",
+					"icon": "icon-toggle-filelist",
+					"route": "WooBatches",
+					"order": 98
+				}
+			]
+		},
+		{
+			"id": "AdminGroup",
+			"label": "Administration",
+			"icon": "icon-settings",
+			"order": 80,
+			"children": [
+				{
+					"id": "OrganizationsMenu",
+					"label": "Organizations",
+					"icon": "icon-group",
+					"route": "Organizations",
+					"order": 91
+				},
+				{
+					"id": "DirectoryMenu",
+					"label": "Directory",
+					"icon": "icon-folder",
+					"route": "Directory",
+					"order": 97
+				},
+				{
+					"id": "SettingsMenu",
+					"label": "Settings",
+					"icon": "icon-settings",
+					"action": "user-settings",
+					"order": 99
+				}
+			]
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://opencatalogi.conduction.nl",
+			"section": "footer",
+			"order": 1
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 2
+		},
+		{
+			"id": "RestartTutorial",
+			"label": "Restart tutorial",
+			"icon": "icon-play",
+			"action": "replay-walkthrough",
+			"tourId": "opencatalogi:getting-started",
+			"section": "footer",
+			"order": 3
+		}
+	],
+	"pages": [
+		{
+			"id": "WooBatches",
+			"route": "/woo",
+			"type": "index",
+			"title": "WOO batches",
+			"config": {
+				"register": "@resolve:woo_register",
+				"schema": "@resolve:woo_batch_schema",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showViewToggle": true,
+					"selectable": false
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			},
+			"_note": "WOO disclosure-batch list via the generic index renderer over the WOO register/schema (ADR-022 — reuses the lib, no bespoke table). Per-batch detail (deck board widget + WOO tabs) is the WooBatchDetail custom page."
+		},
+		{
+			"id": "WooBatchDetail",
+			"route": "/woo/:id",
+			"type": "custom",
+			"title": "WOO batch",
+			"component": "WooBatchDetailView",
+			"_note": "Surfaces the OpenRegister deck-board widget (queue/board — not bespoke) plus WOO-specific surfaces: progress summary, redaction review, inventarislijst download, ready-for-review/publish (approval-workflow gated)."
+		},
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "custom",
+			"title": "Dashboard",
+			"component": "DashboardView",
+			"_note": "Custom analytics dashboard (charts + recent activity + per-catalog stats). Could be type:\"dashboard\" with widget composition once chart widgets land."
+		},
+		{
+			"id": "Catalogs",
+			"route": "/catalogi",
+			"type": "index",
+			"title": "Catalogs",
+			"config": {
+				"register": "@resolve:catalog_register",
+				"schema": "@resolve:catalog_schema",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "CatalogDetail",
+			"route": "/catalogi/:id",
+			"type": "custom",
+			"title": "Catalog",
+			"component": "CatalogDetailPageView",
+			"_note": "CnDetailPage with bespoke header (catalog stats + slug + edit actions) + sidebar tabs. Lib gap: header-component slot resolution from manifest, granular sidebar-tab declaration."
+		},
+		{
+			"id": "Publications",
+			"route": "/publications/:catalogSlug",
+			"type": "index",
+			"title": "Publications",
+			"config": {
+				"register": "publication",
+				"schema": "publication",
+				"filter": {
+					"catalog": "@route.catalogSlug"
+				},
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": true,
+					"showCopyAction": true,
+					"showDeleteAction": true,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "PublicationDetail",
+			"route": "/publications/:catalogSlug/:id",
+			"type": "detail",
+			"title": "Publication",
+			"_note": "DCAT-AP publication record — the app's core artifact. Bespoke publication/document archetype: the body leads with the catalog metadata (title, summary, description, organization, themes, publish/depublish dates, retention) as the 8-wide primary block, with a compact Related panel (resolves the organization publisher + linked themes) alongside it. Below sits the full-width Attachments block — a publication IS its distributables, so Files (documents/downloads) is the dominant secondary surface, followed by Images (photos) and external Links (bookmarks) side-by-side for the DCAT distribution set. No email/calendar/talk/contacts: the publication schema declares NO linkedTypes, and a publication is metadata about a document, not a correspondence thread (HARD RULE 1). geo/maps dropped — the schema has no geo field. Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled) — Activity/Shares tabs surface automatically from the builtin integration registry, and Metadata is on-demand via the Data widget's Actions menu (config.sidebar.showMetadata) rather than a permanent card. An audit-trail body widget records change history (publications are FOI/WOO records where this matters). Photos/bookmarks/files are OpenRegister integration leaves, so they render via type:\"integration\" with integrationId — the previous bare widgetKeys (maps/photos/bookmarks/file-manager) were unresolved no-ops.",
+			"config": {
+				"register": "publication",
+				"schema": "publication",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "pub-data",
+						"type": "data",
+						"title": "Publication",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "pub-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "pub-files",
+						"type": "integration",
+						"integrationId": "files",
+						"title": "Attachments"
+					},
+					{
+						"id": "pub-photos",
+						"type": "integration",
+						"integrationId": "photos",
+						"title": "Images"
+					},
+					{
+						"id": "pub-links",
+						"type": "integration",
+						"integrationId": "bookmarks",
+						"title": "Links"
+					},
+					{
+						"id": "pub-audit",
+						"type": "audit-trail",
+						"title": "Audit trail"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "pub-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "pub-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "pub-files",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 5
+					},
+					{
+						"id": "4",
+						"widgetId": "pub-photos",
+						"gridX": 0,
+						"gridY": 10,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "5",
+						"widgetId": "pub-links",
+						"gridX": 6,
+						"gridY": 10,
+						"gridWidth": 6,
+						"gridHeight": 4
+					},
+					{
+						"id": "6",
+						"widgetId": "pub-audit",
+						"gridX": 0,
+						"gridY": 14,
+						"gridWidth": 12,
+						"gridHeight": 4,
+						"showTitle": false
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Search",
+			"route": "/search",
+			"type": "custom",
+			"title": "Search",
+			"component": "FederationSearch",
+			"_note": "FederationSearch (custom) wraps CnSearchPage with the federation-aware search store so /search hits /api/federation/publications. The previous type:'search' default fanned out per-schema against the local OpenRegister, bypassing federation entirely."
+		},
+		{
+			"id": "Organizations",
+			"route": "/organizations",
+			"type": "index",
+			"title": "Organizations",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "organization",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "OrganizationDetail",
+			"route": "/organizations/:id",
+			"type": "detail",
+			"title": "Organization",
+			"_note": "Publisher-organization archetype (the legal entity behind catalogs/publications: name, summary, description, and the government identifiers OIN/TOOI/RSIN/PKI). The body leads with the identity block (8-wide, 2-column so the four registration codes read cleanly) and a Related panel (4-wide) that surfaces the publications and catalogs pointing at this organization. Below, the full-width Images leaf carries the organization logo/branding (the schema's `image` field is a single logo, so Images is the right surface, not Files). NO contacts widget: the organization schema declares NO linkedTypes and has no contactpersoon relation, so a Contacts leaf would render empty (the previous widgetKey:\"contacts\" was an unresolved no-op anyway) — per HARD RULE 1 comms/contacts only when the schema declares them. Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled) — an Activity tab surfaces automatically (org records change rarely but syncs matter for federation), and Metadata is on-demand via the Data widget's Actions menu rather than a permanent card. An audit-trail body widget records change history.",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "organization",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "org-data",
+						"type": "data",
+						"title": "Organization",
+						"content": {
+							"columns": 2
+						}
+					},
+					{
+						"id": "org-related",
+						"type": "related",
+						"title": "Related"
+					},
+					{
+						"id": "org-image",
+						"type": "integration",
+						"integrationId": "photos",
+						"title": "Logo & images"
+					},
+					{
+						"id": "org-audit",
+						"type": "audit-trail",
+						"title": "Audit trail"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "org-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 4
+					},
+					{
+						"id": "2",
+						"widgetId": "org-related",
+						"gridX": 8,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 4
+					},
+					{
+						"id": "3",
+						"widgetId": "org-image",
+						"gridX": 0,
+						"gridY": 4,
+						"gridWidth": 12,
+						"gridHeight": 4
+					},
+					{
+						"id": "4",
+						"widgetId": "org-audit",
+						"gridX": 0,
+						"gridY": 8,
+						"gridWidth": 12,
+						"gridHeight": 4,
+						"showTitle": false
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Themes",
+			"route": "/themes",
+			"type": "index",
+			"title": "Themes",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "theme",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "ThemeDetail",
+			"route": "/themes/:id",
+			"type": "detail",
+			"title": "Theme",
+			"_note": "Catalog-theme / presentation archetype — a visual grouping used to categorise and style publications (title, summary, description, image, content, link/url, icon). This is a configuration+content record, so the body pairs the editable fields (6-wide) with the live theme-preview custom widget (6-wide) so an editor sees the rendered card/banner as they tune it — the reason theme-preview exists. Below, a full-width Related panel surfaces the publications tagged with this theme. Deliberately NO comms and NO Files/audit: a theme communicates with nobody, declares no linkedTypes, and its `image`/`content` live in the record itself — keeping it clean per HARD RULE 1/2. Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled); Metadata is on-demand via the Data widget's Actions menu rather than a permanent card.",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "theme",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "theme-data",
+						"type": "data",
+						"title": "Theme",
+						"content": {
+							"columns": 1
+						}
+					},
+					{
+						"id": "theme-preview",
+						"type": "theme-preview",
+						"title": "Preview"
+					},
+					{
+						"id": "theme-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "theme-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "theme-preview",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "theme-related",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Glossary",
+			"route": "/glossary",
+			"type": "index",
+			"title": "Glossary",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "glossary",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "GlossaryDetail",
+			"route": "/glossary/:id",
+			"type": "detail",
+			"title": "Glossary term",
+			"_note": "Glossary-term / reference archetype — a single defined concept (title, summary, description, externalLink, keywords) used to explain vocabulary across the catalog. A term's value is its definition plus how it connects to other terms, so the body pairs the definition fields (6-wide) with the relationship-graph custom widget (6-wide) that visualises related terms — the reason that widget exists. Below, a full-width Related panel lists publications/themes that reference this term. Intentionally the leanest detail page: NO comms, NO Files, NO extra tabs — a glossary entry declares no linkedTypes, has no attachments, and communicates with nobody (HARD RULES 1 & 2). Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled); Metadata is on-demand via the Data widget's Actions menu rather than a permanent card.",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "glossary",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "glossary-data",
+						"type": "data",
+						"title": "Glossary term",
+						"content": {
+							"columns": 1
+						}
+					},
+					{
+						"id": "glossary-graph",
+						"type": "relationship-graph",
+						"title": "Related terms"
+					},
+					{
+						"id": "glossary-related",
+						"type": "related",
+						"title": "Related"
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "glossary-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "glossary-graph",
+						"gridX": 6,
+						"gridY": 0,
+						"gridWidth": 6,
+						"gridHeight": 5
+					},
+					{
+						"id": "3",
+						"widgetId": "glossary-related",
+						"gridX": 0,
+						"gridY": 5,
+						"gridWidth": 12,
+						"gridHeight": 4
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Pages",
+			"route": "/pages",
+			"type": "index",
+			"title": "Pages",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "page",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "PageDetail",
+			"route": "/pages/:id",
+			"type": "detail",
+			"title": "Page",
+			"_note": "CMS-page / structured-content archetype — a portal page (title, slug, visibility flags hideBeforeLogin/hideAfterLogin, access groups) whose body is an ordered list of embedded content blocks (`contents[]` — inline objects, NOT a separate register schema, so an object-list child table cannot be used). Previously this page had NO widgets and fell back to the generic data dump. Now the body pairs the page settings (5-wide, 1-column — slug + visibility read as a config sheet) with the tree-view custom widget (7-wide) that renders the nested content-block structure so an editor can see and reorder the page composition. NO comms/Files/related: a portal page declares no linkedTypes, its content is inline, and it communicates with nobody (HARD RULE 1). Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled); Metadata is on-demand via the Data widget's Actions menu rather than a permanent card.",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "page",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "page-data",
+						"type": "data",
+						"title": "Page",
+						"content": {
+							"columns": 1
+						}
+					},
+					{
+						"id": "page-tree",
+						"type": "tree-view",
+						"title": "Content blocks",
+						"content": {
+							"field": "contents"
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "page-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 5,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "page-tree",
+						"gridX": 5,
+						"gridY": 0,
+						"gridWidth": 7,
+						"gridHeight": 5
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Menus",
+			"route": "/menus",
+			"type": "index",
+			"title": "Menus",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "menu",
+				"actionToggles": {
+					"showAdd": true,
+					"showEditAction": false,
+					"showCopyAction": false,
+					"showDeleteAction": false,
+					"showMassImport": false,
+					"showMassExport": false,
+					"showMassCopy": false,
+					"showMassDelete": false,
+					"showViewToggle": true,
+					"selectable": true
+				},
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		},
+		{
+			"id": "MenuDetail",
+			"route": "/menus/:id",
+			"type": "detail",
+			"title": "Menu",
+			"_note": "Navigation-menu / structure archetype — a portal menu (title, position, visibility flag hideBeforeLogin, access groups) whose substance is its ordered, nestable `items[]` (inline objects with order/name/link, NOT a separate register schema — so no object-list child table). The body pairs the menu settings (4-wide, 1-column — position/visibility read as a config sheet) with a wide tree-view (8-wide) that renders and lets an editor reorder the item hierarchy, since the tree IS the menu. NO comms/Files/related: a menu declares no linkedTypes, its items are inline, and it communicates with nobody (HARD RULE 1). Sidebar is the registry-driven CnObjectSidebar (config.sidebar.enabled); Metadata is on-demand via the Data widget's Actions menu rather than a permanent card. Widened the tree vs the settings block (was 6/6) because the item hierarchy is the primary content here.",
+			"config": {
+				"register": "@resolve:listing_register",
+				"schema": "menu",
+				"idParam": "@route.id",
+				"documentationUrl": "https://opencatalogi.conduction.nl",
+				"widgets": [
+					{
+						"id": "menu-data",
+						"type": "data",
+						"title": "Menu",
+						"content": {
+							"columns": 1
+						}
+					},
+					{
+						"id": "menu-tree",
+						"type": "tree-view",
+						"title": "Menu items",
+						"content": {
+							"field": "items"
+						}
+					}
+				],
+				"layout": [
+					{
+						"id": "1",
+						"widgetId": "menu-data",
+						"gridX": 0,
+						"gridY": 0,
+						"gridWidth": 4,
+						"gridHeight": 5
+					},
+					{
+						"id": "2",
+						"widgetId": "menu-tree",
+						"gridX": 4,
+						"gridY": 0,
+						"gridWidth": 8,
+						"gridHeight": 5
+					}
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				}
+			}
+		},
+		{
+			"id": "Directory",
+			"route": "/directory",
+			"type": "custom",
+			"title": "Directory",
+			"component": "FederationDirectory",
+			"_note": "FederationDirectory (custom) fetches /api/listings and renders CnFederationStatus with mapped nodes + an admin add-directory modal. The bare CnFederationStatus this replaced shipped a permanent empty-state because the manifest had no :nodes binding."
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://opencatalogi.conduction.nl"
+			}
+		}
+	]
+}

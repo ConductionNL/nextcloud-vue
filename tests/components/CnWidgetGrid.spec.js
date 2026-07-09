@@ -77,12 +77,18 @@ describe('CnWidgetGrid — gridWidth clamping', () => {
 })
 
 describe('CnWidgetGrid — unknown widgetKey', () => {
-	it('skips widget and emits console.warn for unknown widgetKey', () => {
+	it('renders a visible placeholder (not a silent skip) and warns for an unknown widgetKey', () => {
+		// 2026-07-06 audit item 12: an unknown widgetKey used to be dropped
+		// silently, so a page whose widgets all failed to resolve rendered a
+		// blank pane (petstore dashboard). It now resolves to the CnUnknownWidget
+		// placeholder so the failure is visible, while still warning for devs.
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const wrapper = mount('body', [
 			{ widgetKey: 'does-not-exist', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
 		])
-		expect(wrapper.vm.resolvedWidgets.length).toBe(0)
+		expect(wrapper.vm.resolvedWidgets.length).toBe(1)
+		expect(wrapper.vm.resolvedWidgets[0].widgetKey).toBe('does-not-exist')
+		expect(wrapper.vm.resolvedWidgets[0].component.name).toBe('CnUnknownWidget')
 		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'))
 		warnSpy.mockRestore()
 	})
@@ -103,6 +109,33 @@ describe('CnWidgetGrid — custom registry override', () => {
 			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
 		], { 'object-table': { component: CustomTable, kind: 'widget' } })
 		expect(wrapper.vm.resolvedWidgets[0].component).toBe(CustomTable)
+	})
+})
+
+describe('CnWidgetGrid — dataSource forwarding', () => {
+	it('forwards the widget top-level dataSource as a dataSource prop', () => {
+		const ds = { register: 'reg', schema: 'thing', aggregate: 'count' }
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1, dataSource: ds },
+		])
+		expect(wrapper.vm.resolvedWidgets[0].props.dataSource).toEqual(ds)
+	})
+
+	it('keeps nested props.dataSource working (back-compat) and lets it win on collision', () => {
+		const top = { register: 'top', schema: 'thing', aggregate: 'count' }
+		const nested = { register: 'nested', schema: 'thing', aggregate: 'count' }
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1, dataSource: top, props: { dataSource: nested } },
+		])
+		// props.dataSource (app-side workaround) is spread last → wins.
+		expect(wrapper.vm.resolvedWidgets[0].props.dataSource).toEqual(nested)
+	})
+
+	it('omits dataSource prop entirely when the widget has none', () => {
+		const wrapper = mount('body', [
+			{ widgetKey: 'object-table', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 1 },
+		])
+		expect('dataSource' in wrapper.vm.resolvedWidgets[0].props).toBe(false)
 	})
 })
 

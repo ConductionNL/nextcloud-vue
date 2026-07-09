@@ -189,8 +189,6 @@ export default {
 	align-items: center;
 	justify-content: flex-end;
 	float: right;
-	margin-top: -66px;
-	margin-bottom: 26px;
 	position: relative;
 	z-index: 10;
 }

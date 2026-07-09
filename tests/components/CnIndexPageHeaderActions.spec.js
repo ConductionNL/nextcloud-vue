@@ -109,6 +109,17 @@ describe('CnIndexPage — config.headerActions[] dispatch', () => {
 			expect(push.mock.calls[0][0]).not.toHaveProperty('params')
 		})
 
+		it('navigate keyword pushes literal params when the entry declares them', () => {
+			const push = jest.fn()
+			const wrapper = mountPage(
+				{ headerActions: [{ id: 'new', label: 'New resource', handler: 'navigate', route: 'ResourceDetail', params: { id: 'new' } }] },
+				{ router: { push } },
+			)
+			const merged = wrapper.vm.mergedHeaderActions
+			merged[0].handler()
+			expect(push).toHaveBeenCalledWith({ name: 'ResourceDetail', params: { id: 'new' } })
+		})
+
 		it('navigate without route falls through to emit-only and warns', () => {
 			const wrapper = mountPage({
 				headerActions: [{ id: 'broken', label: 'Broken', handler: 'navigate' }],

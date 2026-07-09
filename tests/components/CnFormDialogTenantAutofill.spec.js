@@ -30,6 +30,9 @@ function mountDialog({ uuid, org, props = {} } = {}) {
 	const Wrapper = defineComponent({
 		setup() {
 			provideTenantContext(uuid, org)
+			// Vue 2.7's `h` only maps the `props` key of the data object to
+			// declared component props — top-level keys land in `$attrs`. Wrap
+			// in `props` so `schema`/`item` actually reach CnFormDialog.
 			return () => h(CnFormDialog, {
 				props: {
 					...props,

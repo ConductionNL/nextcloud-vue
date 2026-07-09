@@ -117,6 +117,21 @@ export default {
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
 		/** Label for the load-more button */
 		loadMoreLabel: { type: String, default: () => t('nextcloud-vue', 'Load more') },
+		/**
+		 * Whether to render the "share uploaded files" toggle. Off by default;
+		 * when false, uploads never set the share flag (no auto-publish).
+		 * @type {boolean}
+		 */
+		showShareToggle: { type: Boolean, default: false },
+		/**
+		 * Initial state for the share toggle. `true`/`false` wins outright;
+		 * `null` (the default) defers to the schema's
+		 * `configuration.defaultAutoShare` from OpenRegister.
+		 * @type {boolean|null}
+		 */
+		defaultShare: { type: Boolean, default: null },
+		/** Label for the share toggle */
+		shareLabel: { type: String, default: () => t('nextcloud-vue', 'Share uploaded files') },
 	},
 
 	data() {
@@ -269,9 +284,9 @@ export default {
 			if (file.accessUrl) {
 				// Security: accessUrl originates from the OR files API and may be
 				// attacker-controlled. Validate the scheme via safeHref before
-				// opening — this blocks javascript: / data: payloads. Add
+				// opening (C4) — this blocks javascript: / data: payloads. Add
 				// noopener,noreferrer to prevent the opened tab from accessing
-				// window.opener and to strip the Referer header.
+				// window.opener (reverse-tabnabbing) and to strip the Referer header.
 				const safe = safeHref(file.accessUrl)
 				if (safe !== '#') {
 					window.open(safe, '_blank', 'noopener,noreferrer')

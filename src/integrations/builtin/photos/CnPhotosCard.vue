@@ -493,6 +493,7 @@ export default {
 	font-size: 0.8em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-photos-card__view-all a {
 	color: var(--color-primary-element);
 	text-decoration: none;

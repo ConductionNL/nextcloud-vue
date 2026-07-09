@@ -134,12 +134,32 @@ The `tabs` prop opens up the closed-enum tab set so apps can drive `CnObjectSide
 |---------------|--------------------|---------------|
 | `data` | [`CnObjectDataWidget`](./cn-object-data-widget.md) | `schema`, `objectData` (forward via per-widget `props`) |
 | `metadata` | [`CnObjectMetadataWidget`](./cn-object-metadata-widget.md) | `objectData` |
+| `audit` / `audit-trail` | [`CnAuditTrailTab`](./cn-object-sidebar.md) | — (register / schema / objectId flow from the shared context) |
+| `object-table` | [`CnWidgetObjectTable`](./cn-widget-object-table.md) | `source` **or** `endpointSource`, `columns` (forward via per-widget `props`) |
 
 Any other `type` value resolves against the `customComponents` registry — the explicit `customComponents` prop wins over the injected `cnCustomComponents` (mirroring `CnPageRenderer`'s pattern).
+
+The `object-table` type (#89) renders a declarative list scoped to the sidebar's parent object — its `source.filter` resolves `@objectId` / `@object.<field>` tokens against the object context the sidebar provides (see [Shared object context](#shared-object-context)). This is how a detail page's ZGW-style relation tab (e.g. a zaak's *besluiten*, filtered by `{ zaak: "@objectId" }`) renders with no bespoke component:
+
+```js
+tabs: [{
+  id: 'besluiten',
+  label: 'Besluiten',
+  widgets: [{
+    type: 'object-table',
+    props: {
+      source: { register: 'ztc', schema: 'besluit', filter: { zaak: '@objectId' } },
+      columns: [{ key: 'identificatie', label: 'Besluit' }, { key: 'datum', label: 'Datum' }],
+    },
+  }],
+}]
+```
 
 ### Shared object context
 
 Every widget and component mounted inside a custom tab receives the parent `CnObjectSidebar`'s `objectId` / `objectType` / `register` / `schema` / `apiBase` as default props (matching the context the built-in tabs receive). Per-widget `props` win on conflict, so a tab can override `objectData`, `apiBase`, etc. without losing the rest of the context.
+
+For widgets that resolve `@objectId` / `@object.<field>` tokens through injection rather than props (the `object-table` built-in), `CnObjectSidebar` also **provides** a reactive `cnObjectContext` (`{ objectId, object, register, schema }`) seeded from its own props — mirroring `CnDetailPage`. When the sidebar is nested inside a `CnDetailPage` that already provides a richer context (with the loaded `object`), the sidebar defers to the ancestor so `@object.<field>` keeps resolving; standalone, it seeds `@objectId` + register/schema from its props.
 
 ### Backwards compatibility
 

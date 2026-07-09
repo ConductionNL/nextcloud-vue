@@ -314,6 +314,9 @@ export function createCrudStore(name, config = {}) {
 					this.loading = true
 				}
 				try {
+					// Encode the id so a path-traversal payload (`../other-schema/uuid`)
+					// is confined to a single URL path segment and cannot reach a
+					// sibling resource (C3).
 					const response = await fetch(`${this._options.baseApiUrl}/${encodeURIComponent(id)}`, {
 						method: 'GET',
 						headers: this._buildHeaders(),

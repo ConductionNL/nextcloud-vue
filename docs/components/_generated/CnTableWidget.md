@@ -2,15 +2,16 @@
 
 ### Props
 
-| Name            | Type                                                  | Required | Default                                            | Description                                                                                       |
-| --------------- | ----------------------------------------------------- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `title`         | `string`                                              |          | `''`                                               | Widget title shown in the header.                                                                 |
-| `rows`          | `object[]`                                            |          | `null`                                             | External row data. When provided, no API calls are made.                                          |
-| `columns`       | `{ key: string, label: string, sortable: boolean }[]` |          | `[]`                                               | Column definitions for CnDataTable.                                                               |
-| `register`      | `union`                                               |          | `null`                                             | OpenRegister register ID for self-fetch mode.                                                     |
-| `schemaId`      | `union`                                               |          | `null`                                             | OpenRegister schema ID for self-fetch mode.                                                       |
-| `limit`         | `number`                                              |          | `0`                                                | Maximum number of rows to display. When total exceeds this, a "View all" link appears.            |
-| `viewAllRoute`  | `object`                                              |          | `null`                                             | Vue Router route for the "View all" link.                                                         |
-| `rowClickRoute` | `Function`                                            |          | `null`                                             | Function that returns a route object for row click navigation. Receives the row data as argument. |
-| `viewAllLabel`  | `string`                                              |          | `() =&gt; t('nextcloud-vue', 'View all')`          | Pre-translated "View all" label.                                                                  |
-| `emptyText`     | `string`                                              |          | `() =&gt; t('nextcloud-vue', 'No data available')` | Pre-translated empty state text.                                                                  |
+| Name            | Type                                                       | Required | Default     | Description                                                       |
+| --------------- | ---------------------------------------------------------- | -------- | ----------- | ----------------------------------------------------------------- |
+| `title`         | `string`                                                   |          | `''`        | Widget title shown in the header.                                 |
+| `borderless`    | `boolean`                                                  |          | `false`     | Drop the card chrome so the table sits flush inside another card. |
+| `rows`          | `object[]`                                                 |          | `null`      | External row data. When provided, no API calls are made.          |
+| `columns`       | `Array<{ key: string, label: string, sortable: boolean }>` |          | `[]`        | Column definitions for the table.                                 |
+| `register`      | `union`                                                    |          | `null`      | OpenRegister register id for self-fetch mode.                     |
+| `schemaId`      | `union`                                                    |          | `null`      | OpenRegister schema id for self-fetch mode.                       |
+| `limit`         | `number`                                                   |          | `0`         | Max rows to display before the "View all" link appears.           |
+| `viewAllRoute`  | `object`                                                   |          | `null`      | vue-router route for the "View all" link.                         |
+| `rowClickRoute` | `Function`                                                 |          | `null`      | Function returning a route object for row-click navigation.       |
+| `viewAllLabel`  | `string`                                                   |          | `undefined` | Pre-translated "View all" label.                                  |
+| `emptyText`     | `string`                                                   |          | `undefined` | Pre-translated empty-state text.                                  |

@@ -67,6 +67,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
+import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 
 const ALLOWED_LAYER_TYPES = ['tile', 'wms', 'wfs', 'geojson']
 
@@ -463,26 +464,14 @@ export default {
 					const popupHtml = popupField && feature.properties ? feature.properties[popupField] : null
 					if (popupHtml) {
 						// Security: marker data may come from an external URL
-						// (markers.dataSource.url) — sanitize before passing to
-						// Leaflet's bindPopup, which renders its string argument as
-						// HTML (innerHTML). Without this, attacker-controlled marker
-						// properties execute script in the Nextcloud origin.
-						const safePopup = DOMPurify.sanitize(String(popupHtml), {
-							ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'span', 'a', 'br', 'p'],
-							ALLOWED_ATTR: ['href', 'target', 'rel', 'title'],
-							FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-							FORBID_ATTR: [
-								'onerror',
-								'onload',
-								'onclick',
-								'onmouseover',
-								'onfocus',
-								'onblur',
-								'onchange',
-								'onsubmit',
-							],
-						})
-						lyr.bindPopup(safePopup)
+						// (markers.dataSource.url) or arbitrary GeoJSON feature
+						// properties (often an OR-backed data source). Leaflet's
+						// bindPopup renders its string argument as HTML (innerHTML),
+						// so sanitize with the shared strict config (C1) before
+						// injecting — a `<script>` / `onerror=` payload cannot
+						// execute in the Nextcloud origin.
+						const safeHtml = DOMPurify.sanitize(String(popupHtml), SAFE_MARKDOWN_DOMPURIFY_CONFIG)
+						lyr.bindPopup(safeHtml)
 					}
 					lyr.on('click', (e) => {
 						/**

@@ -161,6 +161,16 @@ export default {
 	gap: 16px;
 }
 
+/* A card slot whose component renders nothing (e.g. a custom card that hides
+   itself with `v-if` for a client-side filter) leaves an empty grid item that
+   would still occupy a grid track and a row gap — pushing the visible cards
+   down with a large blank gap above them. Collapse those empty cells so the
+   remaining cards start at the top. A comment-only node (`v-if` false) still
+   matches `:empty` per the CSS spec, so this catches the v-if-hidden case. */
+.cn-card-grid__item:empty {
+	display: none;
+}
+
 .cn-card-grid__loading {
 	display: flex;
 	justify-content: center;

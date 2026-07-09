@@ -188,10 +188,14 @@ export default {
 | `sortOrder` | String | `'asc'` | Current sort direction: `'asc'` or `'desc'` |
 | `selectedIds` | Array | `[]` | Array of selected row IDs (controlled) |
 | `rowClass` | Function | `null` | `(row) => string` — CSS class(es) applied to each `<tr>` |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` on a row-body click even while `selectable` (selection then via the checkbox column only) |
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every row: a static MDI name applied to all rows, or `(row) => iconName` to vary it per row (resolved via the CnIcon registry). Unset = no icon column. |
+| `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
 
 ## Slots
 
@@ -201,3 +205,28 @@ export default {
 | `row-actions` | `{ row }` | Action buttons rendered in a trailing actions column |
 | `actions-header` | — | Content shown in the header cell of the actions column |
 | `empty` | — | Custom empty-state content (replaces `emptyText`) |
+| `footer` | `{ total, shown }` | Custom footer link/content (e.g. a "+ New" create action or an always-shown "View all"). Renders with its own click handler — usable outside a vue-router context, where the built-in `viewAllRoute` link's `$router.push` no-ops. When omitted, the built-in "View all" link is used for a `limit`-ed subset |
+
+## Card / widget mode (folded from CnTableWidget)
+
+CnDataTable is now the single table component — the deprecated `CnTableWidget`'s
+features are folded in here as opt-in props (bare-table usage is unchanged):
+
+- `title` — render a card header (title + total-count badge) above the table.
+- `borderless` — drop the container's card chrome so the table sits flush inside
+  a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
+- `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `viewAllRoute` / `viewAllLabel` — the footer link's route and label.
+- `register` + `schemaId` — self-fetch rows from OpenRegister when no `rows` are passed.
+- `fetchParams` — extra query params for the self-fetch (a resolved filter map,
+  `_order[field]` ordering, `_limit`); changing it re-triggers the fetch. Used by
+  `CnWidgetObjectTable`'s declarative `source`.
+- `rowClickRoute` — a function mapping a clicked row to a vue-router route to push.
+- `hideHeader` — drop the column-label row for a compact list widget.
+- `#footer` slot — supply a custom footer link (e.g. "+ New" or an always-shown
+  "View all") with its own handler; works outside a vue-router context.
+
+For a compact "name + trailing status" list widget (à la a dashboard panel),
+combine `hideHeader` + `borderless` with the reusable cell utilities on each
+column's `cellClass`: `cn-cell--strong` (name), `cn-cell--muted cn-cell--end`
+(right-aligned muted status).

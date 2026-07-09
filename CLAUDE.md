@@ -20,6 +20,14 @@ import '@conduction/nextcloud-vue/src/css/index.css'
 
 Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongside `registerIcons({})`) **before** `new Vue().$mount(...)` — without it, library-rendered strings stay in English even when the user's Nextcloud language is Dutch. See [docs/getting-started.md](docs/getting-started.md#register-library-translations-required).
 
+### NcDialog vs NcModal (choosing a popover)
+
+**Default to `NcDialog` whenever the popover has a heading and/or action buttons** — even when the request calls it a "modal". `NcDialog` wraps `NcModal` under the hood but adds a real, visible header (via its `name` prop — required) and a footer action bar (via the `#actions` slot). It is the right choice for anything the user *acts on*: confirm / deny, edit forms, multi-step flows, configuration panels, "manage X" screens.
+
+Reserve raw `NcModal` for non-specific, headingless quick info or a single simple action — e.g. a popover showing extra information, or a bare "pick a file" surface with no title and no action bar. If you find yourself hand-rolling an `<h2>` title or a footer button row inside an `NcModal`, that's the signal to use `NcDialog` instead.
+
+Note: `NcModal`'s `name` prop does **not** render a visible title in our version — only `NcDialog`'s does. So an `NcModal` with a title needs `NcDialog` (or, for accessibility only, a `label-id` pointing at your own heading). Convert `@close` → `@closing` when switching (NcDialog emits `closing`), keep `size`, move footer buttons into `<template #actions>`, and drop the redundant internal heading. `NcDialog` teleports to `<body>` (same as `NcModal`) but `provide`/`inject` still resolves through the component tree.
+
 ### Available Components
 
 **Layout & Pages**
@@ -69,6 +77,7 @@ Consumer apps MUST also call `registerTranslations()` once in `main.js` (alongsi
 - `CnContextMenu` — Right-click context menu (wraps NcActions, pair with `useContextMenu` composable)
 - `CnMassActionBar` — Floating bar for mass action triggers
 - `CnIcon` — MDI icon by name
+- `CnIconBrowser` — Searchable visual icon picker: a search box + capped grid over the full `@mdi/js` set (emits the icon's SVG path) plus an optional Custom tab for curated image-URL icons and uploads (emits a URL). v-model is a single string; pair with `CnDashboardIcon` to render. Pass `inline` to render the panel always-open inside a roomy surface.
 - `CnKpiGrid` — KPI metric cards grid
 - `CnStatsPanel` — Data-driven statistics panel (sections of stat blocks, list items, and progress bars)
 - `CnProgressBar` — Labeled horizontal progress bars with variant colors for distribution visualizations
@@ -301,7 +310,8 @@ If `npm install` fails with a peer dep error, the fix is to adjust the version r
 5. **Run `npm test` before submitting changes**
 6. **CSS class prefix**: All classes use `cn-` prefix to avoid collisions
 7. **Theming**: Use Nextcloud CSS variables only (`var(--color-primary-element)`, `var(--color-border)`, etc.). Do NOT reference `--nldesign-*` variables — the nldesign app overrides Nextcloud's own variables, so theming works automatically.
-8. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
+8. **Table-row side accents use inset box-shadow, NEVER `border-left`** — a colored left accent on a table row (e.g. selected/highlighted rows in `CnDataTable` / `CnIndexPage`, including consumer classes applied via the `row-class` prop) must be drawn with an inset box-shadow, not a border. `border-left` adds layout width and shifts the row's cell content sideways; box-shadow paints inside the box without moving anything. Canonical pattern (see `.cn-table-row--selected` in [src/css/table.css](src/css/table.css)): `box-shadow: inset 3px 0 0 0 var(--color-error);`. This applies to table rows only — cards/timeline/detail items whose padding accommodates a left border may keep `border-left`.
+9. **Always update docs when you add, rename, or remove a prop, event, or slot** — edit `docs/components/cn-<component>.md` in the same change. The CI `check:docs` step (run via `npm run check:docs`) verifies both that a doc file exists AND that every SFC prop and named slot appears in it. Run it locally before committing to catch gaps.
 
 ## Code Comments
 

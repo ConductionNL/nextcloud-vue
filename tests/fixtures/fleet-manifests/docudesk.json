@@ -1,0 +1,384 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
+	"version": "1.0.0",
+	"dependencies": [
+		"openregister"
+	],
+	"menu": [
+		{
+			"id": "Dashboard",
+			"label": "Dashboard",
+			"icon": "icon-category-dashboard",
+			"route": "Dashboard",
+			"order": 10
+		},
+		{
+			"id": "Consent",
+			"label": "Consent Management",
+			"icon": "icon-user",
+			"route": "Consent",
+			"order": 20
+		},
+		{
+			"id": "Anonymization",
+			"label": "Anonymization",
+			"icon": "icon-password",
+			"route": "Anonymization",
+			"order": 30
+		},
+		{
+			"id": "MyDocuments",
+			"label": "My Documents",
+			"icon": "icon-file",
+			"route": "MyDocuments",
+			"order": 35
+		},
+		{
+			"id": "FolderAnonymization",
+			"label": "Folder Analysis",
+			"icon": "icon-folder",
+			"route": "FolderAnonymization",
+			"order": 40
+		},
+		{
+			"id": "Templates",
+			"label": "Templates",
+			"icon": "icon-files-dark",
+			"route": "Templates",
+			"order": 50
+		},
+		{
+			"id": "SigningRequests",
+			"label": "Signing Requests",
+			"icon": "icon-rename",
+			"route": "SigningRequests",
+			"order": 60
+		},
+		{
+			"id": "Documentation",
+			"label": "Documentation",
+			"icon": "icon-info",
+			"href": "https://docudesk.conduction.nl",
+			"section": "footer",
+			"order": 90
+		},
+		{
+			"id": "FeaturesRoadmapMenu",
+			"label": "Features & roadmap",
+			"icon": "icon-toggle",
+			"route": "FeaturesRoadmap",
+			"section": "footer",
+			"order": 91
+		}
+	],
+	"pages": [
+		{
+			"id": "Dashboard",
+			"route": "/",
+			"type": "custom",
+			"title": "Dashboard",
+			"component": "DashboardIndex",
+			"config": {
+				"documentationUrl": "https://docudesk.conduction.nl"
+			},
+			"_note": "DashboardIndex is a self-contained view that renders a single CnDashboardPage (KPI cards + recent-activity list + quick-anonymization panel). It is mounted via type:\"custom\" so only one CnDashboardPage renders — wrapping it as a body widget of a type:\"dashboard\" page nested CnDashboardPage-in-CnDashboardPage (hydra dashboard-antipattern)."
+		},
+		{
+			"id": "Consent",
+			"route": "/consent",
+			"type": "custom",
+			"title": "Consent Management",
+			"component": "ConsentIndex",
+			"_note": "Consent objects are fetched from docudesk's own PHP controller (not a plain OR index endpoint) and rendered via CnIndexPage with custom column formatters; type:custom preserves the existing data path."
+		},
+		{
+			"id": "ConsentDetail",
+			"route": "/consent/:id",
+			"type": "custom",
+			"title": "Consent Detail",
+			"component": "ConsentDetail",
+			"_note": "Detail fetched via consent store; sidebar driven by navigationStore.selected. Uses custom layout; type:custom preserves the existing data path."
+		},
+		{
+			"id": "Anonymization",
+			"route": "/anonymization",
+			"type": "custom",
+			"title": "Anonymization",
+			"component": "AnonymizationIndex",
+			"_note": "Anonymization uses the anonymization store (docudesk API) not OpenRegister; type:custom preserves the existing data path."
+		},
+		{
+			"id": "FolderAnonymization",
+			"route": "/folder-anonymization",
+			"type": "custom",
+			"title": "Folder Analysis",
+			"component": "FolderAnonymizationView",
+			"_note": "Folder-level anonymization scan; fetches via folderAnonymizationStore (docudesk API); type:custom preserves the existing data path."
+		},
+		{
+			"id": "Templates",
+			"route": "/templates",
+			"type": "index",
+			"title": "Templates",
+			"config": {
+				"register": "docudesk",
+				"schema": "template",
+				"columns": [
+					"name",
+					"category",
+					"format",
+					"namespace",
+					"description"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://docudesk.conduction.nl"
+			},
+			"_note": "Decomposed to type:index (Phase 8): the template schema is OR-registered (register docudesk), so CnIndexPage lists the template objects directly. The bespoke lock/unlock/editor lives on TemplateDetail."
+		},
+		{
+			"id": "TemplateDetail",
+			"route": "/templates/:id",
+			"type": "custom",
+			"title": "Template Detail",
+			"component": "TemplateDetail",
+			"_note": "Template detail view with lock/unlock, editor, and preview. Hybrid data path via templateStore."
+		},
+		{
+			"id": "SigningRequests",
+			"route": "/signing",
+			"type": "index",
+			"title": "Signing Requests",
+			"config": {
+				"register": "docudesk",
+				"schema": "signingRequest",
+				"columns": [
+					"documentName",
+					"signingMode",
+					"signatureLevel",
+					"status",
+					"provider",
+					"deadline"
+				],
+				"sidebar": {
+					"enabled": true,
+					"showMetadata": true
+				},
+				"documentationUrl": "https://docudesk.conduction.nl"
+			},
+			"_note": "Decomposed to type:index (Phase 8): signingRequest is OR-registered (register docudesk), so CnIndexPage lists the requests directly. Per-request signing actions live on SigningRequestDetail."
+		},
+		{
+			"id": "SigningRequestDetail",
+			"route": "/signing/:id",
+			"type": "custom",
+			"title": "Signing Request Detail",
+			"component": "SigningRequestDetail",
+			"_note": "Signing request detail view driven by signingStore."
+		},
+		{
+			"id": "MyDocuments",
+			"route": "/my-documents",
+			"type": "custom",
+			"title": "My Documents",
+			"component": "MyDocumentsIndex",
+			"_note": "Hosts the in-app file viewer (FileViewerPage renders when fileViewerStore.currentFile is set). The anonymisation widget routes here after upload so the user reviews detected entities next to the document contents."
+		},
+		{
+			"id": "PrintPreview",
+			"route": "/print-preview/:templateId?",
+			"type": "custom",
+			"title": "Print Preview",
+			"component": "PrintPreview",
+			"_note": "Standalone print-preview page; no nav item; launched programmatically."
+		},
+		{
+			"id": "Comparison",
+			"route": "/comparison",
+			"type": "custom",
+			"title": "Document comparison",
+			"component": "ComparisonView",
+			"_note": "Side-by-side document comparison (original vs anonymised output). Standalone page; no nav item; deep-linked with ?left=&right= file-id query params."
+		},
+		{
+			"id": "FeaturesRoadmap",
+			"route": "/features-roadmap",
+			"type": "roadmap",
+			"title": "Features & roadmap",
+			"config": {
+				"documentationUrl": "https://docudesk.conduction.nl"
+			}
+		}
+	],
+	"observability": {
+		"_note": "Consumed by OpenRegister's AppHost observability engine (ADR-006 / ADR-040). The GenericHealthController + GenericMetricsController read this block to serve /api/health (public) and /api/metrics (admin-only). Replaces the bespoke HealthController/MetricsController/MetricsCollector deleted in build/adopt-apphost-2026-06-16.",
+		"health": {
+			"statusCodePolicy": "adr006",
+			"checks": [
+				{
+					"id": "database",
+					"type": "database",
+					"severity": "critical"
+				},
+				{
+					"id": "openregister",
+					"type": "orAvailable",
+					"severity": "degraded"
+				}
+			]
+		},
+		"metrics": [
+			{
+				"name": "documents_total",
+				"type": "gauge",
+				"help": "Total number of documents",
+				"source": {
+					"kind": "objectCount",
+					"schema": "document"
+				}
+			},
+			{
+				"name": "templates_total",
+				"type": "gauge",
+				"help": "Total number of templates",
+				"source": {
+					"kind": "objectCount",
+					"schema": "template"
+				}
+			},
+			{
+				"name": "pdf_generations_total",
+				"type": "counter",
+				"help": "Total PDF generation operations",
+				"source": {
+					"kind": "appConfig",
+					"key": "pdf_generations_total"
+				}
+			},
+			{
+				"name": "anonymizations_total",
+				"type": "counter",
+				"help": "Total anonymization operations",
+				"source": {
+					"kind": "appConfig",
+					"key": "anonymizations_total"
+				}
+			}
+		]
+	},
+	"walkthrough": {
+		"enabled": true,
+		"version": 1,
+		"completionConfigKey": "walkthrough_completed_version",
+		"tours": [
+			{
+				"id": "docudesk:getting-started",
+				"title": "Getting started",
+				"trigger": "first-visit",
+				"minAppVersion": "0.0.34-unstable.17",
+				"steps": [
+					{
+						"id": "welcome",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "center",
+						"title": "Welcome to DocuDesk",
+						"body": "Let's take a quick spin through your document workspace — we'll set up a template and a signing request together so you can see how the pieces fit. You'll add each record yourself.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					},
+					{
+						"id": "go-templates",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "right",
+						"body": "Templates are the reusable documents you generate, anonymise and send. Open Templates from the menu to get started.",
+						"task": "Click Templates in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "Templates"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "Templates"
+						}
+					},
+					{
+						"id": "create-template",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Add your first template — give it a name and save. You can edit its content and reuse it for documents and signing requests later.",
+						"task": "Click New and save a template",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "docudesk",
+							"schema": "template",
+							"capture": {
+								"templateId": ":id"
+							}
+						}
+					},
+					{
+						"id": "go-signing",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "right",
+						"body": "Signing requests track documents sent out for signature. Open Signing Requests from the menu.",
+						"task": "Click Signing Requests in the menu",
+						"target": {
+							"kind": "nav-item",
+							"ref": "SigningRequests"
+						},
+						"advanceOn": {
+							"type": "route-match",
+							"route": "SigningRequests"
+						}
+					},
+					{
+						"id": "create-signing-request",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "bottom",
+						"allowManualNext": true,
+						"body": "Create your first signing request — name it and save. From here you can attach a document and track its signatures.",
+						"task": "Click New and save a signing request",
+						"target": {
+							"kind": "element",
+							"ref": "index-add"
+						},
+						"advanceOn": {
+							"type": "object-created",
+							"register": "docudesk",
+							"schema": "signingRequest",
+							"capture": {
+								"signingRequestId": ":id"
+							}
+						}
+					},
+					{
+						"id": "done",
+						"sinceVersion": "0.0.34-unstable.17",
+						"placement": "center",
+						"title": "You're all set",
+						"body": "Nicely done — you have your first template and signing request. Head back to the Dashboard to watch your document workspace grow, and reopen this tour anytime from the … menu.",
+						"target": {
+							"kind": "page",
+							"ref": "Dashboard"
+						},
+						"advanceOn": {
+							"type": "manual"
+						}
+					}
+				]
+			}
+		]
+	}
+}

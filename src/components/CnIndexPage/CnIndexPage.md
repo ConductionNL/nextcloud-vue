@@ -346,9 +346,11 @@ export default {
 | `icon` | String | `''` | Optional MDI icon name; falls back to `schema.icon` |
 | `columns` | Array | `[]` | Manual column definitions (overrides schema-generated columns) |
 | `selectable` | Boolean | `true` | Whether rows/cards can be selected for mass actions |
+| `rowClickToView` | Boolean | `false` | Emit `row-click` (to open/navigate) on a row/card click even while `selectable` — selection then via the checkbox only. Set automatically by CnPageRenderer when a matching detail page exists |
 | `selectedIds` | Array | `[]` | Currently selected row IDs (controlled) |
 | `sortKey` | String | `null` | Current sort key |
 | `sortOrder` | String | `'asc'` | Current sort direction (`'asc'` or `'desc'`) |
+| `defaultSort` | Array | `[]` | Default multi-key client-side sort (`[{ field, order }]`) applied while no explicit `sortKey` is active; suppressed once the user sorts a column. |
 | `rowKey` | String | `'id'` | Property name used as the unique row identifier |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding. When the bound organisation entity changes, the page calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps `X-OpenRegister-Organisation: <uuid>` and the in-memory list caches are cleared. Wire this from a tenant-switcher higher in the tree; leave `null` for single-tenant pages. |
 | `excludeColumns` | Array | `[]` | Column keys to hide in schema mode |
@@ -358,6 +360,7 @@ export default {
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI name or `(row) => iconName`. Forwarded to CnDataTable; fed from the manifest as `pages[].config.rowIcon`. Unset = no icon column. |
 | `rowClass` | Function | `null` | Callback returning CSS class(es) for a row |
+| `rowIcon` | String \| Function | `null` | Optional leading row icon forwarded to CnDataTable — a static MDI icon name or `(row) => iconName`. Fed from the manifest as `pages[].config.rowIcon`; unset = no icon column |
 | `inlineActionCount` | Number | `2` | How many row actions to show inline (rest go in overflow menu) |
 | `showMassImport` | Boolean | `true` | Whether to show the mass Import action |
 | `showMassCopy` | Boolean | `true` | Whether to show the mass Copy action |
@@ -367,6 +370,7 @@ export default {
 | `importOptions` | Array | `[]` | Import option definitions for the import dialog |
 | `showFormDialog` | Boolean | `true` | Whether to show the built-in form dialog for Add/Edit |
 | `useAdvancedFormDialog` | Boolean | `false` | Use `CnAdvancedFormDialog` instead of `CnFormDialog` for Add/Edit |
+| `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject` — the override owns persistence (e.g. a contact-aware endpoint that fills a required FK) and returns the created object. Create-only (edits fall through). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Unchanged behaviour when absent. |
 | `showViewAction` | Boolean | `true` | Whether to add a View row action |
 | `showEditAction` | Boolean | `true` | Whether to add an Edit row action |
 | `showCopyAction` | Boolean | `true` | Whether to add a Copy row action |
@@ -376,6 +380,14 @@ export default {
 | `fieldOverrides` | Object | `{}` | Per-field config overrides passed to `CnFormDialog` |
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set, takes precedence over the injected `cnCustomComponents` from CnAppRoot. Used to resolve `actions[].handler` registry names declared in the manifest (manifest-actions-dispatch). |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table view toggle |
+| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (in addition to / instead of the sidebar search). Fed from the manifest as `pages[].config.inlineSearch`. |
+| `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest `config.searchPlaceholder`). |
+| `cardsLabel` | String | `''` | Label for the cards view-toggle option (manifest `config.cardsLabel`, e.g. "Tiles"). |
+| `tableLabel` | String | `''` | Label for the table view-toggle option (manifest `config.tableLabel`, e.g. "List"). |
+| `cardsIcon` | String | `''` | MDI icon name for the cards view-toggle option (manifest `config.cardsIcon`). |
+| `tableIcon` | String | `''` | MDI icon name for the table view-toggle option (manifest `config.tableIcon`). |
+| `filterMenu` | Boolean | `false` | Show a filter menu (funnel button) in the table header listing each enum/badge column's values as toggleable facet filters — a compact alternative to the facet sidebar. Fed from the manifest as `pages[].config.filterMenu`. |
+| `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a toggleable checkbox — a compact, in-table alternative to the sidebar's Columns tab. Fed from the manifest as `pages[].config.columnMenu`. |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the refresh button is disabled |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
@@ -389,6 +401,8 @@ export default {
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. With `schema` set and no `objects` prop it also activates **self-fetch mode** (see below). |
 | `filter` | Object | `null` | Self-fetch mode only — a base filter applied to every fetch as a *fixed* filter. String values `"@route.<name>"` / `":<name>"` resolve to `$route.params[<name>]`; others pass through. Fed from `pages[].config.filter`. No effect when `objects` is supplied. |
 | `quickFilters` | Array | `null` | Self-fetch mode only — `{label, filter, default?, icon?}` tabs rendered above the table (see `CnQuickFilterBar`). The active tab's `filter` is merged into every fetch after `filter` (so the tab wins) and before user `activeFilters`. First entry with `default:true` (else index 0) is active on mount; switching tabs emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
+| `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`). Fed from `pages[].config.quickFilterMode`. |
+| `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once; selected tabs' filters are OR-ed into the fetch (same field → `field[]=` array). Fed from `pages[].config.quickFilterMultiple`. |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the `customComponents` registry on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log `console.warn` once and fall back to the default. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
@@ -596,3 +610,7 @@ export default {
 	},
 }
 ```
+
+## Map view mode
+
+Alongside `table` and `cards`, CnIndexPage offers an opt-in `map` view mode — a third view-toggle segment that plots the current filtered rows on a `CnMapWidget`. Opt in via the `mapConfig` prop (or manifest `config.map`), which carries the geometry mapping `{ latField, lngField, geoField?, popupField?, center? }`; coordinates are read from each object's metadata (typically the OpenRegister `@self` block). Customise the toggle segment with `mapLabel` and `mapIcon`. The map segment appears automatically when `mapConfig` is non-empty, or gate it explicitly with the `viewModes` whitelist (e.g. `["table", "cards", "map"]`). A marker click emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all three modes.

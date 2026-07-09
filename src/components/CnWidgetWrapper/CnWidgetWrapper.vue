@@ -13,10 +13,11 @@
 		:class="{
 			'cn-widget-wrapper--borderless': borderless,
 			'cn-widget-wrapper--flush': flush,
+			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 		}"
 		:style="wrapperStyles">
 		<!-- Header -->
-		<div v-if="showTitle" class="cn-widget-wrapper__header">
+		<div v-if="showTitle" class="cn-widget-wrapper__header" :style="headerStyles">
 			<!-- Title icon — left: rendered before the title group -->
 			<div v-if="$slots['title-icon'] && titleIconPosition === 'left'"
 				class="cn-widget-wrapper__title-icon"
@@ -33,7 +34,7 @@
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
-				<h3 class="cn-widget-wrapper__title">
+				<h3 :id="titleId" class="cn-widget-wrapper__title">
 					{{ displayTitle }}
 				</h3>
 				<!-- @slot title-meta Rendered inside the header's left group,
@@ -46,7 +47,7 @@
 					<slot name="title-meta" />
 				</div>
 			</div>
-			<div class="cn-widget-wrapper__actions">
+			<div v-if="showActions" class="cn-widget-wrapper__actions">
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -59,7 +60,6 @@
 					:request-feature-label="requestFeatureLabel"
 					:actions-menu-label="actionsMenuLabel"
 					:refreshing="refreshing"
-					:optimistic-spin-ms="optimisticSpinMs"
 					:widget-id="resolvedWidgetId"
 					:title="displayTitle"
 					:surface="`widget:${resolvedWidgetId}`"
@@ -85,8 +85,33 @@
 			</div>
 		</div>
 
+		<!-- Headerless meta (e.g. a KPI date chip on a flush card). When the
+		     header is hidden but a `title-meta` chip is provided, float it in the
+		     top-right corner over the content instead of dropping it — so a
+		     compact flush KPI tile can carry a date-range chip without growing a
+		     full header bar. -->
+		<div
+			v-if="!showTitle && $slots['title-meta']"
+			class="cn-widget-wrapper__floating-meta">
+			<slot name="title-meta" />
+		</div>
+
 		<!-- Content -->
-		<div class="cn-widget-wrapper__content">
+		<!--
+		  The content area is `overflow: auto`, so it can become a scrollable
+		  region. WCAG 2.1.1 (Keyboard) requires scrollable regions to be
+		  keyboard-focusable so keyboard-only users can scroll them, and 4.1.2
+		  requires an accessible name. We expose it as a labelled region and
+		  give it tabindex="0". When the header (and its title) is hidden we
+		  fall back to an explicit aria-label from the widget title so the
+		  region is never anonymous.
+		-->
+		<div
+			class="cn-widget-wrapper__content"
+			tabindex="0"
+			role="region"
+			:aria-labelledby="showTitle ? titleId : null"
+			:aria-label="showTitle ? null : displayTitle">
 			<slot />
 		</div>
 
@@ -149,6 +174,25 @@ export default {
 			default: true,
 		},
 		/**
+		 * Chrome variant for the wrapper card.
+		 * - `'default'` — the library's own card chrome (opaque background,
+		 *   1px border, compact header).
+		 * - `'nc-dashboard'` — matches the native Nextcloud Dashboard panel
+		 *   exactly using the same design tokens: translucent blurred
+		 *   background (`--color-main-background-blur` + `--filter-background-blur`),
+		 *   `--border-radius-container-large` corners, no border/shadow, a 16px
+		 *   header with a 20px/700 title and 32px leading icon, and content
+		 *   inset 16px on the sides + bottom. `styleConfig` overrides still
+		 *   layer on top so a user can customise any token.
+		 *
+		 * @type {'default'|'nc-dashboard'}
+		 */
+		chrome: {
+			type: String,
+			default: 'default',
+			validator: (v) => ['default', 'nc-dashboard'].includes(v),
+		},
+		/**
 		 * Remove border and background — makes the wrapper transparent.
 		 * Useful for widgets that are self-contained cards (e.g. CnStatsBlock).
 		 */
@@ -194,6 +238,16 @@ export default {
 			default: () => [],
 		},
 		/**
+		 * Whether the header's overflow action menu (Refresh / Documentation /
+		 * Request-a-feature + any `#action-items`) renders. Shown by default;
+		 * set `false` for compact surfaces — e.g. a KPI tile whose only header
+		 * affordance is a date chip — to drop the menu and free header width.
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+		/**
 		 * Style configuration for the wrapper.
 		 * @type {{ backgroundColor: string, borderStyle: string, borderWidth: number, borderColor: string, borderRadius: number, padding: { top: number, right: number, bottom: number, left: number } }}
 		 */
@@ -222,17 +276,23 @@ export default {
 			default: false,
 		},
 		/**
-		 * Inverse of `hideRefresh`. Defaults to `true` so the action
-		 * renders. Set `:show-refresh="false"` to hide. Either `hideRefresh`
-		 * OR `!showRefresh` hides the action — the spec scenario in
-		 * `widget-wrapper` declares the show-prefixed form as canonical;
-		 * the `hide-` flags remain for back-compat.
+		 * Whether to show the built-in Refresh item. Tri-state:
+		 * - `true` / `false` — force the action on or off.
+		 * - `null` (the default) — **auto**: show the action only when a
+		 *   parent has attached an `@refresh` listener (i.e. something will
+		 *   actually handle the refresh). This keeps widgets that can't
+		 *   refresh — e.g. a prop-driven `CnObjectDataWidget` — from showing
+		 *   a dead button. Widgets that refresh themselves via the
+		 *   `cn:widget:refresh` event bus (with no `@refresh` listener)
+		 *   should set `:show-refresh="true"` explicitly.
 		 *
-		 * @type {boolean}
+		 * `hideRefresh` (or `:show-refresh="false"`) always wins.
+		 *
+		 * @type {boolean|null}
 		 */
 		showRefresh: {
 			type: Boolean,
-			default: true,
+			default: null,
 		},
 		/**
 		 * Inverse of `hideRequestFeature`. Defaults to `true` so the
@@ -293,30 +353,14 @@ export default {
 		/**
 		 * Whether a refresh is currently in flight. When bound by the host
 		 * (e.g. `:refreshing="loading"` around its refetch), the Refresh
-		 * icon spins for exactly as long as this stays true — accurate
-		 * feedback. When left at its default `false`, clicking Refresh
-		 * still spins optimistically for a short fixed duration
-		 * (`optimisticSpinMs`) so the action feels responsive even without
-		 * host wiring.
+		 * item is disabled and shows a loading spinner for exactly as long
+		 * as this stays true — so the spinner reflects the real refresh time.
 		 *
 		 * @type {boolean}
 		 */
 		refreshing: {
 			type: Boolean,
 			default: false,
-		},
-		/**
-		 * Duration (ms) of the optimistic spin shown on Refresh click when
-		 * the host has NOT bound `:refreshing`. Defaults to 800ms — roughly
-		 * two rotations at the icon's spin speed. Set to 0 to disable the
-		 * optimistic spin entirely (icon only spins while `refreshing` is
-		 * true).
-		 *
-		 * @type {number}
-		 */
-		optimisticSpinMs: {
-			type: Number,
-			default: 800,
 		},
 		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
@@ -351,15 +395,31 @@ export default {
 		},
 
 		/**
-		 * Effective Refresh visibility. Either `hideRefresh: true` OR
-		 * `showRefresh: false` hides the action. The show-prefixed prop
-		 * is the spec-canonical form (per `widget-wrapper` scenario);
-		 * `hideRefresh` remains as a back-compat alias.
+		 * Stable DOM id for the header title `<h3>`, used as the
+		 * `aria-labelledby` target of the scrollable content region so the
+		 * region gets an accessible name from the widget title (WCAG 4.1.2).
+		 * Derived from `resolvedWidgetId` so it is stable and unique per
+		 * widget instance on the page.
+		 *
+		 * @return {string}
+		 */
+		titleId() {
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		},
+
+		/**
+		 * Effective Refresh visibility. `hideRefresh: true` (or
+		 * `:show-refresh="false"`) always hides it. When `showRefresh` is
+		 * left unset (`null`), auto-detect: show the action only when a
+		 * parent attached an `@refresh` listener — otherwise the refresh
+		 * would do nothing. `hideRefresh` remains a back-compat alias.
 		 *
 		 * @return {boolean}
 		 */
 		effectiveShowRefresh() {
-			return this.showRefresh && !this.hideRefresh
+			if (this.hideRefresh) return false
+			if (this.showRefresh !== null) return this.showRefresh
+			return Boolean(this.$listeners && this.$listeners.refresh)
 		},
 		/**
 		 * Effective Request-a-feature visibility — same OR-of-opt-outs
@@ -420,6 +480,29 @@ export default {
 
 			return styles
 		},
+
+		/**
+		 * Inline styles for the header bar, derived from
+		 * `styleConfig.headerStyle.{backgroundColor, textColor}`. Lets a host
+		 * give individual widgets a custom header colour without a per-app CSS
+		 * workaround. Empty object when no header style is configured.
+		 *
+		 * @return {object} the header style bindings.
+		 */
+		headerStyles() {
+			const hs = this.styleConfig.headerStyle
+			if (!hs || typeof hs !== 'object') {
+				return {}
+			}
+			const styles = {}
+			if (hs.backgroundColor) {
+				styles.backgroundColor = hs.backgroundColor
+			}
+			if (hs.textColor) {
+				styles.color = hs.textColor
+			}
+			return styles
+		},
 	},
 
 	methods: {
@@ -470,6 +553,7 @@ export default {
 
 <style scoped>
 .cn-widget-wrapper {
+	position: relative;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
@@ -478,11 +562,25 @@ export default {
 	overflow: hidden;
 }
 
+/* Headerless date chip — floated over the top-right of a flush card. */
+.cn-widget-wrapper__floating-meta {
+	position: absolute;
+	top: 8px;
+	inset-inline-end: 10px;
+	z-index: 2;
+}
+
 .cn-widget-wrapper__content {
 	flex: 1;
 	overflow: auto;
 	min-height: 0;
 	padding: 16px;
+}
+
+/* Keyboard focus ring for the now-focusable scrollable content region. */
+.cn-widget-wrapper__content:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
 }
 
 .cn-widget-wrapper--borderless {
@@ -498,6 +596,14 @@ export default {
 	padding: 0;
 }
 
+/*
+ * `chrome="nc-dashboard"` — reproduce the native Nextcloud Dashboard panel
+ * (apps/dashboard) exactly, using the same design tokens so an un-customised
+ * widget is pixel-identical to a core dashboard panel. `styleConfig` inline
+ * overrides (wrapperStyles / headerStyles) still win over these class rules,
+ * so users can override any token. Combined selector raises specificity above
+ * the base `.cn-widget-wrapper` rules it supersedes.
+ */
 .cn-widget-wrapper__header {
 	display: flex;
 	align-items: center;
@@ -527,6 +633,39 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.cn-widget-wrapper.cn-widget-wrapper--nc-dashboard {
+	background: var(--color-main-background-blur, var(--color-main-background));
+	-webkit-backdrop-filter: var(--filter-background-blur, none);
+	backdrop-filter: var(--filter-background-blur, none);
+	border: none;
+	border-radius: var(--border-radius-container-large, 16px);
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header {
+	padding: 16px;
+	border-bottom: none;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__header-left {
+	gap: 16px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__icon {
+	width: 32px;
+	height: 32px;
+	background-size: 32px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__title {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 24px;
+}
+
+.cn-widget-wrapper--nc-dashboard .cn-widget-wrapper__content {
+	padding: 0 16px 16px;
 }
 
 .cn-widget-wrapper__title-meta {

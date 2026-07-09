@@ -18,6 +18,8 @@ const { state, send, abort } = useAiChatStream(this)
 | Argument | Type | Description |
 |---|---|---|
 | `contextInstance` | `object` | Vue component instance to read `cnAiContext` from (via [`useAiContext`](./use-ai-context.md)) — pass the `CnAiCompanion` instance. |
+| `options` | `object` | Transport options. |
+| `options.chatAppId` | `string` | Backend app id the chat/conversation URLs resolve against (see [`chatApiBase`](../chat-api-base.md)). Defaults to [`DEFAULT_CHAT_APP_ID`](../default-chat-app-id.md) (`openregister`). |
 
 ## Transport
 

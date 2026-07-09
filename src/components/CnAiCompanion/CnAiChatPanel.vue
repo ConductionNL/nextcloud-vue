@@ -87,6 +87,7 @@
 		<CnAiHistoryDialog
 			:open="isHistoryOpen"
 			:active-conversation-uuid="activeConversationUuid"
+			:chat-app-id="chatAppId"
 			@update:open="onHistoryOpenUpdate"
 			@select="onConversationSelect" />
 	</NcAppSidebar>
@@ -100,6 +101,7 @@ import Creation from 'vue-material-design-icons/Creation.vue'
 import CnAiMessageList from './CnAiMessageList.vue'
 import CnAiInput from './CnAiInput.vue'
 import CnAiHistoryDialog from '../../dialogs/CnAiHistoryDialog.vue'
+import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 
 export default {
 	name: 'CnAiChatPanel',
@@ -139,6 +141,16 @@ export default {
 		fabRef: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Backend app id, forwarded to `CnAiHistoryDialog` so the conversation
+		 * list resolves against the same backend as the chat stream. See
+		 * composables/aiChatConfig.js.
+		 * @type {string}
+		 */
+		chatAppId: {
+			type: String,
+			default: DEFAULT_CHAT_APP_ID,
 		},
 	},
 

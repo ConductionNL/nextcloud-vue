@@ -58,7 +58,7 @@
 				:multiple="effectiveSelectMultiple"
 				:taggable="effectiveSelectTaggable"
 				:push-tags="effectiveSelectTaggable"
-				:close-on-select="!effectiveSelectMultiple"
+				:keep-open="effectiveSelectMultiple"
 				:input-label="displayName"
 				:placeholder="displayName"
 				@input="emitSelect($event)" />

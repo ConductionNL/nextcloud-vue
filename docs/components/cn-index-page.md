@@ -31,14 +31,22 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `objects` | Array | `[]` | Row data. **Omitting this prop** while `register` + `schema` are set switches the page into [self-fetch mode](#self-fetch-mode) — it drives the list off the object store itself. |
 | `filter` | Object | `null` | [Self-fetch mode](#self-fetch-mode) only — a base filter map applied to every fetch as a *fixed* filter (the user's facet filters can't override it). String values of the form `"@route.<name>"` or `":<name>"` resolve to `$route.params[<name>]`; other values pass through. Re-resolves when `$route.params` change. Fed from `pages[].config.filter` in the manifest path. No effect in consumer-managed mode. |
 | `quickFilters` | Array | `null` | [Self-fetch mode](#self-fetch-mode) only — array of `\{ label, filter, default?, icon? \}` rendered as a tab strip above the table (see [CnQuickFilterBar](./cn-quick-filter-bar.md)). The active tab's `filter` is merged into every fetch *after* `filter` (the tab wins on a colliding key) and *before* the user's `activeFilters` (which still narrow within the active tab). String values follow the same `"@route.<name>"` resolution as `filter`. First entry with `default:true` (else index 0) is active on mount; switching tabs re-fetches at page 1 and emits `@quick-filter-change`. Fed from `pages[].config.quickFilters`. |
+| `quickFilterMode` | String | `'chips'` | How the quick filters render: `'chips'` (pill strip) or `'dropdown'` (a single `NcSelect`; the empty-filter "All" tab is dropped). Fed from `pages[].config.quickFilterMode`. |
+| `quickFilterMultiple` | Boolean | `false` | Allow several quick filters active at once. Selected tabs' filters are OR-ed together into the fetch (same field → array value → `field[]=` IN query). Fed from `pages[].config.quickFilterMultiple`. |
 | `pagination` | Object | `null` | Pagination state (`\{ currentPage, totalPages, totalItems, pageSize \}`) |
 | `loading` | Boolean | `false` | Loading state |
 | `loadingText` | String | `'Loading…'` | Accessible label for the loading spinner (NcLoadingIcon aria-label) |
 | `selectable` | Boolean | `true` | Enable row selection checkboxes |
+| `rowClickToView` | Boolean | `false` | When true, a row/card click emits `row-click` (to open/navigate) even while `selectable` — selection then via the checkbox only. Manifest-driven pages set this automatically when a matching detail page exists. |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
-| `viewMode` | String | `'table'` | `'table'` or `'cards'` |
+| `viewMode` | String | `'table'` | `'table'`, `'cards'`, or `'map'`. The `'map'` mode is only offered when the page opts in — see [Map view mode](#map-view-mode). |
+| `mapConfig` | Object | `\{\}` | Marker geometry mapping for the opt-in [map view mode](#map-view-mode), mirroring manifest `config.map` 1:1: `\{ latField, lngField, geoField?, popupField?, center? \}`. When non-empty (and not excluded by `viewModes`), a third "Map" toggle segment appears. `latField`/`lngField` are object (or `@self`) property paths (dotted paths supported); `geoField` is an alternative GeoJSON Point property that wins over lat/lng; `center` is a `[lat, lng]` fallback for an empty set. |
+| `mapLabel` | String | `''` | Label for the map view-toggle segment (defaults to "Map"). Fed from `pages[].config.mapLabel`. |
+| `mapIcon` | String | `''` | MDI icon name for the map view-toggle segment (defaults to the built-in map-marker icon). |
+| `viewModes` | Array | `null` | Explicit whitelist of toggle segments to offer, e.g. `['table', 'cards', 'map']`. Fed from `pages[].config.viewModes`. When set it takes precedence over inferred availability (map otherwise appears iff `mapConfig` is non-empty). |
 | `sortKey` | String | `null` | Current sort column key. `null` means no column is actively sorted. |
 | `sortOrder` | String | `'asc'` | `'asc'`, `'desc'`, or `null` (no sort) |
+| `defaultSort` | Array | `[]` | Default multi-key **client-side** sort applied to the already-loaded rows whenever no explicit column sort is active (no `sortKey`). Each entry is `\{ field, order? \}` with `order` one of `'asc'` / `'desc'` (default `'asc'`); rows compare by the first field, ties broken by the next, etc. (type-aware: numbers numerically, dates by timestamp, else `localeCompare`; empties sort last). Clicking a sortable header takes over and suppresses this default. Fed from `pages[].config.defaultSort`. Useful for a fixed presentation order such as group-by-type-then-name. |
 | `rowKey` | String | `'id'` | Unique row identifier field |
 | `rowIcon` | String \| Function | `null` | Optional leading icon for every table row — a static MDI icon name or `(row) => iconName`. Forwarded to `CnDataTable`. Fed from the manifest as `pages[].config.rowIcon`. |
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding from a tenant-switcher higher in the tree. When the bound organisation changes, CnIndexPage calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps the new `X-OpenRegister-Organisation` header and the in-memory list caches are cleared. Leave `null` for single-tenant pages. See [Multi-tenancy guide](../multi-tenancy.md). |
@@ -63,6 +71,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `showFormDialog` | Boolean | `true` | Enable built-in create/edit form dialog |
 | `showRequestFeature` | Boolean | `true` | Show the built-in "Request a feature" entry in the CnActionsBar overflow. Opens the CnSuggestFeatureModal with `surface: "index:<schema>"`. Requires a CnAppRoot ancestor (repo inject) to open — warns + no-ops otherwise |
 | `useAdvancedFormDialog` | Boolean | `false` | Use [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) for create/edit (properties table, JSON tab, optional metadata) instead of CnFormDialog |
+| `createOverride` | Function | `null` | Opt-in async create hook. When set, a **create** confirmed from the built-in form dialog calls `await createOverride(formData, ctx)` instead of the store / self-store `saveObject`. The override owns persistence (e.g. an app posting through a contact-aware endpoint that fills a required FK before saving to OpenRegister) and must return the created object on success (falsy = failure; throwing surfaces the error in the dialog). `ctx` is `{ register, schema, objectType, effectiveSchema }`. Edits are never routed here; when absent, create behaviour is unchanged. See [Per-schema create-override hook](#per-schema-create-override-hook). |
 | `showViewAction` | Boolean | `true` | Show the built-in View row action. Emits a dedicated `@view` event — independent of `@row-click`. Set to `false` when the row has no separate "open detail" target. |
 | `showEditAction` | Boolean | `true` | Show edit row action |
 | `showCopyAction` | Boolean | `true` | Show copy row action |
@@ -74,6 +83,12 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `addDisabled` | Boolean | `false` | Disable the Add button (e.g. when required selections are missing) |
 | `refreshDisabled` | Boolean | `false` | Disable the refresh button (e.g. when required selections are missing) |
 | `showViewToggle` | Boolean | `true` | Show table/card view toggle |
+| `inlineSearch` | Boolean | `false` | Show an inline search field in the actions bar (manifest: `config.inlineSearch`) |
+| `filterMenu` | Boolean | `false` | Show a filter menu (funnel) in the table header listing each enum/badge column's values as toggleable facet filters (manifest: `config.filterMenu`) |
+| `columnMenu` | Boolean | `false` | Show a column menu (columns button) in the table header listing every governed column as a visibility checkbox — the in-table equivalent of the sidebar's Columns tab (manifest: `config.columnMenu`). See [Filter and columns: table header vs sidebar](#filter-and-columns-table-header-vs-sidebar). |
+| `searchPlaceholder` | String | `''` | Placeholder for the inline search field (manifest: `config.searchPlaceholder`) |
+| `cardsLabel` / `tableLabel` | String | `''` | View-toggle option labels, e.g. "Tiles" / "List" (manifest: `config.cardsLabel` / `config.tableLabel`) |
+| `cardsIcon` / `tableIcon` | String | `''` | MDI icon names for the view-toggle options (manifest: `config.cardsIcon` / `config.tableIcon`) |
 | `store` | Object | `null` | Store instance for automatic save integration. When provided with `objectType`, the form dialog saves directly to the store via `store.saveObject()` instead of only emitting `create`/`edit`. The object type must already be registered in the store via `registerObjectType()`. |
 | `objectType` | String | `''` | Object type slug for store integration (e.g. `\${registerId}-\${schemaId}`). Required when `store` is set — a console warning is emitted if missing. |
 | `sidebar` | Object | `null` | Manifest-driven sidebar configuration. When set with `enabled: true`, CnIndexPage auto-mounts an embedded `CnIndexSidebar` and forwards its props. Shape: `\{ enabled, show?, columnGroups?, facets?, showMetadata?, search? \}`. `show` (default `true`) is the visibility gate — set `false` to hide the configured sidebar without removing config. When unset (the default), the legacy slot-based pattern is preserved — consumers wire their own `CnIndexSidebar` at the App.vue level. See [Manifest-driven sidebar](#manifest-driven-sidebar) below. |
@@ -98,7 +113,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `mass-export` | `\{ ids, format \}` | Mass export confirmed |
 | `mass-import` | `importData` | Mass import confirmed |
 | `refresh` | — | Refresh button clicked |
-| `row-click` | `row` | Row or card clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
+| `row-click` | `row` | Row, card, **or map marker** clicked. **Only fires when `selectable` is `false`** — when `selectable` is `true`, a deliberate click anywhere on a row/card toggles its selection (emitting `select`) instead — a text-selection drag is not treated as a click. In the [map view mode](#map-view-mode) a marker click resolves back to its source row and emits the identical payload, so detail-page navigation is uniform across table, cards, and map. Conceptually distinct from `view`; for click-to-open in a selectable list, use the built-in View action (`@view`). |
 | `view` | `row` | Built-in View row action triggered. Conceptually "open the detail view of this row". For a non-selectable list bind alongside `row-click` (same handler) for click-to-view; for a **selectable** list, plain clicks toggle selection, so use `@view` (the eye action) as the open-detail affordance. |
 | `sort` | `\{ key, order \}` | Sort changed. Cycles through `asc → desc → null` (disabled). When cleared, both `key` and `order` are `null`. |
 | `page-changed` | `pageNum` | Pagination page changed |
@@ -205,6 +220,41 @@ Set `store` and `objectType` to have the form dialog save directly to the store.
 ```
 
 No `@create` / `@edit` handlers or `setFormResult()` calls are needed when store integration is active. You can still listen to `@create` / `@edit` for side effects (e.g. refreshing the list) — the payload will be the object returned by the store.
+
+### Per-schema create-override hook
+
+Some schemas can't be persisted by a plain `saveObject` straight to OpenRegister — they have a server-side prerequisite that must run first. The canonical example: a `client` whose required `contactsUid` is a foreign key to a Nextcloud addressbook contact. The generic create flow would POST without that FK and get a `400`. The app already has a contact-aware endpoint (`POST /api/contacts-sync/create`) that resolves/creates the contact and saves with the FK filled in — but the **generic** "Add" button on the list went straight through `saveObject`.
+
+`createOverride` closes that gap. Pass an async function; on a **create** (not edit), the built-in form dialog calls it instead of `saveObject`. The override owns persistence and returns the created object:
+
+```vue
+<CnIndexPage
+  title="Clients"
+  :schema="clientSchema"
+  :store="objectStore"
+  object-type="crm-client"
+  :create-override="createClientContactAware"
+  @refresh="fetchClients"
+/>
+```
+
+```js
+methods: {
+  // Route generic client creates through the contact-aware endpoint that
+  // fills the required contactsUid (FK to a NC addressbook contact) before
+  // saving to OpenRegister. Other schemas can branch on ctx.objectType.
+  async createClientContactAware(formData, ctx) {
+    const created = await contactSyncApi.create(formData) // POST /api/contacts-sync/create
+    return created // truthy => @create emitted + dialog success; falsy => failure
+  },
+}
+```
+
+Rules:
+- **Create-only.** Edits always fall through to the normal store / self-store path; the override is never called for an edit.
+- **Return the created object** (truthy) on success; return a falsy value to signal failure (terminal error shown). **Throw** to surface `err.message` in the dialog.
+- `ctx` is `{ register, schema, objectType, effectiveSchema }` so one handler can branch per schema.
+- When the prop is absent, create behaviour is **unchanged** — no regression for existing consumers.
 
 ### Custom item names in dialogs
 
@@ -327,6 +377,52 @@ Form save (create/edit), **mass export**, and **mass import** are also self-hand
 
 When the `objects` prop **is** supplied (every current consumer), nothing changes — no `useObjectStore` / `useListView` call, no `registerObjectType` / `fetchCollection`, `objects` and the other props are used as today and `filter` has no effect. The switch is purely "did the caller pass `objects`?".
 
+## Map view mode
+
+Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** — a third view-toggle segment that plots the **current filtered rows** on a [CnMapWidget](./cn-map-widget.md). It is strictly opt-in and fully backward compatible: pages that don't configure it render exactly as before.
+
+**Key properties of the map view:**
+
+- **Same data, same filters.** The map plots exactly the rows the table/cards show (`displayObjects`) — there is no separate fetch path, so the sidebar facets, quick-filters, and search all narrow the markers too.
+- **Geometry from object metadata.** Marker coordinates are read from each object via `mapConfig`, typically off the OpenRegister `@self` metadata block that the maps-overview leaf populates — not a bespoke per-app endpoint.
+- **Navigation parity.** A marker click resolves back to its source row and emits the same `@row-click` payload as a table row-click, so detail-page navigation is identical across all three modes.
+- **Graceful geometry gaps.** Rows without finite, resolvable coordinates are skipped silently; an empty set falls back to `mapConfig.center` (or a neutral world view).
+
+**Opting in (manifest):**
+
+```json
+{
+  "id": "Cases",
+  "type": "index",
+  "route": "/cases",
+  "config": {
+    "register": "procest",
+    "schema": "case",
+    "viewModes": ["table", "cards", "map"],
+    "map": {
+      "geoField": "@self.geo",
+      "latField": "@self.geo.lat",
+      "lngField": "@self.geo.lng",
+      "popupField": "title"
+    }
+  }
+}
+```
+
+`config.map` maps 1:1 onto the `mapConfig` prop. `config.viewModes` is optional — when omitted, the map segment appears automatically whenever `config.map` is non-empty. Set an explicit `viewModes` list to force or suppress it. `geoField` (a GeoJSON `Point`) takes precedence over `latField`/`lngField` when present and resolvable; all three accept dotted paths.
+
+**Direct (non-manifest) use:**
+
+```vue
+<CnIndexPage
+  :objects="cases"
+  :schema="caseSchema"
+  view-mode="map"
+  :map-config="{ latField: 'lat', lngField: 'lng', popupField: 'title' }"
+  :selectable="false"
+  @row-click="openCase" />
+```
+
 ## Context Menu
 
 Right-clicking any table row opens a context menu at the cursor position with the same actions as the three-dot row action menu. The context menu renders the `mergedActions` computed (app-provided actions + built-in Edit/Copy/Delete), so it stays in sync automatically — no app-side changes needed.
@@ -337,6 +433,34 @@ Powered by the [`CnContextMenu`](./cn-context-menu.md) component and [`useContex
 - Destructive actions are styled with `--color-error`
 - The menu closes on action click or outside click, cleaning up the CSS properties and data attribute
 - Works out of the box for all consumer apps (OpenRegister, Doriath, etc.)
+
+## Filter and columns: table header vs sidebar
+
+Faceted **filtering** and **column visibility** can live in **two** places, and you choose per page from the manifest:
+
+| Surface | Filter | Columns | Config |
+|---------|--------|---------|--------|
+| **Table header** (recommended default) | `filterMenu: true` → funnel button | `columnMenu: true` → columns button | `config.filterMenu` / `config.columnMenu` |
+| **Sidebar** | `sidebar.facets` | `sidebar.columnGroups` (Columns tab) | `config.sidebar.enabled: true` |
+
+**The recommended default for an index page is the table header** — it keeps both controls one click away inside the table and frees the sidebar for the detail/object surface. Use the sidebar variant when you want a persistently-open faceting panel.
+
+```jsonc
+// Recommended index-page default — both controls in the table header,
+// search inline, sidebar off so the space is reclaimed.
+{
+  "type": "index",
+  "config": {
+    "register": "petstore", "schema": "order",
+    "inlineSearch": true,
+    "filterMenu": true,
+    "columnMenu": true,
+    "sidebar": { "enabled": false }
+  }
+}
+```
+
+Both surfaces drive the same state — `filterMenu`/`columnMenu` toggle the same `activeFilters` / `visibleColumns` the sidebar would, and emit the same `@filter-change` / `@columns-change` events — so a page can even expose both at once if desired.
 
 ## Manifest-driven sidebar
 
@@ -439,7 +563,7 @@ When the user clicks "Process queue" on a row, CnIndexPage looks up `queueProces
 
 Three keywords short-circuit the registry lookup:
 
-- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey] } })`. The `route` field is required when this keyword is set.
+- `"navigate"` — calls `$router.push({ name: action.route, params: { id: row[rowKey], ...action.params } })`. The `route` field is required when this keyword is set. An optional `params` object holds **literal** route params merged over the default `{ id: row[rowKey] }` — so `params: { "id": "new" }` makes a "New X" action land on the detail route in create mode, and `params: { "mode": "edit" }` keeps the row id while adding an extra param. The same `params` works on `config.headerActions[]` (page-level — no row, so the literals are the whole param map).
 - `"emit"` — explicit no-op handler that just bubbles `@action`. Identical to leaving `handler` unset, but makes intent visible in the manifest.
 - `"none"` — disables the action click entirely (no handler call, no `@action` emit).
 
@@ -451,6 +575,9 @@ Example:
     { "id": "view", "label": "Open", "handler": "navigate", "route": "QueueDetail" },
     { "id": "z",    "label": "Z",    "handler": "emit" },
     { "id": "x",    "label": "X",    "handler": "none" }
+  ],
+  "headerActions": [
+    { "id": "new", "label": "New resource", "handler": "navigate", "route": "ResourceDetail", "params": { "id": "new" } }
   ]
 }
 ```

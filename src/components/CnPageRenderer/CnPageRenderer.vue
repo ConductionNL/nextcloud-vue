@@ -45,13 +45,17 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
+				:editable="bodyEditable"
 				slot-name="body" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
-				:key="currentPage.id"
+				:key="pageRenderKey"
 				v-bind="{ ...$attrs, ...resolvedProps }"
-				v-on="$listeners">
+				v-on="$listeners"
+				@view="onRowOpen"
+				@row-click="onRowOpen"
+				@configure="showConfigModal = true">
 				<template
 					v-for="entry in resolvedSlotEntries"
 					#[entry.name]="slotProps">
@@ -93,9 +97,12 @@
 		<component
 			:is="resolvedComponent"
 			v-else-if="resolvedComponent"
-			:key="currentPage.id"
+			:key="pageRenderKey"
 			v-bind="{ ...$attrs, ...resolvedProps }"
-			v-on="$listeners">
+			v-on="$listeners"
+			@view="onRowOpen"
+			@row-click="onRowOpen"
+			@configure="showConfigModal = true">
 			<template
 				v-for="entry in resolvedSlotEntries"
 				#[entry.name]="slotProps">
@@ -105,12 +112,33 @@
 					v-bind="slotProps" />
 			</template>
 		</component>
+
+		<!-- Per-page config editor, opened by an index page's edit-mode cog. -->
+		<CnPageConfigModal v-if="showConfigModal && currentPage"
+			:page="currentPage"
+			@close="showConfigModal = false" />
+
+		<!-- Shared export launcher, opened by a `type:"export"` manifest
+		     action (Wave 1, nextcloud-vue#91). Configured from the action's
+		     entities[] / formats[] / description; the confirm payload routes
+		     to the action's optional `handler` (manifest actions map). -->
+		<CnMassExportDialog
+			v-if="exportAction"
+			ref="exportDialog"
+			:entities="exportDialogEntities"
+			:formats="exportDialogFormats"
+			:description="exportAction.description || ''"
+			@confirm="onExportConfirm"
+			@close="exportAction = null" />
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { defaultPageTypes } from './pageTypes.js'
 import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import CnPageConfigModal from '../../modals/CnPageConfigModal.vue'
+import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { useObjectStore } from '../../store/index.js'
@@ -155,6 +183,8 @@ export default {
 
 	components: {
 		CnWidgetGrid,
+		CnPageConfigModal,
+		CnMassExportDialog,
 	},
 
 	inject: {
@@ -164,6 +194,8 @@ export default {
 		cnPageTypes: { default: null },
 		cnRegistry: { default: () => ({}) },
 		cnOpenModal: { default: null },
+		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
+		cnEditingBody: { default: false },
 	},
 
 	/**
@@ -187,7 +219,14 @@ export default {
 	 * field.
 	 */
 	provide() {
+		const self = this
 		return {
+			// Per-page slot→columns override (page.config.slotColumns), read by
+			// CnWidgetGrid. A getter so it tracks the active page reactively
+			// despite provide() running once.
+			get cnSlotColumns() {
+				return self.currentPage?.config?.slotColumns ?? null
+			},
 			cnPageSidebarVisible: this.pageSidebarVisible,
 			cnPageSidebarComponent: this.pageSidebarComponent,
 			// Loaded object for a type:"detail" page (reactive holder). See
@@ -198,16 +237,26 @@ export default {
 			 * Bound dispatchAction for the v2 render path. Child widget
 			 * components inject `cnDispatchAction` to dispatch manifest
 			 * actions. Context is pre-bound with this component's
-			 * $router and the injected cnRegistry.
+			 * $router and the injected cnRegistry; a caller may merge
+			 * extra context (e.g. CnWidgetObjectTable passes
+			 * `{ objectStore, source, row }` for `object-op` actions).
+			 * The dispatch result is returned so async `object-op`
+			 * dispatches can be awaited.
 			 *
 			 * @param {object} action The action to dispatch.
+			 * @param {object} [extraContext] Extra context merged over the pre-bound one.
+			 * @return {*} The dispatchAction return value (a promise for object-op).
 			 */
-			cnDispatchAction: (action) => {
-				dispatchAction(action, {
+			cnDispatchAction: (action, extraContext = {}) => {
+				return dispatchAction(action, {
 					router: this.$router ?? null,
 					registry: this.cnRegistry,
 					handlers: this.effectiveManifest?.actions ?? {},
 					openModal: this._cnOpenModal,
+					// `type:"export"` opens the shared CnMassExportDialog this
+					// component mounts (Wave 1, nextcloud-vue#91).
+					openExport: (exportAction) => { this.exportAction = exportAction },
+					...extraContext,
 				})
 			},
 		}
@@ -292,6 +341,8 @@ export default {
 		return {
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
+			// Whether the per-page config modal (edit-mode cog) is open.
+			showConfigModal: false,
 			// Reactive holder for the loaded object of a `type:"detail"`
 			// page. `null` until the async load resolves (and on non-detail
 			// pages). Shape when populated:
@@ -302,10 +353,24 @@ export default {
 			// `file-manager` widgets receive the object with no per-widget
 			// manifest props.
 			detailObjectContext: { value: null },
+			// The `type:"export"` action currently shown in the shared
+			// CnMassExportDialog export launcher (null = dialog closed). Set
+			// by the `openExport` bound into the cnDispatchAction context.
+			exportAction: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the body slot should be editable (ADR-041). Unwraps the
+		 * injected `cnEditingBody`, which CnAppRoot provides as a raw ref.
+		 *
+		 * @return {boolean}
+		 */
+		bodyEditable() {
+			const e = this.cnEditingBody
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
 		/**
 		 * Convenience accessor on the reactive holder so the template
 		 * `v-bind:class` reads a primitive boolean. Vue 2 templates
@@ -314,6 +379,34 @@ export default {
 		 */
 		pageSidebarVisibleValue() {
 			return this.pageSidebarVisible.value !== false
+		},
+		/**
+		 * Entity options for the export launcher, from the active export
+		 * action's `entities[]` (empty hides the picker).
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 */
+		exportDialogEntities() {
+			const entities = this.exportAction && this.exportAction.entities
+			if (!Array.isArray(entities)) return []
+			return entities
+				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
+				.filter((e) => e && e.id)
+		},
+		/**
+		 * Format options for the export launcher, from the active export
+		 * action's `formats[]` (bare ids are lifted to `{id, label}`).
+		 * `undefined` when the action declares none, so the dialog's
+		 * built-in Excel/CSV defaults apply.
+		 *
+		 * @return {Array<{id: string, label: string}>|undefined}
+		 */
+		exportDialogFormats() {
+			const formats = this.exportAction && this.exportAction.formats
+			if (!Array.isArray(formats) || formats.length === 0) return undefined
+			return formats
+				.map((f) => (typeof f === 'string' ? { id: f, label: f.toUpperCase() } : f))
+				.filter((f) => f && f.id)
 		},
 		/** Effective manifest: explicit prop wins over injected value. */
 		effectiveManifest() {
@@ -409,15 +502,63 @@ export default {
 		},
 		/** Page definition matching the current route name, or null. */
 		currentPage() {
-			const manifest = this.effectiveManifest
-			if (!manifest || !Array.isArray(manifest.pages)) {
-				return null
-			}
 			const routeName = this.$route?.name
 			if (!routeName) {
 				return null
 			}
-			return manifest.pages.find((page) => page.id === routeName) ?? null
+			return this.pageById.get(routeName) ?? null
+		},
+		/**
+		 * `Map<pageId, page>` built once per manifest identity (Vue caches this
+		 * computed until `effectiveManifest` changes), replacing per-recompute
+		 * linear `pages.find()` — O(n) per navigation on large manifests
+		 * (shillinq ships 223 pages). 2026-07-06 audit item 10.
+		 */
+		pageById() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (page && typeof page.id === 'string' && !index.has(page.id)) {
+						index.set(page.id, page)
+					}
+				}
+			}
+			return index
+		},
+		/**
+		 * `Map<"register schema", detailPage>` — the first detail page bound to
+		 * each register+schema pair. Backs the index→detail row-click wiring
+		 * without re-scanning all pages per index page and per row click.
+		 * Memoized on `effectiveManifest`.
+		 */
+		detailPageByRegisterSchema() {
+			const pages = this.effectiveManifest?.pages
+			const index = new Map()
+			if (Array.isArray(pages)) {
+				for (const page of pages) {
+					if (!page || page.type !== 'detail') continue
+					const cfg = page.config || {}
+					const key = `${cfg.register} ${cfg.schema}`
+					if (!index.has(key)) index.set(key, page)
+				}
+			}
+			return index
+		},
+		/**
+		 * Remount key for the dispatched page component. Includes the data source
+		 * (register + schema) so changing it in the page-config modal remounts the
+		 * page: the self-fetch composable binds its object type + schema once at
+		 * setup, so without a remount a data-source change would leave the old
+		 * columns, create/edit form, and "Add" label in place.
+		 *
+		 * @return {string} A key of `id:register:schema`.
+		 */
+		pageRenderKey() {
+			const page = this.currentPage
+			if (!page) return 'none'
+			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
 		},
 		/**
 		 * Component to render for the current page. Looked up in
@@ -486,7 +627,10 @@ export default {
 		 */
 		resolvedProps() {
 			const page = this.currentPage
-			const rawConfig = page?.config ?? {}
+			// Normalise to a plain object: an empty `config: {}` round-trips
+			// through PHP/JSON as `[]`, and spreading an array would silently
+			// contribute no config keys (register/schema/columns) to the page.
+			const rawConfig = (page?.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
 			// Clone params — `resolvedProps` MAY add normalised aliases
 			// (e.g. `objectId` for type='detail') and we must not mutate
 			// the live `$route.params` object.
@@ -518,6 +662,15 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
+			// When an index page has a matching detail page (same register +
+			// schema), make a row click open it: set `rowClickToView` so the
+			// row body emits `row-click` (→ onRowOpen navigates) even though the
+			// page is selectable. Selection stays available via the checkbox.
+			// An explicit `config.rowClickToView` still wins (merged below).
+			if (isIndex) {
+				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
+				if (hasDetail) topLevel.rowClickToView = true
+			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
 				const { actionToggles, ...rest } = config
@@ -550,6 +703,24 @@ export default {
 			if (isIndex && normalizedConfig.readOnly === true) {
 				const { readOnly, ...rest } = normalizedConfig
 				return { ...topLevel, ...READ_ONLY_DEFAULTS, ...rest, ...params }
+			}
+			// `config.createOverride` can be declared in the JSON manifest as a
+			// STRING naming an async create handler the consumer registered in
+			// its customComponents registry (functions are valid registry
+			// values). Resolve it to the function so CnIndexPage's per-schema
+			// create-override hook fires from a purely declarative page. A
+			// non-string value (an actual function passed programmatically) is
+			// left untouched. Unresolved names are dropped with a one-shot warn.
+			if (isIndex && typeof normalizedConfig.createOverride === 'string') {
+				const name = normalizedConfig.createOverride
+				const fn = this.resolveCreateOverride(name)
+				const { createOverride, ...rest } = normalizedConfig
+				if (typeof fn === 'function') {
+					normalizedConfig = { ...rest, createOverride: fn }
+				} else {
+					console.warn(`[CnPageRenderer] config.createOverride "${name}" did not resolve to a registered function; dropping it.`)
+					normalizedConfig = rest
+				}
 			}
 			// Precedence (highest wins): route params > config > top-level
 			// page fields. URL truth trumps everything; config trumps
@@ -780,6 +951,67 @@ export default {
 
 	methods: {
 		/**
+		 * Route the export launcher's confirm payload (`{ format, entity? }`)
+		 * to the export action's `handler` (resolved against the manifest
+		 * actions map — the same registry `type:"handler"` actions use). The
+		 * handler does the actual download (e.g. an app's ExportService) and
+		 * its resolved/rejected promise drives the dialog's result phase. A
+		 * missing handler surfaces as a dialog error (never a silent success).
+		 *
+		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
+		 * @return {Promise<void>}
+		 */
+		async onExportConfirm(payload) {
+			const action = this.exportAction
+			const dialog = this.$refs.exportDialog
+			const setResult = (result) => {
+				if (dialog && typeof dialog.setResult === 'function') dialog.setResult(result)
+			}
+			const handlers = this.effectiveManifest?.actions ?? {}
+			const fn = action && action.handler && handlers[action.handler]
+			if (typeof fn !== 'function') {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)
+				setResult({ error: t('nextcloud-vue', 'No export handler is configured') })
+				return
+			}
+			try {
+				await fn(payload, action)
+				setResult({ success: true })
+			} catch (e) {
+				setResult({ error: (e && e.message) || t('nextcloud-vue', 'Export failed') })
+			}
+		},
+
+		/**
+		 * Open a row's detail page. Bound to an index page's `@view` (the
+		 * built-in eye action) and `@row-click`, this is what makes "View"
+		 * navigate for manifest-driven index pages — `CnIndexPage` only emits
+		 * the event, so without this the action is a no-op. Resolves the
+		 * matching `type: 'detail'` page (same `register` + `schema` as the
+		 * current index page) and pushes to it with the row's id as the `:id`
+		 * route param (CnPageRenderer maps `params.id` → `objectId`). No-ops
+		 * when there is no detail page, no router, or no resolvable id.
+		 *
+		 * @param {object} row The clicked / viewed row object.
+		 * @return {void}
+		 */
+		onRowOpen(row) {
+			const page = this.currentPage
+			const router = this.$router
+			if (!page || page.type !== 'index' || !router || !row || typeof row !== 'object') {
+				return
+			}
+			const cfg = page.config || {}
+			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
+			if (!detail) return
+			const self = row['@self'] || {}
+			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
+			if (id === undefined || id === null || id === '') return
+			router.push({ name: detail.id, params: { id: String(id) } }).catch(() => {})
+		},
+
+		/**
 		 * Resolve a custom-component reference (page.component,
 		 * page.headerComponent, page.actionsComponent, page.sidebarComponent,
 		 * slot overrides, etc.) by name. Source precedence (ADR-036):
@@ -822,6 +1054,35 @@ export default {
 			}
 
 			return null
+		},
+
+		/**
+		 * Resolve a named create-override handler for CnIndexPage's
+		 * `createOverride` prop (see `resolvedProps`). Unlike components, a
+		 * create-override is a plain async function, so it is looked up across
+		 * both registries by value shape:
+		 *   1. v2 registry (`cnRegistry`) — a `kind:'create-override'` entry
+		 *      exposing the function as `.handler` (or `.fn`), or a directly
+		 *      function-valued entry.
+		 *   2. legacy customComponents — a function-valued entry.
+		 *
+		 * @param {string} name The registered handler name from `config.createOverride`.
+		 * @return {?Function} The async create handler, or null if unresolved.
+		 */
+		resolveCreateOverride(name) {
+			if (typeof name !== 'string' || name === '') {
+				return null
+			}
+			const entry = this.effectiveRegistry[name]
+			if (typeof entry === 'function') {
+				return entry
+			}
+			if (entry && typeof entry === 'object') {
+				if (typeof entry.handler === 'function') return entry.handler
+				if (typeof entry.fn === 'function') return entry.fn
+			}
+			const legacy = this.effectiveCustomComponents[name]
+			return typeof legacy === 'function' ? legacy : null
 		},
 
 		/**

@@ -23,7 +23,11 @@
  * @module utils/resolveRouteSentinels
  */
 
-const SENTINEL_PATTERN = /^@route\.([A-Za-z][A-Za-z0-9_-]*)$/
+import { ROUTE_TOKEN_RE } from './sentinelTokens.js'
+
+// `@route.<param>` — the route-context token, sourced from the single closed
+// vocabulary (src/utils/sentinelTokens.js) so schema + runtime cannot drift.
+const SENTINEL_PATTERN = ROUTE_TOKEN_RE
 
 /**
  * Per-page set of (pageId, sentinel) warnings already emitted, so a
@@ -61,10 +65,18 @@ function isPlainObject(value) {
 /**
  * Walk `value` recursively, substituting `@route.<param>` strings.
  *
+ * Reference-preserving: a subtree containing no `@route.<param>` sentinel
+ * is returned by IDENTITY, not deep-copied. This matters for the in-place
+ * manifest editor (ADR-041) — `CnPageRenderer` resolves sentinels over
+ * `page.config`, then passes e.g. `config.widgets` to `CnDashboardPage`;
+ * if that array were always cloned, the editor's cog/add edits would mutate
+ * the clone and `diffManifest` would see no change. Only changed paths are
+ * rebuilt; unchanged ones stay pointer-identical to the manifest.
+ *
  * @param {*} value The input value (any depth).
  * @param {object} params The route params map (e.g. `$route.params`).
  * @param {string} pageId Page identifier used for warning dedup.
- * @return {*} A deep-copy of value with sentinels resolved.
+ * @return {*} Value with sentinels resolved; identical reference when unchanged.
  */
 export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 	const safeParams = params && typeof params === 'object' ? params : {}
@@ -90,15 +102,26 @@ export function resolveRouteSentinels(value, params, pageId = '<unknown>') {
 	}
 
 	if (Array.isArray(value)) {
-		return value.map((item) => resolveRouteSentinels(item, safeParams, pageId))
+		let changed = false
+		const out = value.map((item) => {
+			const resolved = resolveRouteSentinels(item, safeParams, pageId)
+			if (resolved !== item) changed = true
+			return resolved
+		})
+		// Preserve the original array reference when no element changed.
+		return changed ? out : value
 	}
 
 	if (isPlainObject(value)) {
+		let changed = false
 		const out = {}
 		for (const [key, val] of Object.entries(value)) {
-			out[key] = resolveRouteSentinels(val, safeParams, pageId)
+			const resolved = resolveRouteSentinels(val, safeParams, pageId)
+			if (resolved !== val) changed = true
+			out[key] = resolved
 		}
-		return out
+		// Preserve the original object reference when no key changed.
+		return changed ? out : value
 	}
 
 	return value

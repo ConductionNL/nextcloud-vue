@@ -509,6 +509,7 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cn-polls-card__chip a {
 	color: var(--color-main-text);
 	text-decoration: none;

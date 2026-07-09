@@ -17,6 +17,57 @@
 	overflow-y: auto;
 }
 
+/* Borderless: drop the card chrome so the table sits flush inside a parent that
+   already provides a card (e.g. a CnWidgetWrapper dashboard slot). Folded in
+   from the retired CnTableWidget. */
+.cn-table-container.cn-table-container--borderless {
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+	margin-bottom: 0;
+}
+
+/* Optional card header + "View all" footer (folded from CnTableWidget). */
+.cn-data-table__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-data-table__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-data-table__count {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	background: var(--color-background-dark);
+	padding: 2px 8px;
+	border-radius: 10px;
+}
+
+.cn-data-table__footer {
+	padding: 8px 16px;
+	border-top: 1px solid var(--color-border);
+	text-align: center;
+}
+
+.cn-data-table__view-all {
+	font-size: 13px;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.cn-data-table__view-all:hover {
+	text-decoration: underline;
+}
+
 /* Base Table */
 .cn-data-table {
 	width: 100%;
@@ -36,6 +87,21 @@
 	background: var(--color-background-dark);
 	font-weight: 500;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Reusable cell utilities — set on a column's `cellClass`. Handy for compact
+   list widgets (name + trailing status) that use `hideHeader`. */
+.cn-data-table td.cn-cell--strong {
+	font-weight: 500;
+}
+
+.cn-data-table td.cn-cell--muted {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-data-table td.cn-cell--end {
+	text-align: right;
+	white-space: nowrap;
 }
 
 .cn-data-table th.cn-table-header--sortable {

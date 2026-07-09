@@ -184,6 +184,10 @@ export default {
 		 * Returns the validated URL, or `null` when the input is empty or
 		 * contains a dangerous scheme (suppresses the iframe render).
 		 *
+		 * `safeHref` rejects `javascript:`, `data:`, `vbscript:`, and
+		 * protocol-relative (`//host`) URLs (C2 defence) and allows only
+		 * same-origin root-relative paths and absolute http(s)/mailto URLs.
+		 *
 		 * @return {string|null}
 		 */
 		safeSrc() {

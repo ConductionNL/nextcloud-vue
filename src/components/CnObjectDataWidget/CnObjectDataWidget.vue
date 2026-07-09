@@ -40,6 +40,15 @@
 		     Refresh / Documentation / Request-a-feature trio. -->
 		<template #action-items>
 			<NcActionButton
+				v-if="editable"
+				:close-after-click="true"
+				@click="editModalOpen = true">
+				<template #icon>
+					<Pencil :size="20" />
+				</template>
+				{{ editLabel }}
+			</NcActionButton>
+			<NcActionButton
 				:close-after-click="true"
 				@click="metadataModalOpen = true">
 				<template #icon>
@@ -134,6 +143,7 @@
 							:options="getMultiselectOptions(field)"
 							:value="getSelectedMultiselectOptions(field)"
 							:multiple="true"
+							:keep-open="true"
 							:clearable="true"
 							@input="onMultiselectChange(field, $event)" />
 
@@ -143,6 +153,7 @@
 							ref="activeEditor"
 							:value="editData[field.key] || []"
 							:multiple="true"
+							:keep-open="true"
 							:taggable="true"
 							:clearable="true"
 							@input="val => updateField(field.key, val)" />
@@ -225,7 +236,10 @@
 						:value="displayValues[field.key]"
 						:raw="objectData[field.key]" />
 					<template v-else>
-						{{ displayValues[field.key] }}
+						<img v-if="isImageField(field) && rawOf(field)"
+							:src="rawOf(field)"
+							:alt="field.label"
+							class="cn-object-data-widget__image"><template v-else>{{ displayValues[field.key] }}</template>
 					</template>
 					<Pencil
 						v-if="isEditable(field)"
@@ -241,6 +255,19 @@
 			v-if="metadataModalOpen"
 			:object-data="objectData"
 			@close="metadataModalOpen = false" />
+
+		<!-- Full-form edit (alongside the per-field inline editing) — schema-driven
+		     dialog pre-filled with the current object; saves via the same path. -->
+		<CnFormDialog
+			v-if="editModalOpen"
+			:schema="schema"
+			:item="objectData"
+			:dialog-title="editLabel"
+			:overrides="overrides"
+			:exclude-fields="exclude"
+			:include-fields="include"
+			@confirm="onEditConfirm"
+			@close="editModalOpen = false" />
 	</CnWidgetWrapper>
 </template>
 
@@ -249,12 +276,15 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcTextField, NcSelect, NcCheckboxRadioSwitch, NcActionButton } from '@nextcloud/vue'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
+import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import { useObjectStore } from '../../store/index.js'
 
 /**
@@ -300,6 +330,7 @@ export default {
 		NcActionButton,
 		CnWidgetWrapper,
 		CnObjectMetadataModal,
+		CnFormDialog,
 		ContentSaveOutline,
 		InformationOutline,
 		Pencil,
@@ -437,12 +468,19 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Metadata'),
 		},
+		/** Label for the Edit action item (opens the full-form edit dialog). */
+		editLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Edit'),
+		},
 	},
 
 	data() {
 		return {
 			/** Whether the read-only metadata modal is open. */
 			metadataModalOpen: false,
+			/** Whether the full-form edit dialog is open. */
+			editModalOpen: false,
 			/** Currently editing field key, or null */
 			editingField: null,
 			/** Working copy of changed field values */
@@ -451,8 +489,12 @@ export default {
 			dirtyFields: {},
 			/** Whether a save is in progress */
 			saving: false,
+			/** Resolved display labels for related-object fields, keyed by field key */
+			relatedLabels: {},
 		}
 	},
+
+	mounted() { this.resolveRelations() },
 
 	computed: {
 		iconComponent() {
@@ -464,51 +506,25 @@ export default {
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
 		resolvedFields() {
-			// Build override map for fieldsFromSchema
-			const fieldOverrides = {}
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				const override = {}
-				if (cfg.label) override.label = cfg.label
-				if (cfg.widget) override.widget = cfg.widget
-				if (typeof cfg.order === 'number') override.order = cfg.order
-				if (cfg.enum) override.enum = cfg.enum
-				if (Object.keys(override).length > 0) {
-					fieldOverrides[key] = override
-				}
-			}
-
-			// Build exclude list: merge prop exclude + hidden overrides
-			const excludeList = [...this.exclude]
-			for (const [key, cfg] of Object.entries(this.overrides)) {
-				if (cfg.hidden === true && !excludeList.includes(key)) {
-					excludeList.push(key)
-				}
-			}
-
+			// The shared pipeline now honours per-key `hidden` (filter) and
+			// `order` (sort) directly, so the overrides map is passed through
+			// verbatim — no bespoke hidden→exclude merge or post-sort needed.
+			// This keeps the data widget and the edit modal (CnFormDialog)
+			// identical-by-construction from one config map.
 			const fields = fieldsFromSchema(this.schema, {
-				exclude: excludeList,
+				exclude: this.exclude,
 				include: this.include,
-				overrides: fieldOverrides,
+				overrides: this.overrides,
 				includeReadOnly: true,
 			})
 
-			// Attach grid span info from overrides
-			const result = fields.map(field => ({
+			// Attach grid span info (a display-only concern, not part of the
+			// shared field pipeline) from the same overrides map.
+			return fields.map(field => ({
 				...field,
 				gridColumn: (this.overrides[field.key] && this.overrides[field.key].gridColumn) || 1,
 				gridRow: (this.overrides[field.key] && this.overrides[field.key].gridRow) || 1,
 			}))
-
-			// Re-sort by order after overrides are applied
-			// (fieldsFromSchema sorts before applying overrides, so order may have changed)
-			result.sort(function(a, b) {
-				const orderA = typeof a.order === 'number' ? a.order : Infinity
-				const orderB = typeof b.order === 'number' ? b.order : Infinity
-				if (orderA !== orderB) return orderA - orderB
-				return a.key.localeCompare(b.key)
-			})
-
-			return result
 		},
 
 		/**
@@ -520,9 +536,9 @@ export default {
 				// Show pending edit value if dirty
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
-					: this.objectData[field.key]
+					: (this.objectData || {})[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
-				values[field.key] = formatValue(raw, prop || {})
+				values[field.key] = (this.isRelationField(prop) && raw != null && raw !== '') ? this.relationLabel(raw) : formatValue(raw, prop || {})
 			}
 			return values
 		},
@@ -556,11 +572,74 @@ export default {
 						this.dirtyFields = rest
 					}
 				}
+				// Resolve relation display names whenever the object changes.
+				this.resolveRelations()
 			},
+		},
+		schema: {
+			handler() { this.resolveRelations() },
 		},
 	},
 
 	methods: {
+		/** Raw (possibly dirty) value for a field. */
+		rawOf(field) {
+			const o = this.objectData || {}
+			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
+		},
+		/** Whether a field should render as an image preview. */
+		isImageField(field) {
+			if (field.widget === 'image') return true
+			const prop = this.schema.properties && this.schema.properties[field.key]
+			const fmt = (prop && (prop.format || prop.contentMediaType)) || ''
+			if (fmt === 'image' || String(fmt).indexOf('image/') === 0) return true
+			return /(^|[._-])(photo|image|avatar|logo|thumb|picture)/i.test(field.key)
+		},
+		/** The x-openregister-relation block for a property (scalar or array), or null. */
+		relationProp(prop) {
+			if (!prop) return null
+			if (prop['x-openregister-relation']) return prop['x-openregister-relation']
+			if (prop.items && prop.items['x-openregister-relation']) return prop.items['x-openregister-relation']
+			return null
+		},
+		/** Whether a property is a relation. */
+		isRelationField(prop) {
+			return this.relationProp(prop) !== null
+		},
+		/** Display label(s) for a relation value, using resolved names. */
+		relationLabel(raw) {
+			const one = (v) => this.relatedLabels[v] || (typeof v === 'string' && v.length > 12 ? (v.slice(0, 8) + '…') : String(v))
+			return Array.isArray(raw) ? raw.map(one).join(', ') : one(raw)
+		},
+		/** Fetch related objects' display names into relatedLabels. */
+		async resolveRelations() {
+			const props = (this.schema && this.schema.properties) || {}
+			for (const key of Object.keys(props)) {
+				const rel = this.relationProp(props[key])
+				if (!rel) continue
+				const parts = String(rel.target || '').split('/')
+				if (parts.length < 2) continue
+				const reg = parts[0]; const sch = parts[1]
+				const raw = (this.objectData || {})[key]
+				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+				for (const id of ids) {
+					if (!id || (id in this.relatedLabels)) continue
+					try {
+						const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
+						const res = await axios.get(url)
+						const d = (res && res.data) ? res.data : {}
+						const obj = (d.results && d.results[0]) ? d.results[0] : d
+						const self = obj['@self'] || {}
+						let name = obj.name || obj.title || obj.displayName
+						if (!name && (obj.firstName || obj.lastName)) name = ((obj.firstName || '') + ' ' + (obj.lastName || '')).trim()
+						if (!name && self.name && self.name !== id) name = self.name
+						this.$set(this.relatedLabels, id, name || id)
+					} catch (e) {
+						this.$set(this.relatedLabels, id, id)
+					}
+				}
+			}
+		},
 		/**
 		 * Check if a field is editable.
 		 * @param {object} field - Resolved field definition from resolvedFields
@@ -572,8 +651,28 @@ export default {
 			if (override && typeof override.editable === 'boolean') {
 				return override.editable
 			}
+			// Conditional immutability: a field declares it becomes read-only when
+			// another field on this object holds a given value (schema
+			// `x-openregister-readonly-when`). Evaluated against the live object —
+			// e.g. a hybrid app's identity fields lock when appType === 'hybrid'.
+			if (this.isReadOnlyByCondition(field)) return false
 			// Schema readOnly
 			return !field.readOnly
+		},
+
+		/**
+		 * Evaluate a field's conditional read-only rule against the object data.
+		 *
+		 * @param {object} field - Resolved field definition (may carry `readOnlyWhen`).
+		 * @return {boolean} True when the condition holds and the field is locked.
+		 */
+		isReadOnlyByCondition(field) {
+			const rule = field.readOnlyWhen
+			if (!rule || !rule.field) return false
+			const current = this.objectData ? this.objectData[rule.field] : undefined
+			if (Array.isArray(rule.in)) return rule.in.includes(current)
+			if ('equals' in rule) return current === rule.equals
+			return false
 		},
 
 		/**
@@ -583,7 +682,7 @@ export default {
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
 				? this.dirtyFields[key]
-				: this.objectData[key]
+				: (this.objectData || {})[key]
 			return val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)
 		},
 
@@ -595,7 +694,7 @@ export default {
 			// Set working value: dirty value > current object value
 			const currentValue = field.key in this.dirtyFields
 				? this.dirtyFields[field.key]
-				: this.objectData[field.key]
+				: (this.objectData || {})[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
 
@@ -624,14 +723,19 @@ export default {
 		},
 
 		/**
-		 * Commit the current inline edit — mark the field as dirty.
+		 * Commit the current inline edit — stage the field as dirty and persist
+		 * it immediately so a click-to-edit confirm saves in one step (matching
+		 * user expectation). The header Save/Discard still work for any remaining
+		 * dirty state (e.g. checkbox edits queued without a per-field confirm).
 		 */
-		commitEdit() {
+		async commitEdit() {
 			if (!this.editingField) return
 
 			const key = this.editingField
 			const newValue = this.editData[key]
 			const originalValue = this.objectData[key]
+
+			this.editingField = null
 
 			// Only mark dirty if actually changed
 			if (newValue !== originalValue) {
@@ -640,9 +744,11 @@ export default {
 				// Remove from dirty if reverted to original
 				const { [key]: _, ...rest } = this.dirtyFields
 				this.dirtyFields = rest
+				return
 			}
 
-			this.editingField = null
+			// Persist immediately (single-step inline save).
+			await this.save()
 		},
 
 		/**
@@ -694,6 +800,39 @@ export default {
 				}
 
 				// Fallback: emit for parent to handle
+				this.$emit('save', mergedData)
+			} finally {
+				this.saving = false
+			}
+		},
+
+		/**
+		 * Persist the full-form edit dialog result, merged onto the current
+		 * object, via the same store path as inline save. Closes on success.
+		 * @param {object} formData The submitted form payload.
+		 * @return {Promise<void>}
+		 */
+		async onEditConfirm(formData) {
+			const mergedData = { ...this.objectData, ...formData }
+			this.saving = true
+			try {
+				if (this.objectType) {
+					const store = this._getObjectStore()
+					if (store) {
+						const result = await store.saveObject(this.objectType, mergedData)
+						if (result) {
+							this.dirtyFields = {}
+							this.editData = {}
+							this.editModalOpen = false
+							this.$emit('saved', result)
+						} else {
+							this.$emit('save-error', store.getError(this.objectType))
+						}
+						return
+					}
+				}
+				// Fallback: emit for parent to persist.
+				this.editModalOpen = false
 				this.$emit('save', mergedData)
 			} finally {
 				this.saving = false
@@ -801,6 +940,13 @@ export default {
 </script>
 
 <style scoped>
+.cn-object-data-widget__image {
+	max-width: 100%;
+	max-height: 160px;
+	border-radius: 8px;
+	object-fit: cover;
+}
+
 .cn-object-data-widget__grid {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
