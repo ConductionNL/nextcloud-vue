@@ -31,7 +31,7 @@
 					v-if="headerActions && headerActions.length"
 					:actions="headerActions"
 					data-testid="cn-dashboard-page-header-actions" />
-				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, mydash, opencatalogi, pipelinq, procest). -->
+				<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
 				<slot name="header-actions" />
 				<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 				<slot name="actions" />

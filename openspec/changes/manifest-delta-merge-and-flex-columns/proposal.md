@@ -28,6 +28,6 @@ This change builds the **shared foundation** both problems need: a stable widget
 ## Impact
 
 - **Code:** `src/utils/` (new `mergeManifestDelta.js`, `diffManifest.js`), `src/composables/useAppManifest.js` + `useRuntimeManifest.js` (opt-in delta path), `src/components/CnWidgetGrid/CnWidgetGrid.vue` (`columns` prop), `src/components/CnPageRenderer` + `CnDetailPage` (resolve & pass `slotColumns`), `src/utils/validateManifest.js` (resolvedColumns bound), `src/schemas/app-manifest-v2.schema.json` (optional `id` on `widgetEntry`).
-- **Consumers:** All five (OpenRegister, OpenCatalogi, Procest, Pipelinq, MyDash) — but only via additive, default-off options; no consumer requires changes. The downstream beneficiary is **OpenBuilt** (separate change).
+- **Consumers:** All five (OpenRegister, OpenCatalogi, Procest, Pipelinq, LaunchPad) — but only via additive, default-off options; no consumer requires changes. The downstream beneficiary is **OpenBuilt** (separate change).
 - **Theming:** None — no new colors or CSS variables; flexible columns reuse existing `--cn-grid-*` custom properties.
 - **Cross-repo:** ADR-036 amendment (hydra) is a prerequisite for accepting the spec; this change references it.

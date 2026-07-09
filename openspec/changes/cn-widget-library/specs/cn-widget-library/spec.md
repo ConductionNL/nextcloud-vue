@@ -102,7 +102,7 @@ The library SHALL export the `CnMenuItemEditor`, `CnTextTableEditor`, and `CnNcW
 
 #### Scenario: Menu form uses the menu item editor
 - **WHEN** `CnMenuWidgetForm` edits a menu's items
-- **THEN** it composes `CnMenuItemEditor` and the resulting `items[]` shape is unchanged from the MyDash original
+- **THEN** it composes `CnMenuItemEditor` and the resulting `items[]` shape is unchanged from the LaunchPad original
 
 #### Scenario: Text form uses the table editor
 - **WHEN** a `text` widget is switched to table mode
@@ -150,7 +150,7 @@ The library SHALL move the four Nextcloud-app-coupled widgets — files (Files),
 
 #### Scenario: nc-widget bridge stays app-agnostic
 - **WHEN** `CnNcWidgetWidget` mounts a Nextcloud Dashboard widget
-- **THEN** it reads the Nextcloud `OCA.Dashboard` global for the native path and the Nextcloud dashboard OCS endpoint for the API path, imports NO MyDash service, and degrades to an empty state when neither is available
+- **THEN** it reads the Nextcloud `OCA.Dashboard` global for the native path and the Nextcloud dashboard OCS endpoint for the API path, imports NO LaunchPad service, and degrades to an empty state when neither is available
 
 ### Requirement: Spend-analytics widget is data-source-decoupled
 
@@ -184,16 +184,16 @@ The library SHALL move the widget style editor and the widget visibility-rules s
 - **WHEN** a catalog widget renders with header and actions in a consuming context
 - **THEN** it uses the library's existing `CnWidgetWrapper` for that chrome and no duplicate wrapper component is added
 
-### Requirement: LaunchPad/MyDash behaviour is preserved as a consumer
+### Requirement: LaunchPad behaviour is preserved as a consumer
 
-The change SHALL preserve MyDash's observable behaviour by having MyDash import the registry, `CnAddWidgetModal`, the widgets, the composable, and the modals from `@conduction/nextcloud-vue` instead of its local copies, supplying its spend-analytics data source via injection, with no breaking change to any existing library widget key.
+The change SHALL preserve LaunchPad's observable behaviour by having LaunchPad import the registry, `CnAddWidgetModal`, the widgets, the composable, and the modals from `@conduction/nextcloud-vue` instead of its local copies, supplying its spend-analytics data source via injection, with no breaking change to any existing library widget key.
 
-#### Scenario: MyDash add-widget flow unchanged
-- **WHEN** MyDash adopts the library exports and a user opens the Add-widget flow, switches type, edits, and saves
-- **THEN** the type picker, validation gate, edit-mode pre-fill, and `submit({type, content})` behave identically to the pre-move MyDash flow
+#### Scenario: LaunchPad add-widget flow unchanged
+- **WHEN** LaunchPad adopts the library exports and a user opens the Add-widget flow, switches type, edits, and saves
+- **THEN** the type picker, validation gate, edit-mode pre-fill, and `submit({type, content})` behave identically to the pre-move LaunchPad flow
 
 #### Scenario: Existing placements keep rendering
-- **WHEN** MyDash renders dashboards holding placements created before the move
+- **WHEN** LaunchPad renders dashboards holding placements created before the move
 - **THEN** every placement renders identically because each widget's `defaultContent` schema is unchanged
 
 #### Scenario: No existing v2 widget key breaks

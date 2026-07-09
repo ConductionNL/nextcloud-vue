@@ -183,7 +183,7 @@ function loadInMemory(input) {
  * merge, sentinel resolution, validation. Implements REQ-JMR-002 of the
  * `json-manifest-renderer` capability. Preserved verbatim for backwards
  * compatibility with all current consumers (OpenRegister, OpenCatalogi,
- * Procest, Pipelinq, MyDash, decidesk, docudesk, larpingapp,
+ * Procest, Pipelinq, LaunchPad, decidesk, docudesk, larpingapp,
  * softwarecatalog).
  *
  * @param {string} appId Nextcloud app ID.
